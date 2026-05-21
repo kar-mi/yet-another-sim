@@ -3,3 +3,7 @@ CLAUDE.md
 
 *.claude/
 *.serena/
+
+node_modules/
+dist/
+.bundle/

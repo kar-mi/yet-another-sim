@@ -1,0 +1,36 @@
+{
+  "name": "Sample Raid",
+  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 20 }] },
+  "duration": 45,
+  "players": [{ "id": "p1", "role": "dps", "spawn": [0, 8] }],
+  "events": [
+    {
+      "t": 4,
+      "name": "Fireball",
+      "telegraph": 3,
+      "damage": 60,
+      "shape": { "kind": "circle", "center": [0, 0], "radius": 9 }
+    },
+    {
+      "t": 11,
+      "name": "Cleave",
+      "telegraph": 3,
+      "damage": 60,
+      "shape": { "kind": "cone", "origin": [0, 0], "direction": [0, 1], "angleDeg": 90, "length": 22 }
+    },
+    {
+      "t": 18,
+      "name": "Crossfire",
+      "telegraph": 4,
+      "damage": 80,
+      "shape": { "kind": "rect", "origin": [0, 0], "direction": [1, 0], "width": 6, "length": 40 }
+    },
+    {
+      "t": 26,
+      "name": "Shockwave",
+      "telegraph": 4,
+      "damage": 100,
+      "shape": { "kind": "donut", "center": [0, 0], "inner": 7, "outer": 30 }
+    }
+  ]
+}
