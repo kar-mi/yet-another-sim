@@ -19,6 +19,11 @@ export type Player = {
   verticalVelocity: number;
   facing: number;
   hp: number;
+  maxHp: number;
+  mp: number;
+  maxMp: number;
+  sprintActive: number;   // seconds remaining on sprint
+  sprintCooldown: number; // seconds remaining on cooldown
   alive: boolean;
 };
 
@@ -57,6 +62,7 @@ export type LogEntry = {
 export type Intent = {
   move: Vec2;
   jump?: boolean;
+  sprint?: boolean;
 };
 
 export type Intents = Record<string, Intent>;

@@ -6,6 +6,8 @@ import { promotePending } from "./timeline";
 export const MOVE_SPEED = 8;
 export const JUMP_SPEED = 9;
 export const GRAVITY = 24;
+export const SPRINT_DURATION = 5;
+export const SPRINT_COOLDOWN = 10;
 
 export function tick(world: World, intents: Intents, dt: number): World {
   const time = world.time + dt;
@@ -21,6 +23,13 @@ export function tick(world: World, intents: Intents, dt: number): World {
       player.verticalVelocity = JUMP_SPEED;
     }
 
+    if (intent?.sprint && player.sprintCooldown <= 0) {
+      player.sprintActive = SPRINT_DURATION;
+      player.sprintCooldown = SPRINT_COOLDOWN;
+    }
+    if (player.sprintCooldown > 0) player.sprintCooldown = Math.max(0, player.sprintCooldown - dt);
+    if (player.sprintActive > 0) player.sprintActive = Math.max(0, player.sprintActive - dt);
+
     if (player.y > 0 || player.verticalVelocity > 0) {
       player.y += player.verticalVelocity * dt;
       player.verticalVelocity -= GRAVITY * dt;
@@ -30,8 +39,9 @@ export function tick(world: World, intents: Intents, dt: number): World {
       }
     }
 
+    const speed = player.sprintActive > 0 ? MOVE_SPEED * 1.5 : MOVE_SPEED;
     if (intent && length(intent.move) > 0) {
-      const newPos = add(player.pos, scale(normalize(intent.move), MOVE_SPEED * dt));
+      const newPos = add(player.pos, scale(normalize(intent.move), speed * dt));
       if (isOnFloor(newPos, world.arena.zones)) {
         player.pos = newPos;
       } else {

@@ -3,6 +3,11 @@ import { normalize } from "../shared/math";
 
 const keys = new Set<string>();
 let jumpPressed = false;
+let sprintPressed = false;
+
+export function pressAction(slot: number): void {
+  if (slot === 0) sprintPressed = true;
+}
 
 export function initInput(): () => void {
   const onKeyDown = (e: KeyboardEvent) => {
@@ -10,6 +15,9 @@ export function initInput(): () => void {
     if (e.code === "Space" && !e.repeat) {
       jumpPressed = true;
       e.preventDefault();
+    }
+    if (e.code === "Digit1" && !e.repeat) {
+      sprintPressed = true;
     }
   };
   const onKeyUp = (e: KeyboardEvent) => keys.delete(e.code);
@@ -24,16 +32,19 @@ export function initInput(): () => void {
 export function getIntent(cameraYaw: number): Intent {
   const jump = jumpPressed;
   jumpPressed = false;
+  const sprint = sprintPressed;
+  sprintPressed = false;
+
   let x = 0, z = 0;
   if (keys.has("KeyW") || keys.has("ArrowUp")) z += 1;
   if (keys.has("KeyS") || keys.has("ArrowDown")) z -= 1;
   if (keys.has("KeyA") || keys.has("ArrowLeft")) x -= 1;
   if (keys.has("KeyD") || keys.has("ArrowRight")) x += 1;
 
-  if (x === 0 && z === 0) return { move: { x: 0, z: 0 }, jump };
+  if (x === 0 && z === 0) return { move: { x: 0, z: 0 }, jump, sprint };
 
   // Rotate input by camera yaw so WASD is camera-relative
   const cos = Math.cos(cameraYaw);
   const sin = Math.sin(cameraYaw);
-  return { move: normalize({ x: x * cos + z * sin, z: -x * sin + z * cos }), jump };
+  return { move: normalize({ x: x * cos + z * sin, z: -x * sin + z * cos }), jump, sprint };
 }

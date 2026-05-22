@@ -4,50 +4,39 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Yet Another Sim</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #0a0a0f; overflow: hidden; }
-    #canvas { width: 100vw; height: 100vh; display: block; touch-action: none; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./src/client/style.css">
 </head>
 <body>
   <canvas id="canvas"></canvas>
 
-  <button id="settings-btn" style="
-    position:fixed;top:12px;right:12px;z-index:10;
-    background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);
-    color:white;font-size:20px;width:36px;height:36px;
-    border-radius:6px;cursor:pointer;line-height:1;
-  ">⚙</button>
+  <button id="settings-btn">⚙</button>
 
-  <div id="settings-panel" style="
-    display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-    z-index:20;background:#1a1a2e;border:1px solid rgba(255,255,255,0.2);
-    border-radius:10px;padding:24px 32px;color:white;font-family:monospace;
-    min-width:300px;
-  ">
-    <h2 style="margin-bottom:20px;font-size:16px;letter-spacing:1px;">SETTINGS</h2>
+  <div id="settings-panel">
+    <h2>SETTINGS</h2>
 
-    <label style="display:block;margin-bottom:16px;">
-      <div style="margin-bottom:6px;">Mouse Sensitivity: <span id="sensitivity-val">1.0</span></div>
-      <input id="sensitivity-slider" type="range" min="0.1" max="2" step="0.1" value="1"
-        style="width:100%;accent-color:#7f9fff;">
-    </label>
-
-    <div style="margin-bottom:20px;">
-      <div style="margin-bottom:8px;">Pan Button:</div>
-      <label style="margin-right:20px;cursor:pointer;">
-        <input type="radio" name="panBtn" value="left"> Left Click
-      </label>
-      <label style="cursor:pointer;">
-        <input type="radio" name="panBtn" value="right"> Right Click
-      </label>
+    <div class="settings-field">
+      <div class="settings-label">MOUSE SENSITIVITY: <span id="sensitivity-val" class="settings-value">1.0</span></div>
+      <input id="sensitivity-slider" type="range" min="0.1" max="2" step="0.1" value="1">
     </div>
 
-    <button id="settings-close" style="
-      background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);
-      color:white;padding:6px 16px;border-radius:4px;cursor:pointer;font-family:monospace;
-    ">Close</button>
+    <div class="settings-field">
+      <div class="settings-label">PAN BUTTON</div>
+      <div class="settings-radio-group">
+        <label class="settings-radio-option">
+          <input type="radio" name="panBtn" value="left"> LEFT CLICK
+        </label>
+        <label class="settings-radio-option">
+          <input type="radio" name="panBtn" value="right"> RIGHT CLICK
+        </label>
+      </div>
+    </div>
+
+    <div class="settings-footer">
+      <button id="settings-close">CLOSE</button>
+    </div>
   </div>
 
   <script type="module" src="./src/client/main.ts"></script>
