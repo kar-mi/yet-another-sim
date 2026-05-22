@@ -23,6 +23,8 @@ export class BabylonRenderer implements Renderer {
 
   init(world: World, sessionId: string): void {
     this.engine = new Engine(this.canvas, true);
+    // Babylon v9's WebGL2 UBO path can leave simple StandardMaterial draws unbound here.
+    this.engine.disableUniformBuffers = true;
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.05, 0.05, 0.1, 1);
 

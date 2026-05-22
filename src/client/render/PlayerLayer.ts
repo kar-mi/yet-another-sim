@@ -12,12 +12,22 @@ export class PlayerLayer {
 
   init(players: Player[]): void {
     for (const player of players) {
-      const mesh = MeshBuilder.CreateCapsule(`player-${player.id}`, { radius: PLAYER_RADIUS, height: PLAYER_HEIGHT }, this.scene);
+      const mesh = MeshBuilder.CreateCapsule(`player-${player.id}`, {
+        radius: PLAYER_RADIUS,
+        height: PLAYER_HEIGHT,
+        subdivisions: 2,
+        tessellation: 16,
+        capSubdivisions: 6,
+      }, this.scene);
       const mat = new StandardMaterial(`pmat-${player.id}`, this.scene);
-      mat.diffuseColor =
+      const color =
         player.role === "tank" ? new Color3(0.3, 0.5, 1) :
         player.role === "healer" ? new Color3(0.3, 1, 0.5) :
         new Color3(1, 0.4, 0.4);
+      mat.diffuseColor = color;
+      mat.emissiveColor = color.scale(0.25);
+      mat.backFaceCulling = false;
+      mat.twoSidedLighting = true;
       mat.specularColor = new Color3(0.05, 0.05, 0.05);
       mesh.material = mat;
       mesh.position.set(player.pos.x, PLAYER_CENTER_Y + player.y, player.pos.z);
