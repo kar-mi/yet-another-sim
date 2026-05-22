@@ -15,6 +15,8 @@ export type Player = {
   id: string;
   role: Role;
   pos: Vec2;
+  y: number;
+  verticalVelocity: number;
   facing: number;
   hp: number;
   alive: boolean;
@@ -54,6 +56,7 @@ export type LogEntry = {
 
 export type Intent = {
   move: Vec2;
+  jump?: boolean;
 };
 
 export type Intents = Record<string, Intent>;

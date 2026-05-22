@@ -4,24 +4,43 @@ import { pointInShape, isOnFloor } from "./shapes";
 import { promotePending } from "./timeline";
 
 export const MOVE_SPEED = 8;
+export const JUMP_SPEED = 9;
+export const GRAVITY = 24;
 
 export function tick(world: World, intents: Intents, dt: number): World {
   const time = world.time + dt;
   const players = world.players.map(p => ({ ...p }));
   const log: LogEntry[] = world.log.slice();
 
-  // 1. Apply movement
+  // 1. Apply player movement
   for (const player of players) {
     if (!player.alive) continue;
     const intent = intents[player.id];
-    if (!intent || length(intent.move) === 0) continue;
-    const newPos = add(player.pos, scale(normalize(intent.move), MOVE_SPEED * dt));
-    if (isOnFloor(newPos, world.arena.zones)) {
-      player.pos = newPos;
-    } else {
-      player.hp = 0;
-      player.alive = false;
-      log.push({ t: time, mechanic: "arena", playerId: player.id, event: "fell" });
+
+    if (intent?.jump && player.y === 0) {
+      player.verticalVelocity = JUMP_SPEED;
+    }
+
+    if (player.y > 0 || player.verticalVelocity > 0) {
+      player.y += player.verticalVelocity * dt;
+      player.verticalVelocity -= GRAVITY * dt;
+      if (player.y <= 0) {
+        player.y = 0;
+        player.verticalVelocity = 0;
+      }
+    }
+
+    if (intent && length(intent.move) > 0) {
+      const newPos = add(player.pos, scale(normalize(intent.move), MOVE_SPEED * dt));
+      if (isOnFloor(newPos, world.arena.zones)) {
+        player.pos = newPos;
+      } else {
+        player.hp = 0;
+        player.alive = false;
+        player.y = 0;
+        player.verticalVelocity = 0;
+        log.push({ t: time, mechanic: "arena", playerId: player.id, event: "fell" });
+      }
     }
   }
 

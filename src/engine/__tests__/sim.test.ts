@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { tick } from "../sim";
 import { createWorld } from "../world";
 import { loadRaid } from "../raidLoader";
+import type { Intents } from "../../shared/types";
 
 const baseRaid = {
   name: "Test",
@@ -17,7 +18,7 @@ const baseRaid = {
   }[],
 };
 
-function runTicks(world: ReturnType<typeof createWorld>, intents: ReturnType<typeof createWorld>["players"] extends never ? never : Record<string, { move: { x: number; z: number } }>, count: number) {
+function runTicks(world: ReturnType<typeof createWorld>, intents: Intents, count: number) {
   let w = world;
   for (let i = 0; i < count; i++) w = tick(w, intents, 1 / 60);
   return w;
@@ -98,4 +99,31 @@ test("player falls and dies when walking off arena", () => {
   expect(world.players[0].alive).toBe(false);
   const fellEntries = world.log.filter(e => e.event === "fell");
   expect(fellEntries.length).toBeGreaterThan(0);
+});
+
+test("player jumps and lands back on the ground", () => {
+  const raid = loadRaid(baseRaid);
+  let world = createWorld(raid);
+
+  world = tick(world, { p1: { move: { x: 0, z: 0 }, jump: true } }, 1 / 60);
+  expect(world.players[0].y).toBeGreaterThan(0);
+  expect(world.players[0].verticalVelocity).toBeGreaterThan(0);
+
+  world = runTicks(world, { p1: { move: { x: 0, z: 0 } } }, 60);
+  expect(world.players[0].y).toBe(0);
+  expect(world.players[0].verticalVelocity).toBe(0);
+});
+
+test("jumping does not avoid ground-targeted mechanics", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{ t: 0.1, name: "GroundAOE", telegraph: 0.01, damage: 50, shape: { kind: "circle", center: [0, 0], radius: 10 } }],
+  });
+  let world = createWorld(raid);
+
+  world = tick(world, { p1: { move: { x: 0, z: 0 }, jump: true } }, 1 / 60);
+  world = runTicks(world, { p1: { move: { x: 0, z: 0 } } }, Math.ceil(0.2 * 60));
+
+  expect(world.players[0].y).toBeGreaterThan(0);
+  expect(world.players[0].hp).toBeLessThan(100);
 });

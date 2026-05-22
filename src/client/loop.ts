@@ -17,11 +17,10 @@ export function startLoop(world: World, renderer: Renderer, playerId: string): (
     accumulator += elapsed;
 
     const cameraYaw = renderer.getCameraYaw();
-    const intent = getIntent(cameraYaw);
-    const intents: Intents = { [playerId]: intent };
-
     while (accumulator >= DT) {
       if (current.status === "running") {
+        const intent = getIntent(cameraYaw);
+        const intents: Intents = { [playerId]: intent };
         current = tick(current, intents, DT);
       }
       accumulator -= DT;

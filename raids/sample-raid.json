@@ -1,6 +1,6 @@
 {
   "name": "Sample Raid",
-  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 40 }] },
+  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 38 }] },
   "duration": 45,
   "players": [{ "id": "p1", "role": "dps", "spawn": [0, 8] }],
   "events": [

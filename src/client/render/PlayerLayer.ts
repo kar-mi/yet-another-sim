@@ -1,6 +1,10 @@
 import { Color3, Mesh, MeshBuilder, Scene, StandardMaterial } from "@babylonjs/core";
 import type { Player } from "../../shared/types";
 
+const PLAYER_RADIUS = 0.6;
+const PLAYER_HEIGHT = 2.4;
+const PLAYER_CENTER_Y = PLAYER_HEIGHT / 2;
+
 export class PlayerLayer {
   private meshes = new Map<string, Mesh>();
 
@@ -8,7 +12,7 @@ export class PlayerLayer {
 
   init(players: Player[]): void {
     for (const player of players) {
-      const mesh = MeshBuilder.CreateCapsule(`player-${player.id}`, { radius: 0.5, height: 2 }, this.scene);
+      const mesh = MeshBuilder.CreateCapsule(`player-${player.id}`, { radius: PLAYER_RADIUS, height: PLAYER_HEIGHT }, this.scene);
       const mat = new StandardMaterial(`pmat-${player.id}`, this.scene);
       mat.diffuseColor =
         player.role === "tank" ? new Color3(0.3, 0.5, 1) :
@@ -16,7 +20,7 @@ export class PlayerLayer {
         new Color3(1, 0.4, 0.4);
       mat.specularColor = new Color3(0.05, 0.05, 0.05);
       mesh.material = mat;
-      mesh.position.set(player.pos.x, 1, player.pos.z);
+      mesh.position.set(player.pos.x, PLAYER_CENTER_Y + player.y, player.pos.z);
       this.meshes.set(player.id, mesh);
     }
   }
@@ -26,6 +30,7 @@ export class PlayerLayer {
       const mesh = this.meshes.get(player.id);
       if (!mesh) continue;
       mesh.position.x = player.pos.x;
+      mesh.position.y = PLAYER_CENTER_Y + player.y;
       mesh.position.z = player.pos.z;
       mesh.isVisible = player.alive;
     }

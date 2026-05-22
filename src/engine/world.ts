@@ -30,6 +30,8 @@ export function createWorld(raid: RaidDef): World {
     id: p.id,
     role: p.role,
     pos: toVec2(p.spawn),
+    y: 0,
+    verticalVelocity: 0,
     facing: 0,
     hp: 100,
     alive: true,

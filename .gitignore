@@ -2,6 +2,7 @@ AGENTS.md
 CLAUDE.md
 
 *.claude/
+*.codex/
 *.serena/
 
 node_modules/
