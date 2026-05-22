@@ -157,6 +157,107 @@ body {
   color: rgba(212, 168, 67, 0.85);
 }
 
+/* ===== SETTINGS TABS ===== */
+.settings-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(100, 115, 175, 0.15);
+  padding-bottom: 0;
+}
+
+.settings-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: rgba(175, 185, 215, 0.45);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  padding: 6px 14px 8px;
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color 0.1s, border-color 0.1s;
+}
+
+.settings-tab:hover {
+  color: rgba(195, 205, 225, 0.75);
+}
+
+.settings-tab.active {
+  color: rgba(212, 168, 67, 0.9);
+  border-bottom-color: rgba(212, 168, 67, 0.65);
+}
+
+/* ===== KEYBIND ROWS ===== */
+.keybind-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(100, 115, 175, 0.08);
+}
+
+.keybind-row:last-child {
+  border-bottom: none;
+}
+
+.keybind-label {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: rgba(175, 185, 215, 0.55);
+}
+
+.keybind-btn {
+  background: rgba(10, 12, 28, 0.9);
+  border: 1px solid rgba(85, 95, 145, 0.3);
+  color: rgba(212, 220, 245, 0.85);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 4px 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  min-width: 60px;
+  text-align: center;
+  transition: border-color 0.1s, color 0.1s, box-shadow 0.1s;
+}
+
+.keybind-btn:hover {
+  border-color: rgba(160, 140, 75, 0.45);
+  color: rgba(212, 168, 67, 0.85);
+}
+
+@keyframes keybind-pulse {
+  0%, 100% { border-color: rgba(212, 168, 67, 0.5); box-shadow: 0 0 6px rgba(212, 168, 67, 0.2); }
+  50%       { border-color: rgba(212, 168, 67, 0.9); box-shadow: 0 0 12px rgba(212, 168, 67, 0.45); }
+}
+
+.keybind-listening {
+  animation: keybind-pulse 0.7s ease infinite;
+  color: rgba(212, 168, 67, 0.9) !important;
+}
+
+#reset-keybinds {
+  width: 100%;
+  margin-top: 14px;
+  background: rgba(10, 12, 28, 0.9);
+  border: 1px solid rgba(85, 95, 145, 0.25);
+  color: rgba(175, 185, 215, 0.65);
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  transition: border-color 0.1s, color 0.1s;
+}
+
+#reset-keybinds:hover {
+  border-color: rgba(160, 140, 75, 0.45);
+  color: rgba(212, 168, 67, 0.85);
+}
+
 /* ===== HUD ===== */
 #yas-hud {
   position: fixed;

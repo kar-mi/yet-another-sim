@@ -27,7 +27,8 @@ export class BabylonRenderer implements Renderer {
     this.scene.clearColor = new Color4(0.05, 0.05, 0.1, 1);
 
     this.camera = new ArcRotateCamera("cam", -Math.PI / 2, Math.PI / 3, 45, Vector3.Zero(), this.scene);
-    this.camera.attachControl(this.canvas, true);
+    // Disable Babylon's right-click panning so the configured mouse button always orbits.
+    this.camera.attachControl(true, false, -1);
     this.camera.lowerRadiusLimit = 10;
     this.camera.upperRadiusLimit = 40;
     this.camera.upperBetaLimit = Math.PI / 2 - 0.05;
@@ -63,8 +64,9 @@ export class BabylonRenderer implements Renderer {
     const sens = 2000 / s.mouseSensitivity;
     this.camera.angularSensibilityX = sens;
     this.camera.angularSensibilityY = sens;
-    const mouseInput = (this.camera.inputs.attached as any).mouse;
+    const mouseInput = (this.camera.inputs.attached as any).pointers;
     if (mouseInput) mouseInput.buttons = s.panButton === "right" ? [2] : [0];
+    this.hud.applySettings(s);
   }
 
   getCameraYaw(): number {

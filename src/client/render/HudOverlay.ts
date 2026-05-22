@@ -1,6 +1,8 @@
 import type { World } from "../../shared/types";
 import { pressAction } from "../input";
 import { SPRINT_COOLDOWN } from "../../engine/sim";
+import { keyLabel } from "../settings";
+import type { Settings } from "../settings";
 
 export class HudOverlay {
   private root: HTMLDivElement;
@@ -10,6 +12,7 @@ export class HudOverlay {
   private hpVal: HTMLSpanElement;
   private mpVal: HTMLSpanElement;
   private sprintSlot: HTMLDivElement;
+  private sprintKeybind: HTMLSpanElement;
   private sprintCdOverlay: HTMLDivElement;
   private sprintCdText: HTMLDivElement;
   private prevSprintCooldown = 0;
@@ -23,6 +26,7 @@ export class HudOverlay {
     this.hpVal = this.root.querySelector<HTMLSpanElement>("[data-hp-val]")!;
     this.mpVal = this.root.querySelector<HTMLSpanElement>("[data-mp-val]")!;
     this.sprintSlot = this.root.querySelector<HTMLDivElement>("[data-slot='0']")!;
+    this.sprintKeybind = this.sprintSlot.querySelector<HTMLSpanElement>(".yas-keybind")!;
     this.sprintCdOverlay = this.root.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
     this.sprintCdText = this.root.querySelector<HTMLDivElement>(".yas-cd-text")!;
 
@@ -37,19 +41,18 @@ export class HudOverlay {
     const root = document.createElement("div");
     root.id = "yas-hud";
 
-    const keys = ["1","2","3","4","5","6","7","8","9","0"];
-    const slots = keys.map((key, i) => {
+    const slots = Array.from({ length: 10 }, (_, i) => {
       if (i === 0) {
         return `
           <div class="yas-slot" data-slot="0">
-            <span class="yas-keybind">${key}</span>
+            <span class="yas-keybind"></span>
             <span class="yas-slot-icon">⚡</span>
             <span class="yas-slot-name">SPRINT</span>
             <div class="yas-cd-overlay"></div>
             <div class="yas-cd-text"></div>
           </div>`;
       }
-      return `<div class="yas-slot" data-slot="${i}"><span class="yas-keybind">${key}</span></div>`;
+      return `<div class="yas-slot" data-slot="${i}"><span class="yas-keybind"></span></div>`;
     }).join("");
 
     root.innerHTML = `
@@ -74,6 +77,10 @@ export class HudOverlay {
       </div>
     `;
     return root;
+  }
+
+  applySettings(settings: Settings): void {
+    this.sprintKeybind.textContent = keyLabel(settings.keyBindings.sprint);
   }
 
   private bindEvents(): void {
