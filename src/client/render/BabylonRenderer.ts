@@ -6,6 +6,7 @@ import type { Renderer } from "./Renderer";
 import type { World, ZoneShape, ActiveMechanic } from "../../shared/types";
 import type { Vec2 } from "../../shared/math";
 import { normalize } from "../../shared/math";
+import type { Settings } from "../settings";
 
 export class BabylonRenderer implements Renderer {
   private engine!: Engine;
@@ -26,8 +27,9 @@ export class BabylonRenderer implements Renderer {
     this.camera = new ArcRotateCamera("cam", -Math.PI / 2, Math.PI / 3, 45, Vector3.Zero(), this.scene);
     this.camera.attachControl(this.canvas, true);
     this.camera.lowerRadiusLimit = 10;
-    this.camera.upperRadiusLimit = 80;
+    this.camera.upperRadiusLimit = 40;
     this.camera.upperBetaLimit = Math.PI / 2 - 0.05;
+    this.canvas.addEventListener("contextmenu", e => e.preventDefault());
 
     new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
 
@@ -202,6 +204,14 @@ export class BabylonRenderer implements Renderer {
     mat.backFaceCulling = false;
     mesh.material = mat;
     return mesh;
+  }
+
+  applySettings(s: Settings): void {
+    const sens = 2000 / s.mouseSensitivity;
+    this.camera.angularSensibilityX = sens;
+    this.camera.angularSensibilityY = sens;
+    const mouseInput = (this.camera.inputs.attached as any).mouse;
+    if (mouseInput) mouseInput.buttons = s.panButton === "right" ? [2] : [0];
   }
 
   getCameraYaw(): number {
