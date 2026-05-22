@@ -5,12 +5,15 @@ import { initInput, setKeyBindings } from "./input";
 import { startLoop } from "./loop";
 import { DEFAULT_BINDINGS, keyLabel, loadSettings, saveSettings } from "./settings";
 import type { KeyBindings } from "./settings";
+import { showMainMenu } from "./MainMenu";
 
 async function main(): Promise<void> {
   const canvas = document.getElementById("canvas") as HTMLCanvasElement | null;
   if (!canvas) throw new Error("#canvas not found");
 
-  const res = await fetch("/raids/sample-raid.json");
+  const { raidId, sessionId } = await showMainMenu();
+
+  const res = await fetch(`/raids/${raidId}.json`);
   if (!res.ok) throw new Error(`Failed to load raid: ${res.status}`);
   const json: unknown = await res.json();
 
@@ -18,7 +21,7 @@ async function main(): Promise<void> {
   const world = createWorld(raid);
 
   const renderer = new BabylonRenderer(canvas);
-  renderer.init(world);
+  renderer.init(world, sessionId);
 
   const settings = loadSettings();
   renderer.applySettings(settings);

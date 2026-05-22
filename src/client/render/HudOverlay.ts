@@ -16,8 +16,9 @@ export class HudOverlay {
   private sprintCdOverlay: HTMLDivElement;
   private sprintCdText: HTMLDivElement;
   private prevSprintCooldown = 0;
+  private sessionEl: HTMLDivElement;
 
-  constructor() {
+  constructor(sessionId: string) {
     this.root = this.buildHud();
     document.body.appendChild(this.root);
 
@@ -33,6 +34,17 @@ export class HudOverlay {
     this.statusEl = document.createElement("div");
     this.statusEl.id = "yas-status";
     document.body.appendChild(this.statusEl);
+
+    this.sessionEl = document.createElement("div");
+    this.sessionEl.id = "yas-session-id";
+    const sessionLabel = document.createElement("span");
+    sessionLabel.className = "yas-session-label";
+    sessionLabel.textContent = "SESSION";
+    const sessionVal = document.createElement("span");
+    sessionVal.className = "yas-session-val";
+    sessionVal.textContent = sessionId;
+    this.sessionEl.append(sessionLabel, sessionVal);
+    document.body.appendChild(this.sessionEl);
 
     this.bindEvents();
   }
@@ -155,5 +167,6 @@ export class HudOverlay {
   dispose(): void {
     this.root.remove();
     this.statusEl.remove();
+    this.sessionEl.remove();
   }
 }

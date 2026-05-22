@@ -1,0 +1,43 @@
+{
+  "name": "Sample Raid II",
+  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 38 }] },
+  "duration": 50,
+  "players": [{ "id": "p1", "role": "tank", "spawn": [0, -8] }],
+  "events": [
+    {
+      "t": 5,
+      "name": "Eruption",
+      "telegraph": 3,
+      "damage": 70,
+      "shape": { "kind": "circle", "center": [10, 10], "radius": 8 }
+    },
+    {
+      "t": 13,
+      "name": "Back Cleave",
+      "telegraph": 3,
+      "damage": 65,
+      "shape": { "kind": "cone", "origin": [0, 0], "direction": [0, -1], "angleDeg": 100, "length": 24 }
+    },
+    {
+      "t": 21,
+      "name": "Laser",
+      "telegraph": 4,
+      "damage": 85,
+      "shape": { "kind": "rect", "origin": [0, 0], "direction": [0, 1], "width": 6, "length": 40 }
+    },
+    {
+      "t": 30,
+      "name": "Ring Blast",
+      "telegraph": 4,
+      "damage": 100,
+      "shape": { "kind": "donut", "center": [0, 0], "inner": 5, "outer": 22 }
+    },
+    {
+      "t": 40,
+      "name": "Pillars",
+      "telegraph": 3,
+      "damage": 90,
+      "shape": { "kind": "circle", "center": [-12, -12], "radius": 10 }
+    }
+  ]
+}

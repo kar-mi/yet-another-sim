@@ -21,7 +21,7 @@ export class BabylonRenderer implements Renderer {
 
   constructor(private canvas: HTMLCanvasElement) {}
 
-  init(world: World): void {
+  init(world: World, sessionId: string): void {
     this.engine = new Engine(this.canvas, true);
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.05, 0.05, 0.1, 1);
@@ -43,7 +43,7 @@ export class BabylonRenderer implements Renderer {
     this.players = new PlayerLayer(this.scene);
     this.players.init(world.players);
     this.telegraphs = new TelegraphLayer(this.scene);
-    this.hud = new HudOverlay();
+    this.hud = new HudOverlay(sessionId);
 
     this.engine.runRenderLoop(() => this.scene.render());
     this.onResize = () => this.engine.resize();

@@ -471,6 +471,152 @@ body {
   animation: yas-ready-pulse 0.55s ease 2 forwards;
 }
 
+/* ===== MAIN MENU ===== */
+#yas-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 5, 14, 0.97);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.yas-menu-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 42px 52px 38px;
+  background: rgba(6, 7, 18, 0.98);
+  border: 1px solid rgba(100, 115, 175, 0.22);
+  border-radius: 6px;
+  min-width: 380px;
+  box-shadow: 0 0 60px rgba(80, 100, 200, 0.08);
+}
+
+.yas-menu-title {
+  font-size: 22px;
+  letter-spacing: 6px;
+  color: rgba(212, 168, 67, 0.92);
+  text-shadow: 0 0 20px rgba(212, 168, 67, 0.25);
+  margin-bottom: 6px;
+}
+
+.yas-menu-subtitle {
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: rgba(175, 185, 215, 0.38);
+  margin-bottom: 32px;
+}
+
+.yas-menu-raids {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin-bottom: 28px;
+}
+
+.yas-menu-raid-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: rgba(195, 205, 225, 0.6);
+  padding: 10px 16px;
+  background: rgba(10, 12, 28, 0.8);
+  border: 1px solid rgba(85, 95, 145, 0.2);
+  border-radius: 3px;
+  transition: border-color 0.12s, color 0.12s;
+  user-select: none;
+}
+
+.yas-menu-raid-option:has(input:checked) {
+  border-color: rgba(212, 168, 67, 0.5);
+  color: rgba(212, 168, 67, 0.92);
+  background: rgba(212, 168, 67, 0.04);
+}
+
+.yas-menu-raid-option input[type="radio"] {
+  accent-color: rgba(212, 168, 67, 0.85);
+  flex-shrink: 0;
+}
+
+.yas-menu-session {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 28px;
+  width: 100%;
+  padding: 10px 0;
+  border-top: 1px solid rgba(100, 115, 175, 0.1);
+  border-bottom: 1px solid rgba(100, 115, 175, 0.1);
+}
+
+.yas-menu-session-label {
+  font-size: 8px;
+  letter-spacing: 2.5px;
+  color: rgba(175, 185, 215, 0.3);
+}
+
+.yas-menu-session-id {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: rgba(175, 185, 215, 0.45);
+}
+
+.yas-menu-start {
+  background: rgba(10, 12, 28, 0.9);
+  border: 1px solid rgba(212, 168, 67, 0.35);
+  color: rgba(212, 168, 67, 0.85);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 3px;
+  padding: 10px 40px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
+}
+
+.yas-menu-start:hover {
+  border-color: rgba(212, 168, 67, 0.75);
+  color: rgba(212, 168, 67, 1);
+  box-shadow: 0 0 16px rgba(212, 168, 67, 0.12);
+}
+
+/* ===== SESSION ID BADGE ===== */
+#yas-session-id {
+  position: fixed;
+  top: 54px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.yas-session-label {
+  font-size: 7px;
+  letter-spacing: 2px;
+  color: rgba(175, 185, 215, 0.25);
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.yas-session-val {
+  font-size: 8px;
+  letter-spacing: 0.3px;
+  color: rgba(175, 185, 215, 0.3);
+  font-family: 'Share Tech Mono', monospace;
+}
+
 /* ===== STATUS OVERLAY ===== */
 #yas-status {
   position: fixed;

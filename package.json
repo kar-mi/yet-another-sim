@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "bun --watch server/server.ts",
-    "build": "bun build ./index.html --outdir dist && bun scripts/copy-raids.ts",
+    "build": "bun build ./index.html --outdir .bundle",
+    "start": "bun server/server.ts",
     "typecheck": "bunx tsc --noEmit",
     "test": "bun test"
   },
