@@ -38,6 +38,7 @@ async function loadRaidEntries(): Promise<RaidEntry[]> {
   const raids: RaidEntry[] = [];
 
   for (const file of files) {
+    if (file.endsWith("-bots.json")) continue;
     if (raids.length >= MAX_RAIDS) break;
 
     const id = raidIdFromFile(file);

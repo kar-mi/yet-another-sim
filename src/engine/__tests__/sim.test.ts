@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
+import { computeBotIntents } from "../botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
-import { loadRaid } from "../raidLoader";
+import { applyBotPatterns, loadBotPatterns, loadRaid } from "../raidLoader";
 import type { Intents } from "../../shared/types";
 
 const baseRaid = {
@@ -24,6 +25,14 @@ function runTicks(world: ReturnType<typeof createWorld>, intents: Intents, count
   return w;
 }
 
+function runTicksWithBotIntents(world: ReturnType<typeof createWorld>, count: number) {
+  let w = world;
+  for (let i = 0; i < count; i++) {
+    w = tick(w, { ...computeBotIntents(w, 1 / 60), p1: { move: { x: 0, z: 0 } } }, 1 / 60);
+  }
+  return w;
+}
+
 test("tick is deterministic", () => {
   const raid = loadRaid(baseRaid);
   const intents = { p1: { move: { x: 0.3, z: 0.7 } } };
@@ -36,6 +45,85 @@ test("tick is deterministic", () => {
   }
 
   expect(JSON.stringify(w1)).toBe(JSON.stringify(w2));
+});
+
+test("bot intents are deterministic", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: [
+      { id: "p1", role: "dps" as const, control: "human" as const, spawn: [0, 15] as [number, number] },
+      {
+        id: "p2",
+        role: "tank" as const,
+        control: "bot" as const,
+        spawn: [0, 0] as [number, number],
+        pattern: [
+          { t: 0, pos: [10, 0] as [number, number] },
+          { t: 1, pos: [10, 10] as [number, number] },
+        ],
+      },
+    ],
+  });
+
+  let w1 = createWorld(raid);
+  let w2 = createWorld(raid);
+  for (let i = 0; i < 200; i++) {
+    w1 = tick(w1, { ...computeBotIntents(w1, 1 / 60), p1: { move: { x: 0, z: 0 } } }, 1 / 60);
+    w2 = tick(w2, { ...computeBotIntents(w2, 1 / 60), p1: { move: { x: 0, z: 0 } } }, 1 / 60);
+  }
+
+  expect(JSON.stringify(w1)).toBe(JSON.stringify(w2));
+});
+
+test("bot patterns can be loaded from a companion definition", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: [
+      { id: "p1", role: "dps" as const, control: "human" as const, spawn: [0, 15] as [number, number] },
+      { id: "p2", role: "tank" as const, control: "bot" as const, spawn: [0, 0] as [number, number] },
+    ],
+  });
+  const botPatterns = loadBotPatterns({
+    players: {
+      p2: [{ t: 0, pos: [8, 0] }],
+    },
+  });
+  const world = createWorld(applyBotPatterns(raid, botPatterns));
+
+  expect(world.players.find(player => player.id === "p2")?.pattern).toEqual([{ t: 0, pos: { x: 8, z: 0 } }]);
+});
+
+test("bot with a pattern can dodge an AOE while a bot without one is hit", () => {
+  const movingRaid = loadRaid({
+    ...baseRaid,
+    events: [{ t: 3, name: "TestAOE", telegraph: 1, damage: 50, shape: { kind: "circle", center: [0, 0], radius: 5 } }],
+    players: [
+      { id: "p1", role: "dps" as const, control: "human" as const, spawn: [15, 0] as [number, number] },
+      {
+        id: "p2",
+        role: "healer" as const,
+        control: "bot" as const,
+        spawn: [0, 0] as [number, number],
+        pattern: [{ t: 0, pos: [8, 0] as [number, number] }],
+      },
+    ],
+  });
+  const standingRaid = loadRaid({
+    ...baseRaid,
+    events: [{ t: 3, name: "TestAOE", telegraph: 1, damage: 50, shape: { kind: "circle", center: [0, 0], radius: 5 } }],
+    players: [
+      { id: "p1", role: "dps" as const, control: "human" as const, spawn: [15, 0] as [number, number] },
+      { id: "p2", role: "healer" as const, control: "bot" as const, spawn: [0, 0] as [number, number] },
+    ],
+  });
+
+  const movingWorld = runTicksWithBotIntents(createWorld(movingRaid), Math.ceil(5.1 * 60));
+  const standingWorld = runTicksWithBotIntents(createWorld(standingRaid), Math.ceil(5.1 * 60));
+  const movingBot = movingWorld.players.find(player => player.id === "p2")!;
+  const standingBot = standingWorld.players.find(player => player.id === "p2")!;
+
+  expect(movingBot.hp).toBe(100);
+  expect(standingBot.hp).toBeLessThan(100);
 });
 
 test("simultaneous mechanics with the same name get unique ids", () => {

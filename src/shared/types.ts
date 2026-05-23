@@ -2,6 +2,8 @@ import type { Vec2 } from "./math";
 
 export type Role = "tank" | "healer" | "dps";
 
+export type Control = "human" | "bot";
+
 export type Status = "running" | "cleared" | "wiped";
 
 export type ZoneShape =
@@ -11,9 +13,13 @@ export type ZoneShape =
 
 export type Arena = { zones: ZoneShape[] };
 
+export type Waypoint = { t: number; pos: Vec2 };
+
 export type Player = {
   id: string;
   role: Role;
+  control: Control;
+  pattern?: Waypoint[];
   pos: Vec2;
   y: number;
   verticalVelocity: number;

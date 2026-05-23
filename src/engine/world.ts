@@ -29,6 +29,8 @@ export function createWorld(raid: RaidDef): World {
   const players: Player[] = raid.players.map(p => ({
     id: p.id,
     role: p.role,
+    control: p.control,
+    pattern: p.pattern?.map(waypoint => ({ t: waypoint.t, pos: toVec2(waypoint.pos) })),
     pos: toVec2(p.spawn),
     y: 0,
     verticalVelocity: 0,

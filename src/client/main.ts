@@ -1,4 +1,4 @@
-import { loadRaid } from "../engine/raidLoader";
+import { applyBotPatterns, loadBotPatterns, loadRaid } from "../engine/raidLoader";
 import { createWorld } from "../engine/world";
 import { BabylonRenderer } from "./render/BabylonRenderer";
 import { initInput, setKeyBindings } from "./input";
@@ -17,7 +17,12 @@ async function main(): Promise<void> {
   if (!res.ok) throw new Error(`Failed to load raid: ${res.status}`);
   const json: unknown = await res.json();
 
-  const raid = loadRaid(json);
+  let raid = loadRaid(json);
+  if (raid.botPatterns) {
+    const botRes = await fetch(`/raids/${raid.botPatterns}.json`);
+    if (!botRes.ok) throw new Error(`Failed to load bot patterns: ${botRes.status}`);
+    raid = applyBotPatterns(raid, loadBotPatterns(await botRes.json()));
+  }
   const world = createWorld(raid);
 
   const renderer = new BabylonRenderer(canvas);
@@ -116,7 +121,8 @@ async function main(): Promise<void> {
   });
 
   const disposeInput = initInput();
-  const stopLoop = startLoop(world, renderer, world.players[0].id);
+  const humanPlayer = world.players.find(player => player.control === "human") ?? world.players[0];
+  const stopLoop = startLoop(world, renderer, humanPlayer.id);
 
   // HMR cleanup (Bun --hot)
   const meta = import.meta as unknown as { hot?: { dispose: (cb: () => void) => void } };

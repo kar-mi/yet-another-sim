@@ -4,6 +4,8 @@ export function vec2(x: number, z: number): Vec2 { return { x, z }; }
 
 export function add(a: Vec2, b: Vec2): Vec2 { return { x: a.x + b.x, z: a.z + b.z }; }
 
+export function sub(a: Vec2, b: Vec2): Vec2 { return { x: a.x - b.x, z: a.z - b.z }; }
+
 export function scale(v: Vec2, s: number): Vec2 { return { x: v.x * s, z: v.z * s }; }
 
 export function length(v: Vec2): number { return Math.sqrt(v.x * v.x + v.z * v.z); }

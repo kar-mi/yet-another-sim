@@ -1,5 +1,6 @@
 import type { World, Intents } from "../shared/types";
 import { tick } from "../engine/sim";
+import { computeBotIntents } from "../engine/botIntent";
 import type { Renderer } from "./render/Renderer";
 import { getIntent } from "./input";
 
@@ -20,7 +21,7 @@ export function startLoop(world: World, renderer: Renderer, playerId: string): (
     while (accumulator >= DT) {
       if (current.status === "running") {
         const intent = getIntent(cameraYaw);
-        const intents: Intents = { [playerId]: intent };
+        const intents: Intents = { ...computeBotIntents(current, DT), [playerId]: intent };
         current = tick(current, intents, DT);
       }
       accumulator -= DT;
