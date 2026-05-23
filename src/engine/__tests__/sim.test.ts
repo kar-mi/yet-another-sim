@@ -47,6 +47,15 @@ test("tick is deterministic", () => {
   expect(JSON.stringify(w1)).toBe(JSON.stringify(w2));
 });
 
+test("world includes a deterministic boss", () => {
+  const raid = loadRaid(baseRaid);
+  const world = createWorld(raid);
+  const next = tick(world, { p1: { move: { x: 0, z: 0 } } }, 1 / 60);
+
+  expect(world.boss).toEqual({ id: "boss", pos: { x: 0, z: 0 }, hp: 1000, maxHp: 1000, radius: 3 });
+  expect(next.boss).toEqual(world.boss);
+});
+
 test("bot intents are deterministic", () => {
   const raid = loadRaid({
     ...baseRaid,

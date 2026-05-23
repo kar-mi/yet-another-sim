@@ -33,6 +33,14 @@ export type Player = {
   alive: boolean;
 };
 
+export type Boss = {
+  id: string;
+  pos: Vec2;
+  hp: number;
+  maxHp: number;
+  radius: number;
+};
+
 export type AOEShape =
   | { kind: "circle"; center: Vec2; radius: number }
   | { kind: "donut"; center: Vec2; inner: number; outer: number }
@@ -78,6 +86,7 @@ export type World = {
   status: Status;
   arena: Arena;
   players: Player[];
+  boss: Boss;
   active: ActiveMechanic[];
   pending: PendingEvent[];
   log: LogEntry[];

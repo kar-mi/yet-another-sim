@@ -1,4 +1,4 @@
-import type { World, Player, Arena, ZoneShape, AOEShape, PendingEvent } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, PendingEvent } from "../shared/types";
 import { vec2 } from "../shared/math";
 import type { RaidDef } from "./raidSchema";
 
@@ -44,6 +44,8 @@ export function createWorld(raid: RaidDef): World {
     alive: true,
   }));
 
+  const boss: Boss = { id: "boss", pos: { x: 0, z: 0 }, hp: 1000, maxHp: 1000, radius: 3 };
+
   const pending: PendingEvent[] = raid.events.map((e, index) => ({
     id: `event-${index}`,
     t: e.t,
@@ -58,6 +60,7 @@ export function createWorld(raid: RaidDef): World {
     status: "running",
     arena,
     players,
+    boss,
     active: [],
     pending,
     log: [],

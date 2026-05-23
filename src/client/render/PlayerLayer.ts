@@ -47,4 +47,8 @@ export class PlayerLayer {
       mesh.isVisible = player.alive;
     }
   }
+
+  getMesh(id: string): Mesh | undefined {
+    return this.meshes.get(id);
+  }
 }

@@ -1,3 +1,4 @@
+import { RegisterEnginesExtensionsEngineDynamicTexture } from "@babylonjs/core/Engines/Extensions/engine.dynamicTexture.pure";
 import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
 import type { ArcRotateCameraPointersInput } from "@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput";
 import { Engine } from "@babylonjs/core/Engines/engine";
@@ -8,16 +9,28 @@ import { Scene } from "@babylonjs/core/scene";
 import type { Renderer } from "./Renderer";
 import type { World } from "../../shared/types";
 import type { Settings } from "../settings";
+import { BossLayer } from "./BossLayer";
+import { HealthBarLayer } from "./HealthBarLayer";
 import { createZoneMesh } from "./arenaMeshes";
 import { HudOverlay } from "./HudOverlay";
 import { PlayerLayer } from "./PlayerLayer";
 import { TelegraphLayer } from "./TelegraphLayer";
+
+// Sub-path imports drop Babylon's side-effect registration for dynamic textures,
+// leaving engine.createDynamicTexture a no-op stub. AdvancedDynamicTexture relies on
+// it, so register it explicitly (a referenced call survives tree-shaking).
+RegisterEnginesExtensionsEngineDynamicTexture();
+
+const playerBarId = (id: string) => `player:${id}`;
+const bossBarId = (id: string) => `boss:${id}`;
 
 export class BabylonRenderer implements Renderer {
   private engine!: Engine;
   private scene!: Scene;
   private camera!: ArcRotateCamera;
   private players!: PlayerLayer;
+  private boss!: BossLayer;
+  private healthBars!: HealthBarLayer;
   private telegraphs!: TelegraphLayer;
   private hud!: HudOverlay;
   private onResize!: () => void;
@@ -48,6 +61,27 @@ export class BabylonRenderer implements Renderer {
 
     this.players = new PlayerLayer(this.scene);
     this.players.init(world.players);
+    this.boss = new BossLayer(this.scene);
+    this.boss.init(world.boss);
+    this.healthBars = new HealthBarLayer(this.scene);
+    for (const player of world.players) {
+      const mesh = this.players.getMesh(player.id);
+      if (mesh) {
+        this.healthBars.link(playerBarId(player.id), mesh, {
+          trackWidthPx: 64,
+          offsetYPx: -45,
+          color: "#35d05c",
+        });
+      }
+    }
+    const bossMesh = this.boss.getMesh();
+    if (bossMesh) {
+      this.healthBars.link(bossBarId(world.boss.id), bossMesh, {
+        trackWidthPx: 220,
+        offsetYPx: -70,
+        color: "#df3333",
+      });
+    }
     this.telegraphs = new TelegraphLayer(this.scene);
     this.hud = new HudOverlay(sessionId);
 
@@ -57,9 +91,15 @@ export class BabylonRenderer implements Renderer {
 
   sync(world: World, _alpha: number): void {
     this.players.sync(world.players);
+    this.boss.sync(world.boss);
 
     const alive = world.players.find(p => p.alive);
     if (alive) this.camera.target.set(alive.pos.x, 0, alive.pos.z);
+
+    for (const player of world.players) {
+      this.healthBars.set(playerBarId(player.id), player.hp / player.maxHp, player.alive);
+    }
+    this.healthBars.set(bossBarId(world.boss.id), world.boss.hp / world.boss.maxHp, world.boss.hp > 0);
 
     this.telegraphs.sync(world.active, world.time);
     this.hud.sync(world);
@@ -86,6 +126,7 @@ export class BabylonRenderer implements Renderer {
   dispose(): void {
     window.removeEventListener("resize", this.onResize);
     this.hud.dispose();
+    this.healthBars.dispose();
     this.engine.dispose();
   }
 }
