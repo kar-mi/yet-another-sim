@@ -1,7 +1,10 @@
-import {
-  Engine, Scene, ArcRotateCamera, HemisphericLight,
-  Vector3, Color4,
-} from "@babylonjs/core";
+import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
+import type { ArcRotateCameraPointersInput } from "@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput";
+import { Engine } from "@babylonjs/core/Engines/engine";
+import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
+import { Color4 } from "@babylonjs/core/Maths/math.color";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
+import { Scene } from "@babylonjs/core/scene";
 import type { Renderer } from "./Renderer";
 import type { World } from "../../shared/types";
 import type { Settings } from "../settings";
@@ -23,14 +26,15 @@ export class BabylonRenderer implements Renderer {
 
   init(world: World, sessionId: string): void {
     this.engine = new Engine(this.canvas, true);
-    // Babylon v9's WebGL2 UBO path can leave simple StandardMaterial draws unbound here.
+    // Babylon v9's WebGL2 UBO path still blanks StandardMaterial draws in this app.
     this.engine.disableUniformBuffers = true;
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.05, 0.05, 0.1, 1);
 
     this.camera = new ArcRotateCamera("cam", -Math.PI / 2, Math.PI / 3, 45, Vector3.Zero(), this.scene);
-    // Disable Babylon's right-click panning so the configured mouse button always orbits.
-    this.camera.attachControl(true, false, -1);
+    this.camera.movement.input.setInteraction("pointer", { button: 0, modifiers: { ctrl: true } }, "rotate");
+    this.camera.movement.input.setInteraction("pointer", { button: 2 }, "rotate");
+    this.camera.attachControl(false);
     this.camera.lowerRadiusLimit = 10;
     this.camera.upperRadiusLimit = 40;
     this.camera.upperBetaLimit = Math.PI / 2 - 0.05;
@@ -47,7 +51,6 @@ export class BabylonRenderer implements Renderer {
     this.telegraphs = new TelegraphLayer(this.scene);
     this.hud = new HudOverlay(sessionId);
 
-    this.engine.runRenderLoop(() => this.scene.render());
     this.onResize = () => this.engine.resize();
     window.addEventListener("resize", this.onResize);
   }
@@ -62,11 +65,15 @@ export class BabylonRenderer implements Renderer {
     this.hud.sync(world);
   }
 
+  render(): void {
+    this.scene.render();
+  }
+
   applySettings(s: Settings): void {
     const sens = 2000 / s.mouseSensitivity;
     this.camera.angularSensibilityX = sens;
     this.camera.angularSensibilityY = sens;
-    const mouseInput = (this.camera.inputs.attached as any).pointers;
+    const mouseInput = this.camera.inputs.attached.pointers as ArcRotateCameraPointersInput | undefined;
     if (mouseInput) mouseInput.buttons = s.panButton === "right" ? [2] : [0];
     this.hud.applySettings(s);
   }

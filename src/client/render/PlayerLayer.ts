@@ -1,4 +1,8 @@
-import { Color3, Mesh, MeshBuilder, Scene, StandardMaterial } from "@babylonjs/core";
+import { Color3 } from "@babylonjs/core/Maths/math.color";
+import type { Mesh } from "@babylonjs/core/Meshes/mesh";
+import { CreateCapsule } from "@babylonjs/core/Meshes/Builders/capsuleBuilder";
+import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import type { Scene } from "@babylonjs/core/scene";
 import type { Player } from "../../shared/types";
 
 const PLAYER_RADIUS = 0.6;
@@ -12,7 +16,7 @@ export class PlayerLayer {
 
   init(players: Player[]): void {
     for (const player of players) {
-      const mesh = MeshBuilder.CreateCapsule(`player-${player.id}`, {
+      const mesh = CreateCapsule(`player-${player.id}`, {
         radius: PLAYER_RADIUS,
         height: PLAYER_HEIGHT,
         subdivisions: 2,
@@ -26,8 +30,6 @@ export class PlayerLayer {
         new Color3(1, 0.4, 0.4);
       mat.diffuseColor = color;
       mat.emissiveColor = color.scale(0.25);
-      mat.backFaceCulling = false;
-      mat.twoSidedLighting = true;
       mat.specularColor = new Color3(0.05, 0.05, 0.05);
       mesh.material = mat;
       mesh.position.set(player.pos.x, PLAYER_CENTER_Y + player.y, player.pos.z);

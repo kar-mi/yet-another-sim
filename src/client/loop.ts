@@ -27,6 +27,7 @@ export function startLoop(world: World, renderer: Renderer, playerId: string): (
     }
 
     renderer.sync(current, accumulator / DT);
+    renderer.render();
     rafId = requestAnimationFrame(frame);
   }
 
