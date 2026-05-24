@@ -74,6 +74,7 @@ export function createTelegraphMesh(scene: Scene, mechanic: ActiveMechanic): Mes
   const mat = new StandardMaterial(`tel-mat-${mechanic.id}`, scene);
   mat.diffuseColor = new Color3(1, 0.8, 0);
   mat.specularColor = new Color3(0, 0, 0);
+  mat.backFaceCulling = false;
   mesh.material = mat;
   return mesh;
 }
