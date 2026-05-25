@@ -1,4 +1,4 @@
-import type { World } from "../../shared/types";
+import type { World, Player } from "../../shared/types";
 import { pressAction } from "../input";
 import { SPRINT_COOLDOWN } from "../../engine/sim";
 import { keyLabel } from "../settings";
@@ -17,6 +17,8 @@ export class HudOverlay {
   private sprintCdText: HTMLDivElement;
   private prevSprintCooldown = 0;
   private sessionEl: HTMLDivElement;
+  private partyEl!: HTMLDivElement;
+  private partyRows = new Map<string, { hpFill: HTMLDivElement; mpFill: HTMLDivElement; rowEl: HTMLDivElement }>();
 
   constructor(sessionId: string) {
     this.root = this.buildHud();
@@ -45,6 +47,10 @@ export class HudOverlay {
     sessionVal.textContent = sessionId;
     this.sessionEl.append(sessionLabel, sessionVal);
     document.body.appendChild(this.sessionEl);
+
+    this.partyEl = document.createElement("div");
+    this.partyEl.id = "yas-party";
+    document.body.appendChild(this.partyEl);
 
     this.bindEvents();
   }
@@ -91,6 +97,32 @@ export class HudOverlay {
     return root;
   }
 
+  private buildPartyRow(player: Player): { hpFill: HTMLDivElement; mpFill: HTMLDivElement; rowEl: HTMLDivElement } {
+    const rowEl = document.createElement("div");
+    rowEl.className = "party-member";
+
+    const nameEl = document.createElement("span");
+    nameEl.className = "party-name";
+    nameEl.textContent = player.role.toUpperCase() + (player.control === "human" ? " (You)" : "");
+
+    const hpTrack = document.createElement("div");
+    hpTrack.className = "party-hp-track";
+    const hpFill = document.createElement("div");
+    hpFill.className = "party-hp-fill";
+    hpFill.style.width = "100%";
+    hpTrack.appendChild(hpFill);
+
+    const mpTrack = document.createElement("div");
+    mpTrack.className = "party-mp-track";
+    const mpFill = document.createElement("div");
+    mpFill.className = "party-mp-fill";
+    mpFill.style.width = "100%";
+    mpTrack.appendChild(mpFill);
+
+    rowEl.append(nameEl, hpTrack, mpTrack);
+    return { hpFill, mpFill, rowEl };
+  }
+
   applySettings(settings: Settings): void {
     this.sprintKeybind.textContent = keyLabel(settings.keyBindings.sprint);
   }
@@ -121,6 +153,23 @@ export class HudOverlay {
       this.statusEl.className = "yas-visible yas-wiped";
     } else {
       this.statusEl.className = "";
+    }
+
+    if (this.partyRows.size === 0 && world.players.length > 0) {
+      for (const player of world.players) {
+        const row = this.buildPartyRow(player);
+        this.partyEl.appendChild(row.rowEl);
+        this.partyRows.set(player.id, row);
+      }
+    }
+    for (const player of world.players) {
+      const row = this.partyRows.get(player.id);
+      if (!row) continue;
+      const hpPct = Math.max(0, Math.min(1, player.hp / player.maxHp)) * 100;
+      const mpPct = Math.max(0, Math.min(1, player.mp / player.maxMp)) * 100;
+      row.hpFill.style.width = `${hpPct}%`;
+      row.mpFill.style.width = `${mpPct}%`;
+      row.rowEl.classList.toggle("yas-dead", !player.alive);
     }
 
     if (!p) return;
@@ -168,5 +217,6 @@ export class HudOverlay {
     this.root.remove();
     this.statusEl.remove();
     this.sessionEl.remove();
+    this.partyEl.remove();
   }
 }

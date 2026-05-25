@@ -267,6 +267,62 @@ body {
   color: rgba(212, 168, 67, 0.85);
 }
 
+/* ===== Non-selectable overlays ===== */
+#yas-party, #yas-hud, #yas-status, #yas-session-id, #yas-menu, #settings-panel {
+  user-select: none;
+}
+
+/* ===== Party List ===== */
+#yas-party {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 100;
+}
+
+.party-member {
+  background: rgba(0, 0, 16, 0.72);
+  border: 1px solid rgba(180, 160, 90, 0.35);
+  padding: 4px 6px;
+  width: 160px;
+  font-family: monospace;
+}
+
+.party-member.yas-dead { opacity: 0.45; }
+
+.party-name {
+  display: block;
+  font-size: 10px;
+  color: #c8b87a;
+  letter-spacing: 0.05em;
+  margin-bottom: 3px;
+}
+
+.party-hp-track,
+.party-mp-track {
+  position: relative;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  margin-bottom: 2px;
+}
+
+.party-hp-fill {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  background: #35d05c;
+  transition: width 0.1s linear;
+}
+
+.party-mp-fill {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  background: #3a9ff5;
+  transition: width 0.1s linear;
+}
+
 /* ===== HUD ===== */
 #yas-hud {
   position: fixed;
