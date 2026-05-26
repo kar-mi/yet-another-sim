@@ -18,7 +18,7 @@ export class HudOverlay {
   private prevSprintCooldown = 0;
   private sessionEl: HTMLDivElement;
   private partyEl!: HTMLDivElement;
-  private partyRows = new Map<string, { hpFill: HTMLDivElement; mpFill: HTMLDivElement; rowEl: HTMLDivElement }>();
+  private partyRows = new Map<string, { hpFill: HTMLDivElement; mpFill: HTMLDivElement; rowEl: HTMLDivElement; effectsEl: HTMLDivElement }>();
   private castBarEl!: HTMLDivElement;
   private castNameEl!: HTMLDivElement;
   private castFillEl!: HTMLDivElement;
@@ -157,7 +157,7 @@ export class HudOverlay {
     return root;
   }
 
-  private buildPartyRow(player: Player): { hpFill: HTMLDivElement; mpFill: HTMLDivElement; rowEl: HTMLDivElement } {
+  private buildPartyRow(player: Player): { hpFill: HTMLDivElement; mpFill: HTMLDivElement; rowEl: HTMLDivElement; effectsEl: HTMLDivElement } {
     const rowEl = document.createElement("div");
     rowEl.className = "party-member";
 
@@ -179,8 +179,11 @@ export class HudOverlay {
     mpFill.style.width = "100%";
     mpTrack.appendChild(mpFill);
 
-    rowEl.append(nameEl, hpTrack, mpTrack);
-    return { hpFill, mpFill, rowEl };
+    const effectsEl = document.createElement("div");
+    effectsEl.className = "party-effects";
+
+    rowEl.append(nameEl, hpTrack, mpTrack, effectsEl);
+    return { hpFill, mpFill, rowEl, effectsEl };
   }
 
   applySettings(settings: Settings): void {
@@ -249,6 +252,14 @@ export class HudOverlay {
       row.hpFill.style.width = `${hpPct}%`;
       row.mpFill.style.width = `${mpPct}%`;
       row.rowEl.classList.toggle("yas-dead", !player.alive);
+      const activeEffects = player.effects.filter(e => e.appliedAt + e.duration > world.time);
+      row.effectsEl.replaceChildren();
+      for (const effect of activeEffects) {
+        const effectEl = document.createElement("span");
+        effectEl.className = `party-effect party-effect-${effect.kind}`;
+        effectEl.textContent = effect.name;
+        row.effectsEl.appendChild(effectEl);
+      }
     }
 
     const casting = world.active.find(m => !m.resolved && m.showCastBar);

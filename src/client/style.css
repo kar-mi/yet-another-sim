@@ -323,6 +323,35 @@ body {
   transition: width 0.1s linear;
 }
 
+/* ===== Party Effects ===== */
+.party-effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-height: 0;
+  padding: 2px 0 0;
+}
+
+.party-effect {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.party-effect-buff {
+  background: rgba(30, 180, 60, 0.25);
+  color: #4de87a;
+  border: 1px solid rgba(60, 220, 80, 0.4);
+}
+
+.party-effect-debuff {
+  background: rgba(200, 30, 30, 0.25);
+  color: #f06060;
+  border: 1px solid rgba(220, 60, 60, 0.4);
+}
+
 /* ===== Cast Bar ===== */
 #yas-cast-bar {
   position: fixed;

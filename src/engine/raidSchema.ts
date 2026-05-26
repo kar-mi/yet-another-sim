@@ -24,7 +24,8 @@ const AOEShapeSchema = z.discriminatedUnion("kind", [
   }
 });
 
-const EventSchema = z.object({
+const AOEEventSchema = z.object({
+  type: z.literal("aoe").default("aoe"),
   t: z.number().nonnegative(),
   name: z.string().min(1),
   telegraph: z.number().positive(),
@@ -32,6 +33,18 @@ const EventSchema = z.object({
   shape: AOEShapeSchema,
   showCastBar: z.boolean().optional(),
 });
+
+const TetherSourceEventSchema = z.object({
+  type: z.literal("tether_source"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  pos: Vec2Schema,
+  finalizeAfter: z.number().positive(),
+  tetherKind: z.enum(["buff", "debuff"]),
+  buffName: z.string().min(1),
+});
+
+export const EventSchema = z.union([TetherSourceEventSchema, AOEEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),

@@ -1,4 +1,5 @@
-import type { World, Intents, LogEntry, ActiveMechanic } from "../shared/types";
+import type { World, Intents, LogEntry, ActiveMechanic, TetherSource, Player } from "../shared/types";
+import type { Vec2 } from "../shared/math";
 import { add, scale, normalize, length } from "../shared/math";
 import { pointInShape, isOnFloor } from "./shapes";
 import { promotePending } from "./timeline";
@@ -8,6 +9,39 @@ export const JUMP_SPEED = 9;
 export const GRAVITY = 24;
 export const SPRINT_DURATION = 5;
 export const SPRINT_COOLDOWN = 10;
+
+const INTERCEPT_THRESHOLD = 2.0;
+
+function nearestAlivePlayer(players: Player[], pos: Vec2): Player | null {
+  let nearest: Player | null = null;
+  let minDist = Infinity;
+  for (const p of players) {
+    if (!p.alive) continue;
+    const dx = p.pos.x - pos.x, dz = p.pos.z - pos.z;
+    const d = Math.sqrt(dx * dx + dz * dz);
+    if (d < minDist) { minDist = d; nearest = p; }
+  }
+  return nearest;
+}
+
+function isOnTetherLine(pPos: Vec2, src: Vec2, tgt: Vec2): boolean {
+  const dx = tgt.x - src.x, dz = tgt.z - src.z;
+  const lenSq = dx * dx + dz * dz;
+  if (lenSq < 0.001) return false;
+  const t = ((pPos.x - src.x) * dx + (pPos.z - src.z) * dz) / lenSq;
+  if (t <= 0.1 || t >= 0.9) return false;
+  const cx = src.x + t * dx, cz = src.z + t * dz;
+  const d2 = (pPos.x - cx) ** 2 + (pPos.z - cz) ** 2;
+  return d2 < INTERCEPT_THRESHOLD ** 2;
+}
+
+function findInterceptor(players: Player[], src: Vec2, tgt: Vec2, excludeId: string): Player | null {
+  for (const p of players) {
+    if (!p.alive || p.id === excludeId) continue;
+    if (isOnTetherLine(p.pos, src, tgt)) return p;
+  }
+  return null;
+}
 
 export function tick(world: World, intents: Intents, dt: number): World {
   const time = world.time + dt;
@@ -54,7 +88,66 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  // 2. Promote pending events whose t <= time
+  // 2. Tether sources: promote, update attachments, finalize
+  let tetherSources: TetherSource[] = world.tetherSources.map(ts => ({ ...ts }));
+  const remainingPendingTethers = [];
+  for (const pt of world.pendingTethers) {
+    if (pt.t <= time) {
+      const nearest = nearestAlivePlayer(players, pt.pos);
+      tetherSources.push({
+        id: pt.id,
+        pos: pt.pos,
+        spawnAt: pt.t,
+        finalizeAt: pt.t + pt.finalizeAfter,
+        tetherKind: pt.tetherKind,
+        buffName: pt.buffName,
+        tetheredPlayerId: nearest?.id ?? null,
+        finalized: false,
+      });
+    } else {
+      remainingPendingTethers.push(pt);
+    }
+  }
+
+  for (const ts of tetherSources) {
+    if (ts.finalized) continue;
+
+    // Re-attach if current target is dead
+    if (ts.tetheredPlayerId) {
+      const target = players.find(p => p.id === ts.tetheredPlayerId);
+      if (!target?.alive) ts.tetheredPlayerId = nearestAlivePlayer(players, ts.pos)?.id ?? null;
+    } else {
+      ts.tetheredPlayerId = nearestAlivePlayer(players, ts.pos)?.id ?? null;
+    }
+
+    // Check for interceptions (only before finalization)
+    if (ts.tetheredPlayerId && time < ts.finalizeAt) {
+      const target = players.find(p => p.id === ts.tetheredPlayerId)!;
+      const interceptor = findInterceptor(players, ts.pos, target.pos, ts.tetheredPlayerId);
+      if (interceptor) ts.tetheredPlayerId = interceptor.id;
+    }
+
+    // Finalize
+    if (time >= ts.finalizeAt) {
+      ts.finalized = true;
+      const target = players.find(p => p.id === ts.tetheredPlayerId);
+      if (target) {
+        target.effects = [...target.effects, {
+          id: `${ts.id}-effect`,
+          name: ts.buffName,
+          kind: ts.tetherKind,
+          appliedAt: time,
+          duration: 15,
+        }];
+        log.push({ t: time, mechanic: ts.buffName, playerId: target.id, event: ts.tetherKind === "buff" ? "cleared" : "hit" });
+      }
+    }
+  }
+
+  // Cull sources finalized more than 2s ago
+  tetherSources = tetherSources.filter(ts => !ts.finalized || ts.finalizeAt > time - 2);
+
+  // 3. Promote pending events whose t <= time
   const { promoted, remaining: pending } = promotePending(world.pending, time);
   const active: ActiveMechanic[] = [...world.active.map(m => ({ ...m })), ...promoted];
 
@@ -82,7 +175,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
 
   // 4. Derive status
   const anyAlive = players.some(p => p.alive);
-  const allResolved = pending.length === 0 && stillActive.every(m => m.resolved);
+  const allResolved = pending.length === 0 && stillActive.every(m => m.resolved)
+    && remainingPendingTethers.length === 0 && tetherSources.every(ts => ts.finalized);
   let status = world.status;
   if (status === "running") {
     if (!anyAlive) {
@@ -92,5 +186,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, players, active: stillActive, pending, log, status };
+  return { ...world, time, players, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers };
 }

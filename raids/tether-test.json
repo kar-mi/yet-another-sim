@@ -1,0 +1,32 @@
+{
+  "name": "Tether Test",
+  "arena": {
+    "zones": [{ "kind": "circle", "center": [0, 0], "radius": 30 }]
+  },
+  "duration": 60,
+  "players": [
+    { "id": "p1", "role": "tank",   "control": "human",  "spawn": [0, 8] },
+    { "id": "p2", "role": "healer", "control": "bot",    "spawn": [-6, 0] },
+    { "id": "p3", "role": "dps",    "control": "bot",    "spawn": [6, 0] }
+  ],
+  "events": [
+    {
+      "type": "tether_source",
+      "t": 5,
+      "name": "Void Chain",
+      "pos": [0, -14],
+      "finalizeAfter": 7,
+      "tetherKind": "debuff",
+      "buffName": "Doom"
+    },
+    {
+      "type": "tether_source",
+      "t": 25,
+      "name": "Life Bond",
+      "pos": [10, -10],
+      "finalizeAfter": 6,
+      "tetherKind": "buff",
+      "buffName": "Regen"
+    }
+  ]
+}

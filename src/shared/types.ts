@@ -15,6 +15,14 @@ export type Arena = { zones: ZoneShape[] };
 
 export type Waypoint = { t: number; pos: Vec2 };
 
+export type StatusEffect = {
+  id: string;
+  name: string;
+  kind: "buff" | "debuff";
+  appliedAt: number;
+  duration: number;
+};
+
 export type Player = {
   id: string;
   role: Role;
@@ -31,6 +39,7 @@ export type Player = {
   sprintActive: number;   // seconds remaining on sprint
   sprintCooldown: number; // seconds remaining on cooldown
   alive: boolean;
+  effects: StatusEffect[];
 };
 
 export type Boss = {
@@ -75,6 +84,26 @@ export type LogEntry = {
   event: "hit" | "fell" | "cleared";
 };
 
+export type TetherSource = {
+  id: string;
+  pos: Vec2;
+  spawnAt: number;
+  finalizeAt: number;
+  tetherKind: "buff" | "debuff";
+  buffName: string;
+  tetheredPlayerId: string | null;
+  finalized: boolean;
+};
+
+export type PendingTether = {
+  id: string;
+  t: number;
+  pos: Vec2;
+  finalizeAfter: number;
+  tetherKind: "buff" | "debuff";
+  buffName: string;
+};
+
 export type Intent = {
   move: Vec2;
   jump?: boolean;
@@ -93,4 +122,6 @@ export type World = {
   pending: PendingEvent[];
   log: LogEntry[];
   duration: number;
+  tetherSources: TetherSource[];
+  pendingTethers: PendingTether[];
 };

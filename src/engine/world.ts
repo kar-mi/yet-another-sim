@@ -1,4 +1,4 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, PendingEvent } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, PendingEvent, PendingTether } from "../shared/types";
 import { vec2 } from "../shared/math";
 import type { RaidDef } from "./raidSchema";
 
@@ -14,7 +14,9 @@ function toZoneShape(zone: RaidDef["arena"]["zones"][number]): ZoneShape {
   }
 }
 
-function toAOEShape(shape: RaidDef["events"][number]["shape"]): AOEShape {
+type AOEEventDef = Extract<RaidDef["events"][number], { type: "aoe" }>;
+
+function toAOEShape(shape: AOEEventDef["shape"]): AOEShape {
   switch (shape.kind) {
     case "circle": return { kind: "circle", center: toVec2(shape.center), radius: shape.radius };
     case "donut": return { kind: "donut", center: toVec2(shape.center), inner: shape.inner, outer: shape.outer };
@@ -42,19 +44,36 @@ export function createWorld(raid: RaidDef): World {
     sprintActive: 0,
     sprintCooldown: 0,
     alive: true,
+    effects: [],
   }));
 
   const boss: Boss = { id: "boss", pos: { x: 0, z: 0 }, hp: 1000, maxHp: 1000, radius: 3 };
 
-  const pending: PendingEvent[] = raid.events.map((e, index) => ({
-    id: `event-${index}`,
-    t: e.t,
-    name: e.name,
-    shape: toAOEShape(e.shape),
-    telegraph: e.telegraph,
-    damage: e.damage,
-    showCastBar: e.showCastBar ?? false,
-  }));
+  const pending: PendingEvent[] = [];
+  const pendingTethers: PendingTether[] = [];
+
+  for (const [index, e] of raid.events.entries()) {
+    if (e.type === "tether_source") {
+      pendingTethers.push({
+        id: `tether-${index}`,
+        t: e.t,
+        pos: toVec2(e.pos),
+        finalizeAfter: e.finalizeAfter,
+        tetherKind: e.tetherKind,
+        buffName: e.buffName,
+      });
+    } else {
+      pending.push({
+        id: `event-${index}`,
+        t: e.t,
+        name: e.name,
+        shape: toAOEShape(e.shape),
+        telegraph: e.telegraph,
+        damage: e.damage,
+        showCastBar: e.showCastBar ?? false,
+      });
+    }
+  }
 
   return {
     time: 0,
@@ -66,5 +85,7 @@ export function createWorld(raid: RaidDef): World {
     pending,
     log: [],
     duration: raid.duration,
+    tetherSources: [],
+    pendingTethers,
   };
 }

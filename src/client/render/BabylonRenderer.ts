@@ -15,6 +15,7 @@ import { createZoneMesh } from "./arenaMeshes";
 import { HudOverlay } from "./HudOverlay";
 import { PlayerLayer } from "./PlayerLayer";
 import { TelegraphLayer } from "./TelegraphLayer";
+import { TetherLayer } from "./TetherLayer";
 
 // Sub-path imports drop Babylon's side-effect registration for dynamic textures,
 // leaving engine.createDynamicTexture a no-op stub. AdvancedDynamicTexture relies on
@@ -32,6 +33,7 @@ export class BabylonRenderer implements Renderer {
   private boss!: BossLayer;
   private healthBars!: HealthBarLayer;
   private telegraphs!: TelegraphLayer;
+  private tethers!: TetherLayer;
   private hud!: HudOverlay;
   private onResize!: () => void;
   private panButtonCode: number = 2;
@@ -105,6 +107,7 @@ export class BabylonRenderer implements Renderer {
       });
     }
     this.telegraphs = new TelegraphLayer(this.scene);
+    this.tethers = new TetherLayer(this.scene);
     this.hud = new HudOverlay(sessionId, this.onSettingsChange);
 
     this.onResize = () => this.engine.resize();
@@ -124,6 +127,7 @@ export class BabylonRenderer implements Renderer {
     this.healthBars.set(bossBarId(world.boss.id), world.boss.hp / world.boss.maxHp, world.boss.hp > 0);
 
     this.telegraphs.sync(world.active, world.time);
+    this.tethers.sync(world.tetherSources, world.players, world.time);
     this.hud.sync(world);
   }
 
