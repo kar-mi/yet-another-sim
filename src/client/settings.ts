@@ -11,6 +11,9 @@ export interface Settings {
   mouseSensitivity: number;
   panButton: "left" | "right";
   keyBindings: KeyBindings;
+  hotbarMode: "kbm" | "controller";
+  controllerSensitivity: number;
+  controllerDeadzone: number;
 }
 
 export const DEFAULT_BINDINGS: KeyBindings = {
@@ -26,6 +29,9 @@ const DEFAULTS: Settings = {
   mouseSensitivity: 1,
   panButton: "left",
   keyBindings: { ...DEFAULT_BINDINGS },
+  hotbarMode: "kbm",
+  controllerSensitivity: 2.0,
+  controllerDeadzone: 0.15,
 };
 
 const KEY = "yas_settings";
@@ -37,6 +43,10 @@ export function keyLabel(code: string): string {
   if (code.startsWith("Arrow")) return code.slice(5).toUpperCase();
   return code;
 }
+
+export const CONTROLLER_SLOT_LABELS: string[] = [
+  "A", "B", "X", "Y", "LT+A", "LT+B", "LT+X", "LT+Y", "", "",
+];
 
 export function loadSettings(): Settings {
   try {

@@ -6,4 +6,5 @@ export interface Renderer {
   render(): void;
   dispose(): void;
   getCameraYaw(): number;
+  applyControllerPan(dx: number, dy: number, dt: number): void;
 }

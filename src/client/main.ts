@@ -1,7 +1,7 @@
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../engine/raidLoader";
 import { createWorld } from "../engine/world";
 import { BabylonRenderer } from "./render/BabylonRenderer";
-import { initInput, setKeyBindings } from "./input";
+import { initInput, setKeyBindings, setControllerDeadzone } from "./input";
 import { startLoop } from "./loop";
 import { DEFAULT_BINDINGS, keyLabel, loadSettings, saveSettings } from "./settings";
 import type { KeyBindings } from "./settings";
@@ -24,13 +24,16 @@ async function main(): Promise<void> {
     raid = applyBotPatterns(raid, loadBotPatterns(await botRes.json()));
   }
   const world = createWorld(raid);
-
-  const renderer = new BabylonRenderer(canvas);
+  const settings = loadSettings();
+  const renderer = new BabylonRenderer(canvas, nextSettings => {
+    Object.assign(settings, nextSettings);
+    saveSettings(settings);
+  });
   renderer.init(world, sessionId);
 
-  const settings = loadSettings();
   renderer.applySettings(settings);
   setKeyBindings(settings.keyBindings);
+  setControllerDeadzone(settings.controllerDeadzone);
 
   const sensitivitySlider = document.getElementById("sensitivity-slider") as HTMLInputElement;
   const sensitivityVal = document.getElementById("sensitivity-val")!;

@@ -2,7 +2,7 @@ import type { World, Intents } from "../shared/types";
 import { tick } from "../engine/sim";
 import { computeBotIntents } from "../engine/botIntent";
 import type { Renderer } from "./render/Renderer";
-import { getIntent } from "./input";
+import { getIntent, getRightStick } from "./input";
 
 const DT = 1 / 60;
 
@@ -27,6 +27,8 @@ export function startLoop(world: World, renderer: Renderer, playerId: string): (
       accumulator -= DT;
     }
 
+    const rs = getRightStick();
+    renderer.applyControllerPan(rs.x, rs.y, elapsed);
     renderer.sync(current, accumulator / DT);
     renderer.render();
     rafId = requestAnimationFrame(frame);

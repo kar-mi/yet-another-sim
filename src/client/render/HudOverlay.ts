@@ -23,8 +23,16 @@ export class HudOverlay {
   private castNameEl!: HTMLDivElement;
   private castFillEl!: HTMLDivElement;
   private castTimerEl!: HTMLDivElement;
+  private slotKeybinds: HTMLSpanElement[] = [];
+  private modeToggleBtn!: HTMLButtonElement;
+  private currentSettings!: Settings;
+  private kbmHotbar!: HTMLDivElement;
+  private controllerHotbar!: HTMLDivElement;
+  private ctrlSprintSlot!: HTMLDivElement;
+  private ctrlSprintCdOverlay!: HTMLDivElement;
+  private ctrlSprintCdText!: HTMLDivElement;
 
-  constructor(sessionId: string) {
+  constructor(sessionId: string, private onSettingsChange: (settings: Settings) => void = () => {}) {
     this.root = this.buildHud();
     document.body.appendChild(this.root);
 
@@ -36,6 +44,13 @@ export class HudOverlay {
     this.sprintKeybind = this.sprintSlot.querySelector<HTMLSpanElement>(".yas-keybind")!;
     this.sprintCdOverlay = this.root.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
     this.sprintCdText = this.root.querySelector<HTMLDivElement>(".yas-cd-text")!;
+    this.kbmHotbar = this.root.querySelector<HTMLDivElement>(".yas-hotbar")!;
+    this.controllerHotbar = this.root.querySelector<HTMLDivElement>(".yas-controller-hotbar")!;
+    this.slotKeybinds = Array.from(this.kbmHotbar.querySelectorAll<HTMLSpanElement>(".yas-keybind"));
+    this.modeToggleBtn = this.root.querySelector<HTMLButtonElement>(".yas-hotbar-toggle")!;
+    this.ctrlSprintSlot = this.controllerHotbar.querySelector<HTMLDivElement>("[data-ctrl-slot='7']")!;
+    this.ctrlSprintCdOverlay = this.ctrlSprintSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
+    this.ctrlSprintCdText = this.ctrlSprintSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
 
     this.statusEl = document.createElement("div");
     this.statusEl.id = "yas-status";
@@ -78,7 +93,7 @@ export class HudOverlay {
     const root = document.createElement("div");
     root.id = "yas-hud";
 
-    const slots = Array.from({ length: 10 }, (_, i) => {
+    const kbmSlots = Array.from({ length: 10 }, (_, i) => {
       if (i === 0) {
         return `
           <div class="yas-slot" data-slot="0">
@@ -93,6 +108,35 @@ export class HudOverlay {
     }).join("");
 
     root.innerHTML = `
+      <div class="yas-hotbar-panel">
+        <div class="yas-hotbar">${kbmSlots}</div>
+        <div class="yas-controller-hotbar" style="display:none">
+          <div class="yas-controller-diamond">
+            <div class="yas-slot yas-ctrl-top" data-ctrl-slot="3">
+              <span class="yas-keybind">Y</span>
+              <span class="yas-slot-icon">↑</span>
+              <span class="yas-slot-name">JUMP</span>
+            </div>
+            <div class="yas-slot yas-ctrl-left" data-ctrl-slot="2"><span class="yas-keybind">X</span></div>
+            <div class="yas-slot yas-ctrl-right" data-ctrl-slot="1"><span class="yas-keybind">B</span></div>
+            <div class="yas-slot yas-ctrl-bottom" data-ctrl-slot="0"><span class="yas-keybind">A</span></div>
+          </div>
+          <div class="yas-ctrl-separator">LT</div>
+          <div class="yas-controller-diamond">
+            <div class="yas-slot yas-ctrl-top" data-ctrl-slot="7">
+              <span class="yas-keybind">LT+Y</span>
+              <span class="yas-slot-icon">⚡</span>
+              <span class="yas-slot-name">SPRINT</span>
+              <div class="yas-cd-overlay"></div>
+              <div class="yas-cd-text"></div>
+            </div>
+            <div class="yas-slot yas-ctrl-left" data-ctrl-slot="6"><span class="yas-keybind">LT+X</span></div>
+            <div class="yas-slot yas-ctrl-right" data-ctrl-slot="5"><span class="yas-keybind">LT+B</span></div>
+            <div class="yas-slot yas-ctrl-bottom" data-ctrl-slot="4"><span class="yas-keybind">LT+A</span></div>
+          </div>
+        </div>
+        <button class="yas-hotbar-toggle" title="Switch input display">⌨</button>
+      </div>
       <div class="yas-resource-panel">
         <div class="yas-bar-row">
           <span class="yas-bar-label">HP</span>
@@ -108,9 +152,6 @@ export class HudOverlay {
             <span class="yas-bar-val" data-mp-val>10000 / 10000</span>
           </div>
         </div>
-      </div>
-      <div class="yas-hotbar-panel">
-        <div class="yas-hotbar">${slots}</div>
       </div>
     `;
     return root;
@@ -143,14 +184,33 @@ export class HudOverlay {
   }
 
   applySettings(settings: Settings): void {
-    this.sprintKeybind.textContent = keyLabel(settings.keyBindings.sprint);
+    this.currentSettings = { ...settings };
+    this.modeToggleBtn.textContent = settings.hotbarMode === "controller" ? "⌨" : "🎮";
+    const isCtrl = settings.hotbarMode === "controller";
+    this.kbmHotbar.style.display = isCtrl ? "none" : "flex";
+    this.controllerHotbar.style.display = isCtrl ? "flex" : "none";
+    if (!isCtrl) {
+      this.slotKeybinds.forEach((el, i) => {
+        el.textContent = i === 0 ? keyLabel(settings.keyBindings.sprint) : "";
+      });
+    }
   }
 
   private bindEvents(): void {
     this.sprintSlot.addEventListener("click", () => pressAction(0));
+    this.ctrlSprintSlot.addEventListener("click", () => pressAction(7));
 
     this.root.querySelectorAll<HTMLDivElement>(".yas-slot").forEach(slot => {
       slot.addEventListener("mousedown", () => this.flashSlot(slot));
+    });
+
+    this.modeToggleBtn.addEventListener("click", () => {
+      const next: Settings = {
+        ...this.currentSettings,
+        hotbarMode: this.currentSettings.hotbarMode === "kbm" ? "controller" : "kbm",
+      };
+      this.onSettingsChange(next);
+      this.applySettings(next);
     });
   }
 
@@ -215,31 +275,39 @@ export class HudOverlay {
     this.mpVal.textContent = `${Math.round(p.mp)} / ${p.maxMp}`;
 
     const onCooldown = p.sprintCooldown > 0;
+    const cdOverlays = [
+      { overlay: this.sprintCdOverlay, text: this.sprintCdText },
+      { overlay: this.ctrlSprintCdOverlay, text: this.ctrlSprintCdText },
+    ];
     if (onCooldown) {
       const elapsed = (1 - p.sprintCooldown / SPRINT_COOLDOWN) * 360;
-      this.sprintCdOverlay.style.display = "block";
-      this.sprintCdOverlay.style.background =
-        `conic-gradient(from -90deg, transparent ${elapsed}deg, rgba(0,0,8,0.82) ${elapsed}deg)`;
-      this.sprintCdText.style.display = "flex";
-      this.sprintCdText.textContent = Math.ceil(p.sprintCooldown).toString();
+      const bg = `conic-gradient(from -90deg, transparent ${elapsed}deg, rgba(0,0,8,0.82) ${elapsed}deg)`;
+      for (const { overlay, text } of cdOverlays) {
+        overlay.style.display = "block";
+        overlay.style.background = bg;
+        text.style.display = "flex";
+        text.textContent = Math.ceil(p.sprintCooldown).toString();
+      }
     } else {
-      this.sprintCdOverlay.style.display = "none";
-      this.sprintCdText.style.display = "none";
+      for (const { overlay, text } of cdOverlays) {
+        overlay.style.display = "none";
+        text.style.display = "none";
+      }
     }
 
+    const sprintSlots = [this.sprintSlot, this.ctrlSprintSlot];
     if (this.prevSprintCooldown > 0 && p.sprintCooldown <= 0) {
-      this.sprintSlot.classList.remove("yas-slot-ready");
-      void this.sprintSlot.offsetWidth;
-      this.sprintSlot.classList.add("yas-slot-ready");
-      this.sprintSlot.addEventListener("animationend", () => {
-        this.sprintSlot.classList.remove("yas-slot-ready");
-      }, { once: true });
+      for (const slot of sprintSlots) {
+        slot.classList.remove("yas-slot-ready");
+        void slot.offsetWidth;
+        slot.classList.add("yas-slot-ready");
+        slot.addEventListener("animationend", () => slot.classList.remove("yas-slot-ready"), { once: true });
+      }
     }
 
-    if (p.sprintActive > 0 && !onCooldown) {
-      this.sprintSlot.classList.add("yas-slot-sprint-running");
-    } else {
-      this.sprintSlot.classList.remove("yas-slot-sprint-running");
+    const sprintActive = p.sprintActive > 0 && !onCooldown;
+    for (const slot of sprintSlots) {
+      slot.classList.toggle("yas-slot-sprint-running", sprintActive);
     }
 
     this.prevSprintCooldown = p.sprintCooldown;

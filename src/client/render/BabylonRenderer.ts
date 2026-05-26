@@ -35,11 +35,12 @@ export class BabylonRenderer implements Renderer {
   private hud!: HudOverlay;
   private onResize!: () => void;
   private panButtonCode: number = 2;
+  private controllerSensitivity = 2.0;
   private onPanDown!: (e: PointerEvent) => void;
   private onPanUp!: (e: PointerEvent) => void;
   private onLockChange!: () => void;
 
-  constructor(private canvas: HTMLCanvasElement) {}
+  constructor(private canvas: HTMLCanvasElement, private onSettingsChange: (settings: Settings) => void = () => {}) {}
 
   init(world: World, sessionId: string): void {
     this.engine = new Engine(this.canvas, true);
@@ -104,7 +105,7 @@ export class BabylonRenderer implements Renderer {
       });
     }
     this.telegraphs = new TelegraphLayer(this.scene);
-    this.hud = new HudOverlay(sessionId);
+    this.hud = new HudOverlay(sessionId, this.onSettingsChange);
 
     this.onResize = () => this.engine.resize();
     window.addEventListener("resize", this.onResize);
@@ -133,6 +134,7 @@ export class BabylonRenderer implements Renderer {
   applySettings(s: Settings): void {
     const sens = 2000 / s.mouseSensitivity;
     this.panButtonCode = s.panButton === "right" ? 2 : 0;
+    this.controllerSensitivity = s.controllerSensitivity;
     this.camera.angularSensibilityX = sens;
     this.camera.angularSensibilityY = sens;
     const mouseInput = this.camera.inputs.attached.pointers as ArcRotateCameraPointersInput | undefined;
@@ -143,6 +145,12 @@ export class BabylonRenderer implements Renderer {
   getCameraYaw(): number {
     const fwd = this.camera.target.subtract(this.camera.position);
     return Math.atan2(fwd.x, fwd.z);
+  }
+
+  applyControllerPan(dx: number, dy: number, dt: number): void {
+    const s = this.controllerSensitivity;
+    this.camera.alpha -= dx * s * dt;
+    this.camera.beta = Math.max(0.1, Math.min(Math.PI / 2, this.camera.beta - dy * s * dt));
   }
 
   dispose(): void {
