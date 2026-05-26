@@ -34,6 +34,10 @@ export class BabylonRenderer implements Renderer {
   private telegraphs!: TelegraphLayer;
   private hud!: HudOverlay;
   private onResize!: () => void;
+  private panButtonCode: number = 2;
+  private onPanDown!: (e: PointerEvent) => void;
+  private onPanUp!: (e: PointerEvent) => void;
+  private onLockChange!: () => void;
 
   constructor(private canvas: HTMLCanvasElement) {}
 
@@ -52,6 +56,23 @@ export class BabylonRenderer implements Renderer {
     this.camera.upperRadiusLimit = 40;
     this.camera.upperBetaLimit = Math.PI / 2 - 0.05;
     this.canvas.addEventListener("contextmenu", e => e.preventDefault());
+
+    this.onPanDown = (e: PointerEvent) => {
+      if (e.button !== this.panButtonCode) return;
+      const lockRequest = this.canvas.requestPointerLock();
+      if (lockRequest instanceof Promise) lockRequest.catch(() => {});
+    };
+    this.onPanUp = (e: PointerEvent) => {
+      if (e.button !== this.panButtonCode) return;
+      if (document.pointerLockElement === this.canvas) document.exitPointerLock();
+    };
+    this.onLockChange = () => {
+      const mouseInput = this.camera.inputs.attached.pointers as ArcRotateCameraPointersInput | undefined;
+      if (document.pointerLockElement !== this.canvas && mouseInput) mouseInput.onLostFocus();
+    };
+    this.canvas.addEventListener("pointerdown", this.onPanDown);
+    document.addEventListener("pointerup", this.onPanUp);
+    document.addEventListener("pointerlockchange", this.onLockChange);
 
     new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
 
@@ -111,10 +132,11 @@ export class BabylonRenderer implements Renderer {
 
   applySettings(s: Settings): void {
     const sens = 2000 / s.mouseSensitivity;
+    this.panButtonCode = s.panButton === "right" ? 2 : 0;
     this.camera.angularSensibilityX = sens;
     this.camera.angularSensibilityY = sens;
     const mouseInput = this.camera.inputs.attached.pointers as ArcRotateCameraPointersInput | undefined;
-    if (mouseInput) mouseInput.buttons = s.panButton === "right" ? [2] : [0];
+    if (mouseInput) mouseInput.buttons = [this.panButtonCode];
     this.hud.applySettings(s);
   }
 
@@ -124,6 +146,10 @@ export class BabylonRenderer implements Renderer {
   }
 
   dispose(): void {
+    this.canvas.removeEventListener("pointerdown", this.onPanDown);
+    document.removeEventListener("pointerup", this.onPanUp);
+    document.removeEventListener("pointerlockchange", this.onLockChange);
+    if (document.pointerLockElement === this.canvas) document.exitPointerLock();
     window.removeEventListener("resize", this.onResize);
     this.hud.dispose();
     this.healthBars.dispose();
