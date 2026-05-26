@@ -30,6 +30,7 @@ const EventSchema = z.object({
   telegraph: z.number().positive(),
   damage: z.number().nonnegative(),
   shape: AOEShapeSchema,
+  showCastBar: z.boolean().optional(),
 });
 
 const PlayerDefSchema = z.object({

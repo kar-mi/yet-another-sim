@@ -53,6 +53,7 @@ export function createWorld(raid: RaidDef): World {
     shape: toAOEShape(e.shape),
     telegraph: e.telegraph,
     damage: e.damage,
+    showCastBar: e.showCastBar ?? false,
   }));
 
   return {

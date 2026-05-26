@@ -17,6 +17,7 @@ export function promotePending(
         resolveAt: event.t + event.telegraph,
         damage: event.damage,
         resolved: false,
+        showCastBar: event.showCastBar,
       });
     } else {
       remaining.push(event);

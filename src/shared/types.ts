@@ -55,6 +55,7 @@ export type ActiveMechanic = {
   resolveAt: number;
   damage: number;
   resolved: boolean;
+  showCastBar: boolean;
 };
 
 export type PendingEvent = {
@@ -64,6 +65,7 @@ export type PendingEvent = {
   shape: AOEShape;
   telegraph: number;
   damage: number;
+  showCastBar: boolean;
 };
 
 export type LogEntry = {

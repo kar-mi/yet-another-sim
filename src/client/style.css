@@ -268,7 +268,7 @@ body {
 }
 
 /* ===== Non-selectable overlays ===== */
-#yas-party, #yas-hud, #yas-status, #yas-session-id, #yas-menu, #settings-panel {
+#yas-party, #yas-hud, #yas-status, #yas-session-id, #yas-menu, #settings-panel, #yas-cast-bar {
   user-select: none;
 }
 
@@ -321,6 +321,55 @@ body {
   top: 0; left: 0; bottom: 0;
   background: #3a9ff5;
   transition: width 0.1s linear;
+}
+
+/* ===== Cast Bar ===== */
+#yas-cast-bar {
+  position: fixed;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.yas-cast-name {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+
+.yas-cast-track {
+  position: relative;
+  width: 100%;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.yas-cast-fill {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 0%;
+  background: linear-gradient(90deg, #e07800, #df3333);
+  border-radius: 4px;
+  transition: width 0.05s linear;
+}
+
+.yas-cast-timer {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ===== HUD ===== */

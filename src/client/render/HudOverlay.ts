@@ -19,6 +19,10 @@ export class HudOverlay {
   private sessionEl: HTMLDivElement;
   private partyEl!: HTMLDivElement;
   private partyRows = new Map<string, { hpFill: HTMLDivElement; mpFill: HTMLDivElement; rowEl: HTMLDivElement }>();
+  private castBarEl!: HTMLDivElement;
+  private castNameEl!: HTMLDivElement;
+  private castFillEl!: HTMLDivElement;
+  private castTimerEl!: HTMLDivElement;
 
   constructor(sessionId: string) {
     this.root = this.buildHud();
@@ -51,6 +55,21 @@ export class HudOverlay {
     this.partyEl = document.createElement("div");
     this.partyEl.id = "yas-party";
     document.body.appendChild(this.partyEl);
+
+    this.castBarEl = document.createElement("div");
+    this.castBarEl.id = "yas-cast-bar";
+    this.castBarEl.style.display = "none";
+    this.castNameEl = document.createElement("div");
+    this.castNameEl.className = "yas-cast-name";
+    const castTrack = document.createElement("div");
+    castTrack.className = "yas-cast-track";
+    this.castFillEl = document.createElement("div");
+    this.castFillEl.className = "yas-cast-fill";
+    this.castTimerEl = document.createElement("div");
+    this.castTimerEl.className = "yas-cast-timer";
+    castTrack.appendChild(this.castFillEl);
+    this.castBarEl.append(this.castNameEl, castTrack, this.castTimerEl);
+    document.body.appendChild(this.castBarEl);
 
     this.bindEvents();
   }
@@ -172,6 +191,19 @@ export class HudOverlay {
       row.rowEl.classList.toggle("yas-dead", !player.alive);
     }
 
+    const casting = world.active.find(m => !m.resolved && m.showCastBar);
+    if (casting) {
+      const span = casting.resolveAt - casting.telegraphStart;
+      const progress = span > 0 ? Math.min(1, (world.time - casting.telegraphStart) / span) : 1;
+      const remaining = Math.max(0, casting.resolveAt - world.time);
+      this.castBarEl.style.display = "flex";
+      this.castNameEl.textContent = casting.name;
+      this.castFillEl.style.width = `${progress * 100}%`;
+      this.castTimerEl.textContent = remaining.toFixed(1) + "s";
+    } else {
+      this.castBarEl.style.display = "none";
+    }
+
     if (!p) return;
 
     const hpPct = Math.max(0, Math.min(1, p.hp / p.maxHp)) * 100;
@@ -218,5 +250,6 @@ export class HudOverlay {
     this.statusEl.remove();
     this.sessionEl.remove();
     this.partyEl.remove();
+    this.castBarEl.remove();
   }
 }
