@@ -1,4 +1,14 @@
-import type { World, Intents, LogEntry, ActiveMechanic, TetherSource, Player } from "../shared/types";
+import type {
+  World,
+  Intents,
+  Intent,
+  LogEntry,
+  ActiveMechanic,
+  TetherSource,
+  Player,
+  StatusEffect,
+  EffectSpec,
+} from "../shared/types";
 import type { Vec2 } from "../shared/math";
 import { add, scale, normalize, length } from "../shared/math";
 import { pointInShape, isOnFloor } from "./shapes";
@@ -43,15 +53,43 @@ function findInterceptor(players: Player[], src: Vec2, tgt: Vec2, excludeId: str
   return null;
 }
 
+function didAct(intent: Intent | undefined): boolean {
+  return !!intent && (length(intent.move) > 0 || intent.jump === true || intent.sprint === true);
+}
+
+function isEffectActiveAt(effect: StatusEffect, time: number): boolean {
+  return effect.appliedAt + effect.duration > time;
+}
+
+function effectActiveDt(effect: StatusEffect, previousTime: number, time: number): number {
+  const activeStart = Math.max(previousTime, effect.appliedAt);
+  const activeEnd = Math.min(time, effect.appliedAt + effect.duration);
+  return Math.max(0, activeEnd - activeStart);
+}
+
+function applyEffect(player: Player, spec: EffectSpec, time: number, id: string): void {
+  player.effects = [...player.effects, {
+    id,
+    name: spec.name,
+    kind: spec.kind,
+    appliedAt: time,
+    duration: spec.duration,
+    behavior: spec.behavior,
+  }];
+}
+
 export function tick(world: World, intents: Intents, dt: number): World {
+  const previousTime = world.time;
   const time = world.time + dt;
   const players = world.players.map(p => ({ ...p }));
   const log: LogEntry[] = world.log.slice();
+  const actedByPlayer = new Map<string, boolean>();
 
   // 1. Apply player movement
   for (const player of players) {
     if (!player.alive) continue;
     const intent = intents[player.id];
+    actedByPlayer.set(player.id, didAct(intent));
 
     if (intent?.jump && player.y === 0) {
       player.verticalVelocity = JUMP_SPEED;
@@ -101,6 +139,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
         finalizeAt: pt.t + pt.finalizeAfter,
         tetherKind: pt.tetherKind,
         buffName: pt.buffName,
+        behavior: pt.behavior,
+        effectDuration: pt.effectDuration,
         tetheredPlayerId: nearest?.id ?? null,
         finalized: false,
       });
@@ -132,13 +172,12 @@ export function tick(world: World, intents: Intents, dt: number): World {
       ts.finalized = true;
       const target = players.find(p => p.id === ts.tetheredPlayerId);
       if (target) {
-        target.effects = [...target.effects, {
-          id: `${ts.id}-effect`,
+        applyEffect(target, {
           name: ts.buffName,
           kind: ts.tetherKind,
-          appliedAt: time,
-          duration: 15,
-        }];
+          duration: ts.effectDuration,
+          behavior: ts.behavior,
+        }, time, `${ts.id}-effect`);
         log.push({ t: time, mechanic: ts.buffName, playerId: target.id, event: ts.tetherKind === "buff" ? "cleared" : "hit" });
       }
     }
@@ -158,9 +197,24 @@ export function tick(world: World, intents: Intents, dt: number): World {
       for (const player of players) {
         if (!player.alive) continue;
         if (pointInShape(mechanic.shape, player.pos)) {
-          player.hp = Math.max(0, player.hp - mechanic.damage);
+          const matchingVulnIds = new Set<string>();
+          let damage = mechanic.damage;
+          for (const effect of player.effects) {
+            if (!isEffectActiveAt(effect, time)) continue;
+            if (effect.behavior.kind === "vuln" && effect.behavior.damageType === mechanic.damageType) {
+              damage *= effect.behavior.multiplier;
+              matchingVulnIds.add(effect.id);
+            }
+          }
+          if (matchingVulnIds.size > 0 && mechanic.damage > 0) {
+            player.effects = player.effects.filter(effect => !matchingVulnIds.has(effect.id));
+          }
+          player.hp = Math.max(0, player.hp - damage);
           if (player.hp <= 0) player.alive = false;
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });
+          if (mechanic.applyEffect && player.alive) {
+            applyEffect(player, mechanic.applyEffect, time, `${mechanic.id}-${player.id}-eff`);
+          }
         } else {
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "cleared" });
         }
@@ -173,7 +227,30 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  // 4. Derive status
+  // 4. Apply continuous status effects and expire old effects
+  for (const player of players) {
+    if (player.alive) {
+      const acted = actedByPlayer.get(player.id) ?? false;
+      for (const effect of player.effects) {
+        const activeDt = effectActiveDt(effect, previousTime, time);
+        if (activeDt <= 0) continue;
+        if (
+          (effect.behavior.kind === "pyretic" && acted)
+          || (effect.behavior.kind === "freeze" && !acted)
+        ) {
+          player.hp = Math.max(0, player.hp - effect.behavior.dps * activeDt);
+          if (player.hp <= 0) {
+            player.alive = false;
+            log.push({ t: time, mechanic: effect.name, playerId: player.id, event: "hit" });
+            break;
+          }
+        }
+      }
+    }
+    player.effects = player.effects.filter(effect => isEffectActiveAt(effect, time));
+  }
+
+  // 5. Derive status
   const anyAlive = players.some(p => p.alive);
   const allResolved = pending.length === 0 && stillActive.every(m => m.resolved)
     && remainingPendingTethers.length === 0 && tetherSources.every(ts => ts.finalized);

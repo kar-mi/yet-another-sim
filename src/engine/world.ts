@@ -61,6 +61,8 @@ export function createWorld(raid: RaidDef): World {
         finalizeAfter: e.finalizeAfter,
         tetherKind: e.tetherKind,
         buffName: e.buffName,
+        behavior: e.behavior,
+        effectDuration: e.effectDuration,
       });
     } else {
       pending.push({
@@ -70,6 +72,8 @@ export function createWorld(raid: RaidDef): World {
         shape: toAOEShape(e.shape),
         telegraph: e.telegraph,
         damage: e.damage,
+        damageType: e.damageType,
+        applyEffect: e.applyEffect,
         showCastBar: e.showCastBar ?? false,
       });
     }

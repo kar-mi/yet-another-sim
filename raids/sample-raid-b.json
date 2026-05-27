@@ -9,6 +9,7 @@
       "name": "Eruption",
       "telegraph": 3,
       "damage": 70,
+      "damageType": "magical",
       "shape": { "kind": "circle", "center": [10, 10], "radius": 8 }
     },
     {
@@ -16,6 +17,7 @@
       "name": "Back Cleave",
       "telegraph": 3,
       "damage": 65,
+      "damageType": "magical",
       "shape": { "kind": "cone", "origin": [0, 0], "direction": [0, -1], "angleDeg": 100, "length": 24 }
     },
     {
@@ -23,6 +25,7 @@
       "name": "Laser",
       "telegraph": 4,
       "damage": 85,
+      "damageType": "magical",
       "shape": { "kind": "rect", "origin": [0, 0], "direction": [0, 1], "width": 6, "length": 40 }
     },
     {
@@ -30,6 +33,7 @@
       "name": "Ring Blast",
       "telegraph": 4,
       "damage": 100,
+      "damageType": "magical",
       "shape": { "kind": "donut", "center": [0, 0], "inner": 5, "outer": 22 }
     },
     {
@@ -37,6 +41,7 @@
       "name": "Pillars",
       "telegraph": 3,
       "damage": 90,
+      "damageType": "magical",
       "shape": { "kind": "circle", "center": [-12, -12], "radius": 10 }
     }
   ]

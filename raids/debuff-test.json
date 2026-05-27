@@ -1,0 +1,60 @@
+{
+  "name": "Debuff Test",
+  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 30 }] },
+  "duration": 45,
+  "players": [
+    { "id": "p1", "role": "dps", "control": "human", "spawn": [0, 0] }
+  ],
+  "events": [
+    {
+      "t": 3,
+      "name": "Expose",
+      "telegraph": 1,
+      "damage": 0,
+      "damageType": "physical",
+      "applyEffect": {
+        "name": "Physical Vulnerability",
+        "kind": "debuff",
+        "duration": 8,
+        "behavior": { "kind": "vuln", "damageType": "physical", "multiplier": 1.5 }
+      },
+      "shape": { "kind": "circle", "center": [0, 0], "radius": 8 }
+    },
+    {
+      "t": 7,
+      "name": "Typed Strike",
+      "telegraph": 1,
+      "damage": 30,
+      "damageType": "physical",
+      "shape": { "kind": "circle", "center": [0, 0], "radius": 8 }
+    },
+    {
+      "t": 13,
+      "name": "Pyretic Brand",
+      "telegraph": 1,
+      "damage": 0,
+      "damageType": "magical",
+      "applyEffect": {
+        "name": "Pyretic",
+        "kind": "debuff",
+        "duration": 8,
+        "behavior": { "kind": "pyretic", "dps": 8 }
+      },
+      "shape": { "kind": "circle", "center": [0, 0], "radius": 8 }
+    },
+    {
+      "t": 25,
+      "name": "Deep Freeze",
+      "telegraph": 1,
+      "damage": 0,
+      "damageType": "magical",
+      "applyEffect": {
+        "name": "Freeze",
+        "kind": "debuff",
+        "duration": 8,
+        "behavior": { "kind": "freeze", "dps": 8 }
+      },
+      "shape": { "kind": "circle", "center": [0, 0], "radius": 8 }
+    }
+  ]
+}

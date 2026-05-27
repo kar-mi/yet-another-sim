@@ -14,6 +14,7 @@
       "name": "Fireball",
       "telegraph": 3,
       "damage": 60,
+      "damageType": "magical",
       "showCastBar": true,
       "shape": { "kind": "circle", "center": [0, 0], "radius": 9 }
     },
@@ -22,6 +23,7 @@
       "name": "Cleave",
       "telegraph": 3,
       "damage": 60,
+      "damageType": "magical",
       "showCastBar": false,
       "shape": { "kind": "cone", "origin": [0, 0], "direction": [0, 1], "angleDeg": 90, "length": 22 }
     },
@@ -30,6 +32,7 @@
       "name": "Crossfire",
       "telegraph": 4,
       "damage": 80,
+      "damageType": "magical",
       "showCastBar": true,
       "shape": { "kind": "rect", "origin": [0, 0], "direction": [1, 0], "width": 6, "length": 40 }
     },
@@ -38,6 +41,7 @@
       "name": "Shockwave",
       "telegraph": 4,
       "damage": 100,
+      "damageType": "magical",
       "showCastBar": false,
       "shape": { "kind": "donut", "center": [0, 0], "inner": 7, "outer": 30 }
     }

@@ -257,7 +257,10 @@ export class HudOverlay {
       for (const effect of activeEffects) {
         const effectEl = document.createElement("span");
         effectEl.className = `party-effect party-effect-${effect.kind}`;
-        effectEl.textContent = effect.name;
+        const timerEl = document.createElement("span");
+        timerEl.className = "party-effect-timer";
+        timerEl.textContent = `${Math.ceil(effect.appliedAt + effect.duration - world.time)}s`;
+        effectEl.append(effect.name, timerEl);
         row.effectsEl.appendChild(effectEl);
       }
     }

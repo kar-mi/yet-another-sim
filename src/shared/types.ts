@@ -15,12 +15,28 @@ export type Arena = { zones: ZoneShape[] };
 
 export type Waypoint = { t: number; pos: Vec2 };
 
+export type DamageType = "physical" | "magical" | "true";
+
+export type EffectBehavior =
+  | { kind: "none" }
+  | { kind: "vuln"; damageType: "physical" | "magical"; multiplier: number }
+  | { kind: "pyretic"; dps: number }
+  | { kind: "freeze"; dps: number };
+
+export type EffectSpec = {
+  name: string;
+  kind: "buff" | "debuff";
+  duration: number;
+  behavior: EffectBehavior;
+};
+
 export type StatusEffect = {
   id: string;
   name: string;
   kind: "buff" | "debuff";
   appliedAt: number;
   duration: number;
+  behavior: EffectBehavior;
 };
 
 export type Player = {
@@ -63,6 +79,8 @@ export type ActiveMechanic = {
   telegraphStart: number;
   resolveAt: number;
   damage: number;
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
   resolved: boolean;
   showCastBar: boolean;
 };
@@ -74,6 +92,8 @@ export type PendingEvent = {
   shape: AOEShape;
   telegraph: number;
   damage: number;
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
   showCastBar: boolean;
 };
 
@@ -91,6 +111,8 @@ export type TetherSource = {
   finalizeAt: number;
   tetherKind: "buff" | "debuff";
   buffName: string;
+  behavior: EffectBehavior;
+  effectDuration: number;
   tetheredPlayerId: string | null;
   finalized: boolean;
 };
@@ -102,6 +124,8 @@ export type PendingTether = {
   finalizeAfter: number;
   tetherKind: "buff" | "debuff";
   buffName: string;
+  behavior: EffectBehavior;
+  effectDuration: number;
 };
 
 export type Intent = {

@@ -340,6 +340,12 @@ body {
   letter-spacing: 0.03em;
 }
 
+.party-effect-timer {
+  margin-left: 4px;
+  font-size: 9px;
+  opacity: 0.72;
+}
+
 .party-effect-buff {
   background: rgba(30, 180, 60, 0.25);
   color: #4de87a;

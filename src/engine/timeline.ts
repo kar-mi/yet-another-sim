@@ -16,6 +16,8 @@ export function promotePending(
         telegraphStart: event.t,
         resolveAt: event.t + event.telegraph,
         damage: event.damage,
+        damageType: event.damageType,
+        applyEffect: event.applyEffect,
         resolved: false,
         showCastBar: event.showCastBar,
       });
