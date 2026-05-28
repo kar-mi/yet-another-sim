@@ -756,6 +756,20 @@ body {
   border-bottom: 1px solid rgba(100, 115, 175, 0.1);
 }
 
+.yas-menu-session-input {
+  width: 100%;
+  max-width: 300px;
+  background: rgba(10, 12, 28, 0.9);
+  border: 1px solid rgba(85, 95, 145, 0.28);
+  border-radius: 3px;
+  color: rgba(212, 220, 245, 0.82);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  padding: 8px 10px;
+  text-align: center;
+}
+
 .yas-menu-session-label {
   font-size: 8px;
   letter-spacing: 2.5px;
@@ -766,6 +780,15 @@ body {
   font-size: 10px;
   letter-spacing: 0.5px;
   color: rgba(175, 185, 215, 0.45);
+}
+
+.yas-menu-error {
+  margin-top: 14px;
+  max-width: 320px;
+  color: rgba(255, 120, 120, 0.86);
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  text-align: center;
 }
 
 .yas-menu-start {
@@ -781,10 +804,79 @@ body {
   transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
 }
 
-.yas-menu-start:hover {
+.yas-menu-start:disabled {
+  cursor: default;
+  opacity: 0.42;
+  box-shadow: none;
+}
+
+.yas-menu-start:not(:disabled):hover {
   border-color: rgba(212, 168, 67, 0.75);
   color: rgba(212, 168, 67, 1);
   box-shadow: 0 0 16px rgba(212, 168, 67, 0.12);
+}
+
+.yas-lobby-slots {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 18px;
+}
+
+.yas-lobby-slot {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px 82px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  background: rgba(10, 12, 28, 0.82);
+  border: 1px solid rgba(85, 95, 145, 0.2);
+  border-radius: 3px;
+}
+
+.yas-lobby-slot-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.yas-lobby-slot-id {
+  color: rgba(212, 168, 67, 0.86);
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+
+.yas-lobby-slot-role,
+.yas-lobby-slot-status {
+  color: rgba(175, 185, 215, 0.5);
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+
+.yas-lobby-slot-action {
+  background: rgba(6, 7, 18, 0.9);
+  border: 1px solid rgba(85, 95, 145, 0.26);
+  border-radius: 3px;
+  color: rgba(195, 205, 225, 0.72);
+  cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+  padding: 6px 8px;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.yas-lobby-slot-action:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.yas-lobby-slot-action:not(:disabled):hover {
+  border-color: rgba(212, 168, 67, 0.55);
+  color: rgba(212, 168, 67, 0.9);
 }
 
 /* ===== SESSION ID BADGE ===== */

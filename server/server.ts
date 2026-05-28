@@ -1,4 +1,6 @@
 import { join } from "path";
+import { ClientMessageSchema, type ServerMessage } from "../src/shared/protocol";
+import { SessionManager } from "./session";
 
 const ROOT = join(import.meta.dir, "..");
 const BUNDLE_DIR = join(ROOT, ".bundle");
@@ -10,6 +12,10 @@ const MAX_RAID_NAME_LENGTH = 60;
 interface RaidEntry {
   id: string;
   name: string;
+}
+
+interface SocketData {
+  clientId: string;
 }
 
 function raidIdFromFile(file: string): string | null {
@@ -81,13 +87,25 @@ if (!buildResult.success) {
 }
 console.log("Bundle ready.");
 
-const server = Bun.serve({
+const clients = new Map<string, Bun.ServerWebSocket<SocketData>>();
+const manager = new SessionManager({
+  raidsDir: RAIDS_DIR,
+  send(clientId: string, message: ServerMessage) {
+    const ws = clients.get(clientId);
+    if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message));
+  },
+});
+setInterval(() => manager.pruneExpired(), 60_000);
+
+const server = Bun.serve<SocketData>({
   port: 3000,
 
-  async fetch(req) {
+  async fetch(req, server) {
     const url = new URL(req.url);
 
-    if (server.upgrade(req)) return undefined as unknown as Response;
+    if (server.upgrade(req, { data: { clientId: crypto.randomUUID() } })) {
+      return undefined as unknown as Response;
+    }
 
     if (url.pathname === "/api/raids") {
       return Response.json(await loadRaidEntries());
@@ -108,10 +126,31 @@ const server = Bun.serve({
   },
 
   websocket: {
-    open(ws) { console.log("WS connected:", ws.remoteAddress); },
-    // stub: echo back — will be replaced with authoritative sim broadcast
-    message(ws, msg) { ws.send(msg); },
-    close(ws) { console.log("WS disconnected"); },
+    idleTimeout: 660,
+    open(ws) {
+      clients.set(ws.data.clientId, ws);
+      ws.send(JSON.stringify({ type: "joined", clientId: ws.data.clientId } satisfies ServerMessage));
+      console.log("WS connected:", ws.remoteAddress);
+    },
+    async message(ws, msg) {
+      try {
+        const text = typeof msg === "string" ? msg : new TextDecoder().decode(msg);
+        const parsed = ClientMessageSchema.safeParse(JSON.parse(text));
+        if (!parsed.success) {
+          ws.send(JSON.stringify({ type: "error", message: "Invalid message" } satisfies ServerMessage));
+          return;
+        }
+
+        await manager.handle(ws.data.clientId, parsed.data);
+      } catch {
+        ws.send(JSON.stringify({ type: "error", message: "Invalid JSON" } satisfies ServerMessage));
+      }
+    },
+    close(ws) {
+      clients.delete(ws.data.clientId);
+      manager.disconnect(ws.data.clientId);
+      console.log("WS disconnected");
+    },
   },
 });
 

@@ -32,7 +32,11 @@ export class HudOverlay {
   private ctrlSprintCdOverlay!: HTMLDivElement;
   private ctrlSprintCdText!: HTMLDivElement;
 
-  constructor(sessionId: string, private onSettingsChange: (settings: Settings) => void = () => {}) {
+  constructor(
+    sessionId: string,
+    private readonly localPlayerId: string | null = null,
+    private onSettingsChange: (settings: Settings) => void = () => {},
+  ) {
     this.root = this.buildHud();
     document.body.appendChild(this.root);
 
@@ -163,7 +167,7 @@ export class HudOverlay {
 
     const nameEl = document.createElement("span");
     nameEl.className = "party-name";
-    nameEl.textContent = player.role.toUpperCase() + (player.control === "human" ? " (You)" : "");
+    nameEl.textContent = player.role.toUpperCase() + (player.id === this.localPlayerId ? " (You)" : "");
 
     const hpTrack = document.createElement("div");
     hpTrack.className = "party-hp-track";
@@ -225,7 +229,7 @@ export class HudOverlay {
   }
 
   sync(world: World): void {
-    const p = world.players[0];
+    const p = world.players.find(player => player.id === this.localPlayerId) ?? world.players[0];
 
     if (world.status === "cleared") {
       this.statusEl.textContent = "CLEARED";

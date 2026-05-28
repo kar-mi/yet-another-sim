@@ -1,35 +1,21 @@
-import type { World, Intents } from "../shared/types";
-import { tick } from "../engine/sim";
-import { computeBotIntents } from "../engine/botIntent";
 import type { Renderer } from "./render/Renderer";
 import { getIntent, getRightStick } from "./input";
+import type { NetClient } from "./net";
 
-const DT = 1 / 60;
-
-export function startLoop(world: World, renderer: Renderer, playerId: string): () => void {
-  let current = world;
-  let accumulator = 0;
+export function startNetLoop(renderer: Renderer, net: NetClient): () => void {
   let lastTime = performance.now();
   let rafId = 0;
 
   function frame(now: number): void {
     const elapsed = Math.min((now - lastTime) / 1000, 0.1);
     lastTime = now;
-    accumulator += elapsed;
 
-    const cameraYaw = renderer.getCameraYaw();
-    while (accumulator >= DT) {
-      if (current.status === "running") {
-        const intent = getIntent(cameraYaw);
-        const intents: Intents = { ...computeBotIntents(current, DT), [playerId]: intent };
-        current = tick(current, intents, DT);
-      }
-      accumulator -= DT;
-    }
+    net.send({ type: "intent", intent: getIntent(renderer.getCameraYaw()) });
 
     const rs = getRightStick();
     renderer.applyControllerPan(rs.x, rs.y, elapsed);
-    renderer.sync(current, accumulator / DT);
+    const view = net.getRenderView(now);
+    if (view) renderer.sync(view, 0);
     renderer.render();
     rafId = requestAnimationFrame(frame);
   }

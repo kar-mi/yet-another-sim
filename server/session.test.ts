@@ -1,0 +1,174 @@
+import { expect, test } from "bun:test";
+import { loadRaid } from "../src/engine/raidLoader";
+import { ClientMessageSchema } from "../src/shared/protocol";
+import type { ServerMessage } from "../src/shared/protocol";
+import { Session } from "./session";
+
+function testRaid() {
+  return loadRaid({
+    name: "Session Test",
+    arena: { zones: [{ kind: "circle", center: [0, 0], radius: 30 }] },
+    duration: 30,
+    players: [
+      { id: "p1", role: "tank", control: "human", spawn: [0, 0] },
+      { id: "p2", role: "healer", control: "bot", spawn: [0, 0], pattern: [{ t: 0, pos: [5, 0] }] },
+    ],
+    events: [],
+  });
+}
+
+function makeSession(options: { now?: () => number; lobbyTimeoutMs?: number } = {}) {
+  const sent: Array<{ clientId: string; message: ServerMessage }> = [];
+  const session = new Session({
+    id: "test-room",
+    raidId: "test-raid",
+    raid: testRaid(),
+    send: (clientId, message) => sent.push({ clientId, message }),
+    autoTick: false,
+    now: options.now,
+    lobbyTimeoutMs: options.lobbyTimeoutMs,
+  });
+  return { session, sent };
+}
+
+test("client can claim only one slot", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+
+  session.claimSlot("c1", "p1");
+  session.claimSlot("c1", "p2");
+
+  expect(session.slots.get("p1")).toBe("c1");
+  expect(session.slots.get("p2")).toBeNull();
+  expect(sent.some(entry => entry.message.type === "error" && entry.message.message === "You already claimed a slot")).toBe(true);
+});
+
+test("start preserves lobby assignments and fills missing slots with idle center bots", () => {
+  const { session } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "p2");
+  session.start("c1");
+
+  expect(session.world.players).toHaveLength(8);
+  expect(session.world.players.find(player => player.id === "p2")?.control).toBe("human");
+  expect(session.world.players.find(player => player.id === "p1")?.control).toBe("bot");
+
+  const fallback = session.world.players.find(player => player.id === "p3");
+  expect(fallback?.control).toBe("bot");
+  expect(fallback?.pos).toEqual({ x: 0, z: 0 });
+});
+
+test("unclaimed clients do not enter the game on start", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.join("c2");
+  session.claimSlot("c1", "p1");
+  session.start("c1");
+
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === "p1")).toBe(true);
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "started")).toBe(false);
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Claim a slot to join the running session")).toBe(true);
+});
+
+test("late joiner must claim before entering a running session", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "p1");
+  session.start("c1");
+
+  session.join("c2");
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "started")).toBe(false);
+
+  session.claimSlot("c2", "p2");
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "started" && entry.message.yourPlayerId === "p2")).toBe(true);
+});
+
+test("claimed players use human intent while unclaimed patterned bots move", () => {
+  const { session } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "p1");
+  session.start("c1");
+
+  session.setIntent("c1", { move: { x: 1, z: 0 } });
+  for (let i = 0; i < 10; i++) session.step();
+
+  const claimed = session.world.players.find(player => player.id === "p1")!;
+  const patternedBot = session.world.players.find(player => player.id === "p2")!;
+  const fallbackBot = session.world.players.find(player => player.id === "p3")!;
+
+  expect(claimed.pos.x).toBeGreaterThan(0);
+  expect(patternedBot.pos.x).toBeGreaterThan(0);
+  expect(fallbackBot.pos).toEqual({ x: 0, z: 0 });
+});
+
+test("edge actions survive later movement intents before the next tick", () => {
+  const { session } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "p1");
+  session.start("c1");
+
+  session.setIntent("c1", { move: { x: 0, z: 0 }, jump: true });
+  session.setIntent("c1", { move: { x: 1, z: 0 } });
+  session.step();
+
+  const claimed = session.world.players.find(player => player.id === "p1")!;
+  expect(claimed.y).toBeGreaterThan(0);
+  expect(claimed.pos.x).toBeGreaterThan(0);
+});
+
+test("disconnect converts claimed slot back to bot", () => {
+  const { session } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "p1");
+
+  session.disconnect("c1");
+
+  expect(session.slots.get("p1")).toBeNull();
+  expect(session.world.players.find(player => player.id === "p1")?.control).toBe("bot");
+});
+
+test("inactive lobby expires after configured timeout", () => {
+  let now = 0;
+  const { session } = makeSession({ now: () => now, lobbyTimeoutMs: 1000 });
+
+  expect(session.isExpired()).toBe(false);
+  now = 1000;
+  expect(session.isExpired()).toBe(true);
+});
+
+test("finished session expires once idle past the timeout", () => {
+  let now = 0;
+  const { session } = makeSession({ now: () => now, lobbyTimeoutMs: 1000 });
+  session.status = "done";
+
+  expect(session.isExpired()).toBe(false);
+  now = 1000;
+  expect(session.isExpired()).toBe(true);
+});
+
+test("running session never expires by idle timeout", () => {
+  let now = 0;
+  const { session } = makeSession({ now: () => now, lobbyTimeoutMs: 1000 });
+  session.status = "running";
+
+  now = 60_000;
+  expect(session.isExpired()).toBe(false);
+});
+
+test("client message schema rejects malformed intent packets", () => {
+  const parsed = ClientMessageSchema.safeParse({
+    type: "intent",
+    intent: { move: { x: Number.NaN, z: 0 } },
+  });
+
+  expect(parsed.success).toBe(false);
+});
+
+test("client message schema rejects out-of-range intent magnitudes", () => {
+  const parsed = ClientMessageSchema.safeParse({
+    type: "intent",
+    intent: { move: { x: 1e9, z: 0 } },
+  });
+
+  expect(parsed.success).toBe(false);
+});

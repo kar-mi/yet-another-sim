@@ -1,35 +1,23 @@
-import { applyBotPatterns, loadBotPatterns, loadRaid } from "../engine/raidLoader";
-import { createWorld } from "../engine/world";
 import { BabylonRenderer } from "./render/BabylonRenderer";
 import { initInput, setKeyBindings, setControllerDeadzone } from "./input";
-import { startLoop } from "./loop";
+import { startNetLoop } from "./loop";
 import { DEFAULT_BINDINGS, keyLabel, loadSettings, saveSettings } from "./settings";
 import type { KeyBindings } from "./settings";
 import { showMainMenu } from "./MainMenu";
+import { connect } from "./net";
 
 async function main(): Promise<void> {
   const canvas = document.getElementById("canvas") as HTMLCanvasElement | null;
   if (!canvas) throw new Error("#canvas not found");
 
-  const { raidId, sessionId } = await showMainMenu();
-
-  const res = await fetch(`/raids/${raidId}.json`);
-  if (!res.ok) throw new Error(`Failed to load raid: ${res.status}`);
-  const json: unknown = await res.json();
-
-  let raid = loadRaid(json);
-  if (raid.botPatterns) {
-    const botRes = await fetch(`/raids/${raid.botPatterns}.json`);
-    if (!botRes.ok) throw new Error(`Failed to load bot patterns: ${botRes.status}`);
-    raid = applyBotPatterns(raid, loadBotPatterns(await botRes.json()));
-  }
-  const world = createWorld(raid);
+  const net = await connect();
+  const { world, sessionId, yourPlayerId } = await showMainMenu(net);
   const settings = loadSettings();
   const renderer = new BabylonRenderer(canvas, nextSettings => {
     Object.assign(settings, nextSettings);
     saveSettings(settings);
   });
-  renderer.init(world, sessionId);
+  renderer.init(world, sessionId, yourPlayerId);
 
   renderer.applySettings(settings);
   setKeyBindings(settings.keyBindings);
@@ -124,14 +112,14 @@ async function main(): Promise<void> {
   });
 
   const disposeInput = initInput();
-  const humanPlayer = world.players.find(player => player.control === "human") ?? world.players[0];
-  const stopLoop = startLoop(world, renderer, humanPlayer.id);
+  const stopLoop = startNetLoop(renderer, net);
 
   // HMR cleanup (Bun --hot)
   const meta = import.meta as unknown as { hot?: { dispose: (cb: () => void) => void } };
   meta.hot?.dispose(() => {
     stopLoop();
     disposeInput();
+    net.close();
     renderer.dispose();
   });
 }

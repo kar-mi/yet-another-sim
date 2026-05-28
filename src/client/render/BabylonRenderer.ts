@@ -1,4 +1,5 @@
 import { RegisterEnginesExtensionsEngineDynamicTexture } from "@babylonjs/core/Engines/Extensions/engine.dynamicTexture.pure";
+import { RegisterEngineUniformBuffer } from "@babylonjs/core/Engines/Extensions/engine.uniformBuffer.pure";
 import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
 import type { ArcRotateCameraPointersInput } from "@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput";
 import { Engine } from "@babylonjs/core/Engines/engine";
@@ -17,10 +18,11 @@ import { PlayerLayer } from "./PlayerLayer";
 import { TelegraphLayer } from "./TelegraphLayer";
 import { TetherLayer } from "./TetherLayer";
 
-// Sub-path imports drop Babylon's side-effect registration for dynamic textures,
-// leaving engine.createDynamicTexture a no-op stub. AdvancedDynamicTexture relies on
-// it, so register it explicitly (a referenced call survives tree-shaking).
+// Sub-path imports drop some Babylon engine side-effect registrations.
+// Use explicit calls because referenced calls survive tree-shaking.
 RegisterEnginesExtensionsEngineDynamicTexture();
+// StandardMaterial's WebGL2 UBO path depends on this; without it the scene renders dim/blank.
+RegisterEngineUniformBuffer();
 
 const playerBarId = (id: string) => `player:${id}`;
 const bossBarId = (id: string) => `boss:${id}`;
@@ -35,6 +37,7 @@ export class BabylonRenderer implements Renderer {
   private telegraphs!: TelegraphLayer;
   private tethers!: TetherLayer;
   private hud!: HudOverlay;
+  private localPlayerId: string | null = null;
   private onResize!: () => void;
   private panButtonCode: number = 2;
   private controllerSensitivity = 2.0;
@@ -44,10 +47,9 @@ export class BabylonRenderer implements Renderer {
 
   constructor(private canvas: HTMLCanvasElement, private onSettingsChange: (settings: Settings) => void = () => {}) {}
 
-  init(world: World, sessionId: string): void {
+  init(world: World, sessionId: string, localPlayerId: string | null = null): void {
+    this.localPlayerId = localPlayerId;
     this.engine = new Engine(this.canvas, true);
-    // Babylon v9's WebGL2 UBO path still blanks StandardMaterial draws in this app.
-    this.engine.disableUniformBuffers = true;
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.05, 0.05, 0.1, 1);
 
@@ -108,7 +110,7 @@ export class BabylonRenderer implements Renderer {
     }
     this.telegraphs = new TelegraphLayer(this.scene);
     this.tethers = new TetherLayer(this.scene);
-    this.hud = new HudOverlay(sessionId, this.onSettingsChange);
+    this.hud = new HudOverlay(sessionId, this.localPlayerId, this.onSettingsChange);
 
     this.onResize = () => this.engine.resize();
     window.addEventListener("resize", this.onResize);
@@ -118,7 +120,8 @@ export class BabylonRenderer implements Renderer {
     this.players.sync(world.players);
     this.boss.sync(world.boss);
 
-    const alive = world.players.find(p => p.alive);
+    const alive = world.players.find(p => p.id === this.localPlayerId && p.alive)
+      ?? world.players.find(p => p.alive);
     if (alive) this.camera.target.set(alive.pos.x, 0, alive.pos.z);
 
     for (const player of world.players) {

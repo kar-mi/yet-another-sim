@@ -1,7 +1,7 @@
 import type { World } from "../../shared/types";
 
 export interface Renderer {
-  init(world: World, sessionId: string): void;
+  init(world: World, sessionId: string, localPlayerId?: string | null): void;
   sync(world: World, alpha: number): void;
   render(): void;
   dispose(): void;

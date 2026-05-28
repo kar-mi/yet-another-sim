@@ -1,7 +1,7 @@
 import { z } from "zod";
+import { MAX_PLAYERS, RaidIdSchema } from "../shared/protocol";
 
 const Vec2Schema = z.tuple([z.number(), z.number()]);
-const RaidIdSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
 const WaypointSchema = z.object({ t: z.number().nonnegative(), pos: Vec2Schema });
 
 const ZoneShapeSchema = z.discriminatedUnion("kind", [
@@ -78,17 +78,8 @@ export const RaidSchema = z.object({
   arena: z.object({ zones: z.array(ZoneShapeSchema).min(1) }),
   duration: z.number().positive(),
   botPatterns: RaidIdSchema.optional(),
-  players: z.array(PlayerDefSchema).min(1),
+  players: z.array(PlayerDefSchema).min(1).max(MAX_PLAYERS),
   events: z.array(EventSchema),
-}).superRefine((raid, ctx) => {
-  const humanCount = raid.players.filter(player => player.control === "human").length;
-  if (humanCount !== 1) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "raid must define exactly one human player",
-      path: ["players"],
-    });
-  }
 });
 
 export const BotPatternsSchema = z.object({
