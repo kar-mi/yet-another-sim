@@ -83,6 +83,6 @@ export type ServerMessage =
       slots: LobbySlot[];
     }
   | { type: "started"; world: World; yourPlayerId: string }
-  | { type: "playback"; state: PlaybackState; raidId: string; world: World }
+  | { type: "playback"; state: PlaybackState; raidId: string; hostClientId: string; world: World }
   | { type: "snapshot"; world: World }
   | { type: "error"; message: string };

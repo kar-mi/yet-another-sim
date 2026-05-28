@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { loadRaid } from "../src/engine/raidLoader";
 import { ClientMessageSchema, EMPTY_RAID_ID } from "../src/shared/protocol";
 import type { ServerMessage } from "../src/shared/protocol";
-import { loadSessionRaid, Session, SessionManager } from "./session";
+import { loadSessionRaid, Session, SessionManager, type SessionStatus } from "./session";
 
 function testRaid() {
   return loadRaid({
@@ -211,6 +211,63 @@ test("host can restart the current raid", () => {
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === "p1")).toBe(true);
 });
 
+test("host can restart after the session ends", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "p1");
+  session.start("c1");
+  session.status = "done" as SessionStatus;
+
+  session.restart("c1");
+
+  expect(session.status).toBe("running");
+  expect(session.world.time).toBe(0);
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "playback" && entry.message.state === "playing")).toBe(true);
+});
+
+test("host can stop after the session ends", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "p1");
+  session.start("c1");
+  session.status = "done" as SessionStatus;
+
+  session.stop("c1");
+
+  expect(session.status).toBe("stopped");
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "playback" && entry.message.state === "stopped")).toBe(true);
+});
+
+test("host can switch raid after the session ends", () => {
+  const { session } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "p1");
+  session.start("c1");
+  session.status = "done" as SessionStatus;
+
+  session.setRaid("c1", "alternate", alternateRaid());
+
+  expect(session.raidId).toBe("alternate");
+  expect(session.status).toBe("running");
+});
+
+test("concurrent joins to a new session id create one session", async () => {
+  const sent: Array<{ clientId: string; message: ServerMessage }> = [];
+  const manager = new SessionManager({
+    raidsDir: "",
+    send: (clientId, message) => sent.push({ clientId, message }),
+  });
+
+  await Promise.all([
+    manager.handle("c1", { type: "join", sessionId: "room", raidId: EMPTY_RAID_ID }),
+    manager.handle("c2", { type: "join", sessionId: "room", raidId: EMPTY_RAID_ID }),
+  ]);
+
+  expect(manager.sessions.size).toBe(1);
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "lobby")).toBe(true);
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "lobby")).toBe(true);
+});
+
 test("empty raid synthesizes eight generic slots", async () => {
   const raid = await loadSessionRaid(EMPTY_RAID_ID, "");
   const sent: Array<{ clientId: string; message: ServerMessage }> = [];
@@ -256,7 +313,7 @@ test("inactive lobby expires after configured timeout", () => {
 test("finished session expires once idle past the timeout", () => {
   let now = 0;
   const { session } = makeSession({ now: () => now, lobbyTimeoutMs: 1000 });
-  session.status = "done";
+  session.status = "done" as SessionStatus;
 
   expect(session.isExpired()).toBe(false);
   now = 1000;

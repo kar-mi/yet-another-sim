@@ -93,6 +93,7 @@ export class Session {
   readonly slots = new Map<string, string | null>();
   status: SessionStatus = "lobby";
   hostClientId = "";
+  raidRequestSeq = 0;
   world: World;
 
   private raid: RaidDef;
@@ -168,10 +169,6 @@ export class Session {
       this.sendError(clientId, "Stop or pause before changing raid");
       return;
     }
-    if (this.status === "done") {
-      this.sendError(clientId, "Cannot change raid after session ends");
-      return;
-    }
     if (raidId === this.raidId) return;
 
     const preserveOwners = this.status !== "lobby";
@@ -241,7 +238,7 @@ export class Session {
       this.sendError(clientId, "Only the host can stop");
       return;
     }
-    if (this.status === "lobby" || this.status === "done") return;
+    if (this.status === "lobby") return;
 
     this.status = "stopped";
     this.stopTick();
@@ -257,10 +254,6 @@ export class Session {
     }
     if (this.status === "lobby") {
       this.start(clientId);
-      return;
-    }
-    if (this.status === "done") {
-      this.sendError(clientId, "Cannot restart after session ends");
       return;
     }
 
@@ -283,7 +276,8 @@ export class Session {
       }
     }
 
-    if (this.hostClientId === clientId) {
+    const hostChanged = this.hostClientId === clientId;
+    if (hostChanged) {
       this.hostClientId = this.clients.values().next().value ?? "";
     }
 
@@ -294,6 +288,7 @@ export class Session {
     }
 
     this.broadcastLobby();
+    if (hostChanged && this.status !== "lobby") this.broadcastPlayback();
     return false;
   }
 
@@ -501,7 +496,7 @@ export class Session {
 
   private broadcastPlayback(): void {
     const state = this.status === "running" ? "playing" : this.status === "paused" ? "paused" : "stopped";
-    this.broadcast({ type: "playback", state, raidId: this.raidId, world: this.world });
+    this.broadcast({ type: "playback", state, raidId: this.raidId, hostClientId: this.hostClientId, world: this.world });
   }
 
   private broadcastStarted(): void {
@@ -601,15 +596,19 @@ export class SessionManager {
 
     let session = this.sessions.get(sessionId);
     if (!session) {
-      session = new Session({
-        id: sessionId,
-        raidId,
-        raid: await loadSessionRaid(raidId, this.raidsDir),
-        send: this.send,
-        now: this.now,
-        lobbyTimeoutMs: this.lobbyTimeoutMs,
-      });
-      this.sessions.set(sessionId, session);
+      const raid = await loadSessionRaid(raidId, this.raidsDir);
+      session = this.sessions.get(sessionId);
+      if (!session) {
+        session = new Session({
+          id: sessionId,
+          raidId,
+          raid,
+          send: this.send,
+          now: this.now,
+          lobbyTimeoutMs: this.lobbyTimeoutMs,
+        });
+        this.sessions.set(sessionId, session);
+      }
     }
 
     this.clientSessions.set(clientId, sessionId);
@@ -623,11 +622,19 @@ export class SessionManager {
       return;
     }
 
+    const seq = ++session.raidRequestSeq;
+    let raid: RaidDef;
     try {
-      session.setRaid(clientId, raidId, await loadSessionRaid(raidId, this.raidsDir));
+      raid = await loadSessionRaid(raidId, this.raidsDir);
     } catch {
       this.send(clientId, { type: "error", message: "Raid not found" });
+      return;
     }
+
+    if (session.raidRequestSeq !== seq) return;
+    if (this.sessions.get(session.id) !== session) return;
+
+    session.setRaid(clientId, raidId, raid);
   }
 
   private sessionFor(clientId: string): Session | undefined {

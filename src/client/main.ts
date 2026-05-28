@@ -7,7 +7,9 @@ import { loadRaidOptions, showLanding, showLobby } from "./MainMenu";
 import { connect, type NetClient } from "./net";
 import { EMPTY_RAID_ID, SessionIdSchema, type PlaybackState } from "../shared/protocol";
 
-async function createRaidHudSelect(net: NetClient, initialRaidId: string, isHost: boolean): Promise<() => void> {
+async function createRaidHudSelect(net: NetClient, initialRaidId: string, initialIsHost: boolean): Promise<() => void> {
+  let isHost = initialIsHost;
+  let lastState: PlaybackState = "playing";
   const raids = [{ id: EMPTY_RAID_ID, name: "(empty)" }, ...await loadRaidOptions()];
   const wrapper = document.createElement("div");
   wrapper.id = "yas-raid-select";
@@ -70,24 +72,27 @@ async function createRaidHudSelect(net: NetClient, initialRaidId: string, isHost
   controls.append(playBtn, pauseBtn, stopBtn, restartBtn);
 
   const syncPlayback = (state: PlaybackState) => {
+    lastState = state;
     select.disabled = !isHost || state === "playing";
-    if (!isHost) return;
-    playBtn.disabled = state === "playing";
-    pauseBtn.disabled = state !== "playing";
-    stopBtn.disabled = state === "stopped";
-    restartBtn.disabled = false;
+    playBtn.disabled = !isHost || state === "playing";
+    pauseBtn.disabled = !isHost || state !== "playing";
+    stopBtn.disabled = !isHost || state === "stopped";
+    restartBtn.disabled = !isHost;
   };
 
   const disposePlayback = net.on("playback", message => {
+    isHost = net.clientId === message.hostClientId;
     select.value = message.raidId;
     syncPlayback(message.state);
   });
+  const disposeError = net.on("error", () => syncPlayback(lastState));
   syncPlayback("playing");
 
   wrapper.append(label, select, controls);
   document.body.appendChild(wrapper);
   return () => {
     disposePlayback();
+    disposeError();
     wrapper.remove();
   };
 }
