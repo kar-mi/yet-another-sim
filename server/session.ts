@@ -4,7 +4,7 @@ import { applyBotPatterns, loadBotPatterns, loadRaid } from "../src/engine/raidL
 import type { RaidDef } from "../src/engine/raidSchema";
 import { tick } from "../src/engine/sim";
 import { createWorld } from "../src/engine/world";
-import { MAX_PLAYERS, type ClientMessage, type LobbySlot, type LobbyStatus, type ServerMessage } from "../src/shared/protocol";
+import { EMPTY_RAID_ID, MAX_PLAYERS, type ClientMessage, type LobbySlot, type LobbyStatus, type ServerMessage } from "../src/shared/protocol";
 import type { Intent, Intents, World } from "../src/shared/types";
 
 const DT = 1 / 60;
@@ -57,7 +57,19 @@ export function fillRaidSlots(raid: RaidDef): RaidDef {
   return { ...raid, players };
 }
 
+function createEmptyRaid(): RaidDef {
+  return {
+    name: "(empty)",
+    arena: { zones: [{ kind: "circle", center: [0, 0], radius: 30 }] },
+    duration: 30,
+    players: [],
+    events: [],
+  };
+}
+
 export async function loadSessionRaid(raidId: string, raidsDir: string): Promise<RaidDef> {
+  if (raidId === EMPTY_RAID_ID) return createEmptyRaid();
+
   const raid = loadRaid(await Bun.file(join(raidsDir, `${raidId}.json`)).json());
   if (!raid.botPatterns) return raid;
   return applyBotPatterns(raid, loadBotPatterns(await Bun.file(join(raidsDir, `${raid.botPatterns}.json`)).json()));
@@ -77,13 +89,13 @@ export interface SessionOptions {
 
 export class Session {
   readonly id: string;
-  readonly raidId: string;
+  raidId: string;
   readonly slots = new Map<string, string | null>();
   status: SessionStatus = "lobby";
   hostClientId = "";
   world: World;
 
-  private readonly raid: RaidDef;
+  private raid: RaidDef;
   private readonly send: SendMessage;
   private readonly clients = new Set<string>();
   private readonly latestIntents = new Map<string, Intent>();
@@ -116,7 +128,7 @@ export class Session {
     this.sendLobby(clientId);
   }
 
-  handle(clientId: string, message: Exclude<ClientMessage, { type: "join" }>): void {
+  handle(clientId: string, message: Exclude<ClientMessage, { type: "join" | "setRaid" }>): void {
     this.touch();
     switch (message.type) {
       case "claimSlot":
@@ -128,10 +140,136 @@ export class Session {
       case "start":
         this.start(clientId);
         return;
+      case "play":
+        this.play(clientId);
+        return;
+      case "pause":
+        this.pause(clientId);
+        return;
+      case "stop":
+        this.stop(clientId);
+        return;
+      case "restart":
+        this.restart(clientId);
+        return;
       case "intent":
         this.setIntent(clientId, message.intent);
         return;
     }
+  }
+
+  setRaid(clientId: string, raidId: string, raid: RaidDef): void {
+    this.touch();
+    if (clientId !== this.hostClientId) {
+      this.sendError(clientId, "Only the host can change the raid");
+      return;
+    }
+    if (this.status === "running") {
+      this.sendError(clientId, "Stop or pause before changing raid");
+      return;
+    }
+    if (this.status === "done") {
+      this.sendError(clientId, "Cannot change raid after session ends");
+      return;
+    }
+    if (raidId === this.raidId) return;
+
+    const preserveOwners = this.status !== "lobby";
+    const previousSlots = new Map(this.slots);
+    const previousOwners = preserveOwners
+      ? [...previousSlots.values()].filter((ownerId): ownerId is string => ownerId !== null)
+      : [];
+    this.raidId = raidId;
+    this.raid = fillRaidSlots(raid);
+    this.slots.clear();
+    for (const player of this.raid.players) this.slots.set(player.id, preserveOwners ? previousSlots.get(player.id) ?? null : null);
+    const keptOwners = new Set([...this.slots.values()].filter((ownerId): ownerId is string => ownerId !== null));
+    const displacedOwners = previousOwners.filter(ownerId => !keptOwners.has(ownerId));
+    for (const ownerId of displacedOwners) {
+      const openPlayer = this.raid.players.find(player => this.slots.get(player.id) === null);
+      if (!openPlayer) break;
+      this.slots.set(openPlayer.id, ownerId);
+    }
+    this.latestIntents.clear();
+    this.world = createWorld(this.raidWithSlotControls());
+    if (this.status === "lobby") {
+      this.broadcastLobby();
+      return;
+    }
+
+    this.status = "running";
+    this.startTick();
+    this.broadcastPlayback();
+    this.broadcastStarted();
+  }
+
+  play(clientId: string): void {
+    if (clientId !== this.hostClientId) {
+      this.sendError(clientId, "Only the host can play");
+      return;
+    }
+    if (this.status === "lobby") {
+      this.start(clientId);
+      return;
+    }
+    if (this.status === "running") return;
+    if (this.status === "done") {
+      this.sendError(clientId, "Cannot play after session ends");
+      return;
+    }
+
+    this.status = "running";
+    this.world = { ...this.world, status: "running" };
+    this.startTick();
+    this.broadcastPlayback();
+  }
+
+  pause(clientId: string): void {
+    if (clientId !== this.hostClientId) {
+      this.sendError(clientId, "Only the host can pause");
+      return;
+    }
+    if (this.status !== "running") return;
+
+    this.status = "paused";
+    this.stopTick();
+    this.broadcastPlayback();
+  }
+
+  stop(clientId: string): void {
+    if (clientId !== this.hostClientId) {
+      this.sendError(clientId, "Only the host can stop");
+      return;
+    }
+    if (this.status === "lobby" || this.status === "done") return;
+
+    this.status = "stopped";
+    this.stopTick();
+    this.latestIntents.clear();
+    this.world = createWorld(this.raidWithSlotControls());
+    this.broadcastPlayback();
+  }
+
+  restart(clientId: string): void {
+    if (clientId !== this.hostClientId) {
+      this.sendError(clientId, "Only the host can restart");
+      return;
+    }
+    if (this.status === "lobby") {
+      this.start(clientId);
+      return;
+    }
+    if (this.status === "done") {
+      this.sendError(clientId, "Cannot restart after session ends");
+      return;
+    }
+
+    this.status = "running";
+    this.latestIntents.clear();
+    this.world = createWorld(this.raidWithSlotControls());
+    this.startTick();
+    this.broadcastPlayback();
+    this.broadcastStarted();
   }
 
   disconnect(clientId: string): boolean {
@@ -215,24 +353,9 @@ export class Session {
     this.status = "running";
     this.world = createWorld(this.raidWithSlotControls());
 
-    for (const connectedClientId of this.clients) {
-      const playerId = this.playerForClient(connectedClientId);
-      if (!playerId) {
-        this.sendError(connectedClientId, "Claim a slot to join the running session");
-        continue;
-      }
-      this.send(connectedClientId, {
-        type: "started",
-        world: this.world,
-        yourPlayerId: playerId,
-      });
-    }
+    this.broadcastStarted();
 
-    if (this.autoTick) {
-      this.lastTickAt = this.now();
-      this.tickAccumulator = 0;
-      this.tickHandle = setInterval(() => this.runDueTicks(), TICK_MS);
-    }
+    this.startTick();
   }
 
   setIntent(clientId: string, intent: Intent): void {
@@ -279,6 +402,14 @@ export class Session {
     if (!this.tickHandle) return;
     clearInterval(this.tickHandle);
     this.tickHandle = null;
+  }
+
+  private startTick(): void {
+    if (!this.autoTick) return;
+    this.lastTickAt = this.now();
+    this.tickAccumulator = 0;
+    this.stopTick();
+    this.tickHandle = setInterval(() => this.runDueTicks(), TICK_MS);
   }
 
   private runDueTicks(): void {
@@ -368,6 +499,26 @@ export class Session {
     for (const clientId of this.clients) this.sendLobby(clientId);
   }
 
+  private broadcastPlayback(): void {
+    const state = this.status === "running" ? "playing" : this.status === "paused" ? "paused" : "stopped";
+    this.broadcast({ type: "playback", state, raidId: this.raidId, world: this.world });
+  }
+
+  private broadcastStarted(): void {
+    for (const connectedClientId of this.clients) {
+      const playerId = this.playerForClient(connectedClientId);
+      if (!playerId) {
+        this.sendError(connectedClientId, "Claim a slot to join the running session");
+        continue;
+      }
+      this.send(connectedClientId, {
+        type: "started",
+        world: this.world,
+        yourPlayerId: playerId,
+      });
+    }
+  }
+
   private broadcast(message: ServerMessage): void {
     for (const clientId of this.clients) this.send(clientId, message);
   }
@@ -403,6 +554,11 @@ export class SessionManager {
   async handle(clientId: string, message: ClientMessage): Promise<void> {
     if (message.type === "join") {
       await this.join(clientId, message.sessionId, message.raidId);
+      return;
+    }
+
+    if (message.type === "setRaid") {
+      await this.setRaid(clientId, message.raidId);
       return;
     }
 
@@ -454,13 +610,24 @@ export class SessionManager {
         lobbyTimeoutMs: this.lobbyTimeoutMs,
       });
       this.sessions.set(sessionId, session);
-    } else if (session.raidId !== raidId) {
-      this.send(clientId, { type: "error", message: "Session already uses a different raid" });
-      return;
     }
 
     this.clientSessions.set(clientId, sessionId);
     session.join(clientId);
+  }
+
+  private async setRaid(clientId: string, raidId: string): Promise<void> {
+    const session = this.sessionFor(clientId);
+    if (!session) {
+      this.send(clientId, { type: "error", message: "Join a session first" });
+      return;
+    }
+
+    try {
+      session.setRaid(clientId, raidId, await loadSessionRaid(raidId, this.raidsDir));
+    } catch {
+      this.send(clientId, { type: "error", message: "Raid not found" });
+    }
   }
 
   private sessionFor(clientId: string): Session | undefined {

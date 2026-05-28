@@ -406,6 +406,13 @@ test("status becomes cleared when all mechanics resolved and time elapsed", () =
   expect(world.status).toBe("cleared");
 });
 
+test("status does not become cleared for an empty raid", () => {
+  const raid = loadRaid(baseRaid);
+  const world = runTicks(createWorld(raid), { p1: { move: { x: 0, z: 0 } } }, Math.ceil(11 * 60));
+  expect(world.hasMechanics).toBe(false);
+  expect(world.status).toBe("running");
+});
+
 test("player falls and dies when walking off arena", () => {
   const raid = loadRaid(baseRaid);
   // Move toward +Z edge (arena radius 20, player starts at [0,0])

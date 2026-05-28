@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Control, Intent, Role, World } from "./types";
 
 export const MAX_PLAYERS = 8;
+export const EMPTY_RAID_ID = "empty";
 
 export const RaidIdSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
 export const SessionIdSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
@@ -25,6 +26,10 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     raidId: RaidIdSchema,
   }).strict(),
   z.object({
+    type: z.literal("setRaid"),
+    raidId: RaidIdSchema,
+  }).strict(),
+  z.object({
     type: z.literal("claimSlot"),
     playerId: PlayerIdSchema,
   }).strict(),
@@ -34,6 +39,18 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
   }).strict(),
   z.object({
     type: z.literal("start"),
+  }).strict(),
+  z.object({
+    type: z.literal("play"),
+  }).strict(),
+  z.object({
+    type: z.literal("pause"),
+  }).strict(),
+  z.object({
+    type: z.literal("stop"),
+  }).strict(),
+  z.object({
+    type: z.literal("restart"),
   }).strict(),
   z.object({
     type: z.literal("intent"),
@@ -51,7 +68,8 @@ export type LobbySlot = {
   claimedByYou: boolean;
 };
 
-export type LobbyStatus = "lobby" | "running" | "done";
+export type LobbyStatus = "lobby" | "running" | "paused" | "stopped" | "done";
+export type PlaybackState = "playing" | "paused" | "stopped";
 
 export type ServerMessage =
   | { type: "joined"; clientId: string }
@@ -65,5 +83,6 @@ export type ServerMessage =
       slots: LobbySlot[];
     }
   | { type: "started"; world: World; yourPlayerId: string }
+  | { type: "playback"; state: PlaybackState; raidId: string; world: World }
   | { type: "snapshot"; world: World }
   | { type: "error"; message: string };

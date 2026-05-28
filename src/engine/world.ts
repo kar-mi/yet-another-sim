@@ -82,6 +82,7 @@ export function createWorld(raid: RaidDef): World {
   return {
     time: 0,
     status: "running",
+    hasMechanics: pending.length > 0 || pendingTethers.length > 0,
     arena,
     players,
     boss,

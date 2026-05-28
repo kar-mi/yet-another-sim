@@ -258,7 +258,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
   if (status === "running") {
     if (!anyAlive) {
       status = "wiped";
-    } else if (allResolved && time >= world.duration) {
+    } else if (world.hasMechanics && allResolved && time >= world.duration) {
       status = "cleared";
     }
   }

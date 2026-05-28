@@ -1,4 +1,4 @@
-import { SessionIdSchema, type LobbySlot, type LobbyStatus } from "../shared/protocol";
+import { EMPTY_RAID_ID, SessionIdSchema, type LobbySlot, type LobbyStatus } from "../shared/protocol";
 import type { World } from "../shared/types";
 import type { NetClient } from "./net";
 
@@ -32,21 +32,68 @@ function createElement<K extends keyof HTMLElementTagNameMap>(
   return el;
 }
 
-export async function showMainMenu(net: NetClient): Promise<{ world: World; yourPlayerId: string; sessionId: string }> {
-  let sessionId: string = crypto.randomUUID();
-
+export async function loadRaidOptions(): Promise<RaidEntry[]> {
   const res = await fetch("/api/raids");
   if (!res.ok) throw new Error(`Failed to load raid list: ${res.status}`);
   const json: unknown = await res.json();
   if (!Array.isArray(json)) throw new Error("Invalid raid list");
-  const raids = json
+
+  return json
     .map(normalizeRaidEntry)
     .filter((entry): entry is RaidEntry => entry !== null)
     .slice(0, MAX_RAIDS);
-  if (raids.length === 0) throw new Error("No raids found");
+}
 
+function setMenuSettingsVisible(visible: boolean): () => void {
   const settingsBtn = document.getElementById("settings-btn");
-  if (settingsBtn) settingsBtn.style.display = "none";
+  if (settingsBtn) settingsBtn.style.display = visible ? "" : "none";
+  return () => {
+    if (settingsBtn) settingsBtn.style.display = "";
+  };
+}
+
+export function showLanding(): Promise<string> {
+  const restoreSettings = setMenuSettingsVisible(false);
+
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.id = "yas-menu";
+
+    const panel = createElement("div", "yas-menu-panel");
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+
+    const cleanup = () => {
+      overlay.remove();
+      restoreSettings();
+    };
+
+    const createSession = () => {
+      const candidate = crypto.randomUUID();
+      const parsed = SessionIdSchema.safeParse(candidate.trim().toLowerCase());
+      if (!parsed.success) throw new Error("Failed to create session id");
+
+      history.replaceState(null, "", `?s=${encodeURIComponent(parsed.data)}`);
+      cleanup();
+      resolve(parsed.data);
+    };
+
+    const createBtn = createElement("button", "yas-menu-start", "CREATE NEW SESSION");
+    createBtn.id = "yas-menu-start-btn";
+    createBtn.addEventListener("click", createSession);
+
+    panel.append(
+      createElement("div", "yas-menu-title", "YET ANOTHER SIM"),
+      createElement("div", "yas-menu-subtitle", "CREATE SESSION"),
+      createElement("div", "yas-landing-note", "A UUID session link will be created. Copy the page URL to invite others."),
+      createBtn,
+    );
+    createBtn.focus();
+  });
+}
+
+export async function showLobby(net: NetClient, sessionId: string): Promise<{ world: World; yourPlayerId: string; sessionId: string; raidId: string; isHost: boolean }> {
+  const restoreSettings = setMenuSettingsVisible(false);
 
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
@@ -68,7 +115,7 @@ export async function showMainMenu(net: NetClient): Promise<{ world: World; your
     const cleanup = () => {
       for (const dispose of disposers) dispose();
       overlay.remove();
-      if (settingsBtn) settingsBtn.style.display = "";
+      restoreSettings();
     };
 
     const renderHeader = (subtitle: string) => {
@@ -76,55 +123,6 @@ export async function showMainMenu(net: NetClient): Promise<{ world: World; your
         createElement("div", "yas-menu-title", "YET ANOTHER SIM"),
         createElement("div", "yas-menu-subtitle", subtitle),
       );
-    };
-
-    let pendingJoinBtn: HTMLButtonElement | null = null;
-
-    const renderRaidSelect = () => {
-      renderHeader("SELECT RAID STRATEGY");
-
-      const raidsEl = createElement("div", "yas-menu-raids");
-      raids.forEach((raid, index) => {
-        const label = createElement("label", "yas-menu-raid-option");
-        const input = document.createElement("input");
-        input.type = "radio";
-        input.name = "raid";
-        input.value = raid.id;
-        input.checked = index === 0;
-
-        label.append(input, createElement("span", undefined, raid.name));
-        raidsEl.appendChild(label);
-      });
-
-      const sessionEl = createElement("label", "yas-menu-session");
-      const sessionInput = document.createElement("input");
-      sessionInput.className = "yas-menu-session-input";
-      sessionInput.value = sessionId;
-      sessionInput.maxLength = 64;
-      sessionEl.append(
-        createElement("span", "yas-menu-session-label", "SESSION"),
-        sessionInput,
-      );
-
-      const joinBtn = createElement("button", "yas-menu-start", "JOIN");
-      joinBtn.id = "yas-menu-start-btn";
-      joinBtn.addEventListener("click", () => {
-        const nextSessionId = sessionInput.value.trim().toLowerCase();
-        const sessionResult = SessionIdSchema.safeParse(nextSessionId);
-        if (!sessionResult.success) {
-          showError("Session ID must use lowercase letters, numbers, or hyphens");
-          return;
-        }
-
-        const checked = overlay.querySelector<HTMLInputElement>("input[name=raid]:checked");
-        sessionId = sessionResult.data;
-        joinBtn.disabled = true;
-        pendingJoinBtn = joinBtn;
-        net.send({ type: "join", raidId: checked?.value ?? raids[0].id, sessionId });
-        renderHeader("WAITING FOR LOBBY");
-      });
-
-      panel.append(raidsEl, sessionEl, joinBtn);
     };
 
     const renderSlot = (slot: LobbySlot, claimedByMe: boolean): HTMLElement => {
@@ -151,10 +149,11 @@ export async function showMainMenu(net: NetClient): Promise<{ world: World; your
     const renderLobby = (message: {
       hostClientId: string;
       slots: LobbySlot[];
+      raidId: string;
       raidName: string;
       status: LobbyStatus;
     }) => {
-      pendingJoinBtn = null;
+      lastLobby = message;
       const subtitle = message.status === "lobby"
         ? `${message.raidName.toUpperCase()} — CLAIM PARTY SLOT`
         : message.status === "running"
@@ -179,26 +178,36 @@ export async function showMainMenu(net: NetClient): Promise<{ world: World; your
       sessionEl.append(
         createElement("span", "yas-menu-session-label", "SESSION"),
         createElement("span", "yas-menu-session-id", sessionId),
+        createElement("span", "yas-menu-note", "COPY THIS PAGE URL TO INVITE OTHERS"),
       );
 
-      panel.append(slotList, sessionEl, startBtn);
+      if (message.status === "lobby") {
+        panel.append(sessionEl, slotList, startBtn);
+      } else {
+        panel.append(slotList, sessionEl, startBtn);
+      }
     };
+
+    let lastLobby: {
+      hostClientId: string;
+      slots: LobbySlot[];
+      raidId: string;
+      raidName: string;
+      status: LobbyStatus;
+    } | null = null;
 
     const disposers = [
       net.on("lobby", renderLobby),
       net.on("started", message => {
+        const raidId = lastLobby?.raidId ?? EMPTY_RAID_ID;
+        const isHost = net.clientId !== null && net.clientId === lastLobby?.hostClientId;
         cleanup();
-        resolve({ world: message.world, yourPlayerId: message.yourPlayerId, sessionId });
+        resolve({ world: message.world, yourPlayerId: message.yourPlayerId, sessionId, raidId, isHost });
       }),
-      net.on("error", message => {
-        if (pendingJoinBtn) {
-          pendingJoinBtn = null;
-          renderRaidSelect();
-        }
-        showError(message.message);
-      }),
+      net.on("error", message => showError(message.message)),
     ];
 
-    renderRaidSelect();
+    renderHeader("WAITING FOR LOBBY");
+    net.send({ type: "join", sessionId, raidId: EMPTY_RAID_ID });
   });
 }

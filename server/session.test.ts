@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
 import { loadRaid } from "../src/engine/raidLoader";
-import { ClientMessageSchema } from "../src/shared/protocol";
+import { ClientMessageSchema, EMPTY_RAID_ID } from "../src/shared/protocol";
 import type { ServerMessage } from "../src/shared/protocol";
-import { Session } from "./session";
+import { loadSessionRaid, Session, SessionManager } from "./session";
 
 function testRaid() {
   return loadRaid({
@@ -12,6 +12,19 @@ function testRaid() {
     players: [
       { id: "p1", role: "tank", control: "human", spawn: [0, 0] },
       { id: "p2", role: "healer", control: "bot", spawn: [0, 0], pattern: [{ t: 0, pos: [5, 0] }] },
+    ],
+    events: [],
+  });
+}
+
+function alternateRaid() {
+  return loadRaid({
+    name: "Alternate Test",
+    arena: { zones: [{ kind: "circle", center: [0, 0], radius: 30 }] },
+    duration: 30,
+    players: [
+      { id: "q1", role: "tank", control: "human", spawn: [0, 0] },
+      { id: "q2", role: "healer", control: "bot", spawn: [0, 0] },
     ],
     events: [],
   });
@@ -125,6 +138,110 @@ test("disconnect converts claimed slot back to bot", () => {
 
   expect(session.slots.get("p1")).toBeNull();
   expect(session.world.players.find(player => player.id === "p1")?.control).toBe("bot");
+});
+
+test("host can switch raid in lobby and reset slot claims", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "p1");
+
+  session.setRaid("c1", "alternate", alternateRaid());
+
+  expect(session.raidId).toBe("alternate");
+  expect(session.slots.has("q1")).toBe(true);
+  expect(session.slots.has("p1")).toBe(false);
+  expect([...session.slots.values()].every(ownerId => ownerId === null)).toBe(true);
+  expect(sent.some(entry => entry.message.type === "lobby" && entry.message.raidId === "alternate")).toBe(true);
+});
+
+test("non-host cannot switch raid", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.join("c2");
+
+  session.setRaid("c2", "alternate", alternateRaid());
+
+  expect(session.raidId).toBe("test-raid");
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Only the host can change the raid")).toBe(true);
+});
+
+test("host cannot switch raid while playback is running", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "p1");
+  session.start("c1");
+
+  session.setRaid("c1", "alternate", alternateRaid());
+
+  expect(session.raidId).toBe("test-raid");
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "error" && entry.message.message === "Stop or pause before changing raid")).toBe(true);
+});
+
+test("host can stop, switch raid, and keep a claimed player", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "p1");
+  session.start("c1");
+
+  session.stop("c1");
+  session.setRaid("c1", "alternate", alternateRaid());
+
+  expect(session.status).toBe("running");
+  expect(session.raidId).toBe("alternate");
+  expect(session.slots.get("q1")).toBe("c1");
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "playback" && entry.message.state === "playing" && entry.message.raidId === "alternate")).toBe(true);
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === "q1")).toBe(true);
+});
+
+test("host can restart the current raid", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "p1");
+  session.start("c1");
+  session.step(false);
+
+  expect(session.world.time).toBeGreaterThan(0);
+
+  session.restart("c1");
+
+  expect(session.status).toBe("running");
+  expect(session.raidId).toBe("test-raid");
+  expect(session.world.time).toBe(0);
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "playback" && entry.message.state === "playing")).toBe(true);
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === "p1")).toBe(true);
+});
+
+test("empty raid synthesizes eight generic slots", async () => {
+  const raid = await loadSessionRaid(EMPTY_RAID_ID, "");
+  const sent: Array<{ clientId: string; message: ServerMessage }> = [];
+  const session = new Session({
+    id: "empty-room",
+    raidId: EMPTY_RAID_ID,
+    raid,
+    send: (clientId, message) => sent.push({ clientId, message }),
+    autoTick: false,
+  });
+
+  expect(session.world.players.map(player => player.id)).toEqual(["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"]);
+  expect([...session.slots.values()]).toHaveLength(8);
+  expect(sent).toHaveLength(0);
+});
+
+test("existing sessions join by session id after raid changes", async () => {
+  const sent: Array<{ clientId: string; message: ServerMessage }> = [];
+  const manager = new SessionManager({
+    raidsDir: "",
+    send: (clientId, message) => sent.push({ clientId, message }),
+  });
+
+  await manager.handle("c1", { type: "join", sessionId: "room", raidId: EMPTY_RAID_ID });
+  const session = manager.sessions.get("room")!;
+  session.setRaid("c1", "alternate", alternateRaid());
+
+  await manager.handle("c2", { type: "join", sessionId: "room", raidId: EMPTY_RAID_ID });
+
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "lobby" && entry.message.raidId === "alternate")).toBe(true);
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Session already uses a different raid")).toBe(false);
 });
 
 test("inactive lobby expires after configured timeout", () => {

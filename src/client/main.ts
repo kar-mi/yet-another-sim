@@ -3,21 +3,112 @@ import { initInput, setKeyBindings, setControllerDeadzone } from "./input";
 import { startNetLoop } from "./loop";
 import { DEFAULT_BINDINGS, keyLabel, loadSettings, saveSettings } from "./settings";
 import type { KeyBindings } from "./settings";
-import { showMainMenu } from "./MainMenu";
-import { connect } from "./net";
+import { loadRaidOptions, showLanding, showLobby } from "./MainMenu";
+import { connect, type NetClient } from "./net";
+import { EMPTY_RAID_ID, SessionIdSchema, type PlaybackState } from "../shared/protocol";
+
+async function createRaidHudSelect(net: NetClient, initialRaidId: string, isHost: boolean): Promise<() => void> {
+  const raids = [{ id: EMPTY_RAID_ID, name: "(empty)" }, ...await loadRaidOptions()];
+  const wrapper = document.createElement("div");
+  wrapper.id = "yas-raid-select";
+
+  const label = document.createElement("span");
+  label.className = "yas-session-label";
+  label.textContent = "RAID";
+
+  const select = document.createElement("select");
+  select.ariaLabel = "Raid plan";
+  select.disabled = !isHost;
+  for (const raid of raids) {
+    const option = document.createElement("option");
+    option.value = raid.id;
+    option.textContent = raid.name;
+    select.appendChild(option);
+  }
+  select.value = initialRaidId;
+  select.addEventListener("change", () => {
+    const raidId = select.value;
+    select.blur();
+    select.disabled = true;
+    net.send({ type: "setRaid", raidId });
+  });
+
+  const controls = document.createElement("div");
+  controls.className = "yas-playback-controls";
+  const playBtn = document.createElement("button");
+  playBtn.type = "button";
+  playBtn.textContent = "PLAY";
+  const pauseBtn = document.createElement("button");
+  pauseBtn.type = "button";
+  pauseBtn.textContent = "PAUSE";
+  const stopBtn = document.createElement("button");
+  stopBtn.type = "button";
+  stopBtn.textContent = "STOP";
+  const restartBtn = document.createElement("button");
+  restartBtn.type = "button";
+  restartBtn.textContent = "RESTART";
+  playBtn.disabled = !isHost;
+  pauseBtn.disabled = !isHost;
+  stopBtn.disabled = !isHost;
+  restartBtn.disabled = !isHost;
+  playBtn.addEventListener("click", () => {
+    playBtn.blur();
+    net.send({ type: "play" });
+  });
+  pauseBtn.addEventListener("click", () => {
+    pauseBtn.blur();
+    net.send({ type: "pause" });
+  });
+  stopBtn.addEventListener("click", () => {
+    stopBtn.blur();
+    net.send({ type: "stop" });
+  });
+  restartBtn.addEventListener("click", () => {
+    restartBtn.blur();
+    net.send({ type: "restart" });
+  });
+  controls.append(playBtn, pauseBtn, stopBtn, restartBtn);
+
+  const syncPlayback = (state: PlaybackState) => {
+    select.disabled = !isHost || state === "playing";
+    if (!isHost) return;
+    playBtn.disabled = state === "playing";
+    pauseBtn.disabled = state !== "playing";
+    stopBtn.disabled = state === "stopped";
+    restartBtn.disabled = false;
+  };
+
+  const disposePlayback = net.on("playback", message => {
+    select.value = message.raidId;
+    syncPlayback(message.state);
+  });
+  syncPlayback("playing");
+
+  wrapper.append(label, select, controls);
+  document.body.appendChild(wrapper);
+  return () => {
+    disposePlayback();
+    wrapper.remove();
+  };
+}
 
 async function main(): Promise<void> {
   const canvas = document.getElementById("canvas") as HTMLCanvasElement | null;
   if (!canvas) throw new Error("#canvas not found");
 
+  const sessionParam = new URLSearchParams(location.search).get("s");
+  const parsedSession = sessionParam ? SessionIdSchema.safeParse(sessionParam.toLowerCase()) : null;
+  const sessionId = parsedSession?.success ? parsedSession.data : await showLanding();
+
   const net = await connect();
-  const { world, sessionId, yourPlayerId } = await showMainMenu(net);
+  const { world, yourPlayerId, raidId, isHost } = await showLobby(net, sessionId);
   const settings = loadSettings();
   const renderer = new BabylonRenderer(canvas, nextSettings => {
     Object.assign(settings, nextSettings);
     saveSettings(settings);
   });
   renderer.init(world, sessionId, yourPlayerId);
+  const disposeRaidSelect = await createRaidHudSelect(net, raidId, isHost);
 
   renderer.applySettings(settings);
   setKeyBindings(settings.keyBindings);
@@ -119,6 +210,7 @@ async function main(): Promise<void> {
   meta.hot?.dispose(() => {
     stopLoop();
     disposeInput();
+    disposeRaidSelect();
     net.close();
     renderer.dispose();
   });

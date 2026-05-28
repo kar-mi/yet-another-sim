@@ -128,7 +128,8 @@ export class NetClient {
     if (!message || typeof message.type !== "string") return;
 
     if (message.type === "joined") this.clientId = message.clientId;
-    if (message.type === "started" || message.type === "snapshot") this.pushSnapshot(message.world);
+    if (message.type === "started") this.claimedPlayerId = message.yourPlayerId;
+    if (message.type === "started" || message.type === "snapshot" || message.type === "playback") this.pushSnapshot(message.world);
 
     const handlers = this.handlers.get(message.type as MessageType);
     if (!handlers) return;

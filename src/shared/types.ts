@@ -139,6 +139,7 @@ export type Intents = Record<string, Intent>;
 export type World = {
   time: number;
   status: Status;
+  hasMechanics: boolean;
   arena: Arena;
   players: Player[];
   boss: Boss;
