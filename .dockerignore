@@ -1,0 +1,9 @@
+node_modules
+.bundle
+.git
+.gitignore
+Dockerfile
+.dockerignore
+*.claude
+.serena
+.mcp.json
