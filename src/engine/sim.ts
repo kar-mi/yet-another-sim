@@ -19,6 +19,7 @@ import { promotePending } from "./timeline";
 export const MOVE_SPEED = 8;
 export const JUMP_SPEED = 9;
 export const GRAVITY = 24;
+export const DEATH_FLOOR_Y = -10; // players die after falling this far below the arena floor
 export const SPRINT_DURATION = 5;
 export const SPRINT_COOLDOWN = 10;
 
@@ -110,27 +111,30 @@ export function tick(world: World, intents: Intents, dt: number): World {
     if (player.sprintCooldown > 0) player.sprintCooldown = Math.max(0, player.sprintCooldown - dt);
     if (player.sprintActive > 0) player.sprintActive = Math.max(0, player.sprintActive - dt);
 
-    if (player.y > 0 || player.verticalVelocity > 0) {
+    const speed = player.sprintActive > 0 ? MOVE_SPEED * 1.5 : MOVE_SPEED;
+    if (intent && length(intent.move) > 0) {
+      player.pos = add(player.pos, scale(normalize(intent.move), speed * dt));
+    }
+
+    // Vertical physics: gravity applies while airborne or while over the void (off-floor).
+    // Landing only catches a player descending through the floor from above (prevY >= 0),
+    // so a player who has already sunk below the floor keeps falling even back over a zone.
+    const grounded = isOnFloor(player.pos, world.arena.zones);
+    if (!grounded || player.y > 0 || player.verticalVelocity !== 0) {
+      const prevY = player.y;
       player.y += player.verticalVelocity * dt;
       player.verticalVelocity -= GRAVITY * dt;
-      if (player.y <= 0) {
+      if (grounded && prevY >= 0 && player.y <= 0) {
         player.y = 0;
         player.verticalVelocity = 0;
       }
     }
 
-    const speed = player.sprintActive > 0 ? MOVE_SPEED * 1.5 : MOVE_SPEED;
-    if (intent && length(intent.move) > 0) {
-      const newPos = add(player.pos, scale(normalize(intent.move), speed * dt));
-      if (isOnFloor(newPos, world.arena.zones)) {
-        player.pos = newPos;
-      } else {
-        player.hp = 0;
-        player.alive = false;
-        player.y = 0;
-        player.verticalVelocity = 0;
-        log.push({ t: time, mechanic: "arena", playerId: player.id, event: "fell" });
-      }
+    if (player.y <= DEATH_FLOOR_Y) {
+      player.hp = 0;
+      player.alive = false;
+      player.verticalVelocity = 0;
+      log.push({ t: time, mechanic: "arena", playerId: player.id, event: "fell" });
     }
   }
 
