@@ -1,5 +1,5 @@
 import { BabylonRenderer } from "./render/BabylonRenderer";
-import { initInput, setKeyBindings, setControllerDeadzone } from "./input";
+import { initInput, setKeyBindings, setControllerDeadzone, getControllerInfo, listControllers, setActiveGamepad } from "./input";
 import { startNetLoop } from "./loop";
 import { DEFAULT_BINDINGS, keyLabel, loadSettings, saveSettings } from "./settings";
 import type { KeyBindings } from "./settings";
@@ -176,8 +176,47 @@ async function main(): Promise<void> {
       const target = tab.dataset.tab!;
       (document.getElementById("tab-camera") as HTMLElement).style.display = target === "camera" ? "" : "none";
       (document.getElementById("tab-controls") as HTMLElement).style.display = target === "controls" ? "" : "none";
+      (document.getElementById("tab-controller") as HTMLElement).style.display = target === "controller" ? "" : "none";
     });
   });
+
+  // Controller detection
+  const controllerBadge = document.getElementById("controller-type-badge")!;
+  const controllerName = document.getElementById("controller-name")!;
+  const controllerSelect = document.getElementById("controller-select") as HTMLSelectElement;
+
+  function updateController(): void {
+    const list = listControllers();
+    controllerSelect.replaceChildren();
+    for (const c of list) {
+      const opt = document.createElement("option");
+      opt.value = String(c.index);
+      opt.textContent = `${c.type.toUpperCase()} — ${c.name}`;
+      controllerSelect.appendChild(opt);
+    }
+    controllerSelect.style.display = list.length > 1 ? "" : "none";
+
+    const info = getControllerInfo();
+    if (info) {
+      controllerSelect.value = String(info.index);
+      controllerBadge.textContent = info.type.toUpperCase();
+      controllerBadge.className = `controller-badge controller-badge--${info.type}`;
+      controllerName.textContent = info.name;
+      renderer.setControllerType(info.type);
+    } else {
+      controllerBadge.textContent = "NO CONTROLLER";
+      controllerBadge.className = "controller-badge controller-badge--none";
+      controllerName.textContent = "";
+    }
+  }
+
+  controllerSelect.addEventListener("change", () => {
+    setActiveGamepad(Number(controllerSelect.value));
+    updateController();
+  });
+  window.addEventListener("gamepadconnected", updateController);
+  window.addEventListener("gamepaddisconnected", updateController);
+  updateController();
 
   // Keybind rebinding
   document.querySelectorAll<HTMLButtonElement>(".keybind-btn").forEach(btn => {

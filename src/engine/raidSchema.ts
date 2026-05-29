@@ -24,16 +24,18 @@ const AOEShapeSchema = z.discriminatedUnion("kind", [
   }
 });
 
+const EffectBehaviorSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("none") }),
+  z.object({ kind: z.literal("vuln"), damageType: z.enum(["physical", "magical"]), multiplier: z.number().positive() }),
+  z.object({ kind: z.literal("pyretic"), dps: z.number().nonnegative() }),
+  z.object({ kind: z.literal("freeze"), dps: z.number().nonnegative() }),
+]);
+
 const ApplyEffectSchema = z.object({
   name: z.string().min(1),
   kind: z.enum(["buff", "debuff"]),
   duration: z.number().positive(),
-  behavior: z.discriminatedUnion("kind", [
-    z.object({ kind: z.literal("none") }),
-    z.object({ kind: z.literal("vuln"), damageType: z.enum(["physical", "magical"]), multiplier: z.number().positive() }),
-    z.object({ kind: z.literal("pyretic"), dps: z.number().nonnegative() }),
-    z.object({ kind: z.literal("freeze"), dps: z.number().nonnegative() }),
-  ]),
+  behavior: EffectBehaviorSchema,
 });
 
 const AOEEventSchema = z.object({
@@ -70,12 +72,7 @@ const TetherSourceEventSchema = z.object({
   finalizeAfter: z.number().positive(),
   tetherKind: z.enum(["buff", "debuff"]),
   buffName: z.string().min(1),
-  behavior: z.discriminatedUnion("kind", [
-    z.object({ kind: z.literal("none") }),
-    z.object({ kind: z.literal("vuln"), damageType: z.enum(["physical", "magical"]), multiplier: z.number().positive() }),
-    z.object({ kind: z.literal("pyretic"), dps: z.number().nonnegative() }),
-    z.object({ kind: z.literal("freeze"), dps: z.number().nonnegative() }),
-  ]).default({ kind: "none" }),
+  behavior: EffectBehaviorSchema.default({ kind: "none" }),
   effectDuration: z.number().positive().default(15),
 });
 

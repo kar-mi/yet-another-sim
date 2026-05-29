@@ -1,22 +1,24 @@
-import { EMPTY_RAID_ID, SessionIdSchema, type LobbySlot, type LobbyStatus } from "../shared/protocol";
+import {
+  EMPTY_RAID_ID,
+  MAX_RAIDS,
+  RAID_ID_REGEX,
+  SessionIdSchema,
+  normalizeRaidName,
+  type LobbySlot,
+  type LobbyStatus,
+  type RaidEntry,
+} from "../shared/protocol";
 import type { World } from "../shared/types";
 import type { NetClient } from "./net";
-
-interface RaidEntry { id: string; name: string; }
-
-const RAID_ID_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
-const MAX_RAIDS = 50;
-const MAX_RAID_NAME_LENGTH = 60;
 
 function normalizeRaidEntry(value: unknown): RaidEntry | null {
   if (!value || typeof value !== "object") return null;
 
   const entry = value as { id?: unknown; name?: unknown };
-  if (typeof entry.id !== "string" || !RAID_ID_RE.test(entry.id)) return null;
-  if (typeof entry.name !== "string") return null;
+  if (typeof entry.id !== "string" || !RAID_ID_REGEX.test(entry.id)) return null;
 
-  const name = entry.name.trim().replace(/\s+/g, " ");
-  if (name.length === 0 || name.length > MAX_RAID_NAME_LENGTH) return null;
+  const name = normalizeRaidName(entry.name);
+  if (!name) return null;
 
   return { id: entry.id, name };
 }

@@ -17,3 +17,5 @@ export function normalize(v: Vec2): Vec2 {
 }
 
 export function dot(a: Vec2, b: Vec2): number { return a.x * b.x + a.z * b.z; }
+
+export function clamp01(v: number): number { return Math.max(0, Math.min(1, v)); }

@@ -1,8 +1,9 @@
 import type { World, Player } from "../../shared/types";
-import { pressAction } from "../input";
+import { pressAction, triggerSprint } from "../input";
 import { SPRINT_COOLDOWN } from "../../engine/sim";
-import { keyLabel } from "../settings";
-import type { Settings } from "../settings";
+import { keyLabel, CONTROLLER_BUTTON_LABELS } from "../settings";
+import type { Settings, ControllerType } from "../settings";
+import { clamp01 } from "../../shared/math";
 
 export class HudOverlay {
   private root: HTMLDivElement;
@@ -203,8 +204,21 @@ export class HudOverlay {
     }
   }
 
+  setControllerType(type: ControllerType): void {
+    const labels = CONTROLLER_BUTTON_LABELS[type];
+    this.controllerHotbar.querySelectorAll<HTMLElement>('[data-ctrl-slot]').forEach(slot => {
+      const idx = parseInt(slot.dataset.ctrlSlot ?? '0', 10);
+      const keybind = slot.querySelector<HTMLSpanElement>('.yas-keybind');
+      if (keybind && idx < labels.length) keybind.textContent = labels[idx]!;
+    });
+    const separator = this.controllerHotbar.querySelector<HTMLElement>('.yas-ctrl-separator');
+    if (separator) {
+      separator.textContent = type === 'ps5' ? 'L2' : type === 'nintendo' ? 'ZL' : 'LT';
+    }
+  }
+
   private bindEvents(): void {
-    this.sprintSlot.addEventListener("click", () => pressAction(0));
+    this.sprintSlot.addEventListener("click", () => triggerSprint());
     this.ctrlSprintSlot.addEventListener("click", () => pressAction(7));
 
     this.root.querySelectorAll<HTMLDivElement>(".yas-slot").forEach(slot => {
@@ -251,8 +265,8 @@ export class HudOverlay {
     for (const player of world.players) {
       const row = this.partyRows.get(player.id);
       if (!row) continue;
-      const hpPct = Math.max(0, Math.min(1, player.hp / player.maxHp)) * 100;
-      const mpPct = Math.max(0, Math.min(1, player.mp / player.maxMp)) * 100;
+      const hpPct = clamp01(player.hp / player.maxHp) * 100;
+      const mpPct = clamp01(player.mp / player.maxMp) * 100;
       row.hpFill.style.width = `${hpPct}%`;
       row.mpFill.style.width = `${mpPct}%`;
       row.rowEl.classList.toggle("yas-dead", !player.alive);
@@ -284,11 +298,11 @@ export class HudOverlay {
 
     if (!p) return;
 
-    const hpPct = Math.max(0, Math.min(1, p.hp / p.maxHp)) * 100;
+    const hpPct = clamp01(p.hp / p.maxHp) * 100;
     this.hpFill.style.width = `${hpPct}%`;
     this.hpVal.textContent = `${Math.round(p.hp)} / ${p.maxHp}`;
 
-    const mpPct = Math.max(0, Math.min(1, p.mp / p.maxMp)) * 100;
+    const mpPct = clamp01(p.mp / p.maxMp) * 100;
     this.mpFill.style.width = `${mpPct}%`;
     this.mpVal.textContent = `${Math.round(p.mp)} / ${p.maxMp}`;
 
