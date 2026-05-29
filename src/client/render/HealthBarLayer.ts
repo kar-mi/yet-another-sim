@@ -6,6 +6,7 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Scene } from "@babylonjs/core/scene";
+import { clamp01 } from "../../shared/math";
 
 type HealthBarOptions = {
   trackWidthPx: number;
@@ -75,7 +76,7 @@ export class HealthBarLayer {
   set(id: string, pct: number, visible: boolean): void {
     const bar = this.bars.get(id);
     if (!bar) return;
-    const clamped = Math.max(0, Math.min(1, Number.isFinite(pct) ? pct : 0));
+    const clamped = clamp01(Number.isFinite(pct) ? pct : 0);
     bar.fill.width = `${clamped * 100}%`;
     bar.plane.isVisible = visible;
     this.syncPlane(bar);

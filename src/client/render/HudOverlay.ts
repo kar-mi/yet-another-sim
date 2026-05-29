@@ -3,6 +3,7 @@ import { pressAction } from "../input";
 import { SPRINT_COOLDOWN } from "../../engine/sim";
 import { keyLabel } from "../settings";
 import type { Settings } from "../settings";
+import { clamp01 } from "../../shared/math";
 
 export class HudOverlay {
   private root: HTMLDivElement;
@@ -251,8 +252,8 @@ export class HudOverlay {
     for (const player of world.players) {
       const row = this.partyRows.get(player.id);
       if (!row) continue;
-      const hpPct = Math.max(0, Math.min(1, player.hp / player.maxHp)) * 100;
-      const mpPct = Math.max(0, Math.min(1, player.mp / player.maxMp)) * 100;
+      const hpPct = clamp01(player.hp / player.maxHp) * 100;
+      const mpPct = clamp01(player.mp / player.maxMp) * 100;
       row.hpFill.style.width = `${hpPct}%`;
       row.mpFill.style.width = `${mpPct}%`;
       row.rowEl.classList.toggle("yas-dead", !player.alive);
@@ -284,11 +285,11 @@ export class HudOverlay {
 
     if (!p) return;
 
-    const hpPct = Math.max(0, Math.min(1, p.hp / p.maxHp)) * 100;
+    const hpPct = clamp01(p.hp / p.maxHp) * 100;
     this.hpFill.style.width = `${hpPct}%`;
     this.hpVal.textContent = `${Math.round(p.hp)} / ${p.maxHp}`;
 
-    const mpPct = Math.max(0, Math.min(1, p.mp / p.maxMp)) * 100;
+    const mpPct = clamp01(p.mp / p.maxMp) * 100;
     this.mpFill.style.width = `${mpPct}%`;
     this.mpVal.textContent = `${Math.round(p.mp)} / ${p.maxMp}`;
 

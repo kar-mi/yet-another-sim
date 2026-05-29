@@ -25,18 +25,6 @@ export const SPRINT_COOLDOWN = 10;
 const INTERCEPT_THRESHOLD = 2.0;
 const TARGETED_LINGER = 0.7; // seconds a targeted bait's circle stays visible after it resolves
 
-function nearestAlivePlayer(players: Player[], pos: Vec2): Player | null {
-  let nearest: Player | null = null;
-  let minDist = Infinity;
-  for (const p of players) {
-    if (!p.alive) continue;
-    const dx = p.pos.x - pos.x, dz = p.pos.z - pos.z;
-    const d = Math.sqrt(dx * dx + dz * dz);
-    if (d < minDist) { minDist = d; nearest = p; }
-  }
-  return nearest;
-}
-
 function selectTargetPlayer(
   players: Player[],
   origin: Vec2,
@@ -151,7 +139,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const remainingPendingTethers = [];
   for (const pt of world.pendingTethers) {
     if (pt.t <= time) {
-      const nearest = nearestAlivePlayer(players, pt.pos);
+      const nearest = selectTargetPlayer(players, pt.pos, "closest");
       tetherSources.push({
         id: pt.id,
         pos: pt.pos,
@@ -175,9 +163,9 @@ export function tick(world: World, intents: Intents, dt: number): World {
     // Re-attach if current target is dead
     if (ts.tetheredPlayerId) {
       const target = players.find(p => p.id === ts.tetheredPlayerId);
-      if (!target?.alive) ts.tetheredPlayerId = nearestAlivePlayer(players, ts.pos)?.id ?? null;
+      if (!target?.alive) ts.tetheredPlayerId = selectTargetPlayer(players, ts.pos, "closest")?.id ?? null;
     } else {
-      ts.tetheredPlayerId = nearestAlivePlayer(players, ts.pos)?.id ?? null;
+      ts.tetheredPlayerId = selectTargetPlayer(players, ts.pos, "closest")?.id ?? null;
     }
 
     // Check for interceptions (only before finalization)
