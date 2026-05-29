@@ -48,6 +48,7 @@ const AOEEventSchema = z.object({
   shape: AOEShapeSchema,
   applyEffect: ApplyEffectSchema.optional(),
   showCastBar: z.boolean().optional(),
+  showTelegraph: z.boolean().optional(),
 });
 
 const TargetedEventSchema = z.object({
@@ -62,6 +63,7 @@ const TargetedEventSchema = z.object({
   damageType: z.enum(["physical", "magical", "true"]),
   applyEffect: ApplyEffectSchema.optional(),
   showCastBar: z.boolean().optional(),
+  showTelegraph: z.boolean().optional(),
 });
 
 const TetherSourceEventSchema = z.object({

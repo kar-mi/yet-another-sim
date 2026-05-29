@@ -78,6 +78,7 @@ export function createWorld(raid: RaidDef): World {
         damageType: e.damageType,
         applyEffect: e.applyEffect,
         showCastBar: e.showCastBar ?? false,
+        showTelegraph: e.showTelegraph ?? true,
       });
     } else {
       pending.push({
@@ -90,6 +91,7 @@ export function createWorld(raid: RaidDef): World {
         damageType: e.damageType,
         applyEffect: e.applyEffect,
         showCastBar: e.showCastBar ?? false,
+        showTelegraph: e.showTelegraph ?? true,
       });
     }
   }

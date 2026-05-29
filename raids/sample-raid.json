@@ -15,6 +15,16 @@
   ],
   "events": [
     {
+      "t": 1,
+      "name": "Aoe",
+      "telegraph": 2,
+      "damage": 10,
+      "damageType": "magical",
+      "showCastBar": true,
+      "showTelegraph": false,
+      "shape": { "kind": "circle", "center": [0, 0], "radius": 38 }
+    },
+    {
       "t": 4,
       "name": "Fireball",
       "telegraph": 3,

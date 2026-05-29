@@ -20,6 +20,7 @@ export function promotePending(
         applyEffect: event.applyEffect,
         resolved: false,
         showCastBar: event.showCastBar,
+        showTelegraph: event.showTelegraph,
       });
     } else {
       remaining.push(event);
