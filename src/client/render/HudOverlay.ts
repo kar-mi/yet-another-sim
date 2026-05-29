@@ -95,8 +95,8 @@ export class HudOverlay {
   }
 
   private buildHud(): HTMLDivElement {
-    const root = document.createElement("div");
-    root.id = "yas-hud";
+    const template = document.querySelector<HTMLTemplateElement>("#yas-hud-template")!;
+    const root = template.content.firstElementChild!.cloneNode(true) as HTMLDivElement;
 
     const kbmSlots = Array.from({ length: 10 }, (_, i) => {
       if (i === 0) {
@@ -112,53 +112,7 @@ export class HudOverlay {
       return `<div class="yas-slot" data-slot="${i}"><span class="yas-keybind"></span></div>`;
     }).join("");
 
-    root.innerHTML = `
-      <div class="yas-hotbar-panel">
-        <div class="yas-hotbar">${kbmSlots}</div>
-        <div class="yas-controller-hotbar" style="display:none">
-          <div class="yas-controller-diamond">
-            <div class="yas-slot yas-ctrl-top" data-ctrl-slot="3">
-              <span class="yas-keybind">Y</span>
-              <span class="yas-slot-icon">↑</span>
-              <span class="yas-slot-name">JUMP</span>
-            </div>
-            <div class="yas-slot yas-ctrl-left" data-ctrl-slot="2"><span class="yas-keybind">X</span></div>
-            <div class="yas-slot yas-ctrl-right" data-ctrl-slot="1"><span class="yas-keybind">B</span></div>
-            <div class="yas-slot yas-ctrl-bottom" data-ctrl-slot="0"><span class="yas-keybind">A</span></div>
-          </div>
-          <div class="yas-ctrl-separator">LT</div>
-          <div class="yas-controller-diamond">
-            <div class="yas-slot yas-ctrl-top" data-ctrl-slot="7">
-              <span class="yas-keybind">LT+Y</span>
-              <span class="yas-slot-icon">⚡</span>
-              <span class="yas-slot-name">SPRINT</span>
-              <div class="yas-cd-overlay"></div>
-              <div class="yas-cd-text"></div>
-            </div>
-            <div class="yas-slot yas-ctrl-left" data-ctrl-slot="6"><span class="yas-keybind">LT+X</span></div>
-            <div class="yas-slot yas-ctrl-right" data-ctrl-slot="5"><span class="yas-keybind">LT+B</span></div>
-            <div class="yas-slot yas-ctrl-bottom" data-ctrl-slot="4"><span class="yas-keybind">LT+A</span></div>
-          </div>
-        </div>
-        <button class="yas-hotbar-toggle" title="Switch input display">⌨</button>
-      </div>
-      <div class="yas-resource-panel">
-        <div class="yas-bar-row">
-          <span class="yas-bar-label">HP</span>
-          <div class="yas-bar-track">
-            <div class="yas-bar-fill yas-hp-fill" style="width:100%"></div>
-            <span class="yas-bar-val" data-hp-val>100 / 100</span>
-          </div>
-        </div>
-        <div class="yas-bar-row">
-          <span class="yas-bar-label">MP</span>
-          <div class="yas-bar-track">
-            <div class="yas-bar-fill yas-mp-fill" style="width:100%"></div>
-            <span class="yas-bar-val" data-mp-val>10000 / 10000</span>
-          </div>
-        </div>
-      </div>
-    `;
+    root.querySelector<HTMLDivElement>(".yas-hotbar")!.innerHTML = kbmSlots;
     return root;
   }
 
