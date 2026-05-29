@@ -7,8 +7,9 @@ import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { Color4 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Scene } from "@babylonjs/core/scene";
+import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Renderer } from "./Renderer";
-import type { World } from "../../shared/types";
+import type { World, ZoneShape } from "../../shared/types";
 import type { Settings, ControllerType } from "../settings";
 import { BossLayer } from "./BossLayer";
 import { HealthBarLayer } from "./HealthBarLayer";
@@ -37,6 +38,8 @@ export class BabylonRenderer implements Renderer {
   private telegraphs!: TelegraphLayer;
   private tethers!: TetherLayer;
   private hud!: HudOverlay;
+  private floorMeshes: Mesh[] = [];
+  private arenaKey = "";
   private localPlayerId: string | null = null;
   private onResize!: () => void;
   private panButtonCode: number = 2;
@@ -81,9 +84,7 @@ export class BabylonRenderer implements Renderer {
 
     new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
 
-    for (const zone of world.arena.zones) {
-      createZoneMesh(this.scene, zone);
-    }
+    this.buildArena(world.arena.zones, JSON.stringify(world.arena.zones));
 
     this.players = new PlayerLayer(this.scene);
     this.players.init(world.players);
@@ -116,7 +117,20 @@ export class BabylonRenderer implements Renderer {
     window.addEventListener("resize", this.onResize);
   }
 
+  private buildArena(zones: ZoneShape[], key: string): void {
+    for (const mesh of this.floorMeshes) mesh.dispose(false, true);
+    this.floorMeshes = [];
+    for (const zone of zones) {
+      const mesh = createZoneMesh(this.scene, zone);
+      if (mesh) this.floorMeshes.push(mesh);
+    }
+    this.arenaKey = key;
+  }
+
   sync(world: World, _alpha: number): void {
+    const arenaKey = JSON.stringify(world.arena.zones);
+    if (arenaKey !== this.arenaKey) this.buildArena(world.arena.zones, arenaKey);
+
     this.players.sync(world.players);
     this.boss.sync(world.boss);
 
