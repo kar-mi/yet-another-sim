@@ -1,5 +1,5 @@
 import { BabylonRenderer } from "./render/BabylonRenderer";
-import { initInput, setKeyBindings, setControllerDeadzone } from "./input";
+import { initInput, setKeyBindings, setControllerDeadzone, getControllerInfo } from "./input";
 import { startNetLoop } from "./loop";
 import { DEFAULT_BINDINGS, keyLabel, loadSettings, saveSettings } from "./settings";
 import type { KeyBindings } from "./settings";
@@ -176,8 +176,31 @@ async function main(): Promise<void> {
       const target = tab.dataset.tab!;
       (document.getElementById("tab-camera") as HTMLElement).style.display = target === "camera" ? "" : "none";
       (document.getElementById("tab-controls") as HTMLElement).style.display = target === "controls" ? "" : "none";
+      (document.getElementById("tab-controller") as HTMLElement).style.display = target === "controller" ? "" : "none";
     });
   });
+
+  // Controller detection
+  const controllerBadge = document.getElementById("controller-type-badge")!;
+  const controllerName = document.getElementById("controller-name")!;
+
+  function updateController(): void {
+    const info = getControllerInfo();
+    if (info) {
+      controllerBadge.textContent = info.type.toUpperCase();
+      controllerBadge.className = `controller-badge controller-badge--${info.type}`;
+      controllerName.textContent = info.name;
+      renderer.setControllerType(info.type);
+    } else {
+      controllerBadge.textContent = "NO CONTROLLER";
+      controllerBadge.className = "controller-badge controller-badge--none";
+      controllerName.textContent = "";
+    }
+  }
+
+  window.addEventListener("gamepadconnected", updateController);
+  window.addEventListener("gamepaddisconnected", updateController);
+  updateController();
 
   // Keybind rebinding
   document.querySelectorAll<HTMLButtonElement>(".keybind-btn").forEach(btn => {

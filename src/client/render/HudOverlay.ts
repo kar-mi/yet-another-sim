@@ -1,8 +1,8 @@
 import type { World, Player } from "../../shared/types";
 import { pressAction } from "../input";
 import { SPRINT_COOLDOWN } from "../../engine/sim";
-import { keyLabel } from "../settings";
-import type { Settings } from "../settings";
+import { keyLabel, CONTROLLER_BUTTON_LABELS } from "../settings";
+import type { Settings, ControllerType } from "../settings";
 import { clamp01 } from "../../shared/math";
 
 export class HudOverlay {
@@ -201,6 +201,19 @@ export class HudOverlay {
       this.slotKeybinds.forEach((el, i) => {
         el.textContent = i === 0 ? keyLabel(settings.keyBindings.sprint) : "";
       });
+    }
+  }
+
+  setControllerType(type: ControllerType): void {
+    const labels = CONTROLLER_BUTTON_LABELS[type];
+    this.controllerHotbar.querySelectorAll<HTMLElement>('[data-ctrl-slot]').forEach(slot => {
+      const idx = parseInt(slot.dataset.ctrlSlot ?? '0', 10);
+      const keybind = slot.querySelector<HTMLSpanElement>('.yas-keybind');
+      if (keybind && idx < labels.length) keybind.textContent = labels[idx]!;
+    });
+    const separator = this.controllerHotbar.querySelector<HTMLElement>('.yas-ctrl-separator');
+    if (separator) {
+      separator.textContent = type === 'ps5' ? 'L2' : type === 'nintendo' ? 'ZL' : 'LT';
     }
   }
 

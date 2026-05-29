@@ -44,9 +44,14 @@ export function keyLabel(code: string): string {
   return code;
 }
 
-export const CONTROLLER_SLOT_LABELS: string[] = [
-  "A", "B", "X", "Y", "LT+A", "LT+B", "LT+X", "LT+Y", "", "",
-];
+export type ControllerType = 'xbox' | 'ps5' | 'nintendo' | 'unknown';
+
+export const CONTROLLER_BUTTON_LABELS: Record<ControllerType, string[]> = {
+  xbox:     ['A', 'B', 'X', 'Y', 'LT+A', 'LT+B', 'LT+X', 'LT+Y'],
+  ps5:      ['✕', '○', '□', '△', 'L2+✕', 'L2+○', 'L2+□', 'L2+△'],
+  nintendo: ['B', 'A', 'Y', 'X', 'ZL+B', 'ZL+A', 'ZL+Y', 'ZL+X'],
+  unknown:  ['A', 'B', 'X', 'Y', 'LT+A', 'LT+B', 'LT+X', 'LT+Y'],
+};
 
 export function loadSettings(): Settings {
   try {

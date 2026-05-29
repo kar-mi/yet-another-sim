@@ -18,6 +18,7 @@
     <div class="settings-tabs">
       <button class="settings-tab active" data-tab="camera">CAMERA</button>
       <button class="settings-tab" data-tab="controls">CONTROLS</button>
+      <button class="settings-tab" data-tab="controller">CONTROLLER</button>
     </div>
 
     <div id="tab-camera">
@@ -65,6 +66,16 @@
         <button class="keybind-btn" data-action="sprint">1</button>
       </div>
       <button id="reset-keybinds">RESET KEYBINDS</button>
+    </div>
+
+    <div id="tab-controller" style="display:none">
+      <div class="settings-field">
+        <div class="settings-label">CONNECTED CONTROLLER</div>
+        <div class="controller-info">
+          <span id="controller-type-badge" class="controller-badge controller-badge--none">NO CONTROLLER</span>
+          <span id="controller-name" class="controller-name"></span>
+        </div>
+      </div>
     </div>
 
     <div class="settings-footer">

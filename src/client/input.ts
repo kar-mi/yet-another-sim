@@ -1,7 +1,7 @@
 import type { Intent } from "../shared/types";
 import { normalize } from "../shared/math";
 import { DEFAULT_BINDINGS } from "./settings";
-import type { KeyBindings } from "./settings";
+import type { KeyBindings, ControllerType } from "./settings";
 
 const keys = new Set<string>();
 let jumpPressed = false;
@@ -19,6 +19,20 @@ function getGamepad(): Gamepad | null {
 
 function applyDeadzone(v: number, dz: number): number {
   return Math.abs(v) < dz ? 0 : v;
+}
+
+function detectType(gp: Gamepad): ControllerType {
+  const id = gp.id.toLowerCase();
+  if (id.includes('dualsense') || id.includes('playstation') || id.includes('054c')) return 'ps5';
+  if (id.includes('nintendo') || id.includes('pro controller') || id.includes('057e')) return 'nintendo';
+  if (id.includes('xbox') || id.includes('xinput') || id.includes('045e')) return 'xbox';
+  return 'unknown';
+}
+
+export function getControllerInfo(): { name: string; type: ControllerType } | null {
+  const gp = getGamepad();
+  if (!gp) return null;
+  return { name: gp.id, type: detectType(gp) };
 }
 
 export function setKeyBindings(kb: KeyBindings): void {
@@ -85,11 +99,17 @@ export function getIntent(cameraYaw: number): Intent {
     }
 
     const ltHeld = (gp.buttons[6]?.value ?? 0) > 0.5;
+    // PS5 non-standard mapping: physical order is [□,✕,○,△] instead of [A,B,X,Y]
+    // Remap to logical slots so ✕(1)→slot0(sprint), △(3)→slot3(jump), etc.
+    const ps5Remap = detectType(gp) === 'ps5' && gp.mapping !== 'standard'
+      ? [2, 0, 1, 3] as const
+      : null;
     for (let i = 0; i < 4; i++) {
       const pressed = gp.buttons[i]?.pressed ?? false;
       const wasPressed = prevButtons[i] ?? false;
       if (pressed && !wasPressed) {
-        pressAction(ltHeld ? i + 4 : i);
+        const slot = ps5Remap ? ps5Remap[i]! : i;
+        pressAction(ltHeld ? slot + 4 : slot);
       }
     }
     prevButtons = Array.from(gp.buttons).map(b => b.pressed);
