@@ -1,8 +1,8 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
-import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
-import { CreateGround } from "@babylonjs/core/Meshes/Builders/groundBuilder";
+import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
@@ -18,54 +18,76 @@ const WAYMARK_COLORS: Record<WaymarkId, Color3> = {
   D: new Color3(0.7, 0.35, 0.9), "4": new Color3(0.7, 0.35, 0.9),
 };
 
+const FLOOR_Y = 0.06;
+const SIZE = 1.6;
 const isLetter = (mark: WaymarkId) => mark >= "A" && mark <= "D";
 
 export function createWaymarkMeshes(scene: Scene, waymark: Waymark): Mesh[] {
   const color = WAYMARK_COLORS[waymark.mark];
   const { x, z } = waymark.pos;
 
-  // Flat translucent shape on the floor: circle for letters, square for numbers.
-  const floor = isLetter(waymark.mark)
-    ? CreateDisc(`wm-${waymark.mark}`, { radius: 1.6, tessellation: 48 }, scene)
-    : CreateGround(`wm-${waymark.mark}`, { width: 3.2, height: 3.2 }, scene);
-  if (isLetter(waymark.mark)) floor.rotation.x = Math.PI / 2;
-  floor.position.set(x, 0.02, z);
+  // Empty outlined shape on the floor: ring for letters, square border for numbers.
+  const path = isLetter(waymark.mark) ? circlePath(x, z) : squarePath(x, z);
+  const floor = CreateTube(`wm-${waymark.mark}`, {
+    path,
+    radius: 0.09,
+    tessellation: 8,
+    cap: BabylonMesh.CAP_ALL,
+  }, scene);
   const floorMat = new StandardMaterial(`wm-mat-${waymark.mark}`, scene);
   floorMat.diffuseColor = color;
   floorMat.emissiveColor = color.scale(0.6);
   floorMat.specularColor = new Color3(0, 0, 0);
-  floorMat.alpha = 0.35;
-  floorMat.backFaceCulling = false;
+  floorMat.alpha = 0.45;
   floor.material = floorMat;
 
-  // Floating translucent label that always faces the camera.
+  // Floating glyph that always faces the camera — colored character, no background.
   const label = CreatePlane(`wm-label-${waymark.mark}`, { size: 2 }, scene);
   label.position.set(x, 2.5, z);
   label.billboardMode = BabylonMesh.BILLBOARDMODE_ALL;
+  const tex = createLabelTexture(scene, waymark.mark, color);
   const labelMat = new StandardMaterial(`wm-label-mat-${waymark.mark}`, scene);
-  labelMat.diffuseTexture = createLabelTexture(scene, waymark.mark);
-  labelMat.diffuseTexture.hasAlpha = true;
+  // Glyph color is baked into the texture; everything around it is transparent.
+  labelMat.diffuseTexture = tex;
   labelMat.useAlphaFromDiffuseTexture = true;
+  labelMat.emissiveTexture = tex;
+  labelMat.emissiveColor = new Color3(1, 1, 1);
   labelMat.diffuseColor = new Color3(0, 0, 0);
-  labelMat.emissiveColor = color;
   labelMat.specularColor = new Color3(0, 0, 0);
-  labelMat.alpha = 0.75;
+  labelMat.alpha = 0.45;
   labelMat.backFaceCulling = false;
   label.material = labelMat;
 
   return [floor, label];
 }
 
-function createLabelTexture(scene: Scene, mark: WaymarkId): DynamicTexture {
-  const size = 256;
-  const tex = new DynamicTexture(`wm-tex-${mark}`, size, scene, false);
-  const ctx = tex.getContext() as unknown as CanvasRenderingContext2D;
-  ctx.clearRect(0, 0, size, size);
-  ctx.fillStyle = "white";
-  ctx.font = "bold 200px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(mark, size / 2, size / 2);
-  tex.update(true);
+function circlePath(cx: number, cz: number): Vector3[] {
+  const seg = 48;
+  const pts: Vector3[] = [];
+  for (let i = 0; i <= seg; i++) {
+    const a = (i / seg) * Math.PI * 2;
+    pts.push(new Vector3(cx + Math.cos(a) * SIZE, FLOOR_Y, cz + Math.sin(a) * SIZE));
+  }
+  return pts;
+}
+
+function squarePath(cx: number, cz: number): Vector3[] {
+  const h = SIZE;
+  return [
+    new Vector3(cx + h, FLOOR_Y, cz + h),
+    new Vector3(cx + h, FLOOR_Y, cz - h),
+    new Vector3(cx - h, FLOOR_Y, cz - h),
+    new Vector3(cx - h, FLOOR_Y, cz + h),
+    new Vector3(cx + h, FLOOR_Y, cz + h),
+  ];
+}
+
+function createLabelTexture(scene: Scene, mark: WaymarkId, color: Color3): DynamicTexture {
+  const tex = new DynamicTexture(`wm-tex-${mark}`, 256, scene, false);
+  tex.hasAlpha = true;
+  const css = `rgb(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)})`;
+  // drawText with a "transparent" clear color yields a real transparent alpha channel,
+  // so the plane shows only the glyph (not a black/white quad). x=null centers it.
+  tex.drawText(mark, null, 196, "bold 200px sans-serif", css, "transparent", true);
   return tex;
 }
