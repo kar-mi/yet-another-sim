@@ -8,6 +8,8 @@ import type {
   Player,
   StatusEffect,
   EffectSpec,
+  PendingTargetedEvent,
+  Role,
 } from "../shared/types";
 import type { Vec2 } from "../shared/math";
 import { add, scale, normalize, length } from "../shared/math";
@@ -21,6 +23,7 @@ export const SPRINT_DURATION = 5;
 export const SPRINT_COOLDOWN = 10;
 
 const INTERCEPT_THRESHOLD = 2.0;
+const TARGETED_LINGER = 0.7; // seconds a targeted bait's circle stays visible after it resolves
 
 function nearestAlivePlayer(players: Player[], pos: Vec2): Player | null {
   let nearest: Player | null = null;
@@ -32,6 +35,23 @@ function nearestAlivePlayer(players: Player[], pos: Vec2): Player | null {
     if (d < minDist) { minDist = d; nearest = p; }
   }
   return nearest;
+}
+
+function selectTargetPlayer(
+  players: Player[],
+  origin: Vec2,
+  mode: "closest" | "furthest",
+  role?: Role,
+): Player | null {
+  let best: Player | null = null;
+  let bestDist = mode === "closest" ? Infinity : -Infinity;
+  for (const p of players) {
+    if (!p.alive || (role && p.role !== role)) continue;
+    const dx = p.pos.x - origin.x, dz = p.pos.z - origin.z;
+    const d = Math.sqrt(dx * dx + dz * dz);
+    if (mode === "closest" ? d < bestDist : d > bestDist) { bestDist = d; best = p; }
+  }
+  return best;
 }
 
 function isOnTetherLine(pPos: Vec2, src: Vec2, tgt: Vec2): boolean {
@@ -190,10 +210,38 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const { promoted, remaining: pending } = promotePending(world.pending, time);
   const active: ActiveMechanic[] = [...world.active.map(m => ({ ...m })), ...promoted];
 
+  // 3b. Promote targeted events into casts. The near/far target (and circle center) is
+  // chosen when the cast resolves, not now, so players can reposition during the telegraph.
+  const remainingPendingTargeted: PendingTargetedEvent[] = [];
+  for (const pt of world.pendingTargeted) {
+    if (pt.t <= time) {
+      active.push({
+        id: pt.id,
+        name: pt.name,
+        shape: { kind: "circle", center: { x: 0, z: 0 }, radius: pt.radius },
+        telegraphStart: pt.t,
+        resolveAt: pt.t + pt.telegraph,
+        damage: pt.damage,
+        damageType: pt.damageType,
+        applyEffect: pt.applyEffect,
+        resolved: false,
+        showCastBar: pt.showCastBar,
+        targeting: { mode: pt.targetMode, role: pt.role, origin: { x: 0, z: 0 } },
+      });
+    } else {
+      remainingPendingTargeted.push(pt);
+    }
+  }
+
   // 3. Resolve mechanics past resolveAt (FFXIV snapshot semantics)
   const stillActive: ActiveMechanic[] = [];
   for (const mechanic of active) {
     if (!mechanic.resolved && mechanic.resolveAt <= time) {
+      if (mechanic.targeting && mechanic.shape.kind === "circle") {
+        const target = selectTargetPlayer(players, mechanic.targeting.origin, mechanic.targeting.mode, mechanic.targeting.role);
+        if (!target) { mechanic.resolved = true; continue; } // no valid target: fizzle, no telegraph flash
+        mechanic.shape = { kind: "circle", center: { x: target.pos.x, z: target.pos.z }, radius: mechanic.shape.radius };
+      }
       for (const player of players) {
         if (!player.alive) continue;
         if (pointInShape(mechanic.shape, player.pos)) {
@@ -221,8 +269,10 @@ export function tick(world: World, intents: Intents, dt: number): World {
       }
       mechanic.resolved = true;
     }
-    // Keep for one tick after resolve so renderer can show a flash, then drop
-    if (!mechanic.resolved || mechanic.resolveAt >= time - dt) {
+    // Keep briefly after resolve so the renderer can flash the hit; targeted baits linger
+    // longer so the circle stays visible where it landed (damage already applied at resolveAt).
+    const keepFor = mechanic.targeting ? TARGETED_LINGER : dt;
+    if (!mechanic.resolved || mechanic.resolveAt >= time - keepFor) {
       stillActive.push(mechanic);
     }
   }
@@ -253,7 +303,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
   // 5. Derive status
   const anyAlive = players.some(p => p.alive);
   const allResolved = pending.length === 0 && stillActive.every(m => m.resolved)
-    && remainingPendingTethers.length === 0 && tetherSources.every(ts => ts.finalized);
+    && remainingPendingTethers.length === 0 && tetherSources.every(ts => ts.finalized)
+    && remainingPendingTargeted.length === 0;
   let status = world.status;
   if (status === "running") {
     if (!anyAlive) {
@@ -263,5 +314,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, players, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers };
+  return { ...world, time, players, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, pendingTargeted: remainingPendingTargeted };
 }

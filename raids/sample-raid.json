@@ -4,9 +4,14 @@
   "duration": 45,
   "botPatterns": "sample-raid-bots",
   "players": [
-    { "id": "p1", "role": "dps", "control": "human", "spawn": [0, 8] },
-    { "id": "p2", "role": "tank", "control": "bot", "spawn": [-12, 12] },
-    { "id": "p3", "role": "healer", "control": "bot", "spawn": [12, 12] }
+    { "id": "mt", "role": "tank", "control": "bot", "spawn": [-12, 12] },
+    { "id": "ot", "role": "tank", "control": "bot", "spawn": [0, -8] },
+    { "id": "h1", "role": "healer", "control": "bot", "spawn": [12, 12] },
+    { "id": "h2", "role": "healer", "control": "bot", "spawn": [8, 0] },
+    { "id": "r1", "role": "dps", "control": "bot", "spawn": [-5.66, 5.66] },
+    { "id": "r2", "role": "dps", "control": "bot", "spawn": [5.66, 5.66] },
+    { "id": "m1", "role": "dps", "control": "human", "spawn": [-5.66, -5.66] },
+    { "id": "m2", "role": "dps", "control": "bot", "spawn": [5.66, -5.66] }
   ],
   "events": [
     {

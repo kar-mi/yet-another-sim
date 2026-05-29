@@ -3,20 +3,35 @@ import { computeBotIntents } from "../botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../raidLoader";
+import { CLOCK_SPOTS, ROSTER } from "../../shared/protocol";
 import type { Intents, StatusEffect, World } from "../../shared/types";
+
+// The default human-controlled slot used across these tests (a dps).
+const HUMAN = "m1";
+
+type Vec = [number, number];
+type Override = { spawn?: Vec; control?: "human" | "bot"; pattern?: { t: number; pos: Vec }[] };
+
+// Build the canonical roster (mt, ot, h1, h2, r1, r2, m1, m2) at clock spots, with per-id overrides.
+function roster(over: Record<string, Override> = {}) {
+  return ROSTER.map(({ id, role }) => {
+    const o = over[id] ?? {};
+    return {
+      id,
+      role,
+      control: o.control ?? (id === HUMAN ? "human" : "bot"),
+      spawn: o.spawn ?? (CLOCK_SPOTS[id] as Vec),
+      ...(o.pattern ? { pattern: o.pattern } : {}),
+    };
+  });
+}
 
 const baseRaid = {
   name: "Test",
-  arena: { zones: [{ kind: "circle" as const, center: [0, 0] as [number, number], radius: 20 }] },
+  arena: { zones: [{ kind: "circle" as const, center: [0, 0] as Vec, radius: 20 }] },
   duration: 10,
-  players: [{ id: "p1", role: "dps" as const, spawn: [0, 0] as [number, number] }],
-  events: [] as {
-    t: number;
-    name: string;
-    telegraph: number;
-    damage: number;
-    shape: { kind: "circle"; center: [number, number]; radius: number };
-  }[],
+  players: roster(),
+  events: [] as unknown[],
 };
 
 function runTicks(world: ReturnType<typeof createWorld>, intents: Intents, count: number) {
@@ -28,7 +43,7 @@ function runTicks(world: ReturnType<typeof createWorld>, intents: Intents, count
 function runTicksWithBotIntents(world: ReturnType<typeof createWorld>, count: number) {
   let w = world;
   for (let i = 0; i < count; i++) {
-    w = tick(w, { ...computeBotIntents(w, 1 / 60), p1: { move: { x: 0, z: 0 } } }, 1 / 60);
+    w = tick(w, { ...computeBotIntents(w, 1 / 60), [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
   }
   return w;
 }
@@ -36,7 +51,7 @@ function runTicksWithBotIntents(world: ReturnType<typeof createWorld>, count: nu
 function withEffect(world: World, effect: StatusEffect): World {
   return {
     ...world,
-    players: world.players.map(player => player.id === "p1"
+    players: world.players.map(player => player.id === HUMAN
       ? { ...player, effects: [...player.effects, effect] }
       : player),
   };
@@ -54,9 +69,11 @@ function effect(overrides: Partial<StatusEffect> = {}): StatusEffect {
   };
 }
 
+const human = (world: World) => world.players.find(p => p.id === HUMAN)!;
+
 test("tick is deterministic", () => {
   const raid = loadRaid(baseRaid);
-  const intents = { p1: { move: { x: 0.3, z: 0.7 } } };
+  const intents = { [HUMAN]: { move: { x: 0.3, z: 0.7 } } };
 
   let w1 = createWorld(raid);
   let w2 = createWorld(raid);
@@ -71,7 +88,7 @@ test("tick is deterministic", () => {
 test("world includes a deterministic boss", () => {
   const raid = loadRaid(baseRaid);
   const world = createWorld(raid);
-  const next = tick(world, { p1: { move: { x: 0, z: 0 } } }, 1 / 60);
+  const next = tick(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
 
   expect(world.boss).toEqual({ id: "boss", pos: { x: 0, z: 0 }, hp: 1000, maxHp: 1000, radius: 3 });
   expect(next.boss).toEqual(world.boss);
@@ -80,26 +97,17 @@ test("world includes a deterministic boss", () => {
 test("bot intents are deterministic", () => {
   const raid = loadRaid({
     ...baseRaid,
-    players: [
-      { id: "p1", role: "dps" as const, control: "human" as const, spawn: [0, 15] as [number, number] },
-      {
-        id: "p2",
-        role: "tank" as const,
-        control: "bot" as const,
-        spawn: [0, 0] as [number, number],
-        pattern: [
-          { t: 0, pos: [10, 0] as [number, number] },
-          { t: 1, pos: [10, 10] as [number, number] },
-        ],
-      },
-    ],
+    players: roster({
+      m1: { spawn: [0, 15] },
+      mt: { control: "bot", spawn: [0, 0], pattern: [{ t: 0, pos: [10, 0] }, { t: 1, pos: [10, 10] }] },
+    }),
   });
 
   let w1 = createWorld(raid);
   let w2 = createWorld(raid);
   for (let i = 0; i < 200; i++) {
-    w1 = tick(w1, { ...computeBotIntents(w1, 1 / 60), p1: { move: { x: 0, z: 0 } } }, 1 / 60);
-    w2 = tick(w2, { ...computeBotIntents(w2, 1 / 60), p1: { move: { x: 0, z: 0 } } }, 1 / 60);
+    w1 = tick(w1, { ...computeBotIntents(w1, 1 / 60), [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
+    w2 = tick(w2, { ...computeBotIntents(w2, 1 / 60), [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
   }
 
   expect(JSON.stringify(w1)).toBe(JSON.stringify(w2));
@@ -108,49 +116,35 @@ test("bot intents are deterministic", () => {
 test("bot patterns can be loaded from a companion definition", () => {
   const raid = loadRaid({
     ...baseRaid,
-    players: [
-      { id: "p1", role: "dps" as const, control: "human" as const, spawn: [0, 15] as [number, number] },
-      { id: "p2", role: "tank" as const, control: "bot" as const, spawn: [0, 0] as [number, number] },
-    ],
+    players: roster({ m1: { spawn: [0, 15] }, mt: { control: "bot", spawn: [0, 0] } }),
   });
   const botPatterns = loadBotPatterns({
     players: {
-      p2: [{ t: 0, pos: [8, 0] }],
+      mt: [{ t: 0, pos: [8, 0] }],
     },
   });
   const world = createWorld(applyBotPatterns(raid, botPatterns));
 
-  expect(world.players.find(player => player.id === "p2")?.pattern).toEqual([{ t: 0, pos: { x: 8, z: 0 } }]);
+  expect(world.players.find(player => player.id === "mt")?.pattern).toEqual([{ t: 0, pos: { x: 8, z: 0 } }]);
 });
 
 test("bot with a pattern can dodge an AOE while a bot without one is hit", () => {
+  const aoe = { t: 3, name: "TestAOE", telegraph: 1, damage: 50, damageType: "physical" as const, shape: { kind: "circle", center: [0, 0], radius: 5 } };
   const movingRaid = loadRaid({
     ...baseRaid,
-    events: [{ t: 3, name: "TestAOE", telegraph: 1, damage: 50, damageType: "physical" as const, shape: { kind: "circle", center: [0, 0], radius: 5 } }],
-    players: [
-      { id: "p1", role: "dps" as const, control: "human" as const, spawn: [15, 0] as [number, number] },
-      {
-        id: "p2",
-        role: "healer" as const,
-        control: "bot" as const,
-        spawn: [0, 0] as [number, number],
-        pattern: [{ t: 0, pos: [8, 0] as [number, number] }],
-      },
-    ],
+    events: [aoe],
+    players: roster({ h1: { spawn: [0, 0], pattern: [{ t: 0, pos: [8, 0] }] } }),
   });
   const standingRaid = loadRaid({
     ...baseRaid,
-    events: [{ t: 3, name: "TestAOE", telegraph: 1, damage: 50, damageType: "physical" as const, shape: { kind: "circle", center: [0, 0], radius: 5 } }],
-    players: [
-      { id: "p1", role: "dps" as const, control: "human" as const, spawn: [15, 0] as [number, number] },
-      { id: "p2", role: "healer" as const, control: "bot" as const, spawn: [0, 0] as [number, number] },
-    ],
+    events: [aoe],
+    players: roster({ h1: { spawn: [0, 0] } }),
   });
 
   const movingWorld = runTicksWithBotIntents(createWorld(movingRaid), Math.ceil(5.1 * 60));
   const standingWorld = runTicksWithBotIntents(createWorld(standingRaid), Math.ceil(5.1 * 60));
-  const movingBot = movingWorld.players.find(player => player.id === "p2")!;
-  const standingBot = standingWorld.players.find(player => player.id === "p2")!;
+  const movingBot = movingWorld.players.find(player => player.id === "h1")!;
+  const standingBot = standingWorld.players.find(player => player.id === "h1")!;
 
   expect(movingBot.hp).toBe(100);
   expect(standingBot.hp).toBeLessThan(100);
@@ -164,7 +158,7 @@ test("simultaneous mechanics with the same name get unique ids", () => {
       { t: 3, name: "MirrorAOE", telegraph: 2, damage: 50, damageType: "physical" as const, shape: { kind: "circle", center: [5, 0], radius: 3 } },
     ],
   });
-  const world = runTicks(createWorld(raid), { p1: { move: { x: 0, z: 0 } } }, Math.ceil(3.1 * 60));
+  const world = runTicks(createWorld(raid), {}, Math.ceil(3.1 * 60));
   const ids = world.active.map(mechanic => mechanic.id);
 
   expect(world.active).toHaveLength(2);
@@ -175,20 +169,20 @@ test("player takes damage when inside AOE at resolve", () => {
   const raid = loadRaid({
     ...baseRaid,
     events: [{ t: 3, name: "TestAOE", telegraph: 2, damage: 50, damageType: "physical" as const, shape: { kind: "circle", center: [0, 0], radius: 10 } }],
-    players: [{ id: "p1", role: "dps" as const, spawn: [0, 0] as [number, number] }],
+    players: roster({ m1: { spawn: [0, 0] } }),
   });
-  const world = runTicks(createWorld(raid), { p1: { move: { x: 0, z: 0 } } }, Math.ceil(5.1 * 60));
-  expect(world.players[0].hp).toBeLessThan(100);
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(5.1 * 60));
+  expect(human(world).hp).toBeLessThan(100);
 });
 
 test("player survives when outside AOE at resolve", () => {
   const raid = loadRaid({
     ...baseRaid,
     events: [{ t: 3, name: "TestAOE", telegraph: 2, damage: 50, damageType: "physical" as const, shape: { kind: "circle", center: [0, 0], radius: 5 } }],
-    players: [{ id: "p1", role: "dps" as const, spawn: [0, 15] as [number, number] }],
+    players: roster({ m1: { spawn: [0, 15] } }),
   });
-  const world = runTicks(createWorld(raid), { p1: { move: { x: 0, z: 0 } } }, Math.ceil(5.1 * 60));
-  expect(world.players[0].hp).toBe(100);
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(5.1 * 60));
+  expect(human(world).hp).toBe(100);
 });
 
 test("physical vuln amplifies matching damage and is consumed", () => {
@@ -207,7 +201,7 @@ test("physical vuln amplifies matching damage and is consumed", () => {
           duration: 10,
           behavior: { kind: "vuln" as const, damageType: "physical" as const, multiplier: 1.5 },
         },
-        shape: { kind: "circle" as const, center: [0, 0] as [number, number], radius: 10 },
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
       },
       {
         t: 0.3,
@@ -215,14 +209,14 @@ test("physical vuln amplifies matching damage and is consumed", () => {
         telegraph: 0.01,
         damage: 20,
         damageType: "physical" as const,
-        shape: { kind: "circle" as const, center: [0, 0] as [number, number], radius: 10 },
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
       },
     ],
   });
-  const world = runTicks(createWorld(raid), { p1: { move: { x: 0, z: 0 } } }, Math.ceil(0.5 * 60));
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.5 * 60));
 
-  expect(world.players[0].hp).toBeCloseTo(70);
-  expect(world.players[0].effects).toHaveLength(0);
+  expect(human(world).hp).toBeCloseTo(70);
+  expect(human(world).effects).toHaveLength(0);
 });
 
 test("vuln does not amplify mismatched or expired damage", () => {
@@ -241,7 +235,7 @@ test("vuln does not amplify mismatched or expired damage", () => {
           duration: 10,
           behavior: { kind: "vuln" as const, damageType: "physical" as const, multiplier: 1.5 },
         },
-        shape: { kind: "circle" as const, center: [0, 0] as [number, number], radius: 10 },
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
       },
       {
         t: 0.3,
@@ -249,14 +243,14 @@ test("vuln does not amplify mismatched or expired damage", () => {
         telegraph: 0.01,
         damage: 20,
         damageType: "magical" as const,
-        shape: { kind: "circle" as const, center: [0, 0] as [number, number], radius: 10 },
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
       },
     ],
   });
-  const magicalWorld = runTicks(createWorld(magicalRaid), { p1: { move: { x: 0, z: 0 } } }, Math.ceil(0.5 * 60));
+  const magicalWorld = runTicks(createWorld(magicalRaid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.5 * 60));
 
-  expect(magicalWorld.players[0].hp).toBeCloseTo(80);
-  expect(magicalWorld.players[0].effects).toHaveLength(1);
+  expect(human(magicalWorld).hp).toBeCloseTo(80);
+  expect(human(magicalWorld).effects).toHaveLength(1);
 
   const expiredRaid = loadRaid({
     ...baseRaid,
@@ -266,17 +260,17 @@ test("vuln does not amplify mismatched or expired damage", () => {
       telegraph: 1,
       damage: 20,
       damageType: "physical" as const,
-      shape: { kind: "circle" as const, center: [0, 0] as [number, number], radius: 10 },
+      shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
     }],
   });
   const expiredWorld = tick(withEffect(createWorld(expiredRaid), effect({
     name: "Expired Vulnerability",
     duration: 0.5,
     behavior: { kind: "vuln", damageType: "physical", multiplier: 2 },
-  })), { p1: { move: { x: 0, z: 0 } } }, 1.2);
+  })), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1.2);
 
-  expect(expiredWorld.players[0].hp).toBeCloseTo(80);
-  expect(expiredWorld.players[0].effects).toHaveLength(0);
+  expect(human(expiredWorld).hp).toBeCloseTo(80);
+  expect(human(expiredWorld).effects).toHaveLength(0);
 });
 
 test("zero-damage matching mechanic does not consume vuln", () => {
@@ -295,7 +289,7 @@ test("zero-damage matching mechanic does not consume vuln", () => {
           duration: 10,
           behavior: { kind: "vuln" as const, damageType: "physical" as const, multiplier: 1.5 },
         },
-        shape: { kind: "circle" as const, center: [0, 0] as [number, number], radius: 10 },
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
       },
       {
         t: 0.3,
@@ -303,7 +297,7 @@ test("zero-damage matching mechanic does not consume vuln", () => {
         telegraph: 0.01,
         damage: 0,
         damageType: "physical" as const,
-        shape: { kind: "circle" as const, center: [0, 0] as [number, number], radius: 10 },
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
       },
       {
         t: 0.5,
@@ -311,46 +305,46 @@ test("zero-damage matching mechanic does not consume vuln", () => {
         telegraph: 0.01,
         damage: 20,
         damageType: "physical" as const,
-        shape: { kind: "circle" as const, center: [0, 0] as [number, number], radius: 10 },
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
       },
     ],
   });
-  const world = runTicks(createWorld(raid), { p1: { move: { x: 0, z: 0 } } }, Math.ceil(0.7 * 60));
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.7 * 60));
 
-  expect(world.players[0].hp).toBeCloseTo(70);
-  expect(world.players[0].effects).toHaveLength(0);
+  expect(human(world).hp).toBeCloseTo(70);
+  expect(human(world).effects).toHaveLength(0);
 });
 
 test("pyretic damages player actions", () => {
   const pyretic = effect({ name: "Pyretic", behavior: { kind: "pyretic", dps: 10 } });
   const cases: Intents[] = [
-    { p1: { move: { x: 1, z: 0 } } },
-    { p1: { move: { x: 0, z: 0 }, jump: true } },
-    { p1: { move: { x: 0, z: 0 }, sprint: true } },
+    { [HUMAN]: { move: { x: 1, z: 0 } } },
+    { [HUMAN]: { move: { x: 0, z: 0 }, jump: true } },
+    { [HUMAN]: { move: { x: 0, z: 0 }, sprint: true } },
   ];
 
   for (const intents of cases) {
     const world = tick(withEffect(createWorld(loadRaid(baseRaid)), pyretic), intents, 1);
-    expect(world.players[0].hp).toBeCloseTo(90);
+    expect(human(world).hp).toBeCloseTo(90);
   }
 
-  const idleWorld = tick(withEffect(createWorld(loadRaid(baseRaid)), pyretic), { p1: { move: { x: 0, z: 0 } } }, 1);
-  expect(idleWorld.players[0].hp).toBeCloseTo(100);
+  const idleWorld = tick(withEffect(createWorld(loadRaid(baseRaid)), pyretic), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1);
+  expect(human(idleWorld).hp).toBeCloseTo(100);
 });
 
 test("freeze damages player inactivity", () => {
   const freeze = effect({ name: "Freeze", behavior: { kind: "freeze", dps: 10 } });
-  const idleWorld = tick(withEffect(createWorld(loadRaid(baseRaid)), freeze), { p1: { move: { x: 0, z: 0 } } }, 1);
-  expect(idleWorld.players[0].hp).toBeCloseTo(90);
+  const idleWorld = tick(withEffect(createWorld(loadRaid(baseRaid)), freeze), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1);
+  expect(human(idleWorld).hp).toBeCloseTo(90);
 
   const cases: Intents[] = [
-    { p1: { move: { x: 1, z: 0 } } },
-    { p1: { move: { x: 0, z: 0 }, jump: true } },
-    { p1: { move: { x: 0, z: 0 }, sprint: true } },
+    { [HUMAN]: { move: { x: 1, z: 0 } } },
+    { [HUMAN]: { move: { x: 0, z: 0 }, jump: true } },
+    { [HUMAN]: { move: { x: 0, z: 0 }, sprint: true } },
   ];
   for (const intents of cases) {
     const world = tick(withEffect(createWorld(loadRaid(baseRaid)), freeze), intents, 1);
-    expect(world.players[0].hp).toBeCloseTo(100);
+    expect(human(world).hp).toBeCloseTo(100);
   }
 });
 
@@ -369,22 +363,22 @@ test("continuous effects respect tick timing boundaries", () => {
         duration: 10,
         behavior: { kind: "pyretic" as const, dps: 100 },
       },
-      shape: { kind: "circle" as const, center: [0, 0] as [number, number], radius: 10 },
+      shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
     }],
   });
-  const newlyAppliedWorld = tick(createWorld(newlyAppliedRaid), { p1: { move: { x: 1, z: 0 } } }, 0.3);
+  const newlyAppliedWorld = tick(createWorld(newlyAppliedRaid), { [HUMAN]: { move: { x: 1, z: 0 } } }, 0.3);
 
-  expect(newlyAppliedWorld.players[0].hp).toBeCloseTo(100);
-  expect(newlyAppliedWorld.players[0].effects).toHaveLength(1);
+  expect(human(newlyAppliedWorld).hp).toBeCloseTo(100);
+  expect(human(newlyAppliedWorld).effects).toHaveLength(1);
 
   const expiringWorld = tick(withEffect(createWorld(loadRaid(baseRaid)), effect({
     name: "Short Pyretic",
     duration: 0.25,
     behavior: { kind: "pyretic", dps: 40 },
-  })), { p1: { move: { x: 1, z: 0 } } }, 1);
+  })), { [HUMAN]: { move: { x: 1, z: 0 } } }, 1);
 
-  expect(expiringWorld.players[0].hp).toBeCloseTo(90);
-  expect(expiringWorld.players[0].effects).toHaveLength(0);
+  expect(human(expiringWorld).hp).toBeCloseTo(90);
+  expect(human(expiringWorld).effects).toHaveLength(0);
 });
 
 test("status becomes wiped when lethal damage hits all players", () => {
@@ -392,33 +386,32 @@ test("status becomes wiped when lethal damage hits all players", () => {
     ...baseRaid,
     events: [{ t: 3, name: "OneShot", telegraph: 2, damage: 100, damageType: "physical" as const, shape: { kind: "circle", center: [0, 0], radius: 20 } }],
   });
-  const world = runTicks(createWorld(raid), { p1: { move: { x: 0, z: 0 } } }, Math.ceil(5.1 * 60));
+  const world = runTicks(createWorld(raid), {}, Math.ceil(5.1 * 60));
   expect(world.status).toBe("wiped");
 });
 
 test("status becomes cleared when all mechanics resolved and time elapsed", () => {
   const raid = loadRaid({
     ...baseRaid,
-    players: [{ id: "p1", role: "dps" as const, spawn: [0, 15] as [number, number] }],
     events: [{ t: 3, name: "TestAOE", telegraph: 2, damage: 50, damageType: "physical" as const, shape: { kind: "circle", center: [0, 0], radius: 5 } }],
   });
-  const world = runTicks(createWorld(raid), { p1: { move: { x: 0, z: 0 } } }, Math.ceil(11 * 60));
+  const world = runTicks(createWorld(raid), {}, Math.ceil(11 * 60));
   expect(world.status).toBe("cleared");
 });
 
 test("status does not become cleared for an empty raid", () => {
   const raid = loadRaid(baseRaid);
-  const world = runTicks(createWorld(raid), { p1: { move: { x: 0, z: 0 } } }, Math.ceil(11 * 60));
+  const world = runTicks(createWorld(raid), {}, Math.ceil(11 * 60));
   expect(world.hasMechanics).toBe(false);
   expect(world.status).toBe("running");
 });
 
 test("player falls and dies when walking off arena", () => {
-  const raid = loadRaid(baseRaid);
+  const raid = loadRaid({ ...baseRaid, players: roster({ m1: { spawn: [0, 0] } }) });
   // Move toward +Z edge (arena radius 20, player starts at [0,0])
-  const world = runTicks(createWorld(raid), { p1: { move: { x: 0, z: 1 } } }, Math.ceil(3 * 60));
-  expect(world.players[0].alive).toBe(false);
-  const fellEntries = world.log.filter(e => e.event === "fell");
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 1 } } }, Math.ceil(3 * 60));
+  expect(human(world).alive).toBe(false);
+  const fellEntries = world.log.filter(e => e.event === "fell" && e.playerId === HUMAN);
   expect(fellEntries.length).toBeGreaterThan(0);
 });
 
@@ -426,13 +419,13 @@ test("player jumps and lands back on the ground", () => {
   const raid = loadRaid(baseRaid);
   let world = createWorld(raid);
 
-  world = tick(world, { p1: { move: { x: 0, z: 0 }, jump: true } }, 1 / 60);
-  expect(world.players[0].y).toBeGreaterThan(0);
-  expect(world.players[0].verticalVelocity).toBeGreaterThan(0);
+  world = tick(world, { [HUMAN]: { move: { x: 0, z: 0 }, jump: true } }, 1 / 60);
+  expect(human(world).y).toBeGreaterThan(0);
+  expect(human(world).verticalVelocity).toBeGreaterThan(0);
 
-  world = runTicks(world, { p1: { move: { x: 0, z: 0 } } }, 60);
-  expect(world.players[0].y).toBe(0);
-  expect(world.players[0].verticalVelocity).toBe(0);
+  world = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, 60);
+  expect(human(world).y).toBe(0);
+  expect(human(world).verticalVelocity).toBe(0);
 });
 
 test("jumping does not avoid ground-targeted mechanics", () => {
@@ -442,9 +435,80 @@ test("jumping does not avoid ground-targeted mechanics", () => {
   });
   let world = createWorld(raid);
 
-  world = tick(world, { p1: { move: { x: 0, z: 0 }, jump: true } }, 1 / 60);
-  world = runTicks(world, { p1: { move: { x: 0, z: 0 } } }, Math.ceil(0.2 * 60));
+  world = tick(world, { [HUMAN]: { move: { x: 0, z: 0 }, jump: true } }, 1 / 60);
+  world = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.2 * 60));
 
-  expect(world.players[0].y).toBeGreaterThan(0);
-  expect(world.players[0].hp).toBeLessThan(100);
+  expect(human(world).y).toBeGreaterThan(0);
+  expect(human(world).hp).toBeLessThan(100);
+});
+
+test("targeted mechanic hits the closest player and spares the rest", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [0, 3] }, m2: { spawn: [0, 12] } }),
+    events: [{ t: 1, name: "Near Bait", type: "targeted", targetMode: "closest", radius: 2, telegraph: 1, damage: 50, damageType: "physical" }],
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(2.1 * 60));
+  expect(human(world).hp).toBeLessThan(100); // m1 is closest
+  for (const p of world.players) {
+    if (p.id !== HUMAN) expect(p.hp).toBe(100);
+  }
+});
+
+test("targeted mechanic respects the role filter when selecting furthest", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    // mt is furthest overall, but the bait is dps-only; m2 is the furthest dps.
+    players: roster({ mt: { spawn: [0, 14] }, m1: { spawn: [0, 5] }, m2: { spawn: [0, 9] } }),
+    events: [{ t: 1, name: "Far Bait", type: "targeted", targetMode: "furthest", role: "dps", radius: 2, telegraph: 1, damage: 50, damageType: "physical" }],
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(2.1 * 60));
+  expect(world.players.find(p => p.id === "m2")!.hp).toBeLessThan(100);
+  expect(world.players.find(p => p.id === "m1")!.hp).toBe(100);
+  expect(world.players.find(p => p.id === "mt")!.hp).toBe(100);
+});
+
+test("targeted mechanic picks the near/far target at cast end, not cast start", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [0, 3] }, m2: { spawn: [0, 6] } }),
+    events: [{ t: 0.1, name: "Near Bait", type: "targeted", targetMode: "closest", radius: 2, telegraph: 1.5, damage: 50, damageType: "physical" }],
+  });
+  // m1 is closest at cast start, but walks outward and is no longer closest by cast end,
+  // so the circle should land on m2 instead.
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 1 } } }, Math.ceil(1.7 * 60));
+  expect(human(world).alive).toBe(true);
+  expect(human(world).hp).toBe(100);
+  expect(world.players.find(p => p.id === "m2")!.hp).toBeLessThan(100);
+});
+
+test("targeted bait circle lingers in active after resolving, then drops", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [0, 0] } }),
+    events: [{ t: 0.5, name: "Bait", type: "targeted", targetMode: "closest", radius: 3, telegraph: 0.5, damage: 10, damageType: "physical" }],
+  });
+  // resolves at t = 1.0
+  const lingering = runTicks(createWorld(raid), {}, Math.ceil(1.2 * 60));
+  expect(lingering.active.some(m => m.id === "targeted-0" && m.resolved)).toBe(true);
+  // well past resolveAt + linger window (1.0 + 0.7)
+  const gone = runTicks(createWorld(raid), {}, Math.ceil(3.0 * 60));
+  expect(gone.active.some(m => m.id === "targeted-0")).toBe(false);
+});
+
+test("targeted mechanic splashes players standing inside the circle", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [0, 3] }, m2: { spawn: [0, 6] } }),
+    events: [{ t: 1, name: "Stack", type: "targeted", targetMode: "closest", radius: 5, telegraph: 1, damage: 50, damageType: "physical" }],
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(2.1 * 60));
+  expect(human(world).hp).toBeLessThan(100); // m1 targeted
+  expect(world.players.find(p => p.id === "m2")!.hp).toBeLessThan(100); // splashed
+});
+
+test("loadRaid rejects rosters that do not match the canonical order", () => {
+  expect(() => loadRaid({ ...baseRaid, players: [{ id: "p1", role: "dps", spawn: [0, 0] }] })).toThrow();
+  expect(() => loadRaid({ ...baseRaid, players: roster().slice(0, 7) })).toThrow();
+  expect(() => loadRaid({ ...baseRaid, players: [...roster()].reverse() })).toThrow();
 });

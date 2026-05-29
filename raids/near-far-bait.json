@@ -1,0 +1,69 @@
+{
+  "name": "Near & Far Bait",
+  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 25 }] },
+  "duration": 32,
+  "players": [
+    { "id": "mt", "role": "tank", "control": "bot", "spawn": [0, 8] },
+    { "id": "ot", "role": "tank", "control": "bot", "spawn": [0, -8] },
+    { "id": "h1", "role": "healer", "control": "bot", "spawn": [-8, 0] },
+    { "id": "h2", "role": "healer", "control": "bot", "spawn": [8, 0] },
+    { "id": "r1", "role": "dps", "control": "bot", "spawn": [-5.66, 5.66] },
+    { "id": "r2", "role": "dps", "control": "bot", "spawn": [5.66, 5.66] },
+    { "id": "m1", "role": "dps", "control": "human", "spawn": [-5.66, -5.66] },
+    { "id": "m2", "role": "dps", "control": "bot", "spawn": [5.66, -5.66] }
+  ],
+  "events": [
+    {
+      "type": "targeted",
+      "t": 4,
+      "name": "Near Bait",
+      "targetMode": "closest",
+      "radius": 5,
+      "telegraph": 3,
+      "damage": 50,
+      "damageType": "magical",
+      "showCastBar": true
+    },
+    {
+      "type": "targeted",
+      "t": 10,
+      "name": "Far Bait",
+      "targetMode": "furthest",
+      "radius": 5,
+      "telegraph": 3,
+      "damage": 50,
+      "damageType": "magical",
+      "showCastBar": true
+    },
+    {
+      "type": "targeted",
+      "t": 16,
+      "name": "Healer Snipe (Furthest)",
+      "targetMode": "furthest",
+      "role": "healer",
+      "radius": 4,
+      "telegraph": 3,
+      "damage": 60,
+      "damageType": "magical",
+      "showCastBar": true,
+      "applyEffect": {
+        "name": "Magic Vulnerability Up",
+        "kind": "debuff",
+        "duration": 10,
+        "behavior": { "kind": "vuln", "damageType": "magical", "multiplier": 2 }
+      }
+    },
+    {
+      "type": "targeted",
+      "t": 23,
+      "name": "Tank Buster (Closest Tank)",
+      "targetMode": "closest",
+      "role": "tank",
+      "radius": 4,
+      "telegraph": 3,
+      "damage": 80,
+      "damageType": "physical",
+      "showCastBar": true
+    }
+  ]
+}

@@ -11,7 +11,10 @@ export class TelegraphLayer {
   constructor(private scene: Scene) {}
 
   sync(mechanics: ActiveMechanic[], time: number): void {
-    const activeIds = new Set(mechanics.map(m => m.id));
+    // A targeting cast picks its location at resolve time, so its ground circle stays hidden
+    // until then. Treat it as inactive while casting so no placeholder mesh is created.
+    const visible = mechanics.filter(m => !(m.targeting && !m.resolved));
+    const activeIds = new Set(visible.map(m => m.id));
     for (const [id, mesh] of this.meshes) {
       if (!activeIds.has(id)) {
         mesh.dispose();
@@ -19,7 +22,7 @@ export class TelegraphLayer {
       }
     }
 
-    for (const mechanic of mechanics) {
+    for (const mechanic of visible) {
       if (!this.meshes.has(mechanic.id)) {
         const mesh = createTelegraphMesh(this.scene, mechanic);
         if (mesh) this.meshes.set(mechanic.id, mesh);

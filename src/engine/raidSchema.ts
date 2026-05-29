@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MAX_PLAYERS, RaidIdSchema } from "../shared/protocol";
+import { ROSTER, RaidIdSchema } from "../shared/protocol";
 
 const Vec2Schema = z.tuple([z.number(), z.number()]);
 const WaypointSchema = z.object({ t: z.number().nonnegative(), pos: Vec2Schema });
@@ -24,6 +24,18 @@ const AOEShapeSchema = z.discriminatedUnion("kind", [
   }
 });
 
+const ApplyEffectSchema = z.object({
+  name: z.string().min(1),
+  kind: z.enum(["buff", "debuff"]),
+  duration: z.number().positive(),
+  behavior: z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("none") }),
+    z.object({ kind: z.literal("vuln"), damageType: z.enum(["physical", "magical"]), multiplier: z.number().positive() }),
+    z.object({ kind: z.literal("pyretic"), dps: z.number().nonnegative() }),
+    z.object({ kind: z.literal("freeze"), dps: z.number().nonnegative() }),
+  ]),
+});
+
 const AOEEventSchema = z.object({
   type: z.literal("aoe").default("aoe"),
   t: z.number().nonnegative(),
@@ -32,17 +44,21 @@ const AOEEventSchema = z.object({
   damage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
   shape: AOEShapeSchema,
-  applyEffect: z.object({
-    name: z.string().min(1),
-    kind: z.enum(["buff", "debuff"]),
-    duration: z.number().positive(),
-    behavior: z.discriminatedUnion("kind", [
-      z.object({ kind: z.literal("none") }),
-      z.object({ kind: z.literal("vuln"), damageType: z.enum(["physical", "magical"]), multiplier: z.number().positive() }),
-      z.object({ kind: z.literal("pyretic"), dps: z.number().nonnegative() }),
-      z.object({ kind: z.literal("freeze"), dps: z.number().nonnegative() }),
-    ]),
-  }).optional(),
+  applyEffect: ApplyEffectSchema.optional(),
+  showCastBar: z.boolean().optional(),
+});
+
+const TargetedEventSchema = z.object({
+  type: z.literal("targeted"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  targetMode: z.enum(["closest", "furthest"]),
+  role: z.enum(["tank", "healer", "dps"]).optional(),
+  radius: z.number().positive(),
+  telegraph: z.number().positive(),
+  damage: z.number().nonnegative(),
+  damageType: z.enum(["physical", "magical", "true"]),
+  applyEffect: ApplyEffectSchema.optional(),
   showCastBar: z.boolean().optional(),
 });
 
@@ -63,7 +79,7 @@ const TetherSourceEventSchema = z.object({
   effectDuration: z.number().positive().default(15),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, AOEEventSchema]);
+export const EventSchema = z.union([TetherSourceEventSchema, AOEEventSchema, TargetedEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
@@ -78,8 +94,20 @@ export const RaidSchema = z.object({
   arena: z.object({ zones: z.array(ZoneShapeSchema).min(1) }),
   duration: z.number().positive(),
   botPatterns: RaidIdSchema.optional(),
-  players: z.array(PlayerDefSchema).min(1).max(MAX_PLAYERS),
+  players: z.array(PlayerDefSchema).length(ROSTER.length),
   events: z.array(EventSchema),
+}).superRefine((raid, ctx) => {
+  ROSTER.forEach((expected, i) => {
+    const player = raid.players[i];
+    if (!player) return; // length() already reported the count mismatch
+    if (player.id !== expected.id || player.role !== expected.role) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["players", i],
+        message: `player ${i} must be "${expected.id}" (${expected.role}); roster order is ${ROSTER.map(r => `${r.id}:${r.role}`).join(", ")}`,
+      });
+    }
+  });
 });
 
 export const BotPatternsSchema = z.object({

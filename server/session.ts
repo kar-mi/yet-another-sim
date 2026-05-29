@@ -4,7 +4,7 @@ import { applyBotPatterns, loadBotPatterns, loadRaid } from "../src/engine/raidL
 import type { RaidDef } from "../src/engine/raidSchema";
 import { tick } from "../src/engine/sim";
 import { createWorld } from "../src/engine/world";
-import { EMPTY_RAID_ID, MAX_PLAYERS, type ClientMessage, type LobbySlot, type LobbyStatus, type ServerMessage } from "../src/shared/protocol";
+import { CLOCK_SPOTS, EMPTY_RAID_ID, ROSTER, type ClientMessage, type LobbySlot, type LobbyStatus, type ServerMessage } from "../src/shared/protocol";
 import type { Intent, Intents, World } from "../src/shared/types";
 
 const DT = 1 / 60;
@@ -34,35 +34,13 @@ function mergePendingIntent(previous: Intent | undefined, next: Intent): Intent 
   };
 }
 
-function nextFallbackPlayerId(used: Set<string>, index: number): string {
-  let candidate = `p${index}`;
-  while (used.has(candidate)) candidate = `p${index++}-bot`;
-  used.add(candidate);
-  return candidate;
-}
-
-export function fillRaidSlots(raid: RaidDef): RaidDef {
-  const usedIds = new Set(raid.players.map(player => player.id));
-  const players: RaidPlayerDef[] = raid.players.map(player => ({ ...player }));
-
-  for (let i = players.length + 1; i <= MAX_PLAYERS; i++) {
-    players.push({
-      id: nextFallbackPlayerId(usedIds, i),
-      role: "dps",
-      control: "bot",
-      spawn: [0, 0],
-    });
-  }
-
-  return { ...raid, players };
-}
-
 function createEmptyRaid(): RaidDef {
+  const players: RaidPlayerDef[] = ROSTER.map(({ id, role }) => ({ id, role, control: "bot", spawn: CLOCK_SPOTS[id] }));
   return {
     name: "(empty)",
     arena: { zones: [{ kind: "circle", center: [0, 0], radius: 30 }] },
     duration: 30,
-    players: [],
+    players,
     events: [],
   };
 }
@@ -111,7 +89,7 @@ export class Session {
   constructor(options: SessionOptions) {
     this.id = options.id;
     this.raidId = options.raidId;
-    this.raid = fillRaidSlots(options.raid);
+    this.raid = options.raid;
     this.send = options.send;
     this.now = options.now ?? Date.now;
     this.autoTick = options.autoTick ?? true;
@@ -177,7 +155,7 @@ export class Session {
       ? [...previousSlots.values()].filter((ownerId): ownerId is string => ownerId !== null)
       : [];
     this.raidId = raidId;
-    this.raid = fillRaidSlots(raid);
+    this.raid = raid;
     this.slots.clear();
     for (const player of this.raid.players) this.slots.set(player.id, preserveOwners ? previousSlots.get(player.id) ?? null : null);
     const keptOwners = new Set([...this.slots.values()].filter((ownerId): ownerId is string => ownerId !== null));

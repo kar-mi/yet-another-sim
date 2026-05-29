@@ -2,7 +2,16 @@
   "name": "Sample Raid II",
   "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 38 }] },
   "duration": 50,
-  "players": [{ "id": "p1", "role": "tank", "spawn": [0, -8] }],
+  "players": [
+    { "id": "mt", "role": "tank", "control": "bot", "spawn": [0, 8] },
+    { "id": "ot", "role": "tank", "control": "human", "spawn": [0, -8] },
+    { "id": "h1", "role": "healer", "control": "bot", "spawn": [-8, 0] },
+    { "id": "h2", "role": "healer", "control": "bot", "spawn": [8, 0] },
+    { "id": "r1", "role": "dps", "control": "bot", "spawn": [-5.66, 5.66] },
+    { "id": "r2", "role": "dps", "control": "bot", "spawn": [5.66, 5.66] },
+    { "id": "m1", "role": "dps", "control": "bot", "spawn": [-5.66, -5.66] },
+    { "id": "m2", "role": "dps", "control": "bot", "spawn": [5.66, -5.66] }
+  ],
   "events": [
     {
       "t": 5,

@@ -83,6 +83,9 @@ export type ActiveMechanic = {
   applyEffect?: EffectSpec;
   resolved: boolean;
   showCastBar: boolean;
+  // When set, the circle's target (and center) is chosen at resolve time, not cast start.
+  // The ground telegraph stays hidden until it resolves.
+  targeting?: { mode: "closest" | "furthest"; role?: Role; origin: Vec2 };
 };
 
 export type PendingEvent = {
@@ -90,6 +93,20 @@ export type PendingEvent = {
   t: number;
   name: string;
   shape: AOEShape;
+  telegraph: number;
+  damage: number;
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
+  showCastBar: boolean;
+};
+
+export type PendingTargetedEvent = {
+  id: string;
+  t: number;
+  name: string;
+  targetMode: "closest" | "furthest";
+  role?: Role;
+  radius: number;
   telegraph: number;
   damage: number;
   damageType: DamageType;
@@ -149,4 +166,5 @@ export type World = {
   duration: number;
   tetherSources: TetherSource[];
   pendingTethers: PendingTether[];
+  pendingTargeted: PendingTargetedEvent[];
 };

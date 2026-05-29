@@ -2,6 +2,33 @@ import { z } from "zod";
 import type { Control, Intent, Role, World } from "./types";
 
 export const MAX_PLAYERS = 8;
+
+// Canonical raid roster: fixed ids, roles, and order. Every raid must match this exactly.
+export const ROSTER: readonly { id: string; role: Role }[] = [
+  { id: "mt", role: "tank" },
+  { id: "ot", role: "tank" },
+  { id: "h1", role: "healer" },
+  { id: "h2", role: "healer" },
+  { id: "r1", role: "dps" },
+  { id: "r2", role: "dps" },
+  { id: "m1", role: "dps" },
+  { id: "m2", role: "dps" },
+];
+
+// Default clock spawns (radius 8). 12 o'clock = +z (north), 3 o'clock = +x (east), clockwise.
+const CLOCK_R = 8;
+const CLOCK_D = CLOCK_R / Math.SQRT2;
+export const CLOCK_SPOTS: Record<string, [number, number]> = {
+  mt: [0, CLOCK_R],         // 12
+  r2: [CLOCK_D, CLOCK_D],   // 1:30
+  h2: [CLOCK_R, 0],         // 3
+  m2: [CLOCK_D, -CLOCK_D],  // 4:30
+  ot: [0, -CLOCK_R],        // 6
+  m1: [-CLOCK_D, -CLOCK_D], // 7:30
+  h1: [-CLOCK_R, 0],        // 9
+  r1: [-CLOCK_D, CLOCK_D],  // 10:30
+};
+
 export const EMPTY_RAID_ID = "empty";
 
 export const RaidIdSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);

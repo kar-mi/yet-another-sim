@@ -1,4 +1,4 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, PendingEvent, PendingTether } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, PendingEvent, PendingTether, PendingTargetedEvent } from "../shared/types";
 import { vec2 } from "../shared/math";
 import type { RaidDef } from "./raidSchema";
 
@@ -51,6 +51,7 @@ export function createWorld(raid: RaidDef): World {
 
   const pending: PendingEvent[] = [];
   const pendingTethers: PendingTether[] = [];
+  const pendingTargeted: PendingTargetedEvent[] = [];
 
   for (const [index, e] of raid.events.entries()) {
     if (e.type === "tether_source") {
@@ -63,6 +64,20 @@ export function createWorld(raid: RaidDef): World {
         buffName: e.buffName,
         behavior: e.behavior,
         effectDuration: e.effectDuration,
+      });
+    } else if (e.type === "targeted") {
+      pendingTargeted.push({
+        id: `targeted-${index}`,
+        t: e.t,
+        name: e.name,
+        targetMode: e.targetMode,
+        role: e.role,
+        radius: e.radius,
+        telegraph: e.telegraph,
+        damage: e.damage,
+        damageType: e.damageType,
+        applyEffect: e.applyEffect,
+        showCastBar: e.showCastBar ?? false,
       });
     } else {
       pending.push({
@@ -82,7 +97,7 @@ export function createWorld(raid: RaidDef): World {
   return {
     time: 0,
     status: "running",
-    hasMechanics: pending.length > 0 || pendingTethers.length > 0,
+    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingTargeted.length > 0,
     arena,
     players,
     boss,
@@ -92,5 +107,6 @@ export function createWorld(raid: RaidDef): World {
     duration: raid.duration,
     tetherSources: [],
     pendingTethers,
+    pendingTargeted,
   };
 }
