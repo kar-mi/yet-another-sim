@@ -60,5 +60,15 @@
       "showCastBar": false,
       "shape": { "kind": "donut", "center": [0, 0], "inner": 7, "outer": 30 }
     }
+  ],
+  "waymarks": [
+    { "mark": "A", "pos": [0, 16] },
+    { "mark": "B", "pos": [16, 0] },
+    { "mark": "C", "pos": [0, -16] },
+    { "mark": "D", "pos": [-16, 0] },
+    { "mark": "1", "pos": [10, 10] },
+    { "mark": "2", "pos": [10, -10] },
+    { "mark": "3", "pos": [-10, -10] },
+    { "mark": "4", "pos": [-10, 10] }
   ]
 }

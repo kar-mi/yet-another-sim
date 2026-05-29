@@ -23,7 +23,8 @@ load — an invalid file throws and the raid won't start.
   "duration": 45,
   "botPatterns": "sample-raid-bots",
   "players": [ /* exactly 8, see Roster */ ],
-  "events": [ /* timeline, see Events */ ]
+  "events": [ /* timeline, see Events */ ],
+  "waymarks": [ /* optional, see Waymarks */ ]
 }
 ```
 
@@ -35,6 +36,7 @@ load — an invalid file throws and the raid won't start.
 | `botPatterns` | no       | Id of a bot-pattern file (without `.json`). See [Bot patterns](#bot-patterns). |
 | `players`     | yes      | Exactly 8, in the canonical roster order below. |
 | `events`      | yes      | Array of events. May be empty. |
+| `waymarks`    | no       | Optional visual floor markers (A–D, 1–4). See [Waymarks](#waymarks). |
 
 ## Coordinate system
 
@@ -57,6 +59,29 @@ zones to build non-circular arenas.
 - `circle`: `radius` > 0.
 - `rect`: axis-aligned, `width`/`height` > 0, centered on `center`.
 - `polygon`: at least 3 `vertices`.
+
+## Waymarks
+
+`waymarks` is an optional list of fixed reference markers drawn on the floor — the
+A–D / 1–4 spots raiders position around. They are **purely visual**: they have no
+collision and never affect damage, targeting, or simulation.
+
+```json
+"waymarks": [
+  { "mark": "A", "pos": [0, 16] },
+  { "mark": "1", "pos": [10, 10] }
+]
+```
+
+| Field  | Required | Notes |
+|--------|----------|-------|
+| `mark` | yes      | One of `A`, `B`, `C`, `D`, `1`, `2`, `3`, `4`. Each may appear at most once. |
+| `pos`  | yes      | `[x, z]` floor position. |
+
+- **Letters (A–D)** render as **circles**, **numbers (1–4)** as **squares**, lying flat
+  on the floor, with the character floating translucently above each shape.
+- Colors follow the FFXIV convention — A/1 red, B/2 yellow, C/3 blue, D/4 purple.
+- Omit the field entirely (or use `[]`) for a raid with no waymarks.
 
 ## Roster
 
