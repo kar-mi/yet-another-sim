@@ -83,6 +83,8 @@ export type ActiveMechanic = {
   applyEffect?: EffectSpec;
   resolved: boolean;
   showCastBar: boolean;
+  // When false, the ground telegraph is never drawn; the cast bar and damage still apply.
+  showTelegraph: boolean;
   // When set, the circle's target (and center) is chosen at resolve time, not cast start.
   // The ground telegraph stays hidden until it resolves.
   targeting?: { mode: "closest" | "furthest"; role?: Role; origin: Vec2 };
@@ -98,6 +100,7 @@ export type PendingEvent = {
   damageType: DamageType;
   applyEffect?: EffectSpec;
   showCastBar: boolean;
+  showTelegraph: boolean;
 };
 
 export type PendingTargetedEvent = {
@@ -112,6 +115,7 @@ export type PendingTargetedEvent = {
   damageType: DamageType;
   applyEffect?: EffectSpec;
   showCastBar: boolean;
+  showTelegraph: boolean;
 };
 
 export type LogEntry = {

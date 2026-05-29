@@ -218,6 +218,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
         applyEffect: pt.applyEffect,
         resolved: false,
         showCastBar: pt.showCastBar,
+        showTelegraph: pt.showTelegraph,
         targeting: { mode: pt.targetMode, role: pt.role, origin: { x: 0, z: 0 } },
       });
     } else {
