@@ -9,7 +9,7 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Scene } from "@babylonjs/core/scene";
 import type { Renderer } from "./Renderer";
 import type { World } from "../../shared/types";
-import type { Settings } from "../settings";
+import type { Settings, ControllerType } from "../settings";
 import { BossLayer } from "./BossLayer";
 import { HealthBarLayer } from "./HealthBarLayer";
 import { createZoneMesh } from "./arenaMeshes";
@@ -152,6 +152,10 @@ export class BabylonRenderer implements Renderer {
   getCameraYaw(): number {
     const fwd = this.camera.target.subtract(this.camera.position);
     return Math.atan2(fwd.x, fwd.z);
+  }
+
+  setControllerType(type: ControllerType): void {
+    this.hud.setControllerType(type);
   }
 
   applyControllerPan(dx: number, dy: number, dt: number): void {
