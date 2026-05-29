@@ -1,5 +1,5 @@
 import type { World, Player } from "../../shared/types";
-import { pressAction } from "../input";
+import { pressAction, triggerSprint } from "../input";
 import { SPRINT_COOLDOWN } from "../../engine/sim";
 import { keyLabel, CONTROLLER_BUTTON_LABELS } from "../settings";
 import type { Settings, ControllerType } from "../settings";
@@ -218,7 +218,7 @@ export class HudOverlay {
   }
 
   private bindEvents(): void {
-    this.sprintSlot.addEventListener("click", () => pressAction(0));
+    this.sprintSlot.addEventListener("click", () => triggerSprint());
     this.ctrlSprintSlot.addEventListener("click", () => pressAction(7));
 
     this.root.querySelectorAll<HTMLDivElement>(".yas-slot").forEach(slot => {

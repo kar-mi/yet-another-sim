@@ -52,9 +52,13 @@ export function getRightStick(): { x: number; y: number } {
   };
 }
 
+export function triggerSprint(): void {
+  sprintPressed = true;
+}
+
 export function pressAction(slot: number): void {
-  if (slot === 0 || slot === 7) sprintPressed = true; // KBM slot-0 click or controller LT+Y
-  if (slot === 3) jumpPressed = true;                 // controller Y = jump
+  if (slot === 7) sprintPressed = true; // controller LT+Y
+  if (slot === 3) jumpPressed = true;   // controller Y = jump
 }
 
 export function initInput(): () => void {
