@@ -9,9 +9,14 @@ let sprintPressed = false;
 let keyBindings: KeyBindings = { ...DEFAULT_BINDINGS };
 let prevButtons: boolean[] = [];
 let controllerDeadzone = 0.15;
+let selectedGamepadIndex: number | null = null;
 
 function getGamepad(): Gamepad | null {
-  for (const gp of navigator.getGamepads()) {
+  const pads = navigator.getGamepads();
+  if (selectedGamepadIndex !== null && pads[selectedGamepadIndex]) {
+    return pads[selectedGamepadIndex];
+  }
+  for (const gp of pads) {
     if (gp) return gp;
   }
   return null;
@@ -29,10 +34,23 @@ function detectType(gp: Gamepad): ControllerType {
   return 'unknown';
 }
 
-export function getControllerInfo(): { name: string; type: ControllerType } | null {
+export function getControllerInfo(): { index: number; name: string; type: ControllerType } | null {
   const gp = getGamepad();
   if (!gp) return null;
-  return { name: gp.id, type: detectType(gp) };
+  return { index: gp.index, name: gp.id, type: detectType(gp) };
+}
+
+export function listControllers(): { index: number; name: string; type: ControllerType }[] {
+  const out: { index: number; name: string; type: ControllerType }[] = [];
+  for (const gp of navigator.getGamepads()) {
+    if (gp) out.push({ index: gp.index, name: gp.id, type: detectType(gp) });
+  }
+  return out;
+}
+
+export function setActiveGamepad(index: number | null): void {
+  selectedGamepadIndex = index;
+  prevButtons = []; // avoid carrying button state across a switch
 }
 
 export function setKeyBindings(kb: KeyBindings): void {
