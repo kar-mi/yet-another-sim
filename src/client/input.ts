@@ -6,6 +6,7 @@ import type { KeyBindings, ControllerType } from "./settings";
 const keys = new Set<string>();
 let jumpPressed = false;
 let sprintPressed = false;
+let antiKbPressed = false;
 let keyBindings: KeyBindings = { ...DEFAULT_BINDINGS };
 let prevButtons: boolean[] = [];
 let controllerDeadzone = 0.15;
@@ -74,8 +75,13 @@ export function triggerSprint(): void {
   sprintPressed = true;
 }
 
+export function triggerAntiKb(): void {
+  antiKbPressed = true;
+}
+
 export function pressAction(slot: number): void {
   if (slot === 7) sprintPressed = true; // controller LT+Y
+  if (slot === 6) antiKbPressed = true; // controller LT+X
   if (slot === 3) jumpPressed = true;   // controller Y = jump
 }
 
@@ -88,6 +94,9 @@ export function initInput(): () => void {
     }
     if (e.code === keyBindings.sprint && !e.repeat) {
       sprintPressed = true;
+    }
+    if (e.code === keyBindings.antiKnockback && !e.repeat) {
+      antiKbPressed = true;
     }
   };
   const onKeyUp = (e: KeyboardEvent) => keys.delete(e.code);
@@ -104,6 +113,8 @@ export function getIntent(cameraYaw: number): Intent {
   jumpPressed = false;
   const sprint = sprintPressed;
   sprintPressed = false;
+  const antiKnockback = antiKbPressed;
+  antiKbPressed = false;
 
   let x = 0, z = 0;
   if (keys.has(keyBindings.moveForward)) z += 1;
@@ -137,10 +148,10 @@ export function getIntent(cameraYaw: number): Intent {
     prevButtons = Array.from(gp.buttons).map(b => b.pressed);
   }
 
-  if (x === 0 && z === 0) return { move: { x: 0, z: 0 }, jump, sprint };
+  if (x === 0 && z === 0) return { move: { x: 0, z: 0 }, jump, sprint, antiKnockback };
 
   // Rotate input by camera yaw so movement is camera-relative
   const cos = Math.cos(cameraYaw);
   const sin = Math.sin(cameraYaw);
-  return { move: normalize({ x: x * cos + z * sin, z: -x * sin + z * cos }), jump, sprint };
+  return { move: normalize({ x: x * cos + z * sin, z: -x * sin + z * cos }), jump, sprint, antiKnockback };
 }

@@ -18,6 +18,7 @@ export function promotePending(
         damage: event.damage,
         damageType: event.damageType,
         applyEffect: event.applyEffect,
+        knockback: event.knockback,
         resolved: false,
         showCastBar: event.showCastBar,
         showTelegraph: event.showTelegraph,

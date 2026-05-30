@@ -12,7 +12,8 @@ import type {
   Role,
 } from "../shared/types";
 import type { Vec2 } from "../shared/math";
-import { add, scale, normalize, length } from "../shared/math";
+import type { AOEShape } from "../shared/types";
+import { add, sub, scale, normalize, length } from "../shared/math";
 import { pointInShape, isOnFloor } from "./shapes";
 import { promotePending } from "./timeline";
 
@@ -20,8 +21,11 @@ export const MOVE_SPEED = 8;
 export const JUMP_SPEED = 9;
 export const GRAVITY = 24;
 export const DEATH_FLOOR_Y = -10; // players die after falling this far below the arena floor
-export const SPRINT_DURATION = 5;
-export const SPRINT_COOLDOWN = 10;
+export const SPRINT_DURATION = 10;
+export const SPRINT_COOLDOWN = 60;
+export const ANTI_KB_DURATION = 5;    // seconds the anti-knockback buff negates knockback
+export const ANTI_KB_COOLDOWN = 120;  // seconds before anti-knockback can be used again
+export const KNOCKBACK_FRICTION = 40; // ground deceleration (units/s^2); v0 = sqrt(2*FRICTION*distance)
 
 const INTERCEPT_THRESHOLD = 2.0;
 const TARGETED_LINGER = 0.7; // seconds a targeted bait's circle stays visible after it resolves
@@ -60,6 +64,10 @@ function findInterceptor(players: Player[], src: Vec2, tgt: Vec2, excludeId: str
     if (isOnTetherLine(p.pos, src, tgt)) return p;
   }
   return null;
+}
+
+function shapeOrigin(shape: AOEShape): Vec2 {
+  return shape.kind === "circle" || shape.kind === "donut" ? shape.center : shape.origin;
 }
 
 function didAct(intent: Intent | undefined): boolean {
@@ -111,15 +119,35 @@ export function tick(world: World, intents: Intents, dt: number): World {
     if (player.sprintCooldown > 0) player.sprintCooldown = Math.max(0, player.sprintCooldown - dt);
     if (player.sprintActive > 0) player.sprintActive = Math.max(0, player.sprintActive - dt);
 
+    if (intent?.antiKnockback && player.antiKbCooldown <= 0) {
+      player.antiKbActive = ANTI_KB_DURATION;
+      player.antiKbCooldown = ANTI_KB_COOLDOWN;
+    }
+    if (player.antiKbCooldown > 0) player.antiKbCooldown = Math.max(0, player.antiKbCooldown - dt);
+    if (player.antiKbActive > 0) player.antiKbActive = Math.max(0, player.antiKbActive - dt);
+
+    // Forced movement (knockback/knockup) suppresses normal input while it carries the player.
+    const beingKnocked = length(player.knockbackVelocity) > 1e-6;
     const speed = player.sprintActive > 0 ? MOVE_SPEED * 1.5 : MOVE_SPEED;
-    if (intent && length(intent.move) > 0) {
+    if (!beingKnocked && intent && length(intent.move) > 0) {
       player.pos = add(player.pos, scale(normalize(intent.move), speed * dt));
+    }
+    if (beingKnocked) {
+      player.pos = add(player.pos, scale(player.knockbackVelocity, dt));
     }
 
     // Vertical physics: gravity applies while airborne or while over the void (off-floor).
     // Landing only catches a player descending through the floor from above (prevY >= 0),
     // so a player who has already sunk below the floor keeps falling even back over a zone.
     const grounded = isOnFloor(player.pos, world.arena.zones);
+
+    // Ground friction decelerates a horizontal knockback to rest after its target distance.
+    // An airborne knockup keeps constant horizontal velocity until it lands.
+    if (beingKnocked && grounded && player.y <= 0) {
+      const sp = Math.max(0, length(player.knockbackVelocity) - KNOCKBACK_FRICTION * dt);
+      player.knockbackVelocity = sp > 0 ? scale(normalize(player.knockbackVelocity), sp) : { x: 0, z: 0 };
+    }
+
     if (!grounded || player.y > 0 || player.verticalVelocity !== 0) {
       const prevY = player.y;
       player.y += player.verticalVelocity * dt;
@@ -127,6 +155,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
       if (grounded && prevY >= 0 && player.y <= 0) {
         player.y = 0;
         player.verticalVelocity = 0;
+        player.knockbackVelocity = { x: 0, z: 0 }; // a knockup lands cleanly at its target distance
       }
     }
 
@@ -255,6 +284,22 @@ export function tick(world: World, intents: Intents, dt: number): World {
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });
           if (mechanic.applyEffect && player.alive) {
             applyEffect(player, mechanic.applyEffect, time, `${mechanic.id}-${player.id}-eff`);
+          }
+          if (mechanic.knockback && player.alive && player.antiKbActive <= 0) {
+            const origin = mechanic.knockback.origin ?? shapeOrigin(mechanic.shape);
+            const away = sub(player.pos, origin);
+            const dir = length(away) > 0 ? normalize(away) : { x: 1, z: 0 }; // player on origin: arbitrary dir
+            const { distance, height } = mechanic.knockback;
+            if (height > 0) {
+              // Projectile arc: rise to peak `height`, travel `distance` horizontally over the flight.
+              const vUp = Math.sqrt(2 * GRAVITY * height);
+              const flightTime = (2 * vUp) / GRAVITY;
+              player.verticalVelocity = vUp;
+              player.knockbackVelocity = scale(dir, distance / flightTime);
+            } else {
+              // Ground slide: friction brings it to rest after exactly `distance`.
+              player.knockbackVelocity = scale(dir, Math.sqrt(2 * KNOCKBACK_FRICTION * distance));
+            }
           }
         } else {
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "cleared" });

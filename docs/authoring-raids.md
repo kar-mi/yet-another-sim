@@ -155,6 +155,35 @@ The classic mechanic: a shape on the ground that hits whoever stands in it at re
 
 The `shape` is required. See [Shapes](#shapes).
 
+#### Knockback / knockup
+
+An `aoe` event may carry an optional `knockback` that **displaces** every player caught in
+the shape at resolve, pushing them directly **away from an origin** (direction is
+`player − origin`). It composes with `damage`/`applyEffect` and works with `damage: 0` for a
+pure shove. While being displaced a player's own movement input is ignored, so they travel
+the full distance.
+
+```json
+{
+  "t": 6,
+  "name": "Shockwave",
+  "telegraph": 3,
+  "damage": 0,
+  "damageType": "physical",
+  "shape": { "kind": "circle", "center": [0, 0], "radius": 40 },
+  "knockback": { "distance": 14, "height": 6 }
+}
+```
+
+| Field      | Required | Notes |
+|------------|----------|-------|
+| `distance` | yes      | Horizontal push distance in units (> 0). |
+| `height`   | no       | Peak arc height (≥ 0). `0` (default) is a flat ground **knockback**; `> 0` makes it a **knockup** that launches the player in an arc and lands them `distance` away. |
+| `origin`   | no       | `[x, z]` point to push away from. Defaults to the shape's center (`circle`/`donut`) or `origin` (`cone`/`rect`). |
+
+Knockback respects the arena: a player shoved off the floor falls and dies via the normal
+death-floor logic — the basis for "knock into the void" mechanics.
+
 ### `targeted` — near/far baited circle
 
 A circle that snaps onto a player chosen **at resolve time** (not cast start), so players

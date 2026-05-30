@@ -23,6 +23,7 @@ function cloneIntent(intent: Intent): Intent {
     move: { x: intent.move.x, z: intent.move.z },
     jump: intent.jump,
     sprint: intent.sprint,
+    antiKnockback: intent.antiKnockback,
   };
 }
 
@@ -31,6 +32,7 @@ function mergePendingIntent(previous: Intent | undefined, next: Intent): Intent 
     move: { x: next.move.x, z: next.move.z },
     jump: previous?.jump || next.jump || undefined,
     sprint: previous?.sprint || next.sprint || undefined,
+    antiKnockback: previous?.antiKnockback || next.antiKnockback || undefined,
   };
 }
 

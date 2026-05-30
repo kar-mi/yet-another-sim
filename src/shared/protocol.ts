@@ -58,6 +58,7 @@ export const IntentSchema = z.object({
   move: IntentVec2Schema,
   jump: z.boolean().optional(),
   sprint: z.boolean().optional(),
+  antiKnockback: z.boolean().optional(),
 }).strict() satisfies z.ZodType<Intent>;
 
 export const ClientMessageSchema = z.discriminatedUnion("type", [

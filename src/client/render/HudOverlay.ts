@@ -1,6 +1,6 @@
 import type { World, Player } from "../../shared/types";
-import { pressAction, triggerSprint } from "../input";
-import { SPRINT_COOLDOWN } from "../../engine/sim";
+import { pressAction, triggerSprint, triggerAntiKb } from "../input";
+import { SPRINT_COOLDOWN, ANTI_KB_COOLDOWN } from "../../engine/sim";
 import { keyLabel, CONTROLLER_BUTTON_LABELS } from "../settings";
 import type { Settings, ControllerType } from "../settings";
 import { clamp01 } from "../../shared/math";
@@ -17,6 +17,13 @@ export class HudOverlay {
   private sprintCdOverlay: HTMLDivElement;
   private sprintCdText: HTMLDivElement;
   private prevSprintCooldown = 0;
+  private antiKbSlot: HTMLDivElement;
+  private antiKbCdOverlay: HTMLDivElement;
+  private antiKbCdText: HTMLDivElement;
+  private prevAntiKbCooldown = 0;
+  private ctrlAntiKbSlot!: HTMLDivElement;
+  private ctrlAntiKbCdOverlay!: HTMLDivElement;
+  private ctrlAntiKbCdText!: HTMLDivElement;
   private sessionEl: HTMLDivElement;
   private partyEl!: HTMLDivElement;
   private partyRows = new Map<string, { hpFill: HTMLDivElement; mpFill: HTMLDivElement; rowEl: HTMLDivElement; effectsEl: HTMLDivElement }>();
@@ -47,8 +54,11 @@ export class HudOverlay {
     this.mpVal = this.root.querySelector<HTMLSpanElement>("[data-mp-val]")!;
     this.sprintSlot = this.root.querySelector<HTMLDivElement>("[data-slot='0']")!;
     this.sprintKeybind = this.sprintSlot.querySelector<HTMLSpanElement>(".yas-keybind")!;
-    this.sprintCdOverlay = this.root.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
-    this.sprintCdText = this.root.querySelector<HTMLDivElement>(".yas-cd-text")!;
+    this.sprintCdOverlay = this.sprintSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
+    this.sprintCdText = this.sprintSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
+    this.antiKbSlot = this.root.querySelector<HTMLDivElement>("[data-slot='1']")!;
+    this.antiKbCdOverlay = this.antiKbSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
+    this.antiKbCdText = this.antiKbSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
     this.kbmHotbar = this.root.querySelector<HTMLDivElement>(".yas-hotbar")!;
     this.controllerHotbar = this.root.querySelector<HTMLDivElement>(".yas-controller-hotbar")!;
     this.slotKeybinds = Array.from(this.kbmHotbar.querySelectorAll<HTMLSpanElement>(".yas-keybind"));
@@ -56,6 +66,9 @@ export class HudOverlay {
     this.ctrlSprintSlot = this.controllerHotbar.querySelector<HTMLDivElement>("[data-ctrl-slot='7']")!;
     this.ctrlSprintCdOverlay = this.ctrlSprintSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
     this.ctrlSprintCdText = this.ctrlSprintSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
+    this.ctrlAntiKbSlot = this.controllerHotbar.querySelector<HTMLDivElement>("[data-ctrl-slot='6']")!;
+    this.ctrlAntiKbCdOverlay = this.ctrlAntiKbSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
+    this.ctrlAntiKbCdText = this.ctrlAntiKbSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
 
     this.statusEl = document.createElement("div");
     this.statusEl.id = "yas-status";
@@ -109,6 +122,16 @@ export class HudOverlay {
             <div class="yas-cd-text"></div>
           </div>`;
       }
+      if (i === 1) {
+        return `
+          <div class="yas-slot" data-slot="1">
+            <span class="yas-keybind"></span>
+            <span class="yas-slot-icon">🛡</span>
+            <span class="yas-slot-name">ANTI-KB</span>
+            <div class="yas-cd-overlay"></div>
+            <div class="yas-cd-text"></div>
+          </div>`;
+      }
       return `<div class="yas-slot" data-slot="${i}"><span class="yas-keybind"></span></div>`;
     }).join("");
 
@@ -153,7 +176,9 @@ export class HudOverlay {
     this.controllerHotbar.style.display = isCtrl ? "flex" : "none";
     if (!isCtrl) {
       this.slotKeybinds.forEach((el, i) => {
-        el.textContent = i === 0 ? keyLabel(settings.keyBindings.sprint) : "";
+        el.textContent = i === 0 ? keyLabel(settings.keyBindings.sprint)
+          : i === 1 ? keyLabel(settings.keyBindings.antiKnockback)
+          : "";
       });
     }
   }
@@ -174,6 +199,8 @@ export class HudOverlay {
   private bindEvents(): void {
     this.sprintSlot.addEventListener("click", () => triggerSprint());
     this.ctrlSprintSlot.addEventListener("click", () => pressAction(7));
+    this.antiKbSlot.addEventListener("click", () => triggerAntiKb());
+    this.ctrlAntiKbSlot.addEventListener("click", () => pressAction(6));
 
     this.root.querySelectorAll<HTMLDivElement>(".yas-slot").forEach(slot => {
       slot.addEventListener("mousedown", () => this.flashSlot(slot));
@@ -260,19 +287,37 @@ export class HudOverlay {
     this.mpFill.style.width = `${mpPct}%`;
     this.mpVal.textContent = `${Math.round(p.mp)} / ${p.maxMp}`;
 
-    const onCooldown = p.sprintCooldown > 0;
-    const cdOverlays = [
-      { overlay: this.sprintCdOverlay, text: this.sprintCdText },
-      { overlay: this.ctrlSprintCdOverlay, text: this.ctrlSprintCdText },
-    ];
+    this.prevSprintCooldown = this.renderSkillSlots(
+      [this.sprintSlot, this.ctrlSprintSlot],
+      [{ overlay: this.sprintCdOverlay, text: this.sprintCdText }, { overlay: this.ctrlSprintCdOverlay, text: this.ctrlSprintCdText }],
+      p.sprintActive, p.sprintCooldown, SPRINT_COOLDOWN, this.prevSprintCooldown,
+    );
+    this.prevAntiKbCooldown = this.renderSkillSlots(
+      [this.antiKbSlot, this.ctrlAntiKbSlot],
+      [{ overlay: this.antiKbCdOverlay, text: this.antiKbCdText }, { overlay: this.ctrlAntiKbCdOverlay, text: this.ctrlAntiKbCdText }],
+      p.antiKbActive, p.antiKbCooldown, ANTI_KB_COOLDOWN, this.prevAntiKbCooldown,
+    );
+  }
+
+  // Renders a skill's cooldown sweep, ready-pulse, and active highlight across its hotbar slots.
+  // Returns the cooldown to remember for the next frame's ready-pulse edge detection.
+  private renderSkillSlots(
+    slots: HTMLDivElement[],
+    cdOverlays: { overlay: HTMLDivElement; text: HTMLDivElement }[],
+    activeSecs: number,
+    cooldownSecs: number,
+    cooldownMax: number,
+    prevCooldown: number,
+  ): number {
+    const onCooldown = cooldownSecs > 0;
     if (onCooldown) {
-      const elapsed = (1 - p.sprintCooldown / SPRINT_COOLDOWN) * 360;
+      const elapsed = (1 - cooldownSecs / cooldownMax) * 360;
       const bg = `conic-gradient(from -90deg, transparent ${elapsed}deg, rgba(0,0,8,0.82) ${elapsed}deg)`;
       for (const { overlay, text } of cdOverlays) {
         overlay.style.display = "block";
         overlay.style.background = bg;
         text.style.display = "flex";
-        text.textContent = Math.ceil(p.sprintCooldown).toString();
+        text.textContent = Math.ceil(cooldownSecs).toString();
       }
     } else {
       for (const { overlay, text } of cdOverlays) {
@@ -281,9 +326,8 @@ export class HudOverlay {
       }
     }
 
-    const sprintSlots = [this.sprintSlot, this.ctrlSprintSlot];
-    if (this.prevSprintCooldown > 0 && p.sprintCooldown <= 0) {
-      for (const slot of sprintSlots) {
+    if (prevCooldown > 0 && cooldownSecs <= 0) {
+      for (const slot of slots) {
         slot.classList.remove("yas-slot-ready");
         void slot.offsetWidth;
         slot.classList.add("yas-slot-ready");
@@ -291,12 +335,12 @@ export class HudOverlay {
       }
     }
 
-    const sprintActive = p.sprintActive > 0 && !onCooldown;
-    for (const slot of sprintSlots) {
-      slot.classList.toggle("yas-slot-sprint-running", sprintActive);
+    const active = activeSecs > 0 && !onCooldown;
+    for (const slot of slots) {
+      slot.classList.toggle("yas-slot-sprint-running", active);
     }
 
-    this.prevSprintCooldown = p.sprintCooldown;
+    return cooldownSecs;
   }
 
   dispose(): void {
