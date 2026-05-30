@@ -648,3 +648,48 @@ test("knockback raids remain deterministic", () => {
   }
   expect(JSON.stringify(w1)).toBe(JSON.stringify(w2));
 });
+
+test("anti-knockback buff negates knockback displacement", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [2, 0] } }),
+    events: [kbEvent({ distance: 10 })],
+  });
+  // Activate anti-KB on the first tick, then hold still through the resolve (~0.11s).
+  let w = tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 }, antiKnockback: true } }, 1 / 60);
+  w = runTicks(w, { [HUMAN]: { move: { x: 0, z: 0 } } }, 59);
+  const p = human(w);
+  expect(p.pos.x).toBeCloseTo(2); // not pushed
+  expect(p.knockbackVelocity).toEqual({ x: 0, z: 0 });
+});
+
+test("anti-knockback also negates knockup", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [2, 0] } }),
+    events: [kbEvent({ distance: 8, height: 5 })],
+  });
+  let w = tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 }, antiKnockback: true } }, 1 / 60);
+  w = runTicks(w, { [HUMAN]: { move: { x: 0, z: 0 } } }, 30);
+  const p = human(w);
+  expect(p.y).toBe(0); // never launched
+  expect(p.pos.x).toBeCloseTo(2);
+});
+
+test("anti-knockback has a 5s duration and 120s cooldown", () => {
+  const raid = loadRaid(baseRaid);
+  let w = tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 }, antiKnockback: true } }, 1 / 60);
+  let p = human(w);
+  expect(p.antiKbActive).toBeGreaterThan(4.9);
+  expect(p.antiKbCooldown).toBeGreaterThan(119);
+
+  // After 5s the buff has expired but the cooldown is still running.
+  w = runTicks(w, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(5.1 * 60));
+  p = human(w);
+  expect(p.antiKbActive).toBe(0);
+  expect(p.antiKbCooldown).toBeGreaterThan(0);
+
+  // Pressing again while on cooldown does nothing.
+  w = tick(w, { [HUMAN]: { move: { x: 0, z: 0 }, antiKnockback: true } }, 1 / 60);
+  expect(human(w).antiKbActive).toBe(0);
+});

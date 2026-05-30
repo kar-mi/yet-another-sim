@@ -64,6 +64,8 @@ export type Player = {
   maxMp: number;
   sprintActive: number;   // seconds remaining on sprint
   sprintCooldown: number; // seconds remaining on cooldown
+  antiKbActive: number;   // seconds remaining on anti-knockback buff
+  antiKbCooldown: number; // seconds remaining on anti-knockback cooldown
   alive: boolean;
   effects: StatusEffect[];
 };
@@ -165,6 +167,7 @@ export type Intent = {
   move: Vec2;
   jump?: boolean;
   sprint?: boolean;
+  antiKnockback?: boolean;
 };
 
 export type Intents = Record<string, Intent>;
