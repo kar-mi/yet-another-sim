@@ -132,6 +132,50 @@ export type PendingTargetedEvent = {
   showTelegraph: boolean;
 };
 
+export type TowerVisual = {
+  pillar: boolean;
+  countCircles: boolean;
+  fallingCylinder: boolean;
+  color?: string; // hex, e.g. "#33ccff"
+};
+
+export type PendingTower = {
+  id: string;
+  t: number;
+  name: string;
+  telegraph: number;
+  pos: Vec2;
+  radius: number;
+  requiredCount: number;
+  requiredRoles?: Role[];
+  wrongRoleLethal: boolean;
+  failureDamage: number;
+  failureDamageType: DamageType;
+  applyEffect?: EffectSpec;
+  knockback?: Knockback;
+  visual: TowerVisual;
+};
+
+export type ActiveTower = {
+  id: string;
+  name: string;
+  pos: Vec2;
+  radius: number;
+  telegraphStart: number;
+  resolveAt: number;
+  requiredCount: number;
+  requiredRoles?: Role[];
+  wrongRoleLethal: boolean;
+  failureDamage: number;
+  failureDamageType: DamageType;
+  applyEffect?: EffectSpec;
+  knockback?: Knockback;
+  visual: TowerVisual;
+  resolved: boolean;
+  soakerCount: number;            // live valid-soaker count, drives count-circle fill
+  outcome?: "success" | "failure"; // set at resolve, drives the post-resolve flash
+};
+
 export type LogEntry = {
   t: number;
   mechanic: string;
@@ -187,4 +231,6 @@ export type World = {
   tetherSources: TetherSource[];
   pendingTethers: PendingTether[];
   pendingTargeted: PendingTargetedEvent[];
+  towers: ActiveTower[];
+  pendingTowers: PendingTower[];
 };

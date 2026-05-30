@@ -10,6 +10,9 @@ import type {
   EffectSpec,
   PendingTargetedEvent,
   Role,
+  ActiveTower,
+  PendingTower,
+  Knockback,
 } from "../shared/types";
 import type { Vec2 } from "../shared/math";
 import type { AOEShape } from "../shared/types";
@@ -29,6 +32,7 @@ export const KNOCKBACK_FRICTION = 40; // ground deceleration (units/s^2); v0 = s
 
 const INTERCEPT_THRESHOLD = 2.0;
 const TARGETED_LINGER = 0.7; // seconds a targeted bait's circle stays visible after it resolves
+const TOWER_LINGER = 0.7; // seconds a tower stays visible after it resolves (success/failure flash)
 
 function selectTargetPlayer(
   players: Player[],
@@ -82,6 +86,22 @@ function effectActiveDt(effect: StatusEffect, previousTime: number, time: number
   const activeStart = Math.max(previousTime, effect.appliedAt);
   const activeEnd = Math.min(time, effect.appliedAt + effect.duration);
   return Math.max(0, activeEnd - activeStart);
+}
+
+function applyKnockback(player: Player, knockback: Knockback, origin: Vec2): void {
+  const away = sub(player.pos, origin);
+  const dir = length(away) > 0 ? normalize(away) : { x: 1, z: 0 }; // player on origin: arbitrary dir
+  const { distance, height } = knockback;
+  if (height > 0) {
+    // Projectile arc: rise to peak `height`, travel `distance` horizontally over the flight.
+    const vUp = Math.sqrt(2 * GRAVITY * height);
+    const flightTime = (2 * vUp) / GRAVITY;
+    player.verticalVelocity = vUp;
+    player.knockbackVelocity = scale(dir, distance / flightTime);
+  } else {
+    // Ground slide: friction brings it to rest after exactly `distance`.
+    player.knockbackVelocity = scale(dir, Math.sqrt(2 * KNOCKBACK_FRICTION * distance));
+  }
 }
 
 function applyEffect(player: Player, spec: EffectSpec, time: number, id: string): void {
@@ -287,19 +307,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
           }
           if (mechanic.knockback && player.alive && player.antiKbActive <= 0) {
             const origin = mechanic.knockback.origin ?? shapeOrigin(mechanic.shape);
-            const away = sub(player.pos, origin);
-            const dir = length(away) > 0 ? normalize(away) : { x: 1, z: 0 }; // player on origin: arbitrary dir
-            const { distance, height } = mechanic.knockback;
-            if (height > 0) {
-              // Projectile arc: rise to peak `height`, travel `distance` horizontally over the flight.
-              const vUp = Math.sqrt(2 * GRAVITY * height);
-              const flightTime = (2 * vUp) / GRAVITY;
-              player.verticalVelocity = vUp;
-              player.knockbackVelocity = scale(dir, distance / flightTime);
-            } else {
-              // Ground slide: friction brings it to rest after exactly `distance`.
-              player.knockbackVelocity = scale(dir, Math.sqrt(2 * KNOCKBACK_FRICTION * distance));
-            }
+            applyKnockback(player, mechanic.knockback, origin);
           }
         } else {
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "cleared" });
@@ -312,6 +320,82 @@ export function tick(world: World, intents: Intents, dt: number): World {
     const keepFor = mechanic.targeting ? TARGETED_LINGER : dt;
     if (!mechanic.resolved || mechanic.resolveAt >= time - keepFor) {
       stillActive.push(mechanic);
+    }
+  }
+
+  // 3c. Towers: promote pending, track live soakers each tick, resolve at telegraph end.
+  const remainingPendingTowers: PendingTower[] = [];
+  const towers: ActiveTower[] = world.towers.map(t => ({ ...t }));
+  for (const pt of world.pendingTowers) {
+    if (pt.t <= time) {
+      towers.push({
+        id: pt.id,
+        name: pt.name,
+        pos: pt.pos,
+        radius: pt.radius,
+        telegraphStart: pt.t,
+        resolveAt: pt.t + pt.telegraph,
+        requiredCount: pt.requiredCount,
+        requiredRoles: pt.requiredRoles,
+        wrongRoleLethal: pt.wrongRoleLethal,
+        failureDamage: pt.failureDamage,
+        failureDamageType: pt.failureDamageType,
+        applyEffect: pt.applyEffect,
+        knockback: pt.knockback,
+        visual: pt.visual,
+        resolved: false,
+        soakerCount: 0,
+      });
+    } else {
+      remainingPendingTowers.push(pt);
+    }
+  }
+
+  const stillTowers: ActiveTower[] = [];
+  for (const tower of towers) {
+    if (!tower.resolved) {
+      const towerShape: AOEShape = { kind: "circle", center: tower.pos, radius: tower.radius };
+      const inside = players.filter(p => p.alive && pointInShape(towerShape, p.pos));
+      const validSoakers = inside.filter(p => !tower.requiredRoles || tower.requiredRoles.includes(p.role));
+      tower.soakerCount = validSoakers.length;
+
+      if (tower.resolveAt <= time) {
+        // Wrong-role soakers die when the tower opts into lethal punishment.
+        if (tower.requiredRoles && tower.wrongRoleLethal) {
+          for (const p of inside) {
+            if (!tower.requiredRoles.includes(p.role)) {
+              p.hp = 0;
+              p.alive = false;
+              log.push({ t: time, mechanic: tower.name, playerId: p.id, event: "hit" });
+            }
+          }
+        }
+        const success = validSoakers.length >= tower.requiredCount;
+        if (success) {
+          for (const p of validSoakers) {
+            if (!p.alive) continue;
+            if (tower.applyEffect) applyEffect(p, tower.applyEffect, time, `${tower.id}-${p.id}-eff`);
+            if (tower.knockback && p.antiKbActive <= 0) {
+              applyKnockback(p, tower.knockback, tower.knockback.origin ?? tower.pos);
+            }
+            log.push({ t: time, mechanic: tower.name, playerId: p.id, event: "cleared" });
+          }
+        } else {
+          // Unsoaked: the whole raid eats the failure damage.
+          for (const p of players) {
+            if (!p.alive) continue;
+            p.hp = Math.max(0, p.hp - tower.failureDamage);
+            if (p.hp <= 0) p.alive = false;
+            log.push({ t: time, mechanic: tower.name, playerId: p.id, event: "hit" });
+          }
+        }
+        tower.resolved = true;
+        tower.outcome = success ? "success" : "failure";
+      }
+    }
+    // Keep briefly after resolve so the renderer can flash success/failure.
+    if (!tower.resolved || tower.resolveAt >= time - TOWER_LINGER) {
+      stillTowers.push(tower);
     }
   }
 
@@ -342,7 +426,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const anyAlive = players.some(p => p.alive);
   const allResolved = pending.length === 0 && stillActive.every(m => m.resolved)
     && remainingPendingTethers.length === 0 && tetherSources.every(ts => ts.finalized)
-    && remainingPendingTargeted.length === 0;
+    && remainingPendingTargeted.length === 0
+    && remainingPendingTowers.length === 0 && stillTowers.every(t => t.resolved);
   let status = world.status;
   if (status === "running") {
     if (!anyAlive) {
@@ -352,5 +437,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, players, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, pendingTargeted: remainingPendingTargeted };
+  return { ...world, time, players, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers };
 }

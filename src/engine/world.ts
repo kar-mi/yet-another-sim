@@ -1,4 +1,4 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingTargetedEvent } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingTargetedEvent, PendingTower } from "../shared/types";
 import { vec2 } from "../shared/math";
 import type { RaidDef } from "./raidSchema";
 
@@ -56,6 +56,7 @@ export function createWorld(raid: RaidDef): World {
   const pending: PendingEvent[] = [];
   const pendingTethers: PendingTether[] = [];
   const pendingTargeted: PendingTargetedEvent[] = [];
+  const pendingTowers: PendingTower[] = [];
 
   for (const [index, e] of raid.events.entries()) {
     if (e.type === "tether_source") {
@@ -84,6 +85,32 @@ export function createWorld(raid: RaidDef): World {
         showCastBar: e.showCastBar ?? false,
         showTelegraph: e.showTelegraph ?? true,
       });
+    } else if (e.type === "tower") {
+      pendingTowers.push({
+        id: `tower-${index}`,
+        t: e.t,
+        name: e.name,
+        telegraph: e.telegraph,
+        pos: toVec2(e.pos),
+        radius: e.radius,
+        requiredCount: e.requiredCount,
+        requiredRoles: e.requiredRoles,
+        wrongRoleLethal: e.wrongRoleLethal ?? false,
+        failureDamage: e.failureDamage,
+        failureDamageType: e.failureDamageType,
+        applyEffect: e.applyEffect,
+        knockback: e.knockback && {
+          distance: e.knockback.distance,
+          height: e.knockback.height,
+          origin: e.knockback.origin ? toVec2(e.knockback.origin) : undefined,
+        },
+        visual: {
+          pillar: e.visual?.pillar ?? false,
+          countCircles: e.visual?.countCircles ?? false,
+          fallingCylinder: e.visual?.fallingCylinder ?? false,
+          color: e.visual?.color,
+        },
+      });
     } else {
       pending.push({
         id: `event-${index}`,
@@ -108,7 +135,7 @@ export function createWorld(raid: RaidDef): World {
   return {
     time: 0,
     status: "running",
-    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingTargeted.length > 0,
+    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0,
     arena,
     waymarks,
     players,
@@ -120,5 +147,7 @@ export function createWorld(raid: RaidDef): World {
     tetherSources: [],
     pendingTethers,
     pendingTargeted,
+    towers: [],
+    pendingTowers,
   };
 }

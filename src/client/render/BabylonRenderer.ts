@@ -18,6 +18,7 @@ import { HudOverlay } from "./HudOverlay";
 import { PlayerLayer } from "./PlayerLayer";
 import { TelegraphLayer } from "./TelegraphLayer";
 import { TetherLayer } from "./TetherLayer";
+import { TowerLayer } from "./TowerLayer";
 import { WaymarkLayer } from "./WaymarkLayer";
 
 // Sub-path imports drop some Babylon engine side-effect registrations.
@@ -38,6 +39,7 @@ export class BabylonRenderer implements Renderer {
   private healthBars!: HealthBarLayer;
   private telegraphs!: TelegraphLayer;
   private tethers!: TetherLayer;
+  private towers!: TowerLayer;
   private waymarks!: WaymarkLayer;
   private hud!: HudOverlay;
   private floorMeshes: Mesh[] = [];
@@ -115,6 +117,7 @@ export class BabylonRenderer implements Renderer {
     }
     this.telegraphs = new TelegraphLayer(this.scene);
     this.tethers = new TetherLayer(this.scene);
+    this.towers = new TowerLayer(this.scene);
     this.hud = new HudOverlay(sessionId, this.localPlayerId, this.onSettingsChange);
 
     this.onResize = () => this.engine.resize();
@@ -150,6 +153,7 @@ export class BabylonRenderer implements Renderer {
 
     this.telegraphs.sync(world.active, world.time);
     this.tethers.sync(world.tetherSources, world.players, world.time);
+    this.towers.sync(world.towers, world.time);
     this.hud.sync(world);
   }
 
@@ -190,6 +194,7 @@ export class BabylonRenderer implements Renderer {
     if (document.pointerLockElement === this.canvas) document.exitPointerLock();
     window.removeEventListener("resize", this.onResize);
     this.hud.dispose();
+    this.towers.dispose();
     this.waymarks.dispose();
     this.healthBars.dispose();
     this.engine.dispose();
