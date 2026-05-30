@@ -37,6 +37,7 @@ export function createWorld(raid: RaidDef): World {
     pos: toVec2(p.spawn),
     y: 0,
     verticalVelocity: 0,
+    knockbackVelocity: { x: 0, z: 0 },
     facing: 0,
     hp: 100,
     maxHp: 100,
@@ -91,6 +92,11 @@ export function createWorld(raid: RaidDef): World {
         damage: e.damage,
         damageType: e.damageType,
         applyEffect: e.applyEffect,
+        knockback: e.knockback && {
+          distance: e.knockback.distance,
+          height: e.knockback.height,
+          origin: e.knockback.origin ? toVec2(e.knockback.origin) : undefined,
+        },
         showCastBar: e.showCastBar ?? false,
         showTelegraph: e.showTelegraph ?? true,
       });

@@ -43,6 +43,12 @@ const ApplyEffectSchema = z.object({
   behavior: EffectBehaviorSchema,
 });
 
+const KnockbackSchema = z.object({
+  distance: z.number().positive(),
+  height: z.number().nonnegative().default(0), // 0 = horizontal knockback; >0 = knockup arc
+  origin: Vec2Schema.optional(),               // defaults to the AOE shape's center/origin
+});
+
 const AOEEventSchema = z.object({
   type: z.literal("aoe").default("aoe"),
   t: z.number().nonnegative(),
@@ -52,6 +58,7 @@ const AOEEventSchema = z.object({
   damageType: z.enum(["physical", "magical", "true"]),
   shape: AOEShapeSchema,
   applyEffect: ApplyEffectSchema.optional(),
+  knockback: KnockbackSchema.optional(),
   showCastBar: z.boolean().optional(),
   showTelegraph: z.boolean().optional(),
 });

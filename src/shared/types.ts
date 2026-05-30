@@ -42,6 +42,12 @@ export type StatusEffect = {
   behavior: EffectBehavior;
 };
 
+export type Knockback = {
+  distance: number;
+  height: number; // 0 = horizontal knockback; >0 = knockup arc
+  origin?: Vec2;  // defaults to the AOE shape's center/origin
+};
+
 export type Player = {
   id: string;
   role: Role;
@@ -50,6 +56,7 @@ export type Player = {
   pos: Vec2;
   y: number;
   verticalVelocity: number;
+  knockbackVelocity: Vec2; // horizontal forced-movement velocity (knockback/knockup)
   facing: number;
   hp: number;
   maxHp: number;
@@ -84,6 +91,7 @@ export type ActiveMechanic = {
   damage: number;
   damageType: DamageType;
   applyEffect?: EffectSpec;
+  knockback?: Knockback;
   resolved: boolean;
   showCastBar: boolean;
   // When false, the ground telegraph is never drawn; the cast bar and damage still apply.
@@ -102,6 +110,7 @@ export type PendingEvent = {
   damage: number;
   damageType: DamageType;
   applyEffect?: EffectSpec;
+  knockback?: Knockback;
   showCastBar: boolean;
   showTelegraph: boolean;
 };
