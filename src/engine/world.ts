@@ -1,4 +1,4 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, PendingEvent, PendingTether, PendingTargetedEvent } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingTargetedEvent } from "../shared/types";
 import { vec2 } from "../shared/math";
 import type { RaidDef } from "./raidSchema";
 
@@ -27,6 +27,7 @@ function toAOEShape(shape: AOEEventDef["shape"]): AOEShape {
 
 export function createWorld(raid: RaidDef): World {
   const arena: Arena = { zones: raid.arena.zones.map(toZoneShape) };
+  const waymarks: Waymark[] = raid.waymarks?.map(w => ({ mark: w.mark, pos: toVec2(w.pos) })) ?? [];
 
   const players: Player[] = raid.players.map(p => ({
     id: p.id,
@@ -101,6 +102,7 @@ export function createWorld(raid: RaidDef): World {
     status: "running",
     hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingTargeted.length > 0,
     arena,
+    waymarks,
     players,
     boss,
     active: [],

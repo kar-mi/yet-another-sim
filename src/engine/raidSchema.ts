@@ -4,6 +4,11 @@ import { ROSTER, RaidIdSchema } from "../shared/protocol";
 const Vec2Schema = z.tuple([z.number(), z.number()]);
 const WaypointSchema = z.object({ t: z.number().nonnegative(), pos: Vec2Schema });
 
+const WaymarkSchema = z.object({
+  mark: z.enum(["A", "B", "C", "D", "1", "2", "3", "4"]),
+  pos: Vec2Schema,
+});
+
 const ZoneShapeSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("circle"), center: Vec2Schema, radius: z.number().positive() }),
   z.object({ kind: z.literal("rect"), center: Vec2Schema, width: z.number().positive(), height: z.number().positive() }),
@@ -95,7 +100,20 @@ export const RaidSchema = z.object({
   botPatterns: RaidIdSchema.optional(),
   players: z.array(PlayerDefSchema).length(ROSTER.length),
   events: z.array(EventSchema),
+  waymarks: z.array(WaymarkSchema).optional(),
 }).superRefine((raid, ctx) => {
+  const seenMarks = new Set<string>();
+  raid.waymarks?.forEach((waymark, i) => {
+    if (seenMarks.has(waymark.mark)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["waymarks", i],
+        message: `duplicate waymark "${waymark.mark}"; each mark may be placed at most once`,
+      });
+    }
+    seenMarks.add(waymark.mark);
+  });
+
   ROSTER.forEach((expected, i) => {
     const player = raid.players[i];
     if (!player) return; // length() already reported the count mismatch

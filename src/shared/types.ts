@@ -13,6 +13,9 @@ export type ZoneShape =
 
 export type Arena = { zones: ZoneShape[] };
 
+export type WaymarkId = "A" | "B" | "C" | "D" | "1" | "2" | "3" | "4";
+export type Waymark = { mark: WaymarkId; pos: Vec2 };
+
 export type Waypoint = { t: number; pos: Vec2 };
 
 export type DamageType = "physical" | "magical" | "true";
@@ -162,6 +165,7 @@ export type World = {
   status: Status;
   hasMechanics: boolean;
   arena: Arena;
+  waymarks: Waymark[];
   players: Player[];
   boss: Boss;
   active: ActiveMechanic[];
