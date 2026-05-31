@@ -136,7 +136,8 @@ export type TowerVisual = {
   pillar: boolean;
   countCircles: boolean;
   fallingCylinder: boolean;
-  color?: string; // hex, e.g. "#33ccff"
+  groundStyle: "standard" | "tank"; // standard: yellow inner/red outer; tank: two red
+  cylinderColor?: string; // hex, e.g. "#33ccff"
 };
 
 export type PendingTower = {

@@ -108,7 +108,8 @@ export function createWorld(raid: RaidDef): World {
           pillar: e.visual?.pillar ?? false,
           countCircles: e.visual?.countCircles ?? false,
           fallingCylinder: e.visual?.fallingCylinder ?? false,
-          color: e.visual?.color,
+          groundStyle: e.visual?.groundStyle ?? "standard",
+          cylinderColor: e.visual?.cylinderColor,
         },
       });
     } else {

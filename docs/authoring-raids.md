@@ -278,8 +278,9 @@ shown):
 |-------|-------|
 | `pillar` | `true` draws a static column in the center. |
 | `countCircles` | `true` draws one small floor circle per `requiredCount`, filling as players step in. |
-| `fallingCylinder` | `true` draws a cylinder that descends in time with the cast and reaches the floor at resolve. |
-| `color` | Hex string (e.g. `"#33ccff"`) for the disk/ring/cylinder. Defaults to cyan. |
+| `fallingCylinder` | `true` draws a long thin cylinder that descends in time with the cast and reaches the floor at resolve. |
+| `groundStyle` | `"standard"` (yellow inner line, red outer edge) or `"tank"` (two red lines). Defaults to `"standard"`. |
+| `cylinderColor` | Hex string (e.g. `"#33ccff"`) for the falling cylinder. Defaults to cyan. |
 
 ```json
 {
@@ -300,7 +301,7 @@ shown):
     "behavior": { "kind": "vuln", "damageType": "magical", "multiplier": 1.5 }
   },
   "knockback": { "distance": 8 },
-  "visual": { "fallingCylinder": true, "pillar": true, "color": "#cc66ff" }
+  "visual": { "fallingCylinder": true, "pillar": true, "groundStyle": "tank", "cylinderColor": "#cc66ff" }
 }
 ```
 

@@ -23,7 +23,7 @@
       "requiredCount": 1,
       "failureDamage": 30,
       "failureDamageType": "magical",
-      "visual": { "fallingCylinder": true, "countCircles": true }
+      "visual": { "fallingCylinder": true, "countCircles": true, "groundStyle": "standard", "cylinderColor": "#33ccff" }
     },
     {
       "type": "tower",
@@ -35,7 +35,7 @@
       "requiredCount": 2,
       "failureDamage": 30,
       "failureDamageType": "physical",
-      "visual": { "countCircles": true, "pillar": true, "color": "#ffcc33" }
+      "visual": { "countCircles": true, "pillar": true, "groundStyle": "standard" }
     },
     {
       "type": "tower",
@@ -55,7 +55,7 @@
         "behavior": { "kind": "vuln", "damageType": "magical", "multiplier": 1.5 }
       },
       "knockback": { "distance": 8 },
-      "visual": { "fallingCylinder": true, "pillar": true, "color": "#cc66ff" }
+      "visual": { "fallingCylinder": true, "pillar": true, "groundStyle": "tank", "cylinderColor": "#cc66ff" }
     }
   ],
   "waymarks": [

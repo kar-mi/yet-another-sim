@@ -94,7 +94,8 @@ const TowerVisualSchema = z.object({
   pillar: z.boolean().optional(),          // static rectangle column in the center
   countCircles: z.boolean().optional(),    // one floor circle per required soaker
   fallingCylinder: z.boolean().optional(), // cylinder descending in time with the cast
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  groundStyle: z.enum(["standard", "tank"]).optional(), // standard: yellow inner/red outer; tank: two red
+  cylinderColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), // falling cylinder color
 });
 
 const TowerEventSchema = z.object({

@@ -12,28 +12,29 @@ import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveTower } from "../../shared/types";
 import { clamp01 } from "../../shared/math";
 
-const DEFAULT_COLOR = "#33ccff";
+const DEFAULT_CYLINDER_COLOR = "#33ccff";
 const DISK_Y = 0.02;      // flatter than waymarks (0.06)
 const RING_Y = 0.03;
 const CIRCLE_Y = 0.04;
 const INNER_RATIO = 0.82; // ring band inner edge as a fraction of the tower radius
-const CYL_TOP = 12;       // height the falling cylinder starts at
-const CYL_HEIGHT = 1;
+const CYL_TOP = 14;       // height the falling cylinder starts at
+const CYL_HEIGHT = 6;     // long and thin beam
+const YELLOW = new Color3(0.95, 0.8, 0.2);
+const RED = new Color3(0.9, 0.2, 0.2);
 const SUCCESS = new Color3(0.2, 0.95, 0.35);
 const FAILURE = new Color3(0.95, 0.2, 0.2);
 
 // Handles to the meshes/materials a tower needs to update each frame.
 export type TowerMeshes = {
   all: Mesh[];
-  baseColor: Color3;
-  diskMat: StandardMaterial;
-  ringMat: StandardMaterial;
+  groundMats: StandardMaterial[]; // band + edge rings, recolored together on the flash
+  countColor: Color3;
   cylinder?: { mesh: Mesh; mat: StandardMaterial };
   countCircles: { mesh: Mesh; mat: StandardMaterial }[];
 };
 
 function parseColor(hex: string | undefined): Color3 {
-  return Color3.FromHexString(hex ?? DEFAULT_COLOR);
+  return Color3.FromHexString(hex ?? DEFAULT_CYLINDER_COLOR);
 }
 
 function circlePath(cx: number, cz: number, radius: number, y: number): Vector3[] {
@@ -47,31 +48,30 @@ function circlePath(cx: number, cz: number, radius: number, y: number): Vector3[
 }
 
 export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes {
-  const color = parseColor(tower.visual.color);
   const { x, z } = tower.pos;
+  const inner = tower.radius * INNER_RATIO;
   const all: Mesh[] = [];
 
-  // Flat translucent ring band (donut) on the floor — an outline, not a filled disk.
-  const inner = tower.radius * INNER_RATIO;
+  // Ground ring (donut outline). Standard towers are yellow inside with a red outer edge;
+  // role ("tank") towers use two red lines.
+  const innerColor = tower.visual.groundStyle === "tank" ? RED : YELLOW;
+  const outerColor = RED;
+
   const band = CreateRibbon(`tower-${tower.id}`, {
     pathArray: [circlePath(x, z, tower.radius, DISK_Y), circlePath(x, z, inner, DISK_Y)],
   }, scene);
   band.isPickable = false;
-  const diskMat = new StandardMaterial(`tower-mat-${tower.id}`, scene);
-  diskMat.diffuseColor = color;
-  diskMat.emissiveColor = color.scale(0.4);
-  diskMat.specularColor = new Color3(0, 0, 0);
-  diskMat.backFaceCulling = false;
-  diskMat.alpha = 0.4;
-  band.material = diskMat;
+  const bandMat = new StandardMaterial(`tower-mat-${tower.id}`, scene);
+  bandMat.diffuseColor = innerColor;
+  bandMat.emissiveColor = innerColor.scale(0.4);
+  bandMat.specularColor = new Color3(0, 0, 0);
+  bandMat.backFaceCulling = false;
+  bandMat.alpha = 0.4;
+  band.material = bandMat;
   all.push(band);
 
-  // Bright ring outlines on the inner and outer edges of the band.
-  const ringMat = new StandardMaterial(`tower-ring-mat-${tower.id}`, scene);
-  ringMat.diffuseColor = color;
-  ringMat.emissiveColor = color.scale(0.7);
-  ringMat.specularColor = new Color3(0, 0, 0);
-  for (const [edge, r] of [["outer", tower.radius], ["inner", inner]] as const) {
+  const groundMats: StandardMaterial[] = [bandMat];
+  for (const [edge, r, c] of [["outer", tower.radius, outerColor], ["inner", inner, innerColor]] as const) {
     const ring = CreateTube(`tower-ring-${edge}-${tower.id}`, {
       path: circlePath(x, z, r, RING_Y),
       radius: 0.12,
@@ -79,28 +79,35 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
       cap: BabylonMesh.CAP_ALL,
     }, scene);
     ring.isPickable = false;
-    ring.material = ringMat;
+    const mat = new StandardMaterial(`tower-ring-${edge}-mat-${tower.id}`, scene);
+    mat.diffuseColor = c;
+    mat.emissiveColor = c.scale(0.7);
+    mat.specularColor = new Color3(0, 0, 0);
+    ring.material = mat;
+    groundMats.push(mat);
     all.push(ring);
   }
 
-  // Optional center pillar.
+  // Optional center pillar (the "rectangle" column).
   if (tower.visual.pillar) {
-    const pillar = CreateBox(`tower-pillar-${tower.id}`, { width: 0.6, depth: 0.6, height: 4 }, scene);
+    const pillar = CreateBox(`tower-pillar-${tower.id}`, { width: 1.2, depth: 1.2, height: 4 }, scene);
     pillar.position.set(x, 2, z);
     pillar.isPickable = false;
     const mat = new StandardMaterial(`tower-pillar-mat-${tower.id}`, scene);
-    mat.diffuseColor = color;
-    mat.emissiveColor = color.scale(0.5);
+    mat.diffuseColor = innerColor;
+    mat.emissiveColor = innerColor.scale(0.5);
     mat.specularColor = new Color3(0, 0, 0);
     mat.alpha = 0.85;
     pillar.material = mat;
     all.push(pillar);
   }
 
-  // Optional one-circle-per-required-soaker indicator, laid out in a centered row.
+  // Optional one-circle-per-required-soaker indicator, laid out in a centered row that
+  // fits inside the ring's inner area.
   const countCircles: { mesh: Mesh; mat: StandardMaterial }[] = [];
   if (tower.visual.countCircles && tower.requiredCount > 0) {
-    const r = Math.min(0.6, tower.radius / (tower.requiredCount + 1));
+    const fit = (inner * 1.7) / (tower.requiredCount * 2.4);
+    const r = Math.min(0.5, fit);
     const gap = r * 2.4;
     const startX = x - (gap * (tower.requiredCount - 1)) / 2;
     for (let i = 0; i < tower.requiredCount; i++) {
@@ -109,7 +116,7 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
       c.position.set(startX + i * gap, CIRCLE_Y, z);
       c.isPickable = false;
       const mat = new StandardMaterial(`tower-cnt-mat-${tower.id}-${i}`, scene);
-      mat.diffuseColor = color;
+      mat.diffuseColor = innerColor;
       mat.specularColor = new Color3(0, 0, 0);
       mat.backFaceCulling = false;
       c.material = mat;
@@ -118,27 +125,29 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
     }
   }
 
-  // Optional falling cylinder; its height tracks the cast progress (floor = resolve).
+  // Optional falling cylinder (long, thin beam) with its own color; its height tracks the
+  // cast progress (floor = resolve).
   let cylinder: { mesh: Mesh; mat: StandardMaterial } | undefined;
   if (tower.visual.fallingCylinder) {
+    const cylColor = parseColor(tower.visual.cylinderColor);
     const mesh = CreateCylinder(`tower-cyl-${tower.id}`, {
-      diameter: tower.radius * 2 * 0.85,
+      diameter: Math.min(1.6, tower.radius * 0.6),
       height: CYL_HEIGHT,
-      tessellation: 48,
+      tessellation: 32,
     }, scene);
     mesh.position.set(x, CYL_TOP, z);
     mesh.isPickable = false;
     const mat = new StandardMaterial(`tower-cyl-mat-${tower.id}`, scene);
-    mat.diffuseColor = color;
-    mat.emissiveColor = color.scale(0.4);
+    mat.diffuseColor = cylColor;
+    mat.emissiveColor = cylColor.scale(0.4);
     mat.specularColor = new Color3(0, 0, 0);
-    mat.alpha = 0.35;
+    mat.alpha = 0.4;
     mesh.material = mat;
     cylinder = { mesh, mat };
     all.push(mesh);
   }
 
-  const handle: TowerMeshes = { all, baseColor: color, diskMat, ringMat, cylinder, countCircles };
+  const handle: TowerMeshes = { all, groundMats, countColor: innerColor, cylinder, countCircles };
   updateTowerMeshes(handle, tower, tower.telegraphStart);
   return handle;
 }
@@ -156,18 +165,17 @@ export function updateTowerMeshes(handle: TowerMeshes, tower: ActiveTower, time:
   // Count circles: brighten the ones that currently have a valid soaker.
   handle.countCircles.forEach(({ mat }, i) => {
     const filled = i < tower.soakerCount;
-    mat.emissiveColor = filled ? handle.baseColor.scale(0.9) : handle.baseColor.scale(0.1);
-    mat.alpha = filled ? 0.85 : 0.35;
+    mat.emissiveColor = filled ? handle.countColor.scale(0.9) : handle.countColor.scale(0.1);
+    mat.alpha = filled ? 0.9 : 0.35;
   });
 
-  // Post-resolve flash recolors the disk/ring/cylinder by outcome.
+  // Post-resolve flash recolors the ground/cylinder by outcome.
   if (tower.resolved && tower.outcome) {
     const c = tower.outcome === "success" ? SUCCESS : FAILURE;
-    handle.diskMat.diffuseColor = c;
-    handle.diskMat.emissiveColor = c.scale(0.5);
-    handle.diskMat.alpha = 0.5;
-    handle.ringMat.diffuseColor = c;
-    handle.ringMat.emissiveColor = c.scale(0.8);
+    for (const mat of handle.groundMats) {
+      mat.diffuseColor = c;
+      mat.emissiveColor = c.scale(0.6);
+    }
     if (handle.cylinder) {
       handle.cylinder.mat.diffuseColor = c;
       handle.cylinder.mat.emissiveColor = c.scale(0.5);
