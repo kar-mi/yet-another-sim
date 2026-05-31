@@ -3,6 +3,7 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
 import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
+import { CreateRibbon } from "@babylonjs/core/Meshes/Builders/ribbonBuilder";
 import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
@@ -15,6 +16,7 @@ const DEFAULT_COLOR = "#33ccff";
 const DISK_Y = 0.02;      // flatter than waymarks (0.06)
 const RING_Y = 0.03;
 const CIRCLE_Y = 0.04;
+const INNER_RATIO = 0.82; // ring band inner edge as a fraction of the tower radius
 const CYL_TOP = 12;       // height the falling cylinder starts at
 const CYL_HEIGHT = 1;
 const SUCCESS = new Color3(0.2, 0.95, 0.35);
@@ -34,12 +36,12 @@ function parseColor(hex: string | undefined): Color3 {
   return Color3.FromHexString(hex ?? DEFAULT_COLOR);
 }
 
-function ringPath(cx: number, cz: number, radius: number): Vector3[] {
+function circlePath(cx: number, cz: number, radius: number, y: number): Vector3[] {
   const seg = 48;
   const pts: Vector3[] = [];
   for (let i = 0; i <= seg; i++) {
     const a = (i / seg) * Math.PI * 2;
-    pts.push(new Vector3(cx + Math.cos(a) * radius, RING_Y, cz + Math.sin(a) * radius));
+    pts.push(new Vector3(cx + Math.cos(a) * radius, y, cz + Math.sin(a) * radius));
   }
   return pts;
 }
@@ -49,34 +51,37 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
   const { x, z } = tower.pos;
   const all: Mesh[] = [];
 
-  // Flat translucent floor disk.
-  const disk = CreateDisc(`tower-${tower.id}`, { radius: tower.radius, tessellation: 64 }, scene);
-  disk.rotation.x = Math.PI / 2;
-  disk.position.set(x, DISK_Y, z);
-  disk.isPickable = false;
+  // Flat translucent ring band (donut) on the floor — an outline, not a filled disk.
+  const inner = tower.radius * INNER_RATIO;
+  const band = CreateRibbon(`tower-${tower.id}`, {
+    pathArray: [circlePath(x, z, tower.radius, DISK_Y), circlePath(x, z, inner, DISK_Y)],
+  }, scene);
+  band.isPickable = false;
   const diskMat = new StandardMaterial(`tower-mat-${tower.id}`, scene);
   diskMat.diffuseColor = color;
   diskMat.emissiveColor = color.scale(0.4);
   diskMat.specularColor = new Color3(0, 0, 0);
   diskMat.backFaceCulling = false;
-  diskMat.alpha = 0.28;
-  disk.material = diskMat;
-  all.push(disk);
+  diskMat.alpha = 0.4;
+  band.material = diskMat;
+  all.push(band);
 
-  // Bright ring outline around the disk's edge.
-  const ring = CreateTube(`tower-ring-${tower.id}`, {
-    path: ringPath(x, z, tower.radius),
-    radius: 0.12,
-    tessellation: 8,
-    cap: BabylonMesh.CAP_ALL,
-  }, scene);
-  ring.isPickable = false;
+  // Bright ring outlines on the inner and outer edges of the band.
   const ringMat = new StandardMaterial(`tower-ring-mat-${tower.id}`, scene);
   ringMat.diffuseColor = color;
   ringMat.emissiveColor = color.scale(0.7);
   ringMat.specularColor = new Color3(0, 0, 0);
-  ring.material = ringMat;
-  all.push(ring);
+  for (const [edge, r] of [["outer", tower.radius], ["inner", inner]] as const) {
+    const ring = CreateTube(`tower-ring-${edge}-${tower.id}`, {
+      path: circlePath(x, z, r, RING_Y),
+      radius: 0.12,
+      tessellation: 8,
+      cap: BabylonMesh.CAP_ALL,
+    }, scene);
+    ring.isPickable = false;
+    ring.material = ringMat;
+    all.push(ring);
+  }
 
   // Optional center pillar.
   if (tower.visual.pillar) {
