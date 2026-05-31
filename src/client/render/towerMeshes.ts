@@ -102,15 +102,15 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
     all.push(pillar);
   }
 
-  // Optional one-circle-per-required-soaker indicator, laid out in a centered row that
-  // fits inside the ring's inner area.
+  // One marker per required soaker — only worth showing for multi-soak towers
+  // (a single soaker needs no marker), laid out inside the ring's inner area.
   const countCircles: { mesh: Mesh; mat: StandardMaterial }[] = [];
-  if (tower.visual.countCircles && tower.requiredCount > 0) {
+  if (tower.visual.countCircles && tower.requiredCount > 1) {
     const count = tower.requiredCount;
     // Lay the soak markers out offset from the center (intercardinal-style ring), tucked
-    // inside the tower's inner area. A single marker sits dead center.
-    const offsetR = count === 1 ? 0 : inner * 0.7;
-    const chordHalf = count > 1 ? offsetR * Math.sin(Math.PI / count) : inner * 0.5;
+    // inside the tower's inner area.
+    const offsetR = inner * 0.7;
+    const chordHalf = offsetR * Math.sin(Math.PI / count);
     const r = Math.min(0.5, chordHalf * 0.8, (inner - offsetR) * 0.9);
     for (let i = 0; i < count; i++) {
       const a = Math.PI / 4 + (i / count) * Math.PI * 2; // start at 45° (intercardinal)
