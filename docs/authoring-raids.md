@@ -281,6 +281,7 @@ shown):
 | `fallingCylinder` | `true` draws a long thin cylinder that descends in time with the cast and reaches the floor at resolve. |
 | `groundStyle` | `"standard"` (yellow inner line, red outer edge) or `"tank"` (two red lines). Defaults to `"standard"`. |
 | `cylinderColor` | Hex string (e.g. `"#33ccff"`) for the falling cylinder. Defaults to cyan. |
+| `cylinderThickness` | Diameter of the falling cylinder (> 0). Defaults to a value scaled from the tower radius. |
 
 ```json
 {

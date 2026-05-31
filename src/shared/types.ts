@@ -138,6 +138,7 @@ export type TowerVisual = {
   fallingCylinder: boolean;
   groundStyle: "standard" | "tank"; // standard: yellow inner/red outer; tank: two red
   cylinderColor?: string; // hex, e.g. "#33ccff"
+  cylinderThickness?: number; // falling cylinder diameter
 };
 
 export type PendingTower = {

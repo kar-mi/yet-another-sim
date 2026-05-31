@@ -110,6 +110,7 @@ export function createWorld(raid: RaidDef): World {
           fallingCylinder: e.visual?.fallingCylinder ?? false,
           groundStyle: e.visual?.groundStyle ?? "standard",
           cylinderColor: e.visual?.cylinderColor,
+          cylinderThickness: e.visual?.cylinderThickness,
         },
       });
     } else {

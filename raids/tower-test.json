@@ -23,7 +23,7 @@
       "requiredCount": 1,
       "failureDamage": 30,
       "failureDamageType": "magical",
-      "visual": { "fallingCylinder": true, "countCircles": true, "groundStyle": "standard", "cylinderColor": "#33ccff" }
+      "visual": { "fallingCylinder": true, "countCircles": true, "groundStyle": "standard", "cylinderColor": "#33ccff", "cylinderThickness": 3 }
     },
     {
       "type": "tower",

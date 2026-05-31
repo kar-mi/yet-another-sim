@@ -18,7 +18,7 @@ const RING_Y = 0.03;
 const CIRCLE_Y = 0.04;
 const INNER_RATIO = 0.82; // ring band inner edge as a fraction of the tower radius
 const CYL_TOP = 14;       // height the falling cylinder starts at
-const CYL_HEIGHT = 6;     // long and thin beam
+const CYL_HEIGHT = 4;     // long and thin beam
 const YELLOW = new Color3(0.95, 0.8, 0.2);
 const RED = new Color3(0.9, 0.2, 0.2);
 const SUCCESS = new Color3(0.2, 0.95, 0.35);
@@ -106,14 +106,19 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
   // fits inside the ring's inner area.
   const countCircles: { mesh: Mesh; mat: StandardMaterial }[] = [];
   if (tower.visual.countCircles && tower.requiredCount > 0) {
-    const fit = (inner * 1.7) / (tower.requiredCount * 2.4);
-    const r = Math.min(0.5, fit);
-    const gap = r * 2.4;
-    const startX = x - (gap * (tower.requiredCount - 1)) / 2;
-    for (let i = 0; i < tower.requiredCount; i++) {
+    const count = tower.requiredCount;
+    // Lay the soak markers out offset from the center (intercardinal-style ring), tucked
+    // inside the tower's inner area. A single marker sits dead center.
+    const offsetR = count === 1 ? 0 : inner * 0.7;
+    const chordHalf = count > 1 ? offsetR * Math.sin(Math.PI / count) : inner * 0.5;
+    const r = Math.min(0.5, chordHalf * 0.8, (inner - offsetR) * 0.9);
+    for (let i = 0; i < count; i++) {
+      const a = Math.PI / 4 + (i / count) * Math.PI * 2; // start at 45° (intercardinal)
+      const cx = x + Math.cos(a) * offsetR;
+      const cz = z + Math.sin(a) * offsetR;
       const c = CreateDisc(`tower-cnt-${tower.id}-${i}`, { radius: r, tessellation: 24 }, scene);
       c.rotation.x = Math.PI / 2;
-      c.position.set(startX + i * gap, CIRCLE_Y, z);
+      c.position.set(cx, CIRCLE_Y, cz);
       c.isPickable = false;
       const mat = new StandardMaterial(`tower-cnt-mat-${tower.id}-${i}`, scene);
       mat.diffuseColor = innerColor;
@@ -131,7 +136,7 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
   if (tower.visual.fallingCylinder) {
     const cylColor = parseColor(tower.visual.cylinderColor);
     const mesh = CreateCylinder(`tower-cyl-${tower.id}`, {
-      diameter: Math.min(1.6, tower.radius * 0.6),
+      diameter: tower.visual.cylinderThickness ?? Math.min(1.6, tower.radius * 0.6),
       height: CYL_HEIGHT,
       tessellation: 32,
     }, scene);
