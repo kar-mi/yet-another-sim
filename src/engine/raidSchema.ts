@@ -90,7 +90,33 @@ const TetherSourceEventSchema = z.object({
   effectDuration: z.number().positive().default(15),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, AOEEventSchema, TargetedEventSchema]);
+const TowerVisualSchema = z.object({
+  pillar: z.boolean().optional(),          // static rectangle column in the center
+  countCircles: z.boolean().optional(),    // one floor circle per required soaker
+  fallingCylinder: z.boolean().optional(), // cylinder descending in time with the cast
+  groundStyle: z.enum(["standard", "tank"]).optional(), // standard: yellow inner/red outer; tank: two red
+  cylinderColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), // falling cylinder color
+  cylinderThickness: z.number().positive().optional(), // falling cylinder diameter
+});
+
+const TowerEventSchema = z.object({
+  type: z.literal("tower"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  telegraph: z.number().positive(),
+  pos: Vec2Schema,
+  radius: z.number().positive(),
+  requiredCount: z.number().int().positive().default(1), // soakers needed to clear it
+  requiredRoles: z.array(z.enum(["tank", "healer", "dps"])).min(1).optional(),
+  wrongRoleLethal: z.boolean().optional(), // wrong-role soaker dies (only with requiredRoles)
+  failureDamage: z.number().nonnegative(), // raidwide damage when not enough valid soakers
+  failureDamageType: z.enum(["physical", "magical", "true"]),
+  applyEffect: ApplyEffectSchema.optional(), // debuff applied to valid soakers on success
+  knockback: KnockbackSchema.optional(),     // knockback applied to valid soakers on success
+  visual: TowerVisualSchema.optional(),
+});
+
+export const EventSchema = z.union([TetherSourceEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),

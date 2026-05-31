@@ -242,6 +242,72 @@ intercepted). See `raids/tether-test.json`.
 | `behavior`       | no       | Effect behavior (see [Effects](#effects)). Defaults to `{ "kind": "none" }`. |
 | `effectDuration` | no       | Duration of the granted effect in seconds (> 0). Defaults to `15`. |
 
+### `tower` — soak circle
+
+A `tower` is a flat circle on the floor that players must stand in ("soak") before it
+resolves. At resolve time (`t + telegraph`) the engine counts the **valid soakers** inside:
+
+- If there are fewer than `requiredCount` valid soakers, the tower **fails** and the whole
+  raid takes `failureDamage` (raidwide, applied flat — vulnerabilities do not amplify it).
+- If it succeeds, each valid soaker optionally receives `applyEffect` and/or `knockback`.
+- If `requiredRoles` is set, only those roles count as valid soakers. A wrong-role player
+  standing in the tower is ignored — unless `wrongRoleLethal` is `true`, in which case they
+  die. (Think FFXIV "support" towers: `requiredRoles: ["tank", "healer"]`.)
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `type` | yes | `"tower"`. |
+| `t` | yes | Telegraph start time (seconds). |
+| `name` | yes | Mechanic name (used in the log). |
+| `telegraph` | yes | Seconds from `t` until it resolves. |
+| `pos` | yes | `[x, z]` center of the tower circle. |
+| `radius` | yes | Circle radius (> 0). |
+| `requiredCount` | no | Valid soakers needed to clear it. Default 1. |
+| `requiredRoles` | no | Array of `"tank"`/`"healer"`/`"dps"`; only these count as soakers. |
+| `wrongRoleLethal` | no | If `true`, a wrong-role soaker dies on resolve. Default `false`. Only meaningful with `requiredRoles`. |
+| `failureDamage` | yes | Raidwide damage applied to all alive players if the tower isn't soaked. |
+| `failureDamageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
+| `applyEffect` | no | Debuff/buff applied to valid soakers on success (see [Effects](#effects)). |
+| `knockback` | no | Knockback applied to valid soakers on success (see [Knockback / knockup](#knockback--knockup)). |
+| `visual` | no | Floor/marker visuals (see below). |
+
+The optional `visual` object controls how the tower is drawn (the flat disk + ring is always
+shown):
+
+| Field | Notes |
+|-------|-------|
+| `pillar` | `true` draws a static column in the center. |
+| `countCircles` | `true` draws one small floor circle per `requiredCount`, filling as players step in. |
+| `fallingCylinder` | `true` draws a long thin cylinder that descends in time with the cast and reaches the floor at resolve. |
+| `groundStyle` | `"standard"` (yellow inner line, red outer edge) or `"tank"` (two red lines). Defaults to `"standard"`. |
+| `cylinderColor` | Hex string (e.g. `"#33ccff"`) for the falling cylinder. Defaults to cyan. |
+| `cylinderThickness` | Diameter of the falling cylinder (> 0). Defaults to a value scaled from the tower radius. |
+
+```json
+{
+  "type": "tower",
+  "t": 17,
+  "name": "Support Tower",
+  "telegraph": 5,
+  "pos": [-12, 0],
+  "radius": 3,
+  "requiredRoles": ["tank", "healer"],
+  "wrongRoleLethal": true,
+  "failureDamage": 40,
+  "failureDamageType": "magical",
+  "applyEffect": {
+    "name": "Magic Vulnerability",
+    "kind": "debuff",
+    "duration": 8,
+    "behavior": { "kind": "vuln", "damageType": "magical", "multiplier": 1.5 }
+  },
+  "knockback": { "distance": 8 },
+  "visual": { "fallingCylinder": true, "pillar": true, "groundStyle": "tank", "cylinderColor": "#cc66ff" }
+}
+```
+
+See `raids/tower-test.json` for a full example with single, multi-soak, and support towers.
+
 ## Shapes
 
 Used by `aoe` events (`shape`) — a point is hit if it falls inside the shape at resolve.

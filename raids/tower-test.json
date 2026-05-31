@@ -1,0 +1,66 @@
+{
+  "name": "Tower Test",
+  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 20 }] },
+  "duration": 26,
+  "players": [
+    { "id": "mt", "role": "tank", "control": "human", "spawn": [0, 8] },
+    { "id": "ot", "role": "tank", "control": "bot", "spawn": [-8, -8], "pattern": [{ "t": 14, "pos": [-12.5, 0.5] }] },
+    { "id": "h1", "role": "healer", "control": "bot", "spawn": [0, 12] },
+    { "id": "h2", "role": "healer", "control": "bot", "spawn": [6, 6] },
+    { "id": "r1", "role": "dps", "control": "bot", "spawn": [8, -2], "pattern": [{ "t": 7, "pos": [11, 0] }] },
+    { "id": "r2", "role": "dps", "control": "bot", "spawn": [8, 2], "pattern": [{ "t": 7, "pos": [13, 0] }] },
+    { "id": "m1", "role": "dps", "control": "bot", "spawn": [-5, -5], "pattern": [{ "t": 14, "pos": [-11.5, -0.5] }] },
+    { "id": "m2", "role": "dps", "control": "bot", "spawn": [5, -5] }
+  ],
+  "events": [
+    {
+      "type": "tower",
+      "t": 3,
+      "name": "Single Tower",
+      "telegraph": 4,
+      "pos": [0, 12],
+      "radius": 3,
+      "requiredCount": 1,
+      "failureDamage": 30,
+      "failureDamageType": "magical",
+      "visual": { "fallingCylinder": true, "countCircles": true, "groundStyle": "standard", "cylinderColor": "#33ccff", "cylinderThickness": 3 }
+    },
+    {
+      "type": "tower",
+      "t": 10,
+      "name": "Double Tower",
+      "telegraph": 4,
+      "pos": [12, 0],
+      "radius": 3,
+      "requiredCount": 2,
+      "failureDamage": 30,
+      "failureDamageType": "physical",
+      "visual": { "countCircles": true, "pillar": true, "groundStyle": "standard" }
+    },
+    {
+      "type": "tower",
+      "t": 17,
+      "name": "Support Tower",
+      "telegraph": 5,
+      "pos": [-12, 0],
+      "radius": 3,
+      "requiredRoles": ["tank", "healer"],
+      "wrongRoleLethal": true,
+      "failureDamage": 40,
+      "failureDamageType": "magical",
+      "applyEffect": {
+        "name": "Magic Vulnerability",
+        "kind": "debuff",
+        "duration": 8,
+        "behavior": { "kind": "vuln", "damageType": "magical", "multiplier": 1.5 }
+      },
+      "knockback": { "distance": 8 },
+      "visual": { "fallingCylinder": true, "pillar": true, "groundStyle": "tank", "cylinderColor": "#cc66ff" }
+    }
+  ],
+  "waymarks": [
+    { "mark": "A", "pos": [0, 16] },
+    { "mark": "B", "pos": [16, 0] },
+    { "mark": "D", "pos": [-16, 0] }
+  ]
+}
