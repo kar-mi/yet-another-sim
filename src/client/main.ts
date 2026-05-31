@@ -106,16 +106,9 @@ async function main(): Promise<void> {
   const sessionId = parsedSession?.success ? parsedSession.data : await showLanding();
 
   const net = await connect();
-  const { world, yourPlayerId, raidId, isHost } = await showLobby(net, sessionId);
   const settings = loadSettings();
-  const renderer = new BabylonRenderer(canvas, nextSettings => {
-    Object.assign(settings, nextSettings);
-    saveSettings(settings);
-  });
-  renderer.init(world, sessionId, yourPlayerId);
-  const disposeRaidSelect = await createRaidHudSelect(net, raidId, isHost);
+  let renderer: BabylonRenderer | null = null;
 
-  renderer.applySettings(settings);
   setKeyBindings(settings.keyBindings);
   setControllerDeadzone(settings.controllerDeadzone);
 
@@ -147,7 +140,7 @@ async function main(): Promise<void> {
     settings.mouseSensitivity = parseFloat(sensitivitySlider.value);
     sensitivityVal.textContent = settings.mouseSensitivity.toFixed(1);
     saveSettings(settings);
-    renderer.applySettings(settings);
+    renderer?.applySettings(settings);
   });
 
   panBtns.forEach(btn => {
@@ -155,7 +148,7 @@ async function main(): Promise<void> {
       if (btn.checked) {
         settings.panButton = btn.value as "left" | "right";
         saveSettings(settings);
-        renderer.applySettings(settings);
+        renderer?.applySettings(settings);
       }
     });
   });
@@ -165,7 +158,7 @@ async function main(): Promise<void> {
     syncKeybindLabels();
     saveSettings(settings);
     setKeyBindings(settings.keyBindings);
-    renderer.applySettings(settings);
+    renderer?.applySettings(settings);
   });
 
   // Tab switching
@@ -202,7 +195,7 @@ async function main(): Promise<void> {
       controllerBadge.textContent = info.type.toUpperCase();
       controllerBadge.className = `controller-badge controller-badge--${info.type}`;
       controllerName.textContent = info.name;
-      renderer.setControllerType(info.type);
+      renderer?.setControllerType(info.type);
     } else {
       controllerBadge.textContent = "NO CONTROLLER";
       controllerBadge.className = "controller-badge controller-badge--none";
@@ -237,7 +230,7 @@ async function main(): Promise<void> {
           btn.textContent = keyLabel(e.code);
           saveSettings(settings);
           setKeyBindings(settings.keyBindings);
-          renderer.applySettings(settings);
+          renderer?.applySettings(settings);
         }
         btn.classList.remove("keybind-listening");
         window.removeEventListener("keydown", onKey, true);
@@ -246,18 +239,55 @@ async function main(): Promise<void> {
     });
   });
 
-  const disposeInput = initInput();
-  const stopLoop = startNetLoop(renderer, net);
+  // Home button: resolve the per-session promise to leave the sim and return to the lobby.
+  const homeBtn = document.getElementById("home-btn")!;
+  let resolveHome: (() => void) | null = null;
+  homeBtn.addEventListener("click", () => resolveHome?.());
 
-  // HMR cleanup (Bun --hot)
+  // HMR cleanup (Bun --hot) — tear down whatever session is currently active.
+  let currentTeardown = () => {};
   const meta = import.meta as unknown as { hot?: { dispose: (cb: () => void) => void } };
   meta.hot?.dispose(() => {
-    stopLoop();
-    disposeInput();
-    disposeRaidSelect();
+    currentTeardown();
     net.close();
-    renderer.dispose();
   });
+
+  // Each iteration is one sim session: pick a class in the lobby, play, click Home to come back.
+  for (;;) {
+    homeBtn.style.display = "none";
+    const session = await showLobby(net, sessionId);
+
+    renderer = new BabylonRenderer(canvas, nextSettings => {
+      Object.assign(settings, nextSettings);
+      saveSettings(settings);
+    });
+    renderer.init(session.world, sessionId, session.yourPlayerId);
+    renderer.applySettings(settings);
+    syncKeybindLabels();
+    updateController();
+
+    const disposeRaidSelect = await createRaidHudSelect(net, session.raidId, session.isHost);
+    const disposeInput = initInput();
+    const stopLoop = startNetLoop(renderer, net);
+
+    const activeRenderer = renderer;
+    currentTeardown = () => {
+      stopLoop();
+      disposeInput();
+      disposeRaidSelect();
+      activeRenderer.dispose();
+    };
+
+    homeBtn.style.display = "block";
+    await new Promise<void>(resolve => { resolveHome = resolve; });
+    resolveHome = null;
+
+    homeBtn.style.display = "none";
+    currentTeardown();
+    currentTeardown = () => {};
+    renderer = null;
+    net.send({ type: "releaseSlot", playerId: session.yourPlayerId });
+  }
 }
 
 main().catch((err) => {
