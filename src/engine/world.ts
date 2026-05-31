@@ -1,4 +1,4 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingTargetedEvent, PendingTower } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingTargetedEvent, PendingTower, PendingChain } from "../shared/types";
 import { vec2 } from "../shared/math";
 import type { RaidDef } from "./raidSchema";
 
@@ -57,6 +57,7 @@ export function createWorld(raid: RaidDef): World {
   const pendingTethers: PendingTether[] = [];
   const pendingTargeted: PendingTargetedEvent[] = [];
   const pendingTowers: PendingTower[] = [];
+  const pendingChains: PendingChain[] = [];
 
   for (const [index, e] of raid.events.entries()) {
     if (e.type === "tether_source") {
@@ -113,6 +114,23 @@ export function createWorld(raid: RaidDef): World {
           cylinderThickness: e.visual?.cylinderThickness,
         },
       });
+    } else if (e.type === "chain") {
+      e.pairs.forEach(([a, b], pairIndex) => {
+        pendingChains.push({
+          id: `chain-${index}-${pairIndex}`,
+          t: e.t,
+          name: e.name,
+          a,
+          b,
+          telegraph: e.telegraph,
+          breakWindow: e.breakWindow,
+          breakDistance: e.breakDistance,
+          breakDamage: e.breakDamage,
+          damageType: e.damageType,
+          debuffName: e.debuffName,
+          showCastBar: e.showCastBar ?? false,
+        });
+      });
     } else {
       pending.push({
         id: `event-${index}`,
@@ -137,7 +155,7 @@ export function createWorld(raid: RaidDef): World {
   return {
     time: 0,
     status: "running",
-    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0,
+    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0,
     arena,
     waymarks,
     players,
@@ -151,5 +169,7 @@ export function createWorld(raid: RaidDef): World {
     pendingTargeted,
     towers: [],
     pendingTowers,
+    chains: [],
+    pendingChains,
   };
 }

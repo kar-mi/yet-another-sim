@@ -12,6 +12,8 @@ import type {
   Role,
   ActiveTower,
   PendingTower,
+  ActiveChain,
+  PendingChain,
   Knockback,
 } from "../shared/types";
 import type { Vec2 } from "../shared/math";
@@ -33,6 +35,7 @@ export const KNOCKBACK_FRICTION = 40; // ground deceleration (units/s^2); v0 = s
 const INTERCEPT_THRESHOLD = 2.0;
 const TARGETED_LINGER = 0.7; // seconds a targeted bait's circle stays visible after it resolves
 const TOWER_LINGER = 0.7; // seconds a tower stays visible after it resolves (success/failure flash)
+const CHAIN_LINGER = 0.7; // seconds a chain stays visible after it breaks/bursts (outcome flash)
 
 function selectTargetPlayer(
   players: Player[],
@@ -247,6 +250,86 @@ export function tick(world: World, intents: Intents, dt: number): World {
   // Cull sources finalized more than 2s ago
   tetherSources = tetherSources.filter(ts => !ts.finalized || ts.finalizeAt > time - 2);
 
+  // 2b. Chains: promote pending pairs, bind the debuff at cast end, break on separation,
+  // burst on expiry. The chain entity is authoritative; the debuff is display-only.
+  const remainingPendingChains: PendingChain[] = [];
+  const chains: ActiveChain[] = world.chains.map(c => ({ ...c }));
+  for (const pc of world.pendingChains) {
+    if (pc.t <= time) {
+      chains.push({
+        id: pc.id,
+        name: pc.name,
+        a: pc.a,
+        b: pc.b,
+        telegraphStart: pc.t,
+        resolveAt: pc.t + pc.telegraph,
+        expireAt: pc.t + pc.telegraph + pc.breakWindow,
+        breakDistance: pc.breakDistance,
+        breakDamage: pc.breakDamage,
+        damageType: pc.damageType,
+        debuffName: pc.debuffName,
+        showCastBar: pc.showCastBar,
+        resolved: false,
+        broken: false,
+      });
+    } else {
+      remainingPendingChains.push(pc);
+    }
+  }
+
+  const stillChains: ActiveChain[] = [];
+  for (const chain of chains) {
+    const a = players.find(p => p.id === chain.a);
+    const b = players.find(p => p.id === chain.b);
+    const aEffId = `${chain.id}-${chain.a}-eff`;
+    const bEffId = `${chain.id}-${chain.b}-eff`;
+
+    // Cast end: bind the debuff to both living members; the line now connects them.
+    // The break threshold is the pair's starting separation plus the configured extra distance.
+    if (!chain.resolved && time >= chain.resolveAt) {
+      chain.resolved = true;
+      const startDist = a && b ? length(sub(a.pos, b.pos)) : 0;
+      chain.breakAt = startDist + chain.breakDistance;
+      const spec: EffectSpec = {
+        name: chain.debuffName,
+        kind: "debuff",
+        duration: chain.expireAt - chain.resolveAt,
+        behavior: { kind: "none" },
+      };
+      if (a?.alive) applyEffect(a, spec, time, aEffId);
+      if (b?.alive) applyEffect(b, spec, time, bEffId);
+    }
+
+    if (chain.resolved && chain.outcome === undefined) {
+      if (a?.alive && b?.alive && length(sub(a.pos, b.pos)) > (chain.breakAt ?? chain.breakDistance)) {
+        // Separated far enough in time: chain breaks, debuff falls off both, no damage.
+        chain.broken = true;
+        chain.outcome = "broken";
+        chain.finishedAt = time;
+        a.effects = a.effects.filter(e => e.id !== aEffId);
+        b.effects = b.effects.filter(e => e.id !== bEffId);
+        log.push({ t: time, mechanic: chain.name, playerId: chain.a, event: "cleared" });
+        log.push({ t: time, mechanic: chain.name, playerId: chain.b, event: "cleared" });
+      } else if (time >= chain.expireAt) {
+        // Still chained when the window closes: both eat a single burst.
+        chain.outcome = "damaged";
+        chain.finishedAt = time;
+        for (const member of [a, b]) {
+          if (!member?.alive) continue;
+          member.hp = Math.max(0, member.hp - chain.breakDamage);
+          if (member.hp <= 0) member.alive = false;
+          member.effects = member.effects.filter(e => e.id !== `${chain.id}-${member.id}-eff`);
+          log.push({ t: time, mechanic: chain.name, playerId: member.id, event: "hit" });
+        }
+      }
+    }
+
+    // Keep briefly after the outcome so the renderer can flash the result.
+    if (chain.outcome === undefined || (chain.finishedAt ?? time) >= time - CHAIN_LINGER) {
+      stillChains.push(chain);
+    }
+  }
+
   // 3. Promote pending events whose t <= time
   const { promoted, remaining: pending } = promotePending(world.pending, time);
   const active: ActiveMechanic[] = [...world.active.map(m => ({ ...m })), ...promoted];
@@ -427,7 +510,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const allResolved = pending.length === 0 && stillActive.every(m => m.resolved)
     && remainingPendingTethers.length === 0 && tetherSources.every(ts => ts.finalized)
     && remainingPendingTargeted.length === 0
-    && remainingPendingTowers.length === 0 && stillTowers.every(t => t.resolved);
+    && remainingPendingTowers.length === 0 && stillTowers.every(t => t.resolved)
+    && remainingPendingChains.length === 0 && stillChains.every(c => c.outcome !== undefined);
   let status = world.status;
   if (status === "running") {
     if (!anyAlive) {
@@ -437,5 +521,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, players, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers };
+  return { ...world, time, players, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains };
 }

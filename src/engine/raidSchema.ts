@@ -116,7 +116,21 @@ const TowerEventSchema = z.object({
   visual: TowerVisualSchema.optional(),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema]);
+const ChainEventSchema = z.object({
+  type: z.literal("chain"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  pairs: z.array(z.tuple([z.string().min(1), z.string().min(1)])).min(1), // chained player-id pairs
+  telegraph: z.number().positive(),     // cast duration (head icon + cast bar)
+  breakWindow: z.number().positive(),   // seconds after the cast to move apart before damage
+  breakDistance: z.number().positive(), // separation needed to break the chain
+  breakDamage: z.number().nonnegative(),
+  damageType: z.enum(["physical", "magical", "true"]),
+  debuffName: z.string().min(1),        // debuff applied to both members at cast end
+  showCastBar: z.boolean().optional(),
+});
+
+export const EventSchema = z.union([TetherSourceEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
@@ -157,6 +171,22 @@ export const RaidSchema = z.object({
         message: `player ${i} must be "${expected.id}" (${expected.role}); roster order is ${ROSTER.map(r => `${r.id}:${r.role}`).join(", ")}`,
       });
     }
+  });
+
+  const playerIds = new Set(raid.players.map(p => p.id));
+  raid.events.forEach((event, i) => {
+    if (event.type !== "chain") return;
+    event.pairs.forEach((pair, j) => {
+      for (const id of pair) {
+        if (!playerIds.has(id)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["events", i, "pairs", j],
+            message: `chain pair references unknown player id "${id}"`,
+          });
+        }
+      }
+    });
   });
 });
 
