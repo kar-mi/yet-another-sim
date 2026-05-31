@@ -242,6 +242,46 @@ intercepted). See `raids/tether-test.json`.
 | `behavior`       | no       | Effect behavior (see [Effects](#effects)). Defaults to `{ "kind": "none" }`. |
 | `effectDuration` | no       | Duration of the granted effect in seconds (> 0). Defaults to `15`. |
 
+### `chain` — break-apart pair chains
+
+Chains a set of **explicitly named player pairs** together. While the cast bar counts down
+(for `telegraph` seconds) a chain icon floats over each chained player's head. At cast end a
+`debuffName` debuff is applied to both members and a line connects them. Each pair then has
+`breakWindow` seconds to **move apart beyond `breakDistance`**: doing so breaks the chain and
+removes the debuff (no damage). Any pair still chained when the window closes takes a single
+burst of `breakDamage` (vulnerabilities apply per the pair's `damageType`). See
+`raids/chain-test.json`.
+
+```json
+{
+  "type": "chain",
+  "t": 4,
+  "name": "Binding Chains",
+  "pairs": [["mt", "h1"], ["ot", "h2"]],
+  "telegraph": 4,
+  "breakWindow": 6,
+  "breakDistance": 12,
+  "breakDamage": 40,
+  "damageType": "magical",
+  "debuffName": "Chain Bond",
+  "showCastBar": true
+}
+```
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `type` | yes | `"chain"`. |
+| `t` | yes | Cast start time (seconds). |
+| `name` | yes | Mechanic name (used in the log and cast bar). |
+| `pairs` | yes | Array of `[idA, idB]` player-id pairs (≥ 1). Each pair becomes its own chain. Ids must exist in the roster. |
+| `telegraph` | yes | Cast duration in seconds (> 0) — head icon + cast bar. |
+| `breakWindow` | yes | Seconds after the cast to break the chain before damage (> 0). Also the debuff's duration. |
+| `breakDistance` | yes | Separation (> 0) the pair must exceed to break the chain. |
+| `breakDamage` | yes | Burst damage dealt to both members if the chain isn't broken in time (≥ 0). |
+| `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
+| `debuffName` | yes | Name of the debuff shown on both members until they break or get hit. |
+| `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
+
 ### `tower` — soak circle
 
 A `tower` is a flat circle on the floor that players must stand in ("soak") before it
@@ -432,3 +472,4 @@ descriptive Zod error. The existing files in `raids/` double as references:
 - `near-far-bait.json` — `targeted` events with `role` filters and `applyEffect`.
 - `debuff-test.json` — `vuln`, `pyretic`, and `freeze` behaviors.
 - `tether-test.json` — `tether_source` buff and debuff.
+- `chain-test.json` — `chain` break-apart pairs with a debuff and burst.

@@ -209,6 +209,40 @@ export type PendingTether = {
   effectDuration: number;
 };
 
+export type ActiveChain = {
+  id: string;
+  name: string;
+  a: string;             // chained player ids
+  b: string;
+  telegraphStart: number;
+  resolveAt: number;     // cast end: debuff applied + line connects
+  expireAt: number;      // resolveAt + breakWindow: burst if still chained
+  breakDistance: number; // separation needed to break
+  breakDamage: number;
+  damageType: DamageType;
+  debuffName: string;
+  showCastBar: boolean;
+  resolved: boolean;     // cast finished, debuff applied, line shown
+  broken: boolean;       // pair separated in time (success)
+  outcome?: "broken" | "damaged"; // set at end, drives the post-resolve flash
+  finishedAt?: number;   // time the outcome was decided, for the render linger
+};
+
+export type PendingChain = {
+  id: string;
+  t: number;
+  name: string;
+  a: string;
+  b: string;
+  telegraph: number;
+  breakWindow: number;
+  breakDistance: number;
+  breakDamage: number;
+  damageType: DamageType;
+  debuffName: string;
+  showCastBar: boolean;
+};
+
 export type Intent = {
   move: Vec2;
   jump?: boolean;
@@ -235,4 +269,6 @@ export type World = {
   pendingTargeted: PendingTargetedEvent[];
   towers: ActiveTower[];
   pendingTowers: PendingTower[];
+  chains: ActiveChain[];
+  pendingChains: PendingChain[];
 };
