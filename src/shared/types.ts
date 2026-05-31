@@ -217,7 +217,8 @@ export type ActiveChain = {
   telegraphStart: number;
   resolveAt: number;     // cast end: debuff applied + line connects
   expireAt: number;      // resolveAt + breakWindow: burst if still chained
-  breakDistance: number; // separation needed to break
+  breakDistance: number; // extra separation (beyond the starting distance) needed to break
+  breakAt?: number;      // absolute threshold = starting distance + breakDistance, set at resolve
   breakDamage: number;
   damageType: DamageType;
   debuffName: string;

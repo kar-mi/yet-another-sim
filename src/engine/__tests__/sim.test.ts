@@ -700,8 +700,9 @@ test("chain applies its debuff to both members at cast end", () => {
 });
 
 test("separating a chained pair past breakDistance breaks it with no damage", () => {
-  // Human walks +x away from the stationary partner until the chain stretches and snaps.
-  const world = runTicks(createWorld(chainRaid()), { [HUMAN]: { move: { x: 1, z: 0 } } }, Math.ceil(2.0 * 60));
+  // Human walks +x away from the stationary partner until the chain stretches past
+  // (starting distance + breakDistance) and snaps; runs well before the expiry burst.
+  const world = runTicks(createWorld(chainRaid()), { [HUMAN]: { move: { x: 1, z: 0 } } }, Math.ceil(3.0 * 60));
   expect(hasChainBond(human(world))).toBe(false);
   expect(hasChainBond(otPlayer(world))).toBe(false);
   expect(human(world).hp).toBe(100);

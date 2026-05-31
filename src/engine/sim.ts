@@ -285,8 +285,11 @@ export function tick(world: World, intents: Intents, dt: number): World {
     const bEffId = `${chain.id}-${chain.b}-eff`;
 
     // Cast end: bind the debuff to both living members; the line now connects them.
+    // The break threshold is the pair's starting separation plus the configured extra distance.
     if (!chain.resolved && time >= chain.resolveAt) {
       chain.resolved = true;
+      const startDist = a && b ? length(sub(a.pos, b.pos)) : 0;
+      chain.breakAt = startDist + chain.breakDistance;
       const spec: EffectSpec = {
         name: chain.debuffName,
         kind: "debuff",
@@ -298,7 +301,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
 
     if (chain.resolved && chain.outcome === undefined) {
-      if (a?.alive && b?.alive && length(sub(a.pos, b.pos)) > chain.breakDistance) {
+      if (a?.alive && b?.alive && length(sub(a.pos, b.pos)) > (chain.breakAt ?? chain.breakDistance)) {
         // Separated far enough in time: chain breaks, debuff falls off both, no damage.
         chain.broken = true;
         chain.outcome = "broken";
