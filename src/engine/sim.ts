@@ -146,6 +146,10 @@ export function tick(world: World, intents: Intents, dt: number): World {
       player.antiKbActive = ANTI_KB_DURATION;
       player.antiKbCooldown = ANTI_KB_COOLDOWN;
     }
+
+    if (intent?.toggleInvincibility) {
+      player.invincible = !player.invincible;
+    }
     if (player.antiKbCooldown > 0) player.antiKbCooldown = Math.max(0, player.antiKbCooldown - dt);
     if (player.antiKbActive > 0) player.antiKbActive = Math.max(0, player.antiKbActive - dt);
 
@@ -182,6 +186,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
       }
     }
 
+    // Falling off the map kills even an invincible player — invincibility only negates damage.
     if (player.y <= DEATH_FLOOR_Y) {
       player.hp = 0;
       player.alive = false;
@@ -382,8 +387,10 @@ export function tick(world: World, intents: Intents, dt: number): World {
           if (matchingVulnIds.size > 0 && mechanic.damage > 0) {
             player.effects = player.effects.filter(effect => !matchingVulnIds.has(effect.id));
           }
-          player.hp = Math.max(0, player.hp - damage);
-          if (player.hp <= 0) player.alive = false;
+          if (!player.invincible) {
+            player.hp = Math.max(0, player.hp - damage);
+            if (player.hp <= 0) player.alive = false;
+          }
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });
           if (mechanic.applyEffect && player.alive) {
             applyEffect(player, mechanic.applyEffect, time, `${mechanic.id}-${player.id}-eff`);
@@ -446,7 +453,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
         // Wrong-role soakers die when the tower opts into lethal punishment.
         if (tower.requiredRoles && tower.wrongRoleLethal) {
           for (const p of inside) {
-            if (!tower.requiredRoles.includes(p.role)) {
+            if (!tower.requiredRoles.includes(p.role) && !p.invincible) {
               p.hp = 0;
               p.alive = false;
               log.push({ t: time, mechanic: tower.name, playerId: p.id, event: "hit" });
@@ -466,7 +473,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
         } else {
           // Unsoaked: the whole raid eats the failure damage.
           for (const p of players) {
-            if (!p.alive) continue;
+            if (!p.alive || p.invincible) continue;
             p.hp = Math.max(0, p.hp - tower.failureDamage);
             if (p.hp <= 0) p.alive = false;
             log.push({ t: time, mechanic: tower.name, playerId: p.id, event: "hit" });
@@ -484,7 +491,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
 
   // 4. Apply continuous status effects and expire old effects
   for (const player of players) {
-    if (player.alive) {
+    if (player.alive && !player.invincible) {
       const acted = actedByPlayer.get(player.id) ?? false;
       for (const effect of player.effects) {
         const activeDt = effectActiveDt(effect, previousTime, time);

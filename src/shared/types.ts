@@ -66,6 +66,7 @@ export type Player = {
   sprintCooldown: number; // seconds remaining on cooldown
   antiKbActive: number;   // seconds remaining on anti-knockback buff
   antiKbCooldown: number; // seconds remaining on anti-knockback cooldown
+  invincible: boolean;    // when true, takes no damage and cannot die (practice mode)
   alive: boolean;
   effects: StatusEffect[];
 };
@@ -249,6 +250,7 @@ export type Intent = {
   jump?: boolean;
   sprint?: boolean;
   antiKnockback?: boolean;
+  toggleInvincibility?: boolean;
 };
 
 export type Intents = Record<string, Intent>;

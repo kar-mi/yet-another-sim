@@ -7,6 +7,7 @@ const keys = new Set<string>();
 let jumpPressed = false;
 let sprintPressed = false;
 let antiKbPressed = false;
+let invincibilityToggled = false;
 let keyBindings: KeyBindings = { ...DEFAULT_BINDINGS };
 let prevButtons: boolean[] = [];
 let controllerDeadzone = 0.15;
@@ -79,6 +80,10 @@ export function triggerAntiKb(): void {
   antiKbPressed = true;
 }
 
+export function toggleInvincibility(): void {
+  invincibilityToggled = true;
+}
+
 export function pressAction(slot: number): void {
   if (slot === 7) sprintPressed = true; // controller LT+Y
   if (slot === 6) antiKbPressed = true; // controller LT+X
@@ -115,6 +120,8 @@ export function getIntent(cameraYaw: number): Intent {
   sprintPressed = false;
   const antiKnockback = antiKbPressed;
   antiKbPressed = false;
+  const toggleInvincibility = invincibilityToggled || undefined;
+  invincibilityToggled = false;
 
   let x = 0, z = 0;
   if (keys.has(keyBindings.moveForward)) z += 1;
@@ -148,10 +155,10 @@ export function getIntent(cameraYaw: number): Intent {
     prevButtons = Array.from(gp.buttons).map(b => b.pressed);
   }
 
-  if (x === 0 && z === 0) return { move: { x: 0, z: 0 }, jump, sprint, antiKnockback };
+  if (x === 0 && z === 0) return { move: { x: 0, z: 0 }, jump, sprint, antiKnockback, toggleInvincibility };
 
   // Rotate input by camera yaw so movement is camera-relative
   const cos = Math.cos(cameraYaw);
   const sin = Math.sin(cameraYaw);
-  return { move: normalize({ x: x * cos + z * sin, z: -x * sin + z * cos }), jump, sprint, antiKnockback };
+  return { move: normalize({ x: x * cos + z * sin, z: -x * sin + z * cos }), jump, sprint, antiKnockback, toggleInvincibility };
 }
