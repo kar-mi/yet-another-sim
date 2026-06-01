@@ -37,7 +37,7 @@ body:focus-visible {
 /* ===== UI SCALE (accessibility) ===== */
 /* Zoom each overlay container by --ui-scale; leaves the 3D #canvas untouched. */
 #yas-hud, #yas-party, #yas-cast-bar, #yas-status, #yas-session-id,
-#yas-raid-select, #settings-panel, #home-btn, #settings-btn, #yas-menu {
+#yas-raid-select, #settings-panel, #home-btn, #settings-btn, #info-btn, #info-panel, #yas-menu {
   zoom: var(--ui-scale, 1);
 }
 
@@ -46,7 +46,7 @@ body:focus-visible {
   display: none;
   position: fixed;
   top: 12px;
-  right: 52px;
+  right: 92px;
   z-index: 10;
   background: rgba(6, 7, 18, 0.88);
   border: 1px solid rgba(100, 115, 175, 0.25);
@@ -106,6 +106,36 @@ body:focus-visible {
   box-shadow: inset 0 0 12px rgba(160, 140, 75, 0.08);
 }
 
+/* ===== INFO BUTTON ===== */
+#info-btn {
+  position: fixed;
+  top: 12px;
+  right: 52px;
+  z-index: 210;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 7, 18, 0.88);
+  border: 1px solid rgba(100, 115, 175, 0.25);
+  color: rgba(195, 205, 225, 0.7);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 16px;
+  width: 34px;
+  height: 34px;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
+}
+
+#info-btn:hover {
+  border-color: rgba(160, 140, 75, 0.5);
+  color: rgba(212, 168, 67, 0.9);
+  box-shadow: inset 0 0 12px rgba(160, 140, 75, 0.08);
+}
+
 /* ===== SETTINGS PANEL ===== */
 #settings-panel {
   display: none;
@@ -122,6 +152,67 @@ body:focus-visible {
   min-width: 320px;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+}
+
+/* ===== INFO PANEL ===== */
+#info-panel {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 220;
+  background: rgba(6, 7, 18, 0.96);
+  border: 1px solid rgba(100, 115, 175, 0.25);
+  border-radius: 5px;
+  padding: 24px 28px;
+  color: rgba(215, 220, 240, 0.88);
+  min-width: 320px;
+  text-align: center;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.info-title {
+  font-size: 13px;
+  letter-spacing: 4px;
+  color: rgba(212, 168, 67, 0.9);
+  margin-bottom: 10px;
+}
+
+.info-tagline {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: rgba(175, 185, 215, 0.6);
+  margin-bottom: 18px;
+}
+
+.info-version {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: rgba(175, 185, 215, 0.45);
+  margin-bottom: 14px;
+}
+
+.info-version span {
+  color: rgba(212, 168, 67, 0.85);
+}
+
+.info-link {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: rgba(195, 205, 225, 0.7);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(100, 115, 175, 0.3);
+  padding-bottom: 2px;
+  margin-bottom: 22px;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.info-link:hover {
+  color: rgba(212, 168, 67, 0.9);
+  border-bottom-color: rgba(160, 140, 75, 0.5);
 }
 
 #settings-panel h2 {
@@ -218,7 +309,7 @@ body:focus-visible {
   justify-content: flex-end;
 }
 
-#settings-close {
+#settings-close, #info-close {
   background: rgba(10, 12, 28, 0.9);
   border: 1px solid rgba(85, 95, 145, 0.25);
   color: rgba(175, 185, 215, 0.65);
@@ -231,7 +322,7 @@ body:focus-visible {
   transition: border-color 0.1s, color 0.1s;
 }
 
-#settings-close:hover {
+#settings-close:hover, #info-close:hover {
   border-color: rgba(160, 140, 75, 0.45);
   color: rgba(212, 168, 67, 0.85);
 }
@@ -384,7 +475,7 @@ body:focus-visible {
 }
 
 /* ===== Non-selectable overlays ===== */
-#yas-party, #yas-hud, #yas-status, #yas-session-id, #yas-menu, #yas-raid-select, #settings-panel, #yas-cast-bar {
+#yas-party, #yas-hud, #yas-status, #yas-session-id, #yas-menu, #yas-raid-select, #settings-panel, #info-panel, #yas-cast-bar {
   user-select: none;
 }
 

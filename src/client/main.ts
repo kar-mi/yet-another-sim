@@ -6,6 +6,7 @@ import type { KeyBindings } from "./settings";
 import { loadRaidOptions, showLanding, showLobby } from "./MainMenu";
 import { connect, type NetClient } from "./net";
 import { EMPTY_RAID_ID, SessionIdSchema, type PlaybackState } from "../shared/protocol";
+import pkg from "../../package.json";
 
 async function createRaidHudSelect(net: NetClient, initialRaidId: string, initialIsHost: boolean): Promise<() => void> {
   let isHost = initialIsHost;
@@ -157,6 +158,17 @@ async function main(): Promise<void> {
   });
   document.getElementById("settings-close")!.addEventListener("click", () => {
     settingsPanel.style.display = "none";
+    setHudHidden(false);
+  });
+
+  const infoPanel = document.getElementById("info-panel")!;
+  document.getElementById("info-version")!.textContent = `v${pkg.version}`;
+  document.getElementById("info-btn")!.addEventListener("click", () => {
+    infoPanel.style.display = "block";
+    setHudHidden(true);
+  });
+  document.getElementById("info-close")!.addEventListener("click", () => {
+    infoPanel.style.display = "none";
     setHudHidden(false);
   });
 
