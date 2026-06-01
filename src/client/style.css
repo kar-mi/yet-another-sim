@@ -137,6 +137,15 @@ body:focus-visible {
   margin-bottom: 18px;
 }
 
+.settings-group-header {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: rgba(212, 168, 67, 0.8);
+  margin: 4px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(100, 115, 175, 0.15);
+}
+
 .settings-label {
   font-size: 10px;
   letter-spacing: 1px;

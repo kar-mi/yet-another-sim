@@ -119,7 +119,6 @@ async function main(): Promise<void> {
   const camAccelToggle = document.getElementById("cam-accel-toggle") as HTMLInputElement;
   const camAccelStrength = document.getElementById("cam-accel-strength") as HTMLInputElement;
   const camAccelStrengthVal = document.getElementById("cam-accel-strength-val")!;
-  const invertYToggle = document.getElementById("invert-y-toggle") as HTMLInputElement;
   const panBtns = document.querySelectorAll<HTMLInputElement>('input[name="panBtn"]');
   const uiScaleBtns = document.querySelectorAll<HTMLInputElement>('input[name="uiScale"]');
   const settingsPanel = document.getElementById("settings-panel")!;
@@ -135,7 +134,6 @@ async function main(): Promise<void> {
   camAccelToggle.checked = settings.cameraAccel;
   camAccelStrength.value = String(settings.cameraAccelStrength);
   camAccelStrengthVal.textContent = settings.cameraAccelStrength.toFixed(1);
-  invertYToggle.checked = settings.invertCameraY;
   panBtns.forEach(btn => { btn.checked = btn.value === settings.panButton; });
   uiScaleBtns.forEach(btn => { btn.checked = parseFloat(btn.value) === settings.uiScale; });
   applyUiScale(settings.uiScale);
@@ -148,11 +146,19 @@ async function main(): Promise<void> {
   };
   syncKeybindLabels();
 
+  // Hide the gameplay HUD (hotbar + HP/MP bars) while the settings panel is open.
+  const setHudHidden = (hidden: boolean) => {
+    const hud = document.getElementById("yas-hud");
+    if (hud) hud.style.display = hidden ? "none" : "";
+  };
+
   document.getElementById("settings-btn")!.addEventListener("click", () => {
     settingsPanel.style.display = "block";
+    setHudHidden(true);
   });
   document.getElementById("settings-close")!.addEventListener("click", () => {
     settingsPanel.style.display = "none";
+    setHudHidden(false);
   });
 
   sensitivitySlider.addEventListener("input", () => {
@@ -178,12 +184,6 @@ async function main(): Promise<void> {
   camAccelStrength.addEventListener("input", () => {
     settings.cameraAccelStrength = parseFloat(camAccelStrength.value);
     camAccelStrengthVal.textContent = settings.cameraAccelStrength.toFixed(1);
-    saveSettings(settings);
-    renderer?.applySettings(settings);
-  });
-
-  invertYToggle.addEventListener("change", () => {
-    settings.invertCameraY = invertYToggle.checked;
     saveSettings(settings);
     renderer?.applySettings(settings);
   });

@@ -55,7 +55,6 @@ export class BabylonRenderer implements Renderer {
   private controllerSensitivity = 2.0;
   private cameraAccel = false;
   private cameraAccelStrength = 1;
-  private invertCameraY = false;
   private camAccelFactor = 1;
   private onPanDown!: (e: PointerEvent) => void;
   private onPanUp!: (e: PointerEvent) => void;
@@ -178,9 +177,8 @@ export class BabylonRenderer implements Renderer {
     this.controllerSensitivity = s.controllerSensitivity;
     this.cameraAccel = s.cameraAccel;
     this.cameraAccelStrength = s.cameraAccelStrength;
-    this.invertCameraY = s.invertCameraY;
     this.camera.angularSensibilityX = sens;
-    this.camera.angularSensibilityY = s.invertCameraY ? -sens : sens;
+    this.camera.angularSensibilityY = sens;
     const mouseInput = this.camera.inputs.attached.pointers as ArcRotateCameraPointersInput | undefined;
     if (mouseInput) mouseInput.buttons = [this.panButtonCode];
     this.hud.applySettings(s);
@@ -204,9 +202,8 @@ export class BabylonRenderer implements Renderer {
       this.camAccelFactor = 1;
     }
     s *= this.camAccelFactor;
-    const yDir = this.invertCameraY ? -1 : 1;
     this.camera.alpha -= dx * s * dt;
-    this.camera.beta = Math.max(0.1, Math.min(Math.PI / 2, this.camera.beta - yDir * dy * s * dt));
+    this.camera.beta = Math.max(0.1, Math.min(Math.PI / 2, this.camera.beta - dy * s * dt));
   }
 
   dispose(): void {

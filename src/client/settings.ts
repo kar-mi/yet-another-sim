@@ -17,7 +17,6 @@ export interface Settings {
   controllerDeadzone: number;
   cameraAccel: boolean;
   cameraAccelStrength: number;
-  invertCameraY: boolean;
   uiScale: number;
 }
 
@@ -40,7 +39,6 @@ const DEFAULTS: Settings = {
   controllerDeadzone: 0.15,
   cameraAccel: false,
   cameraAccelStrength: 1,
-  invertCameraY: false,
   uiScale: 1.125,
 };
 
