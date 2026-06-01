@@ -262,9 +262,14 @@ export class HudOverlay {
         this.partyRows.set(player.id, row);
       }
     }
+    // Spectate camera buttons only work while the local player is dead (or has no slot).
+    const localAlive = this.localPlayerId
+      ? (world.players.find(pl => pl.id === this.localPlayerId)?.alive ?? false)
+      : false;
     for (const player of world.players) {
       const row = this.partyRows.get(player.id);
       if (!row) continue;
+      if (row.camBtn) row.camBtn.disabled = localAlive;
       const hpPct = clamp01(player.hp / player.maxHp) * 100;
       const mpPct = clamp01(player.mp / player.maxMp) * 100;
       row.hpFill.style.width = `${hpPct}%`;

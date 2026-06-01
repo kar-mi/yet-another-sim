@@ -430,6 +430,12 @@ body:focus-visible {
 
 .party-cam-btn:hover { background: rgba(255, 255, 255, 0.18); }
 
+.party-cam-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .party-cam-btn.party-cam-active {
   border-color: #c8b87a;
   background: rgba(200, 184, 122, 0.35);
