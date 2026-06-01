@@ -185,6 +185,29 @@ test("player survives when outside AOE at resolve", () => {
   expect(human(world).hp).toBe(100);
 });
 
+test("toggleInvincibility intent flips the flag", () => {
+  const world0 = createWorld(loadRaid(baseRaid));
+  expect(human(world0).invincible).toBe(false);
+  const world1 = tick(world0, { [HUMAN]: { move: { x: 0, z: 0 }, toggleInvincibility: true } }, 1 / 60);
+  expect(human(world1).invincible).toBe(true);
+  const world2 = tick(world1, { [HUMAN]: { move: { x: 0, z: 0 }, toggleInvincibility: true } }, 1 / 60);
+  expect(human(world2).invincible).toBe(false);
+});
+
+test("invincible player takes no damage and cannot die in an AOE", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{ t: 3, name: "LethalAOE", telegraph: 2, damage: 999, damageType: "physical" as const, shape: { kind: "circle", center: [0, 0], radius: 10 } }],
+    players: roster({ m1: { spawn: [0, 0] } }),
+  });
+  // Toggle invincibility on with a single intent, then idle through the AOE resolve.
+  let world = tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 }, toggleInvincibility: true } }, 1 / 60);
+  expect(human(world).invincible).toBe(true);
+  world = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(5.1 * 60));
+  expect(human(world).hp).toBe(100);
+  expect(human(world).alive).toBe(true);
+});
+
 test("physical vuln amplifies matching damage and is consumed", () => {
   const raid = loadRaid({
     ...baseRaid,

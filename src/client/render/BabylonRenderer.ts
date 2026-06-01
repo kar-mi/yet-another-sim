@@ -50,6 +50,7 @@ export class BabylonRenderer implements Renderer {
   private floorMeshes: Mesh[] = [];
   private arenaKey = "";
   private localPlayerId: string | null = null;
+  private spectateTargetId: string | null = null;
   private onResize!: () => void;
   private panButtonCode: number = 2;
   private controllerSensitivity = 2.0;
@@ -127,7 +128,7 @@ export class BabylonRenderer implements Renderer {
     this.tethers = new TetherLayer(this.scene);
     this.chains = new ChainLayer(this.scene);
     this.towers = new TowerLayer(this.scene);
-    this.hud = new HudOverlay(sessionId, this.localPlayerId, this.onSettingsChange);
+    this.hud = new HudOverlay(sessionId, this.localPlayerId, this.onSettingsChange, id => this.setSpectateTarget(id));
 
     this.onResize = () => this.engine.resize();
     window.addEventListener("resize", this.onResize);
@@ -151,9 +152,12 @@ export class BabylonRenderer implements Renderer {
     this.players.sync(world.players);
     this.boss.sync(world.boss);
 
-    const alive = world.players.find(p => p.id === this.localPlayerId && p.alive)
-      ?? world.players.find(p => p.alive);
-    if (alive) this.camera.target.set(alive.pos.x, 0, alive.pos.z);
+    const local = world.players.find(p => p.id === this.localPlayerId);
+    const focus = local?.alive
+      ? local
+      : (world.players.find(p => p.id === this.spectateTargetId && p.alive)
+          ?? world.players.find(p => p.alive));
+    if (focus) this.camera.target.set(focus.pos.x, 0, focus.pos.z);
 
     for (const player of world.players) {
       this.healthBars.set(playerBarId(player.id), player.hp / player.maxHp, player.alive);
@@ -182,6 +186,10 @@ export class BabylonRenderer implements Renderer {
     const mouseInput = this.camera.inputs.attached.pointers as ArcRotateCameraPointersInput | undefined;
     if (mouseInput) mouseInput.buttons = [this.panButtonCode];
     this.hud.applySettings(s);
+  }
+
+  setSpectateTarget(id: string): void {
+    this.spectateTargetId = id;
   }
 
   getCameraYaw(): number {

@@ -1,5 +1,5 @@
 import type { World, Player } from "../../shared/types";
-import { pressAction, triggerSprint, triggerAntiKb } from "../input";
+import { pressAction, triggerSprint, triggerAntiKb, toggleInvincibility } from "../input";
 import { SPRINT_COOLDOWN, ANTI_KB_COOLDOWN } from "../../engine/sim";
 import { keyLabel, CONTROLLER_BUTTON_LABELS } from "../settings";
 import type { Settings, ControllerType } from "../settings";
@@ -12,6 +12,7 @@ export class HudOverlay {
   private mpFill: HTMLDivElement;
   private hpVal: HTMLSpanElement;
   private mpVal: HTMLSpanElement;
+  private invulnBtn: HTMLButtonElement;
   private sprintSlot: HTMLDivElement;
   private sprintKeybind: HTMLSpanElement;
   private sprintCdOverlay: HTMLDivElement;
@@ -26,7 +27,7 @@ export class HudOverlay {
   private ctrlAntiKbCdText!: HTMLDivElement;
   private sessionEl: HTMLDivElement;
   private partyEl!: HTMLDivElement;
-  private partyRows = new Map<string, { hpFill: HTMLDivElement; mpFill: HTMLDivElement; rowEl: HTMLDivElement; effectsEl: HTMLDivElement }>();
+  private partyRows = new Map<string, { hpFill: HTMLDivElement; mpFill: HTMLDivElement; rowEl: HTMLDivElement; effectsEl: HTMLDivElement; camBtn?: HTMLButtonElement }>();
   private castBarEl!: HTMLDivElement;
   private castNameEl!: HTMLDivElement;
   private castFillEl!: HTMLDivElement;
@@ -44,6 +45,7 @@ export class HudOverlay {
     sessionId: string,
     private readonly localPlayerId: string | null = null,
     private onSettingsChange: (settings: Settings) => void = () => {},
+    private onSpectate: (id: string) => void = () => {},
   ) {
     this.root = this.buildHud();
     document.body.appendChild(this.root);
@@ -52,6 +54,7 @@ export class HudOverlay {
     this.mpFill = this.root.querySelector<HTMLDivElement>(".yas-mp-fill")!;
     this.hpVal = this.root.querySelector<HTMLSpanElement>("[data-hp-val]")!;
     this.mpVal = this.root.querySelector<HTMLSpanElement>("[data-mp-val]")!;
+    this.invulnBtn = this.root.querySelector<HTMLButtonElement>(".yas-invuln-btn")!;
     this.sprintSlot = this.root.querySelector<HTMLDivElement>("[data-slot='0']")!;
     this.sprintKeybind = this.sprintSlot.querySelector<HTMLSpanElement>(".yas-keybind")!;
     this.sprintCdOverlay = this.sprintSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
@@ -139,9 +142,23 @@ export class HudOverlay {
     return root;
   }
 
-  private buildPartyRow(player: Player): { hpFill: HTMLDivElement; mpFill: HTMLDivElement; rowEl: HTMLDivElement; effectsEl: HTMLDivElement } {
+  private buildPartyRow(player: Player): { hpFill: HTMLDivElement; mpFill: HTMLDivElement; rowEl: HTMLDivElement; effectsEl: HTMLDivElement; camBtn?: HTMLButtonElement } {
     const rowEl = document.createElement("div");
     rowEl.className = "party-member";
+
+    // Other players get a camera button to spectate them (only takes effect while you're dead).
+    let camBtn: HTMLButtonElement | undefined;
+    if (player.id !== this.localPlayerId) {
+      camBtn = document.createElement("button");
+      camBtn.className = "party-cam-btn";
+      camBtn.textContent = "📷";
+      camBtn.title = `Spectate ${player.role.toUpperCase()}`;
+      camBtn.addEventListener("click", () => {
+        this.onSpectate(player.id);
+        for (const row of this.partyRows.values()) row.camBtn?.classList.remove("party-cam-active");
+        camBtn!.classList.add("party-cam-active");
+      });
+    }
 
     const nameEl = document.createElement("span");
     nameEl.className = "party-name";
@@ -164,8 +181,9 @@ export class HudOverlay {
     const effectsEl = document.createElement("div");
     effectsEl.className = "party-effects";
 
+    if (camBtn) rowEl.appendChild(camBtn);
     rowEl.append(nameEl, hpTrack, mpTrack, effectsEl);
-    return { hpFill, mpFill, rowEl, effectsEl };
+    return { hpFill, mpFill, rowEl, effectsEl, camBtn };
   }
 
   applySettings(settings: Settings): void {
@@ -201,6 +219,7 @@ export class HudOverlay {
     this.ctrlSprintSlot.addEventListener("click", () => pressAction(7));
     this.antiKbSlot.addEventListener("click", () => triggerAntiKb());
     this.ctrlAntiKbSlot.addEventListener("click", () => pressAction(6));
+    this.invulnBtn.addEventListener("click", () => { this.invulnBtn.blur(); toggleInvincibility(); });
 
     this.root.querySelectorAll<HTMLDivElement>(".yas-slot").forEach(slot => {
       slot.addEventListener("mousedown", () => this.flashSlot(slot));
@@ -284,6 +303,7 @@ export class HudOverlay {
     const hpPct = clamp01(p.hp / p.maxHp) * 100;
     this.hpFill.style.width = `${hpPct}%`;
     this.hpVal.textContent = `${Math.round(p.hp)} / ${p.maxHp}`;
+    this.invulnBtn.classList.toggle("is-active", p.invincible);
 
     const mpPct = clamp01(p.mp / p.maxMp) * 100;
     this.mpFill.style.width = `${mpPct}%`;

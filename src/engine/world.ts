@@ -47,6 +47,7 @@ export function createWorld(raid: RaidDef): World {
     sprintCooldown: 0,
     antiKbActive: 0,
     antiKbCooldown: 0,
+    invincible: false,
     alive: true,
     effects: [],
   }));
