@@ -8,7 +8,7 @@ import {
   type ServerMessage,
 } from "../src/shared/protocol";
 import { SessionManager } from "./session";
-import { logger } from "./logger";
+import { logger, createSessionLog } from "./logger";
 
 const ROOT = join(import.meta.dir, "..");
 const BUNDLE_DIR = join(ROOT, ".bundle");
@@ -87,6 +87,7 @@ const manager = new SessionManager({
     const ws = clients.get(clientId);
     if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message));
   },
+  createSessionLog,
 });
 setInterval(() => manager.pruneExpired(), 60_000);
 

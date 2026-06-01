@@ -5,8 +5,19 @@ import type { RaidDef } from "../src/engine/raidSchema";
 import { tick } from "../src/engine/sim";
 import { createWorld } from "../src/engine/world";
 import { CLOCK_SPOTS, EMPTY_RAID_ID, ROSTER, type ClientMessage, type LobbySlot, type LobbyStatus, type ServerMessage } from "../src/shared/protocol";
-import type { Intent, Intents, World } from "../src/shared/types";
+import type { Intent, Intents, LogEntry, World } from "../src/shared/types";
 import { logger } from "../src/shared/logger";
+
+/**
+ * Per-session sink for simulation events (the entries the engine pushes onto
+ * `world.log`). Written unconditionally — independent of the global LOG_LEVEL
+ * app-log filter — so a raid's event history is always captured. Injected by
+ * the server entry; left undefined in tests so no files are touched.
+ */
+export interface SessionLog {
+  event(entry: LogEntry): void;
+  close(): void;
+}
 
 const DT = 1 / 60;
 const TICK_MS = 1000 / 60;
@@ -67,6 +78,7 @@ export interface SessionOptions {
   now?: () => number;
   autoTick?: boolean;
   lobbyTimeoutMs?: number;
+  createSessionLog?: (sessionId: string) => SessionLog;
 }
 
 export class Session {
@@ -90,6 +102,7 @@ export class Session {
   private tickAccumulator = 0;
   private lastTickAt = 0;
   private loggedLogIndex = 0;
+  private readonly sessionLog: SessionLog | null;
 
   constructor(options: SessionOptions) {
     this.id = options.id;
@@ -99,6 +112,7 @@ export class Session {
     this.now = options.now ?? Date.now;
     this.autoTick = options.autoTick ?? true;
     this.lobbyTimeoutMs = options.lobbyTimeoutMs ?? LOBBY_TIMEOUT_MS;
+    this.sessionLog = options.createSessionLog?.(options.id) ?? null;
     this.lastActivity = this.now();
 
     for (const player of this.raid.players) this.slots.set(player.id, null);
@@ -378,11 +392,11 @@ export class Session {
   }
 
   private forwardSimLog(): void {
+    if (!this.sessionLog) return;
     const log = this.world.log;
     if (this.loggedLogIndex > log.length) this.loggedLogIndex = 0; // world was reset
     for (let i = this.loggedLogIndex; i < log.length; i++) {
-      const entry = log[i]!;
-      logger.debug("sim", entry.event, { session: this.id, mechanic: entry.mechanic, playerId: entry.playerId, t: entry.t });
+      this.sessionLog.event(log[i]!);
     }
     this.loggedLogIndex = log.length;
   }
@@ -393,6 +407,7 @@ export class Session {
 
   dispose(): void {
     this.stopTick();
+    this.sessionLog?.close();
   }
 
   private touch(): void {
@@ -535,6 +550,7 @@ export interface SessionManagerOptions {
   send: SendMessage;
   now?: () => number;
   lobbyTimeoutMs?: number;
+  createSessionLog?: (sessionId: string) => SessionLog;
 }
 
 export class SessionManager {
@@ -545,12 +561,14 @@ export class SessionManager {
   private readonly clientSessions = new Map<string, string>();
   private readonly now?: () => number;
   private readonly lobbyTimeoutMs?: number;
+  private readonly createSessionLog?: (sessionId: string) => SessionLog;
 
   constructor(options: SessionManagerOptions) {
     this.raidsDir = options.raidsDir;
     this.send = options.send;
     this.now = options.now;
     this.lobbyTimeoutMs = options.lobbyTimeoutMs;
+    this.createSessionLog = options.createSessionLog;
   }
 
   async handle(clientId: string, message: ClientMessage): Promise<void> {
@@ -613,6 +631,7 @@ export class SessionManager {
           send: this.send,
           now: this.now,
           lobbyTimeoutMs: this.lobbyTimeoutMs,
+          createSessionLog: this.createSessionLog,
         });
         this.sessions.set(sessionId, session);
       }
