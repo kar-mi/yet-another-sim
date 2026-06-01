@@ -432,7 +432,7 @@ test("status does not become cleared for an empty raid", () => {
 test("player falls and dies when walking off arena", () => {
   const raid = loadRaid({ ...baseRaid, players: roster({ m1: { spawn: [0, 0] } }) });
   // Move toward +Z edge (arena radius 20, player starts at [0,0]), then fall past the death floor.
-  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 1 } } }, Math.ceil(4 * 60));
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 1 } } }, Math.ceil(6 * 60));
   expect(human(world).alive).toBe(false);
   const fellEntries = world.log.filter(e => e.event === "fell" && e.playerId === HUMAN);
   expect(fellEntries.length).toBeGreaterThan(0);

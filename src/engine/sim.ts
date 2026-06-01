@@ -22,7 +22,8 @@ import { add, sub, scale, normalize, length } from "../shared/math";
 import { pointInShape, isOnFloor } from "./shapes";
 import { promotePending } from "./timeline";
 
-export const MOVE_SPEED = 8;
+export const MOVE_SPEED = 6;
+export const SPRINT_MULTIPLIER = 1.3;
 export const JUMP_SPEED = 9;
 export const GRAVITY = 24;
 export const DEATH_FLOOR_Y = -10; // players die after falling this far below the arena floor
@@ -155,7 +156,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
 
     // Forced movement (knockback/knockup) suppresses normal input while it carries the player.
     const beingKnocked = length(player.knockbackVelocity) > 1e-6;
-    const speed = player.sprintActive > 0 ? MOVE_SPEED * 1.5 : MOVE_SPEED;
+    const speed = player.sprintActive > 0 ? MOVE_SPEED * SPRINT_MULTIPLIER : MOVE_SPEED;
     if (!beingKnocked && intent && length(intent.move) > 0) {
       player.pos = add(player.pos, scale(normalize(intent.move), speed * dt));
     }
