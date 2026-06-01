@@ -15,6 +15,9 @@ export interface Settings {
   hotbarMode: "kbm" | "controller";
   controllerSensitivity: number;
   controllerDeadzone: number;
+  cameraAccel: boolean;
+  cameraAccelStrength: number;
+  uiScale: number;
 }
 
 export const DEFAULT_BINDINGS: KeyBindings = {
@@ -34,6 +37,9 @@ const DEFAULTS: Settings = {
   hotbarMode: "kbm",
   controllerSensitivity: 2.0,
   controllerDeadzone: 0.15,
+  cameraAccel: false,
+  cameraAccelStrength: 1,
+  uiScale: 1.125,
 };
 
 const KEY = "yas_settings";

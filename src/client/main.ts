@@ -103,7 +103,6 @@ async function main(): Promise<void> {
 
   const sessionParam = new URLSearchParams(location.search).get("s");
   const parsedSession = sessionParam ? SessionIdSchema.safeParse(sessionParam.toLowerCase()) : null;
-  const sessionId = parsedSession?.success ? parsedSession.data : await showLanding();
 
   const net = await connect();
   const settings = loadSettings();
@@ -114,12 +113,29 @@ async function main(): Promise<void> {
 
   const sensitivitySlider = document.getElementById("sensitivity-slider") as HTMLInputElement;
   const sensitivityVal = document.getElementById("sensitivity-val")!;
+  const ctrlSensSlider = document.getElementById("ctrl-sens-slider") as HTMLInputElement;
+  const ctrlSensVal = document.getElementById("ctrl-sens-val")!;
+  const camAccelToggle = document.getElementById("cam-accel-toggle") as HTMLInputElement;
+  const camAccelStrength = document.getElementById("cam-accel-strength") as HTMLInputElement;
+  const camAccelStrengthVal = document.getElementById("cam-accel-strength-val")!;
   const panBtns = document.querySelectorAll<HTMLInputElement>('input[name="panBtn"]');
+  const uiScaleBtns = document.querySelectorAll<HTMLInputElement>('input[name="uiScale"]');
   const settingsPanel = document.getElementById("settings-panel")!;
+
+  const applyUiScale = (scale: number) => {
+    document.documentElement.style.setProperty("--ui-scale", String(scale));
+  };
 
   sensitivitySlider.value = String(settings.mouseSensitivity);
   sensitivityVal.textContent = settings.mouseSensitivity.toFixed(1);
+  ctrlSensSlider.value = String(settings.controllerSensitivity);
+  ctrlSensVal.textContent = settings.controllerSensitivity.toFixed(1);
+  camAccelToggle.checked = settings.cameraAccel;
+  camAccelStrength.value = String(settings.cameraAccelStrength);
+  camAccelStrengthVal.textContent = settings.cameraAccelStrength.toFixed(1);
   panBtns.forEach(btn => { btn.checked = btn.value === settings.panButton; });
+  uiScaleBtns.forEach(btn => { btn.checked = parseFloat(btn.value) === settings.uiScale; });
+  applyUiScale(settings.uiScale);
 
   const syncKeybindLabels = () => {
     document.querySelectorAll<HTMLButtonElement>(".keybind-btn").forEach(btn => {
@@ -129,11 +145,19 @@ async function main(): Promise<void> {
   };
   syncKeybindLabels();
 
+  // Hide the gameplay HUD (hotbar + HP/MP bars) while the settings panel is open.
+  const setHudHidden = (hidden: boolean) => {
+    const hud = document.getElementById("yas-hud");
+    if (hud) hud.style.display = hidden ? "none" : "";
+  };
+
   document.getElementById("settings-btn")!.addEventListener("click", () => {
     settingsPanel.style.display = "block";
+    setHudHidden(true);
   });
   document.getElementById("settings-close")!.addEventListener("click", () => {
     settingsPanel.style.display = "none";
+    setHudHidden(false);
   });
 
   sensitivitySlider.addEventListener("input", () => {
@@ -141,6 +165,36 @@ async function main(): Promise<void> {
     sensitivityVal.textContent = settings.mouseSensitivity.toFixed(1);
     saveSettings(settings);
     renderer?.applySettings(settings);
+  });
+
+  ctrlSensSlider.addEventListener("input", () => {
+    settings.controllerSensitivity = parseFloat(ctrlSensSlider.value);
+    ctrlSensVal.textContent = settings.controllerSensitivity.toFixed(1);
+    saveSettings(settings);
+    renderer?.applySettings(settings);
+  });
+
+  camAccelToggle.addEventListener("change", () => {
+    settings.cameraAccel = camAccelToggle.checked;
+    saveSettings(settings);
+    renderer?.applySettings(settings);
+  });
+
+  camAccelStrength.addEventListener("input", () => {
+    settings.cameraAccelStrength = parseFloat(camAccelStrength.value);
+    camAccelStrengthVal.textContent = settings.cameraAccelStrength.toFixed(1);
+    saveSettings(settings);
+    renderer?.applySettings(settings);
+  });
+
+  uiScaleBtns.forEach(btn => {
+    btn.addEventListener("change", () => {
+      if (btn.checked) {
+        settings.uiScale = parseFloat(btn.value);
+        saveSettings(settings);
+        applyUiScale(settings.uiScale);
+      }
+    });
   });
 
   panBtns.forEach(btn => {
@@ -167,9 +221,9 @@ async function main(): Promise<void> {
       document.querySelectorAll(".settings-tab").forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
       const target = tab.dataset.tab!;
-      (document.getElementById("tab-camera") as HTMLElement).style.display = target === "camera" ? "" : "none";
-      (document.getElementById("tab-controls") as HTMLElement).style.display = target === "controls" ? "" : "none";
-      (document.getElementById("tab-controller") as HTMLElement).style.display = target === "controller" ? "" : "none";
+      document.querySelectorAll<HTMLElement>("[id^='tab-']").forEach(panel => {
+        panel.style.display = panel.id === `tab-${target}` ? "" : "none";
+      });
     });
   });
 
@@ -251,6 +305,10 @@ async function main(): Promise<void> {
     currentTeardown();
     net.close();
   });
+
+  // Resolve the session id only after the settings handlers are wired, so the ⚙ panel
+  // also works on the landing page (base URL with no ?s= param).
+  const sessionId = parsedSession?.success ? parsedSession.data : await showLanding();
 
   // Each iteration is one sim session: pick a class in the lobby, play, click Home to come back.
   for (;;) {

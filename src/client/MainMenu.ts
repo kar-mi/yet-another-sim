@@ -46,17 +46,7 @@ export async function loadRaidOptions(): Promise<RaidEntry[]> {
     .slice(0, MAX_RAIDS);
 }
 
-function setMenuSettingsVisible(visible: boolean): () => void {
-  const settingsBtn = document.getElementById("settings-btn");
-  if (settingsBtn) settingsBtn.style.display = visible ? "" : "none";
-  return () => {
-    if (settingsBtn) settingsBtn.style.display = "";
-  };
-}
-
 export function showLanding(): Promise<string> {
-  const restoreSettings = setMenuSettingsVisible(false);
-
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
     overlay.id = "yas-menu";
@@ -67,7 +57,6 @@ export function showLanding(): Promise<string> {
 
     const cleanup = () => {
       overlay.remove();
-      restoreSettings();
     };
 
     const createSession = () => {
@@ -95,8 +84,6 @@ export function showLanding(): Promise<string> {
 }
 
 export async function showLobby(net: NetClient, sessionId: string): Promise<{ world: World; yourPlayerId: string; sessionId: string; raidId: string; isHost: boolean }> {
-  const restoreSettings = setMenuSettingsVisible(false);
-
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
     overlay.id = "yas-menu";
@@ -117,7 +104,6 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<{ wo
     const cleanup = () => {
       for (const dispose of disposers) dispose();
       overlay.remove();
-      restoreSettings();
     };
 
     const renderHeader = (subtitle: string) => {

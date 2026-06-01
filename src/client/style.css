@@ -34,6 +34,13 @@ body:focus-visible {
   outline: none;
 }
 
+/* ===== UI SCALE (accessibility) ===== */
+/* Zoom each overlay container by --ui-scale; leaves the 3D #canvas untouched. */
+#yas-hud, #yas-party, #yas-cast-bar, #yas-status, #yas-session-id,
+#yas-raid-select, #settings-panel, #home-btn, #settings-btn, #yas-menu {
+  zoom: var(--ui-scale, 1);
+}
+
 /* ===== HOME BUTTON ===== */
 #home-btn {
   display: none;
@@ -66,7 +73,7 @@ body:focus-visible {
   position: fixed;
   top: 12px;
   right: 12px;
-  z-index: 10;
+  z-index: 210;
   background: rgba(6, 7, 18, 0.88);
   border: 1px solid rgba(100, 115, 175, 0.25);
   color: rgba(195, 205, 225, 0.7);
@@ -106,7 +113,7 @@ body:focus-visible {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 20;
+  z-index: 220;
   background: rgba(6, 7, 18, 0.96);
   border: 1px solid rgba(100, 115, 175, 0.25);
   border-radius: 5px;
@@ -128,6 +135,15 @@ body:focus-visible {
 
 .settings-field {
   margin-bottom: 18px;
+}
+
+.settings-group-header {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: rgba(212, 168, 67, 0.8);
+  margin: 4px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(100, 115, 175, 0.15);
 }
 
 .settings-label {
@@ -176,6 +192,22 @@ body:focus-visible {
 
 .settings-radio-option input[type="radio"] {
   accent-color: rgba(212, 168, 67, 0.85);
+}
+
+.settings-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: rgba(175, 185, 215, 0.55);
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-check input[type="checkbox"] {
+  accent-color: rgba(212, 168, 67, 0.85);
+  cursor: pointer;
 }
 
 .settings-footer {
