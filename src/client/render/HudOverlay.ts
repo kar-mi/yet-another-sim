@@ -269,7 +269,8 @@ export class HudOverlay {
     for (const player of world.players) {
       const row = this.partyRows.get(player.id);
       if (!row) continue;
-      if (row.camBtn) row.camBtn.disabled = localAlive;
+      // Clickable only while spectating (local dead) and only for a target that's still alive.
+      if (row.camBtn) row.camBtn.disabled = localAlive || !player.alive;
       const hpPct = clamp01(player.hp / player.maxHp) * 100;
       const mpPct = clamp01(player.mp / player.maxMp) * 100;
       row.hpFill.style.width = `${hpPct}%`;
