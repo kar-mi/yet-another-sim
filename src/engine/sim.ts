@@ -159,6 +159,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
     const speed = player.sprintActive > 0 ? MOVE_SPEED * SPRINT_MULTIPLIER : MOVE_SPEED;
     if (!beingKnocked && intent && length(intent.move) > 0) {
       player.pos = add(player.pos, scale(normalize(intent.move), speed * dt));
+      player.facing = Math.atan2(intent.move.x, intent.move.z);
     }
     if (beingKnocked) {
       player.pos = add(player.pos, scale(player.knockbackVelocity, dt));
