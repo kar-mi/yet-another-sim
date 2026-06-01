@@ -31,6 +31,9 @@ RegisterEngineUniformBuffer();
 const playerBarId = (id: string) => `player:${id}`;
 const bossBarId = (id: string) => `boss:${id}`;
 
+// Rate at which controller-camera acceleration ramps toward its target multiplier (~reaches it in <1s).
+const CAMERA_ACCEL_RAMP = 3;
+
 export class BabylonRenderer implements Renderer {
   private engine!: Engine;
   private scene!: Scene;
@@ -50,6 +53,10 @@ export class BabylonRenderer implements Renderer {
   private onResize!: () => void;
   private panButtonCode: number = 2;
   private controllerSensitivity = 2.0;
+  private cameraAccel = false;
+  private cameraAccelStrength = 1;
+  private invertCameraY = false;
+  private camAccelFactor = 1;
   private onPanDown!: (e: PointerEvent) => void;
   private onPanUp!: (e: PointerEvent) => void;
   private onLockChange!: () => void;
@@ -169,8 +176,11 @@ export class BabylonRenderer implements Renderer {
     const sens = 2000 / s.mouseSensitivity;
     this.panButtonCode = s.panButton === "right" ? 2 : 0;
     this.controllerSensitivity = s.controllerSensitivity;
+    this.cameraAccel = s.cameraAccel;
+    this.cameraAccelStrength = s.cameraAccelStrength;
+    this.invertCameraY = s.invertCameraY;
     this.camera.angularSensibilityX = sens;
-    this.camera.angularSensibilityY = sens;
+    this.camera.angularSensibilityY = s.invertCameraY ? -sens : sens;
     const mouseInput = this.camera.inputs.attached.pointers as ArcRotateCameraPointersInput | undefined;
     if (mouseInput) mouseInput.buttons = [this.panButtonCode];
     this.hud.applySettings(s);
@@ -186,9 +196,17 @@ export class BabylonRenderer implements Renderer {
   }
 
   applyControllerPan(dx: number, dy: number, dt: number): void {
-    const s = this.controllerSensitivity;
+    let s = this.controllerSensitivity;
+    if (this.cameraAccel) {
+      const target = Math.hypot(dx, dy) > 0 ? 1 + this.cameraAccelStrength : 1;
+      this.camAccelFactor += (target - this.camAccelFactor) * Math.min(1, dt * CAMERA_ACCEL_RAMP);
+    } else {
+      this.camAccelFactor = 1;
+    }
+    s *= this.camAccelFactor;
+    const yDir = this.invertCameraY ? -1 : 1;
     this.camera.alpha -= dx * s * dt;
-    this.camera.beta = Math.max(0.1, Math.min(Math.PI / 2, this.camera.beta - dy * s * dt));
+    this.camera.beta = Math.max(0.1, Math.min(Math.PI / 2, this.camera.beta - yDir * dy * s * dt));
   }
 
   dispose(): void {

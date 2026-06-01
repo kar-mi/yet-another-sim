@@ -34,6 +34,13 @@ body:focus-visible {
   outline: none;
 }
 
+/* ===== UI SCALE (accessibility) ===== */
+/* Zoom each overlay container by --ui-scale; leaves the 3D #canvas untouched. */
+#yas-hud, #yas-party, #yas-cast-bar, #yas-status, #yas-session-id,
+#yas-raid-select, #settings-panel, #home-btn, #settings-btn, #yas-menu {
+  zoom: var(--ui-scale, 1);
+}
+
 /* ===== HOME BUTTON ===== */
 #home-btn {
   display: none;
@@ -176,6 +183,22 @@ body:focus-visible {
 
 .settings-radio-option input[type="radio"] {
   accent-color: rgba(212, 168, 67, 0.85);
+}
+
+.settings-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: rgba(175, 185, 215, 0.55);
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-check input[type="checkbox"] {
+  accent-color: rgba(212, 168, 67, 0.85);
+  cursor: pointer;
 }
 
 .settings-footer {

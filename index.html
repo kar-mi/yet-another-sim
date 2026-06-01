@@ -20,12 +20,35 @@
       <button class="settings-tab active" data-tab="camera">CAMERA</button>
       <button class="settings-tab" data-tab="controls">CONTROLS</button>
       <button class="settings-tab" data-tab="controller">CONTROLLER</button>
+      <button class="settings-tab" data-tab="display">DISPLAY</button>
     </div>
 
     <div id="tab-camera">
       <div class="settings-field">
         <div class="settings-label">MOUSE SENSITIVITY: <span id="sensitivity-val" class="settings-value">1.0</span></div>
         <input id="sensitivity-slider" type="range" min="0.1" max="2" step="0.1" value="1">
+      </div>
+
+      <div class="settings-field">
+        <div class="settings-label">CONTROLLER SENSITIVITY: <span id="ctrl-sens-val" class="settings-value">2.0</span></div>
+        <input id="ctrl-sens-slider" type="range" min="0.5" max="6" step="0.5" value="2">
+      </div>
+
+      <div class="settings-field">
+        <label class="settings-check">
+          <input id="cam-accel-toggle" type="checkbox"> CAMERA ACCELERATION
+        </label>
+      </div>
+
+      <div class="settings-field">
+        <div class="settings-label">ACCELERATION STRENGTH: <span id="cam-accel-strength-val" class="settings-value">1.0</span></div>
+        <input id="cam-accel-strength" type="range" min="0" max="3" step="0.5" value="1">
+      </div>
+
+      <div class="settings-field">
+        <label class="settings-check">
+          <input id="invert-y-toggle" type="checkbox"> INVERT CAMERA Y
+        </label>
       </div>
 
       <div class="settings-field">
@@ -80,6 +103,29 @@
           <span id="controller-type-badge" class="controller-badge controller-badge--none">NO CONTROLLER</span>
           <span id="controller-name" class="controller-name"></span>
           <select id="controller-select" class="controller-select" style="display:none"></select>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-display" style="display:none">
+      <div class="settings-field">
+        <div class="settings-label">UI SCALE</div>
+        <div class="settings-radio-group">
+          <label class="settings-radio-option">
+            <input type="radio" name="uiScale" value="0.85"> XS
+          </label>
+          <label class="settings-radio-option">
+            <input type="radio" name="uiScale" value="1"> SMALL
+          </label>
+          <label class="settings-radio-option">
+            <input type="radio" name="uiScale" value="1.125"> NORMAL
+          </label>
+          <label class="settings-radio-option">
+            <input type="radio" name="uiScale" value="1.25"> LARGE
+          </label>
+          <label class="settings-radio-option">
+            <input type="radio" name="uiScale" value="1.5"> XL
+          </label>
         </div>
       </div>
     </div>

@@ -114,12 +114,31 @@ async function main(): Promise<void> {
 
   const sensitivitySlider = document.getElementById("sensitivity-slider") as HTMLInputElement;
   const sensitivityVal = document.getElementById("sensitivity-val")!;
+  const ctrlSensSlider = document.getElementById("ctrl-sens-slider") as HTMLInputElement;
+  const ctrlSensVal = document.getElementById("ctrl-sens-val")!;
+  const camAccelToggle = document.getElementById("cam-accel-toggle") as HTMLInputElement;
+  const camAccelStrength = document.getElementById("cam-accel-strength") as HTMLInputElement;
+  const camAccelStrengthVal = document.getElementById("cam-accel-strength-val")!;
+  const invertYToggle = document.getElementById("invert-y-toggle") as HTMLInputElement;
   const panBtns = document.querySelectorAll<HTMLInputElement>('input[name="panBtn"]');
+  const uiScaleBtns = document.querySelectorAll<HTMLInputElement>('input[name="uiScale"]');
   const settingsPanel = document.getElementById("settings-panel")!;
+
+  const applyUiScale = (scale: number) => {
+    document.documentElement.style.setProperty("--ui-scale", String(scale));
+  };
 
   sensitivitySlider.value = String(settings.mouseSensitivity);
   sensitivityVal.textContent = settings.mouseSensitivity.toFixed(1);
+  ctrlSensSlider.value = String(settings.controllerSensitivity);
+  ctrlSensVal.textContent = settings.controllerSensitivity.toFixed(1);
+  camAccelToggle.checked = settings.cameraAccel;
+  camAccelStrength.value = String(settings.cameraAccelStrength);
+  camAccelStrengthVal.textContent = settings.cameraAccelStrength.toFixed(1);
+  invertYToggle.checked = settings.invertCameraY;
   panBtns.forEach(btn => { btn.checked = btn.value === settings.panButton; });
+  uiScaleBtns.forEach(btn => { btn.checked = parseFloat(btn.value) === settings.uiScale; });
+  applyUiScale(settings.uiScale);
 
   const syncKeybindLabels = () => {
     document.querySelectorAll<HTMLButtonElement>(".keybind-btn").forEach(btn => {
@@ -141,6 +160,42 @@ async function main(): Promise<void> {
     sensitivityVal.textContent = settings.mouseSensitivity.toFixed(1);
     saveSettings(settings);
     renderer?.applySettings(settings);
+  });
+
+  ctrlSensSlider.addEventListener("input", () => {
+    settings.controllerSensitivity = parseFloat(ctrlSensSlider.value);
+    ctrlSensVal.textContent = settings.controllerSensitivity.toFixed(1);
+    saveSettings(settings);
+    renderer?.applySettings(settings);
+  });
+
+  camAccelToggle.addEventListener("change", () => {
+    settings.cameraAccel = camAccelToggle.checked;
+    saveSettings(settings);
+    renderer?.applySettings(settings);
+  });
+
+  camAccelStrength.addEventListener("input", () => {
+    settings.cameraAccelStrength = parseFloat(camAccelStrength.value);
+    camAccelStrengthVal.textContent = settings.cameraAccelStrength.toFixed(1);
+    saveSettings(settings);
+    renderer?.applySettings(settings);
+  });
+
+  invertYToggle.addEventListener("change", () => {
+    settings.invertCameraY = invertYToggle.checked;
+    saveSettings(settings);
+    renderer?.applySettings(settings);
+  });
+
+  uiScaleBtns.forEach(btn => {
+    btn.addEventListener("change", () => {
+      if (btn.checked) {
+        settings.uiScale = parseFloat(btn.value);
+        saveSettings(settings);
+        applyUiScale(settings.uiScale);
+      }
+    });
   });
 
   panBtns.forEach(btn => {
@@ -167,9 +222,9 @@ async function main(): Promise<void> {
       document.querySelectorAll(".settings-tab").forEach(t => t.classList.remove("active"));
       tab.classList.add("active");
       const target = tab.dataset.tab!;
-      (document.getElementById("tab-camera") as HTMLElement).style.display = target === "camera" ? "" : "none";
-      (document.getElementById("tab-controls") as HTMLElement).style.display = target === "controls" ? "" : "none";
-      (document.getElementById("tab-controller") as HTMLElement).style.display = target === "controller" ? "" : "none";
+      document.querySelectorAll<HTMLElement>("[id^='tab-']").forEach(panel => {
+        panel.style.display = panel.id === `tab-${target}` ? "" : "none";
+      });
     });
   });
 
