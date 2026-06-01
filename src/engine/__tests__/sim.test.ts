@@ -85,6 +85,20 @@ test("tick is deterministic", () => {
   expect(JSON.stringify(w1)).toBe(JSON.stringify(w2));
 });
 
+test("facing tracks movement direction and persists while idle", () => {
+  const raid = loadRaid(baseRaid);
+  const world = createWorld(raid);
+
+  const movedX = tick(world, { [HUMAN]: { move: { x: 1, z: 0 } } }, 1 / 60);
+  expect(human(movedX).facing).toBeCloseTo(Math.atan2(1, 0));
+
+  const movedZ = tick(movedX, { [HUMAN]: { move: { x: 0, z: 1 } } }, 1 / 60);
+  expect(human(movedZ).facing).toBeCloseTo(0);
+
+  const idle = tick(movedZ, { [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
+  expect(human(idle).facing).toBeCloseTo(human(movedZ).facing);
+});
+
 test("world includes a deterministic boss", () => {
   const raid = loadRaid(baseRaid);
   const world = createWorld(raid);
