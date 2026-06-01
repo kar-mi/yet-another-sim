@@ -8,6 +8,7 @@ import {
   type ServerMessage,
 } from "../src/shared/protocol";
 import { SessionManager } from "./session";
+import { logger } from "./logger";
 
 const ROOT = join(import.meta.dir, "..");
 const BUNDLE_DIR = join(ROOT, ".bundle");
@@ -41,7 +42,7 @@ async function loadRaidEntries(): Promise<RaidEntry[]> {
 
     const id = raidIdFromFile(file);
     if (!id) {
-      console.warn(`Skipping raid with invalid filename: ${file}`);
+      logger.warn("raid", "skipping raid with invalid filename", { file });
       continue;
     }
 
@@ -49,13 +50,13 @@ async function loadRaidEntries(): Promise<RaidEntry[]> {
     try {
       json = await Bun.file(join(RAIDS_DIR, file)).json() as { name?: unknown };
     } catch {
-      console.warn(`Skipping raid with invalid JSON: ${file}`);
+      logger.warn("raid", "skipping raid with invalid JSON", { file });
       continue;
     }
 
     const name = normalizeRaidName(json.name);
     if (!name) {
-      console.warn(`Skipping raid with invalid name: ${file}`);
+      logger.warn("raid", "skipping raid with invalid name", { file });
       continue;
     }
 
@@ -65,7 +66,7 @@ async function loadRaidEntries(): Promise<RaidEntry[]> {
   return raids;
 }
 
-console.log("Building client bundle...");
+logger.info("build", "building client bundle");
 const buildResult = await Bun.build({
   entrypoints: [join(ROOT, "index.html")],
   outdir: BUNDLE_DIR,
@@ -74,10 +75,10 @@ const buildResult = await Bun.build({
 });
 
 if (!buildResult.success) {
-  for (const log of buildResult.logs) console.error(log);
+  for (const log of buildResult.logs) logger.error("build", String(log));
   process.exit(1);
 }
-console.log("Bundle ready.");
+logger.info("build", "bundle ready");
 
 const clients = new Map<string, Bun.ServerWebSocket<SocketData>>();
 const manager = new SessionManager({
@@ -122,28 +123,30 @@ const server = Bun.serve<SocketData>({
     open(ws) {
       clients.set(ws.data.clientId, ws);
       ws.send(JSON.stringify({ type: "joined", clientId: ws.data.clientId } satisfies ServerMessage));
-      console.log("WS connected:", ws.remoteAddress);
+      logger.info("net", "WS connected", { addr: ws.remoteAddress, clientId: ws.data.clientId });
     },
     async message(ws, msg) {
       try {
         const text = typeof msg === "string" ? msg : new TextDecoder().decode(msg);
         const parsed = ClientMessageSchema.safeParse(JSON.parse(text));
         if (!parsed.success) {
+          logger.warn("net", "invalid message", { clientId: ws.data.clientId });
           ws.send(JSON.stringify({ type: "error", message: "Invalid message" } satisfies ServerMessage));
           return;
         }
 
         await manager.handle(ws.data.clientId, parsed.data);
       } catch {
+        logger.warn("net", "invalid JSON", { clientId: ws.data.clientId });
         ws.send(JSON.stringify({ type: "error", message: "Invalid JSON" } satisfies ServerMessage));
       }
     },
     close(ws) {
       clients.delete(ws.data.clientId);
       manager.disconnect(ws.data.clientId);
-      console.log("WS disconnected");
+      logger.debug("net", "WS disconnected", { clientId: ws.data.clientId });
     },
   },
 });
 
-console.log(`Dev server → http://localhost:${server.port}`);
+logger.info("server", "dev server listening", { url: `http://localhost:${server.port}` });

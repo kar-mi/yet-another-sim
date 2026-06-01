@@ -9,3 +9,4 @@ node_modules/
 dist/
 .bundle/
 .mcp.json
+logs/

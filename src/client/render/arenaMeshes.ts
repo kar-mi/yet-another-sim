@@ -7,6 +7,7 @@ import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTextur
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ZoneShape } from "../../shared/types";
+import { logger } from "../../shared/logger";
 
 export function createZoneMesh(scene: Scene, zone: ZoneShape): Mesh | null {
   const mat = new StandardMaterial("floor-mat", scene);
@@ -40,7 +41,7 @@ export function createZoneMesh(scene: Scene, zone: ZoneShape): Mesh | null {
       tex.vScale = zone.height / tileWorld;
       break;
     case "polygon":
-      console.warn("Polygon arena zones are not yet rendered");
+      logger.warn("render", "polygon arena zones are not yet rendered");
       return null;
   }
   mesh.material = mat;
