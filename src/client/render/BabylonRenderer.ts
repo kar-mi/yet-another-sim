@@ -74,7 +74,7 @@ export class BabylonRenderer implements Renderer {
     this.camera.movement.input.setInteraction("pointer", { button: 2 }, "rotate");
     this.camera.attachControl(false);
     this.camera.lowerRadiusLimit = 10;
-    this.camera.upperRadiusLimit = 40;
+    this.camera.upperRadiusLimit = 30;
     this.camera.upperBetaLimit = Math.PI / 2 - 0.05;
     this.canvas.addEventListener("contextmenu", e => e.preventDefault());
 
