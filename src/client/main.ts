@@ -103,7 +103,6 @@ async function main(): Promise<void> {
 
   const sessionParam = new URLSearchParams(location.search).get("s");
   const parsedSession = sessionParam ? SessionIdSchema.safeParse(sessionParam.toLowerCase()) : null;
-  const sessionId = parsedSession?.success ? parsedSession.data : await showLanding();
 
   const net = await connect();
   const settings = loadSettings();
@@ -306,6 +305,10 @@ async function main(): Promise<void> {
     currentTeardown();
     net.close();
   });
+
+  // Resolve the session id only after the settings handlers are wired, so the ⚙ panel
+  // also works on the landing page (base URL with no ?s= param).
+  const sessionId = parsedSession?.success ? parsedSession.data : await showLanding();
 
   // Each iteration is one sim session: pick a class in the lobby, play, click Home to come back.
   for (;;) {
