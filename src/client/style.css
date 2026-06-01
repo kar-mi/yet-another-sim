@@ -392,7 +392,7 @@ body:focus-visible {
 #yas-party {
   position: fixed;
   top: 12px;
-  left: 12px;
+  left: 38px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -412,13 +412,14 @@ body:focus-visible {
 
 .party-cam-btn {
   position: absolute;
-  top: 3px;
-  left: 4px;
-  width: 16px;
-  height: 16px;
+  top: 50%;
+  left: -28px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
   padding: 0;
-  line-height: 16px;
-  font-size: 10px;
+  line-height: 22px;
+  font-size: 12px;
   text-align: center;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(180, 160, 90, 0.4);
@@ -441,7 +442,6 @@ body:focus-visible {
   color: #c8b87a;
   letter-spacing: 0.05em;
   margin-bottom: 3px;
-  padding-left: 20px;
 }
 
 .party-hp-track,
@@ -587,11 +587,11 @@ body:focus-visible {
 .yas-invuln-btn {
   pointer-events: all;
   flex-shrink: 0;
-  width: 30px;
-  height: 18px;
+  width: 44px;
+  height: 26px;
   padding: 0;
-  font-size: 11px;
-  line-height: 16px;
+  font-size: 15px;
+  line-height: 24px;
   text-align: center;
   cursor: pointer;
   color: rgba(195, 205, 225, 0.55);

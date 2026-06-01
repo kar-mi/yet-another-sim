@@ -186,7 +186,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
       }
     }
 
-    if (player.y <= DEATH_FLOOR_Y && !player.invincible) {
+    // Falling off the map kills even an invincible player — invincibility only negates damage.
+    if (player.y <= DEATH_FLOOR_Y) {
       player.hp = 0;
       player.alive = false;
       player.verticalVelocity = 0;

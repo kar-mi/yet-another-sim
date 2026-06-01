@@ -438,6 +438,16 @@ test("player falls and dies when walking off arena", () => {
   expect(fellEntries.length).toBeGreaterThan(0);
 });
 
+test("invincible player still dies when falling off the map (invincibility only blocks damage)", () => {
+  const raid = loadRaid({ ...baseRaid, players: roster({ m1: { spawn: [0, 0] } }) });
+  // Enable invincibility, then keep walking off the +Z edge (arena radius 20).
+  let world = tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 1 }, toggleInvincibility: true } }, 1 / 60);
+  expect(human(world).invincible).toBe(true);
+  world = runTicks(world, { [HUMAN]: { move: { x: 0, z: 1 } } }, Math.ceil(6 * 60));
+  expect(human(world).alive).toBe(false);
+  expect(world.log.some(e => e.event === "fell" && e.playerId === HUMAN)).toBe(true);
+});
+
 test("player does not die instantly at the arena edge but starts falling", () => {
   const raid = loadRaid({ ...baseRaid, players: roster({ m1: { spawn: [0, 19.5] } }) });
   // Walk just past the +Z edge (radius 20) and fall for ~0.5s — should be airborne, not dead.
