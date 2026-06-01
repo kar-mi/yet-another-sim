@@ -69,12 +69,12 @@ export class BabylonRenderer implements Renderer {
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.05, 0.05, 0.1, 1);
 
-    this.camera = new ArcRotateCamera("cam", -Math.PI / 2, Math.PI / 3, 45, Vector3.Zero(), this.scene);
+    this.camera = new ArcRotateCamera("cam", -Math.PI / 2, Math.PI / 3, 30, Vector3.Zero(), this.scene);
     this.camera.movement.input.setInteraction("pointer", { button: 0, modifiers: { ctrl: true } }, "rotate");
     this.camera.movement.input.setInteraction("pointer", { button: 2 }, "rotate");
     this.camera.attachControl(false);
     this.camera.lowerRadiusLimit = 10;
-    this.camera.upperRadiusLimit = 40;
+    this.camera.upperRadiusLimit = 30;
     this.camera.upperBetaLimit = Math.PI / 2 - 0.05;
     this.canvas.addEventListener("contextmenu", e => e.preventDefault());
 

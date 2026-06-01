@@ -1,6 +1,6 @@
 {
   "name": "Sample Raid",
-  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 38 }] },
+  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 20 }] },
   "duration": 45,
   "botPatterns": "sample-raid-bots",
   "players": [

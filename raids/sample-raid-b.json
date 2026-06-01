@@ -1,6 +1,6 @@
 {
   "name": "Sample Raid II",
-  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 38 }] },
+  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 20 }] },
   "duration": 50,
   "players": [
     { "id": "mt", "role": "tank", "control": "bot", "spawn": [0, 8] },
