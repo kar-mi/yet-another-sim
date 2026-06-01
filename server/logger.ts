@@ -11,6 +11,11 @@ const LOG_DIR = join(ROOT, "logs");
 const LOG_FILE = join(LOG_DIR, "sim.log");
 const SESSION_LOG_DIR = join(LOG_DIR, "sessions");
 
+// Per-session logs still open, flushed/closed on shutdown so buffered
+// simulation events aren't lost when sessions are active at exit.
+const activeSessionLogs = new Set<SessionLog>();
+let flushFileSink: () => void = () => {};
+
 function createFileSink(): Sink {
   mkdirSync(LOG_DIR, { recursive: true });
   const writer = Bun.file(LOG_FILE).writer();
@@ -22,14 +27,27 @@ function createFileSink(): Sink {
     writer.flush();
   };
   setInterval(flush, 1000).unref();
-  for (const signal of ["exit", "SIGINT", "SIGTERM"] as const) {
-    process.on(signal, flush);
-  }
+  flushFileSink = flush;
+  process.on("exit", flush);
 
   return (record: LogRecord) => {
     writer.write(formatRecord(record) + "\n");
     dirty = true;
   };
+}
+
+// Registering signal listeners overrides Node's default of terminating on
+// SIGINT/SIGTERM, so the handler must flush every writer and then exit itself.
+let shuttingDown = false;
+function shutdown(): void {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  flushFileSink();
+  for (const sessionLog of [...activeSessionLogs]) sessionLog.close();
+  process.exit(0);
+}
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.on(signal, shutdown);
 }
 
 logger.configure({
@@ -53,7 +71,7 @@ export function createSessionLog(sessionId: string): SessionLog {
   const timer = setInterval(flush, 1000);
   timer.unref();
 
-  return {
+  const sessionLog: SessionLog = {
     event(entry: LogEntry): void {
       writer.write(`t=${entry.t.toFixed(2)} ${entry.event} ${entry.mechanic} ${entry.playerId}\n`);
       dirty = true;
@@ -62,8 +80,11 @@ export function createSessionLog(sessionId: string): SessionLog {
       clearInterval(timer);
       flush();
       writer.end();
+      activeSessionLogs.delete(sessionLog);
     },
   };
+  activeSessionLogs.add(sessionLog);
+  return sessionLog;
 }
 
 export { logger };

@@ -150,4 +150,4 @@ const server = Bun.serve<SocketData>({
   },
 });
 
-logger.info("server", "dev server listening", { url: `http://localhost:${server.port}` });
+console.log("server", "dev server listening", { url: `http://localhost:${server.port}` });
