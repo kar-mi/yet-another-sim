@@ -6,7 +6,16 @@ import type { KeyBindings } from "./settings";
 import { loadRaidOptions, showLanding, showLobby } from "./MainMenu";
 import { connect, type NetClient } from "./net";
 import { EMPTY_RAID_ID, SessionIdSchema, type PlaybackState } from "../shared/protocol";
+import { consoleSink, logger, parseLevel } from "../shared/logger";
 import pkg from "../../package.json";
+
+logger.configure({
+  level: parseLevel(
+    new URLSearchParams(location.search).get("log") ?? localStorage.getItem("logLevel"),
+    "warn",
+  ),
+  sinks: [consoleSink],
+});
 
 async function createRaidHudSelect(net: NetClient, initialRaidId: string, initialIsHost: boolean): Promise<() => void> {
   let isHost = initialIsHost;
@@ -361,7 +370,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error(err);
+  logger.error("app", "fatal", { err });
   const pre = document.createElement("pre");
   Object.assign(pre.style, { color: "red", padding: "1em" });
   pre.textContent = String(err);

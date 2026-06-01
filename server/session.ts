@@ -5,7 +5,19 @@ import type { RaidDef } from "../src/engine/raidSchema";
 import { tick } from "../src/engine/sim";
 import { createWorld } from "../src/engine/world";
 import { CLOCK_SPOTS, EMPTY_RAID_ID, ROSTER, type ClientMessage, type LobbySlot, type LobbyStatus, type ServerMessage } from "../src/shared/protocol";
-import type { Intent, Intents, World } from "../src/shared/types";
+import type { Intent, Intents, LogEntry, World } from "../src/shared/types";
+import { logger } from "../src/shared/logger";
+
+/**
+ * Per-session sink for simulation events (the entries the engine pushes onto
+ * `world.log`). Written unconditionally — independent of the global LOG_LEVEL
+ * app-log filter — so a raid's event history is always captured. Injected by
+ * the server entry; left undefined in tests so no files are touched.
+ */
+export interface SessionLog {
+  event(entry: LogEntry): void;
+  close(): void;
+}
 
 const DT = 1 / 60;
 const TICK_MS = 1000 / 60;
@@ -66,6 +78,7 @@ export interface SessionOptions {
   now?: () => number;
   autoTick?: boolean;
   lobbyTimeoutMs?: number;
+  createSessionLog?: (sessionId: string) => SessionLog;
 }
 
 export class Session {
@@ -88,6 +101,8 @@ export class Session {
   private tickHandle: TickHandle | null = null;
   private tickAccumulator = 0;
   private lastTickAt = 0;
+  private loggedLogIndex = 0;
+  private readonly sessionLog: SessionLog | null;
 
   constructor(options: SessionOptions) {
     this.id = options.id;
@@ -97,6 +112,7 @@ export class Session {
     this.now = options.now ?? Date.now;
     this.autoTick = options.autoTick ?? true;
     this.lobbyTimeoutMs = options.lobbyTimeoutMs ?? LOBBY_TIMEOUT_MS;
+    this.sessionLog = options.createSessionLog?.(options.id) ?? null;
     this.lastActivity = this.now();
 
     for (const player of this.raid.players) this.slots.set(player.id, null);
@@ -108,6 +124,7 @@ export class Session {
     this.clients.add(clientId);
     if (!this.hostClientId) this.hostClientId = clientId;
     this.sendLobby(clientId);
+    logger.info("session", "client joined", { session: this.id, clientId, clients: this.clients.size });
   }
 
   handle(clientId: string, message: Exclude<ClientMessage, { type: "join" | "setRaid" }>): void {
@@ -170,6 +187,7 @@ export class Session {
     }
     this.latestIntents.clear();
     this.world = createWorld(this.raidWithSlotControls());
+    this.loggedLogIndex = 0;
     if (this.status === "lobby") {
       this.broadcastLobby();
       return;
@@ -179,6 +197,7 @@ export class Session {
     this.startTick();
     this.broadcastPlayback();
     this.broadcastStarted();
+    logger.info("session", "raid changed", { session: this.id, raid: this.raidId });
   }
 
   play(clientId: string): void {
@@ -200,6 +219,7 @@ export class Session {
     this.world = { ...this.world, status: "running" };
     this.startTick();
     this.broadcastPlayback();
+    logger.info("session", "resumed", { session: this.id, raid: this.raidId });
   }
 
   pause(clientId: string): void {
@@ -212,6 +232,7 @@ export class Session {
     this.status = "paused";
     this.stopTick();
     this.broadcastPlayback();
+    logger.info("session", "paused", { session: this.id, raid: this.raidId });
   }
 
   stop(clientId: string): void {
@@ -225,7 +246,9 @@ export class Session {
     this.stopTick();
     this.latestIntents.clear();
     this.world = createWorld(this.raidWithSlotControls());
+    this.loggedLogIndex = 0;
     this.broadcastPlayback();
+    logger.info("session", "raid stopped", { session: this.id, raid: this.raidId });
   }
 
   restart(clientId: string): void {
@@ -241,14 +264,17 @@ export class Session {
     this.status = "running";
     this.latestIntents.clear();
     this.world = createWorld(this.raidWithSlotControls());
+    this.loggedLogIndex = 0;
     this.startTick();
     this.broadcastPlayback();
     this.broadcastStarted();
+    logger.info("session", "raid restarted", { session: this.id, raid: this.raidId });
   }
 
   disconnect(clientId: string): boolean {
     this.touch();
     this.clients.delete(clientId);
+    logger.info("session", "client disconnected", { session: this.id, clientId, clients: this.clients.size });
 
     for (const [playerId, ownerId] of this.slots) {
       if (ownerId === clientId) {
@@ -328,10 +354,12 @@ export class Session {
 
     this.status = "running";
     this.world = createWorld(this.raidWithSlotControls());
+    this.loggedLogIndex = 0;
 
     this.broadcastStarted();
 
     this.startTick();
+    logger.info("session", "raid started", { session: this.id, raid: this.raidId });
   }
 
   setIntent(clientId: string, intent: Intent): void {
@@ -353,6 +381,7 @@ export class Session {
     }
 
     this.world = tick(this.world, { ...computeBotIntents(this.world, DT), ...humanIntents }, DT);
+    this.forwardSimLog();
     if (broadcastSnapshot) this.broadcast({ type: "snapshot", world: this.world });
 
     if (this.world.status !== "running") {
@@ -362,12 +391,23 @@ export class Session {
     }
   }
 
+  private forwardSimLog(): void {
+    if (!this.sessionLog) return;
+    const log = this.world.log;
+    if (this.loggedLogIndex > log.length) this.loggedLogIndex = 0; // world was reset
+    for (let i = this.loggedLogIndex; i < log.length; i++) {
+      this.sessionLog.event(log[i]!);
+    }
+    this.loggedLogIndex = log.length;
+  }
+
   isExpired(now = this.now()): boolean {
     return this.status !== "running" && now - this.lastActivity >= this.lobbyTimeoutMs;
   }
 
   dispose(): void {
     this.stopTick();
+    this.sessionLog?.close();
   }
 
   private touch(): void {
@@ -500,6 +540,7 @@ export class Session {
   }
 
   private sendError(clientId: string, message: string): void {
+    logger.warn("session", "rejected", { session: this.id, clientId, reason: message });
     this.send(clientId, { type: "error", message });
   }
 }
@@ -509,6 +550,7 @@ export interface SessionManagerOptions {
   send: SendMessage;
   now?: () => number;
   lobbyTimeoutMs?: number;
+  createSessionLog?: (sessionId: string) => SessionLog;
 }
 
 export class SessionManager {
@@ -519,12 +561,14 @@ export class SessionManager {
   private readonly clientSessions = new Map<string, string>();
   private readonly now?: () => number;
   private readonly lobbyTimeoutMs?: number;
+  private readonly createSessionLog?: (sessionId: string) => SessionLog;
 
   constructor(options: SessionManagerOptions) {
     this.raidsDir = options.raidsDir;
     this.send = options.send;
     this.now = options.now;
     this.lobbyTimeoutMs = options.lobbyTimeoutMs;
+    this.createSessionLog = options.createSessionLog;
   }
 
   async handle(clientId: string, message: ClientMessage): Promise<void> {
@@ -587,6 +631,7 @@ export class SessionManager {
           send: this.send,
           now: this.now,
           lobbyTimeoutMs: this.lobbyTimeoutMs,
+          createSessionLog: this.createSessionLog,
         });
         this.sessions.set(sessionId, session);
       }
@@ -608,6 +653,7 @@ export class SessionManager {
     try {
       raid = await loadSessionRaid(raidId, this.raidsDir);
     } catch {
+      logger.warn("session", "raid not found", { clientId, raid: raidId });
       this.send(clientId, { type: "error", message: "Raid not found" });
       return;
     }
