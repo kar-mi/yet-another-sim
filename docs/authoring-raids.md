@@ -116,8 +116,8 @@ Each player entry:
 ## Events (the timeline)
 
 Every event has a `type` that selects its schema. `type` defaults to `"aoe"` if omitted,
-which is why most examples skip it. The three types are `aoe`, `targeted`, and
-`tether_source`.
+which is why most examples skip it. The types are `aoe`, `targeted`, `tether_source`,
+`chain`, `group`, and `tower`.
 
 All damaging events share the same lifecycle: the cast begins at `t`, and **resolves** at
 `t + telegraph`. Damage and effects are snapshotted at resolve time (FFXIV-style) — a
@@ -283,6 +283,60 @@ burst of `breakDamage` (vulnerabilities apply per the pair's `damageType`). See
 | `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
 | `debuffName` | yes | Name of the debuff shown on both members until they break or get hit. |
 | `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
+
+### `group` — random shared-damage stack
+
+Picks **one of several candidate groups** of players, marks a *random member* of that group with
+a stack marker, and at cast end deals **shared damage** to everyone standing within `radius` of
+the marked player. Use it for "stack on a random player" mechanics where the target is randomised.
+
+- The `groups` only decide **who can be marked** (and how `link` pairs up); the actual damage is
+  **positional** — players must move into the marked player's circle to share it.
+- **Shared damage:** on success the total `damage` is split evenly across the soakers inside the
+  radius (`damage / soakerCount` each). The marked player is always a soaker.
+- **Failure threshold:** if fewer than `requiredCount` players are inside the radius at resolve,
+  the stack **fails** and every soaker takes the *full, unsplit* `damage` (usually lethal).
+- `rng: true` picks a random group **each run** (true randomness — not seeded). Without `rng` it
+  always picks the first group.
+- `link: "<id>"` makes this event mark a member of the **complementary** group of an earlier
+  `group` event ("repeat with the opposite group"). The linked source must set an explicit `id`,
+  occur at an earlier `t`, and both events must have **exactly two** groups.
+
+```json
+{
+  "type": "group",
+  "id": "stack-1",
+  "t": 4,
+  "name": "Shared Sentence",
+  "rng": true,
+  "groups": [["h1"], ["h2"]],
+  "telegraph": 5,
+  "radius": 6,
+  "requiredCount": 4,
+  "damage": 200,
+  "damageType": "magical",
+  "showCastBar": true
+}
+```
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `type` | yes | `"group"`. |
+| `t` | yes | Cast start time (seconds). The group + marked member are chosen now. |
+| `name` | yes | Mechanic name (used in the log and cast bar). |
+| `groups` | yes | Array of groups; each group is a list (≥ 1) of player ids. One member of the chosen group is marked. Ids must exist in the roster. |
+| `telegraph` | yes | Cast duration in seconds (> 0) — marker + circle + cast bar; damage applies at the end. |
+| `radius` | yes | Radius (> 0) of the stack circle around the marked player; players inside it share the hit. |
+| `damage` | yes | **Total** shared damage (≥ 0), split evenly across the soakers on success. |
+| `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
+| `requiredCount` | no | Soakers needed inside the radius to share the hit; fewer = the stack fails (full damage each). Default `1`. |
+| `id` | no | Event id; required only if another event `link`s to it. |
+| `rng` | no | Pick a random group instead of the first. Default `false`. |
+| `link` | no | Id of an earlier `group` event whose complementary group to take (both must have 2 groups). |
+| `applyEffect` | no | Debuff/buff applied to each hit soaker (same shape as on `aoe`). |
+| `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
+
+See `raids/rng-stack.json` for a linked pair demonstrating opposite-group assignment.
 
 ### `tower` — soak circle
 
@@ -475,3 +529,4 @@ descriptive Zod error. The existing files in `raids/` double as references:
 - `debuff-test.json` — `vuln`, `pyretic`, and `freeze` behaviors.
 - `tether-test.json` — `tether_source` buff and debuff.
 - `chain-test.json` — `chain` break-apart pairs with a debuff and burst.
+- `rng-stack.json` — `group` random shared-stack assignment with a linked opposite-group repeat.

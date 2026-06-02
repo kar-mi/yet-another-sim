@@ -130,7 +130,24 @@ const ChainEventSchema = z.object({
   showCastBar: z.boolean().optional(),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema]);
+const GroupEventSchema = z.object({
+  type: z.literal("group"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  id: z.string().min(1).optional(),                              // required if another event links to it
+  groups: z.array(z.array(z.string().min(1)).min(1)).min(1),     // candidate groups of player ids
+  rng: z.boolean().optional(),                                   // pick a random group (else groups[0])
+  link: z.string().min(1).optional(),                            // take complement of the referenced group event's choice
+  telegraph: z.number().positive(),
+  radius: z.number().positive(),                                 // stack circle radius around the marked player
+  requiredCount: z.number().int().positive().default(1),         // soakers needed inside the radius; fewer -> stack fails (full damage each)
+  damage: z.number().nonnegative(),                              // total damage, split evenly among soakers on success
+  damageType: z.enum(["physical", "magical", "true"]),
+  applyEffect: ApplyEffectSchema.optional(),
+  showCastBar: z.boolean().optional(),
+});
+
+export const EventSchema = z.union([TetherSourceEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
@@ -187,6 +204,51 @@ export const RaidSchema = z.object({
         }
       }
     });
+  });
+
+  // group events: validate member ids, and that links reference an earlier 2-group event with an explicit id.
+  const groupEventsById = new Map<string, { t: number; groupCount: number }>();
+  raid.events.forEach(event => {
+    if (event.type === "group" && event.id !== undefined) {
+      groupEventsById.set(event.id, { t: event.t, groupCount: event.groups.length });
+    }
+  });
+  raid.events.forEach((event, i) => {
+    if (event.type !== "group") return;
+    event.groups.forEach((group, g) => {
+      group.forEach(id => {
+        if (!playerIds.has(id)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["events", i, "groups", g],
+            message: `group references unknown player id "${id}"`,
+          });
+        }
+      });
+    });
+    if (event.link !== undefined) {
+      const source = groupEventsById.get(event.link);
+      if (!source) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["events", i, "link"],
+          message: `link references unknown group event id "${event.link}"; the source must set an explicit id`,
+        });
+      } else if (source.t >= event.t) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["events", i, "link"],
+          message: `linked group event "${event.link}" must occur earlier (t < ${event.t})`,
+        });
+      }
+      if (event.groups.length !== 2 || (source && source.groupCount !== 2)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["events", i, "link"],
+          message: `linked group events must have exactly 2 groups so the complement is well-defined`,
+        });
+      }
+    }
   });
 });
 

@@ -179,6 +179,38 @@ export type ActiveTower = {
   outcome?: "success" | "failure"; // set at resolve, drives the post-resolve flash
 };
 
+export type PendingGroupEvent = {
+  id: string;          // event id, used as the linking key
+  t: number;
+  name: string;
+  groups: string[][];   // candidate groups of player ids; one member is marked
+  rng: boolean;         // pick a random group (else groups[0])
+  link?: string;        // take the complementary group of the referenced group event
+  telegraph: number;
+  radius: number;       // stack circle radius around the marked player
+  requiredCount: number; // soakers needed inside the radius; fewer -> stack fails (full damage each)
+  damage: number;       // total damage, split evenly among soakers on success
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
+  showCastBar: boolean;
+};
+
+export type ActiveGroupMechanic = {
+  id: string;
+  name: string;
+  telegraphStart: number;
+  resolveAt: number;
+  markedPlayerId: string; // random member of the chosen group; carries the stack marker
+  radius: number;         // stack circle radius around the marked player
+  requiredCount: number;  // soakers needed inside the radius; fewer -> stack fails (full damage each)
+  damage: number;
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
+  resolved: boolean;
+  showCastBar: boolean;
+  outcome?: "success" | "failure"; // set at resolve, drives the post-resolve flash
+};
+
 export type LogEntry = {
   t: number;
   mechanic: string;
@@ -257,6 +289,7 @@ export type Intents = Record<string, Intent>;
 
 export type World = {
   time: number;
+  groupChoices: Record<string, number>; // group event id -> chosen group index (for linking)
   status: Status;
   hasMechanics: boolean;
   arena: Arena;
@@ -274,4 +307,6 @@ export type World = {
   pendingTowers: PendingTower[];
   chains: ActiveChain[];
   pendingChains: PendingChain[];
+  groupMechanics: ActiveGroupMechanic[];
+  pendingGroups: PendingGroupEvent[];
 };
