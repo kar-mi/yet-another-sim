@@ -8,7 +8,7 @@ import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTextur
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveGroupMechanic, Player } from "../../shared/types";
 
-const ICON_Y = 3.2;   // height of the stack marker above the marked player
+const ICON_Y = 3.2;    // height of the stack marker above the marked player
 const CIRCLE_Y = 0.02; // ground circle just above the floor
 
 export class StackLayer {
@@ -51,11 +51,11 @@ export class StackLayer {
 
       let circle = this.circles.get(group.id);
       if (!circle) {
-        circle = CreateDisc(`stack-circle-${group.id}`, { radius: group.stackRadius, tessellation: 64 }, this.scene);
+        circle = CreateDisc(`stack-circle-${group.id}`, { radius: group.radius, tessellation: 64 }, this.scene);
         circle.rotation.x = Math.PI / 2;
         circle.isPickable = false;
         const mat = new StandardMaterial(`stack-circle-mat-${group.id}`, this.scene);
-        mat.diffuseColor = new Color3(1, 0.8, 0);
+        mat.diffuseColor = new Color3(0.3, 0.7, 1.0); // blue = "stack here"
         mat.specularColor = new Color3(0, 0, 0);
         mat.backFaceCulling = false;
         circle.material = mat;
@@ -73,7 +73,7 @@ export class StackLayer {
     const tex = new DynamicTexture("stack-icon-tex", { width: 128, height: 128 }, this.scene, false);
     tex.hasAlpha = true;
     // null x centers the stack glyph horizontally; clear to transparent.
-    tex.drawText("❖", null, 96, "bold 96px sans-serif", "#ffd24a", "transparent", true, true);
+    tex.drawText("❖", null, 96, "bold 96px sans-serif", "#66ccff", "transparent", true, true);
     const mat = new StandardMaterial("stack-icon-mat", this.scene);
     mat.diffuseTexture = tex;
     mat.useAlphaFromDiffuseTexture = true;

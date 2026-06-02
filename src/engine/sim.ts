@@ -527,7 +527,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
         telegraphStart: pg.t,
         resolveAt: pg.t + pg.telegraph,
         markedPlayerId: marked,
-        stackRadius: pg.stackRadius,
+        radius: pg.radius,
+        requiredCount: pg.requiredCount,
         damage: pg.damage,
         damageType: pg.damageType,
         applyEffect: pg.applyEffect,
@@ -542,12 +543,14 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const stillGroups: ActiveGroupMechanic[] = [];
   for (const gm of groupMechanics) {
     if (!gm.resolved && gm.resolveAt <= time) {
-      // Shared stack: everyone within stackRadius of the marked player splits the damage.
+      // Shared stack: a circle around the marked player. Soakers inside split the damage; if
+      // fewer than requiredCount stack, it fails and each soaker eats the full (unsplit) hit.
       const marked = players.find(p => p.id === gm.markedPlayerId);
       if (marked?.alive) {
-        const stack: AOEShape = { kind: "circle", center: marked.pos, radius: gm.stackRadius };
-        const soakers = players.filter(p => p.alive && pointInShape(stack, p.pos));
-        const per = gm.damage / soakers.length; // soakers always includes the marked player
+        const circle: AOEShape = { kind: "circle", center: marked.pos, radius: gm.radius };
+        const soakers = players.filter(p => p.alive && pointInShape(circle, p.pos));
+        const success = soakers.length >= gm.requiredCount;
+        const per = success ? gm.damage / soakers.length : gm.damage;
         for (const player of soakers) {
           applyMechanicDamage(player, per, gm.damageType, time);
           log.push({ t: time, mechanic: gm.name, playerId: player.id, event: "hit" });
@@ -555,9 +558,9 @@ export function tick(world: World, intents: Intents, dt: number): World {
             applyEffect(player, gm.applyEffect, time, `${gm.id}-${player.id}-eff`);
           }
         }
+        gm.outcome = success ? "success" : "failure";
       }
       gm.resolved = true;
-      gm.outcome = "hit";
     }
     // Keep briefly after resolve so the renderer can flash the hit.
     if (!gm.resolved || gm.resolveAt >= time - TARGETED_LINGER) {

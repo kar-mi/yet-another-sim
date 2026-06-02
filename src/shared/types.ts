@@ -183,12 +183,13 @@ export type PendingGroupEvent = {
   id: string;          // event id, used as the linking key
   t: number;
   name: string;
-  groups: string[][];  // candidate groups of player ids; one is marked
-  rng: boolean;        // pick a random group (else groups[0])
-  link?: string;       // take the complementary group of the referenced group event
+  groups: string[][];   // candidate groups of player ids; one member is marked
+  rng: boolean;         // pick a random group (else groups[0])
+  link?: string;        // take the complementary group of the referenced group event
   telegraph: number;
-  stackRadius: number; // players within this distance of the marked player share the hit
-  damage: number;      // total shared damage, split among everyone stacked at resolve
+  radius: number;       // stack circle radius around the marked player
+  requiredCount: number; // soakers needed inside the radius; fewer -> stack fails (full damage each)
+  damage: number;       // total damage, split evenly among soakers on success
   damageType: DamageType;
   applyEffect?: EffectSpec;
   showCastBar: boolean;
@@ -200,13 +201,14 @@ export type ActiveGroupMechanic = {
   telegraphStart: number;
   resolveAt: number;
   markedPlayerId: string; // random member of the chosen group; carries the stack marker
-  stackRadius: number;    // players within this distance of the marked player share the hit
+  radius: number;         // stack circle radius around the marked player
+  requiredCount: number;  // soakers needed inside the radius; fewer -> stack fails (full damage each)
   damage: number;
   damageType: DamageType;
   applyEffect?: EffectSpec;
   resolved: boolean;
   showCastBar: boolean;
-  outcome?: "hit"; // set at resolve, drives the post-resolve flash
+  outcome?: "success" | "failure"; // set at resolve, drives the post-resolve flash
 };
 
 export type LogEntry = {

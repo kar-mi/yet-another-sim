@@ -139,8 +139,9 @@ const GroupEventSchema = z.object({
   rng: z.boolean().optional(),                                   // pick a random group (else groups[0])
   link: z.string().min(1).optional(),                            // take complement of the referenced group event's choice
   telegraph: z.number().positive(),
-  stackRadius: z.number().positive().default(6),                 // players within this distance of the marked player share the hit
-  damage: z.number().nonnegative(),                              // total shared damage, split among everyone stacked at resolve
+  radius: z.number().positive(),                                 // stack circle radius around the marked player
+  requiredCount: z.number().int().positive().default(1),         // soakers needed inside the radius; fewer -> stack fails (full damage each)
+  damage: z.number().nonnegative(),                              // total damage, split evenly among soakers on success
   damageType: z.enum(["physical", "magical", "true"]),
   applyEffect: ApplyEffectSchema.optional(),
   showCastBar: z.boolean().optional(),

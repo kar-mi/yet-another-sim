@@ -26,7 +26,8 @@
         ["h2"]
       ],
       "telegraph": 5,
-      "stackRadius": 6,
+      "radius": 6,
+      "requiredCount": 4,
       "damage": 200,
       "damageType": "magical",
       "showCastBar": true
@@ -41,7 +42,8 @@
         ["h2"]
       ],
       "telegraph": 5,
-      "stackRadius": 6,
+      "radius": 6,
+      "requiredCount": 4,
       "damage": 200,
       "damageType": "magical",
       "showCastBar": true

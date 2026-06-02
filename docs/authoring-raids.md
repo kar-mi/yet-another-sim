@@ -284,19 +284,23 @@ burst of `breakDamage` (vulnerabilities apply per the pair's `damageType`). See
 | `debuffName` | yes | Name of the debuff shown on both members until they break or get hit. |
 | `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
 
-### `group` — random group assignment (shared stack)
+### `group` — random shared-damage stack
 
-Picks **one of several candidate groups** of players and hits it with **unavoidable, shared
-damage**. There is no ground circle to dodge: at cast start a stack marker floats over a
-*random member* of the chosen group, and at cast end the total `damage` is **split evenly
-across all alive members** of that group (`damage / memberCount` each). A single-member group
-(e.g. `[["m1"]]`) therefore takes the full hit — that's how you express "fireball on m1 vs m2".
+Picks **one of several candidate groups** of players, marks a *random member* of that group with
+a stack marker, and at cast end deals **shared damage** to everyone standing within `radius` of
+the marked player. Use it for "stack on a random player" mechanics where the target is randomised.
 
-- `rng: true` picks a random group **each run** (the sim is otherwise deterministic; the seed
-  comes from the clock in live play). Without `rng` it always picks the first group.
-- `link: "<id>"` makes this event take the **complementary** group of an earlier `group` event
-  ("repeat with the opposite group"). The linked source must set an explicit `id`, occur at an
-  earlier `t`, and both events must have **exactly two** groups.
+- The `groups` only decide **who can be marked** (and how `link` pairs up); the actual damage is
+  **positional** — players must move into the marked player's circle to share it.
+- **Shared damage:** on success the total `damage` is split evenly across the soakers inside the
+  radius (`damage / soakerCount` each). The marked player is always a soaker.
+- **Failure threshold:** if fewer than `requiredCount` players are inside the radius at resolve,
+  the stack **fails** and every soaker takes the *full, unsplit* `damage` (usually lethal).
+- `rng: true` picks a random group **each run** (true randomness — not seeded). Without `rng` it
+  always picks the first group.
+- `link: "<id>"` makes this event mark a member of the **complementary** group of an earlier
+  `group` event ("repeat with the opposite group"). The linked source must set an explicit `id`,
+  occur at an earlier `t`, and both events must have **exactly two** groups.
 
 ```json
 {
@@ -305,8 +309,10 @@ across all alive members** of that group (`damage / memberCount` each). A single
   "t": 4,
   "name": "Shared Sentence",
   "rng": true,
-  "groups": [["mt", "h1", "r1", "m1"], ["ot", "h2", "r2", "m2"]],
+  "groups": [["h1"], ["h2"]],
   "telegraph": 5,
+  "radius": 6,
+  "requiredCount": 4,
   "damage": 200,
   "damageType": "magical",
   "showCastBar": true
@@ -318,14 +324,16 @@ across all alive members** of that group (`damage / memberCount` each). A single
 | `type` | yes | `"group"`. |
 | `t` | yes | Cast start time (seconds). The group + marked member are chosen now. |
 | `name` | yes | Mechanic name (used in the log and cast bar). |
-| `groups` | yes | Array of groups; each group is a list (≥ 1) of player ids. Ids must exist in the roster. |
-| `telegraph` | yes | Cast duration in seconds (> 0) — marker + cast bar; damage applies at the end. |
-| `damage` | yes | **Total** shared damage (≥ 0), split evenly across the chosen group's alive members. |
+| `groups` | yes | Array of groups; each group is a list (≥ 1) of player ids. One member of the chosen group is marked. Ids must exist in the roster. |
+| `telegraph` | yes | Cast duration in seconds (> 0) — marker + circle + cast bar; damage applies at the end. |
+| `radius` | yes | Radius (> 0) of the stack circle around the marked player; players inside it share the hit. |
+| `damage` | yes | **Total** shared damage (≥ 0), split evenly across the soakers on success. |
 | `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
+| `requiredCount` | no | Soakers needed inside the radius to share the hit; fewer = the stack fails (full damage each). Default `1`. |
 | `id` | no | Event id; required only if another event `link`s to it. |
 | `rng` | no | Pick a random group instead of the first. Default `false`. |
 | `link` | no | Id of an earlier `group` event whose complementary group to take (both must have 2 groups). |
-| `applyEffect` | no | Debuff/buff applied to each hit member (same shape as on `aoe`). |
+| `applyEffect` | no | Debuff/buff applied to each hit soaker (same shape as on `aoe`). |
 | `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
 
 See `raids/rng-stack.json` for a linked pair demonstrating opposite-group assignment.
