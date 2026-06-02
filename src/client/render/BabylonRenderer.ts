@@ -20,6 +20,7 @@ import { TelegraphLayer } from "./TelegraphLayer";
 import { TetherLayer } from "./TetherLayer";
 import { ChainLayer } from "./ChainLayer";
 import { TowerLayer } from "./TowerLayer";
+import { StackLayer } from "./StackLayer";
 import { WaymarkLayer } from "./WaymarkLayer";
 
 // Sub-path imports drop some Babylon engine side-effect registrations.
@@ -45,6 +46,7 @@ export class BabylonRenderer implements Renderer {
   private tethers!: TetherLayer;
   private chains!: ChainLayer;
   private towers!: TowerLayer;
+  private stacks!: StackLayer;
   private waymarks!: WaymarkLayer;
   private hud!: HudOverlay;
   private floorMeshes: Mesh[] = [];
@@ -128,6 +130,7 @@ export class BabylonRenderer implements Renderer {
     this.tethers = new TetherLayer(this.scene);
     this.chains = new ChainLayer(this.scene);
     this.towers = new TowerLayer(this.scene);
+    this.stacks = new StackLayer(this.scene);
     this.hud = new HudOverlay(sessionId, this.localPlayerId, this.onSettingsChange, id => this.setSpectateTarget(id));
 
     this.onResize = () => this.engine.resize();
@@ -168,6 +171,7 @@ export class BabylonRenderer implements Renderer {
     this.tethers.sync(world.tetherSources, world.players, world.time);
     this.chains.sync(world.chains, world.players, world.time);
     this.towers.sync(world.towers, world.time);
+    this.stacks.sync(world.groupMechanics, world.players, world.time);
     this.hud.sync(world);
   }
 
@@ -223,6 +227,7 @@ export class BabylonRenderer implements Renderer {
     this.hud.dispose();
     this.chains.dispose();
     this.towers.dispose();
+    this.stacks.dispose();
     this.waymarks.dispose();
     this.healthBars.dispose();
     this.engine.dispose();

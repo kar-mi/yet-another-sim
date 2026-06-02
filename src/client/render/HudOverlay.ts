@@ -290,8 +290,10 @@ export class HudOverlay {
     }
 
     const castingChain = world.chains.find(c => !c.resolved && c.showCastBar);
+    const castingGroup = world.groupMechanics.find(g => !g.resolved && g.showCastBar);
     const casting = world.active.find(m => !m.resolved && m.showCastBar)
-      ?? (castingChain && { name: castingChain.name, telegraphStart: castingChain.telegraphStart, resolveAt: castingChain.resolveAt });
+      ?? (castingChain && { name: castingChain.name, telegraphStart: castingChain.telegraphStart, resolveAt: castingChain.resolveAt })
+      ?? (castingGroup && { name: castingGroup.name, telegraphStart: castingGroup.telegraphStart, resolveAt: castingGroup.resolveAt });
     if (casting) {
       const span = casting.resolveAt - casting.telegraphStart;
       const progress = span > 0 ? Math.min(1, (world.time - casting.telegraphStart) / span) : 1;

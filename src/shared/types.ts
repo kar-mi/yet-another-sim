@@ -179,6 +179,35 @@ export type ActiveTower = {
   outcome?: "success" | "failure"; // set at resolve, drives the post-resolve flash
 };
 
+export type PendingGroupEvent = {
+  id: string;          // event id, used as the linking key
+  t: number;
+  name: string;
+  groups: string[][];  // candidate groups of player ids
+  rng: boolean;        // pick a random group (else groups[0])
+  link?: string;       // take the complementary group of the referenced group event
+  telegraph: number;
+  damage: number;      // total shared damage, split among alive chosen members
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
+  showCastBar: boolean;
+};
+
+export type ActiveGroupMechanic = {
+  id: string;
+  name: string;
+  telegraphStart: number;
+  resolveAt: number;
+  members: string[];      // the chosen group's player ids
+  markedPlayerId: string; // random member that shows the stack marker
+  damage: number;
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
+  resolved: boolean;
+  showCastBar: boolean;
+  outcome?: "hit"; // set at resolve, drives the post-resolve flash
+};
+
 export type LogEntry = {
   t: number;
   mechanic: string;
@@ -257,6 +286,8 @@ export type Intents = Record<string, Intent>;
 
 export type World = {
   time: number;
+  rng: number;                          // seeded PRNG state
+  groupChoices: Record<string, number>; // group event id -> chosen group index (for linking)
   status: Status;
   hasMechanics: boolean;
   arena: Arena;
@@ -274,4 +305,6 @@ export type World = {
   pendingTowers: PendingTower[];
   chains: ActiveChain[];
   pendingChains: PendingChain[];
+  groupMechanics: ActiveGroupMechanic[];
+  pendingGroups: PendingGroupEvent[];
 };

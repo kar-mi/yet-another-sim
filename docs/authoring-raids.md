@@ -116,8 +116,8 @@ Each player entry:
 ## Events (the timeline)
 
 Every event has a `type` that selects its schema. `type` defaults to `"aoe"` if omitted,
-which is why most examples skip it. The three types are `aoe`, `targeted`, and
-`tether_source`.
+which is why most examples skip it. The types are `aoe`, `targeted`, `tether_source`,
+`chain`, `group`, and `tower`.
 
 All damaging events share the same lifecycle: the cast begins at `t`, and **resolves** at
 `t + telegraph`. Damage and effects are snapshotted at resolve time (FFXIV-style) — a
@@ -283,6 +283,52 @@ burst of `breakDamage` (vulnerabilities apply per the pair's `damageType`). See
 | `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
 | `debuffName` | yes | Name of the debuff shown on both members until they break or get hit. |
 | `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
+
+### `group` — random group assignment (shared stack)
+
+Picks **one of several candidate groups** of players and hits it with **unavoidable, shared
+damage**. There is no ground circle to dodge: at cast start a stack marker floats over a
+*random member* of the chosen group, and at cast end the total `damage` is **split evenly
+across all alive members** of that group (`damage / memberCount` each). A single-member group
+(e.g. `[["m1"]]`) therefore takes the full hit — that's how you express "fireball on m1 vs m2".
+
+- `rng: true` picks a random group **each run** (the sim is otherwise deterministic; the seed
+  comes from the clock in live play). Without `rng` it always picks the first group.
+- `link: "<id>"` makes this event take the **complementary** group of an earlier `group` event
+  ("repeat with the opposite group"). The linked source must set an explicit `id`, occur at an
+  earlier `t`, and both events must have **exactly two** groups.
+
+```json
+{
+  "type": "group",
+  "id": "stack-1",
+  "t": 4,
+  "name": "Shared Sentence",
+  "rng": true,
+  "groups": [["mt", "h1", "r1", "m1"], ["ot", "h2", "r2", "m2"]],
+  "telegraph": 5,
+  "damage": 200,
+  "damageType": "magical",
+  "showCastBar": true
+}
+```
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `type` | yes | `"group"`. |
+| `t` | yes | Cast start time (seconds). The group + marked member are chosen now. |
+| `name` | yes | Mechanic name (used in the log and cast bar). |
+| `groups` | yes | Array of groups; each group is a list (≥ 1) of player ids. Ids must exist in the roster. |
+| `telegraph` | yes | Cast duration in seconds (> 0) — marker + cast bar; damage applies at the end. |
+| `damage` | yes | **Total** shared damage (≥ 0), split evenly across the chosen group's alive members. |
+| `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
+| `id` | no | Event id; required only if another event `link`s to it. |
+| `rng` | no | Pick a random group instead of the first. Default `false`. |
+| `link` | no | Id of an earlier `group` event whose complementary group to take (both must have 2 groups). |
+| `applyEffect` | no | Debuff/buff applied to each hit member (same shape as on `aoe`). |
+| `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
+
+See `raids/rng-stack.json` for a linked pair demonstrating opposite-group assignment.
 
 ### `tower` — soak circle
 
@@ -475,3 +521,4 @@ descriptive Zod error. The existing files in `raids/` double as references:
 - `debuff-test.json` — `vuln`, `pyretic`, and `freeze` behaviors.
 - `tether-test.json` — `tether_source` buff and debuff.
 - `chain-test.json` — `chain` break-apart pairs with a debuff and burst.
+- `rng-stack.json` — `group` random shared-stack assignment with a linked opposite-group repeat.

@@ -15,10 +15,14 @@ import type {
   ActiveChain,
   PendingChain,
   Knockback,
+  DamageType,
+  ActiveGroupMechanic,
+  PendingGroupEvent,
 } from "../shared/types";
 import type { Vec2 } from "../shared/math";
 import type { AOEShape } from "../shared/types";
 import { add, sub, scale, normalize, length } from "../shared/math";
+import { rngInt } from "../shared/rng";
 import { pointInShape, isOnFloor } from "./shapes";
 import { promotePending } from "./timeline";
 
@@ -53,6 +57,27 @@ function selectTargetPlayer(
     if (mode === "closest" ? d < bestDist : d > bestDist) { bestDist = d; best = p; }
   }
   return best;
+}
+
+// Applies `damage` to a player, factoring in matching vuln debuffs (which multiply
+// the hit and are then consumed when the base damage is > 0). Respects invincibility.
+function applyMechanicDamage(player: Player, damage: number, damageType: DamageType, time: number): void {
+  const matchingVulnIds = new Set<string>();
+  let dealt = damage;
+  for (const effect of player.effects) {
+    if (!isEffectActiveAt(effect, time)) continue;
+    if (effect.behavior.kind === "vuln" && effect.behavior.damageType === damageType) {
+      dealt *= effect.behavior.multiplier;
+      matchingVulnIds.add(effect.id);
+    }
+  }
+  if (matchingVulnIds.size > 0 && damage > 0) {
+    player.effects = player.effects.filter(effect => !matchingVulnIds.has(effect.id));
+  }
+  if (!player.invincible) {
+    player.hp = Math.max(0, player.hp - dealt);
+    if (player.hp <= 0) player.alive = false;
+  }
 }
 
 function isOnTetherLine(pPos: Vec2, src: Vec2, tgt: Vec2): boolean {
@@ -125,6 +150,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const players = world.players.map(p => ({ ...p }));
   const log: LogEntry[] = world.log.slice();
   const actedByPlayer = new Map<string, boolean>();
+  let rngState = world.rng;
+  const groupChoices = { ...world.groupChoices };
 
   // 1. Apply player movement
   for (const player of players) {
@@ -377,22 +404,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
       for (const player of players) {
         if (!player.alive) continue;
         if (pointInShape(mechanic.shape, player.pos)) {
-          const matchingVulnIds = new Set<string>();
-          let damage = mechanic.damage;
-          for (const effect of player.effects) {
-            if (!isEffectActiveAt(effect, time)) continue;
-            if (effect.behavior.kind === "vuln" && effect.behavior.damageType === mechanic.damageType) {
-              damage *= effect.behavior.multiplier;
-              matchingVulnIds.add(effect.id);
-            }
-          }
-          if (matchingVulnIds.size > 0 && mechanic.damage > 0) {
-            player.effects = player.effects.filter(effect => !matchingVulnIds.has(effect.id));
-          }
-          if (!player.invincible) {
-            player.hp = Math.max(0, player.hp - damage);
-            if (player.hp <= 0) player.alive = false;
-          }
+          applyMechanicDamage(player, mechanic.damage, mechanic.damageType, time);
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });
           if (mechanic.applyEffect && player.alive) {
             applyEffect(player, mechanic.applyEffect, time, `${mechanic.id}-${player.id}-eff`);
@@ -491,6 +503,70 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
+  // 3d. Group events: at cast start pick a group (random / complement of a linked event) and a
+  // random member to mark; at resolve split the unavoidable damage across the chosen group.
+  const remainingPendingGroups: PendingGroupEvent[] = [];
+  const groupMechanics: ActiveGroupMechanic[] = world.groupMechanics.map(g => ({ ...g }));
+  for (const pg of world.pendingGroups) {
+    if (pg.t <= time) {
+      let chosenIdx: number;
+      const linkedIdx = pg.link !== undefined ? groupChoices[pg.link] : undefined;
+      if (linkedIdx !== undefined) {
+        chosenIdx = 1 - linkedIdx; // 2-group complement (validated by the schema)
+      } else if (pg.rng) {
+        const draw = rngInt(rngState, pg.groups.length);
+        chosenIdx = draw.index;
+        rngState = draw.state;
+      } else {
+        chosenIdx = 0;
+      }
+      groupChoices[pg.id] = chosenIdx;
+
+      const members = pg.groups[chosenIdx];
+      const markDraw = rngInt(rngState, members.length);
+      rngState = markDraw.state;
+
+      groupMechanics.push({
+        id: pg.id,
+        name: pg.name,
+        telegraphStart: pg.t,
+        resolveAt: pg.t + pg.telegraph,
+        members,
+        markedPlayerId: members[markDraw.index],
+        damage: pg.damage,
+        damageType: pg.damageType,
+        applyEffect: pg.applyEffect,
+        resolved: false,
+        showCastBar: pg.showCastBar,
+      });
+    } else {
+      remainingPendingGroups.push(pg);
+    }
+  }
+
+  const stillGroups: ActiveGroupMechanic[] = [];
+  for (const gm of groupMechanics) {
+    if (!gm.resolved && gm.resolveAt <= time) {
+      const alive = gm.members
+        .map(id => players.find(p => p.id === id))
+        .filter((p): p is Player => !!p && p.alive);
+      const per = alive.length > 0 ? gm.damage / alive.length : 0;
+      for (const player of alive) {
+        applyMechanicDamage(player, per, gm.damageType, time);
+        log.push({ t: time, mechanic: gm.name, playerId: player.id, event: "hit" });
+        if (gm.applyEffect && player.alive) {
+          applyEffect(player, gm.applyEffect, time, `${gm.id}-${player.id}-eff`);
+        }
+      }
+      gm.resolved = true;
+      gm.outcome = "hit";
+    }
+    // Keep briefly after resolve so the renderer can flash the hit.
+    if (!gm.resolved || gm.resolveAt >= time - TARGETED_LINGER) {
+      stillGroups.push(gm);
+    }
+  }
+
   // 4. Apply continuous status effects and expire old effects
   for (const player of players) {
     if (player.alive && !player.invincible) {
@@ -520,7 +596,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
     && remainingPendingTethers.length === 0 && tetherSources.every(ts => ts.finalized)
     && remainingPendingTargeted.length === 0
     && remainingPendingTowers.length === 0 && stillTowers.every(t => t.resolved)
-    && remainingPendingChains.length === 0 && stillChains.every(c => c.outcome !== undefined);
+    && remainingPendingChains.length === 0 && stillChains.every(c => c.outcome !== undefined)
+    && remainingPendingGroups.length === 0 && stillGroups.every(g => g.resolved);
   let status = world.status;
   if (status === "running") {
     if (!anyAlive) {
@@ -530,5 +607,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, players, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains };
+  return { ...world, time, rng: rngState, groupChoices, players, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups };
 }

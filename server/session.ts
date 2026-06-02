@@ -116,7 +116,7 @@ export class Session {
     this.lastActivity = this.now();
 
     for (const player of this.raid.players) this.slots.set(player.id, null);
-    this.world = createWorld(this.raidWithSlotControls());
+    this.world = createWorld(this.raidWithSlotControls(), Date.now());
   }
 
   join(clientId: string): void {
@@ -186,7 +186,7 @@ export class Session {
       this.slots.set(openPlayer.id, ownerId);
     }
     this.latestIntents.clear();
-    this.world = createWorld(this.raidWithSlotControls());
+    this.world = createWorld(this.raidWithSlotControls(), Date.now());
     this.loggedLogIndex = 0;
     if (this.status === "lobby") {
       this.broadcastLobby();
@@ -245,7 +245,7 @@ export class Session {
     this.status = "stopped";
     this.stopTick();
     this.latestIntents.clear();
-    this.world = createWorld(this.raidWithSlotControls());
+    this.world = createWorld(this.raidWithSlotControls(), Date.now());
     this.loggedLogIndex = 0;
     this.broadcastPlayback();
     logger.info("session", "raid stopped", { session: this.id, raid: this.raidId });
@@ -263,7 +263,7 @@ export class Session {
 
     this.status = "running";
     this.latestIntents.clear();
-    this.world = createWorld(this.raidWithSlotControls());
+    this.world = createWorld(this.raidWithSlotControls(), Date.now());
     this.loggedLogIndex = 0;
     this.startTick();
     this.broadcastPlayback();
@@ -353,7 +353,7 @@ export class Session {
     }
 
     this.status = "running";
-    this.world = createWorld(this.raidWithSlotControls());
+    this.world = createWorld(this.raidWithSlotControls(), Date.now());
     this.loggedLogIndex = 0;
 
     this.broadcastStarted();
