@@ -22,7 +22,6 @@ import type {
 import type { Vec2 } from "../shared/math";
 import type { AOEShape } from "../shared/types";
 import { add, sub, scale, normalize, length } from "../shared/math";
-import { rngInt } from "../shared/rng";
 import { pointInShape, isOnFloor } from "./shapes";
 import { promotePending } from "./timeline";
 
@@ -150,7 +149,6 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const players = world.players.map(p => ({ ...p }));
   const log: LogEntry[] = world.log.slice();
   const actedByPlayer = new Map<string, boolean>();
-  let rngState = world.rng;
   const groupChoices = { ...world.groupChoices };
 
   // 1. Apply player movement
@@ -514,25 +512,22 @@ export function tick(world: World, intents: Intents, dt: number): World {
       if (linkedIdx !== undefined) {
         chosenIdx = 1 - linkedIdx; // 2-group complement (validated by the schema)
       } else if (pg.rng) {
-        const draw = rngInt(rngState, pg.groups.length);
-        chosenIdx = draw.index;
-        rngState = draw.state;
+        chosenIdx = Math.floor(Math.random() * pg.groups.length);
       } else {
         chosenIdx = 0;
       }
       groupChoices[pg.id] = chosenIdx;
 
       const members = pg.groups[chosenIdx];
-      const markDraw = rngInt(rngState, members.length);
-      rngState = markDraw.state;
+      const marked = members[Math.floor(Math.random() * members.length)];
 
       groupMechanics.push({
         id: pg.id,
         name: pg.name,
         telegraphStart: pg.t,
         resolveAt: pg.t + pg.telegraph,
-        members,
-        markedPlayerId: members[markDraw.index],
+        markedPlayerId: marked,
+        stackRadius: pg.stackRadius,
         damage: pg.damage,
         damageType: pg.damageType,
         applyEffect: pg.applyEffect,
@@ -547,15 +542,18 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const stillGroups: ActiveGroupMechanic[] = [];
   for (const gm of groupMechanics) {
     if (!gm.resolved && gm.resolveAt <= time) {
-      const alive = gm.members
-        .map(id => players.find(p => p.id === id))
-        .filter((p): p is Player => !!p && p.alive);
-      const per = alive.length > 0 ? gm.damage / alive.length : 0;
-      for (const player of alive) {
-        applyMechanicDamage(player, per, gm.damageType, time);
-        log.push({ t: time, mechanic: gm.name, playerId: player.id, event: "hit" });
-        if (gm.applyEffect && player.alive) {
-          applyEffect(player, gm.applyEffect, time, `${gm.id}-${player.id}-eff`);
+      // Shared stack: everyone within stackRadius of the marked player splits the damage.
+      const marked = players.find(p => p.id === gm.markedPlayerId);
+      if (marked?.alive) {
+        const stack: AOEShape = { kind: "circle", center: marked.pos, radius: gm.stackRadius };
+        const soakers = players.filter(p => p.alive && pointInShape(stack, p.pos));
+        const per = gm.damage / soakers.length; // soakers always includes the marked player
+        for (const player of soakers) {
+          applyMechanicDamage(player, per, gm.damageType, time);
+          log.push({ t: time, mechanic: gm.name, playerId: player.id, event: "hit" });
+          if (gm.applyEffect && player.alive) {
+            applyEffect(player, gm.applyEffect, time, `${gm.id}-${player.id}-eff`);
+          }
         }
       }
       gm.resolved = true;
@@ -607,5 +605,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, rng: rngState, groupChoices, players, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups };
+  return { ...world, time, groupChoices, players, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups };
 }

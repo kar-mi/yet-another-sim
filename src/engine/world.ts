@@ -25,7 +25,7 @@ function toAOEShape(shape: AOEEventDef["shape"]): AOEShape {
   }
 }
 
-export function createWorld(raid: RaidDef, seed = 1): World {
+export function createWorld(raid: RaidDef): World {
   const arena: Arena = { zones: raid.arena.zones.map(toZoneShape) };
   const waymarks: Waymark[] = raid.waymarks?.map(w => ({ mark: w.mark, pos: toVec2(w.pos) })) ?? [];
 
@@ -125,6 +125,7 @@ export function createWorld(raid: RaidDef, seed = 1): World {
         rng: e.rng ?? false,
         link: e.link,
         telegraph: e.telegraph,
+        stackRadius: e.stackRadius,
         damage: e.damage,
         damageType: e.damageType,
         applyEffect: e.applyEffect,
@@ -170,7 +171,6 @@ export function createWorld(raid: RaidDef, seed = 1): World {
 
   return {
     time: 0,
-    rng: seed,
     groupChoices: {},
     status: "running",
     hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0,

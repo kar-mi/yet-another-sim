@@ -139,7 +139,8 @@ const GroupEventSchema = z.object({
   rng: z.boolean().optional(),                                   // pick a random group (else groups[0])
   link: z.string().min(1).optional(),                            // take complement of the referenced group event's choice
   telegraph: z.number().positive(),
-  damage: z.number().nonnegative(),                              // total shared damage, split among chosen members
+  stackRadius: z.number().positive().default(6),                 // players within this distance of the marked player share the hit
+  damage: z.number().nonnegative(),                              // total shared damage, split among everyone stacked at resolve
   damageType: z.enum(["physical", "magical", "true"]),
   applyEffect: ApplyEffectSchema.optional(),
   showCastBar: z.boolean().optional(),

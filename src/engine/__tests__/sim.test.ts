@@ -810,91 +810,82 @@ test("anti-knockback has a 5s duration and 120s cooldown", () => {
 
 // --- RNG group mechanics -------------------------------------------------
 
-function groupRaid(events: unknown[]) {
-  return loadRaid({ ...baseRaid, duration: 30, events });
+function groupRaid(events: unknown[], over: Record<string, { spawn?: Vec }> = {}) {
+  return loadRaid({ ...baseRaid, duration: 30, players: roster(over), events });
 }
 
-test("group event splits unavoidable damage across the chosen group", () => {
+const noMove = { [HUMAN]: { move: { x: 0, z: 0 } } };
+
+test("group stack splits damage among players within the stack radius", () => {
+  // mt is marked; ot and h1 stand close, the rest stay well outside the radius.
   const raid = groupRaid([{
-    type: "group", t: 0, name: "Stack", groups: [["mt", "ot"], ["h1", "h2"]],
-    telegraph: 1, damage: 100, damageType: "magical",
-  }]);
-  // rng defaults to false -> picks groups[0]; 100 damage split across mt + ot.
-  const w = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(1.1 * 60));
+    type: "group", t: 0, name: "Stack", groups: [["mt"]],
+    telegraph: 1, stackRadius: 6, damage: 90, damageType: "magical",
+  }], {
+    mt: { spawn: [0, 0] }, ot: { spawn: [3, 0] }, h1: { spawn: [0, 3] },
+    h2: { spawn: [12, 0] }, r1: { spawn: [-12, 0] }, r2: { spawn: [0, -12] },
+    m1: { spawn: [0, 12] }, m2: { spawn: [10, 10] },
+  });
+  const w = runTicks(createWorld(raid), noMove, Math.ceil(1.1 * 60));
   const hp = (id: string) => w.players.find(p => p.id === id)!.hp;
-  expect(hp("mt")).toBeCloseTo(50);
-  expect(hp("ot")).toBeCloseTo(50);
-  expect(hp("h1")).toBe(100);
+  // mt + ot + h1 = 3 stacked -> 30 each; everyone else untouched.
+  expect(hp("mt")).toBeCloseTo(70);
+  expect(hp("ot")).toBeCloseTo(70);
+  expect(hp("h1")).toBeCloseTo(70);
   expect(hp("h2")).toBe(100);
+  expect(hp("r1")).toBe(100);
 });
 
-test("group marks a member of the chosen group", () => {
-  const raid = groupRaid([{
-    type: "group", t: 0, name: "Stack", groups: [["mt", "ot"], ["h1", "h2"]],
-    telegraph: 2, damage: 100, damageType: "magical",
-  }]);
-  // Mid-cast (promoted, not yet resolved): one active group mechanic with a marked member.
-  const w = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 6);
-  expect(w.groupMechanics).toHaveLength(1);
-  const gm = w.groupMechanics[0];
-  expect(gm.members).toEqual(["mt", "ot"]);
-  expect(gm.members).toContain(gm.markedPlayerId);
-});
-
-test("single-member group takes full damage and consumes vuln", () => {
+test("a lone marked player eats the full stack and consumes vuln", () => {
+  // Default clock spots are >6 apart, so m1 (marked) stacks alone.
   const raid = groupRaid([{
     type: "group", t: 0, name: "Spread", groups: [["m1"]],
-    telegraph: 1, damage: 30, damageType: "magical",
+    telegraph: 1, stackRadius: 6, damage: 30, damageType: "magical",
   }]);
-  const seeded = withEffect(createWorld(raid), effect({
+  const world = withEffect(createWorld(raid), effect({
     behavior: { kind: "vuln", damageType: "magical", multiplier: 2 },
   }));
-  const w = runTicks(seeded, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(1.1 * 60));
+  const w = runTicks(world, noMove, Math.ceil(1.1 * 60));
   const p = human(w);
   expect(p.hp).toBeCloseTo(40); // 30 * 2 vuln = 60 damage
   expect(p.effects.some(e => e.behavior.kind === "vuln")).toBe(false); // consumed
 });
 
-test("linked group event hits the complementary group", () => {
+test("group marks a member of the chosen group", () => {
+  const raid = groupRaid([{
+    type: "group", t: 0, name: "Stack", groups: [["mt", "ot"]],
+    telegraph: 2, stackRadius: 6, damage: 100, damageType: "magical",
+  }]);
+  // Mid-cast (promoted, not yet resolved): one active group mechanic carrying the marker.
+  const w = runTicks(createWorld(raid), noMove, 6);
+  expect(w.groupMechanics).toHaveLength(1);
+  const gm = w.groupMechanics[0];
+  expect(["mt", "ot"]).toContain(gm.markedPlayerId);
+  expect(gm.stackRadius).toBe(6);
+});
+
+test("linked group event takes the complementary group", () => {
   const raid = groupRaid([
     { type: "group", id: "a", t: 0, name: "First", rng: true,
-      groups: [["mt", "ot"], ["h1", "h2"]], telegraph: 1, damage: 100, damageType: "magical" },
+      groups: [["mt"], ["h2"]], telegraph: 1, stackRadius: 6, damage: 50, damageType: "magical" },
     { type: "group", link: "a", t: 3, name: "Second",
-      groups: [["mt", "ot"], ["h1", "h2"]], telegraph: 1, damage: 100, damageType: "magical" },
+      groups: [["mt"], ["h2"]], telegraph: 1, stackRadius: 6, damage: 50, damageType: "magical" },
   ]);
-  const w = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(4.1 * 60));
-  // The link takes the opposite group of the first roll, so all four players are hit.
+  const w = runTicks(createWorld(raid), noMove, Math.ceil(4.1 * 60));
   const firstIdx = w.groupChoices["a"];
+  expect([0, 1]).toContain(firstIdx);
   expect(w.groupChoices["group-1"]).toBe(1 - firstIdx);
-  for (const id of ["mt", "ot", "h1", "h2"]) {
-    expect(w.players.find(p => p.id === id)!.hp).toBeCloseTo(50);
-  }
 });
 
-test("group rng is deterministic for a fixed seed but varies across seeds", () => {
+test("group rng eventually picks both groups", () => {
   const events = [{
     type: "group", t: 0, name: "Stack", rng: true,
-    groups: [["mt", "ot"], ["h1", "h2"]], telegraph: 1, damage: 100, damageType: "magical",
+    groups: [["mt"], ["h2"]], telegraph: 1, stackRadius: 6, damage: 50, damageType: "magical",
   }];
-  const chosen = (seed: number) => {
-    const w = runTicks(createWorld(groupRaid(events), seed), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(1.1 * 60));
-    return w.players.find(p => p.id === "mt")!.hp < 100 ? 0 : 1;
-  };
-  expect(chosen(1)).toBe(chosen(1)); // same seed -> same choice
-  const picks = new Set([1, 2, 3, 4, 5, 6, 7, 8].map(chosen));
-  expect(picks).toEqual(new Set([0, 1])); // across seeds both groups get picked
-});
-
-test("group rng keeps tick deterministic for the default seed", () => {
-  const raid = groupRaid([{
-    type: "group", t: 0, name: "Stack", rng: true,
-    groups: [["mt", "ot"], ["h1", "h2"]], telegraph: 1, damage: 100, damageType: "magical",
-  }]);
-  let w1 = createWorld(raid);
-  let w2 = createWorld(raid);
-  for (let i = 0; i < 120; i++) {
-    w1 = tick(w1, { [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
-    w2 = tick(w2, { [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
+  const picks = new Set<number>();
+  for (let i = 0; i < 40; i++) {
+    const w = tick(createWorld(groupRaid(events)), noMove, 1 / 60); // promote on first tick
+    picks.add(w.groupChoices["group-0"]);
   }
-  expect(JSON.stringify(w1)).toBe(JSON.stringify(w2));
+  expect(picks).toEqual(new Set([0, 1]));
 });

@@ -183,11 +183,12 @@ export type PendingGroupEvent = {
   id: string;          // event id, used as the linking key
   t: number;
   name: string;
-  groups: string[][];  // candidate groups of player ids
+  groups: string[][];  // candidate groups of player ids; one is marked
   rng: boolean;        // pick a random group (else groups[0])
   link?: string;       // take the complementary group of the referenced group event
   telegraph: number;
-  damage: number;      // total shared damage, split among alive chosen members
+  stackRadius: number; // players within this distance of the marked player share the hit
+  damage: number;      // total shared damage, split among everyone stacked at resolve
   damageType: DamageType;
   applyEffect?: EffectSpec;
   showCastBar: boolean;
@@ -198,8 +199,8 @@ export type ActiveGroupMechanic = {
   name: string;
   telegraphStart: number;
   resolveAt: number;
-  members: string[];      // the chosen group's player ids
-  markedPlayerId: string; // random member that shows the stack marker
+  markedPlayerId: string; // random member of the chosen group; carries the stack marker
+  stackRadius: number;    // players within this distance of the marked player share the hit
   damage: number;
   damageType: DamageType;
   applyEffect?: EffectSpec;
@@ -286,7 +287,6 @@ export type Intents = Record<string, Intent>;
 
 export type World = {
   time: number;
-  rng: number;                          // seeded PRNG state
   groupChoices: Record<string, number>; // group event id -> chosen group index (for linking)
   status: Status;
   hasMechanics: boolean;
