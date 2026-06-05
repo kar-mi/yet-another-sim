@@ -210,7 +210,7 @@ export class HudOverlay {
     });
     const separator = this.controllerHotbar.querySelector<HTMLElement>('.yas-ctrl-separator');
     if (separator) {
-      separator.textContent = type === 'ps5' ? 'L2' : type === 'nintendo' ? 'ZL' : 'LT';
+      separator.textContent = type === 'ps5' ? 'R2' : type === 'nintendo' ? 'ZR' : 'RT';
     }
   }
 

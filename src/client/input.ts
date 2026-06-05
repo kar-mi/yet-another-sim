@@ -88,8 +88,8 @@ export function toggleInvincibility(): void {
 }
 
 export function pressAction(slot: number): void {
-  if (slot === 7) sprintPressed = true; // controller LT+Y
-  if (slot === 6) antiKbPressed = true; // controller LT+X
+  if (slot === 7) sprintPressed = true; // controller RT+Y
+  if (slot === 6) antiKbPressed = true; // controller RT+X
   if (slot === 3) jumpPressed = true;   // controller Y = jump
 }
 
@@ -141,7 +141,7 @@ export function getIntent(cameraYaw: number): Intent {
       z = -ly; // gamepad stick up = -1, forward should be +z
     }
 
-    const ltHeld = (gp.buttons[6]?.value ?? 0) > 0.5;
+    const rtHeld = (gp.buttons[7]?.value ?? 0) > 0.5;
     // PS5 non-standard mapping: physical order is [□,✕,○,△] instead of [A,B,X,Y]
     // Remap to logical slots so ✕(1)→slot0(sprint), △(3)→slot3(jump), etc.
     const ps5Remap = detectType(gp) === 'ps5' && gp.mapping !== 'standard'
@@ -152,7 +152,7 @@ export function getIntent(cameraYaw: number): Intent {
       const wasPressed = prevButtons[i] ?? false;
       if (pressed && !wasPressed) {
         const slot = ps5Remap ? ps5Remap[i]! : i;
-        pressAction(ltHeld ? slot + 4 : slot);
+        pressAction(rtHeld ? slot + 4 : slot);
       }
     }
     prevButtons = Array.from(gp.buttons).map(b => b.pressed);
