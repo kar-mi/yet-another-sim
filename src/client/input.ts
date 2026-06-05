@@ -66,9 +66,12 @@ export function setControllerDeadzone(dz: number): void {
 export function getRightStick(): { x: number; y: number } {
   const gp = getGamepad();
   if (!gp) return { x: 0, y: 0 };
+  // PS5 non-standard mapping: right-stick Y is on axes[5]; axes[3] is the L2 analog
+  // trigger, so reading it here makes the camera pan whenever LT is held.
+  const yAxis = detectType(gp) === 'ps5' && gp.mapping !== 'standard' ? 5 : 3;
   return {
     x: applyDeadzone(gp.axes[2] ?? 0, controllerDeadzone),
-    y: applyDeadzone(gp.axes[3] ?? 0, controllerDeadzone),
+    y: applyDeadzone(gp.axes[yAxis] ?? 0, controllerDeadzone),
   };
 }
 
