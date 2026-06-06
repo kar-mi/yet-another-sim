@@ -786,11 +786,9 @@ body:focus-visible {
 .yas-hotbar-panel {
   pointer-events: all;
   padding: 5px 7px;
-  background: rgba(6, 7, 18, 0.88);
+  background: rgba(6, 7, 18, 0.28);
   border: 1px solid rgba(100, 115, 175, 0.2);
   border-radius: 5px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   gap: 6px;
