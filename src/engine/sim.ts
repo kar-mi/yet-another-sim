@@ -10,6 +10,8 @@ import type {
   EffectSpec,
   PendingTargetedEvent,
   Role,
+  ActiveLineLink,
+  PendingLineLink,
   ActiveTower,
   PendingTower,
   ActiveChain,
@@ -61,6 +63,7 @@ const INTERCEPT_THRESHOLD = 2.0;
 const TARGETED_LINGER = 0.7; // seconds a targeted bait's circle stays visible after it resolves
 const TOWER_LINGER = 0.7; // seconds a tower stays visible after it resolves (success/failure flash)
 const CHAIN_LINGER = 0.7; // seconds a chain stays visible after it breaks/bursts (outcome flash)
+const LINE_LINK_LINGER = 0.7; // seconds a line link/statue stays visible after resolving
 
 function selectTargetPlayer(
   players: Player[],
@@ -77,6 +80,25 @@ function selectTargetPlayer(
     if (mode === "closest" ? d < bestDist : d > bestDist) { bestDist = d; best = p; }
   }
   return best;
+}
+
+function selectLineLinkTargets(
+  players: Player[],
+  origin: Vec2,
+  target: { mode: "closest" | "furthest"; roles?: Role[]; playerIds?: string[]; count?: number },
+): Player[] {
+  const limit = target.count ?? target.playerIds?.length ?? 1;
+  return players
+    .filter(p => {
+      if (!p.alive) return false;
+      if (target.roles && !target.roles.includes(p.role)) return false;
+      if (target.playerIds && !target.playerIds.includes(p.id)) return false;
+      return true;
+    })
+    .map(p => ({ player: p, distance: length(sub(p.pos, origin)) }))
+    .sort((a, b) => target.mode === "closest" ? a.distance - b.distance : b.distance - a.distance)
+    .slice(0, limit)
+    .map(candidate => candidate.player);
 }
 
 // Applies `damage` to a player, factoring in matching vuln debuffs (which multiply
@@ -172,6 +194,7 @@ function applyEffect(player: Player, spec: EffectSpec, time: number, id: string)
     appliedAt: time,
     duration: spec.duration,
     behavior: spec.behavior,
+    visibility: spec.visibility,
   }];
 }
 
@@ -336,6 +359,65 @@ export function tick(world: World, intents: Intents, dt: number): World {
 
   // Cull sources finalized more than 2s ago
   tetherSources = tetherSources.filter(ts => !ts.finalized || ts.finalizeAt > time - 2);
+
+  // 2a. Line links: visual object-to-player links, fixed targets, hidden debuffs until resolve.
+  const remainingPendingLineLinks: PendingLineLink[] = [];
+  const lineLinks: ActiveLineLink[] = world.lineLinks.map(link => ({ ...link }));
+  for (const pendingLink of world.pendingLineLinks) {
+    if (pendingLink.t <= time) {
+      const targets = selectLineLinkTargets(players, pendingLink.pos, pendingLink.target);
+      const resolveAt = pendingLink.t + pendingLink.resolveAfter;
+      for (const target of targets) {
+        applyEffect(target, {
+          name: pendingLink.hiddenDebuffName,
+          kind: "debuff",
+          duration: Math.max(0.01, resolveAt - time),
+          behavior: { kind: "none" },
+          visibility: "invisible",
+        }, time, `${pendingLink.id}-${target.id}-hidden`);
+      }
+      lineLinks.push({
+        id: pendingLink.id,
+        name: pendingLink.name,
+        pos: pendingLink.pos,
+        spawnAt: pendingLink.t,
+        linkUntil: pendingLink.t + pendingLink.linkDuration,
+        resolveAt,
+        target: pendingLink.target,
+        targetPlayerIds: targets.map(target => target.id),
+        hiddenDebuffName: pendingLink.hiddenDebuffName,
+        applyEffect: pendingLink.applyEffect,
+        knockback: pendingLink.knockback,
+        visual: pendingLink.visual,
+        resolved: false,
+      });
+    } else {
+      remainingPendingLineLinks.push(pendingLink);
+    }
+  }
+
+  const stillLineLinks: ActiveLineLink[] = [];
+  for (const link of lineLinks) {
+    if (!link.resolved && time >= link.resolveAt) {
+      link.resolved = true;
+      for (const targetId of link.targetPlayerIds) {
+        const target = players.find(p => p.id === targetId);
+        if (!target) continue;
+        target.effects = target.effects.filter(e => e.id !== `${link.id}-${target.id}-hidden`);
+        if (target.alive) {
+          if (link.applyEffect) applyEffect(target, link.applyEffect, time, `${link.id}-${target.id}-eff`);
+          if (link.knockback && target.antiKbActive <= 0) {
+            applyKnockback(target, link.knockback, link.knockback.origin ?? link.pos);
+          }
+          log.push({ t: time, mechanic: link.name, playerId: target.id, event: "hit" });
+        }
+      }
+    }
+
+    if (!link.resolved || link.resolveAt >= time - LINE_LINK_LINGER) {
+      stillLineLinks.push(link);
+    }
+  }
 
   // 2b. Chains: promote pending pairs, bind the debuff at cast end, break on separation,
   // burst on expiry. The chain entity is authoritative; the debuff is display-only.
@@ -651,6 +733,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const anyAlive = players.some(p => p.alive);
   const allResolved = pending.length === 0 && stillActive.every(m => m.resolved)
     && remainingPendingTethers.length === 0 && tetherSources.every(ts => ts.finalized)
+    && remainingPendingLineLinks.length === 0 && stillLineLinks.every(link => link.resolved)
     && remainingPendingTargeted.length === 0
     && remainingPendingTowers.length === 0 && stillTowers.every(t => t.resolved)
     && remainingPendingChains.length === 0 && stillChains.every(c => c.outcome !== undefined)
@@ -664,5 +747,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups };
+  return { ...world, time, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups };
 }

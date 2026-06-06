@@ -304,6 +304,49 @@ intercepted). See `raids/tether-test.json`.
 | `behavior`       | no       | Effect behavior (see [Effects](#effects)). Defaults to `{ "kind": "none" }`. |
 | `effectDuration` | no       | Duration of the granted effect in seconds (> 0). Defaults to `15`. |
 
+### `line_link` — fixed visual links from an object to selected players
+
+Spawns non-grabbable lines from a source position to selected players. Each target receives
+a hidden debuff immediately. The visual lines can disappear before the debuff resolves; at
+`t + resolveAfter`, only the stored targets resolve and can receive an effect and/or knockback.
+Unlike `tether_source`, these lines do not retarget or get intercepted.
+
+```json
+{
+  "type": "line_link",
+  "t": 5,
+  "name": "North Statue",
+  "pos": [0, 22],
+  "linkDuration": 1.5,
+  "resolveAfter": 6,
+  "target": { "roles": ["tank", "healer"], "count": 4, "mode": "closest" },
+  "hiddenDebuffName": "Line Linked",
+  "applyEffect": {
+    "name": "Magic Vulnerability",
+    "kind": "debuff",
+    "duration": 8,
+    "behavior": { "kind": "vuln", "damageType": "magical", "multiplier": 1.5 }
+  },
+  "knockback": { "distance": 12 },
+  "visual": { "kind": "statue", "width": 3, "height": 5, "depth": 1 }
+}
+```
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `type` | yes | `"line_link"`. |
+| `t` | yes | When the link spawns. |
+| `name` | yes | Mechanic name. |
+| `pos` | yes | `[x, z]` source position. For a north statue, place this outside the arena at positive `z`. |
+| `resolveAfter` | yes | Seconds until the link resolves (> 0). |
+| `linkDuration` | no | Seconds the visual lines remain before disappearing. Defaults to `resolveAfter`. |
+| `target` | no | `mode` (`"closest"`/`"furthest"`), `roles`, `playerIds`, and/or `count`. If both `roles` and `playerIds` are set, both filters must match. Defaults to closest alive player. |
+| `target.count` | no | Number of eligible targets selected. Defaults to `1`, or to `playerIds.length` when `playerIds` is supplied. |
+| `hiddenDebuffName` | yes | Name of the hidden simulation debuff applied while the line is active. It does not show in the HUD. |
+| `applyEffect` | no | Visible buff/debuff applied to the linked player at resolve. |
+| `knockback` | no | Knockback applied to each stored target at resolve; defaults to origin `pos` unless `knockback.origin` is set. |
+| `visual` | no | `{ "kind": "statue" }` draws a rectangular statue at `pos`; dimensions default if omitted. |
+
 ### `chain` — break-apart pair chains
 
 Chains a set of **explicitly named player pairs** together. While the cast bar counts down
@@ -488,7 +531,7 @@ bind them to the boss.
 
 ## Effects
 
-`applyEffect` (on aoe/targeted) and `tether_source.behavior` use the same behavior union.
+`applyEffect` (on aoe/targeted/tower/group/line_link) and `tether_source.behavior` use the same behavior union.
 `applyEffect` wraps it with metadata:
 
 ```json
@@ -496,6 +539,7 @@ bind them to the boss.
   "name": "Magic Vulnerability Up",
   "kind": "debuff",
   "duration": 10,
+  "visibility": "visible",
   "behavior": { "kind": "vuln", "damageType": "magical", "multiplier": 2 }
 }
 ```
@@ -505,6 +549,7 @@ bind them to the boss.
 | `name`     | yes      | Display name. |
 | `kind`     | yes      | `"buff"` or `"debuff"`. |
 | `duration` | yes      | Seconds the effect lasts (> 0). |
+| `visibility` | no    | `"visible"` (default) shows in the HUD; `"invisible"` stores the effect without a HUD chip. |
 | `behavior` | yes      | One of the behaviors below. |
 
 Behaviors:
@@ -594,5 +639,6 @@ descriptive Zod error. The existing files in `raids/` double as references:
 - `near-far-bait.json` — `targeted` events with `role` filters and `applyEffect`.
 - `debuff-test.json` — `vuln`, `pyretic`, and `freeze` behaviors.
 - `tether-test.json` — `tether_source` buff and debuff.
+- `line-link-test.json` — `line_link` from a north statue with hidden debuff, effect, and knockback.
 - `chain-test.json` — `chain` break-apart pairs with a debuff and burst.
 - `rng-stack.json` — `group` random shared-stack assignment with a linked opposite-group repeat.
