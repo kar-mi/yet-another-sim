@@ -663,6 +663,12 @@ body:focus-visible {
   font-family: 'Share Tech Mono', monospace;
 }
 
+.yas-resource-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .yas-resource-panel {
   display: flex;
   flex-direction: column;
@@ -691,19 +697,34 @@ body:focus-visible {
   line-height: 24px;
   text-align: center;
   cursor: pointer;
-  color: rgba(195, 205, 225, 0.55);
-  background: rgba(12, 12, 25, 0.95);
-  border: 1px solid rgba(70, 80, 120, 0.3);
+  color: #d7ffe1;
+  background: rgba(31, 122, 59, 0.36);
+  border: 1px solid rgba(70, 210, 110, 0.72);
   border-radius: 3px;
+  box-shadow: 0 0 6px rgba(70, 210, 110, 0.28);
 }
 
-.yas-invuln-btn:hover { color: rgba(235, 238, 255, 0.9); }
+.yas-invuln-btn:hover,
+.yas-invuln-btn:focus,
+.yas-invuln-btn:focus-visible,
+.yas-invuln-btn:active {
+  color: #d7ffe1;
+  outline: none;
+  border-color: rgba(70, 210, 110, 0.72);
+  background: rgba(31, 122, 59, 0.36);
+  box-shadow: 0 0 6px rgba(70, 210, 110, 0.28);
+}
 
-.yas-invuln-btn.is-active {
-  color: #ffd95a;
-  border-color: #ffd95a;
-  background: rgba(255, 217, 90, 0.18);
-  box-shadow: 0 0 6px rgba(255, 217, 90, 0.5);
+.yas-invuln-btn.is-active,
+.yas-invuln-btn.is-active:hover,
+.yas-invuln-btn.is-active:focus,
+.yas-invuln-btn.is-active:focus-visible,
+.yas-invuln-btn.is-active:active {
+  color: #ffe2e2;
+  outline: none;
+  border-color: rgba(235, 65, 65, 0.9);
+  background: rgba(190, 32, 38, 0.52);
+  box-shadow: 0 0 6px rgba(235, 65, 65, 0.42);
 }
 
 .yas-bar-label {
