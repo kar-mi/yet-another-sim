@@ -7,6 +7,7 @@ import type { Boss } from "../../shared/types";
 
 export class BossLayer {
   private mesh?: Mesh;
+  private faceMarker?: Mesh; // TEMP: front indicator so facing/rotation is visible during smoke test
 
   constructor(private scene: Scene) {}
 
@@ -33,12 +34,32 @@ export class BossLayer {
     mesh.material = mat;
     mesh.position.set(boss.pos.x, this.height / 2, boss.pos.z);
     this.mesh = mesh;
+
+    // TEMP: bright "face" on the front (+Z local) to make rotation visible.
+    const face = CreateSphere(`boss-face-${boss.id}`, { diameter: boss.radius * 0.6, segments: 16 }, this.scene);
+    const faceMat = new StandardMaterial(`boss-face-mat-${boss.id}`, this.scene);
+    faceMat.emissiveColor = new Color3(1, 0.9, 0.2);
+    faceMat.diffuseColor = new Color3(1, 0.9, 0.2);
+    face.material = faceMat;
+    this.faceMarker = face;
   }
 
   sync(boss: Boss): void {
     if (!this.mesh) return;
     this.mesh.position.set(boss.pos.x, this.height / 2, boss.pos.z);
+    this.mesh.rotation.y = boss.facing;
     this.mesh.isVisible = boss.hp > 0;
+
+    // TEMP: keep the face marker on the front surface, following facing (0 = +Z).
+    if (this.faceMarker) {
+      const dist = boss.radius * BossLayer.HORIZONTAL_SCALE;
+      this.faceMarker.position.set(
+        boss.pos.x + Math.sin(boss.facing) * dist,
+        this.height * 0.65,
+        boss.pos.z + Math.cos(boss.facing) * dist,
+      );
+      this.faceMarker.isVisible = boss.hp > 0;
+    }
   }
 
   getMesh(): Mesh | undefined {

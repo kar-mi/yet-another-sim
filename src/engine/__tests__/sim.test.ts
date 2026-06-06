@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { computeBotIntents } from "../botIntent";
-import { tick, DEATH_FLOOR_Y } from "../sim";
+import { tick, DEATH_FLOOR_Y, INITIAL_TANK_THREAT } from "../sim";
 import { createWorld } from "../world";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../raidLoader";
 import { CLOCK_SPOTS, ROSTER } from "../../shared/protocol";
@@ -100,13 +100,28 @@ test("facing tracks movement direction and persists while idle", () => {
   expect(human(idle).facing).toBeCloseTo(human(movedZ).facing);
 });
 
-test("world includes a deterministic boss", () => {
+test("world includes a deterministic boss with a seeded threat table", () => {
+  const raid = loadRaid(baseRaid);
+  const world = createWorld(raid);
+
+  expect(world.boss.id).toBe("boss");
+  expect(world.boss.pos).toEqual({ x: 0, z: 0 });
+  expect(world.boss.hp).toBe(1000);
+  // Tanks are seeded; mt (lexicographically first tank) is the initial target.
+  expect(world.boss.threat.mt).toBe(INITIAL_TANK_THREAT);
+  expect(world.boss.threat.m1).toBe(0);
+  expect(world.boss.currentTarget).toBe("mt");
+  expect(world.boss.facing).toBe(0);
+});
+
+test("boss facing snaps to point at its current target each tick", () => {
   const raid = loadRaid(baseRaid);
   const world = createWorld(raid);
   const next = tick(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
 
-  expect(world.boss).toEqual({ id: "boss", pos: { x: 0, z: 0 }, hp: 1000, maxHp: 1000, radius: 3 });
-  expect(next.boss).toEqual(world.boss);
+  const mt = next.players.find(p => p.id === "mt")!;
+  expect(next.boss.facing).toBeCloseTo(Math.atan2(mt.pos.x - 0, mt.pos.z - 0));
+  expect(next.boss.currentTarget).toBe("mt");
 });
 
 test("bot intents are deterministic", () => {

@@ -1,6 +1,7 @@
 import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent } from "../shared/types";
 import { vec2 } from "../shared/math";
 import type { RaidDef } from "./raidSchema";
+import { INITIAL_TANK_THREAT, topThreatTarget } from "./sim";
 
 export const ROLE_HP: Record<Player["role"], number> = { tank: 160, healer: 100, dps: 100 };
 
@@ -54,7 +55,14 @@ export function createWorld(raid: RaidDef): World {
     effects: [],
   }));
 
-  const boss: Boss = { id: "boss", pos: { x: 0, z: 0 }, hp: 1000, maxHp: 1000, radius: 3 };
+  const threat: Record<string, number> = {};
+  for (const p of players) {
+    if (p.alive) threat[p.id] = p.role === "tank" ? INITIAL_TANK_THREAT : 0;
+  }
+  const boss: Boss = {
+    id: "boss", pos: { x: 0, z: 0 }, hp: 1000, maxHp: 1000, radius: 3,
+    facing: 0, threat, currentTarget: topThreatTarget(players, threat),
+  };
 
   const pending: PendingEvent[] = [];
   const pendingTethers: PendingTether[] = [];

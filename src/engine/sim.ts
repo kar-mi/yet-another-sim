@@ -36,6 +36,23 @@ export const ANTI_KB_DURATION = 5;    // seconds the anti-knockback buff negates
 export const ANTI_KB_COOLDOWN = 120;  // seconds before anti-knockback can be used again
 export const KNOCKBACK_FRICTION = 40; // ground deceleration (units/s^2); v0 = sqrt(2*FRICTION*distance)
 
+export const INITIAL_TANK_THREAT = 1; // seed so a tank starts as the boss's target
+
+// Alive player with the highest threat; stable tiebreak by id. null if none alive.
+export function topThreatTarget(players: Player[], threat: Record<string, number>): string | null {
+  let best: string | null = null;
+  let bestThreat = -Infinity;
+  for (const p of players) {
+    if (!p.alive) continue;
+    const t = threat[p.id] ?? 0;
+    if (t > bestThreat || (t === bestThreat && best !== null && p.id < best)) {
+      best = p.id;
+      bestThreat = t;
+    }
+  }
+  return best;
+}
+
 const INTERCEPT_THRESHOLD = 2.0;
 const TARGETED_LINGER = 0.7; // seconds a targeted bait's circle stays visible after it resolves
 const TOWER_LINGER = 0.7; // seconds a tower stays visible after it resolves (success/failure flash)
@@ -150,6 +167,9 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const log: LogEntry[] = world.log.slice();
   const actedByPlayer = new Map<string, boolean>();
   const groupChoices = { ...world.groupChoices };
+  // tick never mutates the incoming world: clone the boss (threat is the one nested
+  // mutable object we write) so the returned snapshot is fresh. See world.ts/net.ts.
+  const boss = { ...world.boss, threat: { ...world.boss.threat } };
 
   // 1. Apply player movement
   for (const player of players) {
@@ -220,6 +240,14 @@ export function tick(world: World, intents: Intents, dt: number): World {
       player.verticalVelocity = 0;
       log.push({ t: time, mechanic: "arena", playerId: player.id, event: "fell" });
     }
+  }
+
+  // 1b. Boss targeting + facing: pick the top-threat alive player and turn to face them.
+  // Per-tick snap (no turn-rate clamp); visual smoothing is done client-side in net.ts.
+  boss.currentTarget = topThreatTarget(players, boss.threat);
+  if (boss.currentTarget) {
+    const target = players.find(p => p.id === boss.currentTarget)!;
+    boss.facing = Math.atan2(target.pos.x - boss.pos.x, target.pos.z - boss.pos.z);
   }
 
   // 2. Tether sources: promote, update attachments, finalize
@@ -608,5 +636,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, groupChoices, players, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups };
+  return { ...world, time, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups };
 }

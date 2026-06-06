@@ -77,6 +77,9 @@ export type Boss = {
   hp: number;
   maxHp: number;
   radius: number;
+  facing: number;                  // radians, 0 = +Z (matches player facing convention)
+  currentTarget: string | null;    // player id with top threat
+  threat: Record<string, number>;  // playerId -> threat value
 };
 
 export type AOEShape =
