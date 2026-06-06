@@ -1,0 +1,58 @@
+{
+  "name": "Positional Test",
+  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 25 }] },
+  "duration": 30,
+  "players": [
+    { "id": "mt", "role": "tank", "control": "bot", "spawn": [0, 18] },
+    { "id": "ot", "role": "tank", "control": "bot", "spawn": [0, -18] },
+    { "id": "h1", "role": "healer", "control": "bot", "spawn": [-18, 0] },
+    { "id": "h2", "role": "healer", "control": "bot", "spawn": [18, 0] },
+    { "id": "r1", "role": "dps", "control": "bot", "spawn": [12, 12] },
+    { "id": "r2", "role": "dps", "control": "bot", "spawn": [-12, 12] },
+    { "id": "m1", "role": "dps", "control": "human", "spawn": [-12, -12] },
+    { "id": "m2", "role": "dps", "control": "bot", "spawn": [12, -12] }
+  ],
+  "events": [
+    {
+      "t": 3,
+      "name": "Front Cleave (90)",
+      "telegraph": 4,
+      "damage": 30,
+      "damageType": "physical",
+      "showCastBar": true,
+      "anchor": "boss",
+      "direction": "bossFacing",
+      "shape": { "kind": "cone", "angleDeg": 90, "length": 25 }
+    },
+    {
+      "t": 12,
+      "name": "Left Half Cleave",
+      "telegraph": 4,
+      "damage": 30,
+      "damageType": "physical",
+      "showCastBar": true,
+      "anchor": "boss",
+      "direction": "bossFacing",
+      "directionOffset": -1.5708,
+      "shape": { "kind": "cone", "angleDeg": 180, "length": 25 }
+    },
+    {
+      "t": 21,
+      "name": "Rear Cleave (90)",
+      "telegraph": 4,
+      "damage": 30,
+      "damageType": "physical",
+      "showCastBar": true,
+      "anchor": "boss",
+      "direction": "bossFacing",
+      "directionOffset": 3.14159,
+      "shape": { "kind": "cone", "angleDeg": 90, "length": 25 }
+    }
+  ],
+  "waymarks": [
+    { "mark": "A", "pos": [0, 20] },
+    { "mark": "B", "pos": [20, 0] },
+    { "mark": "C", "pos": [0, -20] },
+    { "mark": "D", "pos": [-20, 0] }
+  ]
+}

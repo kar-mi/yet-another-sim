@@ -919,6 +919,45 @@ test("a half cleave (180° front arc) hits the whole front", () => {
   expect(byId(world, "m2").hp).toBe(100); // rear -> spared
 });
 
+test("directionOffset rotates a boss-anchored cone (rear cleave)", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster(facingNorthRoster), // boss faces +Z (north)
+    events: [{
+      t: 0, name: "Rear Cone", telegraph: 1, damage: 30, damageType: "physical" as const,
+      anchor: "boss", direction: "bossFacing", directionOffset: Math.PI, // point south
+      shape: { kind: "cone", angleDeg: 90, length: 25 },
+    }],
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(1.1 * 60));
+  expect(byId(world, "m2").hp).toBe(70);  // behind the boss, inside the rear cone
+  expect(byId(world, "m1").hp).toBe(100); // in front, spared
+});
+
+test("lockFacing freezes the boss facing for the duration of the cast", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [10, 0] }, ot: { spawn: [0, 10] } }),
+    events: [{
+      t: 0, name: "Locked Cast", telegraph: 3, damage: 0, damageType: "physical" as const,
+      lockFacing: true, shape: { kind: "circle", center: [0, 0], radius: 1 },
+    }],
+  });
+  let w = tick(createWorld(raid), { mt: { move: { x: 0, z: 0 } } }, 1 / 60);
+  const lockedFacing = w.boss.facing;
+  expect(lockedFacing).toBeCloseTo(Math.atan2(10, 0)); // faces mt (east) at cast start
+
+  // ot provokes mid-cast: target flips but the boss holds its facing.
+  w = tick(w, { ot: { move: { x: 0, z: 0 }, provoke: true } }, 1 / 60);
+  w = runTicks(w, {}, 30); // still within the 3s cast
+  expect(w.boss.currentTarget).toBe("ot");
+  expect(w.boss.facing).toBeCloseTo(lockedFacing); // frozen
+
+  // once the cast resolves, facing resumes toward the current target (ot, north).
+  w = runTicks(w, {}, Math.ceil(3 * 60));
+  expect(w.boss.facing).toBeCloseTo(Math.atan2(0, 10));
+});
+
 // --- RNG group mechanics -------------------------------------------------
 
 function groupRaid(events: unknown[], over: Record<string, { spawn?: Vec }> = {}) {

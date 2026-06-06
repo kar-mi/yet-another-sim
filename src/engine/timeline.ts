@@ -7,11 +7,12 @@ function resolveAnchoredShape(event: PendingEvent, boss: Boss): AOEShape {
   if ((!event.anchor && !event.direction) || (shape.kind !== "cone" && shape.kind !== "rect")) {
     return shape;
   }
+  const facing = boss.facing + (event.directionOffset ?? 0);
   return {
     ...shape,
     origin: event.anchor === "boss" ? { x: boss.pos.x, z: boss.pos.z } : shape.origin,
     direction: event.direction === "bossFacing"
-      ? { x: Math.sin(boss.facing), z: Math.cos(boss.facing) }
+      ? { x: Math.sin(facing), z: Math.cos(facing) }
       : shape.direction,
   };
 }
@@ -37,6 +38,7 @@ export function promotePending(
         applyEffect: event.applyEffect,
         knockback: event.knockback,
         positional: event.positional,
+        lockFacing: event.lockFacing,
         resolved: false,
         showCastBar: event.showCastBar,
         showTelegraph: event.showTelegraph,

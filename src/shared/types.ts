@@ -105,6 +105,8 @@ export type ActiveMechanic = {
   applyEffect?: EffectSpec;
   knockback?: Knockback;
   positional?: PositionalArc;
+  // While unresolved and casting, the boss holds its facing instead of tracking its target.
+  lockFacing?: boolean;
   resolved: boolean;
   showCastBar: boolean;
   // When false, the ground telegraph is never drawn; the cast bar and damage still apply.
@@ -128,6 +130,8 @@ export type PendingEvent = {
   // For cone/rect: resolve origin/direction from the boss at cast start (see promotePending).
   anchor?: "boss";
   direction?: "bossFacing";
+  directionOffset?: number;
+  lockFacing?: boolean;
   showCastBar: boolean;
   showTelegraph: boolean;
 };

@@ -268,8 +268,11 @@ export function tick(world: World, intents: Intents, dt: number): World {
 
   // 1b. Boss targeting + facing: pick the top-threat alive player and turn to face them.
   // Per-tick snap (no turn-rate clamp); visual smoothing is done client-side in net.ts.
+  // A lockFacing cast freezes the boss's facing for its duration so it matches its telegraph.
   boss.currentTarget = topThreatTarget(players, boss.threat);
-  if (boss.currentTarget) {
+  const facingLocked = world.active.some(m =>
+    m.lockFacing && !m.resolved && m.telegraphStart <= time && m.resolveAt > time);
+  if (boss.currentTarget && !facingLocked) {
     const target = players.find(p => p.id === boss.currentTarget)!;
     boss.facing = Math.atan2(target.pos.x - boss.pos.x, target.pos.z - boss.pos.z);
   }

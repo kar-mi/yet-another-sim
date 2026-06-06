@@ -190,14 +190,21 @@ A `cone` or `rect` `aoe` can be locked to the boss instead of fixed coordinates.
 are **snapshotted when the cast begins** (at `t`), like an FFXIV cleave — the player can then
 dodge during the telegraph.
 
-| Field       | Required | Notes |
-|-------------|----------|-------|
-| `anchor`    | no       | `"boss"` sets the shape's `origin` to the boss position at cast start. |
-| `direction` | no       | `"bossFacing"` sets the shape's `direction` to the boss's facing at cast start (the boss faces its current threat target). |
+| Field             | Required | Notes |
+|-------------------|----------|-------|
+| `anchor`          | no       | `"boss"` sets the shape's `origin` to the boss position at cast start. |
+| `direction`       | no       | `"bossFacing"` sets the shape's `direction` to the boss's facing at cast start (the boss faces its current threat target). |
+| `directionOffset` | no       | Radians to rotate the `bossFacing` direction, clockwise. `0` = front (default), `π` = rear cleave, `-π/2` = the boss's left, `π/4` = front-right. |
+| `lockFacing`      | no       | Freezes the boss's facing for the cast's duration (it stops tracking its target), then resumes — keeping it aligned with its snapshotted cleave. **Defaults to `true`**; set `false` to let the boss keep turning mid-cast. |
 
 When you use these, the shape's own `origin`/`direction` may be omitted (they default and are
 overridden). Each flag is independent — e.g. `anchor: "boss"` with a static `direction` vector
 gives a fixed-heading cleave that originates from the boss.
+
+Express a directional cleave with the `cone`'s `angleDeg` (full width) plus `directionOffset`:
+a front 90° cleave is `angleDeg: 90` with no offset; a rear cleave adds `directionOffset: 3.14159`
+(π); a left half-room cleave is `angleDeg: 180, directionOffset: -1.5708` (−π/2). See
+`raids/positional-test.json`.
 
 ```json
 {
