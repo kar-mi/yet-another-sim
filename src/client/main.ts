@@ -3,9 +3,9 @@ import { initInput, setKeyBindings, setControllerDeadzone, getControllerInfo, li
 import { startNetLoop } from "./loop";
 import { DEFAULT_BINDINGS, keyLabel, loadSettings, saveSettings } from "./settings";
 import type { KeyBindings } from "./settings";
-import { loadRaidOptions, showLanding, showLobby } from "./MainMenu";
+import { loadRaidCategories, showLanding, showLobby } from "./MainMenu";
 import { connect, type NetClient } from "./net";
-import { EMPTY_RAID_ID, SessionIdSchema, type PlaybackState } from "../shared/protocol";
+import { EMPTY_RAID_ID, SessionIdSchema, type PlaybackState, type RaidCategory } from "../shared/protocol";
 import { consoleSink, logger, parseLevel } from "../shared/logger";
 import pkg from "../../package.json";
 
@@ -20,9 +20,28 @@ logger.configure({
 async function createRaidHudSelect(net: NetClient, initialRaidId: string, initialIsHost: boolean): Promise<() => void> {
   let isHost = initialIsHost;
   let lastState: PlaybackState = "playing";
-  const raids = [{ id: EMPTY_RAID_ID, name: "(empty)" }, ...await loadRaidOptions()];
+  const defaultLobbyCategory: RaidCategory = {
+    id: "default-lobby",
+    name: "Default Lobby",
+    description: "Empty arena.",
+    raids: [{ id: EMPTY_RAID_ID, name: "Default Lobby" }],
+  };
+  const categories = [defaultLobbyCategory, ...await loadRaidCategories()];
+  const categoryForRaidId = (raidId: string): RaidCategory => {
+    if (raidId === EMPTY_RAID_ID) return defaultLobbyCategory;
+    const prefix = raidId.slice(0, raidId.indexOf("/"));
+    return categories.find(cat => cat.id === prefix) ?? defaultLobbyCategory;
+  };
+  let currentCategory = categoryForRaidId(initialRaidId);
+
   const wrapper = document.createElement("div");
   wrapper.id = "yas-raid-select";
+
+  const categoryBtn = document.createElement("button");
+  categoryBtn.type = "button";
+  categoryBtn.id = "yas-raid-category-btn";
+  categoryBtn.textContent = "☰";
+  categoryBtn.ariaLabel = "Choose raid category";
 
   const label = document.createElement("span");
   label.className = "yas-session-label";
@@ -31,18 +50,58 @@ async function createRaidHudSelect(net: NetClient, initialRaidId: string, initia
   const select = document.createElement("select");
   select.ariaLabel = "Raid plan";
   select.disabled = !isHost;
-  for (const raid of raids) {
-    const option = document.createElement("option");
-    option.value = raid.id;
-    option.textContent = raid.name;
-    select.appendChild(option);
-  }
-  select.value = initialRaidId;
+  const populateSelect = (category: RaidCategory, selectedId: string) => {
+    select.replaceChildren();
+    for (const raid of category.raids) {
+      const option = document.createElement("option");
+      option.value = raid.id;
+      option.textContent = raid.name;
+      select.appendChild(option);
+    }
+    select.value = selectedId;
+  };
+  populateSelect(currentCategory, initialRaidId);
   select.addEventListener("change", () => {
     const raidId = select.value;
     select.blur();
     select.disabled = true;
     net.send({ type: "setRaid", raidId });
+  });
+
+  // Modal listing categories; picking one re-scopes the dropdown (does not change the active raid).
+  const modal = document.createElement("div");
+  modal.id = "yas-raid-modal";
+  modal.style.display = "none";
+  const modalPanel = document.createElement("div");
+  modalPanel.className = "yas-raid-modal-panel";
+  modalPanel.append(
+    Object.assign(document.createElement("div"), { className: "yas-menu-subtitle", textContent: "CHOOSE CATEGORY" }),
+  );
+  const closeModal = () => { modal.style.display = "none"; };
+  for (const category of categories) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "yas-raid-cat-option";
+    row.append(
+      Object.assign(document.createElement("div"), { className: "yas-raid-cat-name", textContent: category.name }),
+      Object.assign(document.createElement("div"), { className: "yas-raid-cat-desc", textContent: category.description }),
+    );
+    row.addEventListener("click", () => {
+      currentCategory = category;
+      populateSelect(category, category.raids[0]?.id ?? "");
+      closeModal();
+    });
+    modalPanel.appendChild(row);
+  }
+  modal.appendChild(modalPanel);
+  modal.addEventListener("click", event => { if (event.target === modal) closeModal(); });
+  const onKeydown = (event: KeyboardEvent) => { if (event.key === "Escape") closeModal(); };
+  document.addEventListener("keydown", onKeydown);
+  document.body.appendChild(modal);
+
+  categoryBtn.addEventListener("click", () => {
+    categoryBtn.blur();
+    modal.style.display = "flex";
   });
 
   const controls = document.createElement("div");
@@ -83,7 +142,9 @@ async function createRaidHudSelect(net: NetClient, initialRaidId: string, initia
 
   const syncPlayback = (state: PlaybackState) => {
     lastState = state;
-    select.disabled = !isHost || state === "playing";
+    const locked = !isHost || state === "playing";
+    select.disabled = locked;
+    categoryBtn.disabled = locked;
     playBtn.disabled = !isHost || state === "playing";
     pauseBtn.disabled = !isHost || state !== "playing";
     stopBtn.disabled = !isHost || state === "stopped";
@@ -92,17 +153,23 @@ async function createRaidHudSelect(net: NetClient, initialRaidId: string, initia
 
   const disposePlayback = net.on("playback", message => {
     isHost = net.clientId === message.hostClientId;
-    select.value = message.raidId;
+    currentCategory = categoryForRaidId(message.raidId);
+    populateSelect(currentCategory, message.raidId);
     syncPlayback(message.state);
   });
   const disposeError = net.on("error", () => syncPlayback(lastState));
   syncPlayback("playing");
 
-  wrapper.append(label, select, controls);
+  const selectRow = document.createElement("div");
+  selectRow.className = "yas-raid-select-row";
+  selectRow.append(categoryBtn, select);
+  wrapper.append(label, selectRow, controls);
   document.body.appendChild(wrapper);
   return () => {
     disposePlayback();
     disposeError();
+    document.removeEventListener("keydown", onKeydown);
+    modal.remove();
     wrapper.remove();
   };
 }

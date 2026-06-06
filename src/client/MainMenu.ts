@@ -2,10 +2,12 @@ import {
   EMPTY_RAID_ID,
   MAX_RAIDS,
   RAID_ID_REGEX,
+  RAID_SEGMENT_REGEX,
   SessionIdSchema,
   normalizeRaidName,
   type LobbySlot,
   type LobbyStatus,
+  type RaidCategory,
   type RaidEntry,
 } from "../shared/protocol";
 import type { World } from "../shared/types";
@@ -34,16 +36,39 @@ function createElement<K extends keyof HTMLElementTagNameMap>(
   return el;
 }
 
-export async function loadRaidOptions(): Promise<RaidEntry[]> {
+function normalizeCategory(value: unknown): RaidCategory | null {
+  if (!value || typeof value !== "object") return null;
+
+  const cat = value as { id?: unknown; name?: unknown; description?: unknown; raids?: unknown };
+  if (typeof cat.id !== "string" || !RAID_SEGMENT_REGEX.test(cat.id)) return null;
+
+  const name = normalizeRaidName(cat.name);
+  if (!name) return null;
+
+  const description = typeof cat.description === "string" ? cat.description : "";
+  const raids = Array.isArray(cat.raids)
+    ? cat.raids.map(normalizeRaidEntry).filter((entry): entry is RaidEntry => entry !== null)
+    : [];
+
+  return { id: cat.id, name, description, raids };
+}
+
+export async function loadRaidCategories(): Promise<RaidCategory[]> {
   const res = await fetch("/api/raids");
   if (!res.ok) throw new Error(`Failed to load raid list: ${res.status}`);
   const json: unknown = await res.json();
   if (!Array.isArray(json)) throw new Error("Invalid raid list");
 
-  return json
-    .map(normalizeRaidEntry)
-    .filter((entry): entry is RaidEntry => entry !== null)
-    .slice(0, MAX_RAIDS);
+  let total = 0;
+  const categories: RaidCategory[] = [];
+  for (const value of json) {
+    const category = normalizeCategory(value);
+    if (!category) continue;
+    category.raids = category.raids.slice(0, MAX_RAIDS - total);
+    total += category.raids.length;
+    categories.push(category);
+  }
+  return categories;
 }
 
 export function showLanding(): Promise<string> {

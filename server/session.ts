@@ -1,4 +1,4 @@
-import { join } from "path";
+import { dirname, join } from "path";
 import { computeBotIntents } from "../src/engine/botIntent";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../src/engine/raidLoader";
 import type { RaidDef } from "../src/engine/raidSchema";
@@ -66,7 +66,8 @@ export async function loadSessionRaid(raidId: string, raidsDir: string): Promise
 
   const raid = loadRaid(await Bun.file(join(raidsDir, `${raidId}.json`)).json());
   if (!raid.botPatterns) return raid;
-  return applyBotPatterns(raid, loadBotPatterns(await Bun.file(join(raidsDir, `${raid.botPatterns}.json`)).json()));
+  const categoryDir = dirname(raidId);
+  return applyBotPatterns(raid, loadBotPatterns(await Bun.file(join(raidsDir, categoryDir, `${raid.botPatterns}.json`)).json()));
 }
 
 export type SessionStatus = LobbyStatus;
