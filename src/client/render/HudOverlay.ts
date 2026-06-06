@@ -302,7 +302,7 @@ export class HudOverlay {
       row.hpFill.style.width = `${hpPct}%`;
       row.mpFill.style.width = `${mpPct}%`;
       row.rowEl.classList.toggle("yas-dead", !player.alive);
-      const activeEffects = player.effects.filter(e => e.appliedAt + e.duration > world.time);
+      const activeEffects = player.effects.filter(e => e.visibility !== "invisible" && e.appliedAt + e.duration > world.time);
       row.effectsEl.replaceChildren();
       for (const effect of activeEffects) {
         const effectEl = document.createElement("span");

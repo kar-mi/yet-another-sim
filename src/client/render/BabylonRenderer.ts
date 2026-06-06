@@ -19,6 +19,7 @@ import { HudOverlay } from "./HudOverlay";
 import { PlayerLayer } from "./PlayerLayer";
 import { TelegraphLayer } from "./TelegraphLayer";
 import { TetherLayer } from "./TetherLayer";
+import { LineLinkLayer } from "./LineLinkLayer";
 import { ChainLayer } from "./ChainLayer";
 import { TowerLayer } from "./TowerLayer";
 import { StackLayer } from "./StackLayer";
@@ -46,6 +47,7 @@ export class BabylonRenderer implements Renderer {
   private healthBars!: HealthBarLayer;
   private telegraphs!: TelegraphLayer;
   private tethers!: TetherLayer;
+  private lineLinks!: LineLinkLayer;
   private chains!: ChainLayer;
   private towers!: TowerLayer;
   private stacks!: StackLayer;
@@ -132,6 +134,7 @@ export class BabylonRenderer implements Renderer {
     }
     this.telegraphs = new TelegraphLayer(this.scene);
     this.tethers = new TetherLayer(this.scene);
+    this.lineLinks = new LineLinkLayer(this.scene);
     this.chains = new ChainLayer(this.scene);
     this.towers = new TowerLayer(this.scene);
     this.stacks = new StackLayer(this.scene);
@@ -174,6 +177,7 @@ export class BabylonRenderer implements Renderer {
 
     this.telegraphs.sync(world.active, world.time);
     this.tethers.sync(world.tetherSources, world.players, world.time);
+    this.lineLinks.sync(world.lineLinks, world.players, world.time);
     this.chains.sync(world.chains, world.players, world.time);
     this.towers.sync(world.towers, world.time);
     this.stacks.sync(world.groupMechanics, world.players, world.time);
@@ -231,6 +235,7 @@ export class BabylonRenderer implements Renderer {
     window.removeEventListener("resize", this.onResize);
     this.hud.dispose();
     this.bossRing.dispose();
+    this.lineLinks.dispose();
     this.chains.dispose();
     this.towers.dispose();
     this.stacks.dispose();

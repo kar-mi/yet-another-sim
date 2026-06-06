@@ -31,6 +31,7 @@ export type EffectSpec = {
   kind: "buff" | "debuff";
   duration: number;
   behavior: EffectBehavior;
+  visibility?: "visible" | "invisible";
 };
 
 export type StatusEffect = {
@@ -40,6 +41,7 @@ export type StatusEffect = {
   appliedAt: number;
   duration: number;
   behavior: EffectBehavior;
+  visibility?: "visible" | "invisible";
 };
 
 export type Knockback = {
@@ -260,6 +262,50 @@ export type PendingTether = {
   effectDuration: number;
 };
 
+export type LineLinkTarget = {
+  mode: "closest" | "furthest";
+  roles?: Role[];
+  playerIds?: string[];
+  count?: number;
+};
+
+export type LineLinkVisual = {
+  kind: "statue";
+  width: number;
+  height: number;
+  depth: number;
+};
+
+export type ActiveLineLink = {
+  id: string;
+  name: string;
+  pos: Vec2;
+  spawnAt: number;
+  linkUntil: number;
+  resolveAt: number;
+  target: LineLinkTarget;
+  targetPlayerIds: string[];
+  hiddenDebuffName: string;
+  applyEffect?: EffectSpec;
+  knockback?: Knockback;
+  visual?: LineLinkVisual;
+  resolved: boolean;
+};
+
+export type PendingLineLink = {
+  id: string;
+  t: number;
+  name: string;
+  pos: Vec2;
+  resolveAfter: number;
+  linkDuration: number;
+  target: LineLinkTarget;
+  hiddenDebuffName: string;
+  applyEffect?: EffectSpec;
+  knockback?: Knockback;
+  visual?: LineLinkVisual;
+};
+
 export type ActiveChain = {
   id: string;
   name: string;
@@ -321,6 +367,8 @@ export type World = {
   duration: number;
   tetherSources: TetherSource[];
   pendingTethers: PendingTether[];
+  lineLinks: ActiveLineLink[];
+  pendingLineLinks: PendingLineLink[];
   pendingTargeted: PendingTargetedEvent[];
   towers: ActiveTower[];
   pendingTowers: PendingTower[];

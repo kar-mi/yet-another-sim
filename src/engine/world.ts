@@ -1,4 +1,4 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent } from "../shared/types";
 import { vec2 } from "../shared/math";
 import type { RaidDef } from "./raidSchema";
 import { INITIAL_TANK_THREAT, topThreatTarget } from "./sim";
@@ -67,6 +67,7 @@ export function createWorld(raid: RaidDef): World {
 
   const pending: PendingEvent[] = [];
   const pendingTethers: PendingTether[] = [];
+  const pendingLineLinks: PendingLineLink[] = [];
   const pendingTargeted: PendingTargetedEvent[] = [];
   const pendingTowers: PendingTower[] = [];
   const pendingChains: PendingChain[] = [];
@@ -83,6 +84,24 @@ export function createWorld(raid: RaidDef): World {
         buffName: e.buffName,
         behavior: e.behavior,
         effectDuration: e.effectDuration,
+      });
+    } else if (e.type === "line_link") {
+      pendingLineLinks.push({
+        id: `line-link-${index}`,
+        t: e.t,
+        name: e.name,
+        pos: toVec2(e.pos),
+        resolveAfter: e.resolveAfter,
+        linkDuration: e.linkDuration ?? e.resolveAfter,
+        target: e.target,
+        hiddenDebuffName: e.hiddenDebuffName,
+        applyEffect: e.applyEffect,
+        knockback: e.knockback && {
+          distance: e.knockback.distance,
+          height: e.knockback.height,
+          origin: e.knockback.origin ? toVec2(e.knockback.origin) : undefined,
+        },
+        visual: e.visual,
       });
     } else if (e.type === "targeted") {
       pendingTargeted.push({
@@ -190,7 +209,7 @@ export function createWorld(raid: RaidDef): World {
     time: 0,
     groupChoices: {},
     status: "running",
-    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0,
+    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0,
     arena,
     waymarks,
     players,
@@ -201,6 +220,8 @@ export function createWorld(raid: RaidDef): World {
     duration: raid.duration,
     tetherSources: [],
     pendingTethers,
+    lineLinks: [],
+    pendingLineLinks,
     pendingTargeted,
     towers: [],
     pendingTowers,

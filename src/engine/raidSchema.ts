@@ -3,6 +3,7 @@ import { ROSTER, RaidIdSchema } from "../shared/protocol";
 
 const Vec2Schema = z.tuple([z.number(), z.number()]);
 const WaypointSchema = z.object({ t: z.number().nonnegative(), pos: Vec2Schema });
+const RoleSchema = z.enum(["tank", "healer", "dps"]);
 
 const WaymarkSchema = z.object({
   mark: z.enum(["A", "B", "C", "D", "1", "2", "3", "4"]),
@@ -41,6 +42,7 @@ const ApplyEffectSchema = z.object({
   kind: z.enum(["buff", "debuff"]),
   duration: z.number().positive(),
   behavior: EffectBehaviorSchema,
+  visibility: z.enum(["visible", "invisible"]).optional(),
 });
 
 const KnockbackSchema = z.object({
@@ -81,7 +83,7 @@ const TargetedEventSchema = z.object({
   t: z.number().nonnegative(),
   name: z.string().min(1),
   targetMode: z.enum(["closest", "furthest"]),
-  role: z.enum(["tank", "healer", "dps"]).optional(),
+  role: RoleSchema.optional(),
   radius: z.number().positive(),
   telegraph: z.number().positive(),
   damage: z.number().nonnegative(),
@@ -103,6 +105,34 @@ const TetherSourceEventSchema = z.object({
   effectDuration: z.number().positive().default(15),
 });
 
+const LineLinkTargetSchema = z.object({
+  mode: z.enum(["closest", "furthest"]).default("closest"),
+  roles: z.array(RoleSchema).min(1).optional(),
+  playerIds: z.array(z.string().min(1)).min(1).optional(),
+  count: z.number().int().positive().optional(),
+}).default({ mode: "closest" });
+
+const LineLinkVisualSchema = z.object({
+  kind: z.literal("statue").default("statue"),
+  width: z.number().positive().default(2.5),
+  height: z.number().positive().default(4),
+  depth: z.number().positive().default(1),
+});
+
+const LineLinkEventSchema = z.object({
+  type: z.literal("line_link"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  pos: Vec2Schema,
+  resolveAfter: z.number().positive(),
+  linkDuration: z.number().positive().optional(),
+  target: LineLinkTargetSchema,
+  hiddenDebuffName: z.string().min(1),
+  applyEffect: ApplyEffectSchema.optional(),
+  knockback: KnockbackSchema.optional(),
+  visual: LineLinkVisualSchema.optional(),
+});
+
 const TowerVisualSchema = z.object({
   pillar: z.boolean().optional(),          // static rectangle column in the center
   countCircles: z.boolean().optional(),    // one floor circle per required soaker
@@ -120,7 +150,7 @@ const TowerEventSchema = z.object({
   pos: Vec2Schema,
   radius: z.number().positive(),
   requiredCount: z.number().int().positive().default(1), // soakers needed to clear it
-  requiredRoles: z.array(z.enum(["tank", "healer", "dps"])).min(1).optional(),
+  requiredRoles: z.array(RoleSchema).min(1).optional(),
   wrongRoleLethal: z.boolean().optional(), // wrong-role soaker dies (only with requiredRoles)
   failureDamage: z.number().nonnegative(), // raidwide damage when not enough valid soakers
   failureDamageType: z.enum(["physical", "magical", "true"]),
@@ -160,11 +190,11 @@ const GroupEventSchema = z.object({
   showCastBar: z.boolean().optional(),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema]);
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
-  role: z.enum(["tank", "healer", "dps"]),
+  role: RoleSchema,
   control: z.enum(["human", "bot"]).default("human"),
   spawn: Vec2Schema,
   pattern: z.array(WaypointSchema).optional(),
@@ -215,6 +245,19 @@ export const RaidSchema = z.object({
             message: `chain pair references unknown player id "${id}"`,
           });
         }
+      }
+    });
+  });
+
+  raid.events.forEach((event, i) => {
+    if (event.type !== "line_link" || !event.target.playerIds) return;
+    event.target.playerIds.forEach((id, j) => {
+      if (!playerIds.has(id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["events", i, "target", "playerIds", j],
+          message: `line_link target references unknown player id "${id}"`,
+        });
       }
     });
   });
