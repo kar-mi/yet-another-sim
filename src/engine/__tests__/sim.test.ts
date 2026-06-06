@@ -875,7 +875,7 @@ test("a boss-anchored cone snapshots boss facing and hits players in front", () 
     players: roster(facingNorthRoster),
     events: [{
       t: 0, name: "Cleave", telegraph: 1, damage: 50, damageType: "physical" as const,
-      shape: { kind: "cone", angleDeg: 90, length: 15 }, anchor: "boss", direction: "bossFacing",
+      shape: { kind: "cone", angleDeg: 90, length: 15 }, anchor: "boss", directionFrom: "bossFacing",
     }],
   });
   const world = runTicks(createWorld(raid), {}, Math.ceil(1.1 * 60));
@@ -925,7 +925,7 @@ test("directionOffset rotates a boss-anchored cone (rear cleave)", () => {
     players: roster(facingNorthRoster), // boss faces +Z (north)
     events: [{
       t: 0, name: "Rear Cone", telegraph: 1, damage: 30, damageType: "physical" as const,
-      anchor: "boss", direction: "bossFacing", directionOffset: Math.PI, // point south
+      anchor: "boss", directionFrom: "bossFacing", directionOffset: Math.PI, // point south
       shape: { kind: "cone", angleDeg: 90, length: 25 },
     }],
   });

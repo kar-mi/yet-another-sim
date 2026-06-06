@@ -4,14 +4,14 @@ import type { ActiveMechanic, AOEShape, Boss, PendingEvent } from "../shared/typ
 // origin from boss.pos, direction from boss.facing (0 = +Z, matching the sim convention).
 function resolveAnchoredShape(event: PendingEvent, boss: Boss): AOEShape {
   const shape = event.shape;
-  if ((!event.anchor && !event.direction) || (shape.kind !== "cone" && shape.kind !== "rect")) {
+  if ((!event.anchor && !event.directionFrom) || (shape.kind !== "cone" && shape.kind !== "rect")) {
     return shape;
   }
   const facing = boss.facing + (event.directionOffset ?? 0);
   return {
     ...shape,
     origin: event.anchor === "boss" ? { x: boss.pos.x, z: boss.pos.z } : shape.origin,
-    direction: event.direction === "bossFacing"
+    direction: event.directionFrom === "bossFacing"
       ? { x: Math.sin(facing), z: Math.cos(facing) }
       : shape.direction,
   };

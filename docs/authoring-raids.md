@@ -184,7 +184,7 @@ the full distance.
 Knockback respects the arena: a player shoved off the floor falls and dies via the normal
 death-floor logic — the basis for "knock into the void" mechanics.
 
-#### Boss-anchored cleaves (`anchor` / `direction`)
+#### Boss-anchored cleaves (`anchor` / `directionFrom`)
 
 A `cone` or `rect` `aoe` can be locked to the boss instead of fixed coordinates. The values
 are **snapshotted when the cast begins** (at `t`), like an FFXIV cleave — the player can then
@@ -193,12 +193,12 @@ dodge during the telegraph.
 | Field             | Required | Notes |
 |-------------------|----------|-------|
 | `anchor`          | no       | `"boss"` sets the shape's `origin` to the boss position at cast start. |
-| `direction`       | no       | `"bossFacing"` sets the shape's `direction` to the boss's facing at cast start (the boss faces its current threat target). |
+| `directionFrom`   | no       | `"bossFacing"` sets the shape's `direction` to the boss's facing at cast start (the boss faces its current threat target). |
 | `directionOffset` | no       | Radians to rotate the `bossFacing` direction, clockwise. `0` = front (default), `π` = rear cleave, `-π/2` = the boss's left, `π/4` = front-right. |
 | `lockFacing`      | no       | Freezes the boss's facing for the cast's duration (it stops tracking its target), then resumes — keeping it aligned with its snapshotted cleave. **Defaults to `true`**; set `false` to let the boss keep turning mid-cast. |
 
 When you use these, the shape's own `origin`/`direction` may be omitted (they default and are
-overridden). Each flag is independent — e.g. `anchor: "boss"` with a static `direction` vector
+overridden). Each flag is independent — e.g. `anchor: "boss"` with a static shape `direction` vector
 gives a fixed-heading cleave that originates from the boss.
 
 Express a directional cleave with the `cone`'s `angleDeg` (full width) plus `directionOffset`:
@@ -214,7 +214,7 @@ a front 90° cleave is `angleDeg: 90` with no offset; a rear cleave adds `direct
   "damage": 80,
   "damageType": "physical",
   "anchor": "boss",
-  "direction": "bossFacing",
+  "directionFrom": "bossFacing",
   "shape": { "kind": "cone", "angleDeg": 90, "length": 22 }
 }
 ```
@@ -483,7 +483,7 @@ Used by `aoe` events (`shape`) — a point is hit if it falls inside the shape a
 - **rect** — a line/lane from `origin` extending along `direction` for `length`, `width` wide (centered on the line).
 
 For `cone`/`rect`, `origin` and `direction` are optional (default `[0,0]` / `[0,1]`) and can be
-left out when the event uses [`anchor`/`direction`](#boss-anchored-cleaves-anchor--direction) to
+left out when the event uses [`anchor`/`directionFrom`](#boss-anchored-cleaves-anchor--directionfrom) to
 bind them to the boss.
 
 ## Effects

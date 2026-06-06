@@ -129,7 +129,7 @@ export type PendingEvent = {
   positional?: PositionalArc;
   // For cone/rect: resolve origin/direction from the boss at cast start (see promotePending).
   anchor?: "boss";
-  direction?: "bossFacing";
+  directionFrom?: "bossFacing";
   directionOffset?: number;
   lockFacing?: boolean;
   showCastBar: boolean;

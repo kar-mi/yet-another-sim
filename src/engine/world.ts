@@ -177,7 +177,7 @@ export function createWorld(raid: RaidDef): World {
         },
         positional: e.positional,
         anchor: e.anchor,
-        direction: e.direction,
+        directionFrom: e.directionFrom,
         directionOffset: e.directionOffset,
         lockFacing: e.lockFacing,
         showCastBar: e.showCastBar ?? false,

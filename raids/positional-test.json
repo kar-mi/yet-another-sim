@@ -21,7 +21,7 @@
       "damageType": "physical",
       "showCastBar": true,
       "anchor": "boss",
-      "direction": "bossFacing",
+      "directionFrom": "bossFacing",
       "shape": { "kind": "cone", "angleDeg": 90, "length": 25 }
     },
     {
@@ -32,7 +32,7 @@
       "damageType": "physical",
       "showCastBar": true,
       "anchor": "boss",
-      "direction": "bossFacing",
+      "directionFrom": "bossFacing",
       "directionOffset": -1.5708,
       "shape": { "kind": "cone", "angleDeg": 180, "length": 25 }
     },
@@ -44,7 +44,7 @@
       "damageType": "physical",
       "showCastBar": true,
       "anchor": "boss",
-      "direction": "bossFacing",
+      "directionFrom": "bossFacing",
       "directionOffset": 3.14159,
       "shape": { "kind": "cone", "angleDeg": 90, "length": 25 }
     }

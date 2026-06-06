@@ -61,7 +61,7 @@ const AOEEventSchema = z.object({
   knockback: KnockbackSchema.optional(),
   // Facing-relative anchoring for cone/rect: snapshot the boss at cast start.
   anchor: z.literal("boss").optional(),            // origin = boss.pos
-  direction: z.literal("bossFacing").optional(),   // direction = boss.facing
+  directionFrom: z.literal("bossFacing").optional(), // shape direction = boss.facing
   directionOffset: z.number().optional(),          // rotate the bossFacing direction (radians, clockwise)
   // The boss freezes its facing for the duration of the cast (telegraph), then resumes.
   // Defaults to true; set false to let the boss keep tracking its target mid-cast.
