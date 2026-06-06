@@ -47,26 +47,72 @@ async function createRaidHudSelect(net: NetClient, initialRaidId: string, initia
   label.className = "yas-session-label";
   label.textContent = "RAID";
 
-  const select = document.createElement("select");
+  const selectDropdown = document.createElement("div");
+  selectDropdown.className = "yas-raid-dropdown";
+  const select = document.createElement("button");
+  select.type = "button";
+  select.className = "yas-raid-dropdown-toggle";
   select.ariaLabel = "Raid plan";
   select.disabled = !isHost;
+  select.setAttribute("aria-haspopup", "listbox");
+  select.setAttribute("aria-expanded", "false");
+  const selectOptions = document.createElement("div");
+  selectOptions.className = "yas-raid-dropdown-options";
+  selectOptions.setAttribute("role", "listbox");
+  selectOptions.style.display = "none";
+  let activeRaidId = initialRaidId;
+  let selectedRaidId = initialRaidId;
+  let raidChangePending = false;
+  let syncPlayback: (state: PlaybackState) => void = () => {};
+  const setSelectOpen = (open: boolean) => {
+    if (open && select.disabled) return;
+    selectOptions.style.display = open ? "flex" : "none";
+    select.setAttribute("aria-expanded", String(open));
+  };
+  const updateSelectedRaidLabel = (category: RaidCategory) => {
+    const selectedRaid = category.raids.find(raid => raid.id === selectedRaidId);
+    select.textContent = selectedRaid?.name ?? category.raids[0]?.name ?? "";
+  };
+  const updateOptionSelection = () => {
+    selectOptions.querySelectorAll<HTMLButtonElement>(".yas-raid-dropdown-option").forEach(option => {
+      option.setAttribute("aria-selected", String(option.value === selectedRaidId));
+    });
+  };
+  const requestRaidChange = (raidId: string) => {
+    if (!raidId) return;
+    selectedRaidId = raidId;
+    updateSelectedRaidLabel(currentCategory);
+    updateOptionSelection();
+    setSelectOpen(false);
+    select.blur();
+    if (raidId === activeRaidId) return;
+    raidChangePending = true;
+    syncPlayback(lastState);
+    net.send({ type: "setRaid", raidId });
+  };
   const populateSelect = (category: RaidCategory, selectedId: string) => {
-    select.replaceChildren();
+    selectedRaidId = selectedId;
+    selectOptions.replaceChildren();
+    updateSelectedRaidLabel(category);
     for (const raid of category.raids) {
-      const option = document.createElement("option");
+      const option = document.createElement("button");
+      option.type = "button";
+      option.className = "yas-raid-dropdown-option";
       option.value = raid.id;
       option.textContent = raid.name;
-      select.appendChild(option);
+      option.setAttribute("role", "option");
+      option.setAttribute("aria-selected", String(raid.id === selectedRaidId));
+      option.addEventListener("click", () => {
+        requestRaidChange(raid.id);
+      });
+      selectOptions.appendChild(option);
     }
-    select.value = selectedId;
   };
   populateSelect(currentCategory, initialRaidId);
-  select.addEventListener("change", () => {
-    const raidId = select.value;
-    select.blur();
-    select.disabled = true;
-    net.send({ type: "setRaid", raidId });
+  select.addEventListener("click", () => {
+    setSelectOpen(selectOptions.style.display === "none");
   });
+  selectDropdown.append(select, selectOptions);
 
   // Modal listing categories; picking one re-scopes the dropdown (does not change the active raid).
   const modal = document.createElement("div");
@@ -88,15 +134,26 @@ async function createRaidHudSelect(net: NetClient, initialRaidId: string, initia
     );
     row.addEventListener("click", () => {
       currentCategory = category;
-      populateSelect(category, category.raids[0]?.id ?? "");
+      const raidId = category.raids[0]?.id ?? "";
+      populateSelect(category, raidId);
+      requestRaidChange(raidId);
       closeModal();
     });
     modalPanel.appendChild(row);
   }
   modal.appendChild(modalPanel);
   modal.addEventListener("click", event => { if (event.target === modal) closeModal(); });
-  const onKeydown = (event: KeyboardEvent) => { if (event.key === "Escape") closeModal(); };
+  const onKeydown = (event: KeyboardEvent) => {
+    if (event.key === "Escape") {
+      closeModal();
+      setSelectOpen(false);
+    }
+  };
+  const onDocumentClick = (event: MouseEvent) => {
+    if (!selectDropdown.contains(event.target as Node)) setSelectOpen(false);
+  };
   document.addEventListener("keydown", onKeydown);
+  document.addEventListener("click", onDocumentClick);
   document.body.appendChild(modal);
 
   categoryBtn.addEventListener("click", () => {
@@ -140,35 +197,44 @@ async function createRaidHudSelect(net: NetClient, initialRaidId: string, initia
   });
   controls.append(playBtn, pauseBtn, stopBtn, restartBtn);
 
-  const syncPlayback = (state: PlaybackState) => {
+  syncPlayback = (state: PlaybackState) => {
     lastState = state;
-    const locked = !isHost || state === "playing";
+    const locked = raidChangePending || !isHost || state === "playing";
     select.disabled = locked;
+    if (locked) setSelectOpen(false);
     categoryBtn.disabled = locked;
-    playBtn.disabled = !isHost || state === "playing";
-    pauseBtn.disabled = !isHost || state !== "playing";
-    stopBtn.disabled = !isHost || state === "stopped";
-    restartBtn.disabled = !isHost;
+    playBtn.disabled = raidChangePending || !isHost || state === "playing";
+    pauseBtn.disabled = raidChangePending || !isHost || state !== "playing";
+    stopBtn.disabled = raidChangePending || !isHost || state === "stopped";
+    restartBtn.disabled = raidChangePending || !isHost;
   };
 
   const disposePlayback = net.on("playback", message => {
     isHost = net.clientId === message.hostClientId;
+    activeRaidId = message.raidId;
+    raidChangePending = false;
     currentCategory = categoryForRaidId(message.raidId);
     populateSelect(currentCategory, message.raidId);
     syncPlayback(message.state);
   });
-  const disposeError = net.on("error", () => syncPlayback(lastState));
+  const disposeError = net.on("error", () => {
+    raidChangePending = false;
+    currentCategory = categoryForRaidId(activeRaidId);
+    populateSelect(currentCategory, activeRaidId);
+    syncPlayback(lastState);
+  });
   syncPlayback("playing");
 
   const selectRow = document.createElement("div");
   selectRow.className = "yas-raid-select-row";
-  selectRow.append(categoryBtn, select);
+  selectRow.append(categoryBtn, selectDropdown);
   wrapper.append(label, selectRow, controls);
   document.body.appendChild(wrapper);
   return () => {
     disposePlayback();
     disposeError();
     document.removeEventListener("keydown", onKeydown);
+    document.removeEventListener("click", onDocumentClick);
     modal.remove();
     wrapper.remove();
   };

@@ -1161,31 +1161,84 @@ body:focus-visible {
   transform: translateX(-50%);
 }
 
-#yas-raid-select select {
+.yas-raid-dropdown {
+  position: relative;
+}
+
+.yas-raid-dropdown-toggle {
   width: 190px;
   background: rgba(10, 12, 28, 0.9);
   border: 1px solid rgba(85, 95, 145, 0.3);
   border-radius: 3px;
   color: rgba(212, 168, 67, 0.9);
+  cursor: pointer;
   font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
   letter-spacing: 0.5px;
   padding: 6px 8px;
+  text-align: left;
 }
 
-#yas-raid-select select:disabled {
+.yas-raid-dropdown-toggle:disabled {
+  cursor: default;
   color: rgba(175, 185, 215, 0.35);
   opacity: 0.62;
 }
 
-#yas-raid-select select option {
-  background: rgba(10, 12, 28, 0.98);
-  color: rgba(195, 205, 225, 0.85);
+.yas-raid-dropdown-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 190px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px;
+  background: rgba(10, 12, 28, 0.96);
+  border: 1px solid rgba(85, 95, 145, 0.3);
+  border-radius: 3px;
+  scrollbar-color: rgba(85, 95, 145, 0.72) rgba(10, 12, 28, 0.96);
+  scrollbar-width: thin;
 }
 
-#yas-raid-select select option:checked {
-  background: rgba(212, 168, 67, 0.18);
-  color: rgba(212, 168, 67, 1);
+.yas-raid-dropdown-options::-webkit-scrollbar {
+  width: 8px;
+}
+
+.yas-raid-dropdown-options::-webkit-scrollbar-track {
+  background: rgba(10, 12, 28, 0.96);
+  border-radius: 3px;
+}
+
+.yas-raid-dropdown-options::-webkit-scrollbar-thumb {
+  background: rgba(85, 95, 145, 0.72);
+  border: 1px solid rgba(10, 12, 28, 0.96);
+  border-radius: 3px;
+}
+
+.yas-raid-dropdown-options::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 168, 67, 0.55);
+}
+
+.yas-raid-dropdown-option {
+  width: 100%;
+  background: rgba(10, 12, 28, 0.9);
+  border: 1px solid rgba(85, 95, 145, 0.2);
+  border-radius: 3px;
+  color: rgba(195, 205, 225, 0.85);
+  cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.yas-raid-dropdown-option:hover {
+  border-color: rgba(212, 168, 67, 0.5);
 }
 
 .yas-raid-select-row {
@@ -1256,7 +1309,6 @@ body:focus-visible {
 
 .yas-raid-cat-option:hover {
   border-color: rgba(212, 168, 67, 0.5);
-  background: rgba(212, 168, 67, 0.04);
 }
 
 .yas-raid-cat-name {
@@ -1274,6 +1326,7 @@ body:focus-visible {
 .yas-playback-controls {
   display: flex;
   gap: 4px;
+  transform: translateX(18px);
 }
 
 .yas-playback-controls button {
