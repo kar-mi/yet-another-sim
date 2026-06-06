@@ -704,10 +704,24 @@ body:focus-visible {
   box-shadow: 0 0 6px rgba(70, 210, 110, 0.28);
 }
 
-.yas-invuln-btn:hover { color: rgba(235, 238, 255, 0.9); }
+.yas-invuln-btn:hover,
+.yas-invuln-btn:focus,
+.yas-invuln-btn:focus-visible,
+.yas-invuln-btn:active {
+  color: #d7ffe1;
+  outline: none;
+  border-color: rgba(70, 210, 110, 0.72);
+  background: rgba(31, 122, 59, 0.36);
+  box-shadow: 0 0 6px rgba(70, 210, 110, 0.28);
+}
 
-.yas-invuln-btn.is-active {
+.yas-invuln-btn.is-active,
+.yas-invuln-btn.is-active:hover,
+.yas-invuln-btn.is-active:focus,
+.yas-invuln-btn.is-active:focus-visible,
+.yas-invuln-btn.is-active:active {
   color: #ffe2e2;
+  outline: none;
   border-color: rgba(235, 65, 65, 0.9);
   background: rgba(190, 32, 38, 0.52);
   box-shadow: 0 0 6px rgba(235, 65, 65, 0.42);
