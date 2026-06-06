@@ -4,6 +4,7 @@ import { tick, DEATH_FLOOR_Y } from "../sim";
 import { createWorld } from "../world";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../raidLoader";
 import { CLOCK_SPOTS, ROSTER } from "../../shared/protocol";
+import { TANK_HP } from "./constants";
 import type { Intents, Player, StatusEffect, World } from "../../shared/types";
 
 // The default human-controlled slot used across these tests (a dps).
@@ -544,7 +545,7 @@ test("targeted mechanic respects the role filter when selecting furthest", () =>
   const world = runTicks(createWorld(raid), {}, Math.ceil(2.1 * 60));
   expect(world.players.find(p => p.id === "m2")!.hp).toBeLessThan(100);
   expect(world.players.find(p => p.id === "m1")!.hp).toBe(100);
-  expect(world.players.find(p => p.id === "mt")!.hp).toBe(160); // tank, unhit
+  expect(world.players.find(p => p.id === "mt")!.hp).toBe(TANK_HP); // tank, unhit
 });
 
 test("targeted mechanic picks the near/far target at cast end, not cast start", () => {
@@ -743,7 +744,7 @@ test("chain applies its debuff to both members at cast end", () => {
   expect(hasChainBond(human(world))).toBe(true);
   expect(hasChainBond(otPlayer(world))).toBe(true);
   expect(human(world).hp).toBe(100);
-  expect(otPlayer(world).hp).toBe(160); // ot is a tank, no damage yet
+  expect(otPlayer(world).hp).toBe(TANK_HP); // ot is a tank, no damage yet
 });
 
 test("separating a chained pair past breakDistance breaks it with no damage", () => {
@@ -753,14 +754,14 @@ test("separating a chained pair past breakDistance breaks it with no damage", ()
   expect(hasChainBond(human(world))).toBe(false);
   expect(hasChainBond(otPlayer(world))).toBe(false);
   expect(human(world).hp).toBe(100);
-  expect(otPlayer(world).hp).toBe(160); // ot is a tank, broke with no damage
+  expect(otPlayer(world).hp).toBe(TANK_HP); // ot is a tank, broke with no damage
 });
 
 test("a chain left unbroken bursts both members once at expiry", () => {
   // Both stand still through the whole window (expires at 5.6); run past it.
   const world = runTicks(createWorld(chainRaid()), {}, Math.ceil(6.0 * 60));
   expect(human(world).hp).toBe(60); // 100 - 40, applied exactly once
-  expect(otPlayer(world).hp).toBe(120); // tank 160 - 40, applied exactly once
+  expect(otPlayer(world).hp).toBe(TANK_HP - 40); // tank, burst applied exactly once
   expect(hasChainBond(human(world))).toBe(false);
   expect(hasChainBond(otPlayer(world))).toBe(false);
 });
@@ -829,8 +830,8 @@ test("a successful stack splits the damage among soakers in the radius", () => {
   const w = runTicks(createWorld(raid), noMove, Math.ceil(1.1 * 60));
   const hp = (id: string) => w.players.find(p => p.id === id)!.hp;
   // 3 soakers >= requiredCount -> 90/3 = 30 each; everyone else untouched.
-  expect(hp("mt")).toBeCloseTo(130); // tank 160 - 30
-  expect(hp("ot")).toBeCloseTo(130); // tank 160 - 30
+  expect(hp("mt")).toBeCloseTo(TANK_HP - 30); // tank, split 90/3
+  expect(hp("ot")).toBeCloseTo(TANK_HP - 30);
   expect(hp("h1")).toBeCloseTo(70);
   expect(hp("h2")).toBe(100);
   expect(hp("r1")).toBe(100);
@@ -848,8 +849,8 @@ test("an under-soaked stack fails: each soaker eats the full damage", () => {
   });
   const w = runTicks(createWorld(raid), noMove, Math.ceil(1.1 * 60));
   const hp = (id: string) => w.players.find(p => p.id === id)!.hp;
-  expect(hp("mt")).toBeCloseTo(110); // tank 160 - full 50, not split
-  expect(hp("ot")).toBeCloseTo(110);
+  expect(hp("mt")).toBeCloseTo(TANK_HP - 50); // full 50 each, not split
+  expect(hp("ot")).toBeCloseTo(TANK_HP - 50);
   expect(hp("h1")).toBe(100);
 });
 

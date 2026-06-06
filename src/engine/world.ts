@@ -2,7 +2,7 @@ import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingE
 import { vec2 } from "../shared/math";
 import type { RaidDef } from "./raidSchema";
 
-const ROLE_HP: Record<Player["role"], number> = { tank: 160, healer: 100, dps: 100 };
+export const ROLE_HP: Record<Player["role"], number> = { tank: 160, healer: 100, dps: 100 };
 
 function toVec2(arr: [number, number]) {
   return vec2(arr[0], arr[1]);
