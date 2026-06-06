@@ -31,11 +31,14 @@ export const CLOCK_SPOTS: Record<string, [number, number]> = {
 
 export const EMPTY_RAID_ID = "empty";
 
-export const RAID_ID_REGEX = /^[a-z0-9][a-z0-9-]{0,63}$/;
+export const RAID_SEGMENT_REGEX = /^[a-z0-9][a-z0-9-]{0,63}$/;
+// Raid ids are an optional category prefix plus a raid segment, e.g. "debug/chain-test".
+export const RAID_ID_REGEX = /^[a-z0-9][a-z0-9-]{0,63}(\/[a-z0-9][a-z0-9-]{0,63})?$/;
 export const MAX_RAIDS = 50;
 export const MAX_RAID_NAME_LENGTH = 60;
 
 export type RaidEntry = { id: string; name: string };
+export type RaidCategory = { id: string; name: string; description: string; raids: RaidEntry[] };
 
 export function normalizeRaidName(name: unknown): string | null {
   if (typeof name !== "string") return null;
@@ -46,7 +49,7 @@ export function normalizeRaidName(name: unknown): string | null {
 }
 
 export const RaidIdSchema = z.string().regex(RAID_ID_REGEX);
-export const SessionIdSchema = z.string().regex(RAID_ID_REGEX);
+export const SessionIdSchema = z.string().regex(RAID_SEGMENT_REGEX);
 export const PlayerIdSchema = z.string().min(1).max(64);
 
 const IntentVec2Schema = z.object({

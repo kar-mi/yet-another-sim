@@ -3,7 +3,9 @@ import {
   ClientMessageSchema,
   MAX_RAIDS,
   RAID_ID_REGEX,
+  RAID_SEGMENT_REGEX,
   normalizeRaidName,
+  type RaidCategory,
   type RaidEntry,
   type ServerMessage,
 } from "../src/shared/protocol";
@@ -19,11 +21,11 @@ interface SocketData {
   clientId: string;
 }
 
-function raidIdFromFile(file: string): string | null {
+function raidSegmentFromFile(file: string): string | null {
   if (!file.endsWith(".json")) return null;
 
-  const id = file.slice(0, -".json".length);
-  return RAID_ID_REGEX.test(id) ? id : null;
+  const segment = file.slice(0, -".json".length);
+  return RAID_SEGMENT_REGEX.test(segment) ? segment : null;
 }
 
 function raidFileFromPath(pathname: string): string | null {
@@ -31,39 +33,79 @@ function raidFileFromPath(pathname: string): string | null {
   return match ? `${match[1]}.json` : null;
 }
 
-async function loadRaidEntries(): Promise<RaidEntry[]> {
+async function loadCategoryRaids(categoryId: string, remaining: number): Promise<RaidEntry[]> {
   const glob = new Bun.Glob("*.json");
-  const files = (await Array.fromAsync(glob.scan(RAIDS_DIR))).sort();
+  const dir = join(RAIDS_DIR, categoryId);
+  const files = (await Array.fromAsync(glob.scan(dir))).sort();
   const raids: RaidEntry[] = [];
 
   for (const file of files) {
-    if (file.endsWith("-bots.json")) continue;
-    if (raids.length >= MAX_RAIDS) break;
+    if (file === "raid_info.json" || file.endsWith("-bots.json")) continue;
+    if (raids.length >= remaining) break;
 
-    const id = raidIdFromFile(file);
-    if (!id) {
-      logger.warn("raid", "skipping raid with invalid filename", { file });
+    const segment = raidSegmentFromFile(file);
+    if (!segment) {
+      logger.warn("raid", "skipping raid with invalid filename", { category: categoryId, file });
       continue;
     }
 
     let json: { name?: unknown };
     try {
-      json = await Bun.file(join(RAIDS_DIR, file)).json() as { name?: unknown };
+      json = await Bun.file(join(dir, file)).json() as { name?: unknown };
     } catch {
-      logger.warn("raid", "skipping raid with invalid JSON", { file });
+      logger.warn("raid", "skipping raid with invalid JSON", { category: categoryId, file });
       continue;
     }
 
     const name = normalizeRaidName(json.name);
     if (!name) {
-      logger.warn("raid", "skipping raid with invalid name", { file });
+      logger.warn("raid", "skipping raid with invalid name", { category: categoryId, file });
       continue;
     }
 
-    raids.push({ id, name });
+    raids.push({ id: `${categoryId}/${segment}`, name });
   }
 
   return raids;
+}
+
+async function loadRaidCategories(): Promise<RaidCategory[]> {
+  const glob = new Bun.Glob("*/raid_info.json");
+  const infoFiles = (await Array.fromAsync(glob.scan(RAIDS_DIR))).sort();
+  const categories: RaidCategory[] = [];
+  let total = 0;
+
+  for (const rawInfoFile of infoFiles) {
+    if (total >= MAX_RAIDS) break;
+
+    const infoFile = rawInfoFile.replaceAll("\\", "/");
+    const categoryId = infoFile.slice(0, infoFile.indexOf("/"));
+    if (!RAID_SEGMENT_REGEX.test(categoryId)) {
+      logger.warn("raid", "skipping category with invalid folder name", { category: categoryId });
+      continue;
+    }
+
+    let info: { name?: unknown; description?: unknown };
+    try {
+      info = await Bun.file(join(RAIDS_DIR, infoFile)).json() as { name?: unknown; description?: unknown };
+    } catch {
+      logger.warn("raid", "skipping category with invalid raid_info.json", { category: categoryId });
+      continue;
+    }
+
+    const name = normalizeRaidName(info.name);
+    if (!name) {
+      logger.warn("raid", "skipping category with invalid name", { category: categoryId });
+      continue;
+    }
+
+    const description = typeof info.description === "string" ? info.description : "";
+    const raids = await loadCategoryRaids(categoryId, MAX_RAIDS - total);
+    total += raids.length;
+    categories.push({ id: categoryId, name, description, raids });
+  }
+
+  return categories;
 }
 
 logger.info("build", "building client bundle");
@@ -102,7 +144,7 @@ const server = Bun.serve<SocketData>({
     }
 
     if (url.pathname === "/api/raids") {
-      return Response.json(await loadRaidEntries());
+      return Response.json(await loadRaidCategories());
     }
 
     // Serve bundled client
