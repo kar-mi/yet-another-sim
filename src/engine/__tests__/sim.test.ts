@@ -862,6 +862,63 @@ test("provoke respects its cooldown", () => {
   expect(byId(w, "ot").provokeCooldown).toBeLessThan(otCdBefore); // only counting down
 });
 
+// --- Facing-relative mechanics (positionals) ----------------------------
+
+// mt seeded as target at [0,10] makes the boss face +Z, so "front" is +Z.
+const facingNorthRoster: Record<string, { spawn: Vec }> = {
+  mt: { spawn: [0, 10] }, m1: { spawn: [0, 6] }, m2: { spawn: [0, -6] }, r1: { spawn: [6, 0] },
+};
+
+test("a boss-anchored cone snapshots boss facing and hits players in front", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster(facingNorthRoster),
+    events: [{
+      t: 0, name: "Cleave", telegraph: 1, damage: 50, damageType: "physical" as const,
+      shape: { kind: "cone", angleDeg: 90, length: 15 }, anchor: "boss", direction: "bossFacing",
+    }],
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(1.1 * 60));
+  expect(byId(world, "m1").hp).toBeLessThan(100); // in front (+Z), inside the cone
+  expect(byId(world, "m2").hp).toBe(100);          // behind the boss, spared
+});
+
+function positionalRaid(positional: { center: number; width: number }, over = facingNorthRoster) {
+  return loadRaid({
+    ...baseRaid,
+    players: roster(over),
+    events: [{
+      t: 0, name: "Directional", telegraph: 1, damage: 20, damageType: "physical" as const,
+      shape: { kind: "circle", center: [0, 0], radius: 20 }, positional,
+    }],
+  });
+}
+
+test("a rear ±45° arc hits only players behind the boss", () => {
+  // center = PI (rear), width = PI/2 (±45°).
+  const world = runTicks(createWorld(positionalRaid({ center: Math.PI, width: Math.PI / 2 })), {}, Math.ceil(1.1 * 60));
+  expect(byId(world, "m2").hp).toBe(80);  // rear -> hit
+  expect(byId(world, "m1").hp).toBe(100); // front -> spared
+  expect(byId(world, "r1").hp).toBe(100); // flank (east) -> spared
+});
+
+test("an intercardinal arc (front-right) hits only that diagonal", () => {
+  // center = PI/4 (NE relative to facing), width = PI/2 (±45°). r2 sits NE.
+  const world = runTicks(createWorld(positionalRaid(
+    { center: Math.PI / 4, width: Math.PI / 2 },
+    { ...facingNorthRoster, r2: { spawn: [8, 8] as Vec } },
+  )), {}, Math.ceil(1.1 * 60));
+  expect(byId(world, "r2").hp).toBe(80);  // NE diagonal -> hit
+  expect(byId(world, "m2").hp).toBe(100); // rear -> spared
+});
+
+test("a half cleave (180° front arc) hits the whole front", () => {
+  // center = 0 (front), width = PI (the front half).
+  const world = runTicks(createWorld(positionalRaid({ center: 0, width: Math.PI })), {}, Math.ceil(1.1 * 60));
+  expect(byId(world, "m1").hp).toBe(80);  // front -> hit
+  expect(byId(world, "m2").hp).toBe(100); // rear -> spared
+});
+
 // --- RNG group mechanics -------------------------------------------------
 
 function groupRaid(events: unknown[], over: Record<string, { spawn?: Vec }> = {}) {

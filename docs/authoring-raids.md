@@ -184,6 +184,61 @@ the full distance.
 Knockback respects the arena: a player shoved off the floor falls and dies via the normal
 death-floor logic — the basis for "knock into the void" mechanics.
 
+#### Boss-anchored cleaves (`anchor` / `direction`)
+
+A `cone` or `rect` `aoe` can be locked to the boss instead of fixed coordinates. The values
+are **snapshotted when the cast begins** (at `t`), like an FFXIV cleave — the player can then
+dodge during the telegraph.
+
+| Field       | Required | Notes |
+|-------------|----------|-------|
+| `anchor`    | no       | `"boss"` sets the shape's `origin` to the boss position at cast start. |
+| `direction` | no       | `"bossFacing"` sets the shape's `direction` to the boss's facing at cast start (the boss faces its current threat target). |
+
+When you use these, the shape's own `origin`/`direction` may be omitted (they default and are
+overridden). Each flag is independent — e.g. `anchor: "boss"` with a static `direction` vector
+gives a fixed-heading cleave that originates from the boss.
+
+```json
+{
+  "t": 8,
+  "name": "Cleave",
+  "telegraph": 4,
+  "damage": 80,
+  "damageType": "physical",
+  "anchor": "boss",
+  "direction": "bossFacing",
+  "shape": { "kind": "cone", "angleDeg": 90, "length": 22 }
+}
+```
+
+#### Positionals (`positional`)
+
+Gate a directional attack to an **arc relative to the boss's facing**, defined in radians. A
+player is hit only if they are both inside the `shape` **and** within the arc — everyone else is
+spared. Omit it for a normal (omnidirectional) hit.
+
+| Field    | Required | Notes |
+|----------|----------|-------|
+| `center` | yes      | Arc center in radians, measured **clockwise from the boss's facing**. `0` = front, `π` = rear, `π/2` = the boss's right, `-π/2` = left, `π/4` = front-right intercardinal, etc. |
+| `width`  | yes      | Full angular width of the arc in radians (so the arc spans `center ± width/2`). E.g. `π/2` is a ±45° wedge; `π` is a 180° half cleave; `2π` covers everything. |
+
+```json
+{
+  "t": 8,
+  "name": "Tail Swipe",
+  "telegraph": 4,
+  "damage": 50,
+  "damageType": "physical",
+  "shape": { "kind": "circle", "center": [0, 0], "radius": 20 },
+  "positional": { "center": 3.14159, "width": 1.5708 }
+}
+```
+
+Because both values are free radians, you can express any wedge: a rear `±45°` cleave
+(`center: π, width: π/2`), an intercardinal hit (`center: π/4`), or a half-room cleave in front
+of the boss (`center: 0, width: π`). It combines naturally with a boss-anchored `cone`/`rect`.
+
 ### `targeted` — near/far baited circle
 
 A circle that snaps onto a player chosen **at resolve time** (not cast start), so players
@@ -419,6 +474,10 @@ Used by `aoe` events (`shape`) — a point is hit if it falls inside the shape a
 - **donut** — safe in the middle: hits between `inner` and `outer`. Requires `inner` < `outer` (`inner` ≥ 0, `outer` > 0).
 - **cone** — fans out from `origin` toward `direction` (a non-zero `[x, z]` vector; magnitude doesn't matter, only heading). `angleDeg` is the full opening angle; `length` is the reach.
 - **rect** — a line/lane from `origin` extending along `direction` for `length`, `width` wide (centered on the line).
+
+For `cone`/`rect`, `origin` and `direction` are optional (default `[0,0]` / `[0,1]`) and can be
+left out when the event uses [`anchor`/`direction`](#boss-anchored-cleaves-anchor--direction) to
+bind them to the boss.
 
 ## Effects
 

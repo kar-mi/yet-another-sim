@@ -18,10 +18,12 @@ import type {
   DamageType,
   ActiveGroupMechanic,
   PendingGroupEvent,
+  Boss,
+  PositionalArc,
 } from "../shared/types";
 import type { Vec2 } from "../shared/math";
 import type { AOEShape } from "../shared/types";
-import { add, sub, scale, normalize, length } from "../shared/math";
+import { add, sub, scale, normalize, length, dot } from "../shared/math";
 import { pointInShape, isOnFloor } from "./shapes";
 import { promotePending } from "./timeline";
 
@@ -96,6 +98,17 @@ function applyMechanicDamage(player: Player, damage: number, damageType: DamageT
     player.hp = Math.max(0, player.hp - dealt);
     if (player.hp <= 0) player.alive = false;
   }
+}
+
+// Whether the player's bearing from the boss falls within a facing-relative arc.
+function inPositionalArc(boss: Boss, pos: Vec2, arc: PositionalArc): boolean {
+  const to = sub(pos, boss.pos);
+  if (length(to) < 1e-6) return true; // on top of the boss: always inside
+  // Arc center direction in world space (0 = +Z, clockwise), then unsigned angular distance.
+  const centerWorld = boss.facing + arc.center;
+  const centerVec = { x: Math.sin(centerWorld), z: Math.cos(centerWorld) };
+  const cosAng = Math.max(-1, Math.min(1, dot(normalize(to), centerVec)));
+  return Math.acos(cosAng) <= arc.width / 2;
 }
 
 function isOnTetherLine(pPos: Vec2, src: Vec2, tgt: Vec2): boolean {
@@ -401,8 +414,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  // 3. Promote pending events whose t <= time
-  const { promoted, remaining: pending } = promotePending(world.pending, time);
+  // 3. Promote pending events whose t <= time (boss snapshots facing-anchored shapes)
+  const { promoted, remaining: pending } = promotePending(world.pending, time, boss);
   const active: ActiveMechanic[] = [...world.active.map(m => ({ ...m })), ...promoted];
 
   // 3b. Promote targeted events into casts. The near/far target (and circle center) is
@@ -440,7 +453,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
       }
       for (const player of players) {
         if (!player.alive) continue;
-        if (pointInShape(mechanic.shape, player.pos)) {
+        const inArc = !mechanic.positional || inPositionalArc(boss, player.pos, mechanic.positional);
+        if (pointInShape(mechanic.shape, player.pos) && inArc) {
           applyMechanicDamage(player, mechanic.damage, mechanic.damageType, time);
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });
           if (mechanic.applyEffect && player.alive) {

@@ -89,6 +89,11 @@ export type AOEShape =
   | { kind: "cone"; origin: Vec2; direction: Vec2; angleDeg: number; length: number }
   | { kind: "rect"; origin: Vec2; direction: Vec2; width: number; length: number };
 
+// Arc relative to the boss's facing (radians). A directional attack only hits players whose
+// bearing from the boss is within `width/2` of `center`. center is measured clockwise from the
+// facing direction: 0 = front, π = rear, π/2 = boss's right, -π/2 = left, π/4 = front-right, etc.
+export type PositionalArc = { center: number; width: number };
+
 export type ActiveMechanic = {
   id: string;
   name: string;
@@ -99,6 +104,7 @@ export type ActiveMechanic = {
   damageType: DamageType;
   applyEffect?: EffectSpec;
   knockback?: Knockback;
+  positional?: PositionalArc;
   resolved: boolean;
   showCastBar: boolean;
   // When false, the ground telegraph is never drawn; the cast bar and damage still apply.
@@ -118,6 +124,10 @@ export type PendingEvent = {
   damageType: DamageType;
   applyEffect?: EffectSpec;
   knockback?: Knockback;
+  positional?: PositionalArc;
+  // For cone/rect: resolve origin/direction from the boss at cast start (see promotePending).
+  anchor?: "boss";
+  direction?: "bossFacing";
   showCastBar: boolean;
   showTelegraph: boolean;
 };

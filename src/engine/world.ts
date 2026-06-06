@@ -175,6 +175,9 @@ export function createWorld(raid: RaidDef): World {
           height: e.knockback.height,
           origin: e.knockback.origin ? toVec2(e.knockback.origin) : undefined,
         },
+        positional: e.positional,
+        anchor: e.anchor,
+        direction: e.direction,
         showCastBar: e.showCastBar ?? false,
         showTelegraph: e.showTelegraph ?? true,
       });
