@@ -9,7 +9,7 @@ import type { Boss } from "../../shared/types";
 
 export class BossLayer {
   private mesh?: Mesh;
-  private faceMarker?: Mesh; // TEMP: front indicator so facing/rotation is visible during smoke test
+  private faceMarker?: Mesh;
 
   constructor(private scene: Scene) {}
 
