@@ -177,6 +177,7 @@ function interpolateBoss(prev: Boss, next: Boss, t: number): Boss {
   return {
     ...next,
     pos: { x: lerp(prev.pos.x, next.pos.x, t), z: lerp(prev.pos.z, next.pos.z, t) },
+    facing: lerpAngle(prev.facing, next.facing, t), // smooth turning (sim snaps per tick)
   };
 }
 

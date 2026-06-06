@@ -1,9 +1,10 @@
 import { expect, test } from "bun:test";
 import { computeBotIntents } from "../botIntent";
-import { tick, DEATH_FLOOR_Y } from "../sim";
+import { tick, DEATH_FLOOR_Y, INITIAL_TANK_THREAT, PROVOKE_COOLDOWN } from "../sim";
 import { createWorld } from "../world";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../raidLoader";
 import { CLOCK_SPOTS, ROSTER } from "../../shared/protocol";
+import { TANK_HP } from "./constants";
 import type { Intents, Player, StatusEffect, World } from "../../shared/types";
 
 // The default human-controlled slot used across these tests (a dps).
@@ -99,13 +100,28 @@ test("facing tracks movement direction and persists while idle", () => {
   expect(human(idle).facing).toBeCloseTo(human(movedZ).facing);
 });
 
-test("world includes a deterministic boss", () => {
+test("world includes a deterministic boss with a seeded threat table", () => {
+  const raid = loadRaid(baseRaid);
+  const world = createWorld(raid);
+
+  expect(world.boss.id).toBe("boss");
+  expect(world.boss.pos).toEqual({ x: 0, z: 0 });
+  expect(world.boss.hp).toBe(1000);
+  // Tanks are seeded; mt (lexicographically first tank) is the initial target.
+  expect(world.boss.threat.mt).toBe(INITIAL_TANK_THREAT);
+  expect(world.boss.threat.m1).toBe(0);
+  expect(world.boss.currentTarget).toBe("mt");
+  expect(world.boss.facing).toBe(0);
+});
+
+test("boss facing snaps to point at its current target each tick", () => {
   const raid = loadRaid(baseRaid);
   const world = createWorld(raid);
   const next = tick(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
 
-  expect(world.boss).toEqual({ id: "boss", pos: { x: 0, z: 0 }, hp: 1000, maxHp: 1000, radius: 3 });
-  expect(next.boss).toEqual(world.boss);
+  const mt = next.players.find(p => p.id === "mt")!;
+  expect(next.boss.facing).toBeCloseTo(Math.atan2(mt.pos.x - 0, mt.pos.z - 0));
+  expect(next.boss.currentTarget).toBe("mt");
 });
 
 test("bot intents are deterministic", () => {
@@ -421,7 +437,7 @@ test("continuous effects respect tick timing boundaries", () => {
 test("status becomes wiped when lethal damage hits all players", () => {
   const raid = loadRaid({
     ...baseRaid,
-    events: [{ t: 3, name: "OneShot", telegraph: 2, damage: 100, damageType: "physical" as const, shape: { kind: "circle", center: [0, 0], radius: 20 } }],
+    events: [{ t: 3, name: "OneShot", telegraph: 2, damage: 200, damageType: "physical" as const, shape: { kind: "circle", center: [0, 0], radius: 20 } }],
   });
   const world = runTicks(createWorld(raid), {}, Math.ceil(5.1 * 60));
   expect(world.status).toBe("wiped");
@@ -530,7 +546,7 @@ test("targeted mechanic hits the closest player and spares the rest", () => {
   const world = runTicks(createWorld(raid), {}, Math.ceil(2.1 * 60));
   expect(human(world).hp).toBeLessThan(100); // m1 is closest
   for (const p of world.players) {
-    if (p.id !== HUMAN) expect(p.hp).toBe(100);
+    if (p.id !== HUMAN) expect(p.hp).toBe(p.maxHp); // spared -> full HP (role-based max)
   }
 });
 
@@ -544,7 +560,7 @@ test("targeted mechanic respects the role filter when selecting furthest", () =>
   const world = runTicks(createWorld(raid), {}, Math.ceil(2.1 * 60));
   expect(world.players.find(p => p.id === "m2")!.hp).toBeLessThan(100);
   expect(world.players.find(p => p.id === "m1")!.hp).toBe(100);
-  expect(world.players.find(p => p.id === "mt")!.hp).toBe(100);
+  expect(world.players.find(p => p.id === "mt")!.hp).toBe(TANK_HP); // tank, unhit
 });
 
 test("targeted mechanic picks the near/far target at cast end, not cast start", () => {
@@ -743,7 +759,7 @@ test("chain applies its debuff to both members at cast end", () => {
   expect(hasChainBond(human(world))).toBe(true);
   expect(hasChainBond(otPlayer(world))).toBe(true);
   expect(human(world).hp).toBe(100);
-  expect(otPlayer(world).hp).toBe(100);
+  expect(otPlayer(world).hp).toBe(TANK_HP); // ot is a tank, no damage yet
 });
 
 test("separating a chained pair past breakDistance breaks it with no damage", () => {
@@ -753,14 +769,14 @@ test("separating a chained pair past breakDistance breaks it with no damage", ()
   expect(hasChainBond(human(world))).toBe(false);
   expect(hasChainBond(otPlayer(world))).toBe(false);
   expect(human(world).hp).toBe(100);
-  expect(otPlayer(world).hp).toBe(100);
+  expect(otPlayer(world).hp).toBe(TANK_HP); // ot is a tank, broke with no damage
 });
 
 test("a chain left unbroken bursts both members once at expiry", () => {
   // Both stand still through the whole window (expires at 5.6); run past it.
   const world = runTicks(createWorld(chainRaid()), {}, Math.ceil(6.0 * 60));
   expect(human(world).hp).toBe(60); // 100 - 40, applied exactly once
-  expect(otPlayer(world).hp).toBe(60);
+  expect(otPlayer(world).hp).toBe(TANK_HP - 40); // tank, burst applied exactly once
   expect(hasChainBond(human(world))).toBe(false);
   expect(hasChainBond(otPlayer(world))).toBe(false);
 });
@@ -808,6 +824,140 @@ test("anti-knockback has a 5s duration and 120s cooldown", () => {
   expect(human(w).antiKbActive).toBe(0);
 });
 
+// --- Provoke (tank threat grab) -----------------------------------------
+
+const byId = (w: World, id: string) => w.players.find(p => p.id === id)!;
+
+test("a tank provoke flips the boss's current target to that tank", () => {
+  const raid = loadRaid(baseRaid);
+  const world = createWorld(raid);
+  expect(world.boss.currentTarget).toBe("mt"); // mt seeded as initial target
+
+  // ot (the other tank) provokes -> becomes the top-threat target.
+  const w = tick(world, { ot: { move: { x: 0, z: 0 }, provoke: true } }, 1 / 60);
+  expect(w.boss.currentTarget).toBe("ot");
+  expect(byId(w, "ot").provokeCooldown).toBeGreaterThan(0);
+});
+
+test("provoke is tank-only: a dps press does nothing", () => {
+  const raid = loadRaid(baseRaid);
+  const world = createWorld(raid);
+  // m1 is a dps; pressing provoke must not grab threat or start a cooldown.
+  const w = tick(world, { [HUMAN]: { move: { x: 0, z: 0 }, provoke: true } }, 1 / 60);
+  expect(w.boss.currentTarget).toBe("mt");
+  expect(human(w).provokeCooldown).toBe(0);
+});
+
+test("provoke respects its cooldown", () => {
+  const raid = loadRaid(baseRaid);
+  let w = tick(createWorld(raid), { ot: { move: { x: 0, z: 0 }, provoke: true } }, 1 / 60);
+  expect(byId(w, "ot").provokeCooldown).toBeGreaterThan(PROVOKE_COOLDOWN - 1);
+
+  // mt provokes back while ot is still on cooldown; pressing again on ot is a no-op.
+  w = tick(w, { mt: { move: { x: 0, z: 0 }, provoke: true } }, 1 / 60);
+  expect(w.boss.currentTarget).toBe("mt");
+  const otCdBefore = byId(w, "ot").provokeCooldown;
+  w = tick(w, { ot: { move: { x: 0, z: 0 }, provoke: true } }, 1 / 60);
+  expect(w.boss.currentTarget).toBe("mt"); // ot still on cooldown, no re-grab
+  expect(byId(w, "ot").provokeCooldown).toBeLessThan(otCdBefore); // only counting down
+});
+
+// --- Facing-relative mechanics (positionals) ----------------------------
+
+// mt seeded as target at [0,10] makes the boss face +Z, so "front" is +Z.
+const facingNorthRoster: Record<string, { spawn: Vec }> = {
+  mt: { spawn: [0, 10] }, m1: { spawn: [0, 6] }, m2: { spawn: [0, -6] }, r1: { spawn: [6, 0] },
+};
+
+test("a boss-anchored cone snapshots boss facing and hits players in front", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster(facingNorthRoster),
+    events: [{
+      t: 0, name: "Cleave", telegraph: 1, damage: 50, damageType: "physical" as const,
+      shape: { kind: "cone", angleDeg: 90, length: 15 }, anchor: "boss", directionFrom: "bossFacing",
+    }],
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(1.1 * 60));
+  expect(byId(world, "m1").hp).toBeLessThan(100); // in front (+Z), inside the cone
+  expect(byId(world, "m2").hp).toBe(100);          // behind the boss, spared
+});
+
+function positionalRaid(positional: { center: number; width: number }, over = facingNorthRoster) {
+  return loadRaid({
+    ...baseRaid,
+    players: roster(over),
+    events: [{
+      t: 0, name: "Directional", telegraph: 1, damage: 20, damageType: "physical" as const,
+      shape: { kind: "circle", center: [0, 0], radius: 20 }, positional,
+    }],
+  });
+}
+
+test("a rear ±45° arc hits only players behind the boss", () => {
+  // center = PI (rear), width = PI/2 (±45°).
+  const world = runTicks(createWorld(positionalRaid({ center: Math.PI, width: Math.PI / 2 })), {}, Math.ceil(1.1 * 60));
+  expect(byId(world, "m2").hp).toBe(80);  // rear -> hit
+  expect(byId(world, "m1").hp).toBe(100); // front -> spared
+  expect(byId(world, "r1").hp).toBe(100); // flank (east) -> spared
+});
+
+test("an intercardinal arc (front-right) hits only that diagonal", () => {
+  // center = PI/4 (NE relative to facing), width = PI/2 (±45°). r2 sits NE.
+  const world = runTicks(createWorld(positionalRaid(
+    { center: Math.PI / 4, width: Math.PI / 2 },
+    { ...facingNorthRoster, r2: { spawn: [8, 8] as Vec } },
+  )), {}, Math.ceil(1.1 * 60));
+  expect(byId(world, "r2").hp).toBe(80);  // NE diagonal -> hit
+  expect(byId(world, "m2").hp).toBe(100); // rear -> spared
+});
+
+test("a half cleave (180° front arc) hits the whole front", () => {
+  // center = 0 (front), width = PI (the front half).
+  const world = runTicks(createWorld(positionalRaid({ center: 0, width: Math.PI })), {}, Math.ceil(1.1 * 60));
+  expect(byId(world, "m1").hp).toBe(80);  // front -> hit
+  expect(byId(world, "m2").hp).toBe(100); // rear -> spared
+});
+
+test("directionOffset rotates a boss-anchored cone (rear cleave)", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster(facingNorthRoster), // boss faces +Z (north)
+    events: [{
+      t: 0, name: "Rear Cone", telegraph: 1, damage: 30, damageType: "physical" as const,
+      anchor: "boss", directionFrom: "bossFacing", directionOffset: Math.PI, // point south
+      shape: { kind: "cone", angleDeg: 90, length: 25 },
+    }],
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(1.1 * 60));
+  expect(byId(world, "m2").hp).toBe(70);  // behind the boss, inside the rear cone
+  expect(byId(world, "m1").hp).toBe(100); // in front, spared
+});
+
+test("lockFacing freezes the boss facing for the duration of the cast", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [10, 0] }, ot: { spawn: [0, 10] } }),
+    events: [{
+      t: 0, name: "Locked Cast", telegraph: 3, damage: 0, damageType: "physical" as const,
+      lockFacing: true, shape: { kind: "circle", center: [0, 0], radius: 1 },
+    }],
+  });
+  let w = tick(createWorld(raid), { mt: { move: { x: 0, z: 0 } } }, 1 / 60);
+  const lockedFacing = w.boss.facing;
+  expect(lockedFacing).toBeCloseTo(Math.atan2(10, 0)); // faces mt (east) at cast start
+
+  // ot provokes mid-cast: target flips but the boss holds its facing.
+  w = tick(w, { ot: { move: { x: 0, z: 0 }, provoke: true } }, 1 / 60);
+  w = runTicks(w, {}, 30); // still within the 3s cast
+  expect(w.boss.currentTarget).toBe("ot");
+  expect(w.boss.facing).toBeCloseTo(lockedFacing); // frozen
+
+  // once the cast resolves, facing resumes toward the current target (ot, north).
+  w = runTicks(w, {}, Math.ceil(3 * 60));
+  expect(w.boss.facing).toBeCloseTo(Math.atan2(0, 10));
+});
+
 // --- RNG group mechanics -------------------------------------------------
 
 function groupRaid(events: unknown[], over: Record<string, { spawn?: Vec }> = {}) {
@@ -829,8 +979,8 @@ test("a successful stack splits the damage among soakers in the radius", () => {
   const w = runTicks(createWorld(raid), noMove, Math.ceil(1.1 * 60));
   const hp = (id: string) => w.players.find(p => p.id === id)!.hp;
   // 3 soakers >= requiredCount -> 90/3 = 30 each; everyone else untouched.
-  expect(hp("mt")).toBeCloseTo(70);
-  expect(hp("ot")).toBeCloseTo(70);
+  expect(hp("mt")).toBeCloseTo(TANK_HP - 30); // tank, split 90/3
+  expect(hp("ot")).toBeCloseTo(TANK_HP - 30);
   expect(hp("h1")).toBeCloseTo(70);
   expect(hp("h2")).toBe(100);
   expect(hp("r1")).toBe(100);
@@ -848,8 +998,8 @@ test("an under-soaked stack fails: each soaker eats the full damage", () => {
   });
   const w = runTicks(createWorld(raid), noMove, Math.ceil(1.1 * 60));
   const hp = (id: string) => w.players.find(p => p.id === id)!.hp;
-  expect(hp("mt")).toBeCloseTo(50); // full 50, not split
-  expect(hp("ot")).toBeCloseTo(50);
+  expect(hp("mt")).toBeCloseTo(TANK_HP - 50); // full 50 each, not split
+  expect(hp("ot")).toBeCloseTo(TANK_HP - 50);
   expect(hp("h1")).toBe(100);
 });
 

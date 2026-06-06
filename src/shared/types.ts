@@ -66,6 +66,7 @@ export type Player = {
   sprintCooldown: number; // seconds remaining on cooldown
   antiKbActive: number;   // seconds remaining on anti-knockback buff
   antiKbCooldown: number; // seconds remaining on anti-knockback cooldown
+  provokeCooldown: number; // seconds remaining on provoke cooldown (tank threat grab)
   invincible: boolean;    // when true, takes no damage and cannot die (practice mode)
   alive: boolean;
   effects: StatusEffect[];
@@ -77,6 +78,9 @@ export type Boss = {
   hp: number;
   maxHp: number;
   radius: number;
+  facing: number;                  // radians, 0 = +Z (matches player facing convention)
+  currentTarget: string | null;    // player id with top threat
+  threat: Record<string, number>;  // playerId -> threat value
 };
 
 export type AOEShape =
@@ -84,6 +88,11 @@ export type AOEShape =
   | { kind: "donut"; center: Vec2; inner: number; outer: number }
   | { kind: "cone"; origin: Vec2; direction: Vec2; angleDeg: number; length: number }
   | { kind: "rect"; origin: Vec2; direction: Vec2; width: number; length: number };
+
+// Arc relative to the boss's facing (radians). A directional attack only hits players whose
+// bearing from the boss is within `width/2` of `center`. center is measured clockwise from the
+// facing direction: 0 = front, π = rear, π/2 = boss's right, -π/2 = left, π/4 = front-right, etc.
+export type PositionalArc = { center: number; width: number };
 
 export type ActiveMechanic = {
   id: string;
@@ -95,6 +104,9 @@ export type ActiveMechanic = {
   damageType: DamageType;
   applyEffect?: EffectSpec;
   knockback?: Knockback;
+  positional?: PositionalArc;
+  // While unresolved and casting, the boss holds its facing instead of tracking its target.
+  lockFacing?: boolean;
   resolved: boolean;
   showCastBar: boolean;
   // When false, the ground telegraph is never drawn; the cast bar and damage still apply.
@@ -114,6 +126,12 @@ export type PendingEvent = {
   damageType: DamageType;
   applyEffect?: EffectSpec;
   knockback?: Knockback;
+  positional?: PositionalArc;
+  // For cone/rect: resolve origin/direction from the boss at cast start (see promotePending).
+  anchor?: "boss";
+  directionFrom?: "bossFacing";
+  directionOffset?: number;
+  lockFacing?: boolean;
   showCastBar: boolean;
   showTelegraph: boolean;
 };
@@ -282,6 +300,7 @@ export type Intent = {
   jump?: boolean;
   sprint?: boolean;
   antiKnockback?: boolean;
+  provoke?: boolean;
   toggleInvincibility?: boolean;
 };
 

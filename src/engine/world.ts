@@ -1,6 +1,9 @@
 import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent } from "../shared/types";
 import { vec2 } from "../shared/math";
 import type { RaidDef } from "./raidSchema";
+import { INITIAL_TANK_THREAT, topThreatTarget } from "./sim";
+
+export const ROLE_HP: Record<Player["role"], number> = { tank: 160, healer: 100, dps: 100 };
 
 function toVec2(arr: [number, number]) {
   return vec2(arr[0], arr[1]);
@@ -39,20 +42,28 @@ export function createWorld(raid: RaidDef): World {
     verticalVelocity: 0,
     knockbackVelocity: { x: 0, z: 0 },
     facing: 0,
-    hp: 100,
-    maxHp: 100,
+    hp: ROLE_HP[p.role],
+    maxHp: ROLE_HP[p.role],
     mp: 10000,
     maxMp: 10000,
     sprintActive: 0,
     sprintCooldown: 0,
     antiKbActive: 0,
     antiKbCooldown: 0,
+    provokeCooldown: 0,
     invincible: false,
     alive: true,
     effects: [],
   }));
 
-  const boss: Boss = { id: "boss", pos: { x: 0, z: 0 }, hp: 1000, maxHp: 1000, radius: 3 };
+  const threat: Record<string, number> = {};
+  for (const p of players) {
+    if (p.alive) threat[p.id] = p.role === "tank" ? INITIAL_TANK_THREAT : 0;
+  }
+  const boss: Boss = {
+    id: "boss", pos: { x: 0, z: 0 }, hp: 1000, maxHp: 1000, radius: 3,
+    facing: 0, threat, currentTarget: topThreatTarget(players, threat),
+  };
 
   const pending: PendingEvent[] = [];
   const pendingTethers: PendingTether[] = [];
@@ -164,6 +175,11 @@ export function createWorld(raid: RaidDef): World {
           height: e.knockback.height,
           origin: e.knockback.origin ? toVec2(e.knockback.origin) : undefined,
         },
+        positional: e.positional,
+        anchor: e.anchor,
+        directionFrom: e.directionFrom,
+        directionOffset: e.directionOffset,
+        lockFacing: e.lockFacing,
         showCastBar: e.showCastBar ?? false,
         showTelegraph: e.showTelegraph ?? true,
       });

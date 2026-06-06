@@ -6,6 +6,7 @@ export interface KeyBindings {
   jump: string;
   sprint: string;
   antiKnockback: string;
+  provoke: string;
 }
 
 export interface Settings {
@@ -28,6 +29,7 @@ export const DEFAULT_BINDINGS: KeyBindings = {
   jump: "Space",
   sprint: "Digit1",
   antiKnockback: "Digit2",
+  provoke: "Digit3",
 };
 
 const DEFAULTS: Settings = {

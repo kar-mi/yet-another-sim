@@ -18,8 +18,8 @@ const ZoneShapeSchema = z.discriminatedUnion("kind", [
 const AOEShapeSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("circle"), center: Vec2Schema, radius: z.number().positive() }),
   z.object({ kind: z.literal("donut"), center: Vec2Schema, inner: z.number().nonnegative(), outer: z.number().positive() }),
-  z.object({ kind: z.literal("cone"), origin: Vec2Schema, direction: Vec2Schema, angleDeg: z.number().positive(), length: z.number().positive() }),
-  z.object({ kind: z.literal("rect"), origin: Vec2Schema, direction: Vec2Schema, width: z.number().positive(), length: z.number().positive() }),
+  z.object({ kind: z.literal("cone"), origin: Vec2Schema.default([0, 0]), direction: Vec2Schema.default([0, 1]), angleDeg: z.number().positive(), length: z.number().positive() }),
+  z.object({ kind: z.literal("rect"), origin: Vec2Schema.default([0, 0]), direction: Vec2Schema.default([0, 1]), width: z.number().positive(), length: z.number().positive() }),
 ]).superRefine((shape, ctx) => {
   if (shape.kind === "donut" && shape.inner >= shape.outer) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "donut inner must be less than outer" });
@@ -59,6 +59,19 @@ const AOEEventSchema = z.object({
   shape: AOEShapeSchema,
   applyEffect: ApplyEffectSchema.optional(),
   knockback: KnockbackSchema.optional(),
+  // Facing-relative anchoring for cone/rect: snapshot the boss at cast start.
+  anchor: z.literal("boss").optional(),            // origin = boss.pos
+  directionFrom: z.literal("bossFacing").optional(), // shape direction = boss.facing
+  directionOffset: z.number().optional(),          // rotate the bossFacing direction (radians, clockwise)
+  // The boss freezes its facing for the duration of the cast (telegraph), then resumes.
+  // Defaults to true; set false to let the boss keep tracking its target mid-cast.
+  lockFacing: z.boolean().default(true),
+  // Directional gate: only hit players whose bearing from the boss is within this arc.
+  // `center` (radians, clockwise from boss facing; 0 = front) and full `width` (radians).
+  positional: z.object({
+    center: z.number(),
+    width: z.number().positive().max(Math.PI * 2),
+  }).optional(),
   showCastBar: z.boolean().optional(),
   showTelegraph: z.boolean().optional(),
 });

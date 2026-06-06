@@ -12,6 +12,7 @@ import type { Renderer } from "./Renderer";
 import type { World, ZoneShape } from "../../shared/types";
 import type { Settings, ControllerType } from "../settings";
 import { BossLayer } from "./BossLayer";
+import { BossRingLayer } from "./BossRingLayer";
 import { HealthBarLayer } from "./HealthBarLayer";
 import { createZoneMesh } from "./arenaMeshes";
 import { HudOverlay } from "./HudOverlay";
@@ -41,6 +42,7 @@ export class BabylonRenderer implements Renderer {
   private camera!: ArcRotateCamera;
   private players!: PlayerLayer;
   private boss!: BossLayer;
+  private bossRing!: BossRingLayer;
   private healthBars!: HealthBarLayer;
   private telegraphs!: TelegraphLayer;
   private tethers!: TetherLayer;
@@ -107,6 +109,8 @@ export class BabylonRenderer implements Renderer {
     this.players.init(world.players);
     this.boss = new BossLayer(this.scene);
     this.boss.init(world.boss);
+    this.bossRing = new BossRingLayer(this.scene);
+    this.bossRing.sync(world.boss);
     this.healthBars = new HealthBarLayer(this.scene);
     for (const player of world.players) {
       const mesh = this.players.getMesh(player.id);
@@ -154,6 +158,7 @@ export class BabylonRenderer implements Renderer {
 
     this.players.sync(world.players);
     this.boss.sync(world.boss);
+    this.bossRing.sync(world.boss);
 
     const local = world.players.find(p => p.id === this.localPlayerId);
     const focus = local?.alive
@@ -225,6 +230,7 @@ export class BabylonRenderer implements Renderer {
     if (document.pointerLockElement === this.canvas) document.exitPointerLock();
     window.removeEventListener("resize", this.onResize);
     this.hud.dispose();
+    this.bossRing.dispose();
     this.chains.dispose();
     this.towers.dispose();
     this.stacks.dispose();

@@ -18,10 +18,12 @@ import type {
   DamageType,
   ActiveGroupMechanic,
   PendingGroupEvent,
+  Boss,
+  PositionalArc,
 } from "../shared/types";
 import type { Vec2 } from "../shared/math";
 import type { AOEShape } from "../shared/types";
-import { add, sub, scale, normalize, length } from "../shared/math";
+import { add, sub, scale, normalize, length, dot } from "../shared/math";
 import { pointInShape, isOnFloor } from "./shapes";
 import { promotePending } from "./timeline";
 
@@ -34,7 +36,26 @@ export const SPRINT_DURATION = 10;
 export const SPRINT_COOLDOWN = 60;
 export const ANTI_KB_DURATION = 5;    // seconds the anti-knockback buff negates knockback
 export const ANTI_KB_COOLDOWN = 120;  // seconds before anti-knockback can be used again
+export const PROVOKE_COOLDOWN = 30;   // seconds before a tank can provoke again
+export const PROVOKE_LEAD = 1;        // threat set above the current max so the tank becomes target
 export const KNOCKBACK_FRICTION = 40; // ground deceleration (units/s^2); v0 = sqrt(2*FRICTION*distance)
+
+export const INITIAL_TANK_THREAT = 1; // seed so a tank starts as the boss's target
+
+// Alive player with the highest threat; stable tiebreak by id. null if none alive.
+export function topThreatTarget(players: Player[], threat: Record<string, number>): string | null {
+  let best: string | null = null;
+  let bestThreat = -Infinity;
+  for (const p of players) {
+    if (!p.alive) continue;
+    const t = threat[p.id] ?? 0;
+    if (t > bestThreat || (t === bestThreat && best !== null && p.id < best)) {
+      best = p.id;
+      bestThreat = t;
+    }
+  }
+  return best;
+}
 
 const INTERCEPT_THRESHOLD = 2.0;
 const TARGETED_LINGER = 0.7; // seconds a targeted bait's circle stays visible after it resolves
@@ -77,6 +98,17 @@ function applyMechanicDamage(player: Player, damage: number, damageType: DamageT
     player.hp = Math.max(0, player.hp - dealt);
     if (player.hp <= 0) player.alive = false;
   }
+}
+
+// Whether the player's bearing from the boss falls within a facing-relative arc.
+function inPositionalArc(boss: Boss, pos: Vec2, arc: PositionalArc): boolean {
+  const to = sub(pos, boss.pos);
+  if (length(to) < 1e-6) return true; // on top of the boss: always inside
+  // Arc center direction in world space (0 = +Z, clockwise), then unsigned angular distance.
+  const centerWorld = boss.facing + arc.center;
+  const centerVec = { x: Math.sin(centerWorld), z: Math.cos(centerWorld) };
+  const cosAng = Math.max(-1, Math.min(1, dot(normalize(to), centerVec)));
+  return Math.acos(cosAng) <= arc.width / 2;
 }
 
 function isOnTetherLine(pPos: Vec2, src: Vec2, tgt: Vec2): boolean {
@@ -150,6 +182,9 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const log: LogEntry[] = world.log.slice();
   const actedByPlayer = new Map<string, boolean>();
   const groupChoices = { ...world.groupChoices };
+  // tick never mutates the incoming world: clone the boss (threat is the one nested
+  // mutable object we write) so the returned snapshot is fresh. See world.ts/net.ts.
+  const boss = { ...world.boss, threat: { ...world.boss.threat } };
 
   // 1. Apply player movement
   for (const player of players) {
@@ -172,6 +207,15 @@ export function tick(world: World, intents: Intents, dt: number): World {
       player.antiKbActive = ANTI_KB_DURATION;
       player.antiKbCooldown = ANTI_KB_COOLDOWN;
     }
+
+    // Provoke: tank-only threat grab. Sets the tank above the current max so the boss
+    // retargets them in this tick's targeting pass (section 1b, below the loop).
+    if (intent?.provoke && player.role === "tank" && player.provokeCooldown <= 0) {
+      const maxThreat = Math.max(0, ...Object.values(boss.threat));
+      boss.threat[player.id] = maxThreat + PROVOKE_LEAD;
+      player.provokeCooldown = PROVOKE_COOLDOWN;
+    }
+    if (player.provokeCooldown > 0) player.provokeCooldown = Math.max(0, player.provokeCooldown - dt);
 
     if (intent?.toggleInvincibility) {
       player.invincible = !player.invincible;
@@ -220,6 +264,17 @@ export function tick(world: World, intents: Intents, dt: number): World {
       player.verticalVelocity = 0;
       log.push({ t: time, mechanic: "arena", playerId: player.id, event: "fell" });
     }
+  }
+
+  // 1b. Boss targeting + facing: pick the top-threat alive player and turn to face them.
+  // Per-tick snap (no turn-rate clamp); visual smoothing is done client-side in net.ts.
+  // A lockFacing cast freezes the boss's facing for its duration so it matches its telegraph.
+  boss.currentTarget = topThreatTarget(players, boss.threat);
+  const facingLocked = world.active.some(m =>
+    m.lockFacing && !m.resolved && m.telegraphStart <= time && m.resolveAt > time);
+  if (boss.currentTarget && !facingLocked) {
+    const target = players.find(p => p.id === boss.currentTarget)!;
+    boss.facing = Math.atan2(target.pos.x - boss.pos.x, target.pos.z - boss.pos.z);
   }
 
   // 2. Tether sources: promote, update attachments, finalize
@@ -362,8 +417,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  // 3. Promote pending events whose t <= time
-  const { promoted, remaining: pending } = promotePending(world.pending, time);
+  // 3. Promote pending events whose t <= time (boss snapshots facing-anchored shapes)
+  const { promoted, remaining: pending } = promotePending(world.pending, time, boss);
   const active: ActiveMechanic[] = [...world.active.map(m => ({ ...m })), ...promoted];
 
   // 3b. Promote targeted events into casts. The near/far target (and circle center) is
@@ -401,7 +456,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
       }
       for (const player of players) {
         if (!player.alive) continue;
-        if (pointInShape(mechanic.shape, player.pos)) {
+        const inArc = !mechanic.positional || inPositionalArc(boss, player.pos, mechanic.positional);
+        if (pointInShape(mechanic.shape, player.pos) && inArc) {
           applyMechanicDamage(player, mechanic.damage, mechanic.damageType, time);
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });
           if (mechanic.applyEffect && player.alive) {
@@ -608,5 +664,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, groupChoices, players, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups };
+  return { ...world, time, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups };
 }
