@@ -2,6 +2,8 @@ import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingE
 import { vec2 } from "../shared/math";
 import type { RaidDef } from "./raidSchema";
 
+const ROLE_HP: Record<Player["role"], number> = { tank: 160, healer: 100, dps: 100 };
+
 function toVec2(arr: [number, number]) {
   return vec2(arr[0], arr[1]);
 }
@@ -39,8 +41,8 @@ export function createWorld(raid: RaidDef): World {
     verticalVelocity: 0,
     knockbackVelocity: { x: 0, z: 0 },
     facing: 0,
-    hp: 100,
-    maxHp: 100,
+    hp: ROLE_HP[p.role],
+    maxHp: ROLE_HP[p.role],
     mp: 10000,
     maxMp: 10000,
     sprintActive: 0,
