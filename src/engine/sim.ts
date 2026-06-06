@@ -34,6 +34,8 @@ export const SPRINT_DURATION = 10;
 export const SPRINT_COOLDOWN = 60;
 export const ANTI_KB_DURATION = 5;    // seconds the anti-knockback buff negates knockback
 export const ANTI_KB_COOLDOWN = 120;  // seconds before anti-knockback can be used again
+export const PROVOKE_COOLDOWN = 30;   // seconds before a tank can provoke again
+export const PROVOKE_LEAD = 1;        // threat set above the current max so the tank becomes target
 export const KNOCKBACK_FRICTION = 40; // ground deceleration (units/s^2); v0 = sqrt(2*FRICTION*distance)
 
 export const INITIAL_TANK_THREAT = 1; // seed so a tank starts as the boss's target
@@ -192,6 +194,15 @@ export function tick(world: World, intents: Intents, dt: number): World {
       player.antiKbActive = ANTI_KB_DURATION;
       player.antiKbCooldown = ANTI_KB_COOLDOWN;
     }
+
+    // Provoke: tank-only threat grab. Sets the tank above the current max so the boss
+    // retargets them in this tick's targeting pass (section 1b, below the loop).
+    if (intent?.provoke && player.role === "tank" && player.provokeCooldown <= 0) {
+      const maxThreat = Math.max(0, ...Object.values(boss.threat));
+      boss.threat[player.id] = maxThreat + PROVOKE_LEAD;
+      player.provokeCooldown = PROVOKE_COOLDOWN;
+    }
+    if (player.provokeCooldown > 0) player.provokeCooldown = Math.max(0, player.provokeCooldown - dt);
 
     if (intent?.toggleInvincibility) {
       player.invincible = !player.invincible;

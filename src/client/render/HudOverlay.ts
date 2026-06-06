@@ -1,6 +1,6 @@
 import type { World, Player } from "../../shared/types";
-import { pressAction, triggerSprint, triggerAntiKb, toggleInvincibility } from "../input";
-import { SPRINT_COOLDOWN, ANTI_KB_COOLDOWN } from "../../engine/sim";
+import { pressAction, triggerSprint, triggerAntiKb, triggerProvoke, toggleInvincibility } from "../input";
+import { SPRINT_COOLDOWN, ANTI_KB_COOLDOWN, PROVOKE_COOLDOWN } from "../../engine/sim";
 import { keyLabel, CONTROLLER_BUTTON_LABELS } from "../settings";
 import type { Settings, ControllerType } from "../settings";
 import { clamp01 } from "../../shared/math";
@@ -25,6 +25,13 @@ export class HudOverlay {
   private ctrlAntiKbSlot!: HTMLDivElement;
   private ctrlAntiKbCdOverlay!: HTMLDivElement;
   private ctrlAntiKbCdText!: HTMLDivElement;
+  private provokeSlot: HTMLDivElement;
+  private provokeCdOverlay: HTMLDivElement;
+  private provokeCdText: HTMLDivElement;
+  private prevProvokeCooldown = 0;
+  private ctrlProvokeSlot!: HTMLDivElement;
+  private ctrlProvokeCdOverlay!: HTMLDivElement;
+  private ctrlProvokeCdText!: HTMLDivElement;
   private sessionEl: HTMLDivElement;
   private partyEl!: HTMLDivElement;
   private partyRows = new Map<string, { hpFill: HTMLDivElement; mpFill: HTMLDivElement; rowEl: HTMLDivElement; effectsEl: HTMLDivElement; camBtn?: HTMLButtonElement }>();
@@ -62,6 +69,9 @@ export class HudOverlay {
     this.antiKbSlot = this.root.querySelector<HTMLDivElement>("[data-slot='1']")!;
     this.antiKbCdOverlay = this.antiKbSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
     this.antiKbCdText = this.antiKbSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
+    this.provokeSlot = this.root.querySelector<HTMLDivElement>("[data-slot='2']")!;
+    this.provokeCdOverlay = this.provokeSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
+    this.provokeCdText = this.provokeSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
     this.kbmHotbar = this.root.querySelector<HTMLDivElement>(".yas-hotbar")!;
     this.controllerHotbar = this.root.querySelector<HTMLDivElement>(".yas-controller-hotbar")!;
     this.slotKeybinds = Array.from(this.kbmHotbar.querySelectorAll<HTMLSpanElement>(".yas-keybind"));
@@ -72,6 +82,9 @@ export class HudOverlay {
     this.ctrlAntiKbSlot = this.controllerHotbar.querySelector<HTMLDivElement>("[data-ctrl-slot='6']")!;
     this.ctrlAntiKbCdOverlay = this.ctrlAntiKbSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
     this.ctrlAntiKbCdText = this.ctrlAntiKbSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
+    this.ctrlProvokeSlot = this.controllerHotbar.querySelector<HTMLDivElement>("[data-ctrl-slot='5']")!;
+    this.ctrlProvokeCdOverlay = this.ctrlProvokeSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
+    this.ctrlProvokeCdText = this.ctrlProvokeSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
 
     this.statusEl = document.createElement("div");
     this.statusEl.id = "yas-status";
@@ -131,6 +144,16 @@ export class HudOverlay {
             <span class="yas-keybind"></span>
             <span class="yas-slot-icon">🛡</span>
             <span class="yas-slot-name">ANTI-KB</span>
+            <div class="yas-cd-overlay"></div>
+            <div class="yas-cd-text"></div>
+          </div>`;
+      }
+      if (i === 2) {
+        return `
+          <div class="yas-slot" data-slot="2">
+            <span class="yas-keybind"></span>
+            <span class="yas-slot-icon">🎯</span>
+            <span class="yas-slot-name">PROVOKE</span>
             <div class="yas-cd-overlay"></div>
             <div class="yas-cd-text"></div>
           </div>`;
@@ -196,6 +219,7 @@ export class HudOverlay {
       this.slotKeybinds.forEach((el, i) => {
         el.textContent = i === 0 ? keyLabel(settings.keyBindings.sprint)
           : i === 1 ? keyLabel(settings.keyBindings.antiKnockback)
+          : i === 2 ? keyLabel(settings.keyBindings.provoke)
           : "";
       });
     }
@@ -219,6 +243,8 @@ export class HudOverlay {
     this.ctrlSprintSlot.addEventListener("click", () => pressAction(7));
     this.antiKbSlot.addEventListener("click", () => triggerAntiKb());
     this.ctrlAntiKbSlot.addEventListener("click", () => pressAction(6));
+    this.provokeSlot.addEventListener("click", () => triggerProvoke());
+    this.ctrlProvokeSlot.addEventListener("click", () => pressAction(5));
     this.invulnBtn.addEventListener("click", () => { this.invulnBtn.blur(); toggleInvincibility(); });
 
     this.root.querySelectorAll<HTMLDivElement>(".yas-slot").forEach(slot => {
@@ -327,6 +353,18 @@ export class HudOverlay {
       [{ overlay: this.antiKbCdOverlay, text: this.antiKbCdText }, { overlay: this.ctrlAntiKbCdOverlay, text: this.ctrlAntiKbCdText }],
       p.antiKbActive, p.antiKbCooldown, ANTI_KB_COOLDOWN, this.prevAntiKbCooldown,
     );
+
+    // Provoke is tank-only: show its slots only for a tank local player. No active buff (instantaneous).
+    const isTank = p.role === "tank";
+    this.provokeSlot.style.display = isTank ? "" : "none";
+    this.ctrlProvokeSlot.style.display = isTank ? "" : "none";
+    if (isTank) {
+      this.prevProvokeCooldown = this.renderSkillSlots(
+        [this.provokeSlot, this.ctrlProvokeSlot],
+        [{ overlay: this.provokeCdOverlay, text: this.provokeCdText }, { overlay: this.ctrlProvokeCdOverlay, text: this.ctrlProvokeCdText }],
+        0, p.provokeCooldown, PROVOKE_COOLDOWN, this.prevProvokeCooldown,
+      );
+    }
   }
 
   // Renders a skill's cooldown sweep, ready-pulse, and active highlight across its hotbar slots.

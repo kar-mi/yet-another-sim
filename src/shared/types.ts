@@ -66,6 +66,7 @@ export type Player = {
   sprintCooldown: number; // seconds remaining on cooldown
   antiKbActive: number;   // seconds remaining on anti-knockback buff
   antiKbCooldown: number; // seconds remaining on anti-knockback cooldown
+  provokeCooldown: number; // seconds remaining on provoke cooldown (tank threat grab)
   invincible: boolean;    // when true, takes no damage and cannot die (practice mode)
   alive: boolean;
   effects: StatusEffect[];
@@ -285,6 +286,7 @@ export type Intent = {
   jump?: boolean;
   sprint?: boolean;
   antiKnockback?: boolean;
+  provoke?: boolean;
   toggleInvincibility?: boolean;
 };
 
