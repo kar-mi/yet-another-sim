@@ -1,5 +1,6 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingInverse } from "../shared/types";
 import { vec2 } from "../shared/math";
+import { makeSeed } from "../shared/rng";
 import type { RaidDef } from "./raidSchema";
 import { INITIAL_TANK_THREAT, topThreatTarget } from "./sim";
 
@@ -28,7 +29,7 @@ function toAOEShape(shape: AOEEventDef["shape"]): AOEShape {
   }
 }
 
-export function createWorld(raid: RaidDef): World {
+export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const arena: Arena = { zones: raid.arena.zones.map(toZoneShape) };
   const waymarks: Waymark[] = raid.waymarks?.map(w => ({ mark: w.mark, pos: toVec2(w.pos) })) ?? [];
 
@@ -72,6 +73,7 @@ export function createWorld(raid: RaidDef): World {
   const pendingTowers: PendingTower[] = [];
   const pendingChains: PendingChain[] = [];
   const pendingGroups: PendingGroupEvent[] = [];
+  const pendingInversions: PendingInverse[] = [];
 
   for (const [index, e] of raid.events.entries()) {
     if (e.type === "tether_source") {
@@ -179,6 +181,28 @@ export function createWorld(raid: RaidDef): World {
           showCastBar: e.showCastBar ?? false,
         });
       });
+    } else if (e.type === "inverse") {
+      pendingInversions.push({
+        id: `inverse-${index}`,
+        t: e.t,
+        name: e.name,
+        telegraph: e.telegraph,
+        shownShapes: e.shownShapes.map(toAOEShape),
+        hiddenShapes: e.hiddenShapes.map(toAOEShape),
+        ringColor: e.ringColor,
+        ringHeight: e.ringHeight,
+        rng: e.rng ?? false,
+        questionMark: e.questionMark,
+        damage: e.damage,
+        damageType: e.damageType,
+        applyEffect: e.applyEffect,
+        knockback: e.knockback && {
+          distance: e.knockback.distance,
+          height: e.knockback.height,
+          origin: e.knockback.origin ? toVec2(e.knockback.origin) : undefined,
+        },
+        showCastBar: e.showCastBar ?? false,
+      });
     } else {
       pending.push({
         id: `event-${index}`,
@@ -207,9 +231,10 @@ export function createWorld(raid: RaidDef): World {
 
   return {
     time: 0,
+    rngState: seed,
     groupChoices: {},
     status: "running",
-    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0,
+    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingInversions.length > 0,
     arena,
     waymarks,
     players,
@@ -229,5 +254,7 @@ export function createWorld(raid: RaidDef): World {
     pendingChains,
     groupMechanics: [],
     pendingGroups,
+    inversions: [],
+    pendingInversions,
   };
 }

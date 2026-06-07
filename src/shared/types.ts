@@ -199,6 +199,43 @@ export type ActiveTower = {
   outcome?: "success" | "failure"; // set at resolve, drives the post-resolve flash
 };
 
+
+export type PendingInverse = {
+  id: string;
+  t: number;
+  name: string;
+  telegraph: number;
+  shownShapes: AOEShape[];         // telegraph shapes that ARE drawn
+  hiddenShapes: AOEShape[];        // not drawn; lethal when inverted ("?")
+  ringColor?: string;              // hex colour of this mechanic's boss ring
+  ringHeight?: number;             // vertical height of this mechanic's boss ring
+  rng: boolean;                    // randomize the inversion at cast start
+  questionMark?: boolean;          // authored override of the inversion state
+  damage: number;
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
+  knockback?: Knockback;
+  showCastBar: boolean;
+};
+
+export type ActiveInverse = {
+  id: string;
+  name: string;
+  shownShapes: AOEShape[];
+  hiddenShapes: AOEShape[];
+  ringColor?: string;              // hex colour of this mechanic's boss ring
+  ringHeight?: number;             // vertical height of this mechanic's boss ring
+  inverted: boolean;               // true => "?" telegraph: hiddenShapes are lethal
+  telegraphStart: number;
+  resolveAt: number;
+  damage: number;
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
+  knockback?: Knockback;
+  showCastBar: boolean;
+  resolved: boolean;
+};
+
 export type PendingGroupEvent = {
   id: string;          // event id, used as the linking key
   t: number;
@@ -354,6 +391,7 @@ export type Intents = Record<string, Intent>;
 
 export type World = {
   time: number;
+  rngState: number;                     // seeded PRNG state (shared/rng.ts), advanced each pull
   groupChoices: Record<string, number>; // group event id -> chosen group index (for linking)
   status: Status;
   hasMechanics: boolean;
@@ -376,4 +414,6 @@ export type World = {
   pendingChains: PendingChain[];
   groupMechanics: ActiveGroupMechanic[];
   pendingGroups: PendingGroupEvent[];
+  inversions: ActiveInverse[];
+  pendingInversions: PendingInverse[];
 };

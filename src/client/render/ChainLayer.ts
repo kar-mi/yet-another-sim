@@ -112,6 +112,8 @@ export class ChainLayer {
     const mat = new StandardMaterial("chain-icon-mat", this.scene);
     mat.diffuseTexture = tex;
     mat.useAlphaFromDiffuseTexture = true;
+    mat.transparencyMode = StandardMaterial.MATERIAL_ALPHATEST; // discard transparent pixels
+    mat.alphaCutOff = 0.4;
     mat.emissiveTexture = tex;
     mat.emissiveColor = new Color3(1, 1, 1);
     mat.disableLighting = true;

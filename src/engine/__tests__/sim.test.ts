@@ -76,8 +76,8 @@ test("tick is deterministic", () => {
   const raid = loadRaid(baseRaid);
   const intents = { [HUMAN]: { move: { x: 0.3, z: 0.7 } } };
 
-  let w1 = createWorld(raid);
-  let w2 = createWorld(raid);
+  let w1 = createWorld(raid, 1);
+  let w2 = createWorld(raid, 1);
   for (let i = 0; i < 200; i++) {
     w1 = tick(w1, intents, 1 / 60);
     w2 = tick(w2, intents, 1 / 60);
@@ -133,8 +133,8 @@ test("bot intents are deterministic", () => {
     }),
   });
 
-  let w1 = createWorld(raid);
-  let w2 = createWorld(raid);
+  let w1 = createWorld(raid, 1);
+  let w2 = createWorld(raid, 1);
   for (let i = 0; i < 200; i++) {
     w1 = tick(w1, { ...computeBotIntents(w1, 1 / 60), [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
     w2 = tick(w2, { ...computeBotIntents(w2, 1 / 60), [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
@@ -729,8 +729,8 @@ test("knockback raids remain deterministic", () => {
     events: [kbEvent({ distance: 10, height: 4 })],
   });
   const intents = { [HUMAN]: { move: { x: 0.2, z: 0.5 } } };
-  let w1 = createWorld(raid);
-  let w2 = createWorld(raid);
+  let w1 = createWorld(raid, 1);
+  let w2 = createWorld(raid, 1);
   for (let i = 0; i < 200; i++) {
     w1 = tick(w1, intents, 1 / 60);
     w2 = tick(w2, intents, 1 / 60);
@@ -810,8 +810,8 @@ test("a chain left unbroken bursts both members once at expiry", () => {
 test("chain raids remain deterministic", () => {
   const raid = chainRaid();
   const intents = { [HUMAN]: { move: { x: 0.3, z: 0 } } };
-  let w1 = createWorld(raid);
-  let w2 = createWorld(raid);
+  let w1 = createWorld(raid, 1);
+  let w2 = createWorld(raid, 1);
   for (let i = 0; i < 200; i++) {
     w1 = tick(w1, intents, 1 / 60);
     w2 = tick(w2, intents, 1 / 60);
@@ -1199,4 +1199,87 @@ test("group rng eventually picks both groups", () => {
     picks.add(w.groupChoices["group-0"]);
   }
   expect(picks).toEqual(new Set([0, 1]));
+});
+
+// Inverse ("?") events: shown shapes are the telegraph; when inverted the hidden shapes are lethal.
+const inverseEvent = (over: Record<string, unknown> = {}) => ({
+  type: "inverse" as const,
+  t: 0.1,
+  name: "Inverse",
+  telegraph: 0.1,
+  damage: 40,
+  damageType: "magical" as const,
+  shownShapes: [{ kind: "circle" as const, center: [10, 0] as Vec, radius: 3 }],
+  hiddenShapes: [{ kind: "circle" as const, center: [-10, 0] as Vec, radius: 3 }],
+  ...over,
+});
+
+test("inverse: an honest cast hits the shown shapes and spares the hidden shapes", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [10, 0] }, m2: { spawn: [-10, 0] } }),
+    events: [inverseEvent()],
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
+  expect(world.players.find(p => p.id === "m1")!.hp).toBe(60);  // shown shape is lethal
+  expect(world.players.find(p => p.id === "m2")!.hp).toBe(100); // hidden shape is safe
+});
+
+test("inverse: a question-mark cast hits the hidden shapes and spares the shown shapes", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [10, 0] }, m2: { spawn: [-10, 0] } }),
+    events: [inverseEvent({ questionMark: true })],
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
+  expect(world.players.find(p => p.id === "m1")!.hp).toBe(100); // shown telegraph is a lie
+  expect(world.players.find(p => p.id === "m2")!.hp).toBe(60);  // hidden shape is lethal
+});
+
+test("inverse: a combo hits players standing in any lethal shape", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [10, 0] }, m2: { spawn: [0, 10] }, r1: { spawn: [-10, 0] } }),
+    events: [inverseEvent({
+      shownShapes: [
+        { kind: "circle", center: [10, 0], radius: 3 },
+        { kind: "circle", center: [0, 10], radius: 3 },
+      ],
+    })],
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
+  expect(world.players.find(p => p.id === "m1")!.hp).toBe(60);  // shown circle A
+  expect(world.players.find(p => p.id === "m2")!.hp).toBe(60);  // shown circle B
+  expect(world.players.find(p => p.id === "r1")!.hp).toBe(100); // hidden, safe
+});
+
+test("inverse: applyEffect lands only on the lethal side", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [10, 0] }, m2: { spawn: [-10, 0] } }),
+    events: [inverseEvent({
+      questionMark: true,
+      applyEffect: {
+        name: "Magic Vulnerability", kind: "debuff", duration: 8,
+        behavior: { kind: "vuln", damageType: "magical", multiplier: 1.5 },
+      },
+    })],
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
+  expect(world.players.find(p => p.id === "m1")!.effects).toHaveLength(0); // shown side spared
+  expect(world.players.find(p => p.id === "m2")!.effects.some(e => e.name === "Magic Vulnerability")).toBe(true);
+});
+
+test("inverse rng eventually picks both honest and inverted", () => {
+  const raid = {
+    ...baseRaid,
+    players: roster({ m1: { spawn: [10, 0] }, m2: { spawn: [-10, 0] } }),
+    events: [inverseEvent({ t: 0, telegraph: 1, rng: true })],
+  };
+  const seen = new Set<boolean>();
+  for (let i = 0; i < 40; i++) {
+    const w = tick(createWorld(loadRaid(raid)), {}, 1 / 60); // promote on first tick
+    seen.add(w.inversions[0].inverted);
+  }
+  expect(seen).toEqual(new Set([true, false]));
 });

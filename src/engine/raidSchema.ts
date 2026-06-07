@@ -190,7 +190,25 @@ const GroupEventSchema = z.object({
   showCastBar: z.boolean().optional(),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema]);
+const InverseEventSchema = z.object({
+  type: z.literal("inverse"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
+  damage: z.number().nonnegative(),
+  damageType: z.enum(["physical", "magical", "true"]),
+  shownShapes: z.array(AOEShapeSchema).min(1),      // telegraph shapes that ARE drawn
+  hiddenShapes: z.array(AOEShapeSchema).min(1),     // not drawn; lethal when inverted ("?")
+  ringColor: z.string().optional(),               // hex colour of this mechanic's boss ring (identifies it)
+  ringHeight: z.number().optional(),              // vertical height of this mechanic's boss ring
+  rng: z.boolean().optional(),                      // randomize the "?" inversion (else not inverted)
+  questionMark: z.boolean().optional(),            // authored override of the inversion state
+  applyEffect: ApplyEffectSchema.optional(),
+  knockback: KnockbackSchema.optional(),
+  showCastBar: z.boolean().optional(),
+});
+
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, InverseEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
