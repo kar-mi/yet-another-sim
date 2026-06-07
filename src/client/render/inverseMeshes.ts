@@ -4,7 +4,6 @@ import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { CreateTorus } from "@babylonjs/core/Meshes/Builders/torusBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import { Material } from "@babylonjs/core/Materials/material";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveInverse, Boss } from "../../shared/types";
@@ -89,15 +88,15 @@ export function createInverseMeshes(scene: Scene, inv: ActiveInverse): InverseMe
     const orb = CreatePlane(`inv-orb-${inv.id}-${i}`, { size: ORB_SIZE }, scene);
     orb.billboardMode = BabylonMesh.BILLBOARDMODE_ALL;
     orb.isPickable = false;
-    orb.renderingGroupId = 1; // draw on top so it's always readable
     const tex = orbTexture(scene, `inv-orb-tex-${inv.id}-${i}`, inv.inverted);
     const mat = new StandardMaterial(`inv-orb-mat-${inv.id}-${i}`, scene);
     mat.diffuseTexture = tex;
-    mat.useAlphaFromDiffuseTexture = true;
+    mat.useAlphaFromDiffuseTexture = true; // transparent background around the orb circle
+    mat.transparencyMode = StandardMaterial.MATERIAL_ALPHATEST; // discard transparent pixels
+    mat.alphaCutOff = 0.4;
     mat.emissiveTexture = tex;
     mat.emissiveColor = new Color3(1, 1, 1);
     mat.disableLighting = true;
-    mat.transparencyMode = Material.MATERIAL_ALPHABLEND; // transparent background around the orb
     mat.backFaceCulling = false;
     orb.material = mat;
     orbs.push(orb);

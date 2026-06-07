@@ -44,6 +44,8 @@ export class BossLayer {
     faceMat.diffuseTexture = tex;
     faceMat.emissiveTexture = tex;
     faceMat.useAlphaFromDiffuseTexture = true;
+    faceMat.transparencyMode = StandardMaterial.MATERIAL_ALPHATEST; // discard transparent pixels
+    faceMat.alphaCutOff = 0.4;
     faceMat.disableLighting = true;
     faceMat.backFaceCulling = false;
     face.material = faceMat;
@@ -54,6 +56,7 @@ export class BossLayer {
     const tex = new DynamicTexture(name, { width: 256, height: 256 }, this.scene, false);
     tex.hasAlpha = true;
     const ctx = tex.getContext();
+    ctx.clearRect(0, 0, 256, 256); // start fully transparent
     ctx.fillStyle = "#ffb259"; // light orange
     ctx.beginPath();
     ctx.arc(128, 128, 112, 0, Math.PI * 2);
