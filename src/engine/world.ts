@@ -1,4 +1,4 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingInverse } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingInverse, PendingGaze } from "../shared/types";
 import { vec2 } from "../shared/math";
 import { makeSeed } from "../shared/rng";
 import type { RaidDef } from "./raidSchema";
@@ -74,6 +74,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const pendingChains: PendingChain[] = [];
   const pendingGroups: PendingGroupEvent[] = [];
   const pendingInversions: PendingInverse[] = [];
+  const pendingGazes: PendingGaze[] = [];
 
   for (const [index, e] of raid.events.entries()) {
     if (e.type === "tether_source") {
@@ -203,6 +204,27 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         },
         showCastBar: e.showCastBar ?? false,
       });
+    } else if (e.type === "gaze") {
+      pendingGazes.push({
+        id: `gaze-${index}`,
+        t: e.t,
+        name: e.name,
+        telegraph: e.telegraph,
+        pos: toVec2(e.pos),
+        reverse: e.reverse ?? false,
+        rng: e.rng ?? false,
+        coneHalfAngle: e.coneHalfAngle ?? Math.PI / 2,
+        damage: e.damage,
+        damageType: e.damageType,
+        applyEffect: e.applyEffect,
+        knockback: e.knockback && {
+          distance: e.knockback.distance,
+          height: e.knockback.height,
+          origin: e.knockback.origin ? toVec2(e.knockback.origin) : undefined,
+        },
+        showCastBar: e.showCastBar ?? false,
+        visual: e.visual,
+      });
     } else {
       pending.push({
         id: `event-${index}`,
@@ -234,7 +256,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     rngState: seed,
     groupChoices: {},
     status: "running",
-    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingInversions.length > 0,
+    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingInversions.length > 0 || pendingGazes.length > 0,
     arena,
     waymarks,
     players,
@@ -256,5 +278,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     pendingGroups,
     inversions: [],
     pendingInversions,
+    gazes: [],
+    pendingGazes,
   };
 }

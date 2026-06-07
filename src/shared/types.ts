@@ -236,6 +236,42 @@ export type ActiveInverse = {
   resolved: boolean;
 };
 
+export type GazeVisual = { width: number; height: number; depth: number };
+
+export type PendingGaze = {
+  id: string;
+  t: number;
+  name: string;
+  telegraph: number;
+  pos: Vec2;                       // position of the eye/source
+  reverse: boolean;               // false: hit if looking at it; true ("?" eye): hit if NOT looking
+  rng: boolean;                   // randomize the reverse state at cast start
+  coneHalfAngle: number;          // half-angle (radians) counted as "looking at" it
+  damage: number;
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
+  knockback?: Knockback;
+  showCastBar: boolean;
+  visual?: GazeVisual;
+};
+
+export type ActiveGaze = {
+  id: string;
+  name: string;
+  pos: Vec2;
+  reverse: boolean;               // resolved at cast start; drives the eye vs "?" eye icon
+  coneHalfAngle: number;
+  telegraphStart: number;
+  resolveAt: number;
+  damage: number;
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
+  knockback?: Knockback;
+  showCastBar: boolean;
+  visual?: GazeVisual;
+  resolved: boolean;
+};
+
 export type PendingGroupEvent = {
   id: string;          // event id, used as the linking key
   t: number;
@@ -416,4 +452,6 @@ export type World = {
   pendingGroups: PendingGroupEvent[];
   inversions: ActiveInverse[];
   pendingInversions: PendingInverse[];
+  gazes: ActiveGaze[];
+  pendingGazes: PendingGaze[];
 };

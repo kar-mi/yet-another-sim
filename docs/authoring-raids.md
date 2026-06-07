@@ -509,6 +509,57 @@ fake** (inverted).
 
 See `raids/inverse-test.json` for honest / `?` / random crosses.
 
+### `gaze` — look-away / "?" eye
+
+An FFXIV-style **gaze**. An eye board appears in the world (`pos`, usually to the north) and at
+`t + telegraph` checks which way each player is **facing**:
+
+- **Normal eye** (`reverse: false`): you are hit if you are **looking at** the eye — turn your
+  back to dodge ("look away").
+- **Reverse "?" eye** (`reverse: true`): the opposite — you are hit if you are **not** looking
+  at it, so you must **face** it.
+
+"Looking at" means the eye falls within your facing hemisphere. The width is `coneHalfAngle`
+(radians, default `π/2` ≈ the whole front 180°). Players turn by flicking the move stick toward
+a direction and stopping — facing persists, so you can re-face without walking far.
+
+**Reverse state** is decided at cast start: `rng: true` rolls it (seeded, 50/50); otherwise the
+authored `reverse` value (default `false`) is used. The drawn icon reflects the rolled state — a
+plain eye, or an eye with a yellow "?".
+
+```json
+{
+  "type": "gaze",
+  "t": 3,
+  "name": "Evil Eye",
+  "telegraph": 4,
+  "damage": 40,
+  "damageType": "magical",
+  "showCastBar": true,
+  "reverse": false,
+  "pos": [0, 19]
+}
+```
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `type` | yes | `"gaze"`. |
+| `t` | yes | Cast start time (seconds). The reverse state is rolled now. |
+| `name` | yes | Mechanic name (used in the log and cast bar). |
+| `telegraph` | yes | Cast duration in seconds (> 0); damage applies at `t + telegraph`. |
+| `damage` | yes | Damage (≥ 0) dealt to each hit player. |
+| `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
+| `pos` | yes | `[x, z]` of the eye board (the thing you face toward/away from). |
+| `reverse` | no | `true` = "?" eye (face it); `false` = normal eye (look away). Default `false`. |
+| `rng` | no | Randomise `reverse` each run (seeded, 50/50). Default `false`. |
+| `coneHalfAngle` | no | Half-angle (radians) counted as "looking at" it. Default `π/2` (front 180°). |
+| `applyEffect` | no | Debuff/buff applied to each hit player (same shape as on `aoe`). |
+| `knockback` | no | Knockback applied to each hit player (same shape as on `aoe`). |
+| `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
+| `visual` | no | Eye board dimensions `{ width, height, depth }`. Defaults `4 × 3 × 0.4`. |
+
+See `raids/debug/gaze-test.json` for normal / reverse / random eyes.
+
 ### `tower` — soak circle
 
 A `tower` is a flat circle on the floor that players must stand in ("soak") before it

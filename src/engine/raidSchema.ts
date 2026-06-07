@@ -208,7 +208,30 @@ const InverseEventSchema = z.object({
   showCastBar: z.boolean().optional(),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, InverseEventSchema]);
+const GazeVisualSchema = z.object({
+  width: z.number().positive().default(4),  // eye board dimensions
+  height: z.number().positive().default(3),
+  depth: z.number().positive().default(0.4),
+});
+
+const GazeEventSchema = z.object({
+  type: z.literal("gaze"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
+  damage: z.number().nonnegative(),
+  damageType: z.enum(["physical", "magical", "true"]),
+  pos: Vec2Schema,                                 // position of the eye/source (e.g. north)
+  reverse: z.boolean().optional(),                 // false (eye): hit if looking at it; true ("?" eye): hit if NOT looking
+  rng: z.boolean().optional(),                     // randomize the reverse state at cast start (seeded)
+  coneHalfAngle: z.number().positive().optional(), // half-angle (radians) counted as "looking at" it (default PI/2 = front 180)
+  applyEffect: ApplyEffectSchema.optional(),
+  knockback: KnockbackSchema.optional(),
+  showCastBar: z.boolean().optional(),
+  visual: GazeVisualSchema.optional(),
+});
+
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, InverseEventSchema, GazeEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
