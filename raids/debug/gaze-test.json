@@ -1,0 +1,62 @@
+{
+  "name": "Gaze Test",
+  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 20 }] },
+  "duration": 30,
+  "players": [
+    { "id": "mt", "role": "tank", "control": "human", "spawn": [0, 0] },
+    { "id": "ot", "role": "tank", "control": "bot", "spawn": [8, 8] },
+    { "id": "h1", "role": "healer", "control": "bot", "spawn": [-8, 8] },
+    { "id": "h2", "role": "healer", "control": "bot", "spawn": [8, -8] },
+    { "id": "r1", "role": "dps", "control": "bot", "spawn": [-8, -8] },
+    { "id": "r2", "role": "dps", "control": "bot", "spawn": [12, 0] },
+    { "id": "m1", "role": "dps", "control": "bot", "spawn": [-12, 0] },
+    { "id": "m2", "role": "dps", "control": "bot", "spawn": [0, 12] }
+  ],
+  "events": [
+    {
+      "type": "gaze",
+      "t": 3,
+      "name": "Evil Eye",
+      "telegraph": 4,
+      "damage": 40,
+      "damageType": "magical",
+      "showCastBar": true,
+      "pos": [0, 19]
+    },
+    {
+      "type": "gaze",
+      "t": 11,
+      "name": "Hypnotic Eye",
+      "telegraph": 4,
+      "damage": 40,
+      "damageType": "magical",
+      "showCastBar": true,
+      "reverse": true,
+      "pos": [0, 19]
+    },
+    {
+      "type": "gaze",
+      "t": 19,
+      "name": "Mind's Eye",
+      "telegraph": 5,
+      "damage": 50,
+      "damageType": "magical",
+      "showCastBar": true,
+      "rng": true,
+      "pos": [0, 19],
+      "knockback": { "distance": 6, "height": 0 },
+      "applyEffect": {
+        "name": "Magic Vulnerability",
+        "kind": "debuff",
+        "duration": 8,
+        "behavior": { "kind": "vuln", "damageType": "magical", "multiplier": 1.5 }
+      }
+    }
+  ],
+  "waymarks": [
+    { "mark": "A", "pos": [0, 16] },
+    { "mark": "B", "pos": [16, 0] },
+    { "mark": "C", "pos": [0, -16] },
+    { "mark": "D", "pos": [-16, 0] }
+  ]
+}

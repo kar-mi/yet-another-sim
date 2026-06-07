@@ -22,6 +22,8 @@ import type {
   PendingGroupEvent,
   ActiveInverse,
   PendingInverse,
+  ActiveGaze,
+  PendingGaze,
   Boss,
   PositionalArc,
 } from "../shared/types";
@@ -134,6 +136,17 @@ function inPositionalArc(boss: Boss, pos: Vec2, arc: PositionalArc): boolean {
   const centerVec = { x: Math.sin(centerWorld), z: Math.cos(centerWorld) };
   const cosAng = Math.max(-1, Math.min(1, dot(normalize(to), centerVec)));
   return Math.acos(cosAng) <= arc.width / 2;
+}
+
+// Gaze: is the player facing the source within the given half-angle? Player facing is a radian
+// angle (0 = +Z), so the facing direction vector is { sin, cos }. Compared against the unit
+// vector from the player to the source. Default half-angle PI/2 => the whole front hemisphere.
+function isLookingAt(facing: number, from: Vec2, to: Vec2, halfAngle: number): boolean {
+  const d = sub(to, from);
+  if (length(d) < 1e-6) return true; // on top of the source: always counts as looking at it
+  const face = { x: Math.sin(facing), z: Math.cos(facing) };
+  const cosAng = Math.max(-1, Math.min(1, dot(normalize(d), face)));
+  return Math.acos(cosAng) <= halfAngle;
 }
 
 function isOnTetherLine(pPos: Vec2, src: Vec2, tgt: Vec2): boolean {
@@ -771,6 +784,63 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
+  // 3f. Gaze events: at cast start roll the reverse state (eye vs "?" eye). At resolve a player
+  // is hit if they are facing the eye (normal) or NOT facing it (reverse "?"). Facing is the
+  // player's last movement direction, so "looking away" means flicking the stick away then stopping.
+  const remainingPendingGazes: PendingGaze[] = [];
+  const gazes: ActiveGaze[] = world.gazes.map(g => ({ ...g }));
+  for (const pg of world.pendingGazes) {
+    if (pg.t <= time) {
+      const reverse = pg.rng ? randFloat() < 0.5 : pg.reverse;
+      gazes.push({
+        id: pg.id,
+        name: pg.name,
+        pos: pg.pos,
+        reverse,
+        coneHalfAngle: pg.coneHalfAngle,
+        telegraphStart: pg.t,
+        resolveAt: pg.t + pg.telegraph,
+        damage: pg.damage,
+        damageType: pg.damageType,
+        applyEffect: pg.applyEffect,
+        knockback: pg.knockback,
+        showCastBar: pg.showCastBar,
+        visual: pg.visual,
+        resolved: false,
+      });
+    } else {
+      remainingPendingGazes.push(pg);
+    }
+  }
+
+  const stillGazes: ActiveGaze[] = [];
+  for (const gz of gazes) {
+    if (!gz.resolved && gz.resolveAt <= time) {
+      for (const player of players) {
+        if (!player.alive) continue;
+        const looking = isLookingAt(player.facing, player.pos, gz.pos, gz.coneHalfAngle);
+        const hit = gz.reverse ? !looking : looking;
+        if (hit) {
+          applyMechanicDamage(player, gz.damage, gz.damageType, time);
+          log.push({ t: time, mechanic: gz.name, playerId: player.id, event: "hit" });
+          if (gz.applyEffect && player.alive) {
+            applyEffect(player, gz.applyEffect, time, `${gz.id}-${player.id}-eff`);
+          }
+          if (gz.knockback && player.alive && player.antiKbActive <= 0) {
+            applyKnockback(player, gz.knockback, gz.knockback.origin ?? gz.pos);
+          }
+        } else {
+          log.push({ t: time, mechanic: gz.name, playerId: player.id, event: "cleared" });
+        }
+      }
+      gz.resolved = true;
+    }
+    // Keep briefly after resolve so the renderer can flash the hit.
+    if (!gz.resolved || gz.resolveAt >= time - dt) {
+      stillGazes.push(gz);
+    }
+  }
+
   // 4. Apply continuous status effects and expire old effects
   for (const player of players) {
     if (player.alive && !player.invincible) {
@@ -803,7 +873,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
     && remainingPendingTowers.length === 0 && stillTowers.every(t => t.resolved)
     && remainingPendingChains.length === 0 && stillChains.every(c => c.outcome !== undefined)
     && remainingPendingGroups.length === 0 && stillGroups.every(g => g.resolved)
-    && remainingPendingInversions.length === 0 && stillInversions.every(i => i.resolved);
+    && remainingPendingInversions.length === 0 && stillInversions.every(i => i.resolved)
+    && remainingPendingGazes.length === 0 && stillGazes.every(g => g.resolved);
   let status = world.status;
   if (status === "running") {
     if (!anyAlive) {
@@ -813,5 +884,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, rngState, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, inversions: stillInversions, pendingInversions: remainingPendingInversions };
+  return { ...world, time, rngState, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, inversions: stillInversions, pendingInversions: remainingPendingInversions, gazes: stillGazes, pendingGazes: remainingPendingGazes };
 }
