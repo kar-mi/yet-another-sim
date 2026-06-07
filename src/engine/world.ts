@@ -1,6 +1,6 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingInverse, PendingGaze, PendingForcedMarch } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingInverse, PendingGaze, PendingForcedMarch, PendingEffectBurst } from "../shared/types";
 import { vec2 } from "../shared/math";
-import { makeSeed } from "../shared/rng";
+import { makeSeed, nextRandom, randomInt } from "../shared/rng";
 import type { RaidDef } from "./raidSchema";
 import { INITIAL_TANK_THREAT, topThreatTarget } from "./sim";
 
@@ -8,6 +8,68 @@ export const ROLE_HP: Record<Player["role"], number> = { tank: 160, healer: 100,
 
 function toVec2(arr: [number, number]) {
   return vec2(arr[0], arr[1]);
+}
+
+function toBotSolvers(raid: RaidDef): World["botSolvers"] {
+  const plantArrows = raid.botSolvers?.plantArrows;
+  const doubleTrouble = raid.botSolvers?.doubleTrouble;
+  if (!plantArrows && !doubleTrouble) return undefined;
+
+  return {
+    plantArrows: plantArrows && {
+      placements: Object.fromEntries(
+        Object.entries(plantArrows.placements).map(([key, pos]) => [
+          key,
+          typeof pos[0] === "number" ? toVec2(pos as [number, number]) : (pos as [number, number][]).map(toVec2),
+        ]),
+      ),
+    },
+    doubleTrouble: doubleTrouble && {
+      support: toVec2(doubleTrouble.support),
+      dps: toVec2(doubleTrouble.dps),
+      startAt: doubleTrouble.startAt,
+    },
+  };
+}
+
+// Cardinal direction constants -> [x, z] vectors. +z = north, +x = east.
+const DIRECTION_VECTORS: Record<"up" | "down" | "left" | "right", [number, number]> = {
+  up: [0, 1], down: [0, -1], left: [-1, 0], right: [1, 0],
+};
+
+// Assign each player a plant combination from optionals.combinations.plant. Each group lists its
+// members explicitly; their selected combo pool is shuffled so members draw different combos when
+// possible. `rng: true` flips a seeded coin to swap which group's combo pool each group draws from.
+function buildPlantPlan(
+  raid: RaidDef,
+  rngState: number,
+): { plan: Record<string, [number, number][]>; rngState: number } {
+  const plant = raid.optionals?.combinations?.plant;
+  if (!plant) return { plan: {}, rngState };
+
+  let swap = false;
+  let nextState = rngState;
+  if (plant.rng) {
+    const roll = nextRandom(rngState);
+    swap = roll.value < 0.5;
+    nextState = roll.state;
+  }
+
+  const plan: Record<string, [number, number][]> = {};
+  const assign = (members: string[], combos: ("up" | "down" | "left" | "right")[][]) => {
+    const comboOrder = combos.map((_, i) => i);
+    for (let i = comboOrder.length - 1; i > 0; i--) {
+      const roll = randomInt(nextState, i + 1);
+      nextState = roll.state;
+      [comboOrder[i], comboOrder[roll.value]] = [comboOrder[roll.value], comboOrder[i]];
+    }
+    members.forEach((id, i) => {
+      plan[id] = combos[comboOrder[i % comboOrder.length]].map(d => DIRECTION_VECTORS[d]);
+    });
+  };
+  assign(plant.g1.members, swap ? plant.g2.combos : plant.g1.combos);
+  assign(plant.g2.members, swap ? plant.g1.combos : plant.g2.combos);
+  return { plan, rngState: nextState };
 }
 
 function toZoneShape(zone: RaidDef["arena"]["zones"][number]): ZoneShape {
@@ -66,6 +128,8 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     facing: 0, threat, currentTarget: topThreatTarget(players, threat),
   };
 
+  const { plan: plantPlan, rngState } = buildPlantPlan(raid, seed);
+
   const pending: PendingEvent[] = [];
   const pendingTethers: PendingTether[] = [];
   const pendingLineLinks: PendingLineLink[] = [];
@@ -73,9 +137,11 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const pendingTowers: PendingTower[] = [];
   const pendingChains: PendingChain[] = [];
   const pendingGroups: PendingGroupEvent[] = [];
+  const pendingEffectSelects: PendingEffectSelect[] = [];
   const pendingInversions: PendingInverse[] = [];
   const pendingGazes: PendingGaze[] = [];
   const pendingForcedMarches: PendingForcedMarch[] = [];
+  const pendingEffectBursts: PendingEffectBurst[] = [];
 
   for (const [index, e] of raid.events.entries()) {
     if (e.type === "tether_source") {
@@ -91,12 +157,14 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       });
     } else if (e.type === "line_link") {
       pendingLineLinks.push({
-        id: `line-link-${index}`,
+        id: e.id ?? `line-link-${index}`,
         t: e.t,
         name: e.name,
         pos: toVec2(e.pos),
         resolveAfter: e.resolveAfter,
         linkDuration: e.linkDuration ?? e.resolveAfter,
+        rng: e.rng ?? false,
+        link: e.link,
         target: e.target,
         hiddenDebuffName: e.hiddenDebuffName,
         applyEffect: e.applyEffect,
@@ -166,6 +234,16 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         applyEffect: e.applyEffect,
         showCastBar: e.showCastBar ?? false,
       });
+    } else if (e.type === "effect_select") {
+      pendingEffectSelects.push({
+        id: e.id ?? `effect-select-${index}`,
+        t: e.t,
+        name: e.name,
+        groups: e.groups,
+        rng: e.rng ?? false,
+        link: e.link,
+        applyEffect: e.applyEffect,
+      });
     } else if (e.type === "chain") {
       e.pairs.forEach(([a, b], pairIndex) => {
         pendingChains.push({
@@ -226,6 +304,25 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         showCastBar: e.showCastBar ?? false,
         visual: e.visual,
       });
+    } else if (e.type === "effect_burst") {
+      pendingEffectBursts.push({
+        id: `effect-burst-${index}`,
+        t: e.t,
+        name: e.name,
+        telegraph: e.telegraph,
+        effectName: e.effectName,
+        radius: e.radius,
+        damage: e.damage,
+        damageType: e.damageType,
+        applyEffect: e.applyEffect,
+        knockback: e.knockback && {
+          distance: e.knockback.distance,
+          height: e.knockback.height,
+          origin: e.knockback.origin ? toVec2(e.knockback.origin) : undefined,
+        },
+        showCastBar: e.showCastBar ?? false,
+        showTelegraph: e.showTelegraph ?? true,
+      });
     } else if (e.type === "forced_march") {
       pendingForcedMarches.push({
         id: `forced-march-${index}`,
@@ -267,10 +364,10 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
 
   return {
     time: 0,
-    rngState: seed,
+    rngState,
     groupChoices: {},
     status: "running",
-    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingInversions.length > 0 || pendingGazes.length > 0 || pendingForcedMarches.length > 0,
+    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingEffectSelects.length > 0 || pendingInversions.length > 0 || pendingGazes.length > 0 || pendingForcedMarches.length > 0 || pendingEffectBursts.length > 0,
     arena,
     waymarks,
     players,
@@ -290,11 +387,15 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     pendingChains,
     groupMechanics: [],
     pendingGroups,
+    pendingEffectSelects,
     inversions: [],
     pendingInversions,
     gazes: [],
     pendingGazes,
     forcedMarches: [],
     pendingForcedMarches,
+    pendingEffectBursts,
+    plantPlan,
+    botSolvers: toBotSolvers(raid),
   };
 }

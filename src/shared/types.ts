@@ -18,6 +18,17 @@ export type Waymark = { mark: WaymarkId; pos: Vec2 };
 
 export type Waypoint = { t: number; pos: Vec2 };
 
+export type BotSolvers = {
+  plantArrows?: {
+    placements: Record<string, Vec2 | Vec2[]>;
+  };
+  doubleTrouble?: {
+    support: Vec2;
+    dps: Vec2;
+    startAt?: number;
+  };
+};
+
 export type DamageType = "physical" | "magical" | "true";
 
 export type EffectBehavior =
@@ -29,7 +40,14 @@ export type EffectBehavior =
   // friendly-fire damage and the debuff ends. Target is locked when the debuff lands.
   | { kind: "confusion"; damage: number; damageType: DamageType; radius: number }
   // Disables all input for the effect's duration (not broken by damage).
-  | { kind: "sleep" };
+  | { kind: "sleep" }
+  | { kind: "doubleTrouble"; radius: number; damage: number; damageType: DamageType; knockbackDistance: number }
+  // Tele-Trouncing "plant": the HUD shows an arrow along `direction` ([x, z]). When the debuff
+  // expires it places a teleport trap (forced march) at the player's spot — inert for `armDelay`
+  // seconds so the placer can step off, then triggers on contact: the entrant is frozen for
+  // `tpDelay` seconds, then instantly teleported `distance` along `direction`. An untriggered trap
+  // expires `duration` seconds after it arms.
+  | { kind: "plant"; direction: [number, number]; distance: number; radius: number; armDelay: number; duration: number; tpDelay: number };
 
 export type EffectSpec = {
   name: string;
@@ -49,6 +67,8 @@ export type StatusEffect = {
   visibility?: "visible" | "invisible";
   // Set when a confusion debuff lands: the player it forces this player to walk toward.
   lockedTargetId?: string;
+  // Plant slot index from the assigned combo. Used by bot solvers to place each arrow separately.
+  plantSlot?: number;
 };
 
 export type Knockback = {
@@ -62,6 +82,7 @@ export type Player = {
   role: Role;
   control: Control;
   pattern?: Waypoint[];
+  botWaypointResumeAfter?: number; // forced movement ignores authored waypoints at or before this time
   pos: Vec2;
   y: number;
   verticalVelocity: number;
@@ -121,8 +142,9 @@ export type ActiveMechanic = {
   // When false, the ground telegraph is never drawn; the cast bar and damage still apply.
   showTelegraph: boolean;
   // When set, the circle's target (and center) is chosen at resolve time, not cast start.
-  // The ground telegraph stays hidden until it resolves.
-  targeting?: { mode: "closest" | "furthest"; role?: Role; origin: Vec2 };
+  // The ground telegraph stays hidden until it resolves. "aggro" picks the boss's current
+  // threat target (the player holding aggro).
+  targeting?: { mode: "closest" | "furthest" | "aggro"; role?: Role; origin: Vec2 };
 };
 
 export type PendingEvent = {
@@ -149,13 +171,31 @@ export type PendingTargetedEvent = {
   id: string;
   t: number;
   name: string;
-  targetMode: "closest" | "furthest";
+  targetMode: "closest" | "furthest" | "aggro";
   role?: Role;
   radius: number;
   telegraph: number;
   damage: number;
   damageType: DamageType;
   applyEffect?: EffectSpec;
+  showCastBar: boolean;
+  showTelegraph: boolean;
+};
+
+
+// An effect-burst spawns an AOE circle on every player carrying a named effect (e.g. a burst
+// around each sleeping player). At cast start it drops one normal AOE per carrier.
+export type PendingEffectBurst = {
+  id: string;
+  t: number;
+  name: string;
+  telegraph: number;
+  effectName: string;
+  radius: number;
+  damage: number;
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
+  knockback?: Knockback;
   showCastBar: boolean;
   showTelegraph: boolean;
 };
@@ -295,6 +335,16 @@ export type PendingGroupEvent = {
   showCastBar: boolean;
 };
 
+export type PendingEffectSelect = {
+  id: string;
+  t: number;
+  name: string;
+  groups: string[][];
+  rng: boolean;
+  link?: string;
+  applyEffect: EffectSpec;
+};
+
 export type ActiveGroupMechanic = {
   id: string;
   name: string;
@@ -345,6 +395,7 @@ export type PendingTether = {
 export type LineLinkTarget = {
   mode: "closest" | "furthest";
   roles?: Role[];
+  roleGroups?: Role[][];
   playerIds?: string[];
   count?: number;
 };
@@ -379,6 +430,8 @@ export type PendingLineLink = {
   pos: Vec2;
   resolveAfter: number;
   linkDuration: number;
+  rng: boolean;
+  link?: string;
   target: LineLinkTarget;
   hiddenDebuffName: string;
   applyEffect?: EffectSpec;
@@ -446,11 +499,14 @@ export type ActiveForcedMarch = {
   distance: number;
   preDelay: number;
   postDelay: number;
+  relativeMove: boolean;       // true: teleport `distance` from the captured player's spot (plant);
+                               // false (forced_march): destination is anchored to the trap center
   armedAt: number;
   expireAt: number;
   triggered: boolean;
-  triggeredAt?: number;        // time the entrant stepped on it (start of preDelay)
+  triggeredAt?: number;        // time the entrant stepped on it (start of preDelay windup)
   capturedPlayerId?: string;   // the player being marched
+  capturedFrom?: Vec2;         // where the captured player was grabbed (teleport anchor when relativeMove)
   teleported: boolean;         // whether the teleport (after preDelay) has happened yet
 };
 
@@ -496,4 +552,11 @@ export type World = {
   pendingGazes: PendingGaze[];
   forcedMarches: ActiveForcedMarch[];
   pendingForcedMarches: PendingForcedMarch[];
+  pendingEffectBursts: PendingEffectBurst[];
+  pendingEffectSelects: PendingEffectSelect[];
+  // Per-player plant directions (one per plant slot), assigned from optionals.combinations.plant
+  // at world creation. Empty when the raid has no plant combinations. Stamped onto each plant
+  // debuff as it lands so the HUD arrow + trap use the player's assigned heading.
+  plantPlan: Record<string, [number, number][]>;
+  botSolvers?: BotSolvers;
 };

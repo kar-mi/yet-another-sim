@@ -268,7 +268,7 @@ can reposition during the telegraph. The ground marker stays hidden until it res
 
 | Field        | Required | Notes |
 |--------------|----------|-------|
-| `targetMode` | yes      | `"closest"` or `"furthest"` (measured from arena center). |
+| `targetMode` | yes      | `"closest"` or `"furthest"` (measured from arena center), or `"aggro"` — the boss's current threat target (the player holding aggro, normally the MT). `aggro` ignores `role`. |
 | `role`       | no       | If set (`tank`/`healer`/`dps`), only that role is eligible to be the target. |
 | `radius`     | yes      | Circle radius (> 0). |
 | plus all [common fields](#common-fields-aoe--targeted) except `shape`. | | |
@@ -335,13 +335,17 @@ Unlike `tether_source`, these lines do not retarget or get intercepted.
 | Field | Required | Notes |
 |-------|----------|-------|
 | `type` | yes | `"line_link"`. |
+| `id` | no | Stable id used by another line link's `link` field. |
 | `t` | yes | When the link spawns. |
 | `name` | yes | Mechanic name. |
 | `pos` | yes | `[x, z]` source position. For a north statue, place this outside the arena at positive `z`. |
 | `resolveAfter` | yes | Seconds until the link resolves (> 0). |
 | `linkDuration` | no | Seconds the visual lines remain before disappearing. Defaults to `resolveAfter`. |
 | `target` | no | `mode` (`"closest"`/`"furthest"`), `roles`, `playerIds`, and/or `count`. If both `roles` and `playerIds` are set, both filters must match. Defaults to closest alive player. |
+| `target.roleGroups` | no | Two role filters to choose between, e.g. `[["dps"], ["tank", "healer"]]`. The chosen group becomes `target.roles`. |
 | `target.count` | no | Number of eligible targets selected. Defaults to `1`, or to `playerIds.length` when `playerIds` is supplied. |
+| `rng` | no | With `target.roleGroups`, pick a seeded random role group. Without `rng`, choose the first group. |
+| `link` | no | With `target.roleGroups`, take the complement of the referenced line link's chosen role group. The source line link must set `id` and appear earlier, or earlier in the file when `t` is the same. |
 | `hiddenDebuffName` | yes | Name of the hidden simulation debuff applied while the line is active. It does not show in the HUD. |
 | `applyEffect` | no | Visible buff/debuff applied to the linked player at resolve. |
 | `knockback` | no | Knockback applied to each stored target at resolve; defaults to origin `pos` unless `knockback.origin` is set. |
@@ -656,6 +660,63 @@ is then consumed (it fires once). If no one enters, it expires after `duration`.
 }
 ```
 
+### `effect_burst` — AOE around every carrier of a named effect
+
+At cast start (`t`) this drops one circular AOE on **each living player who currently has an active
+effect named `effectName`** — e.g. a burst around every sleeping player. The circles are snapshotted
+at cast start and then resolve exactly like normal `aoe`s at `t + telegraph` (telegraph drawn, damage
++ optional `applyEffect`/`knockback` on resolve). If no one carries the effect, nothing happens. The
+burst is independent of the named effect — it deals its own `damage`, unrelated to e.g. the sleep.
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `type` | yes | `"effect_burst"`. |
+| `t` | yes | Cast start (seconds). Carriers + circle centers are snapshotted now. |
+| `name` | yes | Mechanic name (cast bar / log). |
+| `telegraph` | yes | Cast duration (> 0); circles resolve at `t + telegraph`. |
+| `effectName` | yes | Burst around each player carrying an active effect with this exact name. |
+| `radius` | yes | Radius (> 0) of the circle dropped on each carrier. |
+| `damage` | yes | Damage (≥ 0) to each player inside any burst circle at resolve. |
+| `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
+| `applyEffect` | no | Debuff/buff applied to each hit player (same shape as on `aoe`). |
+| `knockback` | no | Knockback applied to each hit player (same shape as on `aoe`). |
+| `showCastBar` | no | Show a single cast bar for the set. Default `false`. |
+| `showTelegraph` | no | `true` (default) draws the ground circles. |
+
+```json
+{
+  "type": "effect_burst",
+  "t": 32,
+  "name": "Sleeper Burst",
+  "telegraph": 2,
+  "effectName": "Sleep",
+  "radius": 6,
+  "damage": 40,
+  "damageType": "magical",
+  "showCastBar": true
+}
+```
+
+### `effect_select` — random player debuff
+
+Chooses one group, then one random living member from that group, and applies `applyEffect`
+immediately at `t`. With a single group, this is a random member from that group.
+
+```json
+{
+  "type": "effect_select",
+  "t": 0,
+  "name": "Double Trouble",
+  "groups": [["mt", "ot", "h1", "h2"]],
+  "applyEffect": {
+    "name": "Double Trouble",
+    "kind": "debuff",
+    "duration": 24,
+    "behavior": { "kind": "doubleTrouble", "radius": 3, "damage": 70, "damageType": "magical", "knockbackDistance": 6 }
+  }
+}
+```
+
 ## Shapes
 
 Used by `aoe` events (`shape`) — a point is hit if it falls inside the shape at resolve.
@@ -708,6 +769,8 @@ Behaviors:
 { "kind": "freeze",  "dps": 8 }
 { "kind": "confusion", "damage": 80, "damageType": "true", "radius": 1.5 }
 { "kind": "sleep" }
+{ "kind": "doubleTrouble", "radius": 3, "damage": 70, "damageType": "magical", "knockbackDistance": 6 }
+{ "kind": "plant", "direction": "option", "distance": 8, "radius": 3, "armDelay": 3, "duration": 10, "tpDelay": 0.7 }
 ```
 
 - **none** — marker only (no mechanical effect).
@@ -716,6 +779,48 @@ Behaviors:
 - **freeze** — deals `dps` damage per second (≥ 0) while active.
 - **confusion** — overrides movement: the player is forced to walk toward whichever other living player was closest **when the debuff landed** (the target is locked at that moment). When they get within `radius` units, that **target** takes `damage` of `damageType` (friendly fire — the confused player takes none) and the debuff ends. Pair with a long `duration` so it lasts until contact.
 - **sleep** — disables all input (movement and actions) for the full `duration`. Not broken by taking damage.
+- **doubleTrouble** — when the debuff expires, players within `radius` of the carrier take `damage`; everyone hit except the carrier is knocked back `knockbackDistance` from the carrier.
+- **plant** — Tele-Trouncing "plant": the HUD shows an arrow along `direction` (`[x, z]`). When the debuff **expires** it places a teleport trap (a `forced_march`) at the player's position. The trap is **inert for `armDelay` seconds** (so the placer can step off), then triggers on contact — the first player to enter its `radius` is frozen for `tpDelay` seconds (the windup), then **instantly teleported** `distance` units along `direction` (measured from their own spot, so it lands purely along the heading). An untriggered trap expires `duration` seconds after it arms. The placed arrow renders via the forced-march layer; nothing is drawn under the player during the debuff. `direction` is a non-zero `[x, z]` vector **or** the string `"option"` (defer to the combination plan — it resolves to a placeholder the plan overrides per player; see [Optional combinations](#optional-combinations)). `radius` defaults `3`, `armDelay` `3`, `duration` `10`, `tpDelay` `0.7`.
+
+## Optional combinations
+
+The optional top-level `optionals` block holds per-mechanic pools that the engine assigns to players
+at the start of a run (seeded, so it's reproducible). Currently only **plant** combinations are
+supported.
+
+```json
+"optionals": {
+  "combinations": {
+    "plant": {
+      "rng": true,
+      "g1": {
+        "members": ["mt", "ot", "h1", "h2"],
+        "combos": [["up", "up"], ["down", "down"], ["left", "left"], ["right", "right"]]
+      },
+      "g2": {
+        "members": ["r1", "r2", "m1", "m2"],
+        "combos": [["up", "right"], ["right", "down"], ["down", "left"], ["left", "up"]]
+      }
+    }
+  }
+}
+```
+
+- Directions are cardinal **constants**: `up` = `[0, 1]` (north), `down` = `[0, -1]`, `left` =
+  `[-1, 0]`, `right` = `[1, 0]` (east). Much more readable than raw `[x, z]` vectors.
+- A **combo** is one direction per plant slot, in the order the plant debuffs land (so
+  `["up", "right"]` = first/short plant heads north, second/long plant heads east).
+- `g1` and `g2` are two **explicit groups**, each with a `members` list (player ids, which must
+  exist in the roster) and a `combos` pool. Within a group, the combo pool is shuffled per seed
+  before assignment, wrapping if there are fewer combos than members.
+- `rng: true` flips a seeded coin each run to **swap** which group's combo pool the two groups draw
+  from (so e.g. the `g1` members get `g2`'s headings instead). `rng: false` (the default) is fixed —
+  each group uses its own `combos`. A player not listed in any group keeps the `direction` on the
+  event's `plant` behavior.
+- The assigned headings are stamped onto each player's plant debuffs as they land, **overriding**
+  the `direction` written on the `plant` behavior in the event (which then only acts as a fallback
+  for raids with no `optionals`). Give each `Tele-Trouncing` plant event a placeholder `direction`
+  to satisfy the schema.
 
 ## Bot patterns
 
@@ -742,6 +847,36 @@ but the convention is a separate file referenced by the raid's `botPatterns` fie
 
 Each waypoint is `{ "t": <seconds>, "pos": [x, z] }`. Only listed players get patterns;
 others stay at their spawn (or are driven by a human).
+After forced march, plant teleport, or knockback moves a bot, waypoints at or before that forced
+movement time are ignored. Add a later waypoint when the bot should resume authored movement.
+
+Bot pattern files can also define runtime bot solvers. The plant arrow solver moves bot-controlled
+players with active plant debuffs to the explicit placement matching their assigned plant combo and
+current plant slot; claimed human slots are not moved by the solver. If a combo has no placement,
+the bot falls back to its authored waypoint pattern. A placement can be one `[x, z]` point or an
+array of points in plant-slot order, e.g. `[short, long]`.
+The double trouble solver moves bot-controlled players with active `doubleTrouble` debuffs to a
+role-based safe offset (`support` for tanks/healers, `dps` for DPS). Plant arrow solving takes
+priority when both debuffs are active. Set `startAt` to delay the solver until that encounter time.
+
+```json
+{
+  "players": {},
+  "solvers": {
+    "doubleTrouble": {
+      "support": [-7, 7],
+      "dps": [7, -7],
+      "startAt": 20
+    },
+    "plantArrows": {
+      "placements": {
+        "right down": [[12.73, 12.73], [9, 15.59]],
+        "down down": [[17.39, 4.66], [18, 0]]
+      }
+    }
+  }
+}
+```
 
 ## Worked example
 

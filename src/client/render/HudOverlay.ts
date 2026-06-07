@@ -14,6 +14,23 @@ import { keyLabel } from "../settings";
 import type { Settings, ControllerType } from "../settings";
 import { clamp01 } from "../../shared/math";
 
+// Map a status effect to a compact icon glyph (replaces the old text name). A plant arrow is
+// rotated to match the knockback heading ("➤" points east by default; screen +z is up).
+function effectIcon(effect: Player["effects"][number]): { glyph: string; rotate?: number } {
+  switch (effect.behavior.kind) {
+    case "plant": {
+      const [x, z] = effect.behavior.direction;
+      return { glyph: "➤", rotate: (Math.atan2(-z, x) * 180) / Math.PI };
+    }
+    case "sleep": return { glyph: "💤" };
+    case "confusion": return { glyph: "❓" };
+    case "vuln": return { glyph: "▼" };
+    case "pyretic": return { glyph: "🔥" };
+    case "freeze": return { glyph: "❄" };
+    default: return { glyph: effect.kind === "buff" ? "▲" : "●" };
+  }
+}
+
 export class HudOverlay {
   private root: HTMLDivElement;
   private statusEl: HTMLDivElement;
@@ -318,10 +335,16 @@ export class HudOverlay {
       for (const effect of activeEffects) {
         const effectEl = document.createElement("span");
         effectEl.className = `party-effect party-effect-${effect.kind}`;
+        effectEl.title = effect.name; // hover reveals the full name
+        const icon = effectIcon(effect);
+        const iconEl = document.createElement("span");
+        iconEl.className = "party-effect-icon";
+        iconEl.textContent = icon.glyph;
+        if (icon.rotate !== undefined) iconEl.style.transform = `rotate(${icon.rotate}deg)`;
         const timerEl = document.createElement("span");
         timerEl.className = "party-effect-timer";
         timerEl.textContent = `${Math.ceil(effect.appliedAt + effect.duration - world.time)}s`;
-        effectEl.append(effect.name, timerEl);
+        effectEl.append(iconEl, timerEl);
         row.effectsEl.appendChild(effectEl);
       }
     }

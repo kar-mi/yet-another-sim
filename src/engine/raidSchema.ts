@@ -3,6 +3,17 @@ import { ROSTER, RaidIdSchema } from "../shared/protocol";
 
 const Vec2Schema = z.tuple([z.number(), z.number()]);
 const WaypointSchema = z.object({ t: z.number().nonnegative(), pos: Vec2Schema });
+const SolverPlacementSchema = z.union([Vec2Schema, z.array(Vec2Schema).min(1)]);
+const BotSolversSchema = z.object({
+  plantArrows: z.object({
+    placements: z.record(z.string().min(1), SolverPlacementSchema),
+  }).optional(),
+  doubleTrouble: z.object({
+    support: Vec2Schema,
+    dps: Vec2Schema,
+    startAt: z.number().nonnegative().optional(),
+  }).optional(),
+}).optional();
 const RoleSchema = z.enum(["tank", "healer", "dps"]);
 
 const WaymarkSchema = z.object({
@@ -37,6 +48,27 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("freeze"), dps: z.number().nonnegative() }),
   z.object({ kind: z.literal("confusion"), damage: z.number().nonnegative(), damageType: z.enum(["physical", "magical", "true"]), radius: z.number().positive() }),
   z.object({ kind: z.literal("sleep") }),
+  z.object({
+    kind: z.literal("doubleTrouble"),
+    radius: z.number().positive().default(3),
+    damage: z.number().nonnegative(),
+    damageType: z.enum(["physical", "magical", "true"]),
+    knockbackDistance: z.number().positive().default(6),
+  }),
+  z.object({
+    kind: z.literal("plant"),
+    // A literal [x, z] heading, or "option" to defer to the combination plan (see Optional
+    // combinations). "option" resolves to a placeholder vector that the plan overrides per player.
+    direction: z.union([
+      Vec2Schema.refine(([x, z]) => x !== 0 || z !== 0, "plant direction must be a non-zero vector"),
+      z.literal("option"),
+    ]).transform(d => (d === "option" ? [0, 1] : d) as [number, number]),
+    distance: z.number().positive(),
+    radius: z.number().positive().default(3),        // trap trigger-zone radius
+    armDelay: z.number().nonnegative().default(3),   // seconds the placed trap is inert before it can trigger
+    duration: z.number().positive().default(10),     // seconds the armed trap lasts before expiring untriggered
+    tpDelay: z.number().nonnegative().default(0.7),  // windup seconds frozen at A before the instant teleport to B
+  }),
 ]);
 
 const ApplyEffectSchema = z.object({
@@ -84,7 +116,7 @@ const TargetedEventSchema = z.object({
   type: z.literal("targeted"),
   t: z.number().nonnegative(),
   name: z.string().min(1),
-  targetMode: z.enum(["closest", "furthest"]),
+  targetMode: z.enum(["closest", "furthest", "aggro"]),
   role: RoleSchema.optional(),
   radius: z.number().positive(),
   telegraph: z.number().positive(),
@@ -110,6 +142,7 @@ const TetherSourceEventSchema = z.object({
 const LineLinkTargetSchema = z.object({
   mode: z.enum(["closest", "furthest"]).default("closest"),
   roles: z.array(RoleSchema).min(1).optional(),
+  roleGroups: z.array(z.array(RoleSchema).min(1)).length(2).optional(),
   playerIds: z.array(z.string().min(1)).min(1).optional(),
   count: z.number().int().positive().optional(),
 }).default({ mode: "closest" });
@@ -123,11 +156,14 @@ const LineLinkVisualSchema = z.object({
 
 const LineLinkEventSchema = z.object({
   type: z.literal("line_link"),
+  id: z.string().min(1).optional(),
   t: z.number().nonnegative(),
   name: z.string().min(1),
   pos: Vec2Schema,
   resolveAfter: z.number().positive(),
   linkDuration: z.number().positive().optional(),
+  rng: z.boolean().optional(),
+  link: z.string().min(1).optional(),
   target: LineLinkTargetSchema,
   hiddenDebuffName: z.string().min(1),
   applyEffect: ApplyEffectSchema.optional(),
@@ -192,6 +228,17 @@ const GroupEventSchema = z.object({
   showCastBar: z.boolean().optional(),
 });
 
+const EffectSelectEventSchema = z.object({
+  type: z.literal("effect_select"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  id: z.string().min(1).optional(),
+  groups: z.array(z.array(z.string().min(1)).min(1)).min(1),
+  rng: z.boolean().optional(),
+  link: z.string().min(1).optional(),
+  applyEffect: ApplyEffectSchema,
+});
+
 const InverseEventSchema = z.object({
   type: z.literal("inverse"),
   t: z.number().nonnegative(),
@@ -250,7 +297,22 @@ const ForcedMarchEventSchema = z.object({
   }
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, InverseEventSchema, GazeEventSchema, ForcedMarchEventSchema]);
+const EffectBurstEventSchema = z.object({
+  type: z.literal("effect_burst"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
+  effectName: z.string().min(1),                   // burst around each player carrying this effect
+  radius: z.number().positive(),                   // AOE radius around each carrier
+  damage: z.number().nonnegative(),
+  damageType: z.enum(["physical", "magical", "true"]),
+  applyEffect: ApplyEffectSchema.optional(),
+  knockback: KnockbackSchema.optional(),
+  showCastBar: z.boolean().optional(),
+  showTelegraph: z.boolean().optional(),
+});
+
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, InverseEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
@@ -260,6 +322,28 @@ const PlayerDefSchema = z.object({
   pattern: z.array(WaypointSchema).optional(),
 });
 
+// Cardinal direction constants (more readable than [x, z] vectors). +z = north, +x = east.
+const DirectionConstSchema = z.enum(["up", "down", "left", "right"]);
+// A plant combination is one cardinal direction per plant slot (e.g. [short, long]).
+const PlantComboSchema = z.array(DirectionConstSchema).min(1);
+// A plant group: an explicit list of player ids plus the combo pool its members draw from.
+// The combo pool is shuffled per seed before assignment, wrapping if there are fewer combos than members.
+const PlantGroupSchema = z.object({
+  members: z.array(z.string().min(1)).min(1),
+  combos: z.array(PlantComboSchema).min(1),
+});
+// Optional per-mechanic combinations. `plant` declares two groups (g1/g2) of members + combos.
+// `rng: true` flips a seeded coin each run to swap which group draws from which combo pool.
+const OptionalsSchema = z.object({
+  combinations: z.object({
+    plant: z.object({
+      rng: z.boolean().default(false),
+      g1: PlantGroupSchema,
+      g2: PlantGroupSchema,
+    }).optional(),
+  }).optional(),
+}).optional();
+
 export const RaidSchema = z.object({
   name: z.string().min(1),
   arena: z.object({ zones: z.array(ZoneShapeSchema).min(1) }),
@@ -268,6 +352,8 @@ export const RaidSchema = z.object({
   players: z.array(PlayerDefSchema).length(ROSTER.length),
   events: z.array(EventSchema),
   waymarks: z.array(WaymarkSchema).optional(),
+  optionals: OptionalsSchema,
+  botSolvers: BotSolversSchema,
 }).superRefine((raid, ctx) => {
   const seenMarks = new Set<string>();
   raid.waymarks?.forEach((waymark, i) => {
@@ -322,22 +408,64 @@ export const RaidSchema = z.object({
     });
   });
 
+  const lineLinkEventsById = new Map<string, { t: number; index: number; groupCount: number }>();
+  raid.events.forEach((event, i) => {
+    if (event.type !== "line_link" || event.id === undefined) return;
+    if (lineLinkEventsById.has(event.id)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["events", i, "id"],
+        message: `duplicate line_link id "${event.id}"`,
+      });
+      return;
+    }
+    lineLinkEventsById.set(event.id, {
+      t: event.t,
+      index: i,
+      groupCount: event.target.roleGroups?.length ?? 0,
+    });
+  });
+  raid.events.forEach((event, i) => {
+    if (event.type !== "line_link" || event.link === undefined) return;
+    const source = lineLinkEventsById.get(event.link);
+    if (!source) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["events", i, "link"],
+        message: `link references unknown line_link id "${event.link}"; the source must set an explicit id`,
+      });
+    } else if (source.t > event.t || (source.t === event.t && source.index >= i)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["events", i, "link"],
+        message: `linked line_link "${event.link}" must occur earlier, or appear earlier when t is the same`,
+      });
+    }
+    if (event.target.roleGroups?.length !== 2 || (source && source.groupCount !== 2)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["events", i, "link"],
+        message: `linked line_link events must both define exactly 2 target.roleGroups so the complement is well-defined`,
+      });
+    }
+  });
+
   // group events: validate member ids, and that links reference an earlier 2-group event with an explicit id.
   const groupEventsById = new Map<string, { t: number; groupCount: number }>();
   raid.events.forEach(event => {
-    if (event.type === "group" && event.id !== undefined) {
+    if ((event.type === "group" || event.type === "effect_select") && event.id !== undefined) {
       groupEventsById.set(event.id, { t: event.t, groupCount: event.groups.length });
     }
   });
   raid.events.forEach((event, i) => {
-    if (event.type !== "group") return;
+    if (event.type !== "group" && event.type !== "effect_select") return;
     event.groups.forEach((group, g) => {
       group.forEach(id => {
         if (!playerIds.has(id)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ["events", i, "groups", g],
-            message: `group references unknown player id "${id}"`,
+            message: `${event.type} references unknown player id "${id}"`,
           });
         }
       });
@@ -366,10 +494,27 @@ export const RaidSchema = z.object({
       }
     }
   });
+
+  // plant combination groups: every declared member id must exist in the roster.
+  const plant = raid.optionals?.combinations?.plant;
+  if (plant) {
+    (["g1", "g2"] as const).forEach(key => {
+      plant[key].members.forEach((id, j) => {
+        if (!playerIds.has(id)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["optionals", "combinations", "plant", key, "members", j],
+            message: `plant ${key} references unknown player id "${id}"`,
+          });
+        }
+      });
+    });
+  }
 });
 
 export const BotPatternsSchema = z.object({
   players: z.record(z.string().min(1), z.array(WaypointSchema)),
+  solvers: BotSolversSchema,
 });
 
 export type RaidDef = z.infer<typeof RaidSchema>;

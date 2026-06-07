@@ -12,6 +12,7 @@ import type {
   Role,
   ActiveLineLink,
   PendingLineLink,
+  LineLinkTarget,
   ActiveTower,
   PendingTower,
   ActiveChain,
@@ -20,11 +21,13 @@ import type {
   DamageType,
   ActiveGroupMechanic,
   PendingGroupEvent,
+  PendingEffectSelect,
   ActiveInverse,
   PendingInverse,
   ActiveGaze,
   PendingGaze,
   ActiveForcedMarch,
+  PendingEffectBurst,
   Boss,
   PositionalArc,
   EffectBehavior,
@@ -92,7 +95,7 @@ function selectTargetPlayer(
 function selectLineLinkTargets(
   players: Player[],
   origin: Vec2,
-  target: { mode: "closest" | "furthest"; roles?: Role[]; playerIds?: string[]; count?: number },
+  target: LineLinkTarget,
 ): Player[] {
   const limit = target.count ?? target.playerIds?.length ?? 1;
   return players
@@ -188,7 +191,8 @@ function effectActiveDt(effect: StatusEffect, previousTime: number, time: number
   return Math.max(0, activeEnd - activeStart);
 }
 
-function applyKnockback(player: Player, knockback: Knockback, origin: Vec2): void {
+function applyKnockback(player: Player, knockback: Knockback, origin: Vec2, time: number): void {
+  player.botWaypointResumeAfter = time;
   const away = sub(player.pos, origin);
   const dir = length(away) > 0 ? normalize(away) : { x: 1, z: 0 }; // player on origin: arbitrary dir
   const { distance, height } = knockback;
@@ -204,7 +208,7 @@ function applyKnockback(player: Player, knockback: Knockback, origin: Vec2): voi
   }
 }
 
-function applyEffect(player: Player, spec: EffectSpec, time: number, id: string, players: Player[]): void {
+function applyEffect(player: Player, spec: EffectSpec, time: number, id: string, players: Player[], plantSlot?: number): void {
   // A confusion debuff locks onto the closest other living player at apply time.
   let lockedTargetId: string | undefined;
   if (spec.behavior.kind === "confusion") {
@@ -220,6 +224,7 @@ function applyEffect(player: Player, spec: EffectSpec, time: number, id: string,
     behavior: spec.behavior,
     visibility: spec.visibility,
     lockedTargetId,
+    plantSlot,
   }];
 }
 
@@ -377,21 +382,22 @@ export function tick(world: World, intents: Intents, dt: number): World {
       forcedMarches.push({
         id: pfm.id, name: pfm.name, pos: pfm.pos, radius: pfm.radius,
         direction: pfm.direction, distance: pfm.distance,
-        preDelay: pfm.preDelay, postDelay: pfm.postDelay,
+        preDelay: pfm.preDelay, postDelay: pfm.postDelay, relativeMove: false,
         armedAt: pfm.t, expireAt: pfm.t + pfm.duration, triggered: false, teleported: false,
       });
     }
   }
   const remainingPendingForcedMarches = world.pendingForcedMarches.filter(pfm => pfm.t > time);
   for (const fm of forcedMarches) {
-    if (!fm.triggered) {
+    if (!fm.triggered && time >= fm.armedAt) {
       // First living player (in roster order) inside the zone is captured and frozen in place.
       const entrant = players.find(p => p.alive && length(sub(p.pos, fm.pos)) <= fm.radius);
       if (entrant) {
         fm.triggered = true;
         fm.triggeredAt = time;
         fm.capturedPlayerId = entrant.id;
-        // A transient sleep effect holds them still for the full pre+post window (section 1 gates it).
+        fm.capturedFrom = { x: entrant.pos.x, z: entrant.pos.z };
+        // A transient sleep effect holds them still for the windup + recovery window.
         applyEffect(entrant, {
           name: fm.name, kind: "debuff",
           duration: fm.preDelay + fm.postDelay,
@@ -399,10 +405,14 @@ export function tick(world: World, intents: Intents, dt: number): World {
         }, time, `${fm.id}-freeze`, players);
       }
     } else if (!fm.teleported && time >= (fm.triggeredAt ?? time) + fm.preDelay) {
-      // preDelay elapsed: teleport the captured player; they stay frozen for postDelay.
+      // windup (preDelay) elapsed: instantly teleport the captured player to the destination.
       const captured = players.find(p => p.id === fm.capturedPlayerId && p.alive);
       if (captured) {
-        captured.pos = add(fm.pos, scale(normalize(fm.direction), fm.distance));
+        // forced_march anchors the destination to the trap center; the plant trap teleports the
+        // captured player `distance` from their own spot so it lands purely along `direction`.
+        const anchor = fm.relativeMove ? (fm.capturedFrom ?? fm.pos) : fm.pos;
+        captured.pos = add(anchor, scale(normalize(fm.direction), fm.distance));
+        captured.botWaypointResumeAfter = time;
         captured.facing = Math.atan2(fm.direction.x, fm.direction.z);
         log.push({ t: time, mechanic: fm.name, playerId: captured.id, event: "hit" });
       }
@@ -479,7 +489,17 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const lineLinks: ActiveLineLink[] = world.lineLinks.map(link => ({ ...link }));
   for (const pendingLink of world.pendingLineLinks) {
     if (pendingLink.t <= time) {
-      const targets = selectLineLinkTargets(players, pendingLink.pos, pendingLink.target);
+      let target = pendingLink.target;
+      if (pendingLink.target.roleGroups) {
+        const linkedIdx = pendingLink.link !== undefined ? groupChoices[pendingLink.link] : undefined;
+        let chosenIdx = linkedIdx !== undefined ? 1 - linkedIdx : 0;
+        if (linkedIdx === undefined && pendingLink.rng) {
+          chosenIdx = randInt(pendingLink.target.roleGroups.length);
+        }
+        groupChoices[pendingLink.id] = chosenIdx;
+        target = { ...pendingLink.target, roles: pendingLink.target.roleGroups[chosenIdx] };
+      }
+      const targets = selectLineLinkTargets(players, pendingLink.pos, target);
       const resolveAt = pendingLink.t + pendingLink.resolveAfter;
       for (const target of targets) {
         applyEffect(target, {
@@ -497,7 +517,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
         spawnAt: pendingLink.t,
         linkUntil: pendingLink.t + pendingLink.linkDuration,
         resolveAt,
-        target: pendingLink.target,
+        target,
         targetPlayerIds: targets.map(target => target.id),
         hiddenDebuffName: pendingLink.hiddenDebuffName,
         applyEffect: pendingLink.applyEffect,
@@ -521,7 +541,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
         if (target.alive) {
           if (link.applyEffect) applyEffect(target, link.applyEffect, time, `${link.id}-${target.id}-eff`, players);
           if (link.knockback && target.antiKbActive <= 0) {
-            applyKnockback(target, link.knockback, link.knockback.origin ?? link.pos);
+            applyKnockback(target, link.knockback, link.knockback.origin ?? link.pos, time);
           }
           log.push({ t: time, mechanic: link.name, playerId: target.id, event: "hit" });
         }
@@ -641,12 +661,41 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
+  // 3c. Promote effect-burst events: at cast start, drop an AOE circle on every player carrying the
+  // named effect (e.g. a burst around each sleeping player). They then resolve like normal AOEs.
+  const remainingPendingEffectBursts: PendingEffectBurst[] = [];
+  for (const pb of world.pendingEffectBursts) {
+    if (pb.t <= time) {
+      const carriers = players.filter(p => p.alive && p.effects.some(e => e.name === pb.effectName && isEffectActiveAt(e, time)));
+      carriers.forEach((carrier, i) => {
+        active.push({
+          id: `${pb.id}-${carrier.id}`,
+          name: pb.name,
+          shape: { kind: "circle", center: { x: carrier.pos.x, z: carrier.pos.z }, radius: pb.radius },
+          telegraphStart: pb.t,
+          resolveAt: pb.t + pb.telegraph,
+          damage: pb.damage,
+          damageType: pb.damageType,
+          applyEffect: pb.applyEffect,
+          knockback: pb.knockback,
+          resolved: false,
+          showCastBar: pb.showCastBar && i === 0, // one cast bar for the whole set
+          showTelegraph: pb.showTelegraph,
+        });
+      });
+    } else {
+      remainingPendingEffectBursts.push(pb);
+    }
+  }
+
   // 3. Resolve mechanics past resolveAt (FFXIV snapshot semantics)
   const stillActive: ActiveMechanic[] = [];
   for (const mechanic of active) {
     if (!mechanic.resolved && mechanic.resolveAt <= time) {
       if (mechanic.targeting && mechanic.shape.kind === "circle") {
-        const target = selectTargetPlayer(players, mechanic.targeting.origin, mechanic.targeting.mode, mechanic.targeting.role);
+        const target = mechanic.targeting.mode === "aggro"
+          ? players.find(p => p.alive && p.id === boss.currentTarget) ?? null
+          : selectTargetPlayer(players, mechanic.targeting.origin, mechanic.targeting.mode, mechanic.targeting.role);
         if (!target) { mechanic.resolved = true; continue; } // no valid target: fizzle, no telegraph flash
         mechanic.shape = { kind: "circle", center: { x: target.pos.x, z: target.pos.z }, radius: mechanic.shape.radius };
       }
@@ -657,11 +706,20 @@ export function tick(world: World, intents: Intents, dt: number): World {
           applyMechanicDamage(player, mechanic.damage, mechanic.damageType, time);
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });
           if (mechanic.applyEffect && player.alive) {
-            applyEffect(player, mechanic.applyEffect, time, `${mechanic.id}-${player.id}-eff`, players);
+            // For a plant debuff, stamp this player's assigned heading from the combination plan.
+            // The slot is how many plants they already carry (0 = first/short, 1 = second/long).
+            let spec = mechanic.applyEffect;
+            let plantSlot: number | undefined;
+            if (spec.behavior.kind === "plant") {
+              plantSlot = player.effects.filter(e => e.behavior.kind === "plant").length;
+              const dir = world.plantPlan[player.id]?.[plantSlot];
+              if (dir) spec = { ...spec, behavior: { ...spec.behavior, direction: dir } };
+            }
+            applyEffect(player, spec, time, `${mechanic.id}-${player.id}-eff`, players, plantSlot);
           }
           if (mechanic.knockback && player.alive && player.antiKbActive <= 0) {
             const origin = mechanic.knockback.origin ?? shapeOrigin(mechanic.shape);
-            applyKnockback(player, mechanic.knockback, origin);
+            applyKnockback(player, mechanic.knockback, origin, time);
           }
         } else {
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "cleared" });
@@ -730,7 +788,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
             if (!p.alive) continue;
             if (tower.applyEffect) applyEffect(p, tower.applyEffect, time, `${tower.id}-${p.id}-eff`, players);
             if (tower.knockback && p.antiKbActive <= 0) {
-              applyKnockback(p, tower.knockback, tower.knockback.origin ?? tower.pos);
+              applyKnockback(p, tower.knockback, tower.knockback.origin ?? tower.pos, time);
             }
             log.push({ t: time, mechanic: tower.name, playerId: p.id, event: "cleared" });
           }
@@ -820,6 +878,33 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
+  // 3e. Effect-select events: choose a group/member at spawn time and apply a visible effect.
+  const remainingPendingEffectSelects: PendingEffectSelect[] = [];
+  for (const pe of world.pendingEffectSelects) {
+    if (pe.t <= time) {
+      let chosenIdx: number;
+      const linkedIdx = pe.link !== undefined ? groupChoices[pe.link] : undefined;
+      if (linkedIdx !== undefined) {
+        chosenIdx = 1 - linkedIdx;
+      } else if (pe.rng) {
+        chosenIdx = randInt(pe.groups.length);
+      } else {
+        chosenIdx = 0;
+      }
+      groupChoices[pe.id] = chosenIdx;
+
+      const members = pe.groups[chosenIdx];
+      const targetId = members[randInt(members.length)];
+      const target = players.find(p => p.id === targetId && p.alive);
+      if (target) {
+        applyEffect(target, pe.applyEffect, time, `${pe.id}-${target.id}-eff`, players);
+        log.push({ t: time, mechanic: pe.name, playerId: target.id, event: "hit" });
+      }
+    } else {
+      remainingPendingEffectSelects.push(pe);
+    }
+  }
+
   // 3e. Inverse ("?") events: at cast start roll the inversion. The shown shape is always
   // drawn (telegraph), but when inverted the "?" makes it a lie -> the hidden shape is lethal.
   const remainingPendingInversions: PendingInverse[] = [];
@@ -863,7 +948,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
             applyEffect(player, inv.applyEffect, time, `${inv.id}-${player.id}-eff`, players);
           }
           if (inv.knockback && player.alive && player.antiKbActive <= 0) {
-            applyKnockback(player, inv.knockback, inv.knockback.origin ?? shapeOrigin(hitShape));
+            applyKnockback(player, inv.knockback, inv.knockback.origin ?? shapeOrigin(hitShape), time);
           }
         } else {
           log.push({ t: time, mechanic: inv.name, playerId: player.id, event: "cleared" });
@@ -920,7 +1005,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
             applyEffect(player, gz.applyEffect, time, `${gz.id}-${player.id}-eff`, players);
           }
           if (gz.knockback && player.alive && player.antiKbActive <= 0) {
-            applyKnockback(player, gz.knockback, gz.knockback.origin ?? gz.pos);
+            applyKnockback(player, gz.knockback, gz.knockback.origin ?? gz.pos, time);
           }
         } else {
           log.push({ t: time, mechanic: gz.name, playerId: player.id, event: "cleared" });
@@ -954,6 +1039,46 @@ export function tick(world: World, intents: Intents, dt: number): World {
         }
       }
     }
+    // Plant (Tele-Trouncing): when its debuff expires, place a teleport trap (forced march) at the
+    // player's spot. It stays inert for `armDelay` (so the placer can step off) before triggering.
+    if (player.alive) {
+      for (const effect of player.effects) {
+        if (effect.behavior.kind === "doubleTrouble") {
+          const expiry = effect.appliedAt + effect.duration;
+          if (expiry <= previousTime || expiry > time) continue;
+          const b = effect.behavior;
+          const circle: AOEShape = { kind: "circle", center: player.pos, radius: b.radius };
+          for (const target of players) {
+            if (!target.alive || !pointInShape(circle, target.pos)) continue;
+            applyMechanicDamage(target, b.damage, b.damageType, time);
+            if (target.id !== player.id && target.antiKbActive <= 0) {
+              applyKnockback(target, { distance: b.knockbackDistance, height: 0, origin: player.pos }, player.pos, time);
+            }
+            log.push({ t: time, mechanic: effect.name, playerId: target.id, event: "hit" });
+          }
+          continue;
+        }
+        if (effect.behavior.kind !== "plant") continue;
+        const expiry = effect.appliedAt + effect.duration;
+        if (expiry <= previousTime || expiry > time) continue; // only the tick it expires on
+        const b = effect.behavior;
+        forcedMarches.push({
+          id: `plant-${player.id}-${effect.id}`,
+          name: effect.name,
+          pos: { x: player.pos.x, z: player.pos.z },
+          radius: b.radius,
+          direction: { x: b.direction[0], z: b.direction[1] },
+          distance: b.distance,
+          preDelay: b.tpDelay,  // frozen at A during the windup, then an instant teleport to B
+          postDelay: 0.3,
+          relativeMove: true,
+          armedAt: time + b.armDelay,
+          expireAt: time + b.armDelay + b.duration,
+          triggered: false,
+          teleported: false,
+        });
+      }
+    }
     player.effects = player.effects.filter(effect => isEffectActiveAt(effect, time));
   }
 
@@ -966,9 +1091,11 @@ export function tick(world: World, intents: Intents, dt: number): World {
     && remainingPendingTowers.length === 0 && stillTowers.every(t => t.resolved)
     && remainingPendingChains.length === 0 && stillChains.every(c => c.outcome !== undefined)
     && remainingPendingGroups.length === 0 && stillGroups.every(g => g.resolved)
+    && remainingPendingEffectSelects.length === 0
     && remainingPendingInversions.length === 0 && stillInversions.every(i => i.resolved)
     && remainingPendingGazes.length === 0 && stillGazes.every(g => g.resolved)
-    && remainingPendingForcedMarches.length === 0 && forcedMarches.every(fm => fm.triggered);
+    && remainingPendingForcedMarches.length === 0 && forcedMarches.every(fm => fm.triggered)
+    && remainingPendingEffectBursts.length === 0;
   let status = world.status;
   if (status === "running") {
     if (!anyAlive) {
@@ -978,5 +1105,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, rngState, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, inversions: stillInversions, pendingInversions: remainingPendingInversions, gazes: stillGazes, pendingGazes: remainingPendingGazes, forcedMarches, pendingForcedMarches: remainingPendingForcedMarches };
+  return { ...world, time, rngState, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, pendingEffectSelects: remainingPendingEffectSelects, inversions: stillInversions, pendingInversions: remainingPendingInversions, gazes: stillGazes, pendingGazes: remainingPendingGazes, forcedMarches, pendingForcedMarches: remainingPendingForcedMarches, pendingEffectBursts: remainingPendingEffectBursts };
 }

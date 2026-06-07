@@ -49,13 +49,17 @@ function runTicksWithBotIntents(world: ReturnType<typeof createWorld>, count: nu
   return w;
 }
 
-function withEffect(world: World, effect: StatusEffect): World {
+function withPlayerEffect(world: World, playerId: string, effect: StatusEffect): World {
   return {
     ...world,
-    players: world.players.map(player => player.id === HUMAN
+    players: world.players.map(player => player.id === playerId
       ? { ...player, effects: [...player.effects, effect] }
       : player),
   };
+}
+
+function withEffect(world: World, effect: StatusEffect): World {
+  return withPlayerEffect(world, HUMAN, effect);
 }
 
 function effect(overrides: Partial<StatusEffect> = {}): StatusEffect {
@@ -158,6 +162,23 @@ test("bot patterns can be loaded from a companion definition", () => {
   expect(world.players.find(player => player.id === "mt")?.pattern).toEqual([{ t: 0, pos: { x: 8, z: 0 } }]);
 });
 
+test("bot patterns can carry plant arrow solver placements", () => {
+  const raid = loadRaid(baseRaid);
+  const botPatterns = loadBotPatterns({
+    players: {},
+    solvers: {
+      plantArrows: {
+        placements: {
+          "down down": [[18, 0], [0, 18]],
+        },
+      },
+    },
+  });
+  const world = createWorld(applyBotPatterns(raid, botPatterns));
+
+  expect(world.botSolvers?.plantArrows?.placements["down down"]).toEqual([{ x: 18, z: 0 }, { x: 0, z: 18 }]);
+});
+
 test("bot with a pattern can dodge an AOE while a bot without one is hit", () => {
   const aoe = { t: 3, name: "TestAOE", telegraph: 1, damage: 50, damageType: "physical" as const, shape: { kind: "circle", center: [0, 0], radius: 5 } };
   const movingRaid = loadRaid({
@@ -178,6 +199,187 @@ test("bot with a pattern can dodge an AOE while a bot without one is hit", () =>
 
   expect(movingBot.hp).toBe(100);
   expect(standingBot.hp).toBeLessThan(100);
+});
+
+test("plant arrow solver moves bots toward the placement for their assigned combo", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0] } }),
+    optionals: {
+      combinations: {
+        plant: {
+          g1: { members: ["mt"], combos: [["down", "down"]] },
+          g2: { members: ["r1"], combos: [["up", "up"]] },
+        },
+      },
+    },
+  });
+  const botPatterns = loadBotPatterns({
+    players: {},
+    solvers: { plantArrows: { placements: { "down down": [[18, 0], [0, 18]] } } },
+  });
+  const world = withPlayerEffect(createWorld(applyBotPatterns(raid, botPatterns)), "mt", effect({
+    name: "Plant",
+    behavior: { kind: "plant", direction: [0, -1], distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
+    plantSlot: 0,
+  }));
+
+  const intent = computeBotIntents(world, 1 / 60).mt;
+
+  expect(intent.move.x).toBeGreaterThan(0);
+  expect(intent.move.z).toBeCloseTo(0);
+});
+
+test("plant arrow solver uses the active plant slot for two-position combos", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0] } }),
+    optionals: {
+      combinations: {
+        plant: {
+          g1: { members: ["mt"], combos: [["right", "right"]] },
+          g2: { members: ["r1"], combos: [["up", "up"]] },
+        },
+      },
+    },
+  });
+  const botPatterns = loadBotPatterns({
+    players: {},
+    solvers: { plantArrows: { placements: { "right right": [[18, 0], [0, 18]] } } },
+  });
+  const world = withPlayerEffect(createWorld(applyBotPatterns(raid, botPatterns)), "mt", effect({
+    name: "Plant (long)",
+    behavior: { kind: "plant", direction: [1, 0], distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
+    plantSlot: 1,
+  }));
+
+  const intent = computeBotIntents(world, 1 / 60).mt;
+
+  expect(intent.move.x).toBeCloseTo(0);
+  expect(intent.move.z).toBeGreaterThan(0);
+});
+
+test("plant arrow solver falls back to authored bot waypoints when no placement matches", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0], pattern: [{ t: 0, pos: [0, 8] }] } }),
+    optionals: {
+      combinations: {
+        plant: {
+          g1: { members: ["mt"], combos: [["up", "up"]] },
+          g2: { members: ["r1"], combos: [["down", "down"]] },
+        },
+      },
+    },
+  });
+  const botPatterns = loadBotPatterns({
+    players: {},
+    solvers: { plantArrows: { placements: { "down down": [18, 0] } } },
+  });
+  const world = withPlayerEffect(createWorld(applyBotPatterns(raid, botPatterns)), "mt", effect({
+    name: "Plant",
+    behavior: { kind: "plant", direction: [0, 1], distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
+    plantSlot: 0,
+  }));
+
+  const intent = computeBotIntents(world, 1 / 60).mt;
+
+  expect(intent.move.x).toBeCloseTo(0);
+  expect(intent.move.z).toBeGreaterThan(0);
+});
+
+test("plant arrow solver does not move human-controlled players", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { control: "human", spawn: [0, 0] } }),
+    optionals: {
+      combinations: {
+        plant: {
+          g1: { members: ["m1"], combos: [["down", "down"]] },
+          g2: { members: ["r1"], combos: [["up", "up"]] },
+        },
+      },
+    },
+  });
+  const botPatterns = loadBotPatterns({
+    players: {},
+    solvers: { plantArrows: { placements: { "down down": [18, 0] } } },
+  });
+  const world = withEffect(createWorld(applyBotPatterns(raid, botPatterns)), effect({
+    name: "Plant",
+    behavior: { kind: "plant", direction: [0, -1], distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
+    plantSlot: 0,
+  }));
+
+  expect(computeBotIntents(world, 1 / 60).m1).toBeUndefined();
+});
+
+test("double trouble solver moves marked bots behind their role group", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0] }, r1: { spawn: [0, 0] } }),
+    botSolvers: { doubleTrouble: { support: [-7, 7], dps: [7, -7], startAt: 20 } },
+  });
+  const doubleTrouble = effect({
+    name: "Double Trouble",
+    duration: 24,
+    behavior: { kind: "doubleTrouble", radius: 3, damage: 70, damageType: "magical", knockbackDistance: 6 },
+  });
+  let world = withPlayerEffect(createWorld(raid), "mt", doubleTrouble);
+  world = withPlayerEffect(world, "r1", { ...doubleTrouble, id: "effect-2" });
+  expect(computeBotIntents(world, 1 / 60).mt).toBeUndefined();
+
+  world = { ...world, time: 20 };
+  const intents = computeBotIntents(world, 1 / 60);
+  expect(intents.mt?.move?.x).toBeLessThan(0);
+  expect(intents.mt?.move?.z).toBeGreaterThan(0);
+  expect(intents.r1?.move?.x).toBeGreaterThan(0);
+  expect(intents.r1?.move?.z).toBeLessThan(0);
+});
+
+test("plant arrow solver remains deterministic with seeded plant rng", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0] } }),
+    optionals: {
+      combinations: {
+        plant: {
+          rng: true,
+          g1: { members: ["mt"], combos: [["down", "down"]] },
+          g2: { members: ["r1"], combos: [["up", "up"]] },
+        },
+      },
+    },
+  });
+  const botPatterns = loadBotPatterns({
+    players: {},
+    solvers: {
+      plantArrows: {
+        placements: {
+          "down down": [[18, 0], [0, 18]],
+          "up up": [[-18, 0], [0, -18]],
+        },
+      },
+    },
+  });
+  const plannedRaid = applyBotPatterns(raid, botPatterns);
+  let w1 = withPlayerEffect(createWorld(plannedRaid, 4), "mt", effect({
+    name: "Plant",
+    behavior: { kind: "plant", direction: [0, -1], distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
+    plantSlot: 0,
+  }));
+  let w2 = withPlayerEffect(createWorld(plannedRaid, 4), "mt", effect({
+    name: "Plant",
+    behavior: { kind: "plant", direction: [0, -1], distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
+    plantSlot: 0,
+  }));
+
+  for (let i = 0; i < 120; i++) {
+    w1 = tick(w1, { ...computeBotIntents(w1, 1 / 60), [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
+    w2 = tick(w2, { ...computeBotIntents(w2, 1 / 60), [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
+  }
+
+  expect(JSON.stringify(w1)).toBe(JSON.stringify(w2));
 });
 
 test("simultaneous mechanics with the same name get unique ids", () => {
@@ -589,6 +791,196 @@ test("targeted mechanic respects the role filter when selecting furthest", () =>
   expect(world.players.find(p => p.id === "mt")!.hp).toBe(TANK_HP); // tank, unhit
 });
 
+test("targeted mechanic with aggro mode hits the boss's current target", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    // m1 is closest and ot is furthest, but aggro must pick mt (seeded top threat).
+    players: roster({ mt: { spawn: [0, 5] }, ot: { spawn: [0, 14] }, m1: { spawn: [0, 0] } }),
+    events: [{ t: 1, name: "Aggro Buster", type: "targeted", targetMode: "aggro", radius: 2, telegraph: 1, damage: 50, damageType: "physical" }],
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(2.1 * 60));
+  expect(world.boss.currentTarget).toBe("mt");
+  expect(world.players.find(p => p.id === "mt")!.hp).toBeLessThan(TANK_HP);
+  expect(world.players.find(p => p.id === "ot")!.hp).toBe(TANK_HP); // furthest, spared
+  expect(human(world).hp).toBe(100); // m1 closest, spared
+});
+
+test("plant combinations assign each player a per-slot heading from their group's pool", () => {
+  const optionals = {
+    combinations: {
+      plant: {
+        g1: { members: ["mt", "ot", "h1", "h2"], combos: [["up", "up"], ["down", "down"], ["left", "left"], ["right", "right"]] },
+        g2: { members: ["r1", "r2", "m1", "m2"], combos: [["up", "right"], ["right", "down"], ["down", "left"], ["left", "up"]] },
+      },
+    },
+  };
+  const plantEvent = (name: string) => ({
+    t: 0.1, name, telegraph: 0.1, damage: 0, damageType: "magical",
+    applyEffect: { name, kind: "debuff", duration: 20, behavior: { kind: "plant", direction: [1, 0], distance: 8, armDelay: 3 } },
+    shape: { kind: "circle", center: [0, 0], radius: 25 },
+  });
+  const raid = loadRaid({ ...baseRaid, optionals, events: [plantEvent("Plant A"), plantEvent("Plant B")] });
+  const world = createWorld(raid, 7);
+  const after = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.3 * 60));
+  // Every player ends with both plants stamped with their planned headings, in slot order.
+  for (const p of after.players) {
+    const dirs = p.effects.filter(e => e.behavior.kind === "plant").map(e => (e.behavior as { direction: [number, number] }).direction);
+    expect(dirs).toEqual(world.plantPlan[p.id]);
+  }
+  const supportPlans = ["mt", "ot", "h1", "h2"].map(id => JSON.stringify(world.plantPlan[id])).sort();
+  const dpsPlans = ["r1", "r2", "m1", "m2"].map(id => JSON.stringify(world.plantPlan[id])).sort();
+  expect(supportPlans).toEqual([
+    JSON.stringify([[0, -1], [0, -1]]),
+    JSON.stringify([[-1, 0], [-1, 0]]),
+    JSON.stringify([[0, 1], [0, 1]]),
+    JSON.stringify([[1, 0], [1, 0]]),
+  ].sort());
+  expect(dpsPlans).toEqual([
+    JSON.stringify([[0, -1], [-1, 0]]),
+    JSON.stringify([[-1, 0], [0, 1]]),
+    JSON.stringify([[0, 1], [1, 0]]),
+    JSON.stringify([[1, 0], [0, -1]]),
+  ].sort());
+});
+
+test("plant direction \"option\" parses to a concrete vector (overridden by the combination plan)", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{
+      t: 1, name: "Plant", telegraph: 1, damage: 0, damageType: "magical",
+      applyEffect: { name: "Plant", kind: "debuff", duration: 7, behavior: { kind: "plant", direction: "option", distance: 8 } },
+      shape: { kind: "circle", center: [0, 0], radius: 25 },
+    }],
+  });
+  const ev = raid.events[0] as Extract<typeof raid.events[number], { type?: "aoe" }>;
+  const behavior = ev.applyEffect!.behavior as { kind: string; direction: [number, number] };
+  expect(behavior.direction).toEqual([0, 1]); // "option" -> placeholder vector, not a string
+});
+
+test("plant combination groups keep their pools without rng, but randomize combo order", () => {
+  const groups = {
+    g1: { members: ["mt", "ot", "h1", "h2"], combos: [["up", "up"], ["down", "down"], ["left", "left"], ["right", "right"]] },
+    g2: { members: ["r1", "r2", "m1", "m2"], combos: [["up", "right"], ["right", "down"], ["down", "left"], ["left", "up"]] },
+  };
+  const mk = (rng: boolean) => loadRaid({ ...baseRaid, optionals: { combinations: { plant: { rng, ...groups } } } });
+  const supportPool = [
+    JSON.stringify([[0, -1], [0, -1]]),
+    JSON.stringify([[-1, 0], [-1, 0]]),
+    JSON.stringify([[0, 1], [0, 1]]),
+    JSON.stringify([[1, 0], [1, 0]]),
+  ].sort();
+  const fixed = mk(false);
+  for (const seed of [1, 50, 123, 9999]) {
+    const plan = createWorld(fixed, seed).plantPlan;
+    expect(["mt", "ot", "h1", "h2"].map(id => JSON.stringify(plan[id])).sort()).toEqual(supportPool);
+  }
+  const fixedSeen = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => JSON.stringify(createWorld(fixed, s).plantPlan.mt)));
+  expect(fixedSeen.size).toBeGreaterThan(1);
+
+  // With rng, mt's selected pool can also vary across seeds.
+  const rolled = mk(true);
+  const seen = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => JSON.stringify(createWorld(rolled, s).plantPlan.mt)));
+  expect(seen.size).toBeGreaterThan(1);
+});
+
+test("plant debuff places a teleport trap that arms, then snaps the entrant after a windup", () => {
+  const raid = loadRaid({ ...baseRaid, players: roster({ m1: { spawn: [0, 0] } }) });
+  const world = withEffect(createWorld(raid), effect({
+    name: "Plant",
+    duration: 0.5,
+    behavior: { kind: "plant", direction: [0, 1], distance: 8, radius: 3, armDelay: 0.5, duration: 10, tpDelay: 1 },
+  }));
+  // Debuff expires at 0.5; trap arms at 1.0. Before arming the placer is not teleported.
+  const armed = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.8 * 60));
+  expect(armed.forcedMarches.some(fm => fm.id.startsWith("plant-"))).toBe(true);
+  expect(human(armed).pos.z).toBeLessThan(1); // trap inert
+  // Captured at 1.0; during the 1s windup the player stays put at A (it's a teleport, not a slide).
+  const windup = runTicks(armed, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.7 * 60));
+  expect(human(windup).pos.z).toBeLessThan(1); // still at A mid-windup, not partway
+  // After the windup (~2.0s) it teleports instantly to ~8 north.
+  const after = runTicks(windup, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(1 * 60));
+  expect(human(after).pos.z).toBeGreaterThan(6);
+});
+
+test("plant teleport lands the captured player along the direction from their own spot", () => {
+  const raid = loadRaid({ ...baseRaid, players: roster({ m1: { spawn: [0, 0] } }) });
+  let world = withEffect(createWorld(raid), effect({
+    name: "Plant", duration: 0.5,
+    behavior: { kind: "plant", direction: [0, 1], distance: 8, radius: 4, armDelay: 1, duration: 10, tpDelay: 0.3 },
+  }));
+  // Hold until the trap is placed (expiry 0.5) so it centers on [0, 0].
+  world = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.5 * 60));
+  // Drift +x off the trap center (but stay inside radius 4) before it arms at 1.5.
+  world = runTicks(world, { [HUMAN]: { move: { x: 1, z: 0 } } }, Math.ceil(0.4 * 60));
+  const offCenterX = human(world).pos.x;
+  expect(offCenterX).toBeGreaterThan(1);
+  // Arm + windup + teleport: lands `distance` north of the player's own spot, x unchanged.
+  world = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(1.5 * 60));
+  expect(human(world).pos.z).toBeGreaterThan(6);
+  expect(human(world).pos.x).toBeCloseTo(offCenterX, 1);
+});
+
+test("plant teleport suppresses stale bot waypoints until the next authored waypoint", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({
+      mt: {
+        spawn: [0, 0],
+        pattern: [{ t: 0, pos: [0, 0] }, { t: 3, pos: [0, 8] }],
+      },
+    }),
+  });
+  let world = withPlayerEffect(createWorld(raid), "mt", effect({
+    name: "Plant", duration: 0.1,
+    behavior: { kind: "plant", direction: [1, 0], distance: 6, radius: 4, armDelay: 0, duration: 10, tpDelay: 0.1 },
+  }));
+
+  world = runTicksWithBotIntents(world, Math.ceil(0.8 * 60));
+  expect(world.players.find(p => p.id === "mt")!.pos.x).toBeGreaterThan(5);
+  expect(computeBotIntents(world, 1 / 60).mt).toBeUndefined();
+
+  world = runTicksWithBotIntents(world, Math.ceil(2.4 * 60));
+  expect(computeBotIntents(world, 1 / 60).mt?.move?.z).toBeGreaterThan(0);
+});
+
+test("effect_burst drops an AOE on each carrier of the named effect", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [0, 0] }, m2: { spawn: [3, 0] }, mt: { spawn: [18, 0] } }),
+    events: [{ type: "effect_burst", t: 0.5, name: "Sleeper Burst", telegraph: 0.5, effectName: "Sleep", radius: 5, damage: 50, damageType: "magical" }],
+  });
+  const world = withEffect(createWorld(raid), effect({ name: "Sleep", duration: 20, behavior: { kind: "sleep" } }));
+  const after = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(1.2 * 60));
+  expect(human(after).hp).toBeLessThan(100); // m1 carries Sleep -> burst centered on it
+  expect(after.players.find(p => p.id === "m2")!.hp).toBeLessThan(100); // within radius of the carrier
+  expect(after.players.find(p => p.id === "mt")!.hp).toBe(TANK_HP); // far away, untouched
+});
+
+test("effect_select can apply double trouble, which expires into damage and knockback around the carrier", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0] }, ot: { spawn: [2, 0] }, h1: { spawn: [5, 0] } }),
+    events: [{
+      type: "effect_select", t: 0, name: "Double Trouble", groups: [["mt"]],
+      applyEffect: {
+        name: "Double Trouble", kind: "debuff", duration: 0.1,
+        behavior: { kind: "doubleTrouble", radius: 3, damage: 10, damageType: "magical", knockbackDistance: 6 },
+      },
+    }],
+  });
+
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 45);
+  const mt = world.players.find(p => p.id === "mt")!;
+  const ot = world.players.find(p => p.id === "ot")!;
+  const h1 = world.players.find(p => p.id === "h1")!;
+
+  expect(mt.hp).toBe(TANK_HP - 10);
+  expect(ot.hp).toBe(TANK_HP - 10);
+  expect(h1.hp).toBe(100);
+  expect(mt.pos.x).toBeCloseTo(0);
+  expect(ot.pos.x).toBeGreaterThan(2);
+});
+
 test("targeted mechanic picks the near/far target at cast end, not cast start", () => {
   const raid = loadRaid({
     ...baseRaid,
@@ -697,6 +1089,26 @@ test("knockback ignores player input while it carries them", () => {
   // Player holds movement toward the origin (-x); should still be pushed outward (+x).
   const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: -1, z: 0 } } }, 30);
   expect(human(world).pos.x).toBeGreaterThan(5);
+});
+
+test("knockback suppresses stale bot waypoints until the next authored waypoint", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({
+      mt: {
+        spawn: [2, 0],
+        pattern: [{ t: 0, pos: [2, 0] }, { t: 2, pos: [2, 8] }],
+      },
+    }),
+    events: [kbEvent({ distance: 6 })],
+  });
+
+  let world = runTicksWithBotIntents(createWorld(raid), Math.ceil(1 * 60));
+  expect(world.players.find(p => p.id === "mt")!.pos.x).toBeGreaterThan(6);
+  expect(computeBotIntents(world, 1 / 60).mt).toBeUndefined();
+
+  world = runTicksWithBotIntents(world, Math.ceil(1.2 * 60));
+  expect(computeBotIntents(world, 1 / 60).mt?.move?.z).toBeGreaterThan(0);
 });
 
 test("knockback can push a player off the arena to their death", () => {
@@ -911,6 +1323,42 @@ test("line_link can send four visual links, hide them early, and keep hidden deb
   for (const id of ["r1", "r2", "m1", "m2"]) {
     expect(world.players.find(p => p.id === id)!.effects.some(e => e.name === "Line Linked" && e.visibility === "invisible")).toBe(true);
   }
+});
+
+test("line_link roleGroups can rng and linked line_link takes the complement", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [
+      lineLinkEvent({
+        id: "sleep-statue",
+        name: "Sleep Statue",
+        rng: true,
+        target: { roleGroups: [["dps"], ["tank", "healer"]], count: 4 },
+      }),
+      lineLinkEvent({
+        id: "confuse-statue",
+        name: "Confuse Statue",
+        link: "sleep-statue",
+        target: { roleGroups: [["dps"], ["tank", "healer"]], count: 4 },
+      }),
+    ],
+  });
+  const dps = new Set(["r1", "r2", "m1", "m2"]);
+  const supports = new Set(["mt", "ot", "h1", "h2"]);
+  const seenSleepGroups = new Set<string>();
+
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
+    const world = runTicks(createWorld(raid, seed), { [HUMAN]: { move: { x: 0, z: 0 } } }, 20);
+    const sleep = world.lineLinks.find(link => link.id === "sleep-statue")!;
+    const confuse = world.lineLinks.find(link => link.id === "confuse-statue")!;
+    const sleepTargetsDps = sleep.targetPlayerIds.every(id => dps.has(id));
+    const sleepTargetsSupports = sleep.targetPlayerIds.every(id => supports.has(id));
+    expect(sleepTargetsDps || sleepTargetsSupports).toBe(true);
+    expect(confuse.targetPlayerIds.every(id => sleepTargetsDps ? supports.has(id) : dps.has(id))).toBe(true);
+    seenSleepGroups.add(sleepTargetsDps ? "dps" : "support");
+  }
+
+  expect(seenSleepGroups.size).toBe(2);
 });
 
 test("line_link resolves applyEffect and knockback once, then removes the hidden debuff", () => {
@@ -1415,6 +1863,27 @@ test("forced march: freezes the entrant, teleports after the pre-delay, then rel
   // Once the full freeze window ends the player can move again.
   const freed = runTicks(createWorld(raid), pushW, 60); // 1s > preDelay + postDelay
   expect(human(freed).pos.x).toBeLessThan(13);
+});
+
+test("forced march suppresses stale bot waypoints until the next authored waypoint", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    duration: 5,
+    players: roster({
+      mt: {
+        spawn: [0, 0],
+        pattern: [{ t: 0, pos: [0, 0] }, { t: 2, pos: [0, 8] }],
+      },
+    }),
+    events: [{ type: "forced_march", t: 0, name: "March", pos: [0, 0], radius: 2, direction: [1, 0], distance: 8, duration: 3, preDelay: 0.1, postDelay: 0.1 }],
+  });
+
+  let world = runTicksWithBotIntents(createWorld(raid), Math.ceil(0.7 * 60));
+  expect(world.players.find(p => p.id === "mt")!.pos.x).toBeCloseTo(8);
+  expect(computeBotIntents(world, 1 / 60).mt).toBeUndefined();
+
+  world = runTicksWithBotIntents(world, Math.ceil(1.5 * 60));
+  expect(computeBotIntents(world, 1 / 60).mt?.move?.z).toBeGreaterThan(0);
 });
 
 test("forced march: an untriggered trap expires after its duration", () => {
