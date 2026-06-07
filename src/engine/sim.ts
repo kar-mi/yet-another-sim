@@ -385,7 +385,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
   }
   const remainingPendingForcedMarches = world.pendingForcedMarches.filter(pfm => pfm.t > time);
   for (const fm of forcedMarches) {
-    if (!fm.triggered) {
+    if (!fm.triggered && time >= fm.armedAt) {
       // First living player (in roster order) inside the zone is captured and frozen in place.
       const entrant = players.find(p => p.alive && length(sub(p.pos, fm.pos)) <= fm.radius);
       if (entrant) {
@@ -984,19 +984,28 @@ export function tick(world: World, intents: Intents, dt: number): World {
         }
       }
     }
-    // Plant (Tele-Trouncing): on the tick its debuff expires, knock the player along its arrow.
+    // Plant (Tele-Trouncing): when its debuff expires, place a teleport trap (forced march) at the
+    // player's spot. It stays inert for `armDelay` (so the placer can step off) before triggering.
     if (player.alive) {
       for (const effect of player.effects) {
         if (effect.behavior.kind !== "plant") continue;
         const expiry = effect.appliedAt + effect.duration;
         if (expiry <= previousTime || expiry > time) continue; // only the tick it expires on
         const b = effect.behavior;
-        if (b.damage > 0) applyMechanicDamage(player, b.damage, b.damageType, time);
-        if (player.alive && player.antiKbActive <= 0) {
-          const dir = normalize({ x: b.direction[0], z: b.direction[1] });
-          applyKnockback(player, { distance: b.distance, height: b.height }, sub(player.pos, dir));
-        }
-        log.push({ t: time, mechanic: effect.name, playerId: player.id, event: "hit" });
+        forcedMarches.push({
+          id: `plant-${player.id}-${effect.id}`,
+          name: effect.name,
+          pos: { x: player.pos.x, z: player.pos.z },
+          radius: b.radius,
+          direction: { x: b.direction[0], z: b.direction[1] },
+          distance: b.distance,
+          preDelay: 0.3,
+          postDelay: 0.3,
+          armedAt: time + b.armDelay,
+          expireAt: time + b.armDelay + b.duration,
+          triggered: false,
+          teleported: false,
+        });
       }
     }
     player.effects = player.effects.filter(effect => isEffectActiveAt(effect, time));

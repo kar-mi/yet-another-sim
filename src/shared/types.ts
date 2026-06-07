@@ -30,9 +30,11 @@ export type EffectBehavior =
   | { kind: "confusion"; damage: number; damageType: DamageType; radius: number }
   // Disables all input for the effect's duration (not broken by damage).
   | { kind: "sleep" }
-  // Tele-Trouncing "plant": while active a ground arrow points along `direction` ([x, z]);
-  // when the debuff expires the player is knocked `distance` that way (optional `damage`).
-  | { kind: "plant"; direction: [number, number]; distance: number; height: number; damage: number; damageType: DamageType };
+  // Tele-Trouncing "plant": the HUD shows an arrow along `direction` ([x, z]). When the debuff
+  // expires it places a teleport trap (forced march) at the player's spot — inert for `armDelay`
+  // seconds so the placer can step off, then triggers on contact, flinging the entrant `distance`
+  // along `direction`. The trap expires `duration` seconds after it arms if untriggered.
+  | { kind: "plant"; direction: [number, number]; distance: number; radius: number; armDelay: number; duration: number };
 
 export type EffectSpec = {
   name: string;

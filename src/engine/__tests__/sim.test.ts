@@ -603,17 +603,20 @@ test("targeted mechanic with aggro mode hits the boss's current target", () => {
   expect(human(world).hp).toBe(100); // m1 closest, spared
 });
 
-test("plant debuff knocks the player along its arrow when it expires", () => {
+test("plant debuff places a teleport trap that only fires after its arm delay", () => {
   const raid = loadRaid({ ...baseRaid, players: roster({ m1: { spawn: [0, 0] } }) });
   const world = withEffect(createWorld(raid), effect({
     name: "Plant",
     duration: 0.5,
-    behavior: { kind: "plant", direction: [0, 1], distance: 8, height: 0, damage: 0, damageType: "magical" },
+    behavior: { kind: "plant", direction: [0, 1], distance: 8, radius: 3, armDelay: 0.5, duration: 10 },
   }));
-  const after = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(3 * 60));
-  expect(human(after).pos.z).toBeGreaterThan(5); // shoved ~8 units along +z
-  expect(human(after).pos.x).toBeCloseTo(0, 1); // no lateral drift
-  expect(human(after).effects.some(e => e.behavior.kind === "plant")).toBe(false); // expired
+  // Debuff expires at 0.5; trap arms at 1.0. Before arming the placer is not yet teleported.
+  const armed = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.8 * 60));
+  expect(armed.forcedMarches.some(fm => fm.id.startsWith("plant-"))).toBe(true);
+  expect(human(armed).pos.z).toBeLessThan(1); // still on the spot, trap inert
+  // After arming, standing in the zone captures + teleports them along the arrow (+z).
+  const after = runTicks(armed, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(1.5 * 60));
+  expect(human(after).pos.z).toBeGreaterThan(6); // teleported ~8 north
 });
 
 test("effect_burst drops an AOE on each carrier of the named effect", () => {
