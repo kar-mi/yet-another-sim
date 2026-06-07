@@ -268,7 +268,7 @@ can reposition during the telegraph. The ground marker stays hidden until it res
 
 | Field        | Required | Notes |
 |--------------|----------|-------|
-| `targetMode` | yes      | `"closest"` or `"furthest"` (measured from arena center). |
+| `targetMode` | yes      | `"closest"` or `"furthest"` (measured from arena center), or `"aggro"` — the boss's current threat target (the player holding aggro, normally the MT). `aggro` ignores `role`. |
 | `role`       | no       | If set (`tank`/`healer`/`dps`), only that role is eligible to be the target. |
 | `radius`     | yes      | Circle radius (> 0). |
 | plus all [common fields](#common-fields-aoe--targeted) except `shape`. | | |

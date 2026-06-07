@@ -646,7 +646,9 @@ export function tick(world: World, intents: Intents, dt: number): World {
   for (const mechanic of active) {
     if (!mechanic.resolved && mechanic.resolveAt <= time) {
       if (mechanic.targeting && mechanic.shape.kind === "circle") {
-        const target = selectTargetPlayer(players, mechanic.targeting.origin, mechanic.targeting.mode, mechanic.targeting.role);
+        const target = mechanic.targeting.mode === "aggro"
+          ? players.find(p => p.alive && p.id === boss.currentTarget) ?? null
+          : selectTargetPlayer(players, mechanic.targeting.origin, mechanic.targeting.mode, mechanic.targeting.role);
         if (!target) { mechanic.resolved = true; continue; } // no valid target: fizzle, no telegraph flash
         mechanic.shape = { kind: "circle", center: { x: target.pos.x, z: target.pos.z }, radius: mechanic.shape.radius };
       }

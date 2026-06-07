@@ -1,0 +1,100 @@
+{
+  "name": "Graven Image 3 (P1)",
+  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 20 }] },
+  "duration": 72,
+  "players": [
+    { "id": "mt", "role": "tank", "control": "bot", "spawn": [0, 8] },
+    { "id": "ot", "role": "tank", "control": "bot", "spawn": [0, -8] },
+    { "id": "h1", "role": "healer", "control": "bot", "spawn": [-8, 0] },
+    { "id": "h2", "role": "healer", "control": "bot", "spawn": [8, 0] },
+    { "id": "r1", "role": "dps", "control": "bot", "spawn": [-5.66, 5.66] },
+    { "id": "r2", "role": "dps", "control": "bot", "spawn": [5.66, 5.66] },
+    { "id": "m1", "role": "dps", "control": "human", "spawn": [-5.66, -5.66] },
+    { "id": "m2", "role": "dps", "control": "bot", "spawn": [5.66, -5.66] }
+  ],
+  "events": [
+    {
+      "type": "targeted", "t": 5, "name": "Trounce 1", "targetMode": "aggro", "radius": 5, "telegraph": 1.8, "damage": 40, "damageType": "physical",
+      "showCastBar": true
+    },
+    {
+      "type": "targeted", "t": 7, "name": "Trounce 2", "targetMode": "aggro", "radius": 5, "telegraph": 1.8, "damage": 40, "damageType": "physical",
+      "showCastBar": true
+    },
+    {
+      "type": "targeted", "t": 9, "name": "Trounce 3", "targetMode": "aggro", "radius": 5, "telegraph": 1.8, "damage": 40, "damageType": "physical",
+      "showCastBar": true
+    },
+
+    {
+      "t": 20, "name": "Tele-Trouncing", "telegraph": 4, "damage": 0, "damageType": "magical",
+      "showCastBar": true, "showTelegraph": false,
+      "applyEffect": { "name": "Plant (short)", "kind": "debuff", "duration": 7, "behavior": { "kind": "none" } },
+      "shape": { "kind": "circle", "center": [0, 0], "radius": 20 }
+    },
+    {
+      "t": 20, "name": "Tele-Trouncing", "telegraph": 4, "damage": 0, "damageType": "magical",
+      "showTelegraph": false,
+      "applyEffect": { "name": "Plant (long)", "kind": "debuff", "duration": 10, "behavior": { "kind": "none" } },
+      "shape": { "kind": "circle", "center": [0, 0], "radius": 20 }
+    },
+
+    {
+      "type": "line_link", "t": 34, "name": "Left Statue (Sleep)", "pos": [-8, 24],
+      "linkDuration": 6, "resolveAfter": 8,
+      "target": { "roles": ["dps"], "count": 4, "mode": "closest" },
+      "hiddenDebuffName": "Sleep Tether",
+      "applyEffect": { "name": "Sleep", "kind": "debuff", "duration": 7, "behavior": { "kind": "sleep" } },
+      "visual": { "kind": "statue", "width": 3, "height": 6, "depth": 1 }
+    },
+    {
+      "type": "line_link", "t": 34, "name": "Right Statue (Confuse)", "pos": [8, 24],
+      "linkDuration": 6, "resolveAfter": 8,
+      "target": { "roles": ["tank", "healer"], "count": 4, "mode": "closest" },
+      "hiddenDebuffName": "Confuse Tether",
+      "applyEffect": {
+        "name": "Confusion", "kind": "debuff", "duration": 7,
+        "behavior": { "kind": "confusion", "damage": 50, "damageType": "true", "radius": 1.5 }
+      },
+      "visual": { "kind": "statue", "width": 3, "height": 6, "depth": 1 }
+    },
+
+    {
+      "type": "group", "t": 39, "name": "Double Trouble (DPS)", "rng": true,
+      "groups": [["r1"], ["r2"], ["m1"], ["m2"]],
+      "telegraph": 3, "radius": 1.5, "requiredCount": 1, "damage": 70, "damageType": "magical",
+      "showCastBar": false
+    },
+    {
+      "type": "group", "t": 39, "name": "Double Trouble (Support)", "rng": true,
+      "groups": [["mt"], ["ot"], ["h1"], ["h2"]],
+      "telegraph": 3, "radius": 1.5, "requiredCount": 1, "damage": 70, "damageType": "magical"
+    },
+
+    {
+      "t": 42, "name": "Sleeper Burst (stub)", "telegraph": 2, "damage": 40, "damageType": "magical",
+      "showCastBar": false,
+      "shape": { "kind": "circle", "center": [0, 0], "radius": 8 }
+    },
+
+    {
+      "type": "inverse", "t": 55, "name": "Mystery Magic 3 (Lightning)", "telegraph": 5,
+      "damage": 60, "damageType": "magical", "showCastBar": true,
+      "rng": true, "ringColor": "#a855f7", "ringHeight": 3.2,
+      "shownShapes": [
+        { "kind": "rect", "origin": [-7, -20], "direction": [0, 1], "width": 6, "length": 40 },
+        { "kind": "rect", "origin": [7, -20], "direction": [0, 1], "width": 6, "length": 40 }
+      ],
+      "hiddenShapes": [
+        { "kind": "rect", "origin": [-20, -7], "direction": [1, 0], "width": 6, "length": 40 },
+        { "kind": "rect", "origin": [-20, 7], "direction": [1, 0], "width": 6, "length": 40 }
+      ]
+    },
+    {
+      "type": "group", "t": 61, "name": "Mystery Magic 3 (Fire)", "rng": true,
+      "groups": [["h1"], ["h2"]],
+      "telegraph": 4, "radius": 6, "requiredCount": 4, "damage": 200, "damageType": "magical",
+      "showCastBar": true
+    }
+  ]
+}

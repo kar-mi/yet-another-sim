@@ -589,6 +589,20 @@ test("targeted mechanic respects the role filter when selecting furthest", () =>
   expect(world.players.find(p => p.id === "mt")!.hp).toBe(TANK_HP); // tank, unhit
 });
 
+test("targeted mechanic with aggro mode hits the boss's current target", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    // m1 is closest and ot is furthest, but aggro must pick mt (seeded top threat).
+    players: roster({ mt: { spawn: [0, 5] }, ot: { spawn: [0, 14] }, m1: { spawn: [0, 0] } }),
+    events: [{ t: 1, name: "Aggro Buster", type: "targeted", targetMode: "aggro", radius: 2, telegraph: 1, damage: 50, damageType: "physical" }],
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(2.1 * 60));
+  expect(world.boss.currentTarget).toBe("mt");
+  expect(world.players.find(p => p.id === "mt")!.hp).toBeLessThan(TANK_HP);
+  expect(world.players.find(p => p.id === "ot")!.hp).toBe(TANK_HP); // furthest, spared
+  expect(human(world).hp).toBe(100); // m1 closest, spared
+});
+
 test("targeted mechanic picks the near/far target at cast end, not cast start", () => {
   const raid = loadRaid({
     ...baseRaid,

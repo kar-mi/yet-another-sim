@@ -121,8 +121,9 @@ export type ActiveMechanic = {
   // When false, the ground telegraph is never drawn; the cast bar and damage still apply.
   showTelegraph: boolean;
   // When set, the circle's target (and center) is chosen at resolve time, not cast start.
-  // The ground telegraph stays hidden until it resolves.
-  targeting?: { mode: "closest" | "furthest"; role?: Role; origin: Vec2 };
+  // The ground telegraph stays hidden until it resolves. "aggro" picks the boss's current
+  // threat target (the player holding aggro).
+  targeting?: { mode: "closest" | "furthest" | "aggro"; role?: Role; origin: Vec2 };
 };
 
 export type PendingEvent = {
@@ -149,7 +150,7 @@ export type PendingTargetedEvent = {
   id: string;
   t: number;
   name: string;
-  targetMode: "closest" | "furthest";
+  targetMode: "closest" | "furthest" | "aggro";
   role?: Role;
   radius: number;
   telegraph: number;

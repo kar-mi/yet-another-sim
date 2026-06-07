@@ -84,7 +84,7 @@ const TargetedEventSchema = z.object({
   type: z.literal("targeted"),
   t: z.number().nonnegative(),
   name: z.string().min(1),
-  targetMode: z.enum(["closest", "furthest"]),
+  targetMode: z.enum(["closest", "furthest", "aggro"]),
   role: RoleSchema.optional(),
   radius: z.number().positive(),
   telegraph: z.number().positive(),
