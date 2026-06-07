@@ -1,0 +1,8 @@
+services:
+  sim:
+    build: .
+    image: yet-another-sim
+    container_name: yet-another-sim
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
