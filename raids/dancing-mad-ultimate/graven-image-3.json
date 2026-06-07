@@ -71,9 +71,10 @@
     },
 
     {
-      "type": "line_link", "t": 22, "name": "Left Statue (Sleep)", "pos": [-8, 24],
+      "type": "line_link", "id": "sleep-statue", "t": 22, "name": "Left Statue (Sleep)", "pos": [-8, 24],
       "linkDuration": 6, "resolveAfter": 8,
-      "target": { "roles": ["dps"], "count": 4, "mode": "closest" },
+      "rng": true,
+      "target": { "roleGroups": [["dps"], ["tank", "healer"]], "count": 4, "mode": "closest" },
       "hiddenDebuffName": "Sleep Tether",
       "applyEffect": { "name": "Sleep", "kind": "debuff", "duration": 6, "behavior": { "kind": "sleep" } },
       "visual": { "kind": "statue", "width": 3, "height": 6, "depth": 1 }
@@ -81,7 +82,8 @@
     {
       "type": "line_link", "t": 22, "name": "Right Statue (Confuse)", "pos": [8, 24],
       "linkDuration": 6, "resolveAfter": 8,
-      "target": { "roles": ["tank", "healer"], "count": 4, "mode": "closest" },
+      "link": "sleep-statue",
+      "target": { "roleGroups": [["dps"], ["tank", "healer"]], "count": 4, "mode": "closest" },
       "hiddenDebuffName": "Confuse Tether",
       "applyEffect": {
         "name": "Confusion", "kind": "debuff", "duration": 6,

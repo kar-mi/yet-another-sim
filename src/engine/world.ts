@@ -150,12 +150,14 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       });
     } else if (e.type === "line_link") {
       pendingLineLinks.push({
-        id: `line-link-${index}`,
+        id: e.id ?? `line-link-${index}`,
         t: e.t,
         name: e.name,
         pos: toVec2(e.pos),
         resolveAfter: e.resolveAfter,
         linkDuration: e.linkDuration ?? e.resolveAfter,
+        rng: e.rng ?? false,
+        link: e.link,
         target: e.target,
         hiddenDebuffName: e.hiddenDebuffName,
         applyEffect: e.applyEffect,

@@ -335,13 +335,17 @@ Unlike `tether_source`, these lines do not retarget or get intercepted.
 | Field | Required | Notes |
 |-------|----------|-------|
 | `type` | yes | `"line_link"`. |
+| `id` | no | Stable id used by another line link's `link` field. |
 | `t` | yes | When the link spawns. |
 | `name` | yes | Mechanic name. |
 | `pos` | yes | `[x, z]` source position. For a north statue, place this outside the arena at positive `z`. |
 | `resolveAfter` | yes | Seconds until the link resolves (> 0). |
 | `linkDuration` | no | Seconds the visual lines remain before disappearing. Defaults to `resolveAfter`. |
 | `target` | no | `mode` (`"closest"`/`"furthest"`), `roles`, `playerIds`, and/or `count`. If both `roles` and `playerIds` are set, both filters must match. Defaults to closest alive player. |
+| `target.roleGroups` | no | Two role filters to choose between, e.g. `[["dps"], ["tank", "healer"]]`. The chosen group becomes `target.roles`. |
 | `target.count` | no | Number of eligible targets selected. Defaults to `1`, or to `playerIds.length` when `playerIds` is supplied. |
+| `rng` | no | With `target.roleGroups`, pick a seeded random role group. Without `rng`, choose the first group. |
+| `link` | no | With `target.roleGroups`, take the complement of the referenced line link's chosen role group. The source line link must set `id` and appear earlier, or earlier in the file when `t` is the same. |
 | `hiddenDebuffName` | yes | Name of the hidden simulation debuff applied while the line is active. It does not show in the HUD. |
 | `applyEffect` | no | Visible buff/debuff applied to the linked player at resolve. |
 | `knockback` | no | Knockback applied to each stored target at resolve; defaults to origin `pos` unless `knockback.origin` is set. |

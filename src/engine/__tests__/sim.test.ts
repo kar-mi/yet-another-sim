@@ -1277,6 +1277,42 @@ test("line_link can send four visual links, hide them early, and keep hidden deb
   }
 });
 
+test("line_link roleGroups can rng and linked line_link takes the complement", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [
+      lineLinkEvent({
+        id: "sleep-statue",
+        name: "Sleep Statue",
+        rng: true,
+        target: { roleGroups: [["dps"], ["tank", "healer"]], count: 4 },
+      }),
+      lineLinkEvent({
+        id: "confuse-statue",
+        name: "Confuse Statue",
+        link: "sleep-statue",
+        target: { roleGroups: [["dps"], ["tank", "healer"]], count: 4 },
+      }),
+    ],
+  });
+  const dps = new Set(["r1", "r2", "m1", "m2"]);
+  const supports = new Set(["mt", "ot", "h1", "h2"]);
+  const seenSleepGroups = new Set<string>();
+
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) {
+    const world = runTicks(createWorld(raid, seed), { [HUMAN]: { move: { x: 0, z: 0 } } }, 20);
+    const sleep = world.lineLinks.find(link => link.id === "sleep-statue")!;
+    const confuse = world.lineLinks.find(link => link.id === "confuse-statue")!;
+    const sleepTargetsDps = sleep.targetPlayerIds.every(id => dps.has(id));
+    const sleepTargetsSupports = sleep.targetPlayerIds.every(id => supports.has(id));
+    expect(sleepTargetsDps || sleepTargetsSupports).toBe(true);
+    expect(confuse.targetPlayerIds.every(id => sleepTargetsDps ? supports.has(id) : dps.has(id))).toBe(true);
+    seenSleepGroups.add(sleepTargetsDps ? "dps" : "support");
+  }
+
+  expect(seenSleepGroups.size).toBe(2);
+});
+
 test("line_link resolves applyEffect and knockback once, then removes the hidden debuff", () => {
   const raid = loadRaid({
     ...baseRaid,

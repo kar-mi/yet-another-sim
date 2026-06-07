@@ -130,6 +130,7 @@ const TetherSourceEventSchema = z.object({
 const LineLinkTargetSchema = z.object({
   mode: z.enum(["closest", "furthest"]).default("closest"),
   roles: z.array(RoleSchema).min(1).optional(),
+  roleGroups: z.array(z.array(RoleSchema).min(1)).length(2).optional(),
   playerIds: z.array(z.string().min(1)).min(1).optional(),
   count: z.number().int().positive().optional(),
 }).default({ mode: "closest" });
@@ -143,11 +144,14 @@ const LineLinkVisualSchema = z.object({
 
 const LineLinkEventSchema = z.object({
   type: z.literal("line_link"),
+  id: z.string().min(1).optional(),
   t: z.number().nonnegative(),
   name: z.string().min(1),
   pos: Vec2Schema,
   resolveAfter: z.number().positive(),
   linkDuration: z.number().positive().optional(),
+  rng: z.boolean().optional(),
+  link: z.string().min(1).optional(),
   target: LineLinkTargetSchema,
   hiddenDebuffName: z.string().min(1),
   applyEffect: ApplyEffectSchema.optional(),
@@ -379,6 +383,48 @@ export const RaidSchema = z.object({
         });
       }
     });
+  });
+
+  const lineLinkEventsById = new Map<string, { t: number; index: number; groupCount: number }>();
+  raid.events.forEach((event, i) => {
+    if (event.type !== "line_link" || event.id === undefined) return;
+    if (lineLinkEventsById.has(event.id)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["events", i, "id"],
+        message: `duplicate line_link id "${event.id}"`,
+      });
+      return;
+    }
+    lineLinkEventsById.set(event.id, {
+      t: event.t,
+      index: i,
+      groupCount: event.target.roleGroups?.length ?? 0,
+    });
+  });
+  raid.events.forEach((event, i) => {
+    if (event.type !== "line_link" || event.link === undefined) return;
+    const source = lineLinkEventsById.get(event.link);
+    if (!source) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["events", i, "link"],
+        message: `link references unknown line_link id "${event.link}"; the source must set an explicit id`,
+      });
+    } else if (source.t > event.t || (source.t === event.t && source.index >= i)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["events", i, "link"],
+        message: `linked line_link "${event.link}" must occur earlier, or appear earlier when t is the same`,
+      });
+    }
+    if (event.target.roleGroups?.length !== 2 || (source && source.groupCount !== 2)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["events", i, "link"],
+        message: `linked line_link events must both define exactly 2 target.roleGroups so the complement is well-defined`,
+      });
+    }
   });
 
   // group events: validate member ids, and that links reference an earlier 2-group event with an explicit id.

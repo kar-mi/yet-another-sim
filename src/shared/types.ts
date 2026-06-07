@@ -379,6 +379,7 @@ export type PendingTether = {
 export type LineLinkTarget = {
   mode: "closest" | "furthest";
   roles?: Role[];
+  roleGroups?: Role[][];
   playerIds?: string[];
   count?: number;
 };
@@ -413,6 +414,8 @@ export type PendingLineLink = {
   pos: Vec2;
   resolveAfter: number;
   linkDuration: number;
+  rng: boolean;
+  link?: string;
   target: LineLinkTarget;
   hiddenDebuffName: string;
   applyEffect?: EffectSpec;

@@ -12,6 +12,7 @@ import type {
   Role,
   ActiveLineLink,
   PendingLineLink,
+  LineLinkTarget,
   ActiveTower,
   PendingTower,
   ActiveChain,
@@ -93,7 +94,7 @@ function selectTargetPlayer(
 function selectLineLinkTargets(
   players: Player[],
   origin: Vec2,
-  target: { mode: "closest" | "furthest"; roles?: Role[]; playerIds?: string[]; count?: number },
+  target: LineLinkTarget,
 ): Player[] {
   const limit = target.count ?? target.playerIds?.length ?? 1;
   return players
@@ -487,7 +488,17 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const lineLinks: ActiveLineLink[] = world.lineLinks.map(link => ({ ...link }));
   for (const pendingLink of world.pendingLineLinks) {
     if (pendingLink.t <= time) {
-      const targets = selectLineLinkTargets(players, pendingLink.pos, pendingLink.target);
+      let target = pendingLink.target;
+      if (pendingLink.target.roleGroups) {
+        const linkedIdx = pendingLink.link !== undefined ? groupChoices[pendingLink.link] : undefined;
+        let chosenIdx = linkedIdx !== undefined ? 1 - linkedIdx : 0;
+        if (linkedIdx === undefined && pendingLink.rng) {
+          chosenIdx = randInt(pendingLink.target.roleGroups.length);
+        }
+        groupChoices[pendingLink.id] = chosenIdx;
+        target = { ...pendingLink.target, roles: pendingLink.target.roleGroups[chosenIdx] };
+      }
+      const targets = selectLineLinkTargets(players, pendingLink.pos, target);
       const resolveAt = pendingLink.t + pendingLink.resolveAfter;
       for (const target of targets) {
         applyEffect(target, {
@@ -505,7 +516,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
         spawnAt: pendingLink.t,
         linkUntil: pendingLink.t + pendingLink.linkDuration,
         resolveAt,
-        target: pendingLink.target,
+        target,
         targetPlayerIds: targets.map(target => target.id),
         hiddenDebuffName: pendingLink.hiddenDebuffName,
         applyEffect: pendingLink.applyEffect,
