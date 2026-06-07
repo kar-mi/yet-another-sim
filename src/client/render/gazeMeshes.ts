@@ -37,8 +37,8 @@ function eyeTexture(scene: Scene, id: string, reverse: boolean): DynamicTexture 
   ctx.strokeStyle = reverse ? REVERSE_ACCENT : NORMAL_ACCENT;
   ctx.strokeRect(4, 4, W - 8, H - 8);
 
-  // Eye: almond sclera (a vertically-squashed circle — ellipse() isn't in Babylon's canvas type),
-  // coloured iris, black pupil.
+  // Almond sclera, drawn for both states (a vertically-squashed circle — ellipse() isn't in
+  // Babylon's canvas type).
   const cx = W / 2, cy = H / 2 + 12;
   ctx.save();
   ctx.translate(cx, cy);
@@ -48,19 +48,21 @@ function eyeTexture(scene: Scene, id: string, reverse: boolean): DynamicTexture 
   ctx.fillStyle = "#f2f2f2";
   ctx.fill();
   ctx.restore();
-  ctx.beginPath();
-  ctx.arc(cx, cy, 30, 0, Math.PI * 2);
-  ctx.fillStyle = reverse ? REVERSE_ACCENT : "#3a7bd5";
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(cx, cy, 13, 0, Math.PI * 2);
-  ctx.fillStyle = "#000000";
-  ctx.fill();
 
   if (reverse) {
-    // x=null centres the glyph; "" clearColor draws over the board (no wipe). Sits above the eye.
-    tex.drawText("?", null, 56, "bold 64px sans-serif", QUESTION, "", true, true);
+    // "?" eye: a big question mark filling the eye — no iris/pupil. x=null centres horizontally;
+    // "" clearColor draws over the sclera (no wipe).
+    tex.drawText("?", null, cy + 38, "bold 110px sans-serif", QUESTION, "", true, true);
   } else {
+    // Normal eye: coloured iris + black pupil.
+    ctx.beginPath();
+    ctx.arc(cx, cy, 30, 0, Math.PI * 2);
+    ctx.fillStyle = "#3a7bd5";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, cy, 13, 0, Math.PI * 2);
+    ctx.fillStyle = "#000000";
+    ctx.fill();
     tex.update();
   }
   return tex;
