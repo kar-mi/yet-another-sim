@@ -720,6 +720,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
         name: pi.name,
         shownShape: pi.shownShape,
         hiddenShape: pi.hiddenShape,
+        ringColor: pi.ringColor,
         inverted,
         telegraphStart: pi.t,
         resolveAt: pi.t + pi.telegraph,

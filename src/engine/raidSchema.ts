@@ -199,6 +199,7 @@ const InverseEventSchema = z.object({
   damageType: z.enum(["physical", "magical", "true"]),
   shownShape: AOEShapeSchema,                       // telegraph that IS drawn
   hiddenShape: AOEShapeSchema,                      // not drawn; lethal when inverted ("?")
+  ringColor: z.string().optional(),               // hex colour of this mechanic's boss ring (identifies it)
   rng: z.boolean().optional(),                      // randomize the "?" inversion (else not inverted)
   questionMark: z.boolean().optional(),            // authored override of the inversion state
   applyEffect: ApplyEffectSchema.optional(),

@@ -188,6 +188,7 @@ export function createWorld(raid: RaidDef): World {
         telegraph: e.telegraph,
         shownShape: toAOEShape(e.shownShape),
         hiddenShape: toAOEShape(e.hiddenShape),
+        ringColor: e.ringColor,
         rng: e.rng ?? false,
         questionMark: e.questionMark,
         damage: e.damage,

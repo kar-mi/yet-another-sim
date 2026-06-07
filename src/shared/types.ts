@@ -207,6 +207,7 @@ export type PendingInverse = {
   telegraph: number;
   shownShape: AOEShape;            // telegraph that IS drawn
   hiddenShape: AOEShape;           // not drawn; lethal when inverted ("?")
+  ringColor?: string;              // hex colour of this mechanic's boss ring
   rng: boolean;                    // randomize the inversion at cast start
   questionMark?: boolean;          // authored override of the inversion state
   damage: number;
@@ -221,6 +222,7 @@ export type ActiveInverse = {
   name: string;
   shownShape: AOEShape;
   hiddenShape: AOEShape;
+  ringColor?: string;              // hex colour of this mechanic's boss ring
   inverted: boolean;               // true => "?" telegraph: hiddenShape is lethal
   telegraphStart: number;
   resolveAt: number;

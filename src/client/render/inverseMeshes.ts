@@ -2,47 +2,57 @@ import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
-import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { CreateTorus } from "@babylonjs/core/Meshes/Builders/torusBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveInverse, AOEShape, Boss } from "../../shared/types";
+import type { ActiveInverse, Boss } from "../../shared/types";
 import { createShapeMesh } from "./telegraphMeshes";
 
-const GLYPH_Y = 3.2;       // "?" billboard height above the telegraph
-const FIRE = new Color3(1, 0.25, 0.15);
-const ICE = new Color3(0.3, 0.6, 1);
-
-// Cosmetic fire/ice rings drawn around the boss while any "?" mechanic is active.
-const RING_Y = 1.2;              // float height of the rings/orbs around the boss
-const FIRE_RING_RADIUS = 6.5;
-const ICE_RING_RADIUS = 4.5;
+// Each inverse mechanic gets its own ring around the boss. The ring colour identifies the
+// mechanic (e.g. blue = floor AOE, red = line AOE). The orbs riding the ring encode whether
+// the mechanic is real (dark blue) or a fake "?" (reddish-orange with a yellow question mark).
+const RING_RADIUS = 6;
 const RING_THICKNESS = 0.5;
 const ORBS_PER_RING = 2;
+const ORB_SIZE = 1.8;
+const DEFAULT_RING_COLOR = "#ffffff";
+
+const REAL_ORB = "#1e3a8f";   // dark blue: honest telegraph
+const FAKE_ORB = "#ff5a1f";   // reddish-orange: lying "?" telegraph
+const QUESTION = "#ffdd33";   // yellow "?" on a fake orb
+
+// Vertical slot for the n-th simultaneous ring: first on top, the next below it.
+function ringY(index: number): number {
+  return 3.2 - index * 2.8;
+}
 
 export type InverseMeshes = {
   all: Mesh[];
   telegraph: Mesh | null;
   telegraphMat: StandardMaterial | null;
+  ring: Mesh;
+  orbs: Mesh[];
 };
 
-export type OrbRings = {
-  all: Mesh[];
-  fireRing: Mesh;
-  iceRing: Mesh;
-  fireOrbs: Mesh[];
-  iceOrbs: Mesh[];
-};
-
-// Center of an AOE shape, used to place the "?" glyph over the shown telegraph.
-function shapeCenter(shape: AOEShape): { x: number; z: number } {
-  switch (shape.kind) {
-    case "circle": return shape.center;
-    case "donut": return shape.center;
-    case "cone": return shape.origin;
-    case "rect": return shape.origin;
+function orbTexture(scene: Scene, id: string, inverted: boolean): DynamicTexture {
+  const tex = new DynamicTexture(id, { width: 128, height: 128 }, scene, false);
+  tex.hasAlpha = true;
+  const ctx = tex.getContext();
+  ctx.clearRect(0, 0, 128, 128);
+  ctx.beginPath();
+  ctx.arc(64, 64, 60, 0, Math.PI * 2);
+  ctx.fillStyle = inverted ? FAKE_ORB : REAL_ORB;
+  ctx.fill();
+  if (inverted) {
+    ctx.fillStyle = QUESTION;
+    ctx.font = "bold 90px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("?", 64, 72);
   }
+  tex.update();
+  return tex;
 }
 
 export function createInverseMeshes(scene: Scene, inv: ActiveInverse): InverseMeshes {
@@ -60,107 +70,69 @@ export function createInverseMeshes(scene: Scene, inv: ActiveInverse): InverseMe
     all.push(telegraph);
   }
 
-  // "?" billboard glyph: only when this telegraph is a lie (inverted).
-  if (inv.inverted) {
-    const center = shapeCenter(inv.shownShape);
-    const glyph = CreatePlane(`inv-glyph-${inv.id}`, { size: 2.2 }, scene);
-    glyph.billboardMode = BabylonMesh.BILLBOARDMODE_ALL;
-    glyph.isPickable = false;
-    glyph.position.set(center.x, GLYPH_Y, center.z);
-    const tex = new DynamicTexture(`inv-glyph-tex-${inv.id}`, { width: 128, height: 128 }, scene, false);
-    tex.hasAlpha = true;
-    tex.drawText("?", null, 104, "bold 112px sans-serif", "#ffdd33", "transparent", true, true);
-    const mat = new StandardMaterial(`inv-glyph-mat-${inv.id}`, scene);
+  // The mechanic's boss ring (solid, opaque), coloured to identify this mechanic.
+  const ring = CreateTorus(`inv-ring-${inv.id}`, {
+    diameter: RING_RADIUS * 2,
+    thickness: RING_THICKNESS,
+    tessellation: 48,
+  }, scene);
+  ring.isPickable = false;
+  const ringColor = Color3.FromHexString(inv.ringColor ?? DEFAULT_RING_COLOR);
+  const ringMat = new StandardMaterial(`inv-ring-mat-${inv.id}`, scene);
+  ringMat.diffuseColor = ringColor;
+  ringMat.emissiveColor = ringColor;
+  ringMat.specularColor = new Color3(0, 0, 0);
+  ringMat.disableLighting = true;
+  ring.material = ringMat;
+  all.push(ring);
+
+  // Orbs riding the ring: a flat billboard circle whose colour + "?" reflect real vs fake.
+  const orbs: Mesh[] = [];
+  for (let i = 0; i < ORBS_PER_RING; i++) {
+    const orb = CreatePlane(`inv-orb-${inv.id}-${i}`, { size: ORB_SIZE }, scene);
+    orb.billboardMode = BabylonMesh.BILLBOARDMODE_ALL;
+    orb.isPickable = false;
+    orb.renderingGroupId = 1; // draw on top so it's always readable
+    const tex = orbTexture(scene, `inv-orb-tex-${inv.id}-${i}`, inv.inverted);
+    const mat = new StandardMaterial(`inv-orb-mat-${inv.id}-${i}`, scene);
     mat.diffuseTexture = tex;
     mat.useAlphaFromDiffuseTexture = true;
     mat.emissiveTexture = tex;
     mat.emissiveColor = new Color3(1, 1, 1);
     mat.disableLighting = true;
+    mat.disableDepthWrite = true;
     mat.backFaceCulling = false;
-    glyph.material = mat;
-    all.push(glyph);
-  }
-
-  return { all, telegraph, telegraphMat };
-}
-
-export function updateInverseMeshes(handle: InverseMeshes, inv: ActiveInverse, time: number): void {
-  // Telegraph color/alpha fade as the cast progresses (mirrors TelegraphLayer).
-  if (!handle.telegraphMat) return;
-  if (inv.resolved) {
-    handle.telegraphMat.diffuseColor = new Color3(1, 1, 1);
-    handle.telegraphMat.alpha = 0.8;
-    return;
-  }
-  const span = inv.resolveAt - inv.telegraphStart;
-  const progress = span > 0 ? Math.min(1, Math.max(0, (time - inv.telegraphStart) / span)) : 1;
-  // Inverted telegraphs glow cooler (it's a lie); normal ones use the warm telegraph hue.
-  handle.telegraphMat.diffuseColor = inv.inverted
-    ? new Color3(0.4, 0.6, 1)
-    : new Color3(1, Math.max(0, 0.8 - progress * 0.6), 0);
-  handle.telegraphMat.alpha = 0.25 + progress * 0.45;
-}
-
-function createRing(scene: Scene, id: string, radius: number, color: Color3): Mesh {
-  const ring = CreateTorus(id, {
-    diameter: radius * 2,
-    thickness: RING_THICKNESS,
-    tessellation: 48,
-  }, scene);
-  ring.isPickable = false;
-  const mat = new StandardMaterial(`${id}-mat`, scene);
-  mat.diffuseColor = color;
-  mat.emissiveColor = color.scale(0.6);
-  mat.specularColor = new Color3(0, 0, 0);
-  ring.material = mat;
-  return ring;
-}
-
-function createRingOrbs(scene: Scene, id: string, diameter: number, color: Color3): Mesh[] {
-  const orbs: Mesh[] = [];
-  for (let i = 0; i < ORBS_PER_RING; i++) {
-    const orb = CreateSphere(`${id}-${i}`, { diameter, segments: 12 }, scene);
-    orb.isPickable = false;
-    const mat = new StandardMaterial(`${id}-${i}-mat`, scene);
-    mat.diffuseColor = color;
-    mat.emissiveColor = color.scale(0.8);
-    mat.specularColor = new Color3(0, 0, 0);
     orb.material = mat;
     orbs.push(orb);
+    all.push(orb);
   }
-  return orbs;
+
+  return { all, telegraph, telegraphMat, ring, orbs };
 }
 
-export function createOrbRings(scene: Scene): OrbRings {
-  const fireRing = createRing(scene, "inv-fire-ring", FIRE_RING_RADIUS, FIRE);
-  const iceRing = createRing(scene, "inv-ice-ring", ICE_RING_RADIUS, ICE);
-  const fireOrbs = createRingOrbs(scene, "inv-fire-orb", 1.8, FIRE);
-  const iceOrbs = createRingOrbs(scene, "inv-ice-orb", 1.5, ICE);
-  return { all: [fireRing, iceRing, ...fireOrbs, ...iceOrbs], fireRing, iceRing, fireOrbs, iceOrbs };
-}
+export function updateInverseMeshes(handle: InverseMeshes, inv: ActiveInverse, boss: Boss, time: number, index: number): void {
+  // Telegraph color/alpha fade as the cast progresses (mirrors TelegraphLayer).
+  if (handle.telegraphMat) {
+    if (inv.resolved) {
+      handle.telegraphMat.diffuseColor = new Color3(1, 1, 1);
+      handle.telegraphMat.alpha = 0.8;
+    } else {
+      const span = inv.resolveAt - inv.telegraphStart;
+      const progress = span > 0 ? Math.min(1, Math.max(0, (time - inv.telegraphStart) / span)) : 1;
+      handle.telegraphMat.diffuseColor = inv.inverted
+        ? new Color3(0.4, 0.6, 1)
+        : new Color3(1, Math.max(0, 0.8 - progress * 0.6), 0);
+      handle.telegraphMat.alpha = 0.25 + progress * 0.45;
+    }
+  }
 
-export function updateOrbRings(rings: OrbRings, boss: Boss, time: number): void {
+  // Ring + orbs orbit the boss at this mechanic's vertical slot.
   const { x, z } = boss.pos;
-  rings.fireRing.position.set(x, RING_Y, z);
-  rings.iceRing.position.set(x, RING_Y, z);
-
-  const fireSpin = time * 0.6;
-  const iceSpin = -time * 0.85;
-  for (let i = 0; i < rings.fireOrbs.length; i++) {
-    const base = (i / rings.fireOrbs.length) * Math.PI * 2;
-    const fa = base + fireSpin;
-    rings.fireOrbs[i].position.set(
-      x + Math.cos(fa) * FIRE_RING_RADIUS, RING_Y,
-      z + Math.sin(fa) * FIRE_RING_RADIUS,
-    );
-    const ia = base + iceSpin;
-    rings.iceOrbs[i].position.set(
-      x + Math.cos(ia) * ICE_RING_RADIUS, RING_Y,
-      z + Math.sin(ia) * ICE_RING_RADIUS,
-    );
+  const y = ringY(index);
+  handle.ring.position.set(x, y, z);
+  const spin = time * 0.7;
+  for (let i = 0; i < handle.orbs.length; i++) {
+    const a = (i / handle.orbs.length) * Math.PI * 2 + spin;
+    handle.orbs[i].position.set(x + Math.cos(a) * RING_RADIUS, y, z + Math.sin(a) * RING_RADIUS);
   }
-}
-
-export function setOrbRingsEnabled(rings: OrbRings, enabled: boolean): void {
-  for (const mesh of rings.all) mesh.setEnabled(enabled);
 }

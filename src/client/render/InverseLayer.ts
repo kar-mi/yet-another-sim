@@ -1,18 +1,9 @@
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveInverse, Boss } from "../../shared/types";
-import {
-  createInverseMeshes,
-  updateInverseMeshes,
-  createOrbRings,
-  updateOrbRings,
-  setOrbRingsEnabled,
-  type InverseMeshes,
-  type OrbRings,
-} from "./inverseMeshes";
+import { createInverseMeshes, updateInverseMeshes, type InverseMeshes } from "./inverseMeshes";
 
 export class InverseLayer {
   private inversions = new Map<string, InverseMeshes>();
-  private rings: OrbRings | null = null;
 
   constructor(private scene: Scene) {}
 
@@ -25,20 +16,16 @@ export class InverseLayer {
       }
     }
 
-    for (const inv of inversions) {
+    // Stable vertical slot per simultaneous ring: index in the (id-sorted) active list.
+    const ordered = [...inversions].sort((a, b) => a.id.localeCompare(b.id));
+    ordered.forEach((inv, index) => {
       let handle = this.inversions.get(inv.id);
       if (!handle) {
         handle = createInverseMeshes(this.scene, inv);
         this.inversions.set(inv.id, handle);
       }
-      updateInverseMeshes(handle, inv, time);
-    }
-
-    // One shared set of fire/ice rings circles the boss whenever a "?" mechanic is active.
-    if (!this.rings) this.rings = createOrbRings(this.scene);
-    const active = inversions.length > 0;
-    setOrbRingsEnabled(this.rings, active);
-    if (active) updateOrbRings(this.rings, boss, time);
+      updateInverseMeshes(handle, inv, boss, time, index);
+    });
   }
 
   dispose(): void {
@@ -46,9 +33,5 @@ export class InverseLayer {
       for (const mesh of handle.all) mesh.dispose(false, true);
     }
     this.inversions.clear();
-    if (this.rings) {
-      for (const mesh of this.rings.all) mesh.dispose(false, true);
-      this.rings = null;
-    }
   }
 }
