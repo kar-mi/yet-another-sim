@@ -10,6 +10,22 @@ function toVec2(arr: [number, number]) {
   return vec2(arr[0], arr[1]);
 }
 
+function toBotSolvers(raid: RaidDef): World["botSolvers"] {
+  const plantArrows = raid.botSolvers?.plantArrows;
+  if (!plantArrows) return undefined;
+
+  return {
+    plantArrows: {
+      placements: Object.fromEntries(
+        Object.entries(plantArrows.placements).map(([key, pos]) => [
+          key,
+          typeof pos[0] === "number" ? toVec2(pos as [number, number]) : (pos as [number, number][]).map(toVec2),
+        ]),
+      ),
+    },
+  };
+}
+
 // Cardinal direction constants -> [x, z] vectors. +z = north, +x = east.
 const DIRECTION_VECTORS: Record<"up" | "down" | "left" | "right", [number, number]> = {
   up: [0, 1], down: [0, -1], left: [-1, 0], right: [1, 0],
@@ -354,5 +370,6 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     pendingForcedMarches,
     pendingEffectBursts,
     plantPlan,
+    botSolvers: toBotSolvers(raid),
   };
 }

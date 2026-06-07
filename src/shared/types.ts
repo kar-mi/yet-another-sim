@@ -18,6 +18,12 @@ export type Waymark = { mark: WaymarkId; pos: Vec2 };
 
 export type Waypoint = { t: number; pos: Vec2 };
 
+export type BotSolvers = {
+  plantArrows?: {
+    placements: Record<string, Vec2 | Vec2[]>;
+  };
+};
+
 export type DamageType = "physical" | "magical" | "true";
 
 export type EffectBehavior =
@@ -55,6 +61,8 @@ export type StatusEffect = {
   visibility?: "visible" | "invisible";
   // Set when a confusion debuff lands: the player it forces this player to walk toward.
   lockedTargetId?: string;
+  // Plant slot index from the assigned combo. Used by bot solvers to place each arrow separately.
+  plantSlot?: number;
 };
 
 export type Knockback = {
@@ -529,4 +537,5 @@ export type World = {
   // at world creation. Empty when the raid has no plant combinations. Stamped onto each plant
   // debuff as it lands so the HUD arrow + trap use the player's assigned heading.
   plantPlan: Record<string, [number, number][]>;
+  botSolvers?: BotSolvers;
 };

@@ -49,13 +49,17 @@ function runTicksWithBotIntents(world: ReturnType<typeof createWorld>, count: nu
   return w;
 }
 
-function withEffect(world: World, effect: StatusEffect): World {
+function withPlayerEffect(world: World, playerId: string, effect: StatusEffect): World {
   return {
     ...world,
-    players: world.players.map(player => player.id === HUMAN
+    players: world.players.map(player => player.id === playerId
       ? { ...player, effects: [...player.effects, effect] }
       : player),
   };
+}
+
+function withEffect(world: World, effect: StatusEffect): World {
+  return withPlayerEffect(world, HUMAN, effect);
 }
 
 function effect(overrides: Partial<StatusEffect> = {}): StatusEffect {
@@ -158,6 +162,23 @@ test("bot patterns can be loaded from a companion definition", () => {
   expect(world.players.find(player => player.id === "mt")?.pattern).toEqual([{ t: 0, pos: { x: 8, z: 0 } }]);
 });
 
+test("bot patterns can carry plant arrow solver placements", () => {
+  const raid = loadRaid(baseRaid);
+  const botPatterns = loadBotPatterns({
+    players: {},
+    solvers: {
+      plantArrows: {
+        placements: {
+          "down down": [[18, 0], [0, 18]],
+        },
+      },
+    },
+  });
+  const world = createWorld(applyBotPatterns(raid, botPatterns));
+
+  expect(world.botSolvers?.plantArrows?.placements["down down"]).toEqual([{ x: 18, z: 0 }, { x: 0, z: 18 }]);
+});
+
 test("bot with a pattern can dodge an AOE while a bot without one is hit", () => {
   const aoe = { t: 3, name: "TestAOE", telegraph: 1, damage: 50, damageType: "physical" as const, shape: { kind: "circle", center: [0, 0], radius: 5 } };
   const movingRaid = loadRaid({
@@ -178,6 +199,164 @@ test("bot with a pattern can dodge an AOE while a bot without one is hit", () =>
 
   expect(movingBot.hp).toBe(100);
   expect(standingBot.hp).toBeLessThan(100);
+});
+
+test("plant arrow solver moves bots toward the placement for their assigned combo", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0] } }),
+    optionals: {
+      combinations: {
+        plant: {
+          g1: { members: ["mt"], combos: [["down", "down"]] },
+          g2: { members: ["r1"], combos: [["up", "up"]] },
+        },
+      },
+    },
+  });
+  const botPatterns = loadBotPatterns({
+    players: {},
+    solvers: { plantArrows: { placements: { "down down": [[18, 0], [0, 18]] } } },
+  });
+  const world = withPlayerEffect(createWorld(applyBotPatterns(raid, botPatterns)), "mt", effect({
+    name: "Plant",
+    behavior: { kind: "plant", direction: [0, -1], distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
+    plantSlot: 0,
+  }));
+
+  const intent = computeBotIntents(world, 1 / 60).mt;
+
+  expect(intent.move.x).toBeGreaterThan(0);
+  expect(intent.move.z).toBeCloseTo(0);
+});
+
+test("plant arrow solver uses the active plant slot for two-position combos", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0] } }),
+    optionals: {
+      combinations: {
+        plant: {
+          g1: { members: ["mt"], combos: [["right", "right"]] },
+          g2: { members: ["r1"], combos: [["up", "up"]] },
+        },
+      },
+    },
+  });
+  const botPatterns = loadBotPatterns({
+    players: {},
+    solvers: { plantArrows: { placements: { "right right": [[18, 0], [0, 18]] } } },
+  });
+  const world = withPlayerEffect(createWorld(applyBotPatterns(raid, botPatterns)), "mt", effect({
+    name: "Plant (long)",
+    behavior: { kind: "plant", direction: [1, 0], distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
+    plantSlot: 1,
+  }));
+
+  const intent = computeBotIntents(world, 1 / 60).mt;
+
+  expect(intent.move.x).toBeCloseTo(0);
+  expect(intent.move.z).toBeGreaterThan(0);
+});
+
+test("plant arrow solver falls back to authored bot waypoints when no placement matches", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0], pattern: [{ t: 0, pos: [0, 8] }] } }),
+    optionals: {
+      combinations: {
+        plant: {
+          g1: { members: ["mt"], combos: [["up", "up"]] },
+          g2: { members: ["r1"], combos: [["down", "down"]] },
+        },
+      },
+    },
+  });
+  const botPatterns = loadBotPatterns({
+    players: {},
+    solvers: { plantArrows: { placements: { "down down": [18, 0] } } },
+  });
+  const world = withPlayerEffect(createWorld(applyBotPatterns(raid, botPatterns)), "mt", effect({
+    name: "Plant",
+    behavior: { kind: "plant", direction: [0, 1], distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
+    plantSlot: 0,
+  }));
+
+  const intent = computeBotIntents(world, 1 / 60).mt;
+
+  expect(intent.move.x).toBeCloseTo(0);
+  expect(intent.move.z).toBeGreaterThan(0);
+});
+
+test("plant arrow solver does not move human-controlled players", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { control: "human", spawn: [0, 0] } }),
+    optionals: {
+      combinations: {
+        plant: {
+          g1: { members: ["m1"], combos: [["down", "down"]] },
+          g2: { members: ["r1"], combos: [["up", "up"]] },
+        },
+      },
+    },
+  });
+  const botPatterns = loadBotPatterns({
+    players: {},
+    solvers: { plantArrows: { placements: { "down down": [18, 0] } } },
+  });
+  const world = withEffect(createWorld(applyBotPatterns(raid, botPatterns)), effect({
+    name: "Plant",
+    behavior: { kind: "plant", direction: [0, -1], distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
+    plantSlot: 0,
+  }));
+
+  expect(computeBotIntents(world, 1 / 60).m1).toBeUndefined();
+});
+
+test("plant arrow solver remains deterministic with seeded plant rng", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0] } }),
+    optionals: {
+      combinations: {
+        plant: {
+          rng: true,
+          g1: { members: ["mt"], combos: [["down", "down"]] },
+          g2: { members: ["r1"], combos: [["up", "up"]] },
+        },
+      },
+    },
+  });
+  const botPatterns = loadBotPatterns({
+    players: {},
+    solvers: {
+      plantArrows: {
+        placements: {
+          "down down": [[18, 0], [0, 18]],
+          "up up": [[-18, 0], [0, -18]],
+        },
+      },
+    },
+  });
+  const plannedRaid = applyBotPatterns(raid, botPatterns);
+  let w1 = withPlayerEffect(createWorld(plannedRaid, 4), "mt", effect({
+    name: "Plant",
+    behavior: { kind: "plant", direction: [0, -1], distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
+    plantSlot: 0,
+  }));
+  let w2 = withPlayerEffect(createWorld(plannedRaid, 4), "mt", effect({
+    name: "Plant",
+    behavior: { kind: "plant", direction: [0, -1], distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
+    plantSlot: 0,
+  }));
+
+  for (let i = 0; i < 120; i++) {
+    w1 = tick(w1, { ...computeBotIntents(w1, 1 / 60), [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
+    w2 = tick(w2, { ...computeBotIntents(w2, 1 / 60), [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
+  }
+
+  expect(JSON.stringify(w1)).toBe(JSON.stringify(w2));
 });
 
 test("simultaneous mechanics with the same name get unique ids", () => {

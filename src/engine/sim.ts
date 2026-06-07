@@ -205,7 +205,7 @@ function applyKnockback(player: Player, knockback: Knockback, origin: Vec2): voi
   }
 }
 
-function applyEffect(player: Player, spec: EffectSpec, time: number, id: string, players: Player[]): void {
+function applyEffect(player: Player, spec: EffectSpec, time: number, id: string, players: Player[], plantSlot?: number): void {
   // A confusion debuff locks onto the closest other living player at apply time.
   let lockedTargetId: string | undefined;
   if (spec.behavior.kind === "confusion") {
@@ -221,6 +221,7 @@ function applyEffect(player: Player, spec: EffectSpec, time: number, id: string,
     behavior: spec.behavior,
     visibility: spec.visibility,
     lockedTargetId,
+    plantSlot,
   }];
 }
 
@@ -694,12 +695,13 @@ export function tick(world: World, intents: Intents, dt: number): World {
             // For a plant debuff, stamp this player's assigned heading from the combination plan.
             // The slot is how many plants they already carry (0 = first/short, 1 = second/long).
             let spec = mechanic.applyEffect;
+            let plantSlot: number | undefined;
             if (spec.behavior.kind === "plant") {
-              const slot = player.effects.filter(e => e.behavior.kind === "plant").length;
-              const dir = world.plantPlan[player.id]?.[slot];
+              plantSlot = player.effects.filter(e => e.behavior.kind === "plant").length;
+              const dir = world.plantPlan[player.id]?.[plantSlot];
               if (dir) spec = { ...spec, behavior: { ...spec.behavior, direction: dir } };
             }
-            applyEffect(player, spec, time, `${mechanic.id}-${player.id}-eff`, players);
+            applyEffect(player, spec, time, `${mechanic.id}-${player.id}-eff`, players, plantSlot);
           }
           if (mechanic.knockback && player.alive && player.antiKbActive <= 0) {
             const origin = mechanic.knockback.origin ?? shapeOrigin(mechanic.shape);

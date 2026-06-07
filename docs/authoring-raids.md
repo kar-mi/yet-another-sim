@@ -822,6 +822,26 @@ but the convention is a separate file referenced by the raid's `botPatterns` fie
 Each waypoint is `{ "t": <seconds>, "pos": [x, z] }`. Only listed players get patterns;
 others stay at their spawn (or are driven by a human).
 
+Bot pattern files can also define runtime bot solvers. The plant arrow solver moves bot-controlled
+players with active plant debuffs to the explicit placement matching their assigned plant combo and
+current plant slot; claimed human slots are not moved by the solver. If a combo has no placement,
+the bot falls back to its authored waypoint pattern. A placement can be one `[x, z]` point or an
+array of points in plant-slot order, e.g. `[short, long]`.
+
+```json
+{
+  "players": {},
+  "solvers": {
+    "plantArrows": {
+      "placements": {
+        "right down": [[12.73, 12.73], [9, 15.59]],
+        "down down": [[17.39, 4.66], [18, 0]]
+      }
+    }
+  }
+}
+```
+
 ## Worked example
 
 A 45-second arena-wide circle, a baited tankbuster, and a donut, on a circular floor:

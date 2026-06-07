@@ -3,6 +3,12 @@ import { ROSTER, RaidIdSchema } from "../shared/protocol";
 
 const Vec2Schema = z.tuple([z.number(), z.number()]);
 const WaypointSchema = z.object({ t: z.number().nonnegative(), pos: Vec2Schema });
+const SolverPlacementSchema = z.union([Vec2Schema, z.array(Vec2Schema).min(1)]);
+const BotSolversSchema = z.object({
+  plantArrows: z.object({
+    placements: z.record(z.string().min(1), SolverPlacementSchema),
+  }).optional(),
+}).optional();
 const RoleSchema = z.enum(["tank", "healer", "dps"]);
 
 const WaymarkSchema = z.object({
@@ -320,6 +326,7 @@ export const RaidSchema = z.object({
   events: z.array(EventSchema),
   waymarks: z.array(WaymarkSchema).optional(),
   optionals: OptionalsSchema,
+  botSolvers: BotSolversSchema,
 }).superRefine((raid, ctx) => {
   const seenMarks = new Set<string>();
   raid.waymarks?.forEach((waymark, i) => {
@@ -438,6 +445,7 @@ export const RaidSchema = z.object({
 
 export const BotPatternsSchema = z.object({
   players: z.record(z.string().min(1), z.array(WaypointSchema)),
+  solvers: BotSolversSchema,
 });
 
 export type RaidDef = z.infer<typeof RaidSchema>;
