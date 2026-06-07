@@ -785,8 +785,8 @@ supported.
 - A **combo** is one direction per plant slot, in the order the plant debuffs land (so
   `["up", "right"]` = first/short plant heads north, second/long plant heads east).
 - `g1` and `g2` are two **explicit groups**, each with a `members` list (player ids, which must
-  exist in the roster) and a `combos` pool. Within a group, member `i` (in the order listed) draws
-  combo `i`, wrapping if there are fewer combos than members.
+  exist in the roster) and a `combos` pool. Within a group, the combo pool is shuffled per seed
+  before assignment, wrapping if there are fewer combos than members.
 - `rng: true` flips a seeded coin each run to **swap** which group's combo pool the two groups draw
   from (so e.g. the `g1` members get `g2`'s headings instead). `rng: false` (the default) is fixed —
   each group uses its own `combos`. A player not listed in any group keeps the `direction` on the

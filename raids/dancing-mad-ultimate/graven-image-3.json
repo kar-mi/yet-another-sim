@@ -39,6 +39,18 @@
     }
   },
   "events": [
+        {
+      "type": "aoe",
+      "t": 0,
+      "name": "keep_boss_still",
+      "telegraph": 67,
+      "damage": 0,
+      "damageType": "true",
+      "lockFacing": true,
+      "showCastBar": false,
+      "showTelegraph": false,
+      "shape": { "kind": "circle", "center": [0, 0], "radius": 0.1 }
+    },
     {
       "t": 5, "name": "Tele-Trouncing", "telegraph": 5, "damage": 0, "damageType": "magical",
       "showCastBar": true, "showTelegraph": false,

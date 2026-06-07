@@ -804,10 +804,20 @@ test("plant combinations assign each player a per-slot heading from their group'
     const dirs = p.effects.filter(e => e.behavior.kind === "plant").map(e => (e.behavior as { direction: [number, number] }).direction);
     expect(dirs).toEqual(world.plantPlan[p.id]);
   }
-  // A support and a dps drew from different pools (one got g1's first combo, the other g2's).
-  const mt = JSON.stringify(world.plantPlan.mt);
-  const r1 = JSON.stringify(world.plantPlan.r1);
-  expect([mt, r1].sort()).toEqual([JSON.stringify([[0, 1], [0, 1]]), JSON.stringify([[0, 1], [1, 0]])].sort());
+  const supportPlans = ["mt", "ot", "h1", "h2"].map(id => JSON.stringify(world.plantPlan[id])).sort();
+  const dpsPlans = ["r1", "r2", "m1", "m2"].map(id => JSON.stringify(world.plantPlan[id])).sort();
+  expect(supportPlans).toEqual([
+    JSON.stringify([[0, -1], [0, -1]]),
+    JSON.stringify([[-1, 0], [-1, 0]]),
+    JSON.stringify([[0, 1], [0, 1]]),
+    JSON.stringify([[1, 0], [1, 0]]),
+  ].sort());
+  expect(dpsPlans).toEqual([
+    JSON.stringify([[0, -1], [-1, 0]]),
+    JSON.stringify([[-1, 0], [0, 1]]),
+    JSON.stringify([[0, 1], [1, 0]]),
+    JSON.stringify([[1, 0], [0, -1]]),
+  ].sort());
 });
 
 test("plant direction \"option\" parses to a concrete vector (overridden by the combination plan)", () => {
@@ -824,18 +834,27 @@ test("plant direction \"option\" parses to a concrete vector (overridden by the 
   expect(behavior.direction).toEqual([0, 1]); // "option" -> placeholder vector, not a string
 });
 
-test("plant combination group assignment is fixed without rng, randomized with it", () => {
+test("plant combination groups keep their pools without rng, but randomize combo order", () => {
   const groups = {
     g1: { members: ["mt", "ot", "h1", "h2"], combos: [["up", "up"], ["down", "down"], ["left", "left"], ["right", "right"]] },
     g2: { members: ["r1", "r2", "m1", "m2"], combos: [["up", "right"], ["right", "down"], ["down", "left"], ["left", "up"]] },
   };
   const mk = (rng: boolean) => loadRaid({ ...baseRaid, optionals: { combinations: { plant: { rng, ...groups } } } });
-  // Without rng, no swap -> g1's members (mt) draw g1's combos -> mt gets g1[0] = up,up for every seed.
+  const supportPool = [
+    JSON.stringify([[0, -1], [0, -1]]),
+    JSON.stringify([[-1, 0], [-1, 0]]),
+    JSON.stringify([[0, 1], [0, 1]]),
+    JSON.stringify([[1, 0], [1, 0]]),
+  ].sort();
   const fixed = mk(false);
   for (const seed of [1, 50, 123, 9999]) {
-    expect(createWorld(fixed, seed).plantPlan.mt).toEqual([[0, 1], [0, 1]]);
+    const plan = createWorld(fixed, seed).plantPlan;
+    expect(["mt", "ot", "h1", "h2"].map(id => JSON.stringify(plan[id])).sort()).toEqual(supportPool);
   }
-  // With rng, mt's assigned pool varies across seeds.
+  const fixedSeen = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => JSON.stringify(createWorld(fixed, s).plantPlan.mt)));
+  expect(fixedSeen.size).toBeGreaterThan(1);
+
+  // With rng, mt's selected pool can also vary across seeds.
   const rolled = mk(true);
   const seen = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => JSON.stringify(createWorld(rolled, s).plantPlan.mt)));
   expect(seen.size).toBeGreaterThan(1);

@@ -1,6 +1,6 @@
 import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingInverse, PendingGaze, PendingForcedMarch, PendingEffectBurst } from "../shared/types";
 import { vec2 } from "../shared/math";
-import { makeSeed, nextRandom } from "../shared/rng";
+import { makeSeed, nextRandom, randomInt } from "../shared/rng";
 import type { RaidDef } from "./raidSchema";
 import { INITIAL_TANK_THREAT, topThreatTarget } from "./sim";
 
@@ -32,8 +32,8 @@ const DIRECTION_VECTORS: Record<"up" | "down" | "left" | "right", [number, numbe
 };
 
 // Assign each player a plant combination from optionals.combinations.plant. Each group lists its
-// members explicitly; member i (in order) draws combo i (wrapping). `rng: true` flips a seeded coin
-// to swap which group's combo pool each group's members draw from.
+// members explicitly; their selected combo pool is shuffled so members draw different combos when
+// possible. `rng: true` flips a seeded coin to swap which group's combo pool each group draws from.
 function buildPlantPlan(
   raid: RaidDef,
   rngState: number,
@@ -51,8 +51,14 @@ function buildPlantPlan(
 
   const plan: Record<string, [number, number][]> = {};
   const assign = (members: string[], combos: ("up" | "down" | "left" | "right")[][]) => {
+    const comboOrder = combos.map((_, i) => i);
+    for (let i = comboOrder.length - 1; i > 0; i--) {
+      const roll = randomInt(nextState, i + 1);
+      nextState = roll.state;
+      [comboOrder[i], comboOrder[roll.value]] = [comboOrder[roll.value], comboOrder[i]];
+    }
     members.forEach((id, i) => {
-      plan[id] = combos[i % combos.length].map(d => DIRECTION_VECTORS[d]);
+      plan[id] = combos[comboOrder[i % comboOrder.length]].map(d => DIRECTION_VECTORS[d]);
     });
   };
   assign(plant.g1.members, swap ? plant.g2.combos : plant.g1.combos);

@@ -299,8 +299,8 @@ const PlayerDefSchema = z.object({
 const DirectionConstSchema = z.enum(["up", "down", "left", "right"]);
 // A plant combination is one cardinal direction per plant slot (e.g. [short, long]).
 const PlantComboSchema = z.array(DirectionConstSchema).min(1);
-// A plant group: an explicit list of player ids plus the combo pool its members draw from
-// (member i, in order, gets combo i, wrapping if there are fewer combos than members).
+// A plant group: an explicit list of player ids plus the combo pool its members draw from.
+// The combo pool is shuffled per seed before assignment, wrapping if there are fewer combos than members.
 const PlantGroupSchema = z.object({
   members: z.array(z.string().min(1)).min(1),
   combos: z.array(PlantComboSchema).min(1),
