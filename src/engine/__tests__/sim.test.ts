@@ -1387,17 +1387,34 @@ test("sleep: disables input for its duration (not broken by time), then movement
   expect(human(after).pos.x).toBeGreaterThan(0);
 });
 
-test("forced march: teleports the first entrant along the arrow", () => {
+test("forced march: freezes the entrant, teleports after the pre-delay, then releases", () => {
   const raid = loadRaid({
     ...baseRaid,
     duration: 5,
     players: roster({ m1: { spawn: [5, 0] } }),
-    events: [{ type: "forced_march", t: 0, name: "March", pos: [5, 0], radius: 2, direction: [1, 0], distance: 8, duration: 3 }],
+    events: [{ type: "forced_march", t: 0, name: "March", pos: [5, 0], radius: 2, direction: [1, 0], distance: 8, duration: 3, preDelay: 0.3, postDelay: 0.3 }],
   });
-  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1);
-  expect(human(world).pos.x).toBeCloseTo(13); // 5 + 8 along +x
-  expect(human(world).pos.z).toBeCloseTo(0);
-  expect(world.forcedMarches[0]!.triggered).toBe(true);
+  const pushW = { [HUMAN]: { move: { x: -1, z: 0 } } }; // try to walk away while captured
+
+  // Stepped on (tick 1): captured + frozen, not yet teleported.
+  const captured = runTicks(createWorld(raid), pushW, 1);
+  expect(captured.forcedMarches[0]!.triggered).toBe(true);
+  expect(captured.forcedMarches[0]!.teleported).toBe(false);
+
+  // During the pre-delay the held player cannot move despite the input (frozen where captured).
+  const winding = runTicks(createWorld(raid), pushW, 15); // ~0.25s < 0.3 pre-delay
+  expect(winding.forcedMarches[0]!.teleported).toBe(false);
+  expect(human(winding).pos.x).toBeCloseTo(human(captured).pos.x);
+
+  // After the pre-delay the teleport fires along +x.
+  const flung = runTicks(createWorld(raid), pushW, 25); // ~0.42s > 0.3 pre-delay
+  expect(flung.forcedMarches[0]!.teleported).toBe(true);
+  expect(human(flung).pos.x).toBeCloseTo(13); // 5 + 8 along +x
+  expect(human(flung).pos.z).toBeCloseTo(0);
+
+  // Once the full freeze window ends the player can move again.
+  const freed = runTicks(createWorld(raid), pushW, 60); // 1s > preDelay + postDelay
+  expect(human(freed).pos.x).toBeLessThan(13);
 });
 
 test("forced march: an untriggered trap expires after its duration", () => {

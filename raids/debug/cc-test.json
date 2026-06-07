@@ -3,49 +3,47 @@
   "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 30 }] },
   "duration": 45,
   "players": [
-    { "id": "mt", "role": "tank", "control": "bot", "spawn": [-2, 12] },
-    { "id": "ot", "role": "tank", "control": "bot", "spawn": [2, 12] },
-    { "id": "h1", "role": "healer", "control": "bot", "spawn": [12, 2] },
-    { "id": "h2", "role": "healer", "control": "bot", "spawn": [12, -2] },
-    { "id": "r1", "role": "dps", "control": "bot", "spawn": [-2, -12] },
-    { "id": "r2", "role": "dps", "control": "bot", "spawn": [2, -12] },
-    { "id": "m1", "role": "dps", "control": "human", "spawn": [-12, 2] },
-    { "id": "m2", "role": "dps", "control": "bot", "spawn": [-12, -2] }
+    { "id": "mt", "role": "tank", "control": "bot", "spawn": [0, 7] },
+    { "id": "ot", "role": "tank", "control": "bot", "spawn": [7, 0] },
+    { "id": "h1", "role": "healer", "control": "bot", "spawn": [0, -7] },
+    { "id": "h2", "role": "healer", "control": "bot", "spawn": [-7, 0] },
+    { "id": "r1", "role": "dps", "control": "bot", "spawn": [0, 20] },
+    { "id": "r2", "role": "dps", "control": "bot", "spawn": [20, 0] },
+    { "id": "m1", "role": "dps", "control": "human", "spawn": [0, -20] },
+    { "id": "m2", "role": "dps", "control": "bot", "spawn": [-20, 0] }
   ],
   "events": [
     {
       "t": 3,
-      "name": "Slumber",
+      "name": "Slumber (supports)",
       "telegraph": 1.5,
       "damage": 0,
       "damageType": "magical",
-      "showTelegraph": false,
       "applyEffect": {
         "name": "Sleep",
         "kind": "debuff",
-        "duration": 5,
+        "duration": 22,
         "behavior": { "kind": "sleep" }
       },
-      "shape": { "kind": "circle", "center": [0, 0], "radius": 30 }
+      "shape": { "kind": "circle", "center": [0, 0], "radius": 9 }
     },
     {
-      "t": 12,
-      "name": "Mass Confusion",
+      "t": 3,
+      "name": "Confusion (dps)",
       "telegraph": 1.5,
       "damage": 0,
       "damageType": "magical",
-      "showTelegraph": false,
       "applyEffect": {
         "name": "Confusion",
         "kind": "debuff",
         "duration": 25,
         "behavior": { "kind": "confusion", "damage": 50, "damageType": "true", "radius": 1.5 }
       },
-      "shape": { "kind": "circle", "center": [0, 0], "radius": 30 }
+      "shape": { "kind": "donut", "center": [0, 0], "inner": 12, "outer": 25 }
     },
-    { "type": "forced_march", "t": 12, "name": "March North", "pos": [0, 12],  "radius": 1.2, "direction": [0, 1],  "distance": 12, "duration": 25 },
-    { "type": "forced_march", "t": 12, "name": "March East",  "pos": [12, 0],  "radius": 1.2, "direction": [1, 0],  "distance": 12, "duration": 25 },
-    { "type": "forced_march", "t": 12, "name": "March South", "pos": [0, -12], "radius": 1.2, "direction": [0, -1], "distance": 12, "duration": 25 },
-    { "type": "forced_march", "t": 12, "name": "March West",  "pos": [-12, 0], "radius": 1.2, "direction": [-1, 0], "distance": 12, "duration": 25 }
+    { "type": "forced_march", "t": 4.5, "name": "March N", "pos": [0, 14],  "radius": 1.2, "direction": [0, 1],  "distance": 8, "duration": 25, "preDelay": 0.3, "postDelay": 0.3 },
+    { "type": "forced_march", "t": 4.5, "name": "March E", "pos": [14, 0],  "radius": 1.2, "direction": [1, 0],  "distance": 8, "duration": 25, "preDelay": 0.3, "postDelay": 0.3 },
+    { "type": "forced_march", "t": 4.5, "name": "March S", "pos": [0, -14], "radius": 1.2, "direction": [0, -1], "distance": 8, "duration": 25, "preDelay": 0.3, "postDelay": 0.3 },
+    { "type": "forced_march", "t": 4.5, "name": "March W", "pos": [-14, 0], "radius": 1.2, "direction": [-1, 0], "distance": 8, "duration": 25, "preDelay": 0.3, "postDelay": 0.3 }
   ]
 }

@@ -77,14 +77,21 @@ export function createForcedMarchMeshes(scene: Scene, fm: ActiveForcedMarch): Fo
 }
 
 export function updateForcedMarchMeshes(handle: ForcedMarchMeshes, fm: ActiveForcedMarch, time: number): void {
-  if (fm.triggered) {
-    // Flash on trigger, then fade away over the linger window.
-    const since = time - (fm.triggeredAt ?? time);
-    const fade = Math.max(0, 1 - since / 0.7);
+  if (fm.triggered && !fm.teleported) {
+    // Charging: held player is winding up. Flash brightly and pulse fast.
+    const pulse = 0.6 + 0.4 * Math.abs(Math.sin(time * 12));
     handle.zoneMat.diffuseColor = TRIGGER_COLOR;
-    handle.zoneMat.emissiveColor = TRIGGER_COLOR.scale(0.6);
+    handle.zoneMat.emissiveColor = TRIGGER_COLOR.scale(0.8);
     handle.arrowMat.diffuseColor = TRIGGER_COLOR;
-    handle.arrowMat.emissiveColor = TRIGGER_COLOR.scale(0.8);
+    handle.arrowMat.emissiveColor = TRIGGER_COLOR.scale(1);
+    handle.zoneMat.alpha = 0.5 * pulse;
+    handle.arrowMat.alpha = pulse;
+  } else if (fm.triggered) {
+    // Fired: fade away over the remaining post-delay + linger window.
+    const since = time - ((fm.triggeredAt ?? time) + fm.preDelay);
+    const fade = Math.max(0, 1 - since / (fm.postDelay + 0.4));
+    handle.zoneMat.diffuseColor = TRIGGER_COLOR;
+    handle.arrowMat.diffuseColor = TRIGGER_COLOR;
     handle.zoneMat.alpha = 0.35 * fade;
     handle.arrowMat.alpha = fade;
   } else {

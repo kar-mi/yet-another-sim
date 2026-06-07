@@ -368,34 +368,51 @@ export function tick(world: World, intents: Intents, dt: number): World {
     boss.facing = Math.atan2(target.pos.x - boss.pos.x, target.pos.z - boss.pos.z);
   }
 
-  // 1c. Forced-march traps: arm pending, teleport the first entrant, expire old.
-  // Runs after movement so it sees the players' updated positions this tick.
-  const FORCED_MARCH_LINGER = 0.7; // keep a triggered trap briefly so the client can flash it
+  // 1c. Forced-march traps: arm pending, capture the first entrant, then run the
+  // freeze -> teleport -> freeze sequence. Runs after movement so it sees updated positions.
+  const FORCED_MARCH_LINGER = 0.4; // keep a finished trap briefly so the client can fade it
   let forcedMarches: ActiveForcedMarch[] = world.forcedMarches.map(fm => ({ ...fm }));
   for (const pfm of world.pendingForcedMarches) {
     if (pfm.t <= time) {
       forcedMarches.push({
         id: pfm.id, name: pfm.name, pos: pfm.pos, radius: pfm.radius,
         direction: pfm.direction, distance: pfm.distance,
-        armedAt: pfm.t, expireAt: pfm.t + pfm.duration, triggered: false,
+        preDelay: pfm.preDelay, postDelay: pfm.postDelay,
+        armedAt: pfm.t, expireAt: pfm.t + pfm.duration, triggered: false, teleported: false,
       });
     }
   }
   const remainingPendingForcedMarches = world.pendingForcedMarches.filter(pfm => pfm.t > time);
   for (const fm of forcedMarches) {
-    if (fm.triggered) continue;
-    // First living player (in roster order) inside the zone triggers it and is teleported.
-    const entrant = players.find(p => p.alive && length(sub(p.pos, fm.pos)) <= fm.radius);
-    if (entrant) {
-      entrant.pos = add(fm.pos, scale(normalize(fm.direction), fm.distance));
-      entrant.facing = Math.atan2(fm.direction.x, fm.direction.z);
-      fm.triggered = true;
-      fm.triggeredAt = time;
-      log.push({ t: time, mechanic: fm.name, playerId: entrant.id, event: "hit" });
+    if (!fm.triggered) {
+      // First living player (in roster order) inside the zone is captured and frozen in place.
+      const entrant = players.find(p => p.alive && length(sub(p.pos, fm.pos)) <= fm.radius);
+      if (entrant) {
+        fm.triggered = true;
+        fm.triggeredAt = time;
+        fm.capturedPlayerId = entrant.id;
+        // A transient sleep effect holds them still for the full pre+post window (section 1 gates it).
+        applyEffect(entrant, {
+          name: fm.name, kind: "debuff",
+          duration: fm.preDelay + fm.postDelay,
+          behavior: { kind: "sleep" },
+        }, time, `${fm.id}-freeze`, players);
+      }
+    } else if (!fm.teleported && time >= (fm.triggeredAt ?? time) + fm.preDelay) {
+      // preDelay elapsed: teleport the captured player; they stay frozen for postDelay.
+      const captured = players.find(p => p.id === fm.capturedPlayerId && p.alive);
+      if (captured) {
+        captured.pos = add(fm.pos, scale(normalize(fm.direction), fm.distance));
+        captured.facing = Math.atan2(fm.direction.x, fm.direction.z);
+        log.push({ t: time, mechanic: fm.name, playerId: captured.id, event: "hit" });
+      }
+      fm.teleported = true;
     }
   }
   forcedMarches = forcedMarches.filter(fm =>
-    fm.triggered ? (fm.triggeredAt ?? time) >= time - FORCED_MARCH_LINGER : fm.expireAt > time);
+    fm.triggered
+      ? time <= (fm.triggeredAt ?? time) + fm.preDelay + fm.postDelay + FORCED_MARCH_LINGER
+      : fm.expireAt > time);
 
   // 2. Tether sources: promote, update attachments, finalize
   let tetherSources: TetherSource[] = world.tetherSources.map(ts => ({ ...ts }));

@@ -236,6 +236,8 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         direction: toVec2(e.direction),
         distance: e.distance,
         duration: e.duration,
+        preDelay: e.preDelay,
+        postDelay: e.postDelay,
       });
     } else {
       pending.push({

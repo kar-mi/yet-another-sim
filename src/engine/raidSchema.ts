@@ -242,6 +242,8 @@ const ForcedMarchEventSchema = z.object({
   direction: Vec2Schema,                   // arrow / teleport direction (non-zero)
   distance: z.number().positive(),         // teleport distance along direction
   duration: z.number().positive(),         // how long the trap stays armed
+  preDelay: z.number().nonnegative().default(0.3),  // frozen on the trap before the teleport
+  postDelay: z.number().nonnegative().default(0.3), // frozen at the destination after the teleport
 }).superRefine((ev, ctx) => {
   if (ev.direction[0] === 0 && ev.direction[1] === 0) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["direction"], message: "forced_march direction must be a non-zero vector" });

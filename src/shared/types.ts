@@ -421,8 +421,9 @@ export type PendingChain = {
   showCastBar: boolean;
 };
 
-// A ground-placed arrow trap. The first living player to enter the zone is teleported
-// `distance` units along `direction`; the trap is then consumed.
+// A ground-placed arrow trap. The first living player to enter the zone is captured: frozen for
+// `preDelay`, teleported `distance` units along `direction`, then frozen for `postDelay` before
+// being released. The trap is consumed by that first entrant.
 export type PendingForcedMarch = {
   id: string;
   t: number;
@@ -432,6 +433,8 @@ export type PendingForcedMarch = {
   direction: Vec2;    // arrow / teleport direction
   distance: number;   // teleport distance along direction
   duration: number;   // how long the trap stays armed before expiring
+  preDelay: number;   // seconds frozen on the trap before the teleport
+  postDelay: number;  // seconds frozen at the destination after the teleport
 };
 
 export type ActiveForcedMarch = {
@@ -441,10 +444,14 @@ export type ActiveForcedMarch = {
   radius: number;
   direction: Vec2;
   distance: number;
+  preDelay: number;
+  postDelay: number;
   armedAt: number;
   expireAt: number;
   triggered: boolean;
-  triggeredAt?: number; // time it fired, drives the client flash + linger
+  triggeredAt?: number;        // time the entrant stepped on it (start of preDelay)
+  capturedPlayerId?: string;   // the player being marched
+  teleported: boolean;         // whether the teleport (after preDelay) has happened yet
 };
 
 export type Intent = {
