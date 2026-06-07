@@ -1,7 +1,16 @@
 import type { World, Player } from "../../shared/types";
-import { pressAction, triggerSprint, triggerAntiKb, triggerProvoke, toggleInvincibility } from "../input";
+import { triggerAction, toggleInvincibility } from "../input";
 import { SPRINT_COOLDOWN, ANTI_KB_COOLDOWN, PROVOKE_COOLDOWN } from "../../engine/sim";
-import { keyLabel, CONTROLLER_BUTTON_LABELS } from "../settings";
+import {
+  ACTIONS,
+  CONTROLLER_BUTTON_LABELS,
+  CONTROLLER_FACE_SLOTS,
+  CONTROLLER_MODIFIED_SLOTS,
+  KEYBOARD_HOTBAR_SLOT_COUNT,
+  actionForKeyboardSlot,
+  type ControllerSlotMeta,
+} from "../actions";
+import { keyLabel } from "../settings";
 import type { Settings, ControllerType } from "../settings";
 import { clamp01 } from "../../shared/math";
 
@@ -62,27 +71,27 @@ export class HudOverlay {
     this.hpVal = this.root.querySelector<HTMLSpanElement>("[data-hp-val]")!;
     this.mpVal = this.root.querySelector<HTMLSpanElement>("[data-mp-val]")!;
     this.invulnBtn = this.root.querySelector<HTMLButtonElement>(".yas-invuln-btn")!;
-    this.sprintSlot = this.root.querySelector<HTMLDivElement>("[data-slot='0']")!;
+    this.sprintSlot = this.root.querySelector<HTMLDivElement>(`[data-slot='${ACTIONS.sprint.keyboardSlot}']`)!;
     this.sprintKeybind = this.sprintSlot.querySelector<HTMLSpanElement>(".yas-keybind")!;
     this.sprintCdOverlay = this.sprintSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
     this.sprintCdText = this.sprintSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
-    this.antiKbSlot = this.root.querySelector<HTMLDivElement>("[data-slot='1']")!;
+    this.antiKbSlot = this.root.querySelector<HTMLDivElement>(`[data-slot='${ACTIONS.antiKnockback.keyboardSlot}']`)!;
     this.antiKbCdOverlay = this.antiKbSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
     this.antiKbCdText = this.antiKbSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
-    this.provokeSlot = this.root.querySelector<HTMLDivElement>("[data-slot='2']")!;
+    this.provokeSlot = this.root.querySelector<HTMLDivElement>(`[data-slot='${ACTIONS.provoke.keyboardSlot}']`)!;
     this.provokeCdOverlay = this.provokeSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
     this.provokeCdText = this.provokeSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
     this.kbmHotbar = this.root.querySelector<HTMLDivElement>(".yas-hotbar")!;
     this.controllerHotbar = this.root.querySelector<HTMLDivElement>(".yas-controller-hotbar")!;
     this.slotKeybinds = Array.from(this.kbmHotbar.querySelectorAll<HTMLSpanElement>(".yas-keybind"));
     this.modeToggleBtn = this.root.querySelector<HTMLButtonElement>(".yas-hotbar-toggle")!;
-    this.ctrlSprintSlot = this.controllerHotbar.querySelector<HTMLDivElement>("[data-ctrl-slot='7']")!;
+    this.ctrlSprintSlot = this.controllerHotbar.querySelector<HTMLDivElement>(`[data-ctrl-slot='${ACTIONS.sprint.controllerSlot}']`)!;
     this.ctrlSprintCdOverlay = this.ctrlSprintSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
     this.ctrlSprintCdText = this.ctrlSprintSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
-    this.ctrlAntiKbSlot = this.controllerHotbar.querySelector<HTMLDivElement>("[data-ctrl-slot='6']")!;
+    this.ctrlAntiKbSlot = this.controllerHotbar.querySelector<HTMLDivElement>(`[data-ctrl-slot='${ACTIONS.antiKnockback.controllerSlot}']`)!;
     this.ctrlAntiKbCdOverlay = this.ctrlAntiKbSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
     this.ctrlAntiKbCdText = this.ctrlAntiKbSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
-    this.ctrlProvokeSlot = this.controllerHotbar.querySelector<HTMLDivElement>("[data-ctrl-slot='5']")!;
+    this.ctrlProvokeSlot = this.controllerHotbar.querySelector<HTMLDivElement>(`[data-ctrl-slot='${ACTIONS.provoke.controllerSlot}']`)!;
     this.ctrlProvokeCdOverlay = this.ctrlProvokeSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
     this.ctrlProvokeCdText = this.ctrlProvokeSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
 
@@ -127,42 +136,46 @@ export class HudOverlay {
     const template = document.querySelector<HTMLTemplateElement>("#yas-hud-template")!;
     const root = template.content.firstElementChild!.cloneNode(true) as HTMLDivElement;
 
-    const kbmSlots = Array.from({ length: 10 }, (_, i) => {
-      if (i === 0) {
-        return `
-          <div class="yas-slot" data-slot="0">
-            <span class="yas-keybind"></span>
-            <span class="yas-slot-icon">⚡</span>
-            <span class="yas-slot-name">SPRINT</span>
-            <div class="yas-cd-overlay"></div>
-            <div class="yas-cd-text"></div>
-          </div>`;
-      }
-      if (i === 1) {
-        return `
-          <div class="yas-slot" data-slot="1">
-            <span class="yas-keybind"></span>
-            <span class="yas-slot-icon">🛡</span>
-            <span class="yas-slot-name">ANTI-KB</span>
-            <div class="yas-cd-overlay"></div>
-            <div class="yas-cd-text"></div>
-          </div>`;
-      }
-      if (i === 2) {
-        return `
-          <div class="yas-slot" data-slot="2">
-            <span class="yas-keybind"></span>
-            <span class="yas-slot-icon">🎯</span>
-            <span class="yas-slot-name">PROVOKE</span>
-            <div class="yas-cd-overlay"></div>
-            <div class="yas-cd-text"></div>
-          </div>`;
-      }
-      return `<div class="yas-slot" data-slot="${i}"><span class="yas-keybind"></span></div>`;
-    }).join("");
-
-    root.querySelector<HTMLDivElement>(".yas-hotbar")!.innerHTML = kbmSlots;
+    root.querySelector<HTMLDivElement>(".yas-hotbar")!.innerHTML = Array.from(
+      { length: KEYBOARD_HOTBAR_SLOT_COUNT },
+      (_, slot) => this.renderKeyboardSlot(slot),
+    ).join("");
+    root.querySelector<HTMLDivElement>(".yas-controller-hotbar")!.innerHTML = `
+      <div class="yas-controller-diamond">
+        ${CONTROLLER_FACE_SLOTS.map(slot => this.renderControllerSlot(slot)).join("")}
+      </div>
+      <div class="yas-ctrl-separator">RT</div>
+      <div class="yas-controller-diamond">
+        ${CONTROLLER_MODIFIED_SLOTS.map(slot => this.renderControllerSlot(slot)).join("")}
+      </div>`;
     return root;
+  }
+
+  private renderKeyboardSlot(slot: number): string {
+    const actionId = actionForKeyboardSlot(slot);
+    if (!actionId) return `<div class="yas-slot" data-slot="${slot}"><span class="yas-keybind"></span></div>`;
+    const action = ACTIONS[actionId];
+    return `
+      <div class="yas-slot" data-slot="${slot}">
+        <span class="yas-keybind"></span>
+        <span class="yas-slot-icon">${action.icon}</span>
+        <span class="yas-slot-name">${action.label}</span>
+        <div class="yas-cd-overlay"></div>
+        <div class="yas-cd-text"></div>
+      </div>`;
+  }
+
+  private renderControllerSlot(slot: ControllerSlotMeta): string {
+    const action = slot.action ? ACTIONS[slot.action] : null;
+    const cooldownMarkup = slot.action && slot.action !== "jump"
+      ? '<div class="yas-cd-overlay"></div><div class="yas-cd-text"></div>'
+      : "";
+    return `
+      <div class="yas-slot yas-ctrl-${slot.position}" data-ctrl-slot="${slot.slot}">
+        <span class="yas-keybind"></span>
+        ${action ? `<span class="yas-slot-icon">${action.icon}</span><span class="yas-slot-name">${action.label}</span>` : ""}
+        ${cooldownMarkup}
+      </div>`;
   }
 
   private buildPartyRow(player: Player): { hpFill: HTMLDivElement; mpFill: HTMLDivElement; rowEl: HTMLDivElement; effectsEl: HTMLDivElement; camBtn?: HTMLButtonElement } {
@@ -217,10 +230,8 @@ export class HudOverlay {
     this.controllerHotbar.style.display = isCtrl ? "flex" : "none";
     if (!isCtrl) {
       this.slotKeybinds.forEach((el, i) => {
-        el.textContent = i === 0 ? keyLabel(settings.keyBindings.sprint)
-          : i === 1 ? keyLabel(settings.keyBindings.antiKnockback)
-          : i === 2 ? keyLabel(settings.keyBindings.provoke)
-          : "";
+        const actionId = actionForKeyboardSlot(i);
+        el.textContent = actionId ? keyLabel(settings.keyBindings[ACTIONS[actionId].keyBinding]) : "";
       });
     }
   }
@@ -239,12 +250,12 @@ export class HudOverlay {
   }
 
   private bindEvents(): void {
-    this.sprintSlot.addEventListener("click", () => triggerSprint());
-    this.ctrlSprintSlot.addEventListener("click", () => pressAction(7));
-    this.antiKbSlot.addEventListener("click", () => triggerAntiKb());
-    this.ctrlAntiKbSlot.addEventListener("click", () => pressAction(6));
-    this.provokeSlot.addEventListener("click", () => triggerProvoke());
-    this.ctrlProvokeSlot.addEventListener("click", () => pressAction(5));
+    this.sprintSlot.addEventListener("click", () => triggerAction("sprint"));
+    this.ctrlSprintSlot.addEventListener("click", () => triggerAction("sprint"));
+    this.antiKbSlot.addEventListener("click", () => triggerAction("antiKnockback"));
+    this.ctrlAntiKbSlot.addEventListener("click", () => triggerAction("antiKnockback"));
+    this.provokeSlot.addEventListener("click", () => triggerAction("provoke"));
+    this.ctrlProvokeSlot.addEventListener("click", () => triggerAction("provoke"));
     this.invulnBtn.addEventListener("click", () => { this.invulnBtn.blur(); toggleInvincibility(); });
 
     this.root.querySelectorAll<HTMLDivElement>(".yas-slot").forEach(slot => {

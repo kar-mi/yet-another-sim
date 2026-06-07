@@ -1,5 +1,7 @@
 import type { Intent } from "../shared/types";
 import { normalize } from "../shared/math";
+import { actionForControllerSlot } from "./actions";
+import type { ActionId } from "./actions";
 import { DEFAULT_BINDINGS } from "./settings";
 import type { KeyBindings, ControllerType } from "./settings";
 
@@ -76,27 +78,30 @@ export function getRightStick(): { x: number; y: number } {
   };
 }
 
-export function triggerSprint(): void {
-  sprintPressed = true;
-}
-
-export function triggerAntiKb(): void {
-  antiKbPressed = true;
-}
-
-export function triggerProvoke(): void {
-  provokePressed = true;
-}
-
 export function toggleInvincibility(): void {
   invincibilityToggled = true;
 }
 
+export function triggerAction(actionId: ActionId): void {
+  switch (actionId) {
+    case "jump":
+      jumpPressed = true;
+      break;
+    case "sprint":
+      sprintPressed = true;
+      break;
+    case "antiKnockback":
+      antiKbPressed = true;
+      break;
+    case "provoke":
+      provokePressed = true;
+      break;
+  }
+}
+
 export function pressAction(slot: number): void {
-  if (slot === 7) sprintPressed = true; // controller RT+Y
-  if (slot === 6) antiKbPressed = true; // controller RT+X
-  if (slot === 5) provokePressed = true; // controller RT+B
-  if (slot === 3) jumpPressed = true;   // controller Y = jump
+  const actionId = actionForControllerSlot(slot);
+  if (actionId) triggerAction(actionId);
 }
 
 export function initInput(): () => void {

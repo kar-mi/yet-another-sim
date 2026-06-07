@@ -56,12 +56,7 @@ export function keyLabel(code: string): string {
 
 export type ControllerType = 'xbox' | 'ps5' | 'nintendo' | 'unknown';
 
-export const CONTROLLER_BUTTON_LABELS: Record<ControllerType, string[]> = {
-  xbox:     ['A', 'B', 'X', 'Y', 'RT+A', 'RT+B', 'RT+X', 'RT+Y'],
-  ps5:      ['✕', '○', '□', '△', 'R2+✕', 'R2+○', 'R2+□', 'R2+△'],
-  nintendo: ['B', 'A', 'Y', 'X', 'ZR+B', 'ZR+A', 'ZR+Y', 'ZR+X'],
-  unknown:  ['A', 'B', 'X', 'Y', 'RT+A', 'RT+B', 'RT+X', 'RT+Y'],
-};
+export { CONTROLLER_BUTTON_LABELS } from "./actions";
 
 export function loadSettings(): Settings {
   try {
