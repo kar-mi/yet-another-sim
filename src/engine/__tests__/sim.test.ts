@@ -314,6 +314,29 @@ test("plant arrow solver does not move human-controlled players", () => {
   expect(computeBotIntents(world, 1 / 60).m1).toBeUndefined();
 });
 
+test("double trouble solver moves marked bots behind their role group", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0] }, r1: { spawn: [0, 0] } }),
+    botSolvers: { doubleTrouble: { support: [-7, 7], dps: [7, -7], startAt: 20 } },
+  });
+  const doubleTrouble = effect({
+    name: "Double Trouble",
+    duration: 24,
+    behavior: { kind: "doubleTrouble", radius: 3, damage: 70, damageType: "magical", knockbackDistance: 6 },
+  });
+  let world = withPlayerEffect(createWorld(raid), "mt", doubleTrouble);
+  world = withPlayerEffect(world, "r1", { ...doubleTrouble, id: "effect-2" });
+  expect(computeBotIntents(world, 1 / 60).mt).toBeUndefined();
+
+  world = { ...world, time: 20 };
+  const intents = computeBotIntents(world, 1 / 60);
+  expect(intents.mt?.move?.x).toBeLessThan(0);
+  expect(intents.mt?.move?.z).toBeGreaterThan(0);
+  expect(intents.r1?.move?.x).toBeGreaterThan(0);
+  expect(intents.r1?.move?.z).toBeLessThan(0);
+});
+
 test("plant arrow solver remains deterministic with seeded plant rng", () => {
   const raid = loadRaid({
     ...baseRaid,
@@ -931,6 +954,31 @@ test("effect_burst drops an AOE on each carrier of the named effect", () => {
   expect(human(after).hp).toBeLessThan(100); // m1 carries Sleep -> burst centered on it
   expect(after.players.find(p => p.id === "m2")!.hp).toBeLessThan(100); // within radius of the carrier
   expect(after.players.find(p => p.id === "mt")!.hp).toBe(TANK_HP); // far away, untouched
+});
+
+test("effect_select can apply double trouble, which expires into damage and knockback around the carrier", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0] }, ot: { spawn: [2, 0] }, h1: { spawn: [5, 0] } }),
+    events: [{
+      type: "effect_select", t: 0, name: "Double Trouble", groups: [["mt"]],
+      applyEffect: {
+        name: "Double Trouble", kind: "debuff", duration: 0.1,
+        behavior: { kind: "doubleTrouble", radius: 3, damage: 10, damageType: "magical", knockbackDistance: 6 },
+      },
+    }],
+  });
+
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 45);
+  const mt = world.players.find(p => p.id === "mt")!;
+  const ot = world.players.find(p => p.id === "ot")!;
+  const h1 = world.players.find(p => p.id === "h1")!;
+
+  expect(mt.hp).toBe(TANK_HP - 10);
+  expect(ot.hp).toBe(TANK_HP - 10);
+  expect(h1.hp).toBe(100);
+  expect(mt.pos.x).toBeCloseTo(0);
+  expect(ot.pos.x).toBeGreaterThan(2);
 });
 
 test("targeted mechanic picks the near/far target at cast end, not cast start", () => {

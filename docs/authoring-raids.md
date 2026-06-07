@@ -697,6 +697,26 @@ burst is independent of the named effect — it deals its own `damage`, unrelate
 }
 ```
 
+### `effect_select` — random player debuff
+
+Chooses one group, then one random living member from that group, and applies `applyEffect`
+immediately at `t`. With a single group, this is a random member from that group.
+
+```json
+{
+  "type": "effect_select",
+  "t": 0,
+  "name": "Double Trouble",
+  "groups": [["mt", "ot", "h1", "h2"]],
+  "applyEffect": {
+    "name": "Double Trouble",
+    "kind": "debuff",
+    "duration": 24,
+    "behavior": { "kind": "doubleTrouble", "radius": 3, "damage": 70, "damageType": "magical", "knockbackDistance": 6 }
+  }
+}
+```
+
 ## Shapes
 
 Used by `aoe` events (`shape`) — a point is hit if it falls inside the shape at resolve.
@@ -749,6 +769,7 @@ Behaviors:
 { "kind": "freeze",  "dps": 8 }
 { "kind": "confusion", "damage": 80, "damageType": "true", "radius": 1.5 }
 { "kind": "sleep" }
+{ "kind": "doubleTrouble", "radius": 3, "damage": 70, "damageType": "magical", "knockbackDistance": 6 }
 { "kind": "plant", "direction": "option", "distance": 8, "radius": 3, "armDelay": 3, "duration": 10, "tpDelay": 0.7 }
 ```
 
@@ -758,6 +779,7 @@ Behaviors:
 - **freeze** — deals `dps` damage per second (≥ 0) while active.
 - **confusion** — overrides movement: the player is forced to walk toward whichever other living player was closest **when the debuff landed** (the target is locked at that moment). When they get within `radius` units, that **target** takes `damage` of `damageType` (friendly fire — the confused player takes none) and the debuff ends. Pair with a long `duration` so it lasts until contact.
 - **sleep** — disables all input (movement and actions) for the full `duration`. Not broken by taking damage.
+- **doubleTrouble** — when the debuff expires, players within `radius` of the carrier take `damage`; everyone hit except the carrier is knocked back `knockbackDistance` from the carrier.
 - **plant** — Tele-Trouncing "plant": the HUD shows an arrow along `direction` (`[x, z]`). When the debuff **expires** it places a teleport trap (a `forced_march`) at the player's position. The trap is **inert for `armDelay` seconds** (so the placer can step off), then triggers on contact — the first player to enter its `radius` is frozen for `tpDelay` seconds (the windup), then **instantly teleported** `distance` units along `direction` (measured from their own spot, so it lands purely along the heading). An untriggered trap expires `duration` seconds after it arms. The placed arrow renders via the forced-march layer; nothing is drawn under the player during the debuff. `direction` is a non-zero `[x, z]` vector **or** the string `"option"` (defer to the combination plan — it resolves to a placeholder the plan overrides per player; see [Optional combinations](#optional-combinations)). `radius` defaults `3`, `armDelay` `3`, `duration` `10`, `tpDelay` `0.7`.
 
 ## Optional combinations
@@ -833,11 +855,19 @@ players with active plant debuffs to the explicit placement matching their assig
 current plant slot; claimed human slots are not moved by the solver. If a combo has no placement,
 the bot falls back to its authored waypoint pattern. A placement can be one `[x, z]` point or an
 array of points in plant-slot order, e.g. `[short, long]`.
+The double trouble solver moves bot-controlled players with active `doubleTrouble` debuffs to a
+role-based safe offset (`support` for tanks/healers, `dps` for DPS). Plant arrow solving takes
+priority when both debuffs are active. Set `startAt` to delay the solver until that encounter time.
 
 ```json
 {
   "players": {},
   "solvers": {
+    "doubleTrouble": {
+      "support": [-7, 7],
+      "dps": [7, -7],
+      "startAt": 20
+    },
     "plantArrows": {
       "placements": {
         "right down": [[12.73, 12.73], [9, 15.59]],

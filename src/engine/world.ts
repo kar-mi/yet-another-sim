@@ -1,4 +1,4 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingInverse, PendingGaze, PendingForcedMarch, PendingEffectBurst } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingInverse, PendingGaze, PendingForcedMarch, PendingEffectBurst } from "../shared/types";
 import { vec2 } from "../shared/math";
 import { makeSeed, nextRandom, randomInt } from "../shared/rng";
 import type { RaidDef } from "./raidSchema";
@@ -12,16 +12,22 @@ function toVec2(arr: [number, number]) {
 
 function toBotSolvers(raid: RaidDef): World["botSolvers"] {
   const plantArrows = raid.botSolvers?.plantArrows;
-  if (!plantArrows) return undefined;
+  const doubleTrouble = raid.botSolvers?.doubleTrouble;
+  if (!plantArrows && !doubleTrouble) return undefined;
 
   return {
-    plantArrows: {
+    plantArrows: plantArrows && {
       placements: Object.fromEntries(
         Object.entries(plantArrows.placements).map(([key, pos]) => [
           key,
           typeof pos[0] === "number" ? toVec2(pos as [number, number]) : (pos as [number, number][]).map(toVec2),
         ]),
       ),
+    },
+    doubleTrouble: doubleTrouble && {
+      support: toVec2(doubleTrouble.support),
+      dps: toVec2(doubleTrouble.dps),
+      startAt: doubleTrouble.startAt,
     },
   };
 }
@@ -131,6 +137,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const pendingTowers: PendingTower[] = [];
   const pendingChains: PendingChain[] = [];
   const pendingGroups: PendingGroupEvent[] = [];
+  const pendingEffectSelects: PendingEffectSelect[] = [];
   const pendingInversions: PendingInverse[] = [];
   const pendingGazes: PendingGaze[] = [];
   const pendingForcedMarches: PendingForcedMarch[] = [];
@@ -226,6 +233,16 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         damageType: e.damageType,
         applyEffect: e.applyEffect,
         showCastBar: e.showCastBar ?? false,
+      });
+    } else if (e.type === "effect_select") {
+      pendingEffectSelects.push({
+        id: e.id ?? `effect-select-${index}`,
+        t: e.t,
+        name: e.name,
+        groups: e.groups,
+        rng: e.rng ?? false,
+        link: e.link,
+        applyEffect: e.applyEffect,
       });
     } else if (e.type === "chain") {
       e.pairs.forEach(([a, b], pairIndex) => {
@@ -350,7 +367,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     rngState,
     groupChoices: {},
     status: "running",
-    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingInversions.length > 0 || pendingGazes.length > 0 || pendingForcedMarches.length > 0 || pendingEffectBursts.length > 0,
+    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingEffectSelects.length > 0 || pendingInversions.length > 0 || pendingGazes.length > 0 || pendingForcedMarches.length > 0 || pendingEffectBursts.length > 0,
     arena,
     waymarks,
     players,
@@ -370,6 +387,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     pendingChains,
     groupMechanics: [],
     pendingGroups,
+    pendingEffectSelects,
     inversions: [],
     pendingInversions,
     gazes: [],

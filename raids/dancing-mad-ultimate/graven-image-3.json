@@ -93,15 +93,20 @@
     },
 
     {
-      "type": "group", "t": 22, "name": "Double Trouble (DPS)", "rng": true,
-      "groups": [["r1"], ["r2"], ["m1"], ["m2"]],
-      "telegraph": 2, "radius": 1.5, "requiredCount": 1, "damage": 70, "damageType": "magical",
-      "showCastBar": false
+      "type": "effect_select", "id": "double-trouble-dps", "t": 0, "name": "Double Trouble (DPS)",
+      "groups": [["r1", "r2", "m1", "m2"]],
+      "applyEffect": {
+        "name": "Double Trouble", "kind": "debuff", "duration": 24,
+        "behavior": { "kind": "doubleTrouble", "radius": 5, "damage": 70, "damageType": "magical", "knockbackDistance": 14 }
+      }
     },
     {
-      "type": "group", "t": 22, "name": "Double Trouble (Support)", "rng": true,
-      "groups": [["mt"], ["ot"], ["h1"], ["h2"]],
-      "telegraph": 2, "radius": 1.5, "requiredCount": 1, "damage": 70, "damageType": "magical"
+      "type": "effect_select", "id": "double-trouble-support", "t": 0, "name": "Double Trouble (Support)",
+      "groups": [["mt", "ot", "h1", "h2"]],
+      "applyEffect": {
+        "name": "Double Trouble", "kind": "debuff", "duration": 24,
+        "behavior": { "kind": "doubleTrouble", "radius": 5, "damage": 70, "damageType": "magical", "knockbackDistance": 14 }
+      }
     },
 
     {

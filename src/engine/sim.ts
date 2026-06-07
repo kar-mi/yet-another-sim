@@ -21,6 +21,7 @@ import type {
   DamageType,
   ActiveGroupMechanic,
   PendingGroupEvent,
+  PendingEffectSelect,
   ActiveInverse,
   PendingInverse,
   ActiveGaze,
@@ -877,6 +878,33 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
+  // 3e. Effect-select events: choose a group/member at spawn time and apply a visible effect.
+  const remainingPendingEffectSelects: PendingEffectSelect[] = [];
+  for (const pe of world.pendingEffectSelects) {
+    if (pe.t <= time) {
+      let chosenIdx: number;
+      const linkedIdx = pe.link !== undefined ? groupChoices[pe.link] : undefined;
+      if (linkedIdx !== undefined) {
+        chosenIdx = 1 - linkedIdx;
+      } else if (pe.rng) {
+        chosenIdx = randInt(pe.groups.length);
+      } else {
+        chosenIdx = 0;
+      }
+      groupChoices[pe.id] = chosenIdx;
+
+      const members = pe.groups[chosenIdx];
+      const targetId = members[randInt(members.length)];
+      const target = players.find(p => p.id === targetId && p.alive);
+      if (target) {
+        applyEffect(target, pe.applyEffect, time, `${pe.id}-${target.id}-eff`, players);
+        log.push({ t: time, mechanic: pe.name, playerId: target.id, event: "hit" });
+      }
+    } else {
+      remainingPendingEffectSelects.push(pe);
+    }
+  }
+
   // 3e. Inverse ("?") events: at cast start roll the inversion. The shown shape is always
   // drawn (telegraph), but when inverted the "?" makes it a lie -> the hidden shape is lethal.
   const remainingPendingInversions: PendingInverse[] = [];
@@ -1015,6 +1043,21 @@ export function tick(world: World, intents: Intents, dt: number): World {
     // player's spot. It stays inert for `armDelay` (so the placer can step off) before triggering.
     if (player.alive) {
       for (const effect of player.effects) {
+        if (effect.behavior.kind === "doubleTrouble") {
+          const expiry = effect.appliedAt + effect.duration;
+          if (expiry <= previousTime || expiry > time) continue;
+          const b = effect.behavior;
+          const circle: AOEShape = { kind: "circle", center: player.pos, radius: b.radius };
+          for (const target of players) {
+            if (!target.alive || !pointInShape(circle, target.pos)) continue;
+            applyMechanicDamage(target, b.damage, b.damageType, time);
+            if (target.id !== player.id && target.antiKbActive <= 0) {
+              applyKnockback(target, { distance: b.knockbackDistance, height: 0, origin: player.pos }, player.pos, time);
+            }
+            log.push({ t: time, mechanic: effect.name, playerId: target.id, event: "hit" });
+          }
+          continue;
+        }
         if (effect.behavior.kind !== "plant") continue;
         const expiry = effect.appliedAt + effect.duration;
         if (expiry <= previousTime || expiry > time) continue; // only the tick it expires on
@@ -1048,6 +1091,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
     && remainingPendingTowers.length === 0 && stillTowers.every(t => t.resolved)
     && remainingPendingChains.length === 0 && stillChains.every(c => c.outcome !== undefined)
     && remainingPendingGroups.length === 0 && stillGroups.every(g => g.resolved)
+    && remainingPendingEffectSelects.length === 0
     && remainingPendingInversions.length === 0 && stillInversions.every(i => i.resolved)
     && remainingPendingGazes.length === 0 && stillGazes.every(g => g.resolved)
     && remainingPendingForcedMarches.length === 0 && forcedMarches.every(fm => fm.triggered)
@@ -1061,5 +1105,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, rngState, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, inversions: stillInversions, pendingInversions: remainingPendingInversions, gazes: stillGazes, pendingGazes: remainingPendingGazes, forcedMarches, pendingForcedMarches: remainingPendingForcedMarches, pendingEffectBursts: remainingPendingEffectBursts };
+  return { ...world, time, rngState, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, pendingEffectSelects: remainingPendingEffectSelects, inversions: stillInversions, pendingInversions: remainingPendingInversions, gazes: stillGazes, pendingGazes: remainingPendingGazes, forcedMarches, pendingForcedMarches: remainingPendingForcedMarches, pendingEffectBursts: remainingPendingEffectBursts };
 }

@@ -8,6 +8,11 @@ const BotSolversSchema = z.object({
   plantArrows: z.object({
     placements: z.record(z.string().min(1), SolverPlacementSchema),
   }).optional(),
+  doubleTrouble: z.object({
+    support: Vec2Schema,
+    dps: Vec2Schema,
+    startAt: z.number().nonnegative().optional(),
+  }).optional(),
 }).optional();
 const RoleSchema = z.enum(["tank", "healer", "dps"]);
 
@@ -43,6 +48,13 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("freeze"), dps: z.number().nonnegative() }),
   z.object({ kind: z.literal("confusion"), damage: z.number().nonnegative(), damageType: z.enum(["physical", "magical", "true"]), radius: z.number().positive() }),
   z.object({ kind: z.literal("sleep") }),
+  z.object({
+    kind: z.literal("doubleTrouble"),
+    radius: z.number().positive().default(3),
+    damage: z.number().nonnegative(),
+    damageType: z.enum(["physical", "magical", "true"]),
+    knockbackDistance: z.number().positive().default(6),
+  }),
   z.object({
     kind: z.literal("plant"),
     // A literal [x, z] heading, or "option" to defer to the combination plan (see Optional
@@ -216,6 +228,17 @@ const GroupEventSchema = z.object({
   showCastBar: z.boolean().optional(),
 });
 
+const EffectSelectEventSchema = z.object({
+  type: z.literal("effect_select"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  id: z.string().min(1).optional(),
+  groups: z.array(z.array(z.string().min(1)).min(1)).min(1),
+  rng: z.boolean().optional(),
+  link: z.string().min(1).optional(),
+  applyEffect: ApplyEffectSchema,
+});
+
 const InverseEventSchema = z.object({
   type: z.literal("inverse"),
   t: z.number().nonnegative(),
@@ -289,7 +312,7 @@ const EffectBurstEventSchema = z.object({
   showTelegraph: z.boolean().optional(),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, InverseEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema]);
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, InverseEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
@@ -430,19 +453,19 @@ export const RaidSchema = z.object({
   // group events: validate member ids, and that links reference an earlier 2-group event with an explicit id.
   const groupEventsById = new Map<string, { t: number; groupCount: number }>();
   raid.events.forEach(event => {
-    if (event.type === "group" && event.id !== undefined) {
+    if ((event.type === "group" || event.type === "effect_select") && event.id !== undefined) {
       groupEventsById.set(event.id, { t: event.t, groupCount: event.groups.length });
     }
   });
   raid.events.forEach((event, i) => {
-    if (event.type !== "group") return;
+    if (event.type !== "group" && event.type !== "effect_select") return;
     event.groups.forEach((group, g) => {
       group.forEach(id => {
         if (!playerIds.has(id)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ["events", i, "groups", g],
-            message: `group references unknown player id "${id}"`,
+            message: `${event.type} references unknown player id "${id}"`,
           });
         }
       });

@@ -22,6 +22,11 @@ export type BotSolvers = {
   plantArrows?: {
     placements: Record<string, Vec2 | Vec2[]>;
   };
+  doubleTrouble?: {
+    support: Vec2;
+    dps: Vec2;
+    startAt?: number;
+  };
 };
 
 export type DamageType = "physical" | "magical" | "true";
@@ -36,6 +41,7 @@ export type EffectBehavior =
   | { kind: "confusion"; damage: number; damageType: DamageType; radius: number }
   // Disables all input for the effect's duration (not broken by damage).
   | { kind: "sleep" }
+  | { kind: "doubleTrouble"; radius: number; damage: number; damageType: DamageType; knockbackDistance: number }
   // Tele-Trouncing "plant": the HUD shows an arrow along `direction` ([x, z]). When the debuff
   // expires it places a teleport trap (forced march) at the player's spot — inert for `armDelay`
   // seconds so the placer can step off, then triggers on contact: the entrant is frozen for
@@ -329,6 +335,16 @@ export type PendingGroupEvent = {
   showCastBar: boolean;
 };
 
+export type PendingEffectSelect = {
+  id: string;
+  t: number;
+  name: string;
+  groups: string[][];
+  rng: boolean;
+  link?: string;
+  applyEffect: EffectSpec;
+};
+
 export type ActiveGroupMechanic = {
   id: string;
   name: string;
@@ -537,6 +553,7 @@ export type World = {
   forcedMarches: ActiveForcedMarch[];
   pendingForcedMarches: PendingForcedMarch[];
   pendingEffectBursts: PendingEffectBurst[];
+  pendingEffectSelects: PendingEffectSelect[];
   // Per-player plant directions (one per plant slot), assigned from optionals.combinations.plant
   // at world creation. Empty when the raid has no plant combinations. Stamped onto each plant
   // debuff as it lands so the HUD arrow + trap use the player's assigned heading.

@@ -33,6 +33,13 @@ function activePlantSlot(player: Player): number | undefined {
   return active?.plantSlot;
 }
 
+function hasActiveDoubleTrouble(player: Player, time: number): boolean {
+  return player.effects.some(effect =>
+    effect.behavior.kind === "doubleTrouble"
+    && effect.appliedAt <= time
+    && effect.appliedAt + effect.duration > time);
+}
+
 function plantComboKey(player: Player, world: World): string | undefined {
   if (activePlantSlot(player) === undefined) return undefined;
 
@@ -46,11 +53,23 @@ function plantComboKey(player: Player, world: World): string | undefined {
 
 function solverWaypoint(player: Player, world: World): Vec2 | undefined {
   const slot = activePlantSlot(player);
-  if (slot === undefined) return undefined;
-  const key = plantComboKey(player, world);
-  if (!key) return undefined;
-  const placement = world.botSolvers?.plantArrows?.placements[key];
-  return Array.isArray(placement) ? placement[slot] : placement;
+  if (slot !== undefined) {
+    const key = plantComboKey(player, world);
+    if (key) {
+      const placement = world.botSolvers?.plantArrows?.placements[key];
+      if (placement) return Array.isArray(placement) ? placement[slot] : placement;
+    }
+  }
+
+  if (hasActiveDoubleTrouble(player, world.time)) {
+    const solver = world.botSolvers?.doubleTrouble;
+    if (!solver || (solver.startAt !== undefined && world.time < solver.startAt)) return undefined;
+    return player.role === "dps"
+      ? solver.dps
+      : solver.support;
+  }
+
+  return undefined;
 }
 
 function moveIntent(player: Player, target: Vec2, dt: number) {
