@@ -821,6 +821,8 @@ but the convention is a separate file referenced by the raid's `botPatterns` fie
 
 Each waypoint is `{ "t": <seconds>, "pos": [x, z] }`. Only listed players get patterns;
 others stay at their spawn (or are driven by a human).
+After forced march, plant teleport, or knockback moves a bot, waypoints at or before that forced
+movement time are ignored. Add a later waypoint when the bot should resume authored movement.
 
 Bot pattern files can also define runtime bot solvers. The plant arrow solver moves bot-controlled
 players with active plant debuffs to the explicit placement matching their assigned plant combo and

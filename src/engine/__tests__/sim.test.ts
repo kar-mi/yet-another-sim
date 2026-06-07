@@ -878,6 +878,29 @@ test("plant teleport lands the captured player along the direction from their ow
   expect(human(world).pos.x).toBeCloseTo(offCenterX, 1);
 });
 
+test("plant teleport suppresses stale bot waypoints until the next authored waypoint", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({
+      mt: {
+        spawn: [0, 0],
+        pattern: [{ t: 0, pos: [0, 0] }, { t: 3, pos: [0, 8] }],
+      },
+    }),
+  });
+  let world = withPlayerEffect(createWorld(raid), "mt", effect({
+    name: "Plant", duration: 0.1,
+    behavior: { kind: "plant", direction: [1, 0], distance: 6, radius: 4, armDelay: 0, duration: 10, tpDelay: 0.1 },
+  }));
+
+  world = runTicksWithBotIntents(world, Math.ceil(0.8 * 60));
+  expect(world.players.find(p => p.id === "mt")!.pos.x).toBeGreaterThan(5);
+  expect(computeBotIntents(world, 1 / 60).mt).toBeUndefined();
+
+  world = runTicksWithBotIntents(world, Math.ceil(2.4 * 60));
+  expect(computeBotIntents(world, 1 / 60).mt?.move?.z).toBeGreaterThan(0);
+});
+
 test("effect_burst drops an AOE on each carrier of the named effect", () => {
   const raid = loadRaid({
     ...baseRaid,
@@ -999,6 +1022,26 @@ test("knockback ignores player input while it carries them", () => {
   // Player holds movement toward the origin (-x); should still be pushed outward (+x).
   const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: -1, z: 0 } } }, 30);
   expect(human(world).pos.x).toBeGreaterThan(5);
+});
+
+test("knockback suppresses stale bot waypoints until the next authored waypoint", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({
+      mt: {
+        spawn: [2, 0],
+        pattern: [{ t: 0, pos: [2, 0] }, { t: 2, pos: [2, 8] }],
+      },
+    }),
+    events: [kbEvent({ distance: 6 })],
+  });
+
+  let world = runTicksWithBotIntents(createWorld(raid), Math.ceil(1 * 60));
+  expect(world.players.find(p => p.id === "mt")!.pos.x).toBeGreaterThan(6);
+  expect(computeBotIntents(world, 1 / 60).mt).toBeUndefined();
+
+  world = runTicksWithBotIntents(world, Math.ceil(1.2 * 60));
+  expect(computeBotIntents(world, 1 / 60).mt?.move?.z).toBeGreaterThan(0);
 });
 
 test("knockback can push a player off the arena to their death", () => {
@@ -1717,6 +1760,27 @@ test("forced march: freezes the entrant, teleports after the pre-delay, then rel
   // Once the full freeze window ends the player can move again.
   const freed = runTicks(createWorld(raid), pushW, 60); // 1s > preDelay + postDelay
   expect(human(freed).pos.x).toBeLessThan(13);
+});
+
+test("forced march suppresses stale bot waypoints until the next authored waypoint", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    duration: 5,
+    players: roster({
+      mt: {
+        spawn: [0, 0],
+        pattern: [{ t: 0, pos: [0, 0] }, { t: 2, pos: [0, 8] }],
+      },
+    }),
+    events: [{ type: "forced_march", t: 0, name: "March", pos: [0, 0], radius: 2, direction: [1, 0], distance: 8, duration: 3, preDelay: 0.1, postDelay: 0.1 }],
+  });
+
+  let world = runTicksWithBotIntents(createWorld(raid), Math.ceil(0.7 * 60));
+  expect(world.players.find(p => p.id === "mt")!.pos.x).toBeCloseTo(8);
+  expect(computeBotIntents(world, 1 / 60).mt).toBeUndefined();
+
+  world = runTicksWithBotIntents(world, Math.ceil(1.5 * 60));
+  expect(computeBotIntents(world, 1 / 60).mt?.move?.z).toBeGreaterThan(0);
 });
 
 test("forced march: an untriggered trap expires after its duration", () => {

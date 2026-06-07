@@ -189,7 +189,8 @@ function effectActiveDt(effect: StatusEffect, previousTime: number, time: number
   return Math.max(0, activeEnd - activeStart);
 }
 
-function applyKnockback(player: Player, knockback: Knockback, origin: Vec2): void {
+function applyKnockback(player: Player, knockback: Knockback, origin: Vec2, time: number): void {
+  player.botWaypointResumeAfter = time;
   const away = sub(player.pos, origin);
   const dir = length(away) > 0 ? normalize(away) : { x: 1, z: 0 }; // player on origin: arbitrary dir
   const { distance, height } = knockback;
@@ -409,6 +410,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
         // captured player `distance` from their own spot so it lands purely along `direction`.
         const anchor = fm.relativeMove ? (fm.capturedFrom ?? fm.pos) : fm.pos;
         captured.pos = add(anchor, scale(normalize(fm.direction), fm.distance));
+        captured.botWaypointResumeAfter = time;
         captured.facing = Math.atan2(fm.direction.x, fm.direction.z);
         log.push({ t: time, mechanic: fm.name, playerId: captured.id, event: "hit" });
       }
@@ -527,7 +529,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
         if (target.alive) {
           if (link.applyEffect) applyEffect(target, link.applyEffect, time, `${link.id}-${target.id}-eff`, players);
           if (link.knockback && target.antiKbActive <= 0) {
-            applyKnockback(target, link.knockback, link.knockback.origin ?? link.pos);
+            applyKnockback(target, link.knockback, link.knockback.origin ?? link.pos, time);
           }
           log.push({ t: time, mechanic: link.name, playerId: target.id, event: "hit" });
         }
@@ -705,7 +707,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
           }
           if (mechanic.knockback && player.alive && player.antiKbActive <= 0) {
             const origin = mechanic.knockback.origin ?? shapeOrigin(mechanic.shape);
-            applyKnockback(player, mechanic.knockback, origin);
+            applyKnockback(player, mechanic.knockback, origin, time);
           }
         } else {
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "cleared" });
@@ -774,7 +776,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
             if (!p.alive) continue;
             if (tower.applyEffect) applyEffect(p, tower.applyEffect, time, `${tower.id}-${p.id}-eff`, players);
             if (tower.knockback && p.antiKbActive <= 0) {
-              applyKnockback(p, tower.knockback, tower.knockback.origin ?? tower.pos);
+              applyKnockback(p, tower.knockback, tower.knockback.origin ?? tower.pos, time);
             }
             log.push({ t: time, mechanic: tower.name, playerId: p.id, event: "cleared" });
           }
@@ -907,7 +909,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
             applyEffect(player, inv.applyEffect, time, `${inv.id}-${player.id}-eff`, players);
           }
           if (inv.knockback && player.alive && player.antiKbActive <= 0) {
-            applyKnockback(player, inv.knockback, inv.knockback.origin ?? shapeOrigin(hitShape));
+            applyKnockback(player, inv.knockback, inv.knockback.origin ?? shapeOrigin(hitShape), time);
           }
         } else {
           log.push({ t: time, mechanic: inv.name, playerId: player.id, event: "cleared" });
@@ -964,7 +966,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
             applyEffect(player, gz.applyEffect, time, `${gz.id}-${player.id}-eff`, players);
           }
           if (gz.knockback && player.alive && player.antiKbActive <= 0) {
-            applyKnockback(player, gz.knockback, gz.knockback.origin ?? gz.pos);
+            applyKnockback(player, gz.knockback, gz.knockback.origin ?? gz.pos, time);
           }
         } else {
           log.push({ t: time, mechanic: gz.name, playerId: player.id, event: "cleared" });

@@ -3,10 +3,10 @@ import type { Intents, Player, Waypoint, World } from "../shared/types";
 import { length, normalize, sub } from "../shared/math";
 import { MOVE_SPEED } from "./sim";
 
-function activeWaypoint(pattern: Waypoint[], time: number): Waypoint | undefined {
+function activeWaypoint(pattern: Waypoint[], time: number, after = -Infinity): Waypoint | undefined {
   let active: Waypoint | undefined;
   for (const waypoint of pattern) {
-    if (waypoint.t <= time && (!active || waypoint.t >= active.t)) {
+    if (waypoint.t > after && waypoint.t <= time && (!active || waypoint.t >= active.t)) {
       active = waypoint;
     }
   }
@@ -75,7 +75,7 @@ export function computeBotIntents(world: World, dt: number): Intents {
 
     if (!player.pattern?.length) continue;
 
-    const waypoint = activeWaypoint(player.pattern, world.time);
+    const waypoint = activeWaypoint(player.pattern, world.time, player.botWaypointResumeAfter);
     if (!waypoint) continue;
 
     intents[player.id] = moveIntent(player, waypoint.pos, dt);

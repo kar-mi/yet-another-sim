@@ -76,6 +76,7 @@ export type Player = {
   role: Role;
   control: Control;
   pattern?: Waypoint[];
+  botWaypointResumeAfter?: number; // forced movement ignores authored waypoints at or before this time
   pos: Vec2;
   y: number;
   verticalVelocity: number;

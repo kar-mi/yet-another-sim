@@ -10,6 +10,7 @@ import type { Boss } from "../../shared/types";
 
 const RING_Y = 0.03;        // just above the floor, matching other ground meshes
 const INNER_SCALE = 0.8;    // inner ring radius relative to the outer (boss.radius)
+const VISUAL_SCALE = 1.8;   // render a slightly larger ring without changing boss mechanics
 const TUBE_RADIUS = 0.06;   // ring line thickness
 // Connected front arc (0 = facing) wrapping to the SE/SW intercardinals (±135°),
 // leaving only the rear 90° open. Draw only within REAR_OPENING_HALF of the front.
@@ -42,9 +43,10 @@ export class BossRingLayer {
     const red = this.makeMaterial("boss-ring-red", new Color3(0.9, 0.13, 0.12));
     const white = this.makeMaterial("boss-ring-white", new Color3(1, 1, 1));
 
-    this.buildRing(boss.radius, red);                // outer ring red
-    this.buildRing(boss.radius * INNER_SCALE, white); // inner ring white
-    this.buildMarkers(boss.radius, red, white);
+    const radius = boss.radius * VISUAL_SCALE;
+    this.buildRing(radius, red);                // outer ring red
+    this.buildRing(radius * INNER_SCALE, white); // inner ring white
+    this.buildMarkers(radius, red, white);
   }
 
   private makeMaterial(name: string, color: Color3): StandardMaterial {
