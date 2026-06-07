@@ -24,7 +24,12 @@ export type EffectBehavior =
   | { kind: "none" }
   | { kind: "vuln"; damageType: "physical" | "magical"; multiplier: number }
   | { kind: "pyretic"; dps: number }
-  | { kind: "freeze"; dps: number };
+  | { kind: "freeze"; dps: number }
+  // Forces the player to walk toward a locked target; on contact the target takes
+  // friendly-fire damage and the debuff ends. Target is locked when the debuff lands.
+  | { kind: "confusion"; damage: number; damageType: DamageType; radius: number }
+  // Disables all input for the effect's duration (not broken by damage).
+  | { kind: "sleep" };
 
 export type EffectSpec = {
   name: string;
@@ -42,6 +47,8 @@ export type StatusEffect = {
   duration: number;
   behavior: EffectBehavior;
   visibility?: "visible" | "invisible";
+  // Set when a confusion debuff lands: the player it forces this player to walk toward.
+  lockedTargetId?: string;
 };
 
 export type Knockback = {
@@ -414,6 +421,39 @@ export type PendingChain = {
   showCastBar: boolean;
 };
 
+// A ground-placed arrow trap. The first living player to enter the zone is captured: frozen for
+// `preDelay`, teleported `distance` units along `direction`, then frozen for `postDelay` before
+// being released. The trap is consumed by that first entrant.
+export type PendingForcedMarch = {
+  id: string;
+  t: number;
+  name: string;
+  pos: Vec2;
+  radius: number;     // trigger zone radius
+  direction: Vec2;    // arrow / teleport direction
+  distance: number;   // teleport distance along direction
+  duration: number;   // how long the trap stays armed before expiring
+  preDelay: number;   // seconds frozen on the trap before the teleport
+  postDelay: number;  // seconds frozen at the destination after the teleport
+};
+
+export type ActiveForcedMarch = {
+  id: string;
+  name: string;
+  pos: Vec2;
+  radius: number;
+  direction: Vec2;
+  distance: number;
+  preDelay: number;
+  postDelay: number;
+  armedAt: number;
+  expireAt: number;
+  triggered: boolean;
+  triggeredAt?: number;        // time the entrant stepped on it (start of preDelay)
+  capturedPlayerId?: string;   // the player being marched
+  teleported: boolean;         // whether the teleport (after preDelay) has happened yet
+};
+
 export type Intent = {
   move: Vec2;
   jump?: boolean;
@@ -454,4 +494,6 @@ export type World = {
   pendingInversions: PendingInverse[];
   gazes: ActiveGaze[];
   pendingGazes: PendingGaze[];
+  forcedMarches: ActiveForcedMarch[];
+  pendingForcedMarches: PendingForcedMarch[];
 };

@@ -25,6 +25,7 @@ import { TowerLayer } from "./TowerLayer";
 import { StackLayer } from "./StackLayer";
 import { InverseLayer } from "./InverseLayer";
 import { GazeLayer } from "./GazeLayer";
+import { ForcedMarchLayer } from "./ForcedMarchLayer";
 import { WaymarkLayer } from "./WaymarkLayer";
 
 // Sub-path imports drop some Babylon engine side-effect registrations.
@@ -55,6 +56,7 @@ export class BabylonRenderer implements Renderer {
   private stacks!: StackLayer;
   private inverse!: InverseLayer;
   private gaze!: GazeLayer;
+  private forcedMarches!: ForcedMarchLayer;
   private waymarks!: WaymarkLayer;
   private hud!: HudOverlay;
   private floorMeshes: Mesh[] = [];
@@ -144,6 +146,7 @@ export class BabylonRenderer implements Renderer {
     this.stacks = new StackLayer(this.scene);
     this.inverse = new InverseLayer(this.scene);
     this.gaze = new GazeLayer(this.scene);
+    this.forcedMarches = new ForcedMarchLayer(this.scene);
     this.hud = new HudOverlay(sessionId, this.localPlayerId, this.onSettingsChange, id => this.setSpectateTarget(id));
 
     this.onResize = () => this.engine.resize();
@@ -189,6 +192,7 @@ export class BabylonRenderer implements Renderer {
     this.stacks.sync(world.groupMechanics, world.players, world.time);
     this.inverse.sync(world.inversions, world.boss, world.time);
     this.gaze.sync(world.gazes, world.time);
+    this.forcedMarches.sync(world.forcedMarches, world.time);
     this.hud.sync(world);
   }
 
@@ -249,6 +253,7 @@ export class BabylonRenderer implements Renderer {
     this.stacks.dispose();
     this.inverse.dispose();
     this.gaze.dispose();
+    this.forcedMarches.dispose();
     this.waymarks.dispose();
     this.healthBars.dispose();
     this.engine.dispose();

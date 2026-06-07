@@ -35,6 +35,8 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("vuln"), damageType: z.enum(["physical", "magical"]), multiplier: z.number().positive() }),
   z.object({ kind: z.literal("pyretic"), dps: z.number().nonnegative() }),
   z.object({ kind: z.literal("freeze"), dps: z.number().nonnegative() }),
+  z.object({ kind: z.literal("confusion"), damage: z.number().nonnegative(), damageType: z.enum(["physical", "magical", "true"]), radius: z.number().positive() }),
+  z.object({ kind: z.literal("sleep") }),
 ]);
 
 const ApplyEffectSchema = z.object({
@@ -231,7 +233,24 @@ const GazeEventSchema = z.object({
   visual: GazeVisualSchema.optional(),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, InverseEventSchema, GazeEventSchema]);
+const ForcedMarchEventSchema = z.object({
+  type: z.literal("forced_march"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  pos: Vec2Schema,                         // center of the ground trigger zone
+  radius: z.number().positive(),           // trigger zone radius
+  direction: Vec2Schema,                   // arrow / teleport direction (non-zero)
+  distance: z.number().positive(),         // teleport distance along direction
+  duration: z.number().positive(),         // how long the trap stays armed
+  preDelay: z.number().nonnegative().default(0.3),  // frozen on the trap before the teleport
+  postDelay: z.number().nonnegative().default(0.3), // frozen at the destination after the teleport
+}).superRefine((ev, ctx) => {
+  if (ev.direction[0] === 0 && ev.direction[1] === 0) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["direction"], message: "forced_march direction must be a non-zero vector" });
+  }
+});
+
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, InverseEventSchema, GazeEventSchema, ForcedMarchEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
