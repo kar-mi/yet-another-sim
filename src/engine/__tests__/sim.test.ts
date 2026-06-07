@@ -314,6 +314,102 @@ test("plant arrow solver does not move human-controlled players", () => {
   expect(computeBotIntents(world, 1 / 60).m1).toBeUndefined();
 });
 
+test("plant debuff order maps timers to combo slots independently", () => {
+  const plantEvent = (name: string, duration: number) => ({
+    t: 0,
+    name,
+    telegraph: 0.01,
+    damage: 0,
+    damageType: "magical" as const,
+    applyEffect: {
+      name,
+      kind: "debuff" as const,
+      duration,
+      behavior: { kind: "plant" as const, direction: "option" as const, distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
+    },
+    shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 20 },
+  });
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0] } }),
+    optionals: {
+      combinations: {
+        plant: {
+          debuffOrder: [1, 0],
+          g1: { members: ["mt"], combos: [["right", "down"]] },
+          g2: { members: ["r1"], combos: [["up", "up"]] },
+        },
+      },
+    },
+    events: [plantEvent("Plant (short)", 7), plantEvent("Plant (long)", 10)],
+  });
+
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 10);
+  const mt = world.players.find(player => player.id === "mt")!;
+  const short = mt.effects.find(e => e.name === "Plant (short)")!;
+  const long = mt.effects.find(e => e.name === "Plant (long)")!;
+
+  expect(short.plantSlot).toBe(1);
+  expect(short.behavior.kind).toBe("plant");
+  if (short.behavior.kind === "plant") expect(short.behavior.direction).toEqual([0, -1]);
+  expect(long.plantSlot).toBe(0);
+  expect(long.behavior.kind).toBe("plant");
+  if (long.behavior.kind === "plant") expect(long.behavior.direction).toEqual([1, 0]);
+});
+
+test("applyEffects can shuffle plant timer order without changing combo slot order", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0] } }),
+    optionals: {
+      combinations: {
+        plant: {
+          debuffOrder: [1, 0],
+          g1: { members: ["mt"], combos: [["right", "down"]] },
+          g2: { members: ["r1"], combos: [["up", "up"]] },
+        },
+      },
+    },
+    events: [{
+      t: 0,
+      name: "Tele-Trouncing",
+      telegraph: 0.01,
+      damage: 0,
+      damageType: "magical" as const,
+      applyEffects: {
+        order: "shuffle" as const,
+        effects: [
+          {
+            name: "Plant (short)",
+            kind: "debuff" as const,
+            duration: 7,
+            behavior: { kind: "plant" as const, direction: "option" as const, distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
+          },
+          {
+            name: "Plant (long)",
+            kind: "debuff" as const,
+            duration: 10,
+            behavior: { kind: "plant" as const, direction: "option" as const, distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
+          },
+        ],
+      },
+      shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 20 },
+    }],
+  });
+
+  const firstDurations = new Set<number>();
+  for (let seed = 1; seed <= 40; seed++) {
+    const world = runTicks(createWorld(raid, seed), { [HUMAN]: { move: { x: 0, z: 0 } } }, 10);
+    const effects = world.players.find(player => player.id === "mt")!.effects
+      .filter(e => e.behavior.kind === "plant");
+
+    expect(effects.map(e => e.plantSlot)).toEqual([1, 0]);
+    expect(effects.map(e => e.duration).sort((a, b) => a - b)).toEqual([7, 10]);
+    firstDurations.add(effects[0]!.duration);
+  }
+  expect(firstDurations).toEqual(new Set([7, 10]));
+});
+
 test("double trouble solver moves marked bots behind their role group", () => {
   const raid = loadRaid({
     ...baseRaid,

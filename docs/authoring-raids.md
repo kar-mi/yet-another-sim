@@ -760,6 +760,21 @@ bind them to the boss.
 | `visibility` | no    | `"visible"` (default) shows in the HUD; `"invisible"` stores the effect without a HUD chip. |
 | `behavior` | yes      | One of the behaviors below. |
 
+Normal `aoe` events can instead use `applyEffects` to apply multiple effects from one cast:
+
+```json
+"applyEffects": {
+  "order": "shuffle",
+  "effects": [
+    { "name": "Plant (short)", "kind": "debuff", "duration": 7, "behavior": { "kind": "plant", "direction": "option", "distance": 6.5 } },
+    { "name": "Plant (long)", "kind": "debuff", "duration": 10, "behavior": { "kind": "plant", "direction": "option", "distance": 6.5 } }
+  ]
+}
+```
+
+`order` defaults to `"listed"`. Use `"shuffle"` for seeded per-player random order; this changes
+which effect lands first, not the combo slot mapping from `optionals.combinations.plant.debuffOrder`.
+
 Behaviors:
 
 ```json
@@ -793,6 +808,7 @@ supported.
   "combinations": {
     "plant": {
       "rng": true,
+      "debuffOrder": [1, 0],
       "g1": {
         "members": ["mt", "ot", "h1", "h2"],
         "combos": [["up", "up"], ["down", "down"], ["left", "left"], ["right", "right"]]
@@ -808,8 +824,11 @@ supported.
 
 - Directions are cardinal **constants**: `up` = `[0, 1]` (north), `down` = `[0, -1]`, `left` =
   `[-1, 0]`, `right` = `[1, 0]` (east). Much more readable than raw `[x, z]` vectors.
-- A **combo** is one direction per plant slot, in the order the plant debuffs land (so
-  `["up", "right"]` = first/short plant heads north, second/long plant heads east).
+- A **combo** is one direction per plant slot. By default, plant debuffs use slots in landing order
+  (so `["up", "right"]` = first plant heads north, second plant heads east).
+- `debuffOrder` optionally maps plant debuff application order to combo slot. For example, `[1, 0]`
+  makes the first applied debuff use combo slot 1 and the second applied debuff use combo slot 0,
+  which keeps display/solver order separate from each debuff's timer.
 - `g1` and `g2` are two **explicit groups**, each with a `members` list (player ids, which must
   exist in the roster) and a `combos` pool. Within a group, the combo pool is shuffled per seed
   before assignment, wrapping if there are fewer combos than members.

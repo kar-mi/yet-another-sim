@@ -57,6 +57,11 @@ export type EffectSpec = {
   visibility?: "visible" | "invisible";
 };
 
+export type EffectBundle = {
+  effects: EffectSpec[];
+  order: "listed" | "shuffle";
+};
+
 export type StatusEffect = {
   id: string;
   name: string;
@@ -133,6 +138,7 @@ export type ActiveMechanic = {
   damage: number;
   damageType: DamageType;
   applyEffect?: EffectSpec;
+  applyEffects?: EffectBundle;
   knockback?: Knockback;
   positional?: PositionalArc;
   // While unresolved and casting, the boss holds its facing instead of tracking its target.
@@ -156,6 +162,7 @@ export type PendingEvent = {
   damage: number;
   damageType: DamageType;
   applyEffect?: EffectSpec;
+  applyEffects?: EffectBundle;
   knockback?: Knockback;
   positional?: PositionalArc;
   // For cone/rect: resolve origin/direction from the boss at cast start (see promotePending).
@@ -558,5 +565,8 @@ export type World = {
   // at world creation. Empty when the raid has no plant combinations. Stamped onto each plant
   // debuff as it lands so the HUD arrow + trap use the player's assigned heading.
   plantPlan: Record<string, [number, number][]>;
+  // Optional mapping from plant application order to combo slot. This lets a short-timer debuff
+  // use a later combo slot while the displayed/solver combo order remains stable.
+  plantDebuffOrder?: number[];
   botSolvers?: BotSolvers;
 };

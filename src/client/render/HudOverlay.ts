@@ -330,7 +330,16 @@ export class HudOverlay {
       row.hpFill.style.width = `${hpPct}%`;
       row.mpFill.style.width = `${mpPct}%`;
       row.rowEl.classList.toggle("yas-dead", !player.alive);
-      const activeEffects = player.effects.filter(e => e.visibility !== "invisible" && e.appliedAt + e.duration > world.time);
+      const activeEffects = player.effects
+        .filter(e => e.visibility !== "invisible" && e.appliedAt + e.duration > world.time)
+        .map((effect, index) => ({ effect, index }))
+        .sort((a, b) => {
+          const aPlant = a.effect.behavior.kind === "plant";
+          const bPlant = b.effect.behavior.kind === "plant";
+          if (aPlant && bPlant) return (a.effect.plantSlot ?? a.index) - (b.effect.plantSlot ?? b.index);
+          return a.index - b.index;
+        })
+        .map(entry => entry.effect);
       row.effectsEl.replaceChildren();
       for (const effect of activeEffects) {
         const effectEl = document.createElement("span");
