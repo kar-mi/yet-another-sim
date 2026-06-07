@@ -603,6 +603,32 @@ test("targeted mechanic with aggro mode hits the boss's current target", () => {
   expect(human(world).hp).toBe(100); // m1 closest, spared
 });
 
+test("plant debuff knocks the player along its arrow when it expires", () => {
+  const raid = loadRaid({ ...baseRaid, players: roster({ m1: { spawn: [0, 0] } }) });
+  const world = withEffect(createWorld(raid), effect({
+    name: "Plant",
+    duration: 0.5,
+    behavior: { kind: "plant", direction: [0, 1], distance: 8, height: 0, damage: 0, damageType: "magical" },
+  }));
+  const after = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(3 * 60));
+  expect(human(after).pos.z).toBeGreaterThan(5); // shoved ~8 units along +z
+  expect(human(after).pos.x).toBeCloseTo(0, 1); // no lateral drift
+  expect(human(after).effects.some(e => e.behavior.kind === "plant")).toBe(false); // expired
+});
+
+test("effect_burst drops an AOE on each carrier of the named effect", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [0, 0] }, m2: { spawn: [3, 0] }, mt: { spawn: [18, 0] } }),
+    events: [{ type: "effect_burst", t: 0.5, name: "Sleeper Burst", telegraph: 0.5, effectName: "Sleep", radius: 5, damage: 50, damageType: "magical" }],
+  });
+  const world = withEffect(createWorld(raid), effect({ name: "Sleep", duration: 20, behavior: { kind: "sleep" } }));
+  const after = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(1.2 * 60));
+  expect(human(after).hp).toBeLessThan(100); // m1 carries Sleep -> burst centered on it
+  expect(after.players.find(p => p.id === "m2")!.hp).toBeLessThan(100); // within radius of the carrier
+  expect(after.players.find(p => p.id === "mt")!.hp).toBe(TANK_HP); // far away, untouched
+});
+
 test("targeted mechanic picks the near/far target at cast end, not cast start", () => {
   const raid = loadRaid({
     ...baseRaid,

@@ -656,6 +656,43 @@ is then consumed (it fires once). If no one enters, it expires after `duration`.
 }
 ```
 
+### `effect_burst` — AOE around every carrier of a named effect
+
+At cast start (`t`) this drops one circular AOE on **each living player who currently has an active
+effect named `effectName`** — e.g. a burst around every sleeping player. The circles are snapshotted
+at cast start and then resolve exactly like normal `aoe`s at `t + telegraph` (telegraph drawn, damage
++ optional `applyEffect`/`knockback` on resolve). If no one carries the effect, nothing happens. The
+burst is independent of the named effect — it deals its own `damage`, unrelated to e.g. the sleep.
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `type` | yes | `"effect_burst"`. |
+| `t` | yes | Cast start (seconds). Carriers + circle centers are snapshotted now. |
+| `name` | yes | Mechanic name (cast bar / log). |
+| `telegraph` | yes | Cast duration (> 0); circles resolve at `t + telegraph`. |
+| `effectName` | yes | Burst around each player carrying an active effect with this exact name. |
+| `radius` | yes | Radius (> 0) of the circle dropped on each carrier. |
+| `damage` | yes | Damage (≥ 0) to each player inside any burst circle at resolve. |
+| `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
+| `applyEffect` | no | Debuff/buff applied to each hit player (same shape as on `aoe`). |
+| `knockback` | no | Knockback applied to each hit player (same shape as on `aoe`). |
+| `showCastBar` | no | Show a single cast bar for the set. Default `false`. |
+| `showTelegraph` | no | `true` (default) draws the ground circles. |
+
+```json
+{
+  "type": "effect_burst",
+  "t": 32,
+  "name": "Sleeper Burst",
+  "telegraph": 2,
+  "effectName": "Sleep",
+  "radius": 6,
+  "damage": 40,
+  "damageType": "magical",
+  "showCastBar": true
+}
+```
+
 ## Shapes
 
 Used by `aoe` events (`shape`) — a point is hit if it falls inside the shape at resolve.
@@ -708,6 +745,7 @@ Behaviors:
 { "kind": "freeze",  "dps": 8 }
 { "kind": "confusion", "damage": 80, "damageType": "true", "radius": 1.5 }
 { "kind": "sleep" }
+{ "kind": "plant", "direction": [0, 1], "distance": 8, "height": 0, "damage": 0, "damageType": "magical" }
 ```
 
 - **none** — marker only (no mechanical effect).
@@ -716,6 +754,7 @@ Behaviors:
 - **freeze** — deals `dps` damage per second (≥ 0) while active.
 - **confusion** — overrides movement: the player is forced to walk toward whichever other living player was closest **when the debuff landed** (the target is locked at that moment). When they get within `radius` units, that **target** takes `damage` of `damageType` (friendly fire — the confused player takes none) and the debuff ends. Pair with a long `duration` so it lasts until contact.
 - **sleep** — disables all input (movement and actions) for the full `duration`. Not broken by taking damage.
+- **plant** — Tele-Trouncing "plant": while active a ground arrow under the player points along `direction` (`[x, z]`); when the debuff **expires** the player is knocked `distance` units that way (`height` > 0 arcs it as a knockup) and takes optional `damage` of `damageType`. `direction` must be non-zero; `height`/`damage` default `0`, `damageType` defaults `magical`.
 
 ## Bot patterns
 

@@ -25,6 +25,7 @@ import type {
   ActiveGaze,
   PendingGaze,
   ActiveForcedMarch,
+  PendingEffectBurst,
   Boss,
   PositionalArc,
   EffectBehavior,
@@ -641,6 +642,33 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
+  // 3c. Promote effect-burst events: at cast start, drop an AOE circle on every player carrying the
+  // named effect (e.g. a burst around each sleeping player). They then resolve like normal AOEs.
+  const remainingPendingEffectBursts: PendingEffectBurst[] = [];
+  for (const pb of world.pendingEffectBursts) {
+    if (pb.t <= time) {
+      const carriers = players.filter(p => p.alive && p.effects.some(e => e.name === pb.effectName && isEffectActiveAt(e, time)));
+      carriers.forEach((carrier, i) => {
+        active.push({
+          id: `${pb.id}-${carrier.id}`,
+          name: pb.name,
+          shape: { kind: "circle", center: { x: carrier.pos.x, z: carrier.pos.z }, radius: pb.radius },
+          telegraphStart: pb.t,
+          resolveAt: pb.t + pb.telegraph,
+          damage: pb.damage,
+          damageType: pb.damageType,
+          applyEffect: pb.applyEffect,
+          knockback: pb.knockback,
+          resolved: false,
+          showCastBar: pb.showCastBar && i === 0, // one cast bar for the whole set
+          showTelegraph: pb.showTelegraph,
+        });
+      });
+    } else {
+      remainingPendingEffectBursts.push(pb);
+    }
+  }
+
   // 3. Resolve mechanics past resolveAt (FFXIV snapshot semantics)
   const stillActive: ActiveMechanic[] = [];
   for (const mechanic of active) {
@@ -956,6 +984,21 @@ export function tick(world: World, intents: Intents, dt: number): World {
         }
       }
     }
+    // Plant (Tele-Trouncing): on the tick its debuff expires, knock the player along its arrow.
+    if (player.alive) {
+      for (const effect of player.effects) {
+        if (effect.behavior.kind !== "plant") continue;
+        const expiry = effect.appliedAt + effect.duration;
+        if (expiry <= previousTime || expiry > time) continue; // only the tick it expires on
+        const b = effect.behavior;
+        if (b.damage > 0) applyMechanicDamage(player, b.damage, b.damageType, time);
+        if (player.alive && player.antiKbActive <= 0) {
+          const dir = normalize({ x: b.direction[0], z: b.direction[1] });
+          applyKnockback(player, { distance: b.distance, height: b.height }, sub(player.pos, dir));
+        }
+        log.push({ t: time, mechanic: effect.name, playerId: player.id, event: "hit" });
+      }
+    }
     player.effects = player.effects.filter(effect => isEffectActiveAt(effect, time));
   }
 
@@ -970,7 +1013,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
     && remainingPendingGroups.length === 0 && stillGroups.every(g => g.resolved)
     && remainingPendingInversions.length === 0 && stillInversions.every(i => i.resolved)
     && remainingPendingGazes.length === 0 && stillGazes.every(g => g.resolved)
-    && remainingPendingForcedMarches.length === 0 && forcedMarches.every(fm => fm.triggered);
+    && remainingPendingForcedMarches.length === 0 && forcedMarches.every(fm => fm.triggered)
+    && remainingPendingEffectBursts.length === 0;
   let status = world.status;
   if (status === "running") {
     if (!anyAlive) {
@@ -980,5 +1024,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, rngState, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, inversions: stillInversions, pendingInversions: remainingPendingInversions, gazes: stillGazes, pendingGazes: remainingPendingGazes, forcedMarches, pendingForcedMarches: remainingPendingForcedMarches };
+  return { ...world, time, rngState, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, inversions: stillInversions, pendingInversions: remainingPendingInversions, gazes: stillGazes, pendingGazes: remainingPendingGazes, forcedMarches, pendingForcedMarches: remainingPendingForcedMarches, pendingEffectBursts: remainingPendingEffectBursts };
 }

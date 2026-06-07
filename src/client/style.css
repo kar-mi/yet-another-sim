@@ -580,6 +580,13 @@ body:focus-visible {
   letter-spacing: 0.03em;
 }
 
+.party-effect-icon {
+  display: inline-block;
+  font-size: 12px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
 .party-effect-timer {
   margin-left: 4px;
   font-size: 9px;

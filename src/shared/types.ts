@@ -29,7 +29,10 @@ export type EffectBehavior =
   // friendly-fire damage and the debuff ends. Target is locked when the debuff lands.
   | { kind: "confusion"; damage: number; damageType: DamageType; radius: number }
   // Disables all input for the effect's duration (not broken by damage).
-  | { kind: "sleep" };
+  | { kind: "sleep" }
+  // Tele-Trouncing "plant": while active a ground arrow points along `direction` ([x, z]);
+  // when the debuff expires the player is knocked `distance` that way (optional `damage`).
+  | { kind: "plant"; direction: [number, number]; distance: number; height: number; damage: number; damageType: DamageType };
 
 export type EffectSpec = {
   name: string;
@@ -157,6 +160,24 @@ export type PendingTargetedEvent = {
   damage: number;
   damageType: DamageType;
   applyEffect?: EffectSpec;
+  showCastBar: boolean;
+  showTelegraph: boolean;
+};
+
+
+// An effect-burst spawns an AOE circle on every player carrying a named effect (e.g. a burst
+// around each sleeping player). At cast start it drops one normal AOE per carrier.
+export type PendingEffectBurst = {
+  id: string;
+  t: number;
+  name: string;
+  telegraph: number;
+  effectName: string;
+  radius: number;
+  damage: number;
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
+  knockback?: Knockback;
   showCastBar: boolean;
   showTelegraph: boolean;
 };
@@ -497,4 +518,5 @@ export type World = {
   pendingGazes: PendingGaze[];
   forcedMarches: ActiveForcedMarch[];
   pendingForcedMarches: PendingForcedMarch[];
+  pendingEffectBursts: PendingEffectBurst[];
 };

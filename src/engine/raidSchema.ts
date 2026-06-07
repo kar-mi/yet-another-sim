@@ -37,6 +37,14 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("freeze"), dps: z.number().nonnegative() }),
   z.object({ kind: z.literal("confusion"), damage: z.number().nonnegative(), damageType: z.enum(["physical", "magical", "true"]), radius: z.number().positive() }),
   z.object({ kind: z.literal("sleep") }),
+  z.object({
+    kind: z.literal("plant"),
+    direction: Vec2Schema.refine(([x, z]) => x !== 0 || z !== 0, "plant direction must be a non-zero vector"),
+    distance: z.number().positive(),
+    height: z.number().nonnegative().default(0),
+    damage: z.number().nonnegative().default(0),
+    damageType: z.enum(["physical", "magical", "true"]).default("magical"),
+  }),
 ]);
 
 const ApplyEffectSchema = z.object({
@@ -250,7 +258,22 @@ const ForcedMarchEventSchema = z.object({
   }
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, InverseEventSchema, GazeEventSchema, ForcedMarchEventSchema]);
+const EffectBurstEventSchema = z.object({
+  type: z.literal("effect_burst"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
+  effectName: z.string().min(1),                   // burst around each player carrying this effect
+  radius: z.number().positive(),                   // AOE radius around each carrier
+  damage: z.number().nonnegative(),
+  damageType: z.enum(["physical", "magical", "true"]),
+  applyEffect: ApplyEffectSchema.optional(),
+  knockback: KnockbackSchema.optional(),
+  showCastBar: z.boolean().optional(),
+  showTelegraph: z.boolean().optional(),
+});
+
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, InverseEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
