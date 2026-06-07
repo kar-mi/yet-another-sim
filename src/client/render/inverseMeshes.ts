@@ -4,33 +4,30 @@ import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { CreateTorus } from "@babylonjs/core/Meshes/Builders/torusBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import { Material } from "@babylonjs/core/Materials/material";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveInverse, Boss } from "../../shared/types";
 import { createShapeMesh } from "./telegraphMeshes";
 
-// Each inverse mechanic gets its own ring around the boss. The ring colour identifies the
-// mechanic (e.g. blue = floor AOE, red = line AOE). The orbs riding the ring encode whether
-// the mechanic is real (dark blue) or a fake "?" (reddish-orange with a yellow question mark).
+// Each inverse mechanic gets ONE ring around the boss. The ring colour identifies the mechanic
+// (e.g. blue = floor AOE, red = line AOE) and its height is authored per mechanic. The orbs
+// riding the ring encode whether the mechanic is real (dark blue) or a fake "?" (reddish-orange
+// with a yellow question mark).
 const RING_RADIUS = 6;
 const RING_THICKNESS = 0.5;
 const ORBS_PER_RING = 2;
 const ORB_SIZE = 1.8;
+const DEFAULT_RING_Y = 2;
 const DEFAULT_RING_COLOR = "#ffffff";
 
 const REAL_ORB = "#1e3a8f";   // dark blue: honest telegraph
 const FAKE_ORB = "#ff5a1f";   // reddish-orange: lying "?" telegraph
 const QUESTION = "#ffdd33";   // yellow "?" on a fake orb
 
-// Vertical slot for the n-th simultaneous ring: first on top, the next below it.
-function ringY(index: number): number {
-  return 3.2 - index * 2.8;
-}
-
 export type InverseMeshes = {
   all: Mesh[];
-  telegraph: Mesh | null;
-  telegraphMat: StandardMaterial | null;
+  telegraphMats: StandardMaterial[];
   ring: Mesh;
   orbs: Mesh[];
 };
@@ -45,32 +42,32 @@ function orbTexture(scene: Scene, id: string, inverted: boolean): DynamicTexture
   ctx.fillStyle = inverted ? FAKE_ORB : REAL_ORB;
   ctx.fill();
   if (inverted) {
-    ctx.fillStyle = QUESTION;
-    ctx.font = "bold 90px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("?", 64, 72);
+    // x=null centers the glyph horizontally; "" clearColor draws over the circle (no wipe).
+    tex.drawText("?", null, 92, "bold 90px sans-serif", QUESTION, "", true, true);
+  } else {
+    tex.update();
   }
-  tex.update();
   return tex;
 }
 
 export function createInverseMeshes(scene: Scene, inv: ActiveInverse): InverseMeshes {
   const all: Mesh[] = [];
 
-  // Shown telegraph footprint (always drawn). The hidden shape is intentionally not rendered.
-  const telegraph = createShapeMesh(scene, `inv-${inv.id}`, inv.shownShape);
-  let telegraphMat: StandardMaterial | null = null;
-  if (telegraph) {
-    telegraphMat = new StandardMaterial(`inv-tel-mat-${inv.id}`, scene);
-    telegraphMat.specularColor = new Color3(0, 0, 0);
-    telegraphMat.backFaceCulling = false;
-    telegraph.material = telegraphMat;
-    telegraph.isPickable = false;
-    all.push(telegraph);
-  }
+  // Shown telegraph footprints (always drawn). The hidden shapes are intentionally not rendered.
+  const telegraphMats: StandardMaterial[] = [];
+  inv.shownShapes.forEach((shape, i) => {
+    const mesh = createShapeMesh(scene, `inv-${inv.id}-${i}`, shape);
+    if (!mesh) return;
+    const mat = new StandardMaterial(`inv-tel-mat-${inv.id}-${i}`, scene);
+    mat.specularColor = new Color3(0, 0, 0);
+    mat.backFaceCulling = false;
+    mesh.material = mat;
+    mesh.isPickable = false;
+    telegraphMats.push(mat);
+    all.push(mesh);
+  });
 
-  // The mechanic's boss ring (solid, opaque), coloured to identify this mechanic.
+  // The mechanic's single boss ring (solid, opaque), coloured to identify this mechanic.
   const ring = CreateTorus(`inv-ring-${inv.id}`, {
     diameter: RING_RADIUS * 2,
     thickness: RING_THICKNESS,
@@ -100,35 +97,35 @@ export function createInverseMeshes(scene: Scene, inv: ActiveInverse): InverseMe
     mat.emissiveTexture = tex;
     mat.emissiveColor = new Color3(1, 1, 1);
     mat.disableLighting = true;
-    mat.disableDepthWrite = true;
+    mat.transparencyMode = Material.MATERIAL_ALPHABLEND; // transparent background around the orb
     mat.backFaceCulling = false;
     orb.material = mat;
     orbs.push(orb);
     all.push(orb);
   }
 
-  return { all, telegraph, telegraphMat, ring, orbs };
+  return { all, telegraphMats, ring, orbs };
 }
 
-export function updateInverseMeshes(handle: InverseMeshes, inv: ActiveInverse, boss: Boss, time: number, index: number): void {
+export function updateInverseMeshes(handle: InverseMeshes, inv: ActiveInverse, boss: Boss, time: number): void {
   // Telegraph color/alpha fade as the cast progresses (mirrors TelegraphLayer).
-  if (handle.telegraphMat) {
+  const span = inv.resolveAt - inv.telegraphStart;
+  const progress = span > 0 ? Math.min(1, Math.max(0, (time - inv.telegraphStart) / span)) : 1;
+  for (const mat of handle.telegraphMats) {
     if (inv.resolved) {
-      handle.telegraphMat.diffuseColor = new Color3(1, 1, 1);
-      handle.telegraphMat.alpha = 0.8;
+      mat.diffuseColor = new Color3(1, 1, 1);
+      mat.alpha = 0.8;
     } else {
-      const span = inv.resolveAt - inv.telegraphStart;
-      const progress = span > 0 ? Math.min(1, Math.max(0, (time - inv.telegraphStart) / span)) : 1;
-      handle.telegraphMat.diffuseColor = inv.inverted
+      mat.diffuseColor = inv.inverted
         ? new Color3(0.4, 0.6, 1)
         : new Color3(1, Math.max(0, 0.8 - progress * 0.6), 0);
-      handle.telegraphMat.alpha = 0.25 + progress * 0.45;
+      mat.alpha = 0.25 + progress * 0.45;
     }
   }
 
-  // Ring + orbs orbit the boss at this mechanic's vertical slot.
+  // Ring + orbs orbit the boss at this mechanic's authored height.
   const { x, z } = boss.pos;
-  const y = ringY(index);
+  const y = inv.ringHeight ?? DEFAULT_RING_Y;
   handle.ring.position.set(x, y, z);
   const spin = time * 0.7;
   for (let i = 0; i < handle.orbs.length; i++) {

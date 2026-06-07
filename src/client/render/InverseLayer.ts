@@ -16,16 +16,14 @@ export class InverseLayer {
       }
     }
 
-    // Stable vertical slot per simultaneous ring: index in the (id-sorted) active list.
-    const ordered = [...inversions].sort((a, b) => a.id.localeCompare(b.id));
-    ordered.forEach((inv, index) => {
+    for (const inv of inversions) {
       let handle = this.inversions.get(inv.id);
       if (!handle) {
         handle = createInverseMeshes(this.scene, inv);
         this.inversions.set(inv.id, handle);
       }
-      updateInverseMeshes(handle, inv, boss, time, index);
-    });
+      updateInverseMeshes(handle, inv, boss, time);
+    }
   }
 
   dispose(): void {

@@ -28,83 +28,67 @@
     {
       "type": "inverse",
       "t": 3,
-      "name": "Honest NW",
+      "name": "Honest Cross",
       "telegraph": 4,
       "damage": 40,
       "damageType": "magical",
       "showCastBar": true,
       "ringColor": "#3b82f6",
-      "shownShape": { "kind": "cone", "origin": [0, 0], "direction": [-1, 1], "angleDeg": 80, "length": 22 },
-      "hiddenShape": { "kind": "cone", "origin": [0, 0], "direction": [1, 1], "angleDeg": 80, "length": 22 }
+      "ringHeight": 3.2,
+      "shownShapes": [
+        { "kind": "cone", "origin": [0, 0], "direction": [-1, 1], "angleDeg": 80, "length": 22 },
+        { "kind": "cone", "origin": [0, 0], "direction": [1, -1], "angleDeg": 80, "length": 22 }
+      ],
+      "hiddenShapes": [
+        { "kind": "cone", "origin": [0, 0], "direction": [1, 1], "angleDeg": 80, "length": 22 },
+        { "kind": "cone", "origin": [0, 0], "direction": [-1, -1], "angleDeg": 80, "length": 22 }
+      ]
     },
-    {
-      "type": "inverse",
-      "t": 3,
-      "name": "Honest SE",
-      "telegraph": 4,
-      "damage": 40,
-      "damageType": "magical",
-      "ringColor": "#ef4444",
-      "shownShape": { "kind": "cone", "origin": [0, 0], "direction": [1, -1], "angleDeg": 80, "length": 22 },
-      "hiddenShape": { "kind": "cone", "origin": [0, 0], "direction": [-1, -1], "angleDeg": 80, "length": 22 }
-    },
-
     {
       "type": "inverse",
       "t": 11,
-      "name": "Question NW",
+      "name": "Question Cross",
       "telegraph": 4,
       "damage": 40,
       "damageType": "magical",
       "showCastBar": true,
       "questionMark": true,
-      "ringColor": "#3b82f6",
-      "shownShape": { "kind": "cone", "origin": [0, 0], "direction": [-1, 1], "angleDeg": 80, "length": 22 },
-      "hiddenShape": { "kind": "cone", "origin": [0, 0], "direction": [1, 1], "angleDeg": 80, "length": 22 }
-    },
-    {
-      "type": "inverse",
-      "t": 11,
-      "name": "Question SE",
-      "telegraph": 4,
-      "damage": 40,
-      "damageType": "magical",
-      "questionMark": true,
       "ringColor": "#ef4444",
-      "shownShape": { "kind": "cone", "origin": [0, 0], "direction": [1, -1], "angleDeg": 80, "length": 22 },
-      "hiddenShape": { "kind": "cone", "origin": [0, 0], "direction": [-1, -1], "angleDeg": 80, "length": 22 }
+      "ringHeight": 3.2,
+      "shownShapes": [
+        { "kind": "cone", "origin": [0, 0], "direction": [-1, 1], "angleDeg": 80, "length": 22 },
+        { "kind": "cone", "origin": [0, 0], "direction": [1, -1], "angleDeg": 80, "length": 22 }
+      ],
+      "hiddenShapes": [
+        { "kind": "cone", "origin": [0, 0], "direction": [1, 1], "angleDeg": 80, "length": 22 },
+        { "kind": "cone", "origin": [0, 0], "direction": [-1, -1], "angleDeg": 80, "length": 22 }
+      ]
     },
-
     {
       "type": "inverse",
       "t": 19,
-      "name": "Coin Flip NW",
+      "name": "Coin Flip Cross",
       "telegraph": 5,
       "damage": 50,
       "damageType": "magical",
       "showCastBar": true,
       "rng": true,
+      "ringColor": "#a855f7",
+      "ringHeight": 3.2,
       "applyEffect": {
         "name": "Magic Vulnerability",
         "kind": "debuff",
         "duration": 8,
         "behavior": { "kind": "vuln", "damageType": "magical", "multiplier": 1.5 }
       },
-      "ringColor": "#3b82f6",
-      "shownShape": { "kind": "cone", "origin": [0, 0], "direction": [-1, 1], "angleDeg": 80, "length": 22 },
-      "hiddenShape": { "kind": "cone", "origin": [0, 0], "direction": [1, 1], "angleDeg": 80, "length": 22 }
-    },
-    {
-      "type": "inverse",
-      "t": 19,
-      "name": "Coin Flip SE",
-      "telegraph": 5,
-      "damage": 50,
-      "damageType": "magical",
-      "rng": true,
-      "ringColor": "#ef4444",
-      "shownShape": { "kind": "cone", "origin": [0, 0], "direction": [1, -1], "angleDeg": 80, "length": 22 },
-      "hiddenShape": { "kind": "cone", "origin": [0, 0], "direction": [-1, -1], "angleDeg": 80, "length": 22 }
+      "shownShapes": [
+        { "kind": "cone", "origin": [0, 0], "direction": [-1, 1], "angleDeg": 80, "length": 22 },
+        { "kind": "cone", "origin": [0, 0], "direction": [1, -1], "angleDeg": 80, "length": 22 }
+      ],
+      "hiddenShapes": [
+        { "kind": "cone", "origin": [0, 0], "direction": [1, 1], "angleDeg": 80, "length": 22 },
+        { "kind": "cone", "origin": [0, 0], "direction": [-1, -1], "angleDeg": 80, "length": 22 }
+      ]
     }
   ],
   "waymarks": [

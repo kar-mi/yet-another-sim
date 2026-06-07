@@ -718,9 +718,10 @@ export function tick(world: World, intents: Intents, dt: number): World {
       inversions.push({
         id: pi.id,
         name: pi.name,
-        shownShape: pi.shownShape,
-        hiddenShape: pi.hiddenShape,
+        shownShapes: pi.shownShapes,
+        hiddenShapes: pi.hiddenShapes,
         ringColor: pi.ringColor,
+        ringHeight: pi.ringHeight,
         inverted,
         telegraphStart: pi.t,
         resolveAt: pi.t + pi.telegraph,
@@ -739,17 +740,18 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const stillInversions: ActiveInverse[] = [];
   for (const inv of inversions) {
     if (!inv.resolved && inv.resolveAt <= time) {
-      const lethal = inv.inverted ? inv.hiddenShape : inv.shownShape;
+      const lethal = inv.inverted ? inv.hiddenShapes : inv.shownShapes;
       for (const player of players) {
         if (!player.alive) continue;
-        if (pointInShape(lethal, player.pos)) {
+        const hitShape = lethal.find(shape => pointInShape(shape, player.pos));
+        if (hitShape) {
           applyMechanicDamage(player, inv.damage, inv.damageType, time);
           log.push({ t: time, mechanic: inv.name, playerId: player.id, event: "hit" });
           if (inv.applyEffect && player.alive) {
             applyEffect(player, inv.applyEffect, time, `${inv.id}-${player.id}-eff`);
           }
           if (inv.knockback && player.alive && player.antiKbActive <= 0) {
-            applyKnockback(player, inv.knockback, inv.knockback.origin ?? shapeOrigin(lethal));
+            applyKnockback(player, inv.knockback, inv.knockback.origin ?? shapeOrigin(hitShape));
           }
         } else {
           log.push({ t: time, mechanic: inv.name, playerId: player.id, event: "cleared" });
