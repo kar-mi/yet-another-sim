@@ -55,7 +55,7 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     radius: z.number().positive().default(3),        // trap trigger-zone radius
     armDelay: z.number().nonnegative().default(3),   // seconds the placed trap is inert before it can trigger
     duration: z.number().positive().default(10),     // seconds the armed trap lasts before expiring untriggered
-    tpDelay: z.number().nonnegative().default(1),    // windup seconds frozen at A before the instant teleport to B
+    tpDelay: z.number().nonnegative().default(0.7),  // windup seconds frozen at A before the instant teleport to B
   }),
 ]);
 
