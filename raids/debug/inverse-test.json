@@ -1,0 +1,98 @@
+{
+  "name": "Inverse Test",
+  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 20 }] },
+  "duration": 30,
+  "players": [
+    { "id": "mt", "role": "tank", "control": "human", "spawn": [0, 0] },
+    { "id": "ot", "role": "tank", "control": "bot", "spawn": [8, 8] },
+    { "id": "h1", "role": "healer", "control": "bot", "spawn": [-8, 8] },
+    { "id": "h2", "role": "healer", "control": "bot", "spawn": [8, -8] },
+    { "id": "r1", "role": "dps", "control": "bot", "spawn": [-8, -8] },
+    { "id": "r2", "role": "dps", "control": "bot", "spawn": [12, 0] },
+    { "id": "m1", "role": "dps", "control": "bot", "spawn": [-12, 0] },
+    { "id": "m2", "role": "dps", "control": "bot", "spawn": [0, 12] }
+  ],
+  "events": [
+    {
+      "type": "inverse",
+      "t": 3,
+      "name": "Honest NW",
+      "telegraph": 4,
+      "damage": 40,
+      "damageType": "magical",
+      "showCastBar": true,
+      "shownShape": { "kind": "cone", "origin": [0, 0], "direction": [-1, 1], "angleDeg": 80, "length": 22 },
+      "hiddenShape": { "kind": "cone", "origin": [0, 0], "direction": [1, 1], "angleDeg": 80, "length": 22 }
+    },
+    {
+      "type": "inverse",
+      "t": 3,
+      "name": "Honest SE",
+      "telegraph": 4,
+      "damage": 40,
+      "damageType": "magical",
+      "shownShape": { "kind": "cone", "origin": [0, 0], "direction": [1, -1], "angleDeg": 80, "length": 22 },
+      "hiddenShape": { "kind": "cone", "origin": [0, 0], "direction": [-1, -1], "angleDeg": 80, "length": 22 }
+    },
+
+    {
+      "type": "inverse",
+      "t": 11,
+      "name": "Question NW",
+      "telegraph": 4,
+      "damage": 40,
+      "damageType": "magical",
+      "showCastBar": true,
+      "questionMark": true,
+      "shownShape": { "kind": "cone", "origin": [0, 0], "direction": [-1, 1], "angleDeg": 80, "length": 22 },
+      "hiddenShape": { "kind": "cone", "origin": [0, 0], "direction": [1, 1], "angleDeg": 80, "length": 22 }
+    },
+    {
+      "type": "inverse",
+      "t": 11,
+      "name": "Question SE",
+      "telegraph": 4,
+      "damage": 40,
+      "damageType": "magical",
+      "questionMark": true,
+      "shownShape": { "kind": "cone", "origin": [0, 0], "direction": [1, -1], "angleDeg": 80, "length": 22 },
+      "hiddenShape": { "kind": "cone", "origin": [0, 0], "direction": [-1, -1], "angleDeg": 80, "length": 22 }
+    },
+
+    {
+      "type": "inverse",
+      "t": 19,
+      "name": "Coin Flip NW",
+      "telegraph": 5,
+      "damage": 50,
+      "damageType": "magical",
+      "showCastBar": true,
+      "rng": true,
+      "applyEffect": {
+        "name": "Magic Vulnerability",
+        "kind": "debuff",
+        "duration": 8,
+        "behavior": { "kind": "vuln", "damageType": "magical", "multiplier": 1.5 }
+      },
+      "shownShape": { "kind": "cone", "origin": [0, 0], "direction": [-1, 1], "angleDeg": 80, "length": 22 },
+      "hiddenShape": { "kind": "cone", "origin": [0, 0], "direction": [1, 1], "angleDeg": 80, "length": 22 }
+    },
+    {
+      "type": "inverse",
+      "t": 19,
+      "name": "Coin Flip SE",
+      "telegraph": 5,
+      "damage": 50,
+      "damageType": "magical",
+      "rng": true,
+      "shownShape": { "kind": "cone", "origin": [0, 0], "direction": [1, -1], "angleDeg": 80, "length": 22 },
+      "hiddenShape": { "kind": "cone", "origin": [0, 0], "direction": [-1, -1], "angleDeg": 80, "length": 22 }
+    }
+  ],
+  "waymarks": [
+    { "mark": "A", "pos": [0, 16] },
+    { "mark": "B", "pos": [16, 0] },
+    { "mark": "C", "pos": [0, -16] },
+    { "mark": "D", "pos": [-16, 0] }
+  ]
+}

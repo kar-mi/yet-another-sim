@@ -20,6 +20,8 @@ import type {
   DamageType,
   ActiveGroupMechanic,
   PendingGroupEvent,
+  ActiveInverse,
+  PendingInverse,
   Boss,
   PositionalArc,
 } from "../shared/types";
@@ -706,6 +708,60 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
+  // 3e. Inverse ("?") events: at cast start roll the inversion. The shown shape is always
+  // drawn (telegraph), but when inverted the "?" makes it a lie -> the hidden shape is lethal.
+  const remainingPendingInversions: PendingInverse[] = [];
+  const inversions: ActiveInverse[] = world.inversions.map(i => ({ ...i }));
+  for (const pi of world.pendingInversions) {
+    if (pi.t <= time) {
+      const inverted = pi.questionMark ?? (pi.rng ? Math.random() < 0.5 : false);
+      inversions.push({
+        id: pi.id,
+        name: pi.name,
+        shownShape: pi.shownShape,
+        hiddenShape: pi.hiddenShape,
+        inverted,
+        telegraphStart: pi.t,
+        resolveAt: pi.t + pi.telegraph,
+        damage: pi.damage,
+        damageType: pi.damageType,
+        applyEffect: pi.applyEffect,
+        knockback: pi.knockback,
+        showCastBar: pi.showCastBar,
+        resolved: false,
+      });
+    } else {
+      remainingPendingInversions.push(pi);
+    }
+  }
+
+  const stillInversions: ActiveInverse[] = [];
+  for (const inv of inversions) {
+    if (!inv.resolved && inv.resolveAt <= time) {
+      const lethal = inv.inverted ? inv.hiddenShape : inv.shownShape;
+      for (const player of players) {
+        if (!player.alive) continue;
+        if (pointInShape(lethal, player.pos)) {
+          applyMechanicDamage(player, inv.damage, inv.damageType, time);
+          log.push({ t: time, mechanic: inv.name, playerId: player.id, event: "hit" });
+          if (inv.applyEffect && player.alive) {
+            applyEffect(player, inv.applyEffect, time, `${inv.id}-${player.id}-eff`);
+          }
+          if (inv.knockback && player.alive && player.antiKbActive <= 0) {
+            applyKnockback(player, inv.knockback, inv.knockback.origin ?? shapeOrigin(lethal));
+          }
+        } else {
+          log.push({ t: time, mechanic: inv.name, playerId: player.id, event: "cleared" });
+        }
+      }
+      inv.resolved = true;
+    }
+    // Keep briefly after resolve so the renderer can flash the hit.
+    if (!inv.resolved || inv.resolveAt >= time - dt) {
+      stillInversions.push(inv);
+    }
+  }
+
   // 4. Apply continuous status effects and expire old effects
   for (const player of players) {
     if (player.alive && !player.invincible) {
@@ -737,7 +793,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
     && remainingPendingTargeted.length === 0
     && remainingPendingTowers.length === 0 && stillTowers.every(t => t.resolved)
     && remainingPendingChains.length === 0 && stillChains.every(c => c.outcome !== undefined)
-    && remainingPendingGroups.length === 0 && stillGroups.every(g => g.resolved);
+    && remainingPendingGroups.length === 0 && stillGroups.every(g => g.resolved)
+    && remainingPendingInversions.length === 0 && stillInversions.every(i => i.resolved);
   let status = world.status;
   if (status === "running") {
     if (!anyAlive) {
@@ -747,5 +804,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups };
+  return { ...world, time, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, inversions: stillInversions, pendingInversions: remainingPendingInversions };
 }

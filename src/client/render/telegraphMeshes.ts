@@ -6,17 +6,18 @@ import { CreateGround } from "@babylonjs/core/Meshes/Builders/groundBuilder";
 import { CreateRibbon } from "@babylonjs/core/Meshes/Builders/ribbonBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveMechanic } from "../../shared/types";
+import type { ActiveMechanic, AOEShape } from "../../shared/types";
 import { normalize } from "../../shared/math";
 
-export function createTelegraphMesh(scene: Scene, mechanic: ActiveMechanic): Mesh | null {
-  const shape = mechanic.shape;
+// Geometry-only ground mesh for an AOE shape (no material). Shared by the telegraph layer
+// and other layers that need to draw a shape footprint (e.g. the inverse "?" telegraph).
+export function createShapeMesh(scene: Scene, id: string, shape: AOEShape): Mesh | null {
   const Y = 0.01;
   let mesh: Mesh;
 
   switch (shape.kind) {
     case "circle":
-      mesh = CreateDisc(`tel-${mechanic.id}`, { radius: shape.radius, tessellation: 64 }, scene);
+      mesh = CreateDisc(`tel-${id}`, { radius: shape.radius, tessellation: 64 }, scene);
       mesh.rotation.x = Math.PI / 2;
       mesh.position.set(shape.center.x, Y, shape.center.z);
       break;
@@ -30,7 +31,7 @@ export function createTelegraphMesh(scene: Scene, mechanic: ActiveMechanic): Mes
         outer.push(new Vector3(shape.center.x + c * shape.outer, Y, shape.center.z + s * shape.outer));
         inner.push(new Vector3(shape.center.x + c * shape.inner, Y, shape.center.z + s * shape.inner));
       }
-      mesh = CreateRibbon(`tel-${mechanic.id}`, { pathArray: [outer, inner] }, scene);
+      mesh = CreateRibbon(`tel-${id}`, { pathArray: [outer, inner] }, scene);
       break;
     }
 
@@ -48,7 +49,7 @@ export function createTelegraphMesh(scene: Scene, mechanic: ActiveMechanic): Mes
           shape.origin.z + Math.cos(a) * shape.length,
         ));
       }
-      mesh = CreateRibbon(`tel-${mechanic.id}`, {
+      mesh = CreateRibbon(`tel-${id}`, {
         pathArray: [Array(seg + 1).fill(apex), arc],
       }, scene);
       break;
@@ -57,7 +58,7 @@ export function createTelegraphMesh(scene: Scene, mechanic: ActiveMechanic): Mes
     case "rect": {
       const dir = normalize(shape.direction);
       const yaw = Math.atan2(dir.x, dir.z);
-      mesh = CreateGround(`tel-${mechanic.id}`, { width: shape.width, height: shape.length }, scene);
+      mesh = CreateGround(`tel-${id}`, { width: shape.width, height: shape.length }, scene);
       mesh.rotation.y = yaw;
       mesh.position.set(
         shape.origin.x + dir.x * shape.length / 2,
@@ -70,6 +71,13 @@ export function createTelegraphMesh(scene: Scene, mechanic: ActiveMechanic): Mes
     default:
       return null;
   }
+
+  return mesh;
+}
+
+export function createTelegraphMesh(scene: Scene, mechanic: ActiveMechanic): Mesh | null {
+  const mesh = createShapeMesh(scene, mechanic.id, mechanic.shape);
+  if (!mesh) return null;
 
   const mat = new StandardMaterial(`tel-mat-${mechanic.id}`, scene);
   mat.diffuseColor = new Color3(1, 0.8, 0);

@@ -199,6 +199,39 @@ export type ActiveTower = {
   outcome?: "success" | "failure"; // set at resolve, drives the post-resolve flash
 };
 
+
+export type PendingInverse = {
+  id: string;
+  t: number;
+  name: string;
+  telegraph: number;
+  shownShape: AOEShape;            // telegraph that IS drawn
+  hiddenShape: AOEShape;           // not drawn; lethal when inverted ("?")
+  rng: boolean;                    // randomize the inversion at cast start
+  questionMark?: boolean;          // authored override of the inversion state
+  damage: number;
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
+  knockback?: Knockback;
+  showCastBar: boolean;
+};
+
+export type ActiveInverse = {
+  id: string;
+  name: string;
+  shownShape: AOEShape;
+  hiddenShape: AOEShape;
+  inverted: boolean;               // true => "?" telegraph: hiddenShape is lethal
+  telegraphStart: number;
+  resolveAt: number;
+  damage: number;
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
+  knockback?: Knockback;
+  showCastBar: boolean;
+  resolved: boolean;
+};
+
 export type PendingGroupEvent = {
   id: string;          // event id, used as the linking key
   t: number;
@@ -376,4 +409,6 @@ export type World = {
   pendingChains: PendingChain[];
   groupMechanics: ActiveGroupMechanic[];
   pendingGroups: PendingGroupEvent[];
+  inversions: ActiveInverse[];
+  pendingInversions: PendingInverse[];
 };
