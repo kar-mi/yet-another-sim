@@ -40,6 +40,12 @@
     },
 
     {
+      "t": 29, "name": "Graven Image", "telegraph": 3, "damage": 0, "damageType": "true",
+      "showCastBar": true, "showTelegraph": false,
+      "shape": { "kind": "circle", "center": [0, 0], "radius": 0.1 }
+    },
+
+    {
       "type": "line_link", "t": 34, "name": "Left Statue (Sleep)", "pos": [-8, 24],
       "linkDuration": 6, "resolveAfter": 8,
       "target": { "roles": ["dps"], "count": 4, "mode": "closest" },
