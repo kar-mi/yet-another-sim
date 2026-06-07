@@ -378,7 +378,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
       forcedMarches.push({
         id: pfm.id, name: pfm.name, pos: pfm.pos, radius: pfm.radius,
         direction: pfm.direction, distance: pfm.distance,
-        preDelay: pfm.preDelay, postDelay: pfm.postDelay,
+        preDelay: pfm.preDelay, postDelay: pfm.postDelay, relativeMove: false,
         armedAt: pfm.t, expireAt: pfm.t + pfm.duration, triggered: false, teleported: false,
       });
     }
@@ -392,7 +392,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
         fm.triggered = true;
         fm.triggeredAt = time;
         fm.capturedPlayerId = entrant.id;
-        // A transient sleep effect holds them still for the full pre+post window (section 1 gates it).
+        fm.capturedFrom = { x: entrant.pos.x, z: entrant.pos.z };
+        // A transient sleep effect holds them still for the windup + recovery window.
         applyEffect(entrant, {
           name: fm.name, kind: "debuff",
           duration: fm.preDelay + fm.postDelay,
@@ -400,10 +401,13 @@ export function tick(world: World, intents: Intents, dt: number): World {
         }, time, `${fm.id}-freeze`, players);
       }
     } else if (!fm.teleported && time >= (fm.triggeredAt ?? time) + fm.preDelay) {
-      // preDelay elapsed: teleport the captured player; they stay frozen for postDelay.
+      // windup (preDelay) elapsed: instantly teleport the captured player to the destination.
       const captured = players.find(p => p.id === fm.capturedPlayerId && p.alive);
       if (captured) {
-        captured.pos = add(fm.pos, scale(normalize(fm.direction), fm.distance));
+        // forced_march anchors the destination to the trap center; the plant trap teleports the
+        // captured player `distance` from their own spot so it lands purely along `direction`.
+        const anchor = fm.relativeMove ? (fm.capturedFrom ?? fm.pos) : fm.pos;
+        captured.pos = add(anchor, scale(normalize(fm.direction), fm.distance));
         captured.facing = Math.atan2(fm.direction.x, fm.direction.z);
         log.push({ t: time, mechanic: fm.name, playerId: captured.id, event: "hit" });
       }
@@ -999,8 +1003,9 @@ export function tick(world: World, intents: Intents, dt: number): World {
           radius: b.radius,
           direction: { x: b.direction[0], z: b.direction[1] },
           distance: b.distance,
-          preDelay: 0.3,
+          preDelay: b.tpDelay,  // frozen at A during the windup, then an instant teleport to B
           postDelay: 0.3,
+          relativeMove: true,
           armedAt: time + b.armDelay,
           expireAt: time + b.armDelay + b.duration,
           triggered: false,

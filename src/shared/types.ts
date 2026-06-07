@@ -32,9 +32,10 @@ export type EffectBehavior =
   | { kind: "sleep" }
   // Tele-Trouncing "plant": the HUD shows an arrow along `direction` ([x, z]). When the debuff
   // expires it places a teleport trap (forced march) at the player's spot — inert for `armDelay`
-  // seconds so the placer can step off, then triggers on contact, flinging the entrant `distance`
-  // along `direction`. The trap expires `duration` seconds after it arms if untriggered.
-  | { kind: "plant"; direction: [number, number]; distance: number; radius: number; armDelay: number; duration: number };
+  // seconds so the placer can step off, then triggers on contact: the entrant is frozen for
+  // `tpDelay` seconds, then instantly teleported `distance` along `direction`. An untriggered trap
+  // expires `duration` seconds after it arms.
+  | { kind: "plant"; direction: [number, number]; distance: number; radius: number; armDelay: number; duration: number; tpDelay: number };
 
 export type EffectSpec = {
   name: string;
@@ -470,11 +471,14 @@ export type ActiveForcedMarch = {
   distance: number;
   preDelay: number;
   postDelay: number;
+  relativeMove: boolean;       // true: teleport `distance` from the captured player's spot (plant);
+                               // false (forced_march): destination is anchored to the trap center
   armedAt: number;
   expireAt: number;
   triggered: boolean;
-  triggeredAt?: number;        // time the entrant stepped on it (start of preDelay)
+  triggeredAt?: number;        // time the entrant stepped on it (start of preDelay windup)
   capturedPlayerId?: string;   // the player being marched
+  capturedFrom?: Vec2;         // where the captured player was grabbed (teleport anchor when relativeMove)
   teleported: boolean;         // whether the teleport (after preDelay) has happened yet
 };
 

@@ -41,9 +41,10 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     kind: z.literal("plant"),
     direction: Vec2Schema.refine(([x, z]) => x !== 0 || z !== 0, "plant direction must be a non-zero vector"),
     distance: z.number().positive(),
-    radius: z.number().positive().default(3),       // trap trigger-zone radius
-    armDelay: z.number().nonnegative().default(3),  // seconds the placed trap is inert before it can trigger
-    duration: z.number().positive().default(10),    // seconds the armed trap lasts before expiring untriggered
+    radius: z.number().positive().default(3),        // trap trigger-zone radius
+    armDelay: z.number().nonnegative().default(3),   // seconds the placed trap is inert before it can trigger
+    duration: z.number().positive().default(10),     // seconds the armed trap lasts before expiring untriggered
+    tpDelay: z.number().nonnegative().default(1),    // windup seconds frozen at A before the instant teleport to B
   }),
 ]);
 

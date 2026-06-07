@@ -12,6 +12,11 @@
     { "id": "m1", "role": "dps", "control": "human", "spawn": [-5.66, -5.66] },
     { "id": "m2", "role": "dps", "control": "bot", "spawn": [5.66, -5.66] }
   ],
+  "optionals": [
+    "combinations": {
+      "plant": [([1, 0], [1, 0]), ([1, 0], [0, -1])]
+    }
+  ],
   "events": [
     {
       "t": 5, "name": "Tele-Trouncing", "telegraph": 5, "damage": 0, "damageType": "magical",

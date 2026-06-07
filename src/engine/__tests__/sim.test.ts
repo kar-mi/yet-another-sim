@@ -603,20 +603,41 @@ test("targeted mechanic with aggro mode hits the boss's current target", () => {
   expect(human(world).hp).toBe(100); // m1 closest, spared
 });
 
-test("plant debuff places a teleport trap that only fires after its arm delay", () => {
+test("plant debuff places a teleport trap that arms, then snaps the entrant after a windup", () => {
   const raid = loadRaid({ ...baseRaid, players: roster({ m1: { spawn: [0, 0] } }) });
   const world = withEffect(createWorld(raid), effect({
     name: "Plant",
     duration: 0.5,
-    behavior: { kind: "plant", direction: [0, 1], distance: 8, radius: 3, armDelay: 0.5, duration: 10 },
+    behavior: { kind: "plant", direction: [0, 1], distance: 8, radius: 3, armDelay: 0.5, duration: 10, tpDelay: 1 },
   }));
-  // Debuff expires at 0.5; trap arms at 1.0. Before arming the placer is not yet teleported.
+  // Debuff expires at 0.5; trap arms at 1.0. Before arming the placer is not teleported.
   const armed = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.8 * 60));
   expect(armed.forcedMarches.some(fm => fm.id.startsWith("plant-"))).toBe(true);
-  expect(human(armed).pos.z).toBeLessThan(1); // still on the spot, trap inert
-  // After arming, standing in the zone captures + teleports them along the arrow (+z).
-  const after = runTicks(armed, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(1.5 * 60));
-  expect(human(after).pos.z).toBeGreaterThan(6); // teleported ~8 north
+  expect(human(armed).pos.z).toBeLessThan(1); // trap inert
+  // Captured at 1.0; during the 1s windup the player stays put at A (it's a teleport, not a slide).
+  const windup = runTicks(armed, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.7 * 60));
+  expect(human(windup).pos.z).toBeLessThan(1); // still at A mid-windup, not partway
+  // After the windup (~2.0s) it teleports instantly to ~8 north.
+  const after = runTicks(windup, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(1 * 60));
+  expect(human(after).pos.z).toBeGreaterThan(6);
+});
+
+test("plant teleport lands the captured player along the direction from their own spot", () => {
+  const raid = loadRaid({ ...baseRaid, players: roster({ m1: { spawn: [0, 0] } }) });
+  let world = withEffect(createWorld(raid), effect({
+    name: "Plant", duration: 0.5,
+    behavior: { kind: "plant", direction: [0, 1], distance: 8, radius: 4, armDelay: 1, duration: 10, tpDelay: 0.3 },
+  }));
+  // Hold until the trap is placed (expiry 0.5) so it centers on [0, 0].
+  world = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.5 * 60));
+  // Drift +x off the trap center (but stay inside radius 4) before it arms at 1.5.
+  world = runTicks(world, { [HUMAN]: { move: { x: 1, z: 0 } } }, Math.ceil(0.4 * 60));
+  const offCenterX = human(world).pos.x;
+  expect(offCenterX).toBeGreaterThan(1);
+  // Arm + windup + teleport: lands `distance` north of the player's own spot, x unchanged.
+  world = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(1.5 * 60));
+  expect(human(world).pos.z).toBeGreaterThan(6);
+  expect(human(world).pos.x).toBeCloseTo(offCenterX, 1);
 });
 
 test("effect_burst drops an AOE on each carrier of the named effect", () => {
