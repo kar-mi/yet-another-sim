@@ -443,6 +443,72 @@ the marked player. Use it for "stack on a random player" mechanics where the tar
 
 See `raids/rng-stack.json` for a linked pair demonstrating opposite-group assignment.
 
+### `inverse` — "?" telegraph (lie / opposite-side)
+
+A Kefka-style **question-mark** puzzle. The mechanic has two sets of shapes: `shownShapes`
+(the telegraph that **is** drawn) and `hiddenShapes` (not drawn). A per-cast **inversion** flag
+decides which set actually deals damage:
+
+- **Not inverted** (honest): the **shown** shapes are lethal — dodge the telegraph as usual.
+- **Inverted** (the "?"): the shown telegraph is a **lie** — it deals no damage; the **hidden**
+  shapes (the opposite side) are lethal instead.
+
+A player is hit if they stand in **any** lethal shape. Use shape arrays to make one mechanic a
+combo, e.g. two cones forming an intercardinal X.
+
+**Inversion state** is decided at cast start, in this precedence:
+1. `questionMark: true | false` — authored override (always / never inverted).
+2. else `rng: true` — randomised each run (true randomness — not seeded), 50/50.
+3. else — not inverted.
+
+**Visuals.** The shown telegraphs are drawn on the floor. Each mechanic also gets **one ring**
+around the boss to identify it (`ringColor`) at an authored height (`ringHeight`). The two orbs
+riding the ring encode the state: **dark blue = real**, **reddish-orange with a yellow "?" =
+fake** (inverted).
+
+```json
+{
+  "type": "inverse",
+  "t": 3,
+  "name": "Question Cross",
+  "telegraph": 4,
+  "damage": 40,
+  "damageType": "magical",
+  "showCastBar": true,
+  "rng": true,
+  "ringColor": "#3b82f6",
+  "ringHeight": 3.2,
+  "shownShapes": [
+    { "kind": "cone", "origin": [0, 0], "direction": [-1, 1], "angleDeg": 80, "length": 22 },
+    { "kind": "cone", "origin": [0, 0], "direction": [1, -1], "angleDeg": 80, "length": 22 }
+  ],
+  "hiddenShapes": [
+    { "kind": "cone", "origin": [0, 0], "direction": [1, 1], "angleDeg": 80, "length": 22 },
+    { "kind": "cone", "origin": [0, 0], "direction": [-1, -1], "angleDeg": 80, "length": 22 }
+  ]
+}
+```
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `type` | yes | `"inverse"`. |
+| `t` | yes | Cast start time (seconds). The inversion is rolled now. |
+| `name` | yes | Mechanic name (used in the log and cast bar). |
+| `telegraph` | yes | Cast duration in seconds (> 0); damage applies at `t + telegraph`. |
+| `damage` | yes | Damage (≥ 0) dealt to each player in a lethal shape. |
+| `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
+| `shownShapes` | yes | Array (≥ 1) of [shapes](#shapes) that are drawn; lethal when **not** inverted. |
+| `hiddenShapes` | yes | Array (≥ 1) of shapes that are **not** drawn; lethal when inverted. |
+| `questionMark` | no | Force the inversion state (`true` = always the "?", `false` = never). Overrides `rng`. |
+| `rng` | no | Randomise the inversion each run (50/50). Default `false` (not inverted). |
+| `ringColor` | no | Hex colour of this mechanic's boss ring (identifies it). Default white. |
+| `ringHeight` | no | Vertical height of the boss ring. Default `2`. |
+| `applyEffect` | no | Debuff/buff applied to each hit player (same shape as on `aoe`). |
+| `knockback` | no | Knockback applied to each hit player (same shape as on `aoe`). |
+| `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
+
+See `raids/inverse-test.json` for honest / `?` / random crosses.
+
 ### `tower` — soak circle
 
 A `tower` is a flat circle on the floor that players must stand in ("soak") before it

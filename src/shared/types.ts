@@ -391,6 +391,7 @@ export type Intents = Record<string, Intent>;
 
 export type World = {
   time: number;
+  rngState: number;                     // seeded PRNG state (shared/rng.ts), advanced each pull
   groupChoices: Record<string, number>; // group event id -> chosen group index (for linking)
   status: Status;
   hasMechanics: boolean;

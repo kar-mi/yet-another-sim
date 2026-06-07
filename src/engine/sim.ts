@@ -30,6 +30,7 @@ import type { AOEShape } from "../shared/types";
 import { add, sub, scale, normalize, length, dot } from "../shared/math";
 import { pointInShape, isOnFloor } from "./shapes";
 import { promotePending } from "./timeline";
+import { nextRandom, randomInt } from "../shared/rng";
 
 export const MOVE_SPEED = 6;
 export const SPRINT_MULTIPLIER = 1.3;
@@ -207,6 +208,11 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const log: LogEntry[] = world.log.slice();
   const actedByPlayer = new Map<string, boolean>();
   const groupChoices = { ...world.groupChoices };
+  // Seeded PRNG threaded through the world so each pull is reproducible. Local helpers advance
+  // the state in place; the final state is written back into the returned world.
+  let rngState = world.rngState;
+  const randFloat = () => { const r = nextRandom(rngState); rngState = r.state; return r.value; };
+  const randInt = (n: number) => { const r = randomInt(rngState, n); rngState = r.state; return r.value; };
   // tick never mutates the incoming world: clone the boss (threat is the one nested
   // mutable object we write) so the returned snapshot is fresh. See world.ts/net.ts.
   const boss = { ...world.boss, threat: { ...world.boss.threat } };
@@ -652,14 +658,14 @@ export function tick(world: World, intents: Intents, dt: number): World {
       if (linkedIdx !== undefined) {
         chosenIdx = 1 - linkedIdx; // 2-group complement (validated by the schema)
       } else if (pg.rng) {
-        chosenIdx = Math.floor(Math.random() * pg.groups.length);
+        chosenIdx = randInt(pg.groups.length);
       } else {
         chosenIdx = 0;
       }
       groupChoices[pg.id] = chosenIdx;
 
       const members = pg.groups[chosenIdx];
-      const marked = members[Math.floor(Math.random() * members.length)];
+      const marked = members[randInt(members.length)];
 
       groupMechanics.push({
         id: pg.id,
@@ -714,7 +720,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const inversions: ActiveInverse[] = world.inversions.map(i => ({ ...i }));
   for (const pi of world.pendingInversions) {
     if (pi.t <= time) {
-      const inverted = pi.questionMark ?? (pi.rng ? Math.random() < 0.5 : false);
+      const inverted = pi.questionMark ?? (pi.rng ? randFloat() < 0.5 : false);
       inversions.push({
         id: pi.id,
         name: pi.name,
@@ -807,5 +813,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, inversions: stillInversions, pendingInversions: remainingPendingInversions };
+  return { ...world, time, rngState, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, inversions: stillInversions, pendingInversions: remainingPendingInversions };
 }

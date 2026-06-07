@@ -1,5 +1,6 @@
 import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingInverse } from "../shared/types";
 import { vec2 } from "../shared/math";
+import { makeSeed } from "../shared/rng";
 import type { RaidDef } from "./raidSchema";
 import { INITIAL_TANK_THREAT, topThreatTarget } from "./sim";
 
@@ -28,7 +29,7 @@ function toAOEShape(shape: AOEEventDef["shape"]): AOEShape {
   }
 }
 
-export function createWorld(raid: RaidDef): World {
+export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const arena: Arena = { zones: raid.arena.zones.map(toZoneShape) };
   const waymarks: Waymark[] = raid.waymarks?.map(w => ({ mark: w.mark, pos: toVec2(w.pos) })) ?? [];
 
@@ -230,6 +231,7 @@ export function createWorld(raid: RaidDef): World {
 
   return {
     time: 0,
+    rngState: seed,
     groupChoices: {},
     status: "running",
     hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingInversions.length > 0,

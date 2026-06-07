@@ -16,7 +16,7 @@ import { createShapeMesh } from "./telegraphMeshes";
 const RING_RADIUS = 6;
 const RING_THICKNESS = 0.5;
 const ORBS_PER_RING = 2;
-const ORB_SIZE = 1.8;
+const ORB_SIZE = 2.6;
 const DEFAULT_RING_Y = 2;
 const DEFAULT_RING_COLOR = "#ffffff";
 
