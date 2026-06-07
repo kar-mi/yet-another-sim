@@ -24,8 +24,10 @@ import type {
   PendingInverse,
   ActiveGaze,
   PendingGaze,
+  ActiveForcedMarch,
   Boss,
   PositionalArc,
+  EffectBehavior,
 } from "../shared/types";
 import type { Vec2 } from "../shared/math";
 import type { AOEShape } from "../shared/types";
@@ -202,7 +204,13 @@ function applyKnockback(player: Player, knockback: Knockback, origin: Vec2): voi
   }
 }
 
-function applyEffect(player: Player, spec: EffectSpec, time: number, id: string): void {
+function applyEffect(player: Player, spec: EffectSpec, time: number, id: string, players: Player[]): void {
+  // A confusion debuff locks onto the closest other living player at apply time.
+  let lockedTargetId: string | undefined;
+  if (spec.behavior.kind === "confusion") {
+    const target = closestOtherPlayer(player, players);
+    lockedTargetId = target?.id;
+  }
   player.effects = [...player.effects, {
     id,
     name: spec.name,
@@ -211,7 +219,28 @@ function applyEffect(player: Player, spec: EffectSpec, time: number, id: string)
     duration: spec.duration,
     behavior: spec.behavior,
     visibility: spec.visibility,
+    lockedTargetId,
   }];
+}
+
+// Closest living player other than `self` (used to lock a confusion target).
+function closestOtherPlayer(self: Player, players: Player[]): Player | null {
+  let best: Player | null = null;
+  let bestDist = Infinity;
+  for (const p of players) {
+    if (p === self || p.id === self.id || !p.alive) continue;
+    const d = length(sub(p.pos, self.pos));
+    if (d < bestDist) { bestDist = d; best = p; }
+  }
+  return best;
+}
+
+// First active effect of a given behavior kind, or null.
+function activeEffectOfKind(player: Player, time: number, kind: EffectBehavior["kind"]): StatusEffect | null {
+  for (const effect of player.effects) {
+    if (isEffectActiveAt(effect, time) && effect.behavior.kind === kind) return effect;
+  }
+  return null;
 }
 
 export function tick(world: World, intents: Intents, dt: number): World {
@@ -233,8 +262,11 @@ export function tick(world: World, intents: Intents, dt: number): World {
   // 1. Apply player movement
   for (const player of players) {
     if (!player.alive) continue;
-    const intent = intents[player.id];
-    actedByPlayer.set(player.id, didAct(intent));
+    // Sleep disables all input for its duration; confusion overrides movement (handled below).
+    const asleep = activeEffectOfKind(player, time, "sleep") !== null;
+    const confusion = asleep ? null : activeEffectOfKind(player, time, "confusion");
+    const intent = asleep ? undefined : intents[player.id];
+    actedByPlayer.set(player.id, didAct(intent) || confusion !== null);
 
     if (intent?.jump && player.y === 0) {
       player.verticalVelocity = JUMP_SPEED;
@@ -270,7 +302,22 @@ export function tick(world: World, intents: Intents, dt: number): World {
     // Forced movement (knockback/knockup) suppresses normal input while it carries the player.
     const beingKnocked = length(player.knockbackVelocity) > 1e-6;
     const speed = player.sprintActive > 0 ? MOVE_SPEED * SPRINT_MULTIPLIER : MOVE_SPEED;
-    if (!beingKnocked && intent && length(intent.move) > 0) {
+    if (!beingKnocked && confusion) {
+      // Confusion: walk toward the locked target. On contact the target takes the hit and it ends.
+      const target = players.find(p => p.id === confusion.lockedTargetId && p.alive);
+      const cb = confusion.behavior as Extract<EffectBehavior, { kind: "confusion" }>;
+      if (target) {
+        const toTarget = sub(target.pos, player.pos);
+        if (length(toTarget) <= cb.radius) {
+          applyMechanicDamage(target, cb.damage, cb.damageType, time);
+          player.effects = player.effects.filter(e => e.id !== confusion.id);
+          log.push({ t: time, mechanic: confusion.name, playerId: target.id, event: "hit" });
+        } else {
+          player.pos = add(player.pos, scale(normalize(toTarget), MOVE_SPEED * dt));
+          player.facing = Math.atan2(toTarget.x, toTarget.z);
+        }
+      }
+    } else if (!beingKnocked && intent && length(intent.move) > 0) {
       player.pos = add(player.pos, scale(normalize(intent.move), speed * dt));
       player.facing = Math.atan2(intent.move.x, intent.move.z);
     }
@@ -320,6 +367,35 @@ export function tick(world: World, intents: Intents, dt: number): World {
     const target = players.find(p => p.id === boss.currentTarget)!;
     boss.facing = Math.atan2(target.pos.x - boss.pos.x, target.pos.z - boss.pos.z);
   }
+
+  // 1c. Forced-march traps: arm pending, teleport the first entrant, expire old.
+  // Runs after movement so it sees the players' updated positions this tick.
+  const FORCED_MARCH_LINGER = 0.7; // keep a triggered trap briefly so the client can flash it
+  let forcedMarches: ActiveForcedMarch[] = world.forcedMarches.map(fm => ({ ...fm }));
+  for (const pfm of world.pendingForcedMarches) {
+    if (pfm.t <= time) {
+      forcedMarches.push({
+        id: pfm.id, name: pfm.name, pos: pfm.pos, radius: pfm.radius,
+        direction: pfm.direction, distance: pfm.distance,
+        armedAt: pfm.t, expireAt: pfm.t + pfm.duration, triggered: false,
+      });
+    }
+  }
+  const remainingPendingForcedMarches = world.pendingForcedMarches.filter(pfm => pfm.t > time);
+  for (const fm of forcedMarches) {
+    if (fm.triggered) continue;
+    // First living player (in roster order) inside the zone triggers it and is teleported.
+    const entrant = players.find(p => p.alive && length(sub(p.pos, fm.pos)) <= fm.radius);
+    if (entrant) {
+      entrant.pos = add(fm.pos, scale(normalize(fm.direction), fm.distance));
+      entrant.facing = Math.atan2(fm.direction.x, fm.direction.z);
+      fm.triggered = true;
+      fm.triggeredAt = time;
+      log.push({ t: time, mechanic: fm.name, playerId: entrant.id, event: "hit" });
+    }
+  }
+  forcedMarches = forcedMarches.filter(fm =>
+    fm.triggered ? (fm.triggeredAt ?? time) >= time - FORCED_MARCH_LINGER : fm.expireAt > time);
 
   // 2. Tether sources: promote, update attachments, finalize
   let tetherSources: TetherSource[] = world.tetherSources.map(ts => ({ ...ts }));
@@ -372,7 +448,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
           kind: ts.tetherKind,
           duration: ts.effectDuration,
           behavior: ts.behavior,
-        }, time, `${ts.id}-effect`);
+        }, time, `${ts.id}-effect`, players);
         log.push({ t: time, mechanic: ts.buffName, playerId: target.id, event: ts.tetherKind === "buff" ? "cleared" : "hit" });
       }
     }
@@ -395,7 +471,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
           duration: Math.max(0.01, resolveAt - time),
           behavior: { kind: "none" },
           visibility: "invisible",
-        }, time, `${pendingLink.id}-${target.id}-hidden`);
+        }, time, `${pendingLink.id}-${target.id}-hidden`, players);
       }
       lineLinks.push({
         id: pendingLink.id,
@@ -426,7 +502,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
         if (!target) continue;
         target.effects = target.effects.filter(e => e.id !== `${link.id}-${target.id}-hidden`);
         if (target.alive) {
-          if (link.applyEffect) applyEffect(target, link.applyEffect, time, `${link.id}-${target.id}-eff`);
+          if (link.applyEffect) applyEffect(target, link.applyEffect, time, `${link.id}-${target.id}-eff`, players);
           if (link.knockback && target.antiKbActive <= 0) {
             applyKnockback(target, link.knockback, link.knockback.origin ?? link.pos);
           }
@@ -486,8 +562,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
         duration: chain.expireAt - chain.resolveAt,
         behavior: { kind: "none" },
       };
-      if (a?.alive) applyEffect(a, spec, time, aEffId);
-      if (b?.alive) applyEffect(b, spec, time, bEffId);
+      if (a?.alive) applyEffect(a, spec, time, aEffId, players);
+      if (b?.alive) applyEffect(b, spec, time, bEffId, players);
     }
 
     if (chain.resolved && chain.outcome === undefined) {
@@ -564,7 +640,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
           applyMechanicDamage(player, mechanic.damage, mechanic.damageType, time);
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });
           if (mechanic.applyEffect && player.alive) {
-            applyEffect(player, mechanic.applyEffect, time, `${mechanic.id}-${player.id}-eff`);
+            applyEffect(player, mechanic.applyEffect, time, `${mechanic.id}-${player.id}-eff`, players);
           }
           if (mechanic.knockback && player.alive && player.antiKbActive <= 0) {
             const origin = mechanic.knockback.origin ?? shapeOrigin(mechanic.shape);
@@ -635,7 +711,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
         if (success) {
           for (const p of validSoakers) {
             if (!p.alive) continue;
-            if (tower.applyEffect) applyEffect(p, tower.applyEffect, time, `${tower.id}-${p.id}-eff`);
+            if (tower.applyEffect) applyEffect(p, tower.applyEffect, time, `${tower.id}-${p.id}-eff`, players);
             if (tower.knockback && p.antiKbActive <= 0) {
               applyKnockback(p, tower.knockback, tower.knockback.origin ?? tower.pos);
             }
@@ -714,7 +790,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
           applyMechanicDamage(player, per, gm.damageType, time);
           log.push({ t: time, mechanic: gm.name, playerId: player.id, event: "hit" });
           if (gm.applyEffect && player.alive) {
-            applyEffect(player, gm.applyEffect, time, `${gm.id}-${player.id}-eff`);
+            applyEffect(player, gm.applyEffect, time, `${gm.id}-${player.id}-eff`, players);
           }
         }
         gm.outcome = success ? "success" : "failure";
@@ -767,7 +843,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
           applyMechanicDamage(player, inv.damage, inv.damageType, time);
           log.push({ t: time, mechanic: inv.name, playerId: player.id, event: "hit" });
           if (inv.applyEffect && player.alive) {
-            applyEffect(player, inv.applyEffect, time, `${inv.id}-${player.id}-eff`);
+            applyEffect(player, inv.applyEffect, time, `${inv.id}-${player.id}-eff`, players);
           }
           if (inv.knockback && player.alive && player.antiKbActive <= 0) {
             applyKnockback(player, inv.knockback, inv.knockback.origin ?? shapeOrigin(hitShape));
@@ -824,7 +900,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
           applyMechanicDamage(player, gz.damage, gz.damageType, time);
           log.push({ t: time, mechanic: gz.name, playerId: player.id, event: "hit" });
           if (gz.applyEffect && player.alive) {
-            applyEffect(player, gz.applyEffect, time, `${gz.id}-${player.id}-eff`);
+            applyEffect(player, gz.applyEffect, time, `${gz.id}-${player.id}-eff`, players);
           }
           if (gz.knockback && player.alive && player.antiKbActive <= 0) {
             applyKnockback(player, gz.knockback, gz.knockback.origin ?? gz.pos);
@@ -874,7 +950,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
     && remainingPendingChains.length === 0 && stillChains.every(c => c.outcome !== undefined)
     && remainingPendingGroups.length === 0 && stillGroups.every(g => g.resolved)
     && remainingPendingInversions.length === 0 && stillInversions.every(i => i.resolved)
-    && remainingPendingGazes.length === 0 && stillGazes.every(g => g.resolved);
+    && remainingPendingGazes.length === 0 && stillGazes.every(g => g.resolved)
+    && remainingPendingForcedMarches.length === 0 && forcedMarches.every(fm => fm.triggered);
   let status = world.status;
   if (status === "running") {
     if (!anyAlive) {
@@ -884,5 +961,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, rngState, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, inversions: stillInversions, pendingInversions: remainingPendingInversions, gazes: stillGazes, pendingGazes: remainingPendingGazes };
+  return { ...world, time, rngState, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, inversions: stillInversions, pendingInversions: remainingPendingInversions, gazes: stillGazes, pendingGazes: remainingPendingGazes, forcedMarches, pendingForcedMarches: remainingPendingForcedMarches };
 }

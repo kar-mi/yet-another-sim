@@ -24,7 +24,12 @@ export type EffectBehavior =
   | { kind: "none" }
   | { kind: "vuln"; damageType: "physical" | "magical"; multiplier: number }
   | { kind: "pyretic"; dps: number }
-  | { kind: "freeze"; dps: number };
+  | { kind: "freeze"; dps: number }
+  // Forces the player to walk toward a locked target; on contact the target takes
+  // friendly-fire damage and the debuff ends. Target is locked when the debuff lands.
+  | { kind: "confusion"; damage: number; damageType: DamageType; radius: number }
+  // Disables all input for the effect's duration (not broken by damage).
+  | { kind: "sleep" };
 
 export type EffectSpec = {
   name: string;
@@ -42,6 +47,8 @@ export type StatusEffect = {
   duration: number;
   behavior: EffectBehavior;
   visibility?: "visible" | "invisible";
+  // Set when a confusion debuff lands: the player it forces this player to walk toward.
+  lockedTargetId?: string;
 };
 
 export type Knockback = {
@@ -414,6 +421,32 @@ export type PendingChain = {
   showCastBar: boolean;
 };
 
+// A ground-placed arrow trap. The first living player to enter the zone is teleported
+// `distance` units along `direction`; the trap is then consumed.
+export type PendingForcedMarch = {
+  id: string;
+  t: number;
+  name: string;
+  pos: Vec2;
+  radius: number;     // trigger zone radius
+  direction: Vec2;    // arrow / teleport direction
+  distance: number;   // teleport distance along direction
+  duration: number;   // how long the trap stays armed before expiring
+};
+
+export type ActiveForcedMarch = {
+  id: string;
+  name: string;
+  pos: Vec2;
+  radius: number;
+  direction: Vec2;
+  distance: number;
+  armedAt: number;
+  expireAt: number;
+  triggered: boolean;
+  triggeredAt?: number; // time it fired, drives the client flash + linger
+};
+
 export type Intent = {
   move: Vec2;
   jump?: boolean;
@@ -454,4 +487,6 @@ export type World = {
   pendingInversions: PendingInverse[];
   gazes: ActiveGaze[];
   pendingGazes: PendingGaze[];
+  forcedMarches: ActiveForcedMarch[];
+  pendingForcedMarches: PendingForcedMarch[];
 };

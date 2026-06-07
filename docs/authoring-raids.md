@@ -626,6 +626,36 @@ shown):
 
 See `raids/tower-test.json` for a full example with single, multi-soak, and support towers.
 
+### `forced_march` — ground arrow that teleports the first entrant
+
+An armed floor trap drawn as a translucent ring with a direction arrow. The **first** living
+player to walk into the zone is instantly teleported `distance` units along `direction`; the trap
+is then consumed (it fires once). If no one enters, it expires after `duration`.
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `type` | yes | `"forced_march"`. |
+| `t` | yes | Time the trap arms (seconds, ≥ 0). |
+| `name` | yes | Display name (used in the log). |
+| `pos` | yes | Center of the trigger zone `[x, z]`. |
+| `radius` | yes | Trigger zone radius (> 0). |
+| `direction` | yes | Teleport heading, a non-zero `[x, z]` vector (magnitude ignored). |
+| `distance` | yes | How far the entrant is flung along `direction` (> 0). Beware flinging players off the arena. |
+| `duration` | yes | How long the trap stays armed before expiring (> 0). |
+
+```json
+{
+  "type": "forced_march",
+  "t": 12,
+  "name": "Forced March",
+  "pos": [0, -8],
+  "radius": 3,
+  "direction": [0, 1],
+  "distance": 12,
+  "duration": 6
+}
+```
+
 ## Shapes
 
 Used by `aoe` events (`shape`) — a point is hit if it falls inside the shape at resolve.
@@ -676,12 +706,16 @@ Behaviors:
 { "kind": "vuln", "damageType": "magical", "multiplier": 2 }
 { "kind": "pyretic", "dps": 8 }
 { "kind": "freeze",  "dps": 8 }
+{ "kind": "confusion", "damage": 80, "damageType": "true", "radius": 1.5 }
+{ "kind": "sleep" }
 ```
 
 - **none** — marker only (no mechanical effect).
 - **vuln** — multiplies incoming damage of the matching `damageType` (`physical`/`magical`) by `multiplier` (> 0). Consumed only when a hit deals damage > 0.
 - **pyretic** — deals `dps` damage per second (≥ 0) while active.
 - **freeze** — deals `dps` damage per second (≥ 0) while active.
+- **confusion** — overrides movement: the player is forced to walk toward whichever other living player was closest **when the debuff landed** (the target is locked at that moment). When they get within `radius` units, that **target** takes `damage` of `damageType` (friendly fire — the confused player takes none) and the debuff ends. Pair with a long `duration` so it lasts until contact.
+- **sleep** — disables all input (movement and actions) for the full `duration`. Not broken by taking damage.
 
 ## Bot patterns
 
