@@ -1,6 +1,7 @@
 import { BabylonRenderer } from "./render/BabylonRenderer";
 import { initInput, setKeyBindings, setControllerDeadzone, getControllerInfo, listControllers, setActiveGamepad } from "./input";
 import { startNetLoop } from "./loop";
+import { KEY_BINDING_LABELS } from "./actions";
 import { DEFAULT_BINDINGS, keyLabel, loadSettings, saveSettings } from "./settings";
 import type { KeyBindings } from "./settings";
 import { loadRaidCategories, showLanding, showLobby } from "./MainMenu";
@@ -281,6 +282,11 @@ async function main(): Promise<void> {
   applyUiScale(settings.uiScale);
 
   const syncKeybindLabels = () => {
+    document.querySelectorAll<HTMLElement>(".keybind-row").forEach(row => {
+      const action = row.dataset.action as keyof KeyBindings;
+      const label = row.querySelector<HTMLElement>(".keybind-label");
+      if (label) label.textContent = KEY_BINDING_LABELS[action];
+    });
     document.querySelectorAll<HTMLButtonElement>(".keybind-btn").forEach(btn => {
       const action = btn.dataset.action as keyof KeyBindings;
       btn.textContent = keyLabel(settings.keyBindings[action]);
