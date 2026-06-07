@@ -184,7 +184,7 @@ export class BabylonRenderer implements Renderer {
     this.chains.sync(world.chains, world.players, world.time);
     this.towers.sync(world.towers, world.time);
     this.stacks.sync(world.groupMechanics, world.players, world.time);
-    this.inverse.sync(world.inversions, world.time);
+    this.inverse.sync(world.inversions, world.boss, world.time);
     this.hud.sync(world);
   }
 
