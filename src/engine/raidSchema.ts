@@ -39,7 +39,12 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("sleep") }),
   z.object({
     kind: z.literal("plant"),
-    direction: Vec2Schema.refine(([x, z]) => x !== 0 || z !== 0, "plant direction must be a non-zero vector"),
+    // A literal [x, z] heading, or "option" to defer to the combination plan (see Optional
+    // combinations). "option" resolves to a placeholder vector that the plan overrides per player.
+    direction: z.union([
+      Vec2Schema.refine(([x, z]) => x !== 0 || z !== 0, "plant direction must be a non-zero vector"),
+      z.literal("option"),
+    ]).transform(d => (d === "option" ? [0, 1] : d) as [number, number]),
     distance: z.number().positive(),
     radius: z.number().positive().default(3),        // trap trigger-zone radius
     armDelay: z.number().nonnegative().default(3),   // seconds the placed trap is inert before it can trigger
@@ -284,6 +289,28 @@ const PlayerDefSchema = z.object({
   pattern: z.array(WaypointSchema).optional(),
 });
 
+// Cardinal direction constants (more readable than [x, z] vectors). +z = north, +x = east.
+const DirectionConstSchema = z.enum(["up", "down", "left", "right"]);
+// A plant combination is one cardinal direction per plant slot (e.g. [short, long]).
+const PlantComboSchema = z.array(DirectionConstSchema).min(1);
+// A plant group: an explicit list of player ids plus the combo pool its members draw from
+// (member i, in order, gets combo i, wrapping if there are fewer combos than members).
+const PlantGroupSchema = z.object({
+  members: z.array(z.string().min(1)).min(1),
+  combos: z.array(PlantComboSchema).min(1),
+});
+// Optional per-mechanic combinations. `plant` declares two groups (g1/g2) of members + combos.
+// `rng: true` flips a seeded coin each run to swap which group draws from which combo pool.
+const OptionalsSchema = z.object({
+  combinations: z.object({
+    plant: z.object({
+      rng: z.boolean().default(false),
+      g1: PlantGroupSchema,
+      g2: PlantGroupSchema,
+    }).optional(),
+  }).optional(),
+}).optional();
+
 export const RaidSchema = z.object({
   name: z.string().min(1),
   arena: z.object({ zones: z.array(ZoneShapeSchema).min(1) }),
@@ -292,6 +319,7 @@ export const RaidSchema = z.object({
   players: z.array(PlayerDefSchema).length(ROSTER.length),
   events: z.array(EventSchema),
   waymarks: z.array(WaymarkSchema).optional(),
+  optionals: OptionalsSchema,
 }).superRefine((raid, ctx) => {
   const seenMarks = new Set<string>();
   raid.waymarks?.forEach((waymark, i) => {
@@ -390,6 +418,22 @@ export const RaidSchema = z.object({
       }
     }
   });
+
+  // plant combination groups: every declared member id must exist in the roster.
+  const plant = raid.optionals?.combinations?.plant;
+  if (plant) {
+    (["g1", "g2"] as const).forEach(key => {
+      plant[key].members.forEach((id, j) => {
+        if (!playerIds.has(id)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["optionals", "combinations", "plant", key, "members", j],
+            message: `plant ${key} references unknown player id "${id}"`,
+          });
+        }
+      });
+    });
+  }
 });
 
 export const BotPatternsSchema = z.object({

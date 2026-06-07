@@ -603,6 +603,65 @@ test("targeted mechanic with aggro mode hits the boss's current target", () => {
   expect(human(world).hp).toBe(100); // m1 closest, spared
 });
 
+test("plant combinations assign each player a per-slot heading from their group's pool", () => {
+  const optionals = {
+    combinations: {
+      plant: {
+        g1: { members: ["mt", "ot", "h1", "h2"], combos: [["up", "up"], ["down", "down"], ["left", "left"], ["right", "right"]] },
+        g2: { members: ["r1", "r2", "m1", "m2"], combos: [["up", "right"], ["right", "down"], ["down", "left"], ["left", "up"]] },
+      },
+    },
+  };
+  const plantEvent = (name: string) => ({
+    t: 0.1, name, telegraph: 0.1, damage: 0, damageType: "magical",
+    applyEffect: { name, kind: "debuff", duration: 20, behavior: { kind: "plant", direction: [1, 0], distance: 8, armDelay: 3 } },
+    shape: { kind: "circle", center: [0, 0], radius: 25 },
+  });
+  const raid = loadRaid({ ...baseRaid, optionals, events: [plantEvent("Plant A"), plantEvent("Plant B")] });
+  const world = createWorld(raid, 7);
+  const after = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.3 * 60));
+  // Every player ends with both plants stamped with their planned headings, in slot order.
+  for (const p of after.players) {
+    const dirs = p.effects.filter(e => e.behavior.kind === "plant").map(e => (e.behavior as { direction: [number, number] }).direction);
+    expect(dirs).toEqual(world.plantPlan[p.id]);
+  }
+  // A support and a dps drew from different pools (one got g1's first combo, the other g2's).
+  const mt = JSON.stringify(world.plantPlan.mt);
+  const r1 = JSON.stringify(world.plantPlan.r1);
+  expect([mt, r1].sort()).toEqual([JSON.stringify([[0, 1], [0, 1]]), JSON.stringify([[0, 1], [1, 0]])].sort());
+});
+
+test("plant direction \"option\" parses to a concrete vector (overridden by the combination plan)", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{
+      t: 1, name: "Plant", telegraph: 1, damage: 0, damageType: "magical",
+      applyEffect: { name: "Plant", kind: "debuff", duration: 7, behavior: { kind: "plant", direction: "option", distance: 8 } },
+      shape: { kind: "circle", center: [0, 0], radius: 25 },
+    }],
+  });
+  const ev = raid.events[0] as Extract<typeof raid.events[number], { type?: "aoe" }>;
+  const behavior = ev.applyEffect!.behavior as { kind: string; direction: [number, number] };
+  expect(behavior.direction).toEqual([0, 1]); // "option" -> placeholder vector, not a string
+});
+
+test("plant combination group assignment is fixed without rng, randomized with it", () => {
+  const groups = {
+    g1: { members: ["mt", "ot", "h1", "h2"], combos: [["up", "up"], ["down", "down"], ["left", "left"], ["right", "right"]] },
+    g2: { members: ["r1", "r2", "m1", "m2"], combos: [["up", "right"], ["right", "down"], ["down", "left"], ["left", "up"]] },
+  };
+  const mk = (rng: boolean) => loadRaid({ ...baseRaid, optionals: { combinations: { plant: { rng, ...groups } } } });
+  // Without rng, no swap -> g1's members (mt) draw g1's combos -> mt gets g1[0] = up,up for every seed.
+  const fixed = mk(false);
+  for (const seed of [1, 50, 123, 9999]) {
+    expect(createWorld(fixed, seed).plantPlan.mt).toEqual([[0, 1], [0, 1]]);
+  }
+  // With rng, mt's assigned pool varies across seeds.
+  const rolled = mk(true);
+  const seen = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => JSON.stringify(createWorld(rolled, s).plantPlan.mt)));
+  expect(seen.size).toBeGreaterThan(1);
+});
+
 test("plant debuff places a teleport trap that arms, then snaps the entrant after a windup", () => {
   const raid = loadRaid({ ...baseRaid, players: roster({ m1: { spawn: [0, 0] } }) });
   const world = withEffect(createWorld(raid), effect({

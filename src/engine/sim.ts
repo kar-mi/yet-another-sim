@@ -691,7 +691,15 @@ export function tick(world: World, intents: Intents, dt: number): World {
           applyMechanicDamage(player, mechanic.damage, mechanic.damageType, time);
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });
           if (mechanic.applyEffect && player.alive) {
-            applyEffect(player, mechanic.applyEffect, time, `${mechanic.id}-${player.id}-eff`, players);
+            // For a plant debuff, stamp this player's assigned heading from the combination plan.
+            // The slot is how many plants they already carry (0 = first/short, 1 = second/long).
+            let spec = mechanic.applyEffect;
+            if (spec.behavior.kind === "plant") {
+              const slot = player.effects.filter(e => e.behavior.kind === "plant").length;
+              const dir = world.plantPlan[player.id]?.[slot];
+              if (dir) spec = { ...spec, behavior: { ...spec.behavior, direction: dir } };
+            }
+            applyEffect(player, spec, time, `${mechanic.id}-${player.id}-eff`, players);
           }
           if (mechanic.knockback && player.alive && player.antiKbActive <= 0) {
             const origin = mechanic.knockback.origin ?? shapeOrigin(mechanic.shape);

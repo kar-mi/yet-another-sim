@@ -525,4 +525,8 @@ export type World = {
   forcedMarches: ActiveForcedMarch[];
   pendingForcedMarches: PendingForcedMarch[];
   pendingEffectBursts: PendingEffectBurst[];
+  // Per-player plant directions (one per plant slot), assigned from optionals.combinations.plant
+  // at world creation. Empty when the raid has no plant combinations. Stamped onto each plant
+  // debuff as it lands so the HUD arrow + trap use the player's assigned heading.
+  plantPlan: Record<string, [number, number][]>;
 };

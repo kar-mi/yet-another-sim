@@ -1,6 +1,6 @@
 import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingInverse, PendingGaze, PendingForcedMarch, PendingEffectBurst } from "../shared/types";
 import { vec2 } from "../shared/math";
-import { makeSeed } from "../shared/rng";
+import { makeSeed, nextRandom } from "../shared/rng";
 import type { RaidDef } from "./raidSchema";
 import { INITIAL_TANK_THREAT, topThreatTarget } from "./sim";
 
@@ -8,6 +8,40 @@ export const ROLE_HP: Record<Player["role"], number> = { tank: 160, healer: 100,
 
 function toVec2(arr: [number, number]) {
   return vec2(arr[0], arr[1]);
+}
+
+// Cardinal direction constants -> [x, z] vectors. +z = north, +x = east.
+const DIRECTION_VECTORS: Record<"up" | "down" | "left" | "right", [number, number]> = {
+  up: [0, 1], down: [0, -1], left: [-1, 0], right: [1, 0],
+};
+
+// Assign each player a plant combination from optionals.combinations.plant. Each group lists its
+// members explicitly; member i (in order) draws combo i (wrapping). `rng: true` flips a seeded coin
+// to swap which group's combo pool each group's members draw from.
+function buildPlantPlan(
+  raid: RaidDef,
+  rngState: number,
+): { plan: Record<string, [number, number][]>; rngState: number } {
+  const plant = raid.optionals?.combinations?.plant;
+  if (!plant) return { plan: {}, rngState };
+
+  let swap = false;
+  let nextState = rngState;
+  if (plant.rng) {
+    const roll = nextRandom(rngState);
+    swap = roll.value < 0.5;
+    nextState = roll.state;
+  }
+
+  const plan: Record<string, [number, number][]> = {};
+  const assign = (members: string[], combos: ("up" | "down" | "left" | "right")[][]) => {
+    members.forEach((id, i) => {
+      plan[id] = combos[i % combos.length].map(d => DIRECTION_VECTORS[d]);
+    });
+  };
+  assign(plant.g1.members, swap ? plant.g2.combos : plant.g1.combos);
+  assign(plant.g2.members, swap ? plant.g1.combos : plant.g2.combos);
+  return { plan, rngState: nextState };
 }
 
 function toZoneShape(zone: RaidDef["arena"]["zones"][number]): ZoneShape {
@@ -65,6 +99,8 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     id: "boss", pos: { x: 0, z: 0 }, hp: 1000, maxHp: 1000, radius: 3,
     facing: 0, threat, currentTarget: topThreatTarget(players, threat),
   };
+
+  const { plan: plantPlan, rngState } = buildPlantPlan(raid, seed);
 
   const pending: PendingEvent[] = [];
   const pendingTethers: PendingTether[] = [];
@@ -287,7 +323,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
 
   return {
     time: 0,
-    rngState: seed,
+    rngState,
     groupChoices: {},
     status: "running",
     hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingInversions.length > 0 || pendingGazes.length > 0 || pendingForcedMarches.length > 0 || pendingEffectBursts.length > 0,
@@ -317,5 +353,6 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     forcedMarches: [],
     pendingForcedMarches,
     pendingEffectBursts,
+    plantPlan,
   };
 }

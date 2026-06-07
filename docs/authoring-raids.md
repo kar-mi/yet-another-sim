@@ -745,7 +745,7 @@ Behaviors:
 { "kind": "freeze",  "dps": 8 }
 { "kind": "confusion", "damage": 80, "damageType": "true", "radius": 1.5 }
 { "kind": "sleep" }
-{ "kind": "plant", "direction": [0, 1], "distance": 8, "radius": 3, "armDelay": 3, "duration": 10, "tpDelay": 1 }
+{ "kind": "plant", "direction": "option", "distance": 8, "radius": 3, "armDelay": 3, "duration": 10, "tpDelay": 1 }
 ```
 
 - **none** — marker only (no mechanical effect).
@@ -754,7 +754,47 @@ Behaviors:
 - **freeze** — deals `dps` damage per second (≥ 0) while active.
 - **confusion** — overrides movement: the player is forced to walk toward whichever other living player was closest **when the debuff landed** (the target is locked at that moment). When they get within `radius` units, that **target** takes `damage` of `damageType` (friendly fire — the confused player takes none) and the debuff ends. Pair with a long `duration` so it lasts until contact.
 - **sleep** — disables all input (movement and actions) for the full `duration`. Not broken by taking damage.
-- **plant** — Tele-Trouncing "plant": the HUD shows an arrow along `direction` (`[x, z]`). When the debuff **expires** it places a teleport trap (a `forced_march`) at the player's position. The trap is **inert for `armDelay` seconds** (so the placer can step off), then triggers on contact — the first player to enter its `radius` is frozen for `tpDelay` seconds (the windup), then **instantly teleported** `distance` units along `direction` (measured from their own spot, so it lands purely along the heading). An untriggered trap expires `duration` seconds after it arms. The placed arrow renders via the forced-march layer; nothing is drawn under the player during the debuff. `direction` must be non-zero; `radius` defaults `3`, `armDelay` `3`, `duration` `10`, `tpDelay` `1`.
+- **plant** — Tele-Trouncing "plant": the HUD shows an arrow along `direction` (`[x, z]`). When the debuff **expires** it places a teleport trap (a `forced_march`) at the player's position. The trap is **inert for `armDelay` seconds** (so the placer can step off), then triggers on contact — the first player to enter its `radius` is frozen for `tpDelay` seconds (the windup), then **instantly teleported** `distance` units along `direction` (measured from their own spot, so it lands purely along the heading). An untriggered trap expires `duration` seconds after it arms. The placed arrow renders via the forced-march layer; nothing is drawn under the player during the debuff. `direction` is a non-zero `[x, z]` vector **or** the string `"option"` (defer to the combination plan — it resolves to a placeholder the plan overrides per player; see [Optional combinations](#optional-combinations)). `radius` defaults `3`, `armDelay` `3`, `duration` `10`, `tpDelay` `1`.
+
+## Optional combinations
+
+The optional top-level `optionals` block holds per-mechanic pools that the engine assigns to players
+at the start of a run (seeded, so it's reproducible). Currently only **plant** combinations are
+supported.
+
+```json
+"optionals": {
+  "combinations": {
+    "plant": {
+      "rng": true,
+      "g1": {
+        "members": ["mt", "ot", "h1", "h2"],
+        "combos": [["up", "up"], ["down", "down"], ["left", "left"], ["right", "right"]]
+      },
+      "g2": {
+        "members": ["r1", "r2", "m1", "m2"],
+        "combos": [["up", "right"], ["right", "down"], ["down", "left"], ["left", "up"]]
+      }
+    }
+  }
+}
+```
+
+- Directions are cardinal **constants**: `up` = `[0, 1]` (north), `down` = `[0, -1]`, `left` =
+  `[-1, 0]`, `right` = `[1, 0]` (east). Much more readable than raw `[x, z]` vectors.
+- A **combo** is one direction per plant slot, in the order the plant debuffs land (so
+  `["up", "right"]` = first/short plant heads north, second/long plant heads east).
+- `g1` and `g2` are two **explicit groups**, each with a `members` list (player ids, which must
+  exist in the roster) and a `combos` pool. Within a group, member `i` (in the order listed) draws
+  combo `i`, wrapping if there are fewer combos than members.
+- `rng: true` flips a seeded coin each run to **swap** which group's combo pool the two groups draw
+  from (so e.g. the `g1` members get `g2`'s headings instead). `rng: false` (the default) is fixed —
+  each group uses its own `combos`. A player not listed in any group keeps the `direction` on the
+  event's `plant` behavior.
+- The assigned headings are stamped onto each player's plant debuffs as they land, **overriding**
+  the `direction` written on the `plant` behavior in the event (which then only acts as a fallback
+  for raids with no `optionals`). Give each `Tele-Trouncing` plant event a placeholder `direction`
+  to satisfy the schema.
 
 ## Bot patterns
 
