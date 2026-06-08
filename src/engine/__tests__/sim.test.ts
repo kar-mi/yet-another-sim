@@ -2002,6 +2002,23 @@ test("spread_stack shown:random eventually displays both spread and stack", () =
   expect(seen).toEqual(new Set(["spread", "stack"]));
 });
 
+test("spread_stack solver sends bots to the spot for the actual mode", () => {
+  const botSolvers = { spreadStack: { spread: { mt: [-10, 0] as Vec }, stack: { mt: [10, 0] as Vec } } };
+  const mkWorld = (over: Record<string, unknown>) => {
+    const raid = loadRaid({
+      ...baseRaid,
+      players: roster({ mt: { spawn: [0, 0] } }),
+      events: [spreadStackEvent({ t: 0, telegraph: 5, ...over })],
+      botSolvers,
+    });
+    return tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60); // promote
+  };
+  const mtMove = (w: World) => computeBotIntents(w, 1 / 60).mt.move.x;
+  expect(mtMove(mkWorld({ shown: "stack" }))).toBeGreaterThan(0);  // stack spot (+x)
+  expect(mtMove(mkWorld({ shown: "spread" }))).toBeLessThan(0);    // spread spot (-x)
+  expect(mtMove(mkWorld({ shown: "spread", questionMark: true }))).toBeGreaterThan(0); // lie -> stack spot
+});
+
 // Gaze events: a player is hit if the eye (gz.pos) is in their facing hemisphere (normal) or
 // NOT in it (reverse). Players keep their default facing of 0 (= +Z) here, so "looking at" the
 // eye is decided by each player's position relative to the eye.

@@ -948,6 +948,10 @@ array of points in plant-slot order, e.g. `[short, long]`.
 The double trouble solver moves bot-controlled players with active `doubleTrouble` debuffs to a
 role-based safe offset (`support` for tanks/healers, `dps` for DPS). Plant arrow solving takes
 priority when both debuffs are active. Set `startAt` to delay the solver until that encounter time.
+The **spread/stack** solver moves bots while a `spread_stack` mechanic is casting: it reads the
+*actual* resolved mode (seeing through the `?`) and sends each bot to its `spread` or `stack` spot
+(`playerId -> [x, z]`). Human slots are not moved. Stack spots are usually one shared point per
+group (everyone in a group converges there, so it works whoever is marked).
 
 ```json
 {
@@ -963,6 +967,10 @@ priority when both debuffs are active. Set `startAt` to delay the solver until t
         "right down": [[12.73, 12.73], [9, 15.59]],
         "down down": [[17.39, 4.66], [18, 0]]
       }
+    },
+    "spreadStack": {
+      "spread": { "mt": [-6, 6], "ot": [6, 6], "h1": [0, -18], "h2": [18, 0] },
+      "stack": { "mt": [6, -6], "ot": [6, -6], "h1": [6, -6], "h2": [6, -6] }
     }
   }
 }

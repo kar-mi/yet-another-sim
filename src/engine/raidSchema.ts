@@ -13,6 +13,10 @@ const BotSolversSchema = z.object({
     dps: Vec2Schema,
     startAt: z.number().nonnegative().optional(),
   }).optional(),
+  spreadStack: z.object({
+    spread: z.record(z.string().min(1), Vec2Schema), // playerId -> spread-mode spot
+    stack: z.record(z.string().min(1), Vec2Schema),  // playerId -> stack-mode spot (their group's stack point)
+  }).optional(),
 }).optional();
 const RoleSchema = z.enum(["tank", "healer", "dps"]);
 
@@ -247,6 +251,7 @@ const EffectSelectEventSchema = z.object({
 
 const InverseEventSchema = z.object({
   type: z.literal("inverse"),
+  id: z.string().min(1).optional(),                // stable id (e.g. "lightning") for bot solvers
   t: z.number().nonnegative(),
   name: z.string().min(1),
   telegraph: z.number().positive(),                // cast/telegraph duration (seconds)

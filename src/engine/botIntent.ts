@@ -61,6 +61,19 @@ function solverWaypoint(player: Player, world: World): Vec2 | undefined {
     }
   }
 
+  // Spread/stack "?": go to the assigned spot for the *actual* mode (bots solve the real answer).
+  const spreadStack = world.spreadStacks.find(s => !s.resolved);
+  if (spreadStack) {
+    const actual = spreadStack.inverted
+      ? (spreadStack.shown === "spread" ? "stack" : "spread")
+      : spreadStack.shown;
+    const spots = actual === "spread"
+      ? world.botSolvers?.spreadStack?.spread
+      : world.botSolvers?.spreadStack?.stack;
+    const spot = spots?.[player.id];
+    if (spot) return spot;
+  }
+
   if (hasActiveDoubleTrouble(player, world.time)) {
     const solver = world.botSolvers?.doubleTrouble;
     if (!solver || (solver.startAt !== undefined && world.time < solver.startAt)) return undefined;

@@ -27,6 +27,10 @@ export type BotSolvers = {
     dps: Vec2;
     startAt?: number;
   };
+  spreadStack?: {
+    spread: Record<string, Vec2>; // playerId -> spread-mode spot
+    stack: Record<string, Vec2>;  // playerId -> stack-mode spot
+  };
 };
 
 export type DamageType = "physical" | "magical" | "true";

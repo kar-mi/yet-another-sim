@@ -13,7 +13,11 @@ function toVec2(arr: [number, number]) {
 function toBotSolvers(raid: RaidDef): World["botSolvers"] {
   const plantArrows = raid.botSolvers?.plantArrows;
   const doubleTrouble = raid.botSolvers?.doubleTrouble;
-  if (!plantArrows && !doubleTrouble) return undefined;
+  const spreadStack = raid.botSolvers?.spreadStack;
+  if (!plantArrows && !doubleTrouble && !spreadStack) return undefined;
+
+  const toSpots = (spots: Record<string, [number, number]>) =>
+    Object.fromEntries(Object.entries(spots).map(([id, pos]) => [id, toVec2(pos)]));
 
   return {
     plantArrows: plantArrows && {
@@ -28,6 +32,10 @@ function toBotSolvers(raid: RaidDef): World["botSolvers"] {
       support: toVec2(doubleTrouble.support),
       dps: toVec2(doubleTrouble.dps),
       startAt: doubleTrouble.startAt,
+    },
+    spreadStack: spreadStack && {
+      spread: toSpots(spreadStack.spread),
+      stack: toSpots(spreadStack.stack),
     },
   };
 }
@@ -265,7 +273,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       });
     } else if (e.type === "inverse") {
       pendingInversions.push({
-        id: `inverse-${index}`,
+        id: e.id ?? `inverse-${index}`,
         t: e.t,
         name: e.name,
         telegraph: e.telegraph,
