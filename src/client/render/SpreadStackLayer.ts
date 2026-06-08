@@ -128,7 +128,7 @@ export class SpreadStackLayer {
       let mesh = handle.stackMarkers.get(player.id);
       if (!mesh) {
         // A flat floor-style ring laid horizontally, raised up above the marked character's head.
-        mesh = CreateDisc(`ss-stack-marker-${handle.mech.id}-${player.id}`, { radius: 1.5, tessellation: 48 }, this.scene);
+        mesh = CreateDisc(`ss-stack-marker-${handle.mech.id}-${player.id}`, { radius: 2.1, tessellation: 48 }, this.scene);
         mesh.rotation.x = Math.PI / 2;
         mesh.isPickable = false;
         mesh.material = this.getStackMarkerMaterial();
