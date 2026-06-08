@@ -64,8 +64,7 @@ const AOEShapeSchema = z.discriminatedUnion("kind", [
 const EffectBehaviorSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("none") }),
   z.object({ kind: z.literal("vuln"), damageType: z.enum(["physical", "magical"]), multiplier: z.number().positive() }),
-  z.object({ kind: z.literal("pyretic"), dps: z.number().nonnegative() }),
-  z.object({ kind: z.literal("freeze"), dps: z.number().nonnegative() }),
+  z.object({ kind: z.literal("dot"), dps: z.number().nonnegative(), condition: z.enum(["always", "moving", "idle"]).default("always") }),
   z.object({ kind: z.literal("confusion"), damage: z.number().nonnegative(), damageType: z.enum(["physical", "magical", "true"]), radius: z.number().positive() }),
   z.object({ kind: z.literal("sleep") }),
   z.object({
@@ -97,6 +96,7 @@ const ApplyEffectSchema = z.object({
   duration: z.number().positive(),
   behavior: EffectBehaviorSchema,
   visibility: z.enum(["visible", "invisible"]).optional(),
+  icon: z.string().min(1).optional(),   // HUD icon filename, served from /static/effects/
 });
 
 const ApplyEffectsSchema = z.object({
@@ -163,6 +163,7 @@ const TetherSourceEventSchema = z.object({
   buffName: z.string().min(1),
   behavior: EffectBehaviorSchema.default({ kind: "none" }),
   effectDuration: z.number().positive().default(15),
+  icon: z.string().min(1).optional(),   // HUD icon filename for the tether buff, served from /static/effects/
 });
 
 const LineLinkTargetSchema = z.object({
@@ -262,6 +263,20 @@ const EffectSelectEventSchema = z.object({
   groups: z.array(z.array(z.string().min(1)).min(1)).min(1),
   rng: z.boolean().optional(),
   link: z.string().min(1).optional(),
+  applyEffect: ApplyEffectSchema,
+});
+
+// Standalone "drop this effect on players now" event. No telegraph — it lands at time t.
+// Targeting: `players` ids if given, else `role` filter, else everyone alive. `count` caps how many
+// targets (random selection when `rng`, else roster order).
+const ApplyEffectEventSchema = z.object({
+  type: z.literal("apply_effect"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  role: RoleSchema.optional(),
+  players: z.array(z.string().min(1)).min(1).optional(),
+  count: z.number().int().positive().optional(),
+  rng: z.boolean().optional(),
   applyEffect: ApplyEffectSchema,
 });
 
@@ -378,7 +393,7 @@ const HealEventSchema = z.object({
   name: z.string().min(1),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema]);
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),

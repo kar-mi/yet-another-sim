@@ -767,7 +767,7 @@ test("zero-damage matching mechanic does not consume vuln", () => {
 });
 
 test("pyretic damages player actions", () => {
-  const pyretic = effect({ name: "Pyretic", behavior: { kind: "pyretic", dps: 10 } });
+  const pyretic = effect({ name: "Pyretic", behavior: { kind: "dot", dps: 10, condition: "moving" } });
   const cases: Intents[] = [
     { [HUMAN]: { move: { x: 1, z: 0 } } },
     { [HUMAN]: { move: { x: 0, z: 0 }, jump: true } },
@@ -784,7 +784,7 @@ test("pyretic damages player actions", () => {
 });
 
 test("freeze damages player inactivity", () => {
-  const freeze = effect({ name: "Freeze", behavior: { kind: "freeze", dps: 10 } });
+  const freeze = effect({ name: "Freeze", behavior: { kind: "dot", dps: 10, condition: "idle" } });
   const idleWorld = tick(withEffect(createWorld(loadRaid(baseRaid)), freeze), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1);
   expect(human(idleWorld).hp).toBeCloseTo(90);
 
@@ -797,6 +797,42 @@ test("freeze damages player inactivity", () => {
     const world = tick(withEffect(createWorld(loadRaid(baseRaid)), freeze), intents, 1);
     expect(human(world).hp).toBeCloseTo(100);
   }
+});
+
+test("dot condition \"always\" damages regardless of action", () => {
+  const bleed = effect({ name: "Bleed", behavior: { kind: "dot", dps: 10, condition: "always" } });
+  const idle = tick(withEffect(createWorld(loadRaid(baseRaid)), bleed), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1);
+  expect(human(idle).hp).toBeCloseTo(90);
+  const moving = tick(withEffect(createWorld(loadRaid(baseRaid)), bleed), { [HUMAN]: { move: { x: 1, z: 0 } } }, 1);
+  expect(human(moving).hp).toBeCloseTo(90);
+});
+
+test("apply_effect with no target hits all living players", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{
+      type: "apply_effect", t: 0, name: "Mark",
+      applyEffect: { name: "Mark", kind: "debuff", duration: 5, behavior: { kind: "none" } },
+    }],
+  });
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 2);
+  for (const p of world.players) {
+    expect(p.effects.some(e => e.name === "Mark")).toBe(true);
+  }
+});
+
+test("apply_effect narrows by role and count", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{
+      type: "apply_effect", t: 0, name: "Mark", role: "dps", count: 2,
+      applyEffect: { name: "Mark", kind: "debuff", duration: 5, behavior: { kind: "none" } },
+    }],
+  });
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 2);
+  const marked = world.players.filter(p => p.effects.some(e => e.name === "Mark"));
+  expect(marked).toHaveLength(2);
+  expect(marked.every(p => p.role === "dps")).toBe(true);
 });
 
 test("continuous effects respect tick timing boundaries", () => {
@@ -812,7 +848,7 @@ test("continuous effects respect tick timing boundaries", () => {
         name: "Pyretic",
         kind: "debuff" as const,
         duration: 10,
-        behavior: { kind: "pyretic" as const, dps: 100 },
+        behavior: { kind: "dot" as const, dps: 100, condition: "moving" as const },
       },
       shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
     }],
@@ -825,7 +861,7 @@ test("continuous effects respect tick timing boundaries", () => {
   const expiringWorld = tick(withEffect(createWorld(loadRaid(baseRaid)), effect({
     name: "Short Pyretic",
     duration: 0.25,
-    behavior: { kind: "pyretic", dps: 40 },
+    behavior: { kind: "dot", dps: 40, condition: "moving" },
   })), { [HUMAN]: { move: { x: 1, z: 0 } } }, 1);
 
   expect(human(expiringWorld).hp).toBeCloseTo(90);

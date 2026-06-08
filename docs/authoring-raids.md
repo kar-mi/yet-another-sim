@@ -303,6 +303,7 @@ intercepted). See `raids/tether-test.json`.
 | `buffName`       | yes      | Name of the granted effect. |
 | `behavior`       | no       | Effect behavior (see [Effects](#effects)). Defaults to `{ "kind": "none" }`. |
 | `effectDuration` | no       | Duration of the granted effect in seconds (> 0). Defaults to `15`. |
+| `icon`           | no       | HUD icon filename for the granted effect, served from `static/effects/`. |
 
 ### `line_link` — fixed visual links from an object to selected players
 
@@ -797,6 +798,43 @@ immediately at `t`. With a single group, this is a random member from that group
 }
 ```
 
+### `apply_effect` — drop a buff/debuff straight onto players
+
+Applies `applyEffect` to a set of players immediately at `t` — no telegraph, no AOE. Use it to seed
+debuffs (DOTs, vulns, markers) without an accompanying mechanic.
+
+Targeting: if `players` is given, only those ids; else if `role` is given, only that role; else
+**all** living players. `count` (optional) caps how many of the matched pool are hit — selected in
+roster order, or randomly when `rng: true`.
+
+```json
+{
+  "type": "apply_effect",
+  "t": 12,
+  "name": "Searing Brand",
+  "role": "dps",
+  "count": 2,
+  "rng": true,
+  "applyEffect": {
+    "name": "Burns",
+    "kind": "debuff",
+    "duration": 15,
+    "icon": "burns.png",
+    "behavior": { "kind": "dot", "dps": 5, "condition": "always" }
+  }
+}
+```
+
+| Field         | Required | Notes |
+|---------------|----------|-------|
+| `t`           | yes      | When the effect lands (seconds). |
+| `name`        | yes      | Mechanic name (used in the combat log). |
+| `role`        | no       | Restrict to one role (`tank`/`healer`/`dps`). Ignored if `players` is set. |
+| `players`     | no       | Explicit list of player ids to target. |
+| `count`       | no       | Cap the number of targets from the matched pool. |
+| `rng`         | no       | `true` picks the `count` targets randomly (seeded); otherwise roster order. |
+| `applyEffect` | yes      | The buff/debuff to apply (see [Effects](#effects)). |
+
 ## Shapes
 
 Used by `aoe` events (`shape`) — a point is hit if it falls inside the shape at resolve.
@@ -828,6 +866,7 @@ bind them to the boss.
   "kind": "debuff",
   "duration": 10,
   "visibility": "visible",
+  "icon": "magic-vuln.png",
   "behavior": { "kind": "vuln", "damageType": "magical", "multiplier": 2 }
 }
 ```
@@ -838,6 +877,7 @@ bind them to the boss.
 | `kind`     | yes      | `"buff"` or `"debuff"`. |
 | `duration` | yes      | Seconds the effect lasts (> 0). |
 | `visibility` | no    | `"visible"` (default) shows in the HUD; `"invisible"` stores the effect without a HUD chip. |
+| `icon`     | no       | HUD icon filename served from `static/effects/` (e.g. `"magic-vuln.png"`). Falls back to a generic glyph chosen from the behavior when omitted. |
 | `behavior` | yes      | One of the behaviors below. |
 
 Normal `aoe` events can instead use `applyEffects` to apply multiple effects from one cast:
@@ -862,8 +902,7 @@ Behaviors:
 ```json
 { "kind": "none" }
 { "kind": "vuln", "damageType": "magical", "multiplier": 2 }
-{ "kind": "pyretic", "dps": 8 }
-{ "kind": "freeze",  "dps": 8 }
+{ "kind": "dot", "dps": 8, "condition": "always" }
 { "kind": "confusion", "damage": 80, "damageType": "true", "radius": 1.5 }
 { "kind": "sleep" }
 { "kind": "doubleTrouble", "radius": 3, "damage": 70, "damageType": "magical", "knockbackDistance": 6 }
@@ -872,8 +911,7 @@ Behaviors:
 
 - **none** — marker only (no mechanical effect).
 - **vuln** — multiplies incoming damage of the matching `damageType` (`physical`/`magical`) by `multiplier` (> 0). Consumed only when a hit deals damage > 0.
-- **pyretic** — deals `dps` damage per second (≥ 0) while active.
-- **freeze** — deals `dps` damage per second (≥ 0) while active.
+- **dot** — deals `dps` damage per second (≥ 0) while active. `condition` gates when a tick deals damage: `"always"` (default) every tick, `"moving"` only while the player acts/moves (formerly `pyretic`), `"idle"` only while the player stays still (formerly `freeze`).
 - **confusion** — overrides movement: the player is forced to walk toward whichever other living player was closest **when the debuff landed** (the target is locked at that moment). When they get within `radius` units, that **target** takes `damage` of `damageType` (friendly fire — the confused player takes none) and the debuff ends. Pair with a long `duration` so it lasts until contact.
 - **sleep** — disables all input (movement and actions) for the full `duration`. Not broken by taking damage.
 - **doubleTrouble** — when the debuff expires, players within `radius` of the carrier take `damage`; everyone hit except the carrier is knocked back `knockbackDistance` from the carrier.
@@ -1048,7 +1086,7 @@ descriptive Zod error. The existing files in `raids/` double as references:
 
 - `sample-raid.json` — every shape kind (`circle`, `cone`, `rect`, `donut`).
 - `near-far-bait.json` — `targeted` events with `role` filters and `applyEffect`.
-- `debuff-test.json` — `vuln`, `pyretic`, and `freeze` behaviors.
+- `debuff-test.json` — `vuln` and `dot` (moving/idle) behaviors.
 - `tether-test.json` — `tether_source` buff and debuff.
 - `line-link-test.json` — `line_link` from a north statue with hidden debuff, effect, and knockback.
 - `chain-test.json` — `chain` break-apart pairs with a debuff and burst.
