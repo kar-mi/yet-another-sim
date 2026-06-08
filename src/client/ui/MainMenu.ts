@@ -7,6 +7,7 @@ import {
   normalizeRaidName,
   type LobbySlot,
   type LobbyStatus,
+  type PlaybackState,
   type RaidCategory,
   type RaidEntry,
 } from "../../shared/protocol";
@@ -101,7 +102,13 @@ export function showLanding(): Promise<string> {
   });
 }
 
-export async function showLobby(net: NetClient, sessionId: string): Promise<{ world: World; yourPlayerId: string | null; sessionId: string; raidId: string; isHost: boolean }> {
+function playbackStateForLobby(status: LobbyStatus): PlaybackState {
+  if (status === "running" || status === "lobby") return "playing";
+  if (status === "paused") return "paused";
+  return "stopped";
+}
+
+export async function showLobby(net: NetClient, sessionId: string): Promise<{ world: World; yourPlayerId: string | null; sessionId: string; raidId: string; isHost: boolean; playbackState: PlaybackState }> {
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
     overlay.id = "yas-menu";
@@ -253,8 +260,9 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<{ wo
       net.on("started", message => {
         const raidId = lastLobby?.raidId ?? EMPTY_RAID_ID;
         const isHost = net.clientId !== null && net.clientId === lastLobby?.hostClientId;
+        const playbackState = playbackStateForLobby(lastLobby?.status ?? "lobby");
         cleanup();
-        resolve({ world: message.world, yourPlayerId: message.yourPlayerId, sessionId, raidId, isHost });
+        resolve({ world: message.world, yourPlayerId: message.yourPlayerId, sessionId, raidId, isHost, playbackState });
       }),
       net.on("error", message => showError(message.message)),
     ];
