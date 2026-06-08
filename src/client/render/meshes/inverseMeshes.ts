@@ -19,6 +19,7 @@ const ORBS_PER_RING = 2;
 const ORB_SIZE = 2.6;
 const DEFAULT_RING_Y = 2;
 const DEFAULT_RING_COLOR = "#ffffff";
+const DEFAULT_TELEGRAPH_ALPHA = 0.25;
 
 const REAL_ORB = "#1e3a8f";   // dark blue: honest telegraph
 const FAKE_ORB = "#ff5a1f";   // reddish-orange: lying "?" telegraph
@@ -59,6 +60,7 @@ export function createInverseMeshes(scene: Scene, inv: ActiveInverse): InverseMe
     if (!mesh) return;
     const mat = new StandardMaterial(`inv-tel-mat-${inv.id}-${i}`, scene);
     mat.specularColor = new Color3(0, 0, 0);
+    mat.transparencyMode = StandardMaterial.MATERIAL_ALPHABLEND;
     mat.backFaceCulling = false;
     mesh.material = mat;
     mesh.isPickable = false;
@@ -107,18 +109,19 @@ export function createInverseMeshes(scene: Scene, inv: ActiveInverse): InverseMe
 }
 
 export function updateInverseMeshes(handle: InverseMeshes, inv: ActiveInverse, boss: Boss, time: number): void {
-  // Telegraph color/alpha fade as the cast progresses (mirrors TelegraphLayer).
+  // Telegraph colour still warms by cast progress when no authored ring colour is present.
   const span = inv.resolveAt - inv.telegraphStart;
   const progress = span > 0 ? Math.min(1, Math.max(0, (time - inv.telegraphStart) / span)) : 1;
+  const telegraphColor = inv.ringColor ? Color3.FromHexString(inv.ringColor) : undefined;
   for (const mat of handle.telegraphMats) {
     if (inv.resolved) {
       mat.diffuseColor = new Color3(1, 1, 1);
       mat.alpha = 0.8;
     } else {
-      mat.diffuseColor = inv.inverted
+      mat.diffuseColor = telegraphColor ?? (inv.inverted
         ? new Color3(0.4, 0.6, 1)
-        : new Color3(1, Math.max(0, 0.8 - progress * 0.6), 0);
-      mat.alpha = 0.25 + progress * 0.45;
+        : new Color3(1, Math.max(0, 0.8 - progress * 0.6), 0));
+      mat.alpha = inv.telegraphAlpha ?? DEFAULT_TELEGRAPH_ALPHA;
     }
   }
 

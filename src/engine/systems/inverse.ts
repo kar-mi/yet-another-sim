@@ -28,6 +28,7 @@ export function resolveInversions(ctx: TickContext): {
         hiddenShapes,
         ringColor: pi.ringColor,
         ringHeight: pi.ringHeight,
+        telegraphAlpha: pi.telegraphAlpha,
         inverted,
         variantB,
         telegraphStart: pi.t,

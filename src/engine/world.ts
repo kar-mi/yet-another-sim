@@ -311,6 +311,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         variantRng: e.variantRng ?? false,
         ringColor: e.ringColor,
         ringHeight: e.ringHeight,
+        telegraphAlpha: e.telegraphAlpha,
         rng: e.rng ?? false,
         questionMark: e.questionMark,
         damage: e.damage,

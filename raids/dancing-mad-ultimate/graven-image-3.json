@@ -121,7 +121,7 @@
     {
       "type": "inverse", "id": "lightning", "t": 43, "name": "Mystery Magic 3 (Lightning)", "telegraph": 5,
       "damage": 60, "damageType": "magical", "showCastBar": true,
-      "rng": true, "variantRng": true, "ringColor": "#a855f7", "ringHeight": 3.2,
+      "rng": true, "variantRng": true, "ringColor": "#a855f7", "ringHeight": 3.2, "telegraphAlpha": 0.1,
       "shownShapes": [
         { "kind": "rect", "origin": [-17.929725, -10.174735], "direction": [0.724049, 0.689749], "width": 10, "length": 40 },
         { "kind": "rect", "origin": [-4.134745, -24.655715], "direction": [0.724049, 0.689749], "width": 10, "length": 40 }
