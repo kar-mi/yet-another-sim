@@ -20,6 +20,7 @@ export class NetClient {
   private readonly snapshots: Snapshot[] = [];
   private lastJoin: { sessionId: string; raidId: string } | null = null;
   private claimedPlayerId: string | null = null;
+  private observing = false;
   private closing = false;
   private reconnectDelay = RECONNECT_INITIAL_MS;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -38,6 +39,10 @@ export class NetClient {
     if (message.type === "join") this.lastJoin = { sessionId: message.sessionId, raidId: message.raidId };
     if (message.type === "claimSlot") this.claimedPlayerId = message.playerId;
     if (message.type === "releaseSlot" && this.claimedPlayerId === message.playerId) this.claimedPlayerId = null;
+    if (message.type === "claimObserver") {
+      this.claimedPlayerId = null;
+    }
+    if (message.type === "releaseObserver") this.observing = false;
 
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
     this.ws.send(JSON.stringify(message));
@@ -112,8 +117,10 @@ export class NetClient {
     this.snapshots.length = 0;
     const join = this.lastJoin;
     const claim = this.claimedPlayerId;
+    const observing = this.observing;
     this.send({ type: "join", sessionId: join.sessionId, raidId: join.raidId });
     if (claim) this.send({ type: "claimSlot", playerId: claim });
+    if (observing) this.send({ type: "claimObserver" });
   }
 
   private handleMessage(event: MessageEvent): void {
@@ -128,7 +135,14 @@ export class NetClient {
     if (!message || typeof message.type !== "string") return;
 
     if (message.type === "joined") this.clientId = message.clientId;
-    if (message.type === "started") this.claimedPlayerId = message.yourPlayerId;
+    if (message.type === "lobby") {
+      this.claimedPlayerId = message.slots.find(slot => slot.claimedByYou)?.playerId ?? null;
+      this.observing = message.observingByYou;
+    }
+    if (message.type === "started") {
+      this.claimedPlayerId = message.yourPlayerId;
+      this.observing = message.yourPlayerId === null;
+    }
     if (message.type === "started" || message.type === "snapshot" || message.type === "playback") this.pushSnapshot(message.world);
 
     const handlers = this.handlers.get(message.type as MessageType);

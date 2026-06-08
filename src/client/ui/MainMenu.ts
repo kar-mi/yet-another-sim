@@ -99,7 +99,7 @@ export function showLanding(): Promise<string> {
   });
 }
 
-export async function showLobby(net: NetClient, sessionId: string): Promise<{ world: World; yourPlayerId: string; sessionId: string; raidId: string; isHost: boolean }> {
+export async function showLobby(net: NetClient, sessionId: string): Promise<{ world: World; yourPlayerId: string | null; sessionId: string; raidId: string; isHost: boolean }> {
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
     overlay.id = "yas-menu";
@@ -129,7 +129,7 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<{ wo
       );
     };
 
-    const renderSlot = (slot: LobbySlot, claimedByMe: boolean): HTMLElement => {
+    const renderSlot = (slot: LobbySlot, claimedByMe: boolean, observingByMe: boolean): HTMLElement => {
       const row = createElement("div", "yas-lobby-slot");
       const meta = createElement("div", "yas-lobby-slot-meta");
       meta.append(
@@ -139,11 +139,34 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<{ wo
 
       const status = slot.claimedByYou ? "YOU" : slot.claimed ? "CLAIMED" : "BOT";
       const action = createElement("button", "yas-lobby-slot-action", slot.claimedByYou ? "RELEASE" : "CLAIM");
-      action.disabled = (slot.claimed && !slot.claimedByYou) || (!slot.claimedByYou && claimedByMe);
+      action.disabled = (slot.claimed && !slot.claimedByYou) || (!slot.claimedByYou && (claimedByMe || observingByMe));
       action.addEventListener("click", () => {
         net.send(slot.claimedByYou
           ? { type: "releaseSlot", playerId: slot.playerId }
           : { type: "claimSlot", playerId: slot.playerId });
+      });
+
+      row.append(meta, createElement("div", "yas-lobby-slot-status", status), action);
+      return row;
+    };
+
+    const renderObserverSlot = (message: {
+      observerCount: number;
+      maxObservers: number;
+      observingByYou: boolean;
+    }, claimedByMe: boolean): HTMLElement => {
+      const row = createElement("div", "yas-lobby-slot");
+      const meta = createElement("div", "yas-lobby-slot-meta");
+      meta.append(
+        createElement("span", "yas-lobby-slot-id", "obs"),
+        createElement("span", "yas-lobby-slot-role", "OBSERVER"),
+      );
+
+      const status = message.observingByYou ? "YOU" : `${message.observerCount}/${message.maxObservers}`;
+      const action = createElement("button", "yas-lobby-slot-action", message.observingByYou ? "RELEASE" : "CLAIM");
+      action.disabled = !message.observingByYou && (claimedByMe || message.observerCount >= message.maxObservers);
+      action.addEventListener("click", () => {
+        net.send(message.observingByYou ? { type: "releaseObserver" } : { type: "claimObserver" });
       });
 
       row.append(meta, createElement("div", "yas-lobby-slot-status", status), action);
@@ -156,33 +179,49 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<{ wo
       raidId: string;
       raidName: string;
       status: LobbyStatus;
+      observerCount: number;
+      maxObservers: number;
+      observingByYou: boolean;
     }) => {
       lastLobby = message;
       const subtitle = message.status === "lobby"
         ? `${message.raidName.toUpperCase()} — CLAIM PARTY SLOT`
         : message.status === "running"
           ? `${message.raidName.toUpperCase()} — IN PROGRESS, CLAIM TO JOIN`
-          : `${message.raidName.toUpperCase()} — FINISHED`;
+          : message.status === "paused"
+            ? `${message.raidName.toUpperCase()} — PAUSED, CLAIM TO JOIN`
+            : message.status === "stopped"
+              ? `${message.raidName.toUpperCase()} — STOPPED`
+              : `${message.raidName.toUpperCase()} — FINISHED`;
       renderHeader(subtitle);
 
       const claimedByMe = message.slots.some(slot => slot.claimedByYou);
       const slotList = createElement("div", "yas-lobby-slots");
-      for (const slot of message.slots) slotList.appendChild(renderSlot(slot, claimedByMe));
+      for (const slot of message.slots) slotList.appendChild(renderSlot(slot, claimedByMe, message.observingByYou));
+      slotList.appendChild(renderObserverSlot(message, claimedByMe));
 
       const isHost = net.clientId === message.hostClientId;
-      const canStart = message.status === "lobby" && message.slots.some(slot => slot.claimed);
+      const canStart = message.status === "lobby" && (message.slots.some(slot => slot.claimed) || message.observingByYou);
+      const canResume = message.status === "paused" && (claimedByMe || message.observingByYou);
+      const canPlayStopped = message.status === "stopped" && (claimedByMe || message.observingByYou);
       const startLabel = message.status !== "lobby"
-        ? message.status === "running" ? "IN PROGRESS" : "FINISHED"
+        ? message.status === "running"
+          ? "IN PROGRESS"
+          : message.status === "paused"
+            ? "RESUME"
+            : message.status === "stopped"
+              ? "START"
+              : "FINISHED"
         : isHost ? "START" : "WAIT HOST";
       const startBtn = createElement("button", "yas-menu-start", startLabel);
-      startBtn.disabled = !isHost || !canStart;
-      startBtn.addEventListener("click", () => net.send({ type: "start" }));
+      startBtn.disabled = !isHost || (message.status === "paused" ? !canResume : message.status === "stopped" ? !canPlayStopped : !canStart);
+      startBtn.addEventListener("click", () => net.send(message.status === "paused" || message.status === "stopped" ? { type: "play" } : { type: "start" }));
 
       const sessionEl = createElement("div", "yas-menu-session");
       sessionEl.append(
         createElement("span", "yas-menu-session-label", "SESSION"),
         createElement("span", "yas-menu-session-id", sessionId),
-        createElement("span", "yas-menu-note", "COPY THIS PAGE URL TO INVITE OTHERS"),
+        createElement("span", "yas-menu-note", `OBSERVERS ${message.observerCount}/${message.maxObservers}`),
       );
 
       if (message.status === "lobby") {
@@ -198,6 +237,9 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<{ wo
       raidId: string;
       raidName: string;
       status: LobbyStatus;
+      observerCount: number;
+      maxObservers: number;
+      observingByYou: boolean;
     } | null = null;
 
     const disposers = [
