@@ -1,6 +1,6 @@
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveForcedMarch } from "../../shared/types";
-import { createForcedMarchMeshes, updateForcedMarchMeshes, type ForcedMarchMeshes } from "./forcedMarchMeshes";
+import { createForcedMarchMeshes, updateForcedMarchMeshes, type ForcedMarchMeshes } from "./meshes/forcedMarchMeshes";
 
 export class ForcedMarchLayer {
   private marches = new Map<string, ForcedMarchMeshes>();

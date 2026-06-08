@@ -6,7 +6,7 @@ import { CreateTorus } from "@babylonjs/core/Meshes/Builders/torusBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveInverse, Boss } from "../../shared/types";
+import type { ActiveInverse, Boss } from "../../../shared/types";
 import { createShapeMesh } from "./telegraphMeshes";
 
 // Each inverse mechanic gets ONE ring around the boss. The ring colour identifies the mechanic
