@@ -6,8 +6,8 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ZoneShape } from "../../shared/types";
-import { logger } from "../../shared/logger";
+import type { ZoneShape } from "../../../shared/types";
+import { logger } from "../../../shared/logger";
 
 export function createZoneMesh(scene: Scene, zone: ZoneShape): Mesh | null {
   const mat = new StandardMaterial("floor-mat", scene);

@@ -9,9 +9,10 @@ import {
   type LobbyStatus,
   type RaidCategory,
   type RaidEntry,
-} from "../shared/protocol";
-import type { World } from "../shared/types";
-import type { NetClient } from "./net";
+} from "../../shared/protocol";
+import type { World } from "../../shared/types";
+import type { NetClient } from "../net";
+import { createElement } from "./dom";
 
 function normalizeRaidEntry(value: unknown): RaidEntry | null {
   if (!value || typeof value !== "object") return null;
@@ -25,16 +26,6 @@ function normalizeRaidEntry(value: unknown): RaidEntry | null {
   return { id: entry.id, name };
 }
 
-function createElement<K extends keyof HTMLElementTagNameMap>(
-  tagName: K,
-  className?: string,
-  textContent?: string,
-): HTMLElementTagNameMap[K] {
-  const el = document.createElement(tagName);
-  if (className) el.className = className;
-  if (textContent !== undefined) el.textContent = textContent;
-  return el;
-}
 
 function normalizeCategory(value: unknown): RaidCategory | null {
   if (!value || typeof value !== "object") return null;

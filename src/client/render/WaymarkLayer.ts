@@ -1,7 +1,7 @@
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Waymark } from "../../shared/types";
-import { createWaymarkMeshes } from "./waymarkMeshes";
+import { createWaymarkMeshes } from "./meshes/waymarkMeshes";
 
 export class WaymarkLayer {
   private meshes: Mesh[] = [];
