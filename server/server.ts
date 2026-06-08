@@ -11,6 +11,8 @@ import {
 } from "../src/shared/protocol";
 import { SessionManager } from "./session";
 import { logger, createSessionLog, debugEnabled } from "./logger";
+import { metrics } from "./metrics";
+import { startMetricsServer } from "./metricsServer";
 
 const ROOT = join(import.meta.dir, "..");
 const BUNDLE_DIR = join(ROOT, ".bundle");
@@ -138,6 +140,11 @@ const manager = new SessionManager({
 });
 setInterval(() => manager.pruneExpired(), 60_000);
 
+startMetricsServer({
+  sessionsActive: () => manager.sessions.size,
+  clientsConnected: () => clients.size,
+});
+
 const server = Bun.serve<SocketData>({
   port: PORT,
 
@@ -185,10 +192,12 @@ const server = Bun.serve<SocketData>({
       logger.info("net", "WS connected", { addr: ws.remoteAddress, clientId: ws.data.clientId });
     },
     async message(ws, msg) {
+      metrics.wsMessagesTotal.inc();
       try {
         const text = typeof msg === "string" ? msg : new TextDecoder().decode(msg);
         const parsed = ClientMessageSchema.safeParse(JSON.parse(text));
         if (!parsed.success) {
+          metrics.wsInvalidTotal.inc();
           logger.warn("net", "invalid message", { clientId: ws.data.clientId });
           ws.send(JSON.stringify({ type: "error", message: "Invalid message" } satisfies ServerMessage));
           return;
@@ -200,6 +209,7 @@ const server = Bun.serve<SocketData>({
 
         await manager.handle(ws.data.clientId, parsed.data);
       } catch {
+        metrics.wsInvalidTotal.inc();
         logger.warn("net", "invalid JSON", { clientId: ws.data.clientId });
         ws.send(JSON.stringify({ type: "error", message: "Invalid JSON" } satisfies ServerMessage));
       }
