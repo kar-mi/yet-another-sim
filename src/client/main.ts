@@ -67,7 +67,7 @@ async function main(): Promise<void> {
     syncKeybindLabels();
     updateController();
 
-    const disposeRaidSelect = await createRaidHudSelect(net, session.raidId, session.isHost);
+    const disposeRaidSelect = await createRaidHudSelect(net, session.raidId, session.isHost, session.playbackState);
     const disposeInput = initInput();
     const stopLoop = startNetLoop(renderer, net);
 
