@@ -14,6 +14,8 @@ import type { World } from "../../shared/types";
 import type { NetClient } from "../net";
 import { createElement } from "./dom";
 
+const LOBBY_SLOT_ORDER = ["mt", "ot", "h1", "h2", "m1", "m2", "r1", "r2"] as const;
+
 function normalizeRaidEntry(value: unknown): RaidEntry | null {
   if (!value || typeof value !== "object") return null;
 
@@ -197,7 +199,11 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<{ wo
 
       const claimedByMe = message.slots.some(slot => slot.claimedByYou);
       const slotList = createElement("div", "yas-lobby-slots");
-      for (const slot of message.slots) slotList.appendChild(renderSlot(slot, claimedByMe, message.observingByYou));
+      const slotsById = new Map(message.slots.map(slot => [slot.playerId, slot]));
+      for (const playerId of LOBBY_SLOT_ORDER) {
+        const slot = slotsById.get(playerId);
+        if (slot) slotList.appendChild(renderSlot(slot, claimedByMe, message.observingByYou));
+      }
       slotList.appendChild(renderObserverSlot(message, claimedByMe));
 
       const isHost = net.clientId === message.hostClientId;
