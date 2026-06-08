@@ -61,6 +61,33 @@ function solverWaypoint(player: Player, world: World): Vec2 | undefined {
     }
   }
 
+  // Spread/stack "?": go to the assigned spot for the *actual* mode (bots solve the real answer).
+  const spreadStack = world.spreadStacks.find(s => !s.resolved);
+  if (spreadStack) {
+    const actual = spreadStack.inverted
+      ? (spreadStack.shown === "spread" ? "stack" : "spread")
+      : spreadStack.shown;
+    const cfg = world.botSolvers?.spreadStack;
+    // Per-orientation override: when a named inverse ("lightning") is active, swap to the safe-corridor
+    // positions for its current orientation; otherwise use the base positions.
+    const orient = (base?: Record<string, Vec2>, override?: { id: string; shown: Record<string, Vec2>; inverted: Record<string, Vec2>; shownB?: Record<string, Vec2>; invertedB?: Record<string, Vec2> }) => {
+      if (override) {
+        const inv = world.inversions.find(i => i.id === override.id && !i.resolved);
+        if (inv) {
+          if (inv.variantB) return inv.inverted ? (override.invertedB ?? override.inverted) : (override.shownB ?? override.shown);
+          return inv.inverted ? override.inverted : override.shown;
+        }
+      }
+      return base;
+    };
+    const base = actual === "spread" ? cfg?.spread : cfg?.stack;
+    const spots = actual === "spread"
+      ? orient(cfg?.spread, cfg?.spreadLightning)
+      : orient(cfg?.stack, cfg?.stackLightning);
+    const spot = spots?.[player.id] ?? base?.[player.id];
+    if (spot) return spot;
+  }
+
   if (hasActiveDoubleTrouble(player, world.time)) {
     const solver = world.botSolvers?.doubleTrouble;
     if (!solver || (solver.startAt !== undefined && world.time < solver.startAt)) return undefined;

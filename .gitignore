@@ -8,5 +8,6 @@ CLAUDE.md
 node_modules/
 dist/
 .bundle/
+.env
 .mcp.json
 logs/

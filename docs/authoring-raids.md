@@ -501,8 +501,11 @@ fake** (inverted).
 | `telegraph` | yes | Cast duration in seconds (> 0); damage applies at `t + telegraph`. |
 | `damage` | yes | Damage (≥ 0) dealt to each player in a lethal shape. |
 | `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
-| `shownShapes` | yes | Array (≥ 1) of [shapes](#shapes) that are drawn; lethal when **not** inverted. |
-| `hiddenShapes` | yes | Array (≥ 1) of shapes that are **not** drawn; lethal when inverted. |
+| `shownShapes` | yes | Array (≥ 1) of [shapes](#shapes) that are drawn; lethal when **not** inverted (variant **a**). |
+| `hiddenShapes` | yes | Array (≥ 1) of shapes that are **not** drawn; lethal when inverted (variant **a**). |
+| `shownShapesB` | no | Variant **b** drawn shapes. Required together with `hiddenShapesB` when `variantRng` is set. |
+| `hiddenShapesB` | no | Variant **b** hidden shapes. |
+| `variantRng` | no | Randomise the **orientation** each run (50/50 a vs b). When `b` is rolled, the `*ShapesB` sets replace `shownShapes`/`hiddenShapes` before the inversion is rolled, giving 4 outcomes (a/b × honest/`?`). Needs both `shownShapesB` and `hiddenShapesB`. Default `false`. |
 | `questionMark` | no | Force the inversion state (`true` = always the "?", `false` = never). Overrides `rng`. |
 | `rng` | no | Randomise the inversion each run (50/50). Default `false` (not inverted). |
 | `ringColor` | no | Hex colour of this mechanic's boss ring (identifies it). Default white. |
@@ -512,6 +515,75 @@ fake** (inverted).
 | `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
 
 See `raids/inverse-test.json` for honest / `?` / random crosses.
+
+### `spread_stack` — "?" that flips spread ↔ stack
+
+A fire "?" puzzle that resolves as **either spread or stack**. It shows one marker during the
+cast (`shown`); a per-cast **flip** decides what actually happens when the cast bar ends:
+
+- **Not inverted** (honest): it resolves as the `shown` mode.
+- **Inverted** (the "?"): the shown marker is a **lie** — it resolves as the **opposite** mode.
+
+The two modes:
+- **spread** — every alive player drops a small personal AOE (`spread.radius`). A player takes
+  `spread.damage` **once per circle they stand in**, so standing in another player's circle eats
+  their hit too (each player always eats their own once). Spread everyone out.
+- **stack** — **one random member of *each* `stack.groups` is marked**, so two groups give two
+  separate stacks. Players within `stack.radius` of a marked player split that stack's
+  `stack.damage`; fewer than `stack.requiredCount` soakers → that stack **fails** and each soaker
+  eats the full, unsplit hit.
+
+**Flip state** is decided at cast start, in this precedence: `questionMark` (authored override)
+> `rng` (seeded 50/50, true variation each pull) > not inverted.
+
+`shown: "random"` picks spread or stack per pull (seeded) — only **one** mechanic ever displays,
+and the flip can still make it a lie.
+
+**Visuals.** Like `inverse`, the mechanic gets **one boss ring** (`ringColor` at `ringHeight`)
+with two orbs encoding the state (**dark blue = real**, **reddish-orange + yellow "?" = fake**).
+Use a height **above** any concurrent `inverse` ring to stack the two readouts. While casting,
+the spread form draws a downward triangle over **every** player's head; the stack form draws an
+orange **"ring with triangles pointing in" marker on top of the marked character's head**.
+
+```json
+{
+  "type": "spread_stack",
+  "t": 43,
+  "name": "Mystery Magic 3 (Fire)",
+  "telegraph": 5,
+  "shown": "random",
+  "rng": true,
+  "damageType": "magical",
+  "spread": { "radius": 4, "damage": 80 },
+  "stack": { "groups": [["r1", "r2", "m1", "m2"], ["h1", "h2"]], "radius": 6, "requiredCount": 4, "damage": 200 },
+  "ringColor": "#f97316",
+  "ringHeight": 7,
+  "showCastBar": true
+}
+```
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `type` | yes | `"spread_stack"`. |
+| `t` | yes | Cast start time (seconds). The flip + marked member are rolled now. |
+| `name` | yes | Mechanic name (used in the log and cast bar). |
+| `telegraph` | yes | Cast duration in seconds (> 0); resolves at `t + telegraph`. |
+| `shown` | yes | Marker drawn during the cast: `"spread"`, `"stack"`, or `"random"` (seeded pick each pull). |
+| `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
+| `spread.radius` | yes | Each player's personal AOE radius (> 0). |
+| `spread.damage` | yes | Damage (≥ 0) per circle a player stands in. |
+| `stack.groups` | yes | Groups of player ids; **one member per group is marked** → one stack circle each. |
+| `stack.radius` | yes | Stack circle radius around each marked player. |
+| `stack.requiredCount` | no | Soakers needed per stack to split the hit; fewer = full damage each. Default `1`. |
+| `stack.damage` | yes | Damage (≥ 0) per stack, split evenly among that stack's soakers on success. |
+| `questionMark` | no | Force the flip state (`true` = always the "?", `false` = never). Overrides `rng`. |
+| `rng` | no | Randomise the flip each run (seeded 50/50). Default `false` (honest). |
+| `ringColor` | no | Hex colour of this mechanic's boss ring. Default fire orange `#f97316`. |
+| `ringHeight` | no | Vertical height of the boss ring. Default `2`. |
+| `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
+
+See `raids/dancing-mad-ultimate/graven-image-3.json` ("Mystery Magic 3 (Fire)") for a flip running
+alongside an `inverse` with a fire ring above the lightning ring.
 
 ### `gaze` — look-away / "?" eye
 
@@ -697,6 +769,14 @@ burst is independent of the named effect — it deals its own `damage`, unrelate
 }
 ```
 
+### `heal` — restore all living players
+
+Restores every living player to their own maximum HP immediately at `t`. Dead players stay dead.
+
+```json
+{ "type": "heal", "t": 35, "name": "Raidwide Heal" }
+```
+
 ### `effect_select` — random player debuff
 
 Chooses one group, then one random living member from that group, and applies `applyEffect`
@@ -879,6 +959,16 @@ array of points in plant-slot order, e.g. `[short, long]`.
 The double trouble solver moves bot-controlled players with active `doubleTrouble` debuffs to a
 role-based safe offset (`support` for tanks/healers, `dps` for DPS). Plant arrow solving takes
 priority when both debuffs are active. Set `startAt` to delay the solver until that encounter time.
+The **spread/stack** solver moves bots while a `spread_stack` mechanic is casting: it reads the
+*actual* resolved mode (seeing through the `?`) and sends each bot to its `spread` or `stack` spot
+(`playerId -> [x, z]`). Human slots are not moved. Stack spots are usually one shared point per
+group (everyone in a group converges there, so it works whoever is marked).
+Optional `spreadLightning` / `stackLightning` override the spread / stack spots per concurrent-`inverse`
+orientation: name the inverse via `id`, then give `shown` positions (used when that inverse is *not*
+inverted) and `inverted` positions (used when it is). This lets bots spread or stack into the safe
+corridor of a simultaneous line-AOE mechanic. Falls back to base `spread`/`stack` when the named
+inverse isn't active. If that inverse uses `variantRng`, add optional `shownB` / `invertedB` tables
+for its variant-**b** orientation; they fall back to `shown` / `inverted` when omitted.
 
 ```json
 {
@@ -893,6 +983,20 @@ priority when both debuffs are active. Set `startAt` to delay the solver until t
       "placements": {
         "right down": [[12.73, 12.73], [9, 15.59]],
         "down down": [[17.39, 4.66], [18, 0]]
+      }
+    },
+    "spreadStack": {
+      "spread": { "mt": [-6, 6], "ot": [6, 6], "h1": [0, -18], "h2": [18, 0] },
+      "stack": { "mt": [6, -6], "ot": [6, -6], "h1": [6, -6], "h2": [6, -6] },
+      "spreadLightning": {
+        "id": "lightning",
+        "shown": { "mt": [-2, -2], "ot": [6, 6], "h1": [0, -18], "h2": [18, 0] },
+        "inverted": { "mt": [-6, 6], "ot": [2, -2], "h1": [0, -18], "h2": [18, 0] }
+      },
+      "stackLightning": {
+        "id": "lightning",
+        "shown": { "mt": [-6, -6], "h1": [-6, -6], "r1": [6, 6], "m2": [6, 6] },
+        "inverted": { "mt": [6, -6], "h1": [6, -6], "r1": [-6, 6], "m2": [-6, 6] }
       }
     }
   }

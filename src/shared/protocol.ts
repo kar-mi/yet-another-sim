@@ -100,6 +100,13 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     type: z.literal("restart"),
   }).strict(),
   z.object({
+    type: z.literal("debugPosition"),
+    playerId: PlayerIdSchema,
+    x: z.number(),
+    y: z.number(),
+    z: z.number(),
+  }).strict(),
+  z.object({
     type: z.literal("intent"),
     intent: IntentSchema,
   }).strict(),

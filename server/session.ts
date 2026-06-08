@@ -583,6 +583,7 @@ export class SessionManager {
       await this.setRaid(clientId, message.raidId);
       return;
     }
+    if (message.type === "debugPosition") return;
 
     const session = this.sessionFor(clientId);
     if (!session) {

@@ -14,6 +14,10 @@ import { keyLabel } from "../settings";
 import type { Settings, ControllerType } from "../settings";
 import { clamp01 } from "../../shared/math";
 
+declare const __YAS_DEBUG__: boolean | undefined;
+
+const DEBUG_POSITION_ENABLED = typeof __YAS_DEBUG__ !== "undefined" && __YAS_DEBUG__;
+
 // Map a status effect to a compact icon glyph (replaces the old text name). A plant arrow is
 // rotated to match the knockback heading ("➤" points east by default; screen +z is up).
 function effectIcon(effect: Player["effects"][number]): { glyph: string; rotate?: number } {
@@ -96,7 +100,9 @@ export class HudOverlay {
   private castTimerEl!: HTMLDivElement;
   private slotKeybinds: HTMLSpanElement[] = [];
   private modeToggleBtn!: HTMLButtonElement;
+  private debugPositionBtn: HTMLButtonElement | null = null;
   private currentSettings!: Settings;
+  private latestPlayer: Player | null = null;
   private debuffTrackerEl!: HTMLDivElement;
   private kbmHotbar!: HTMLDivElement;
   private controllerHotbar!: HTMLDivElement;
@@ -109,6 +115,7 @@ export class HudOverlay {
     private readonly localPlayerId: string | null = null,
     private onSettingsChange: (settings: Settings) => void = () => {},
     private onSpectate: (id: string) => void = () => {},
+    private onDebugPosition: (position: { playerId: string; x: number; y: number; z: number }) => void = () => {},
   ) {
     this.root = this.buildHud();
     document.body.appendChild(this.root);
@@ -133,6 +140,11 @@ export class HudOverlay {
     this.controllerHotbar = this.root.querySelector<HTMLDivElement>(".yas-controller-hotbar")!;
     this.slotKeybinds = Array.from(this.kbmHotbar.querySelectorAll<HTMLSpanElement>(".yas-keybind"));
     this.modeToggleBtn = this.root.querySelector<HTMLButtonElement>(".yas-hotbar-toggle")!;
+    this.debugPositionBtn = this.root.querySelector<HTMLButtonElement>(".yas-hotbar-debug")!;
+    if (!DEBUG_POSITION_ENABLED) {
+      this.debugPositionBtn.remove();
+      this.debugPositionBtn = null;
+    }
     this.ctrlSprintSlot = this.controllerHotbar.querySelector<HTMLDivElement>(`[data-ctrl-slot='${ACTIONS.sprint.controllerSlot}']`)!;
     this.ctrlSprintCdOverlay = this.ctrlSprintSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
     this.ctrlSprintCdText = this.ctrlSprintSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
@@ -318,6 +330,7 @@ export class HudOverlay {
       this.onSettingsChange(next);
       this.applySettings(next);
     });
+    this.debugPositionBtn?.addEventListener("click", () => this.logCurrentPosition());
   }
 
   private flashSlot(slot: HTMLDivElement): void {
@@ -329,6 +342,7 @@ export class HudOverlay {
 
   sync(world: World): void {
     const p = world.players.find(player => player.id === this.localPlayerId) ?? world.players[0];
+    this.latestPlayer = p ?? null;
 
     if (world.status === "cleared") {
       this.statusEl.textContent = "CLEARED";
@@ -370,10 +384,12 @@ export class HudOverlay {
     const castingChain = world.chains.find(c => !c.resolved && c.showCastBar);
     const castingGroup = world.groupMechanics.find(g => !g.resolved && g.showCastBar);
     const castingGaze = world.gazes.find(g => !g.resolved && g.showCastBar);
+    const castingSpreadStack = world.spreadStacks.find(s => !s.resolved && s.showCastBar);
     const casting = world.active.find(m => !m.resolved && m.showCastBar)
       ?? (castingChain && { name: castingChain.name, telegraphStart: castingChain.telegraphStart, resolveAt: castingChain.resolveAt })
       ?? (castingGroup && { name: castingGroup.name, telegraphStart: castingGroup.telegraphStart, resolveAt: castingGroup.resolveAt })
-      ?? (castingGaze && { name: castingGaze.name, telegraphStart: castingGaze.telegraphStart, resolveAt: castingGaze.resolveAt });
+      ?? (castingGaze && { name: castingGaze.name, telegraphStart: castingGaze.telegraphStart, resolveAt: castingGaze.resolveAt })
+      ?? (castingSpreadStack && { name: castingSpreadStack.name, telegraphStart: castingSpreadStack.telegraphStart, resolveAt: castingSpreadStack.resolveAt });
     if (casting) {
       const span = casting.resolveAt - casting.telegraphStart;
       const progress = span > 0 ? Math.min(1, (world.time - casting.telegraphStart) / span) : 1;
@@ -425,6 +441,17 @@ export class HudOverlay {
         0, p.provokeCooldown, PROVOKE_COOLDOWN, this.prevProvokeCooldown,
       );
     }
+  }
+
+  private logCurrentPosition(): void {
+    const player = this.latestPlayer;
+    if (!player) return;
+    this.onDebugPosition({
+      playerId: player.id,
+      x: Number(player.pos.x.toFixed(3)),
+      y: Number(player.y.toFixed(3)),
+      z: Number(player.pos.z.toFixed(3)),
+    });
   }
 
   // Renders a skill's cooldown sweep, ready-pulse, and active highlight across its hotbar slots.

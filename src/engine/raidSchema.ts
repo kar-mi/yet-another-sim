@@ -13,6 +13,26 @@ const BotSolversSchema = z.object({
     dps: Vec2Schema,
     startAt: z.number().nonnegative().optional(),
   }).optional(),
+  spreadStack: z.object({
+    spread: z.record(z.string().min(1), Vec2Schema), // playerId -> spread-mode spot (base / no lightning)
+    stack: z.record(z.string().min(1), Vec2Schema),  // playerId -> stack-mode spot (their group's stack point)
+    // Per-orientation overrides: read the named inverse ("lightning") and use `shown` positions
+    // when it is NOT inverted, `inverted` positions when it is, so bots dodge into the safe corridor.
+    spreadLightning: z.object({
+      id: z.string().min(1),
+      shown: z.record(z.string().min(1), Vec2Schema),
+      inverted: z.record(z.string().min(1), Vec2Schema),
+      shownB: z.record(z.string().min(1), Vec2Schema).optional(),
+      invertedB: z.record(z.string().min(1), Vec2Schema).optional(),
+    }).optional(),
+    stackLightning: z.object({
+      id: z.string().min(1),
+      shown: z.record(z.string().min(1), Vec2Schema),
+      inverted: z.record(z.string().min(1), Vec2Schema),
+      shownB: z.record(z.string().min(1), Vec2Schema).optional(),
+      invertedB: z.record(z.string().min(1), Vec2Schema).optional(),
+    }).optional(),
+  }).optional(),
 }).optional();
 const RoleSchema = z.enum(["tank", "healer", "dps"]);
 
@@ -247,6 +267,7 @@ const EffectSelectEventSchema = z.object({
 
 const InverseEventSchema = z.object({
   type: z.literal("inverse"),
+  id: z.string().min(1).optional(),                // stable id (e.g. "lightning") for bot solvers
   t: z.number().nonnegative(),
   name: z.string().min(1),
   telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
@@ -254,12 +275,45 @@ const InverseEventSchema = z.object({
   damageType: z.enum(["physical", "magical", "true"]),
   shownShapes: z.array(AOEShapeSchema).min(1),      // telegraph shapes that ARE drawn
   hiddenShapes: z.array(AOEShapeSchema).min(1),     // not drawn; lethal when inverted ("?")
+  shownShapesB: z.array(AOEShapeSchema).min(1).optional(),  // variant-b telegraph shapes (rolled when variantRng)
+  hiddenShapesB: z.array(AOEShapeSchema).min(1).optional(), // variant-b hidden shapes
+  variantRng: z.boolean().optional(),               // randomize a/b orientation (needs shownShapesB + hiddenShapesB)
   ringColor: z.string().optional(),               // hex colour of this mechanic's boss ring (identifies it)
   ringHeight: z.number().optional(),              // vertical height of this mechanic's boss ring
   rng: z.boolean().optional(),                      // randomize the "?" inversion (else not inverted)
   questionMark: z.boolean().optional(),            // authored override of the inversion state
   applyEffect: ApplyEffectSchema.optional(),
   knockback: KnockbackSchema.optional(),
+  showCastBar: z.boolean().optional(),
+}).superRefine((ev, ctx) => {
+  if (ev.variantRng && (!ev.shownShapesB || !ev.hiddenShapesB)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "variantRng requires both shownShapesB and hiddenShapesB" });
+  }
+});
+
+// A "?" mechanic that flips between spread (per-player AOEs) and stack (shared soak). It shows one
+// marker during the cast; when inverted ("?") it resolves as the opposite when the cast bar ends.
+const SpreadStackEventSchema = z.object({
+  type: z.literal("spread_stack"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  telegraph: z.number().positive(),
+  shown: z.enum(["spread", "stack", "random"]),     // marker drawn during the cast ("random" = seeded per pull)
+  rng: z.boolean().optional(),                       // seeded 50/50 flip (else honest)
+  questionMark: z.boolean().optional(),              // authored override of the flip state
+  damageType: z.enum(["physical", "magical", "true"]),
+  spread: z.object({
+    radius: z.number().positive(),                   // each player's personal AOE radius
+    damage: z.number().nonnegative(),                // damage per circle a player stands in
+  }),
+  stack: z.object({
+    groups: z.array(z.array(z.string().min(1)).min(1)).min(1), // candidate groups; one member is marked
+    radius: z.number().positive(),                   // stack circle radius around the marked player
+    requiredCount: z.number().int().positive().default(1),     // soakers needed; fewer -> full damage each
+    damage: z.number().nonnegative(),                // total, split evenly among soakers on success
+  }),
+  ringColor: z.string().optional(),                  // hex colour of this mechanic's boss ring
+  ringHeight: z.number().optional(),                 // vertical height of this mechanic's boss ring
   showCastBar: z.boolean().optional(),
 });
 
@@ -318,7 +372,13 @@ const EffectBurstEventSchema = z.object({
   showTelegraph: z.boolean().optional(),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, InverseEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema]);
+const HealEventSchema = z.object({
+  type: z.literal("heal"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+});
+
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
@@ -500,6 +560,22 @@ export const RaidSchema = z.object({
         });
       }
     }
+  });
+
+  // spread_stack events: every stack-group member id must exist in the roster.
+  raid.events.forEach((event, i) => {
+    if (event.type !== "spread_stack") return;
+    event.stack.groups.forEach((group, g) => {
+      group.forEach(id => {
+        if (!playerIds.has(id)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["events", i, "stack", "groups", g],
+            message: `spread_stack references unknown player id "${id}"`,
+          });
+        }
+      });
+    });
   });
 
   // plant combination groups: every declared member id must exist in the roster.

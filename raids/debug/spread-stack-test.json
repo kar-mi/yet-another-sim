@@ -1,0 +1,87 @@
+{
+  "name": "Spread / Stack Test",
+  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 20 }] },
+  "duration": 36,
+  "players": [
+    { "id": "mt", "role": "tank", "control": "bot", "spawn": [0, 8] },
+    { "id": "ot", "role": "tank", "control": "bot", "spawn": [0, -8] },
+    { "id": "h1", "role": "healer", "control": "bot", "spawn": [-8, 0] },
+    { "id": "h2", "role": "healer", "control": "bot", "spawn": [8, 0] },
+    { "id": "r1", "role": "dps", "control": "bot", "spawn": [-5.66, 5.66] },
+    { "id": "r2", "role": "dps", "control": "bot", "spawn": [5.66, 5.66] },
+    { "id": "m1", "role": "dps", "control": "human", "spawn": [-5.66, -5.66] },
+    { "id": "m2", "role": "dps", "control": "bot", "spawn": [5.66, -5.66] }
+  ],
+  "events": [
+    {
+      "type": "aoe",
+      "t": 0,
+      "name": "Stillness",
+      "telegraph": 36,
+      "damage": 0,
+      "damageType": "true",
+      "lockFacing": true,
+      "showCastBar": false,
+      "showTelegraph": false,
+      "shape": { "kind": "circle", "center": [0, 0], "radius": 0.1 }
+    },
+    {
+      "type": "spread_stack", "t": 3, "name": "Honest Spread", "telegraph": 4,
+      "shown": "spread", "damageType": "magical",
+      "spread": { "radius": 4, "damage": 40 },
+      "stack": { "groups": [["r1", "r2", "m1", "m2"], ["h1", "h2", "mt", "ot"]], "radius": 6, "requiredCount": 4, "damage": 120 },
+      "ringColor": "#f97316", "ringHeight": 7,
+      "showCastBar": true
+    },
+    {
+      "type": "spread_stack", "t": 10, "name": "Honest Stack", "telegraph": 4,
+      "shown": "stack", "damageType": "magical",
+      "spread": { "radius": 4, "damage": 40 },
+      "stack": { "groups": [["r1", "r2", "m1", "m2"], ["h1", "h2", "mt", "ot"]], "radius": 6, "requiredCount": 4, "damage": 120 },
+      "ringColor": "#f97316", "ringHeight": 7,
+      "showCastBar": true
+    },
+    {
+      "type": "spread_stack", "t": 17, "name": "Lie: shows Spread, is Stack", "telegraph": 4,
+      "shown": "spread", "questionMark": true, "damageType": "magical",
+      "spread": { "radius": 4, "damage": 40 },
+      "stack": { "groups": [["r1", "r2", "m1", "m2"], ["h1", "h2", "mt", "ot"]], "radius": 6, "requiredCount": 4, "damage": 120 },
+      "ringColor": "#f97316", "ringHeight": 7,
+      "showCastBar": true
+    },
+    {
+      "type": "spread_stack", "t": 24, "name": "Lie: shows Stack, is Spread", "telegraph": 4,
+      "shown": "stack", "questionMark": true, "damageType": "magical",
+      "spread": { "radius": 4, "damage": 40 },
+      "stack": { "groups": [["r1", "r2", "m1", "m2"], ["h1", "h2", "mt", "ot"]], "radius": 6, "requiredCount": 4, "damage": 120 },
+      "ringColor": "#f97316", "ringHeight": 7,
+      "showCastBar": true
+    },
+    {
+      "type": "spread_stack", "t": 31, "name": "Coin Flip (random shown + ?)", "telegraph": 4,
+      "shown": "random", "rng": true, "damageType": "magical",
+      "spread": { "radius": 4, "damage": 40 },
+      "stack": { "groups": [["r1", "r2", "m1", "m2"], ["h1", "h2", "mt", "ot"]], "radius": 6, "requiredCount": 4, "damage": 120 },
+      "ringColor": "#f97316", "ringHeight": 7,
+      "showCastBar": true
+    }
+  ],
+  "botSolvers": {
+    "spreadStack": {
+      "spread": {
+        "mt": [-6, 6], "ot": [6, 6], "h1": [0, -18], "h2": [18, 0],
+        "r1": [0, 18], "r2": [-18, 0], "m1": [-6, 6], "m2": [-6, -6]
+      },
+      "stack": {
+        "mt": [6, -6], "ot": [6, -6], "h1": [6, -6], "h2": [6, -6],
+        "r1": [-6, 6], "r2": [-6, 6], "m1": [-6, 6], "m2": [-6, 6]
+      }
+    }
+  },
+  "waymarks": [
+    { "mark": "A", "pos": [0, 16] },
+    { "mark": "B", "pos": [16, 0] },
+    { "mark": "C", "pos": [0, -16] },
+    { "mark": "D", "pos": [-16, 0] }
+  ]
+}

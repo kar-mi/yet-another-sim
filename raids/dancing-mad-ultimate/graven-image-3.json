@@ -53,7 +53,7 @@
       "shape": { "kind": "circle", "center": [0, 0], "radius": 0.1 }
     },
     {
-      "t": 3, "name": "Tele-Trouncing", "telegraph": 5, "damage": 0, "damageType": "magical",
+      "t": 3, "name": "Teletrouncing", "telegraph": 5, "damage": 0, "damageType": "magical",
       "showCastBar": true, "showTelegraph": false,
       "applyEffects": {
         "order": "shuffleBalanced",
@@ -116,23 +116,35 @@
       "showCastBar": false
     },
 
+    { "type": "heal", "t": 35, "name": "Raidwide Heal" },
+
     {
-      "type": "inverse", "t": 43, "name": "Mystery Magic 3 (Lightning)", "telegraph": 5,
+      "type": "inverse", "id": "lightning", "t": 43, "name": "Mystery Magic 3 (Lightning)", "telegraph": 5,
       "damage": 60, "damageType": "magical", "showCastBar": true,
-      "rng": true, "ringColor": "#a855f7", "ringHeight": 3.2,
+      "rng": true, "variantRng": true, "ringColor": "#a855f7", "ringHeight": 3.2,
       "shownShapes": [
-        { "kind": "rect", "origin": [-7, -20], "direction": [0, 1], "width": 6, "length": 40 },
-        { "kind": "rect", "origin": [7, -20], "direction": [0, 1], "width": 6, "length": 40 }
+        { "kind": "rect", "origin": [-17.929725, -10.174735], "direction": [0.724049, 0.689749], "width": 10, "length": 40 },
+        { "kind": "rect", "origin": [-4.134745, -24.655715], "direction": [0.724049, 0.689749], "width": 10, "length": 40 }
       ],
       "hiddenShapes": [
-        { "kind": "rect", "origin": [-20, -7], "direction": [1, 0], "width": 6, "length": 40 },
-        { "kind": "rect", "origin": [-20, 7], "direction": [1, 0], "width": 6, "length": 40 }
+        { "kind": "rect", "origin": [-24.827215, -2.934245], "direction": [0.724049, 0.689749], "width": 10, "length": 40 },
+        { "kind": "rect", "origin": [-11.032235, -17.415225], "direction": [0.724049, 0.689749], "width": 10, "length": 40 }
+      ],
+      "shownShapesB": [
+        { "kind": "rect", "origin": [17.929725, -10.174735], "direction": [-0.724049, 0.689749], "width": 10, "length": 40 },
+        { "kind": "rect", "origin": [4.134745, -24.655715], "direction": [-0.724049, 0.689749], "width": 10, "length": 40 }
+      ],
+      "hiddenShapesB": [
+        { "kind": "rect", "origin": [24.827215, -2.934245], "direction": [-0.724049, 0.689749], "width": 10, "length": 40 },
+        { "kind": "rect", "origin": [11.032235, -17.415225], "direction": [-0.724049, 0.689749], "width": 10, "length": 40 }
       ]
     },
     {
-      "type": "group", "t": 49, "name": "Mystery Magic 3 (Fire)", "rng": true,
-      "groups": [["h1"], ["h2"]],
-      "telegraph": 4, "radius": 6, "requiredCount": 4, "damage": 200, "damageType": "magical",
+      "type": "spread_stack", "t": 43, "name": "Mystery Magic 3 (Fire)", "telegraph": 5,
+      "shown": "random", "rng": true, "damageType": "magical",
+      "spread": { "radius": 4, "damage": 80 },
+      "stack": { "groups": [["r1", "r2", "m1", "m2"], ["h1", "h2", "mt", "ot"]], "radius": 6, "requiredCount": 4, "damage": 200 },
+      "ringColor": "#f97316", "ringHeight": 7,
       "showCastBar": true
     }
   ],

@@ -1,4 +1,4 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingInverse, PendingGaze, PendingForcedMarch, PendingEffectBurst } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingInverse, PendingSpreadStack, PendingGaze, PendingForcedMarch, PendingEffectBurst, PendingHeal } from "../shared/types";
 import { vec2 } from "../shared/math";
 import { makeSeed, nextRandom, randomInt } from "../shared/rng";
 import type { RaidDef } from "./raidSchema";
@@ -13,7 +13,11 @@ function toVec2(arr: [number, number]) {
 function toBotSolvers(raid: RaidDef): World["botSolvers"] {
   const plantArrows = raid.botSolvers?.plantArrows;
   const doubleTrouble = raid.botSolvers?.doubleTrouble;
-  if (!plantArrows && !doubleTrouble) return undefined;
+  const spreadStack = raid.botSolvers?.spreadStack;
+  if (!plantArrows && !doubleTrouble && !spreadStack) return undefined;
+
+  const toSpots = (spots: Record<string, [number, number]>) =>
+    Object.fromEntries(Object.entries(spots).map(([id, pos]) => [id, toVec2(pos)]));
 
   return {
     plantArrows: plantArrows && {
@@ -28,6 +32,24 @@ function toBotSolvers(raid: RaidDef): World["botSolvers"] {
       support: toVec2(doubleTrouble.support),
       dps: toVec2(doubleTrouble.dps),
       startAt: doubleTrouble.startAt,
+    },
+    spreadStack: spreadStack && {
+      spread: toSpots(spreadStack.spread),
+      stack: toSpots(spreadStack.stack),
+      spreadLightning: spreadStack.spreadLightning && {
+        id: spreadStack.spreadLightning.id,
+        shown: toSpots(spreadStack.spreadLightning.shown),
+        inverted: toSpots(spreadStack.spreadLightning.inverted),
+        shownB: spreadStack.spreadLightning.shownB && toSpots(spreadStack.spreadLightning.shownB),
+        invertedB: spreadStack.spreadLightning.invertedB && toSpots(spreadStack.spreadLightning.invertedB),
+      },
+      stackLightning: spreadStack.stackLightning && {
+        id: spreadStack.stackLightning.id,
+        shown: toSpots(spreadStack.stackLightning.shown),
+        inverted: toSpots(spreadStack.stackLightning.inverted),
+        shownB: spreadStack.stackLightning.shownB && toSpots(spreadStack.stackLightning.shownB),
+        invertedB: spreadStack.stackLightning.invertedB && toSpots(spreadStack.stackLightning.invertedB),
+      },
     },
   };
 }
@@ -140,9 +162,11 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const pendingGroups: PendingGroupEvent[] = [];
   const pendingEffectSelects: PendingEffectSelect[] = [];
   const pendingInversions: PendingInverse[] = [];
+  const pendingSpreadStacks: PendingSpreadStack[] = [];
   const pendingGazes: PendingGaze[] = [];
   const pendingForcedMarches: PendingForcedMarch[] = [];
   const pendingEffectBursts: PendingEffectBurst[] = [];
+  const pendingHeals: PendingHeal[] = [];
 
   for (const [index, e] of raid.events.entries()) {
     if (e.type === "tether_source") {
@@ -264,12 +288,15 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       });
     } else if (e.type === "inverse") {
       pendingInversions.push({
-        id: `inverse-${index}`,
+        id: e.id ?? `inverse-${index}`,
         t: e.t,
         name: e.name,
         telegraph: e.telegraph,
         shownShapes: e.shownShapes.map(toAOEShape),
         hiddenShapes: e.hiddenShapes.map(toAOEShape),
+        shownShapesB: e.shownShapesB?.map(toAOEShape),
+        hiddenShapesB: e.hiddenShapesB?.map(toAOEShape),
+        variantRng: e.variantRng ?? false,
         ringColor: e.ringColor,
         ringHeight: e.ringHeight,
         rng: e.rng ?? false,
@@ -282,6 +309,27 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
           height: e.knockback.height,
           origin: e.knockback.origin ? toVec2(e.knockback.origin) : undefined,
         },
+        showCastBar: e.showCastBar ?? false,
+      });
+    } else if (e.type === "spread_stack") {
+      pendingSpreadStacks.push({
+        id: `spread-stack-${index}`,
+        t: e.t,
+        name: e.name,
+        telegraph: e.telegraph,
+        shown: e.shown,
+        rng: e.rng ?? false,
+        questionMark: e.questionMark,
+        damageType: e.damageType,
+        spread: { radius: e.spread.radius, damage: e.spread.damage },
+        stack: {
+          groups: e.stack.groups,
+          radius: e.stack.radius,
+          requiredCount: e.stack.requiredCount,
+          damage: e.stack.damage,
+        },
+        ringColor: e.ringColor,
+        ringHeight: e.ringHeight,
         showCastBar: e.showCastBar ?? false,
       });
     } else if (e.type === "gaze") {
@@ -337,6 +385,12 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         preDelay: e.preDelay,
         postDelay: e.postDelay,
       });
+    } else if (e.type === "heal") {
+      pendingHeals.push({
+        id: `heal-${index}`,
+        t: e.t,
+        name: e.name,
+      });
     } else {
       pending.push({
         id: `event-${index}`,
@@ -369,7 +423,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     rngState,
     groupChoices: {},
     status: "running",
-    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingEffectSelects.length > 0 || pendingInversions.length > 0 || pendingGazes.length > 0 || pendingForcedMarches.length > 0 || pendingEffectBursts.length > 0,
+    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingEffectSelects.length > 0 || pendingInversions.length > 0 || pendingSpreadStacks.length > 0 || pendingGazes.length > 0 || pendingForcedMarches.length > 0 || pendingEffectBursts.length > 0 || pendingHeals.length > 0,
     arena,
     waymarks,
     players,
@@ -392,11 +446,14 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     pendingEffectSelects,
     inversions: [],
     pendingInversions,
+    spreadStacks: [],
+    pendingSpreadStacks,
     gazes: [],
     pendingGazes,
     forcedMarches: [],
     pendingForcedMarches,
     pendingEffectBursts,
+    pendingHeals,
     plantPlan,
     plantDebuffOrder,
     botSolvers: toBotSolvers(raid),

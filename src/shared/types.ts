@@ -27,6 +27,24 @@ export type BotSolvers = {
     dps: Vec2;
     startAt?: number;
   };
+  spreadStack?: {
+    spread: Record<string, Vec2>; // playerId -> spread-mode spot (base / no lightning)
+    stack: Record<string, Vec2>;  // playerId -> stack-mode spot
+    spreadLightning?: {           // per-orientation spread override read from the named inverse
+      id: string;
+      shown: Record<string, Vec2>;    // positions when the inverse is NOT inverted (variant a)
+      inverted: Record<string, Vec2>; // positions when the inverse is inverted (variant a)
+      shownB?: Record<string, Vec2>;    // variant-b, not inverted
+      invertedB?: Record<string, Vec2>; // variant-b, inverted
+    };
+    stackLightning?: {            // per-orientation stack override (same shape as spreadLightning)
+      id: string;
+      shown: Record<string, Vec2>;
+      inverted: Record<string, Vec2>;
+      shownB?: Record<string, Vec2>;
+      invertedB?: Record<string, Vec2>;
+    };
+  };
 };
 
 export type DamageType = "physical" | "magical" | "true";
@@ -207,6 +225,12 @@ export type PendingEffectBurst = {
   showTelegraph: boolean;
 };
 
+export type PendingHeal = {
+  id: string;
+  t: number;
+  name: string;
+};
+
 export type TowerVisual = {
   pillar: boolean;
   countCircles: boolean;
@@ -261,6 +285,9 @@ export type PendingInverse = {
   telegraph: number;
   shownShapes: AOEShape[];         // telegraph shapes that ARE drawn
   hiddenShapes: AOEShape[];        // not drawn; lethal when inverted ("?")
+  shownShapesB?: AOEShape[];       // variant-b telegraph shapes (used when variantRng rolls b)
+  hiddenShapesB?: AOEShape[];      // variant-b hidden shapes
+  variantRng?: boolean;            // randomize a/b orientation at cast start
   ringColor?: string;              // hex colour of this mechanic's boss ring
   ringHeight?: number;             // vertical height of this mechanic's boss ring
   rng: boolean;                    // randomize the inversion at cast start
@@ -280,6 +307,7 @@ export type ActiveInverse = {
   ringColor?: string;              // hex colour of this mechanic's boss ring
   ringHeight?: number;             // vertical height of this mechanic's boss ring
   inverted: boolean;               // true => "?" telegraph: hiddenShapes are lethal
+  variantB: boolean;               // true => the b orientation was rolled (for bot solvers)
   telegraphStart: number;
   resolveAt: number;
   damage: number;
@@ -288,6 +316,47 @@ export type ActiveInverse = {
   knockback?: Knockback;
   showCastBar: boolean;
   resolved: boolean;
+};
+
+// A "?" mechanic that flips between spread (per-player AOEs) and stack (shared soak).
+export type SpreadStackMode = "spread" | "stack";
+export type SpreadStackShown = SpreadStackMode | "random"; // authored; "random" resolves to a concrete mode at cast start
+
+export type SpreadConfig = { radius: number; damage: number };
+export type StackConfig = { groups: string[][]; radius: number; requiredCount: number; damage: number };
+
+export type PendingSpreadStack = {
+  id: string;
+  t: number;
+  name: string;
+  telegraph: number;
+  shown: SpreadStackShown;         // marker drawn during the cast ("random" = seeded per pull)
+  rng: boolean;                    // seeded 50/50 flip at cast start
+  questionMark?: boolean;          // authored override of the flip state
+  damageType: DamageType;
+  spread: SpreadConfig;
+  stack: StackConfig;
+  ringColor?: string;              // hex colour of this mechanic's boss ring
+  ringHeight?: number;             // vertical height of this mechanic's boss ring
+  showCastBar: boolean;
+};
+
+export type ActiveSpreadStack = {
+  id: string;
+  name: string;
+  telegraphStart: number;
+  resolveAt: number;
+  shown: SpreadStackMode;          // what the markers display
+  inverted: boolean;               // true => "?": actual mode is the opposite of `shown`
+  markedPlayerIds: string[];       // stack-mode marked member per group (rolled even when shown=spread)
+  spread: SpreadConfig;
+  stack: StackConfig;
+  damageType: DamageType;
+  ringColor?: string;
+  ringHeight?: number;
+  showCastBar: boolean;
+  resolved: boolean;
+  outcome?: "success" | "failure"; // set at resolve (stack mode), drives the post-resolve flash
 };
 
 export type GazeVisual = { width: number; height: number; depth: number };
@@ -555,11 +624,14 @@ export type World = {
   pendingGroups: PendingGroupEvent[];
   inversions: ActiveInverse[];
   pendingInversions: PendingInverse[];
+  spreadStacks: ActiveSpreadStack[];
+  pendingSpreadStacks: PendingSpreadStack[];
   gazes: ActiveGaze[];
   pendingGazes: PendingGaze[];
   forcedMarches: ActiveForcedMarch[];
   pendingForcedMarches: PendingForcedMarch[];
   pendingEffectBursts: PendingEffectBurst[];
+  pendingHeals: PendingHeal[];
   pendingEffectSelects: PendingEffectSelect[];
   // Per-player plant directions (one per plant slot), assigned from optionals.combinations.plant
   // at world creation. Empty when the raid has no plant combinations. Stamped onto each plant

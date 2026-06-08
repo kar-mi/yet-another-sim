@@ -50,8 +50,11 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, shutdown);
 }
 
+export const logLevel = parseLevel(Bun.env.LOG_LEVEL, "warn");
+export const debugEnabled = logLevel === "debug";
+
 logger.configure({
-  level: parseLevel(process.env.LOG_LEVEL, "warn"),
+  level: logLevel,
   sinks: [consoleSink, createFileSink()],
 });
 
