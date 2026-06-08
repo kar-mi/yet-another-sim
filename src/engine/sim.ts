@@ -394,6 +394,15 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
+  for (const heal of world.pendingHeals) {
+    if (heal.t <= time) {
+      for (const player of players) {
+        if (player.alive) player.hp = player.maxHp;
+      }
+    }
+  }
+  const remainingPendingHeals = world.pendingHeals.filter(heal => heal.t > time);
+
   // 1b. Boss targeting + facing: pick the top-threat alive player and turn to face them.
   // Per-tick snap (no turn-rate clamp); visual smoothing is done client-side in net.ts.
   // A lockFacing cast freezes the boss's facing for its duration so it matches its telegraph.
@@ -1222,7 +1231,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
     && remainingPendingSpreadStacks.length === 0 && stillSpreadStacks.every(s => s.resolved)
     && remainingPendingGazes.length === 0 && stillGazes.every(g => g.resolved)
     && remainingPendingForcedMarches.length === 0 && forcedMarches.every(fm => fm.triggered)
-    && remainingPendingEffectBursts.length === 0;
+    && remainingPendingEffectBursts.length === 0
+    && remainingPendingHeals.length === 0;
   let status = world.status;
   if (status === "running") {
     if (!anyAlive) {
@@ -1232,5 +1242,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, rngState, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, pendingEffectSelects: remainingPendingEffectSelects, inversions: stillInversions, pendingInversions: remainingPendingInversions, spreadStacks: stillSpreadStacks, pendingSpreadStacks: remainingPendingSpreadStacks, gazes: stillGazes, pendingGazes: remainingPendingGazes, forcedMarches, pendingForcedMarches: remainingPendingForcedMarches, pendingEffectBursts: remainingPendingEffectBursts };
+  return { ...world, time, rngState, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, pendingEffectSelects: remainingPendingEffectSelects, inversions: stillInversions, pendingInversions: remainingPendingInversions, spreadStacks: stillSpreadStacks, pendingSpreadStacks: remainingPendingSpreadStacks, gazes: stillGazes, pendingGazes: remainingPendingGazes, forcedMarches, pendingForcedMarches: remainingPendingForcedMarches, pendingEffectBursts: remainingPendingEffectBursts, pendingHeals: remainingPendingHeals };
 }

@@ -90,6 +90,24 @@ test("tick is deterministic", () => {
   expect(JSON.stringify(w1)).toBe(JSON.stringify(w2));
 });
 
+test("heal event restores living players to max HP", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [
+      { type: "aoe", t: 0, name: "Hit", telegraph: 0.1, damage: 30, damageType: "magical", shape: { kind: "circle", center: [0, 0], radius: 20 } },
+      { type: "heal", t: 1, name: "Heal" },
+    ],
+  });
+
+  let world = createWorld(raid);
+  world = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, 12);
+  expect(human(world).hp).toBeLessThan(human(world).maxHp);
+
+  world = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, 60);
+  expect(human(world).hp).toBe(human(world).maxHp);
+  expect(world.players.find(p => p.id === "mt")!.hp).toBe(TANK_HP);
+});
+
 test("facing tracks movement direction and persists while idle", () => {
   const raid = loadRaid(baseRaid);
   const world = createWorld(raid);

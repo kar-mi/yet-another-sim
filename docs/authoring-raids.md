@@ -766,6 +766,14 @@ burst is independent of the named effect — it deals its own `damage`, unrelate
 }
 ```
 
+### `heal` — restore all living players
+
+Restores every living player to their own maximum HP immediately at `t`. Dead players stay dead.
+
+```json
+{ "type": "heal", "t": 35, "name": "Raidwide Heal" }
+```
+
 ### `effect_select` — random player debuff
 
 Chooses one group, then one random living member from that group, and applies `applyEffect`

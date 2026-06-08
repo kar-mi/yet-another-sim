@@ -361,7 +361,13 @@ const EffectBurstEventSchema = z.object({
   showTelegraph: z.boolean().optional(),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema]);
+const HealEventSchema = z.object({
+  type: z.literal("heal"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+});
+
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),

@@ -1,4 +1,4 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingInverse, PendingSpreadStack, PendingGaze, PendingForcedMarch, PendingEffectBurst } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingInverse, PendingSpreadStack, PendingGaze, PendingForcedMarch, PendingEffectBurst, PendingHeal } from "../shared/types";
 import { vec2 } from "../shared/math";
 import { makeSeed, nextRandom, randomInt } from "../shared/rng";
 import type { RaidDef } from "./raidSchema";
@@ -162,6 +162,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const pendingGazes: PendingGaze[] = [];
   const pendingForcedMarches: PendingForcedMarch[] = [];
   const pendingEffectBursts: PendingEffectBurst[] = [];
+  const pendingHeals: PendingHeal[] = [];
 
   for (const [index, e] of raid.events.entries()) {
     if (e.type === "tether_source") {
@@ -377,6 +378,12 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         preDelay: e.preDelay,
         postDelay: e.postDelay,
       });
+    } else if (e.type === "heal") {
+      pendingHeals.push({
+        id: `heal-${index}`,
+        t: e.t,
+        name: e.name,
+      });
     } else {
       pending.push({
         id: `event-${index}`,
@@ -409,7 +416,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     rngState,
     groupChoices: {},
     status: "running",
-    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingEffectSelects.length > 0 || pendingInversions.length > 0 || pendingSpreadStacks.length > 0 || pendingGazes.length > 0 || pendingForcedMarches.length > 0 || pendingEffectBursts.length > 0,
+    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingEffectSelects.length > 0 || pendingInversions.length > 0 || pendingSpreadStacks.length > 0 || pendingGazes.length > 0 || pendingForcedMarches.length > 0 || pendingEffectBursts.length > 0 || pendingHeals.length > 0,
     arena,
     waymarks,
     players,
@@ -439,6 +446,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     forcedMarches: [],
     pendingForcedMarches,
     pendingEffectBursts,
+    pendingHeals,
     plantPlan,
     plantDebuffOrder,
     botSolvers: toBotSolvers(raid),
