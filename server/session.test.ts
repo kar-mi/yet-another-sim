@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { loadRaid } from "../src/engine/raidLoader";
-import { ClientMessageSchema, EMPTY_RAID_ID } from "../src/shared/protocol";
+import { ClientMessageSchema, EMPTY_RAID_ID, MAX_OBSERVERS } from "../src/shared/protocol";
 import type { ServerMessage } from "../src/shared/protocol";
 import { loadSessionRaid, Session, SessionManager, type SessionStatus } from "./session";
 
@@ -107,6 +107,119 @@ test("late joiner must claim before entering a running session", () => {
 
   session.claimSlot("c2", "ot");
   expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "started" && entry.message.yourPlayerId === "ot")).toBe(true);
+});
+
+test("client can reclaim and enter a paused session", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+  session.step(false);
+  const pausedTime = session.world.time;
+
+  session.pause("c1");
+  session.releaseSlot("c1", "mt");
+  session.claimSlot("c1", "mt");
+
+  expect(session.status).toBe("paused");
+  expect(session.world.time).toBe(pausedTime);
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === "mt" && entry.message.world.time === pausedTime)).toBe(true);
+});
+
+test("host can resume a paused session", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+  session.pause("c1");
+
+  session.play("c1");
+
+  expect(session.status).toBe("running");
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "playback" && entry.message.state === "playing")).toBe(true);
+});
+
+test("client can reclaim and enter a stopped session", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+  session.step(false);
+
+  session.stop("c1");
+  session.releaseSlot("c1", "mt");
+  session.claimSlot("c1", "mt");
+
+  expect(session.status).toBe("stopped");
+  expect(session.world.time).toBe(0);
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === "mt" && entry.message.world.time === 0)).toBe(true);
+});
+
+test("host can start again from a stopped lobby re-entry", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+  session.stop("c1");
+  session.releaseSlot("c1", "mt");
+  session.claimObserver("c1");
+
+  session.play("c1");
+
+  expect(session.status).toBe("running");
+  expect(session.world.time).toBe(0);
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === null)).toBe(true);
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "playback" && entry.message.state === "playing")).toBe(true);
+});
+
+test("observers enter running sessions without occupying player slots", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.join("c2");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+
+  session.claimObserver("c2");
+
+  expect(session.observers.has("c2")).toBe(true);
+  expect([...session.slots.values()].filter(ownerId => ownerId !== null)).toHaveLength(1);
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "started" && entry.message.yourPlayerId === null)).toBe(true);
+});
+
+test("host can start as an observer without claiming a player slot", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimObserver("c1");
+
+  session.start("c1");
+
+  expect(session.status).toBe("running");
+  expect([...session.slots.values()].every(ownerId => ownerId === null)).toBe(true);
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === null)).toBe(true);
+});
+
+test("observer seats are capped at five", () => {
+  const { session, sent } = makeSession();
+  for (let i = 1; i <= MAX_OBSERVERS + 1; i++) {
+    const clientId = `c${i}`;
+    session.join(clientId);
+    session.claimObserver(clientId);
+  }
+
+  expect(session.observers.size).toBe(MAX_OBSERVERS);
+  expect(sent.some(entry => entry.clientId === `c${MAX_OBSERVERS + 1}` && entry.message.type === "error" && entry.message.message === "Observer seats are full")).toBe(true);
+});
+
+test("observers must leave observer mode before claiming a player slot", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimObserver("c1");
+
+  session.claimSlot("c1", "mt");
+
+  expect(session.observers.has("c1")).toBe(true);
+  expect(session.slots.get("mt")).toBeNull();
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "error" && entry.message.message === "Leave observer mode before claiming a slot")).toBe(true);
 });
 
 test("claimed players use human intent while unclaimed patterned bots move", () => {

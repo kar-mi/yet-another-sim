@@ -4,7 +4,7 @@ import { applyBotPatterns, loadBotPatterns, loadRaid } from "../src/engine/raidL
 import type { RaidDef } from "../src/engine/raidSchema";
 import { tick } from "../src/engine/sim";
 import { createWorld } from "../src/engine/world";
-import { CLOCK_SPOTS, EMPTY_RAID_ID, ROSTER, type ClientMessage, type LobbySlot, type LobbyStatus, type ServerMessage } from "../src/shared/protocol";
+import { CLOCK_SPOTS, EMPTY_RAID_ID, MAX_OBSERVERS, ROSTER, type ClientMessage, type LobbySlot, type LobbyStatus, type ServerMessage } from "../src/shared/protocol";
 import type { Intent, Intents, LogEntry, World } from "../src/shared/types";
 import { logger } from "../src/shared/logger";
 
@@ -87,6 +87,7 @@ export class Session {
   readonly id: string;
   raidId: string;
   readonly slots = new Map<string, string | null>();
+  readonly observers = new Set<string>();
   status: SessionStatus = "lobby";
   hostClientId = "";
   raidRequestSeq = 0;
@@ -137,6 +138,12 @@ export class Session {
         return;
       case "releaseSlot":
         this.releaseSlot(clientId, message.playerId);
+        return;
+      case "claimObserver":
+        this.claimObserver(clientId);
+        return;
+      case "releaseObserver":
+        this.releaseObserver(clientId);
         return;
       case "start":
         this.start(clientId);
@@ -284,6 +291,7 @@ export class Session {
         this.latestIntents.delete(playerId);
       }
     }
+    this.observers.delete(clientId);
 
     const hostChanged = this.hostClientId === clientId;
     if (hostChanged) {
@@ -306,6 +314,10 @@ export class Session {
       this.sendError(clientId, "Unknown player slot");
       return;
     }
+    if (this.observers.has(clientId)) {
+      this.sendError(clientId, "Leave observer mode before claiming a slot");
+      return;
+    }
 
     const ownedSlot = this.playerForClient(clientId);
     if (ownedSlot && ownedSlot !== playerId) {
@@ -323,7 +335,7 @@ export class Session {
     this.applySlotControlsToWorld();
     this.broadcastLobby();
 
-    if (this.status === "running") {
+    if (this.status === "running" || this.status === "paused" || this.status === "stopped") {
       this.send(clientId, { type: "started", world: this.world, yourPlayerId: playerId });
     }
   }
@@ -340,6 +352,36 @@ export class Session {
     this.broadcastLobby();
   }
 
+  claimObserver(clientId: string): void {
+    if (this.playerForClient(clientId)) {
+      this.sendError(clientId, "Release your slot before observing");
+      return;
+    }
+    if (this.observers.has(clientId)) {
+      this.sendLobby(clientId);
+      return;
+    }
+    if (this.observers.size >= MAX_OBSERVERS) {
+      this.sendError(clientId, "Observer seats are full");
+      return;
+    }
+
+    this.observers.add(clientId);
+    this.broadcastLobby();
+
+    if (this.status === "running" || this.status === "paused" || this.status === "stopped") {
+      this.send(clientId, { type: "started", world: this.world, yourPlayerId: null });
+    }
+  }
+
+  releaseObserver(clientId: string): void {
+    if (!this.observers.delete(clientId)) {
+      this.sendError(clientId, "You are not observing");
+      return;
+    }
+    this.broadcastLobby();
+  }
+
   start(clientId: string): void {
     if (clientId !== this.hostClientId) {
       this.sendError(clientId, "Only the host can start");
@@ -349,8 +391,8 @@ export class Session {
       this.sendError(clientId, "Session already started");
       return;
     }
-    if (![...this.slots.values()].some(ownerId => ownerId !== null)) {
-      this.sendError(clientId, "Claim a slot before starting");
+    if (![...this.slots.values()].some(ownerId => ownerId !== null) && !this.observers.has(clientId)) {
+      this.sendError(clientId, "Claim a slot or observer seat before starting");
       return;
     }
 
@@ -506,6 +548,9 @@ export class Session {
       status: this.status,
       hostClientId: this.hostClientId,
       slots,
+      observerCount: this.observers.size,
+      maxObservers: MAX_OBSERVERS,
+      observingByYou: this.observers.has(clientId),
     };
   }
 
@@ -525,6 +570,14 @@ export class Session {
   private broadcastStarted(): void {
     for (const connectedClientId of this.clients) {
       const playerId = this.playerForClient(connectedClientId);
+      if (this.observers.has(connectedClientId)) {
+        this.send(connectedClientId, {
+          type: "started",
+          world: this.world,
+          yourPlayerId: null,
+        });
+        continue;
+      }
       if (!playerId) {
         this.sendError(connectedClientId, "Claim a slot to join the running session");
         continue;

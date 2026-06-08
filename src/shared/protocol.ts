@@ -2,6 +2,8 @@ import { z } from "zod";
 import type { Control, Intent, Role, World } from "./types";
 
 export const MAX_PLAYERS = 8;
+export const MAX_OBSERVERS = 5;
+export const MAX_SESSION_PARTICIPANTS = MAX_PLAYERS + MAX_OBSERVERS;
 
 // Canonical raid roster: fixed ids, roles, and order. Every raid must match this exactly.
 export const ROSTER: readonly { id: string; role: Role }[] = [
@@ -85,6 +87,12 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     playerId: PlayerIdSchema,
   }).strict(),
   z.object({
+    type: z.literal("claimObserver"),
+  }).strict(),
+  z.object({
+    type: z.literal("releaseObserver"),
+  }).strict(),
+  z.object({
     type: z.literal("start"),
   }).strict(),
   z.object({
@@ -135,8 +143,11 @@ export type ServerMessage =
       status: LobbyStatus;
       hostClientId: string;
       slots: LobbySlot[];
+      observerCount: number;
+      maxObservers: number;
+      observingByYou: boolean;
     }
-  | { type: "started"; world: World; yourPlayerId: string }
+  | { type: "started"; world: World; yourPlayerId: string | null }
   | { type: "playback"; state: PlaybackState; raidId: string; hostClientId: string; world: World }
   | { type: "snapshot"; world: World }
   | { type: "error"; message: string };

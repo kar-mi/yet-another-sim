@@ -87,7 +87,11 @@ async function main(): Promise<void> {
     currentTeardown();
     currentTeardown = () => {};
     renderer = null;
-    net.send({ type: "releaseSlot", playerId: session.yourPlayerId });
+    if (session.yourPlayerId) {
+      net.send({ type: "releaseSlot", playerId: session.yourPlayerId });
+    } else {
+      net.send({ type: "releaseObserver" });
+    }
   }
 }
 
