@@ -31,6 +31,35 @@ function effectIcon(effect: Player["effects"][number]): { glyph: string; rotate?
   }
 }
 
+function activeVisibleEffects(player: Player, time: number): Player["effects"] {
+  return player.effects
+    .filter(e => e.visibility !== "invisible" && e.appliedAt + e.duration > time)
+    .map((effect, index) => ({ effect, index }))
+    .sort((a, b) => {
+      const aPlant = a.effect.behavior.kind === "plant";
+      const bPlant = b.effect.behavior.kind === "plant";
+      if (aPlant && bPlant) return (a.effect.plantSlot ?? a.index) - (b.effect.plantSlot ?? b.index);
+      return a.index - b.index;
+    })
+    .map(entry => entry.effect);
+}
+
+function buildEffectChip(effect: Player["effects"][number], time: number, className: string): HTMLSpanElement {
+  const effectEl = document.createElement("span");
+  effectEl.className = `${className} ${className}-${effect.kind}`;
+  effectEl.title = effect.name;
+  const icon = effectIcon(effect);
+  const iconEl = document.createElement("span");
+  iconEl.className = `${className}-icon`;
+  iconEl.textContent = icon.glyph;
+  if (icon.rotate !== undefined) iconEl.style.transform = `rotate(${icon.rotate}deg)`;
+  const timerEl = document.createElement("span");
+  timerEl.className = `${className}-timer`;
+  timerEl.textContent = `${Math.ceil(effect.appliedAt + effect.duration - time)}s`;
+  effectEl.append(iconEl, timerEl);
+  return effectEl;
+}
+
 export class HudOverlay {
   private root: HTMLDivElement;
   private statusEl: HTMLDivElement;
@@ -68,6 +97,7 @@ export class HudOverlay {
   private slotKeybinds: HTMLSpanElement[] = [];
   private modeToggleBtn!: HTMLButtonElement;
   private currentSettings!: Settings;
+  private debuffTrackerEl!: HTMLDivElement;
   private kbmHotbar!: HTMLDivElement;
   private controllerHotbar!: HTMLDivElement;
   private ctrlSprintSlot!: HTMLDivElement;
@@ -98,6 +128,7 @@ export class HudOverlay {
     this.provokeSlot = this.root.querySelector<HTMLDivElement>(`[data-slot='${ACTIONS.provoke.keyboardSlot}']`)!;
     this.provokeCdOverlay = this.provokeSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
     this.provokeCdText = this.provokeSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
+    this.debuffTrackerEl = this.root.querySelector<HTMLDivElement>(".yas-debuff-tracker")!;
     this.kbmHotbar = this.root.querySelector<HTMLDivElement>(".yas-hotbar")!;
     this.controllerHotbar = this.root.querySelector<HTMLDivElement>(".yas-controller-hotbar")!;
     this.slotKeybinds = Array.from(this.kbmHotbar.querySelectorAll<HTMLSpanElement>(".yas-keybind"));
@@ -330,22 +361,9 @@ export class HudOverlay {
       row.hpFill.style.width = `${hpPct}%`;
       row.mpFill.style.width = `${mpPct}%`;
       row.rowEl.classList.toggle("yas-dead", !player.alive);
-      const activeEffects = player.effects.filter(e => e.visibility !== "invisible" && e.appliedAt + e.duration > world.time);
       row.effectsEl.replaceChildren();
-      for (const effect of activeEffects) {
-        const effectEl = document.createElement("span");
-        effectEl.className = `party-effect party-effect-${effect.kind}`;
-        effectEl.title = effect.name; // hover reveals the full name
-        const icon = effectIcon(effect);
-        const iconEl = document.createElement("span");
-        iconEl.className = "party-effect-icon";
-        iconEl.textContent = icon.glyph;
-        if (icon.rotate !== undefined) iconEl.style.transform = `rotate(${icon.rotate}deg)`;
-        const timerEl = document.createElement("span");
-        timerEl.className = "party-effect-timer";
-        timerEl.textContent = `${Math.ceil(effect.appliedAt + effect.duration - world.time)}s`;
-        effectEl.append(iconEl, timerEl);
-        row.effectsEl.appendChild(effectEl);
+      for (const effect of activeVisibleEffects(player, world.time)) {
+        row.effectsEl.appendChild(buildEffectChip(effect, world.time, "party-effect"));
       }
     }
 
@@ -369,6 +387,12 @@ export class HudOverlay {
     }
 
     if (!p) return;
+
+    const activeDebuffs = activeVisibleEffects(p, world.time).filter(effect => effect.kind === "debuff");
+    this.debuffTrackerEl.replaceChildren();
+    for (const effect of activeDebuffs) {
+      this.debuffTrackerEl.appendChild(buildEffectChip(effect, world.time, "yas-debuff"));
+    }
 
     const hpPct = clamp01(p.hp / p.maxHp) * 100;
     this.hpFill.style.width = `${hpPct}%`;

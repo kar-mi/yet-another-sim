@@ -790,8 +790,14 @@ body:focus-visible {
   pointer-events: none;
 }
 
-.yas-hotbar-panel {
+.yas-hotbar-row {
   pointer-events: all;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.yas-hotbar-panel {
   padding: 5px 7px;
   background: rgba(6, 7, 18, 0.28);
   border: 1px solid rgba(100, 115, 175, 0.2);
@@ -799,6 +805,52 @@ body:focus-visible {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.yas-debuff-tracker {
+  width: 184px;
+  height: 64px;
+  padding: 5px 7px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(6, 7, 18, 0.28);
+  border: 1px solid rgba(175, 70, 70, 0.2);
+  border-radius: 5px;
+}
+
+.yas-debuff {
+  width: 42px;
+  height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: rgba(45, 8, 14, 0.92);
+  border: 1px solid rgba(220, 60, 60, 0.52);
+  border-radius: 4px;
+  box-shadow: inset 0 0 14px rgba(220, 60, 60, 0.12), 0 0 8px rgba(0, 0, 0, 0.28);
+  color: #f36a6a;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.yas-debuff-icon {
+  display: inline-block;
+  font-size: 23px;
+  line-height: 1;
+  transform-origin: center;
+}
+
+.yas-debuff-timer {
+  font-size: 11px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 218, 218, 0.86);
 }
 
 .yas-hotbar-toggle {

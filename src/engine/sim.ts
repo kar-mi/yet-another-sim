@@ -228,6 +228,36 @@ function applyEffect(player: Player, spec: EffectSpec, time: number, id: string,
   }];
 }
 
+function shuffledEffects(specs: EffectSpec[], randInt: (n: number) => number): EffectSpec[] {
+  const shuffled = specs.slice();
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = randInt(i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+function balancedEffectOrders(specs: EffectSpec[], count: number, randInt: (n: number) => number): EffectSpec[][] {
+  if (specs.length <= 1) return Array.from({ length: count }, () => specs.slice());
+  const start = randInt(specs.length);
+  const orders = Array.from({ length: count }, (_, index) => {
+    const offset = (start + index) % specs.length;
+    return [...specs.slice(offset), ...specs.slice(0, offset)];
+  });
+  for (let i = orders.length - 1; i > 0; i--) {
+    const j = randInt(i + 1);
+    [orders[i], orders[j]] = [orders[j], orders[i]];
+  }
+  return orders;
+}
+
+function effectsForMechanic(mechanic: ActiveMechanic, randInt: (n: number) => number): EffectSpec[] {
+  if (!mechanic.applyEffects) return mechanic.applyEffect ? [mechanic.applyEffect] : [];
+  const specs = mechanic.applyEffects.effects.slice();
+  if (mechanic.applyEffects.order === "shuffle") return shuffledEffects(specs, randInt);
+  return specs;
+}
+
 // Closest living player other than `self` (used to lock a confusion target).
 function closestOtherPlayer(self: Player, players: Player[]): Player | null {
   let best: Player | null = null;
@@ -699,23 +729,43 @@ export function tick(world: World, intents: Intents, dt: number): World {
         if (!target) { mechanic.resolved = true; continue; } // no valid target: fizzle, no telegraph flash
         mechanic.shape = { kind: "circle", center: { x: target.pos.x, z: target.pos.z }, radius: mechanic.shape.radius };
       }
+      const balancedOrders = mechanic.applyEffects?.order === "shuffleBalanced"
+        ? balancedEffectOrders(
+          mechanic.applyEffects.effects,
+          players.filter(player =>
+            player.alive
+            && (!mechanic.positional || inPositionalArc(boss, player.pos, mechanic.positional))
+            && pointInShape(mechanic.shape, player.pos)).length,
+          randInt,
+        )
+        : [];
+      let balancedOrderIndex = 0;
       for (const player of players) {
         if (!player.alive) continue;
         const inArc = !mechanic.positional || inPositionalArc(boss, player.pos, mechanic.positional);
         if (pointInShape(mechanic.shape, player.pos) && inArc) {
           applyMechanicDamage(player, mechanic.damage, mechanic.damageType, time);
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });
-          if (mechanic.applyEffect && player.alive) {
+          const effectSpecs = player.alive
+            ? (mechanic.applyEffects?.order === "shuffleBalanced"
+              ? (balancedOrders[balancedOrderIndex++] ?? mechanic.applyEffects.effects)
+              : effectsForMechanic(mechanic, randInt))
+            : [];
+          for (const [effectIndex, effectSpec] of effectSpecs.entries()) {
             // For a plant debuff, stamp this player's assigned heading from the combination plan.
-            // The slot is how many plants they already carry (0 = first/short, 1 = second/long).
-            let spec = mechanic.applyEffect;
+            // The slot can be remapped so timer/application order stays separate from combo order.
+            let spec = effectSpec;
             let plantSlot: number | undefined;
             if (spec.behavior.kind === "plant") {
-              plantSlot = player.effects.filter(e => e.behavior.kind === "plant").length;
+              const plantIndex = player.effects.filter(e => e.behavior.kind === "plant").length;
+              plantSlot = world.plantDebuffOrder?.[plantIndex] ?? plantIndex;
               const dir = world.plantPlan[player.id]?.[plantSlot];
               if (dir) spec = { ...spec, behavior: { ...spec.behavior, direction: dir } };
             }
-            applyEffect(player, spec, time, `${mechanic.id}-${player.id}-eff`, players, plantSlot);
+            const effectId = effectSpecs.length === 1
+              ? `${mechanic.id}-${player.id}-eff`
+              : `${mechanic.id}-${player.id}-eff-${effectIndex}`;
+            applyEffect(player, spec, time, effectId, players, plantSlot);
           }
           if (mechanic.knockback && player.alive && player.antiKbActive <= 0) {
             const origin = mechanic.knockback.origin ?? shapeOrigin(mechanic.shape);

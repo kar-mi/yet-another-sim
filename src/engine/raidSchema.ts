@@ -79,6 +79,11 @@ const ApplyEffectSchema = z.object({
   visibility: z.enum(["visible", "invisible"]).optional(),
 });
 
+const ApplyEffectsSchema = z.object({
+  effects: z.array(ApplyEffectSchema).min(1),
+  order: z.enum(["listed", "shuffle", "shuffleBalanced"]).default("listed"),
+});
+
 const KnockbackSchema = z.object({
   distance: z.number().positive(),
   height: z.number().nonnegative().default(0), // 0 = horizontal knockback; >0 = knockup arc
@@ -94,6 +99,7 @@ const AOEEventSchema = z.object({
   damageType: z.enum(["physical", "magical", "true"]),
   shape: AOEShapeSchema,
   applyEffect: ApplyEffectSchema.optional(),
+  applyEffects: ApplyEffectsSchema.optional(),
   knockback: KnockbackSchema.optional(),
   // Facing-relative anchoring for cone/rect: snapshot the boss at cast start.
   anchor: z.literal("boss").optional(),            // origin = boss.pos
@@ -338,6 +344,7 @@ const OptionalsSchema = z.object({
   combinations: z.object({
     plant: z.object({
       rng: z.boolean().default(false),
+      debuffOrder: z.array(z.number().int().nonnegative()).optional(),
       g1: PlantGroupSchema,
       g2: PlantGroupSchema,
     }).optional(),

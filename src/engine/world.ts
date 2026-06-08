@@ -129,6 +129,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   };
 
   const { plan: plantPlan, rngState } = buildPlantPlan(raid, seed);
+  const plantDebuffOrder = raid.optionals?.combinations?.plant?.debuffOrder;
 
   const pending: PendingEvent[] = [];
   const pendingTethers: PendingTether[] = [];
@@ -346,6 +347,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         damage: e.damage,
         damageType: e.damageType,
         applyEffect: e.applyEffect,
+        applyEffects: e.applyEffects,
         knockback: e.knockback && {
           distance: e.knockback.distance,
           height: e.knockback.height,
@@ -396,6 +398,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     pendingForcedMarches,
     pendingEffectBursts,
     plantPlan,
+    plantDebuffOrder,
     botSolvers: toBotSolvers(raid),
   };
 }
