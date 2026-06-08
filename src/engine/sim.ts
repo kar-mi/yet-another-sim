@@ -22,6 +22,7 @@ import type {
   ActiveGroupMechanic,
   PendingGroupEvent,
   PendingEffectSelect,
+  PendingApplyEffect,
   ActiveInverse,
   PendingInverse,
   ActiveSpreadStack,
@@ -225,6 +226,7 @@ function applyEffect(player: Player, spec: EffectSpec, time: number, id: string,
     duration: spec.duration,
     behavior: spec.behavior,
     visibility: spec.visibility,
+    icon: spec.icon,
     lockedTargetId,
     plantSlot,
   }];
@@ -480,6 +482,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
         buffName: pt.buffName,
         behavior: pt.behavior,
         effectDuration: pt.effectDuration,
+        icon: pt.icon,
         tetheredPlayerId: nearest?.id ?? null,
         finalized: false,
       });
@@ -516,6 +519,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
           kind: ts.tetherKind,
           duration: ts.effectDuration,
           behavior: ts.behavior,
+          icon: ts.icon,
         }, time, `${ts.id}-effect`, players);
         log.push({ t: time, mechanic: ts.buffName, playerId: target.id, event: ts.tetherKind === "buff" ? "cleared" : "hit" });
       }
@@ -966,6 +970,37 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
+  // 3e. Apply-effect events: drop a buff/debuff straight onto players (all / by role / by count).
+  const remainingPendingApplyEffects: PendingApplyEffect[] = [];
+  for (const pae of world.pendingApplyEffects) {
+    if (pae.t > time) {
+      remainingPendingApplyEffects.push(pae);
+      continue;
+    }
+    let pool = players.filter(p => p.alive);
+    if (pae.players) {
+      const ids = new Set(pae.players);
+      pool = pool.filter(p => ids.has(p.id));
+    } else if (pae.role) {
+      pool = pool.filter(p => p.role === pae.role);
+    }
+    if (pae.count !== undefined && pae.count < pool.length) {
+      if (pae.rng) {
+        const shuffled = pool.slice();
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = randInt(i + 1);
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        pool = shuffled;
+      }
+      pool = pool.slice(0, pae.count);
+    }
+    for (const target of pool) {
+      applyEffect(target, pae.applyEffect, time, `${pae.name}-${target.id}-eff`, players);
+      log.push({ t: time, mechanic: pae.name, playerId: target.id, event: "hit" });
+    }
+  }
+
   // 3e. Inverse ("?") events: at cast start roll the inversion. The shown shape is always
   // drawn (telegraph), but when inverted the "?" makes it a lie -> the hidden shape is lethal.
   const remainingPendingInversions: PendingInverse[] = [];
@@ -1165,15 +1200,16 @@ export function tick(world: World, intents: Intents, dt: number): World {
       for (const effect of player.effects) {
         const activeDt = effectActiveDt(effect, previousTime, time);
         if (activeDt <= 0) continue;
-        if (
-          (effect.behavior.kind === "pyretic" && acted)
-          || (effect.behavior.kind === "freeze" && !acted)
-        ) {
-          player.hp = Math.max(0, player.hp - effect.behavior.dps * activeDt);
-          if (player.hp <= 0) {
-            player.alive = false;
-            log.push({ t: time, mechanic: effect.name, playerId: player.id, event: "hit" });
-            break;
+        if (effect.behavior.kind === "dot") {
+          const cond = effect.behavior.condition;
+          const ticks = cond === "always" || (cond === "moving" && acted) || (cond === "idle" && !acted);
+          if (ticks) {
+            player.hp = Math.max(0, player.hp - effect.behavior.dps * activeDt);
+            if (player.hp <= 0) {
+              player.alive = false;
+              log.push({ t: time, mechanic: effect.name, playerId: player.id, event: "hit" });
+              break;
+            }
           }
         }
       }
@@ -1231,6 +1267,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
     && remainingPendingChains.length === 0 && stillChains.every(c => c.outcome !== undefined)
     && remainingPendingGroups.length === 0 && stillGroups.every(g => g.resolved)
     && remainingPendingEffectSelects.length === 0
+    && remainingPendingApplyEffects.length === 0
     && remainingPendingInversions.length === 0 && stillInversions.every(i => i.resolved)
     && remainingPendingSpreadStacks.length === 0 && stillSpreadStacks.every(s => s.resolved)
     && remainingPendingGazes.length === 0 && stillGazes.every(g => g.resolved)
@@ -1246,5 +1283,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, rngState, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, pendingEffectSelects: remainingPendingEffectSelects, inversions: stillInversions, pendingInversions: remainingPendingInversions, spreadStacks: stillSpreadStacks, pendingSpreadStacks: remainingPendingSpreadStacks, gazes: stillGazes, pendingGazes: remainingPendingGazes, forcedMarches, pendingForcedMarches: remainingPendingForcedMarches, pendingEffectBursts: remainingPendingEffectBursts, pendingHeals: remainingPendingHeals };
+  return { ...world, time, rngState, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, pendingEffectSelects: remainingPendingEffectSelects, pendingApplyEffects: remainingPendingApplyEffects, inversions: stillInversions, pendingInversions: remainingPendingInversions, spreadStacks: stillSpreadStacks, pendingSpreadStacks: remainingPendingSpreadStacks, gazes: stillGazes, pendingGazes: remainingPendingGazes, forcedMarches, pendingForcedMarches: remainingPendingForcedMarches, pendingEffectBursts: remainingPendingEffectBursts, pendingHeals: remainingPendingHeals };
 }

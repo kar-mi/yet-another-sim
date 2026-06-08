@@ -29,8 +29,10 @@ function effectIcon(effect: Player["effects"][number]): { glyph: string; rotate?
     case "sleep": return { glyph: "💤" };
     case "confusion": return { glyph: "❓" };
     case "vuln": return { glyph: "▼" };
-    case "pyretic": return { glyph: "🔥" };
-    case "freeze": return { glyph: "❄" };
+    case "dot": {
+      const c = effect.behavior.condition;
+      return { glyph: c === "moving" ? "🔥" : c === "idle" ? "❄" : "🩸" };
+    }
     default: return { glyph: effect.kind === "buff" ? "▲" : "●" };
   }
 }
@@ -53,9 +55,17 @@ function buildEffectChip(effect: Player["effects"][number], time: number, classN
   effectEl.className = `${className} ${className}-${effect.kind}`;
   effectEl.title = effect.name;
   const icon = effectIcon(effect);
-  const iconEl = document.createElement("span");
+  let iconEl: HTMLElement;
+  if (effect.icon) {
+    const img = document.createElement("img");
+    img.src = `/static/effects/${effect.icon}`;
+    img.alt = effect.name;
+    iconEl = img;
+  } else {
+    iconEl = document.createElement("span");
+    iconEl.textContent = icon.glyph;
+  }
   iconEl.className = `${className}-icon`;
-  iconEl.textContent = icon.glyph;
   if (icon.rotate !== undefined) iconEl.style.transform = `rotate(${icon.rotate}deg)`;
   const timerEl = document.createElement("span");
   timerEl.className = `${className}-timer`;

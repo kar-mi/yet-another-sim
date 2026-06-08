@@ -45,7 +45,7 @@
         "name": "Pyretic",
         "kind": "debuff",
         "duration": 8,
-        "behavior": { "kind": "pyretic", "dps": 8 }
+        "behavior": { "kind": "dot", "dps": 8, "condition": "moving" }
       },
       "shape": { "kind": "circle", "center": [0, 0], "radius": 10 }
     },
@@ -59,7 +59,7 @@
         "name": "Freeze",
         "kind": "debuff",
         "duration": 8,
-        "behavior": { "kind": "freeze", "dps": 8 }
+        "behavior": { "kind": "dot", "dps": 8, "condition": "idle" }
       },
       "shape": { "kind": "circle", "center": [0, 0], "radius": 10 }
     }

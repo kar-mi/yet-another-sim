@@ -52,8 +52,10 @@ export type DamageType = "physical" | "magical" | "true";
 export type EffectBehavior =
   | { kind: "none" }
   | { kind: "vuln"; damageType: "physical" | "magical"; multiplier: number }
-  | { kind: "pyretic"; dps: number }
-  | { kind: "freeze"; dps: number }
+  // Generic damage-over-time. `condition` gates when a tick deals damage: "always" every tick,
+  // "moving" only when the player acted this tick (old "pyretic"), "idle" only when they didn't
+  // (old "freeze").
+  | { kind: "dot"; dps: number; condition: "always" | "moving" | "idle" }
   // Forces the player to walk toward a locked target; on contact the target takes
   // friendly-fire damage and the debuff ends. Target is locked when the debuff lands.
   | { kind: "confusion"; damage: number; damageType: DamageType; radius: number }
@@ -73,6 +75,8 @@ export type EffectSpec = {
   duration: number;
   behavior: EffectBehavior;
   visibility?: "visible" | "invisible";
+  // Optional HUD icon: a bare filename served from /static/effects/. Falls back to a behavior glyph.
+  icon?: string;
 };
 
 export type EffectBundle = {
@@ -88,6 +92,8 @@ export type StatusEffect = {
   duration: number;
   behavior: EffectBehavior;
   visibility?: "visible" | "invisible";
+  // Optional HUD icon: a bare filename served from /static/effects/. Falls back to a behavior glyph.
+  icon?: string;
   // Set when a confusion debuff lands: the player it forces this player to walk toward.
   lockedTargetId?: string;
   // Plant slot index from the assigned combo. Used by bot solvers to place each arrow separately.
@@ -421,6 +427,18 @@ export type PendingEffectSelect = {
   applyEffect: EffectSpec;
 };
 
+// A standalone "drop this effect on players now" event. Targeting: `players` ids if given, else
+// `role` filter, else everyone alive; `count` caps how many (random when `rng`, else roster order).
+export type PendingApplyEffect = {
+  t: number;
+  name: string;
+  role?: Role;
+  players?: string[];
+  count?: number;
+  rng: boolean;
+  applyEffect: EffectSpec;
+};
+
 export type ActiveGroupMechanic = {
   id: string;
   name: string;
@@ -453,6 +471,7 @@ export type TetherSource = {
   buffName: string;
   behavior: EffectBehavior;
   effectDuration: number;
+  icon?: string;
   tetheredPlayerId: string | null;
   finalized: boolean;
 };
@@ -466,6 +485,7 @@ export type PendingTether = {
   buffName: string;
   behavior: EffectBehavior;
   effectDuration: number;
+  icon?: string;
 };
 
 export type LineLinkTarget = {
@@ -633,6 +653,7 @@ export type World = {
   pendingEffectBursts: PendingEffectBurst[];
   pendingHeals: PendingHeal[];
   pendingEffectSelects: PendingEffectSelect[];
+  pendingApplyEffects: PendingApplyEffect[];
   // Per-player plant directions (one per plant slot), assigned from optionals.combinations.plant
   // at world creation. Empty when the raid has no plant combinations. Stamped onto each plant
   // debuff as it lands so the HUD arrow + trap use the player's assigned heading.

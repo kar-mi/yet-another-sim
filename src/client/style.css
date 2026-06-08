@@ -587,6 +587,12 @@ body:focus-visible {
   vertical-align: middle;
 }
 
+img.party-effect-icon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+}
+
 .party-effect-timer {
   margin-left: 4px;
   font-size: 9px;
@@ -844,6 +850,12 @@ body:focus-visible {
   font-size: 23px;
   line-height: 1;
   transform-origin: center;
+}
+
+img.yas-debuff-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .yas-debuff-timer {

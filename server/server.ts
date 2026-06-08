@@ -15,6 +15,7 @@ import { logger, createSessionLog, debugEnabled } from "./logger";
 const ROOT = join(import.meta.dir, "..");
 const BUNDLE_DIR = join(ROOT, ".bundle");
 const RAIDS_DIR = join(ROOT, "raids");
+const STATIC_DIR = join(ROOT, "static");
 const RAID_FILE_RE = new RegExp(`^/raids/(${RAID_ID_REGEX.source.slice(1, -1)})\\.json$`);
 const PORT = Number(Bun.env.PORT || 3000);
 
@@ -155,6 +156,17 @@ const server = Bun.serve<SocketData>({
     const relPath = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
     const bundleFile = Bun.file(join(BUNDLE_DIR, relPath));
     if (await bundleFile.exists()) return new Response(bundleFile);
+
+    // Serve static assets (effect icons, etc.) from /static/*. Validate the relative path to
+    // avoid traversal; only simple file-path characters are allowed.
+    if (url.pathname.startsWith("/static/")) {
+      const rel = url.pathname.slice("/static/".length);
+      if (/^[A-Za-z0-9_\-./]+$/.test(rel) && !rel.includes("..")) {
+        const staticFile = Bun.file(join(STATIC_DIR, rel));
+        if (await staticFile.exists()) return new Response(staticFile);
+      }
+      return new Response("Not found", { status: 404 });
+    }
 
     const raidFileName = raidFileFromPath(url.pathname);
     if (raidFileName) {

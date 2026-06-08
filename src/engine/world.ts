@@ -1,4 +1,4 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingInverse, PendingSpreadStack, PendingGaze, PendingForcedMarch, PendingEffectBurst, PendingHeal } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingApplyEffect, PendingInverse, PendingSpreadStack, PendingGaze, PendingForcedMarch, PendingEffectBurst, PendingHeal } from "../shared/types";
 import { vec2 } from "../shared/math";
 import { makeSeed, nextRandom, randomInt } from "../shared/rng";
 import type { RaidDef } from "./raidSchema";
@@ -161,6 +161,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const pendingChains: PendingChain[] = [];
   const pendingGroups: PendingGroupEvent[] = [];
   const pendingEffectSelects: PendingEffectSelect[] = [];
+  const pendingApplyEffects: PendingApplyEffect[] = [];
   const pendingInversions: PendingInverse[] = [];
   const pendingSpreadStacks: PendingSpreadStack[] = [];
   const pendingGazes: PendingGaze[] = [];
@@ -179,6 +180,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         buffName: e.buffName,
         behavior: e.behavior,
         effectDuration: e.effectDuration,
+        icon: e.icon,
       });
     } else if (e.type === "line_link") {
       pendingLineLinks.push({
@@ -267,6 +269,16 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         groups: e.groups,
         rng: e.rng ?? false,
         link: e.link,
+        applyEffect: e.applyEffect,
+      });
+    } else if (e.type === "apply_effect") {
+      pendingApplyEffects.push({
+        t: e.t,
+        name: e.name,
+        role: e.role,
+        players: e.players,
+        count: e.count,
+        rng: e.rng ?? false,
         applyEffect: e.applyEffect,
       });
     } else if (e.type === "chain") {
@@ -423,7 +435,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     rngState,
     groupChoices: {},
     status: "running",
-    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingEffectSelects.length > 0 || pendingInversions.length > 0 || pendingSpreadStacks.length > 0 || pendingGazes.length > 0 || pendingForcedMarches.length > 0 || pendingEffectBursts.length > 0 || pendingHeals.length > 0,
+    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingEffectSelects.length > 0 || pendingApplyEffects.length > 0 || pendingInversions.length > 0 || pendingSpreadStacks.length > 0 || pendingGazes.length > 0 || pendingForcedMarches.length > 0 || pendingEffectBursts.length > 0 || pendingHeals.length > 0,
     arena,
     waymarks,
     players,
@@ -444,6 +456,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     groupMechanics: [],
     pendingGroups,
     pendingEffectSelects,
+    pendingApplyEffects,
     inversions: [],
     pendingInversions,
     spreadStacks: [],
