@@ -12,7 +12,7 @@ import pkg from "../../package.json";
 
 logger.configure({
   level: parseLevel(
-    new URLSearchParams(location.search).get("log") ?? localStorage.getItem("logLevel"),
+    new URLSearchParams(location.search).get("log"),
     "warn",
   ),
   sinks: [consoleSink],
@@ -478,6 +478,8 @@ async function main(): Promise<void> {
     renderer = new BabylonRenderer(canvas, nextSettings => {
       Object.assign(settings, nextSettings);
       saveSettings(settings);
+    }, position => {
+      net.send({ type: "debugPosition", ...position });
     });
     renderer.init(session.world, sessionId, session.yourPlayerId);
     renderer.applySettings(settings);

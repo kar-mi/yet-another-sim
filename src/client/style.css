@@ -853,6 +853,7 @@ body:focus-visible {
   color: rgba(255, 218, 218, 0.86);
 }
 
+.yas-hotbar-debug,
 .yas-hotbar-toggle {
   width: 36px;
   height: 52px;
@@ -867,6 +868,11 @@ body:focus-visible {
   padding: 0;
 }
 
+.yas-hotbar-debug {
+  font-size: 20px;
+}
+
+.yas-hotbar-debug:hover,
 .yas-hotbar-toggle:hover {
   background: rgba(255, 255, 255, 0.14);
   color: rgba(235, 238, 255, 0.9);

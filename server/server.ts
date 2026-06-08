@@ -16,6 +16,7 @@ const ROOT = join(import.meta.dir, "..");
 const BUNDLE_DIR = join(ROOT, ".bundle");
 const RAIDS_DIR = join(ROOT, "raids");
 const RAID_FILE_RE = new RegExp(`^/raids/(${RAID_ID_REGEX.source.slice(1, -1)})\\.json$`);
+const PORT = Number(Bun.env.PORT || 3000);
 
 interface SocketData {
   clientId: string;
@@ -134,7 +135,7 @@ const manager = new SessionManager({
 setInterval(() => manager.pruneExpired(), 60_000);
 
 const server = Bun.serve<SocketData>({
-  port: 3000,
+  port: PORT,
 
   async fetch(req, server) {
     const url = new URL(req.url);
@@ -175,6 +176,10 @@ const server = Bun.serve<SocketData>({
         if (!parsed.success) {
           logger.warn("net", "invalid message", { clientId: ws.data.clientId });
           ws.send(JSON.stringify({ type: "error", message: "Invalid message" } satisfies ServerMessage));
+          return;
+        }
+        if (parsed.data.type === "debugPosition") {
+          logger.debug("hud", "player position", { clientId: ws.data.clientId, ...parsed.data });
           return;
         }
 

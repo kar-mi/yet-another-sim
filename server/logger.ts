@@ -51,7 +51,7 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 }
 
 logger.configure({
-  level: parseLevel(process.env.LOG_LEVEL, "warn"),
+  level: parseLevel(Bun.env.LOG_LEVEL, "warn"),
   sinks: [consoleSink, createFileSink()],
 });
 

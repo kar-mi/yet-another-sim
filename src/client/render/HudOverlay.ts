@@ -96,7 +96,9 @@ export class HudOverlay {
   private castTimerEl!: HTMLDivElement;
   private slotKeybinds: HTMLSpanElement[] = [];
   private modeToggleBtn!: HTMLButtonElement;
+  private debugPositionBtn!: HTMLButtonElement;
   private currentSettings!: Settings;
+  private latestPlayer: Player | null = null;
   private debuffTrackerEl!: HTMLDivElement;
   private kbmHotbar!: HTMLDivElement;
   private controllerHotbar!: HTMLDivElement;
@@ -109,6 +111,7 @@ export class HudOverlay {
     private readonly localPlayerId: string | null = null,
     private onSettingsChange: (settings: Settings) => void = () => {},
     private onSpectate: (id: string) => void = () => {},
+    private onDebugPosition: (position: { playerId: string; x: number; y: number; z: number }) => void = () => {},
   ) {
     this.root = this.buildHud();
     document.body.appendChild(this.root);
@@ -133,6 +136,7 @@ export class HudOverlay {
     this.controllerHotbar = this.root.querySelector<HTMLDivElement>(".yas-controller-hotbar")!;
     this.slotKeybinds = Array.from(this.kbmHotbar.querySelectorAll<HTMLSpanElement>(".yas-keybind"));
     this.modeToggleBtn = this.root.querySelector<HTMLButtonElement>(".yas-hotbar-toggle")!;
+    this.debugPositionBtn = this.root.querySelector<HTMLButtonElement>(".yas-hotbar-debug")!;
     this.ctrlSprintSlot = this.controllerHotbar.querySelector<HTMLDivElement>(`[data-ctrl-slot='${ACTIONS.sprint.controllerSlot}']`)!;
     this.ctrlSprintCdOverlay = this.ctrlSprintSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
     this.ctrlSprintCdText = this.ctrlSprintSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
@@ -318,6 +322,7 @@ export class HudOverlay {
       this.onSettingsChange(next);
       this.applySettings(next);
     });
+    this.debugPositionBtn.addEventListener("click", () => this.logCurrentPosition());
   }
 
   private flashSlot(slot: HTMLDivElement): void {
@@ -329,6 +334,7 @@ export class HudOverlay {
 
   sync(world: World): void {
     const p = world.players.find(player => player.id === this.localPlayerId) ?? world.players[0];
+    this.latestPlayer = p ?? null;
 
     if (world.status === "cleared") {
       this.statusEl.textContent = "CLEARED";
@@ -427,6 +433,17 @@ export class HudOverlay {
         0, p.provokeCooldown, PROVOKE_COOLDOWN, this.prevProvokeCooldown,
       );
     }
+  }
+
+  private logCurrentPosition(): void {
+    const player = this.latestPlayer;
+    if (!player) return;
+    this.onDebugPosition({
+      playerId: player.id,
+      x: Number(player.pos.x.toFixed(3)),
+      y: Number(player.y.toFixed(3)),
+      z: Number(player.pos.z.toFixed(3)),
+    });
   }
 
   // Renders a skill's cooldown sweep, ready-pulse, and active highlight across its hotbar slots.

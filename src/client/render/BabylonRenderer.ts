@@ -75,7 +75,11 @@ export class BabylonRenderer implements Renderer {
   private onPanUp!: (e: PointerEvent) => void;
   private onLockChange!: () => void;
 
-  constructor(private canvas: HTMLCanvasElement, private onSettingsChange: (settings: Settings) => void = () => {}) {}
+  constructor(
+    private canvas: HTMLCanvasElement,
+    private onSettingsChange: (settings: Settings) => void = () => {},
+    private onDebugPosition: (position: { playerId: string; x: number; y: number; z: number }) => void = () => {},
+  ) {}
 
   init(world: World, sessionId: string, localPlayerId: string | null = null): void {
     this.localPlayerId = localPlayerId;
@@ -150,7 +154,13 @@ export class BabylonRenderer implements Renderer {
     this.spreadStacks = new SpreadStackLayer(this.scene);
     this.gaze = new GazeLayer(this.scene);
     this.forcedMarches = new ForcedMarchLayer(this.scene);
-    this.hud = new HudOverlay(sessionId, this.localPlayerId, this.onSettingsChange, id => this.setSpectateTarget(id));
+    this.hud = new HudOverlay(
+      sessionId,
+      this.localPlayerId,
+      this.onSettingsChange,
+      id => this.setSpectateTarget(id),
+      this.onDebugPosition,
+    );
 
     this.onResize = () => this.engine.resize();
     window.addEventListener("resize", this.onResize);
