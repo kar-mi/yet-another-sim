@@ -81,7 +81,7 @@ const ApplyEffectSchema = z.object({
 
 const ApplyEffectsSchema = z.object({
   effects: z.array(ApplyEffectSchema).min(1),
-  order: z.enum(["listed", "shuffle"]).default("listed"),
+  order: z.enum(["listed", "shuffle", "shuffleBalanced"]).default("listed"),
 });
 
 const KnockbackSchema = z.object({

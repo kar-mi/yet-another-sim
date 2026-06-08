@@ -56,10 +56,10 @@
       "t": 3, "name": "Tele-Trouncing", "telegraph": 5, "damage": 0, "damageType": "magical",
       "showCastBar": true, "showTelegraph": false,
       "applyEffects": {
-        "order": "shuffle",
+        "order": "shuffleBalanced",
         "effects": [
-          { "name": "Plant (short)", "kind": "debuff", "duration": 7, "behavior": { "kind": "plant", "direction": "option", "distance": 6.5, "radius": 1.7, "armDelay": 3, "duration": 20, "tpDelay": 1.5 } },
-          { "name": "Plant (long)", "kind": "debuff", "duration": 10, "behavior": { "kind": "plant", "direction": "option", "distance": 6.5, "radius": 1.7, "armDelay": 3, "duration": 20, "tpDelay": 1.5 } }
+          { "name": "Plant (short)", "kind": "debuff", "duration": 7, "behavior": { "kind": "plant", "direction": "option", "distance": 6.5, "radius": 1.7, "armDelay": 3, "duration": 20, "tpDelay": 1.2 } },
+          { "name": "Plant (long)", "kind": "debuff", "duration": 10, "behavior": { "kind": "plant", "direction": "option", "distance": 6.5, "radius": 1.7, "armDelay": 3, "duration": 20, "tpDelay": 1.2 } }
         ]
       },
       "shape": { "kind": "circle", "center": [0, 0], "radius": 20 }

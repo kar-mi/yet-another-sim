@@ -764,7 +764,7 @@ Normal `aoe` events can instead use `applyEffects` to apply multiple effects fro
 
 ```json
 "applyEffects": {
-  "order": "shuffle",
+  "order": "shuffleBalanced",
   "effects": [
     { "name": "Plant (short)", "kind": "debuff", "duration": 7, "behavior": { "kind": "plant", "direction": "option", "distance": 6.5 } },
     { "name": "Plant (long)", "kind": "debuff", "duration": 10, "behavior": { "kind": "plant", "direction": "option", "distance": 6.5 } }
@@ -772,8 +772,10 @@ Normal `aoe` events can instead use `applyEffects` to apply multiple effects fro
 }
 ```
 
-`order` defaults to `"listed"`. Use `"shuffle"` for seeded per-player random order; this changes
-which effect lands first, not the combo slot mapping from `optionals.combinations.plant.debuffOrder`.
+`order` defaults to `"listed"`. Use `"shuffle"` for seeded per-player random order. Use
+`"shuffleBalanced"` when the hit list should be split evenly across the possible first effects
+(for two effects and eight hit players, four players get each first effect). This changes which
+effect lands first, not the combo slot mapping from `optionals.combinations.plant.debuffOrder`.
 
 Behaviors:
 

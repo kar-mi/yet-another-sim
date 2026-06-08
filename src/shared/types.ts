@@ -59,7 +59,7 @@ export type EffectSpec = {
 
 export type EffectBundle = {
   effects: EffectSpec[];
-  order: "listed" | "shuffle";
+  order: "listed" | "shuffle" | "shuffleBalanced";
 };
 
 export type StatusEffect = {
