@@ -1902,6 +1902,31 @@ test("inverse rng eventually picks both honest and inverted", () => {
   expect(seen).toEqual(new Set([true, false]));
 });
 
+test("inverse variantRng rolls both orientations and makes the b shapes lethal when b is rolled", () => {
+  const raid = {
+    ...baseRaid,
+    players: roster({ m1: { spawn: [10, 0] }, m2: { spawn: [0, 10] } }),
+    events: [inverseEvent({
+      t: 0, telegraph: 0.1, variantRng: true,
+      shownShapes: [{ kind: "circle", center: [10, 0], radius: 3 }],   // variant a lethal spot
+      hiddenShapes: [{ kind: "circle", center: [-10, 0], radius: 3 }],
+      shownShapesB: [{ kind: "circle", center: [0, 10], radius: 3 }],  // variant b lethal spot
+      hiddenShapesB: [{ kind: "circle", center: [0, -10], radius: 3 }],
+    })],
+  };
+  const variants = new Set<boolean>();
+  const deaths = new Set<string>();
+  for (let i = 0; i < 60; i++) {
+    let w = tick(createWorld(loadRaid(raid)), {}, 1 / 60); // promote (telegraph still running)
+    variants.add(w.inversions[0].variantB);
+    w = runTicks(w, {}, Math.ceil(0.3 * 60)); // run through resolution
+    if (w.players.find(p => p.id === "m1")!.hp < 100) deaths.add("m1"); // a-shown hit
+    if (w.players.find(p => p.id === "m2")!.hp < 100) deaths.add("m2"); // b-shown hit
+  }
+  expect(variants).toEqual(new Set([true, false]));
+  expect(deaths).toEqual(new Set(["m1", "m2"]));
+});
+
 // Spread/stack "?" events: a fire mechanic that flips between spread (per-player AOEs) and stack.
 const spreadStackEvent = (over: Record<string, unknown> = {}) => ({
   type: "spread_stack" as const,
@@ -2064,6 +2089,54 @@ test("spread_stack solver picks spread spots by the active lightning orientation
   };
   expect(computeBotIntents(mk(false), 1 / 60).mt.move.x).toBeLessThan(0);    // honest -> shown spot (-x)
   expect(computeBotIntents(mk(true), 1 / 60).mt.move.x).toBeGreaterThan(0);  // "?" -> inverted spot (+x)
+});
+
+test("spread_stack solver picks variant-b spots when the lightning rolls orientation b", () => {
+  const botSolvers = {
+    spreadStack: {
+      spread: { mt: [0, 0] as Vec },
+      stack: { mt: [0, 0] as Vec },
+      spreadLightning: {
+        id: "lightning",
+        shown: { mt: [-10, 0] as Vec }, inverted: { mt: [10, 0] as Vec },     // variant a (x axis)
+        shownB: { mt: [0, -10] as Vec }, invertedB: { mt: [0, 10] as Vec },    // variant b (z axis)
+      },
+    },
+  };
+  const mk = () => {
+    const raid = loadRaid({
+      ...baseRaid,
+      players: roster({ mt: { spawn: [0, 0] } }),
+      events: [
+        {
+          type: "inverse", id: "lightning", t: 0, name: "Lightning", telegraph: 5,
+          damage: 0, damageType: "magical", variantRng: true, // honest (not inverted): tests shown vs shownB
+          shownShapes: [{ kind: "circle", center: [50, 50], radius: 1 }],
+          hiddenShapes: [{ kind: "circle", center: [50, 50], radius: 1 }],
+          shownShapesB: [{ kind: "circle", center: [-50, -50], radius: 1 }],
+          hiddenShapesB: [{ kind: "circle", center: [-50, -50], radius: 1 }],
+        },
+        spreadStackEvent({ t: 0, telegraph: 5, shown: "spread" }),
+      ],
+      botSolvers,
+    });
+    return tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
+  };
+  const seen = { a: false, b: false };
+  for (let i = 0; i < 60; i++) {
+    const w = mk();
+    const move = computeBotIntents(w, 1 / 60).mt.move!;
+    if (w.inversions[0].variantB) {           // variant b -> shownB on the z axis
+      expect(move.z).toBeLessThan(0);
+      expect(Math.abs(move.x)).toBeLessThan(0.01);
+      seen.b = true;
+    } else {                                   // variant a -> shown on the x axis
+      expect(move.x).toBeLessThan(0);
+      expect(Math.abs(move.z)).toBeLessThan(0.01);
+      seen.a = true;
+    }
+  }
+  expect(seen).toEqual({ a: true, b: true });
 });
 
 test("spread_stack solver picks stack spots by the active lightning orientation", () => {

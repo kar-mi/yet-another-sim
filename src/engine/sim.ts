@@ -972,15 +972,19 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const inversions: ActiveInverse[] = world.inversions.map(i => ({ ...i }));
   for (const pi of world.pendingInversions) {
     if (pi.t <= time) {
+      const variantB = (pi.variantRng && pi.shownShapesB && pi.hiddenShapesB) ? randFloat() < 0.5 : false;
+      const shownShapes = variantB ? pi.shownShapesB! : pi.shownShapes;
+      const hiddenShapes = variantB ? pi.hiddenShapesB! : pi.hiddenShapes;
       const inverted = pi.questionMark ?? (pi.rng ? randFloat() < 0.5 : false);
       inversions.push({
         id: pi.id,
         name: pi.name,
-        shownShapes: pi.shownShapes,
-        hiddenShapes: pi.hiddenShapes,
+        shownShapes,
+        hiddenShapes,
         ringColor: pi.ringColor,
         ringHeight: pi.ringHeight,
         inverted,
+        variantB,
         telegraphStart: pi.t,
         resolveAt: pi.t + pi.telegraph,
         damage: pi.damage,

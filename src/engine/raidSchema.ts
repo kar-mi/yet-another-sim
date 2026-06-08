@@ -22,11 +22,15 @@ const BotSolversSchema = z.object({
       id: z.string().min(1),
       shown: z.record(z.string().min(1), Vec2Schema),
       inverted: z.record(z.string().min(1), Vec2Schema),
+      shownB: z.record(z.string().min(1), Vec2Schema).optional(),
+      invertedB: z.record(z.string().min(1), Vec2Schema).optional(),
     }).optional(),
     stackLightning: z.object({
       id: z.string().min(1),
       shown: z.record(z.string().min(1), Vec2Schema),
       inverted: z.record(z.string().min(1), Vec2Schema),
+      shownB: z.record(z.string().min(1), Vec2Schema).optional(),
+      invertedB: z.record(z.string().min(1), Vec2Schema).optional(),
     }).optional(),
   }).optional(),
 }).optional();
@@ -271,6 +275,9 @@ const InverseEventSchema = z.object({
   damageType: z.enum(["physical", "magical", "true"]),
   shownShapes: z.array(AOEShapeSchema).min(1),      // telegraph shapes that ARE drawn
   hiddenShapes: z.array(AOEShapeSchema).min(1),     // not drawn; lethal when inverted ("?")
+  shownShapesB: z.array(AOEShapeSchema).min(1).optional(),  // variant-b telegraph shapes (rolled when variantRng)
+  hiddenShapesB: z.array(AOEShapeSchema).min(1).optional(), // variant-b hidden shapes
+  variantRng: z.boolean().optional(),               // randomize a/b orientation (needs shownShapesB + hiddenShapesB)
   ringColor: z.string().optional(),               // hex colour of this mechanic's boss ring (identifies it)
   ringHeight: z.number().optional(),              // vertical height of this mechanic's boss ring
   rng: z.boolean().optional(),                      // randomize the "?" inversion (else not inverted)
@@ -278,6 +285,10 @@ const InverseEventSchema = z.object({
   applyEffect: ApplyEffectSchema.optional(),
   knockback: KnockbackSchema.optional(),
   showCastBar: z.boolean().optional(),
+}).superRefine((ev, ctx) => {
+  if (ev.variantRng && (!ev.shownShapesB || !ev.hiddenShapesB)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "variantRng requires both shownShapesB and hiddenShapesB" });
+  }
 });
 
 // A "?" mechanic that flips between spread (per-player AOEs) and stack (shared soak). It shows one

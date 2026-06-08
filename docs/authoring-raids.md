@@ -501,8 +501,11 @@ fake** (inverted).
 | `telegraph` | yes | Cast duration in seconds (> 0); damage applies at `t + telegraph`. |
 | `damage` | yes | Damage (≥ 0) dealt to each player in a lethal shape. |
 | `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
-| `shownShapes` | yes | Array (≥ 1) of [shapes](#shapes) that are drawn; lethal when **not** inverted. |
-| `hiddenShapes` | yes | Array (≥ 1) of shapes that are **not** drawn; lethal when inverted. |
+| `shownShapes` | yes | Array (≥ 1) of [shapes](#shapes) that are drawn; lethal when **not** inverted (variant **a**). |
+| `hiddenShapes` | yes | Array (≥ 1) of shapes that are **not** drawn; lethal when inverted (variant **a**). |
+| `shownShapesB` | no | Variant **b** drawn shapes. Required together with `hiddenShapesB` when `variantRng` is set. |
+| `hiddenShapesB` | no | Variant **b** hidden shapes. |
+| `variantRng` | no | Randomise the **orientation** each run (50/50 a vs b). When `b` is rolled, the `*ShapesB` sets replace `shownShapes`/`hiddenShapes` before the inversion is rolled, giving 4 outcomes (a/b × honest/`?`). Needs both `shownShapesB` and `hiddenShapesB`. Default `false`. |
 | `questionMark` | no | Force the inversion state (`true` = always the "?", `false` = never). Overrides `rng`. |
 | `rng` | no | Randomise the inversion each run (50/50). Default `false` (not inverted). |
 | `ringColor` | no | Hex colour of this mechanic's boss ring (identifies it). Default white. |
@@ -964,7 +967,8 @@ Optional `spreadLightning` / `stackLightning` override the spread / stack spots 
 orientation: name the inverse via `id`, then give `shown` positions (used when that inverse is *not*
 inverted) and `inverted` positions (used when it is). This lets bots spread or stack into the safe
 corridor of a simultaneous line-AOE mechanic. Falls back to base `spread`/`stack` when the named
-inverse isn't active.
+inverse isn't active. If that inverse uses `variantRng`, add optional `shownB` / `invertedB` tables
+for its variant-**b** orientation; they fall back to `shown` / `inverted` when omitted.
 
 ```json
 {

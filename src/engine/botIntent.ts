@@ -70,10 +70,13 @@ function solverWaypoint(player: Player, world: World): Vec2 | undefined {
     const cfg = world.botSolvers?.spreadStack;
     // Per-orientation override: when a named inverse ("lightning") is active, swap to the safe-corridor
     // positions for its current orientation; otherwise use the base positions.
-    const orient = (base?: Record<string, Vec2>, override?: { id: string; shown: Record<string, Vec2>; inverted: Record<string, Vec2> }) => {
+    const orient = (base?: Record<string, Vec2>, override?: { id: string; shown: Record<string, Vec2>; inverted: Record<string, Vec2>; shownB?: Record<string, Vec2>; invertedB?: Record<string, Vec2> }) => {
       if (override) {
         const inv = world.inversions.find(i => i.id === override.id && !i.resolved);
-        if (inv) return inv.inverted ? override.inverted : override.shown;
+        if (inv) {
+          if (inv.variantB) return inv.inverted ? (override.invertedB ?? override.inverted) : (override.shownB ?? override.shown);
+          return inv.inverted ? override.inverted : override.shown;
+        }
       }
       return base;
     };

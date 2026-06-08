@@ -32,13 +32,17 @@ export type BotSolvers = {
     stack: Record<string, Vec2>;  // playerId -> stack-mode spot
     spreadLightning?: {           // per-orientation spread override read from the named inverse
       id: string;
-      shown: Record<string, Vec2>;    // positions when the inverse is NOT inverted
-      inverted: Record<string, Vec2>; // positions when the inverse is inverted
+      shown: Record<string, Vec2>;    // positions when the inverse is NOT inverted (variant a)
+      inverted: Record<string, Vec2>; // positions when the inverse is inverted (variant a)
+      shownB?: Record<string, Vec2>;    // variant-b, not inverted
+      invertedB?: Record<string, Vec2>; // variant-b, inverted
     };
     stackLightning?: {            // per-orientation stack override (same shape as spreadLightning)
       id: string;
       shown: Record<string, Vec2>;
       inverted: Record<string, Vec2>;
+      shownB?: Record<string, Vec2>;
+      invertedB?: Record<string, Vec2>;
     };
   };
 };
@@ -281,6 +285,9 @@ export type PendingInverse = {
   telegraph: number;
   shownShapes: AOEShape[];         // telegraph shapes that ARE drawn
   hiddenShapes: AOEShape[];        // not drawn; lethal when inverted ("?")
+  shownShapesB?: AOEShape[];       // variant-b telegraph shapes (used when variantRng rolls b)
+  hiddenShapesB?: AOEShape[];      // variant-b hidden shapes
+  variantRng?: boolean;            // randomize a/b orientation at cast start
   ringColor?: string;              // hex colour of this mechanic's boss ring
   ringHeight?: number;             // vertical height of this mechanic's boss ring
   rng: boolean;                    // randomize the inversion at cast start
@@ -300,6 +307,7 @@ export type ActiveInverse = {
   ringColor?: string;              // hex colour of this mechanic's boss ring
   ringHeight?: number;             // vertical height of this mechanic's boss ring
   inverted: boolean;               // true => "?" telegraph: hiddenShapes are lethal
+  variantB: boolean;               // true => the b orientation was rolled (for bot solvers)
   telegraphStart: number;
   resolveAt: number;
   damage: number;
