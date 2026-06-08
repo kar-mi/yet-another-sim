@@ -295,6 +295,7 @@ const InverseEventSchema = z.object({
   variantRng: z.boolean().optional(),               // randomize a/b orientation (needs shownShapesB + hiddenShapesB)
   ringColor: z.string().optional(),               // hex colour of this mechanic's boss ring (identifies it)
   ringHeight: z.number().optional(),              // vertical height of this mechanic's boss ring
+  telegraphAlpha: z.number().min(0).max(1).optional(), // optional fixed alpha for shown telegraph footprints
   rng: z.boolean().optional(),                      // randomize the "?" inversion (else not inverted)
   questionMark: z.boolean().optional(),            // authored override of the inversion state
   applyEffect: ApplyEffectSchema.optional(),

@@ -7,9 +7,9 @@ import { el } from "./dom";
  * In-sim HUD: raid category modal + raid-plan dropdown + playback controls.
  * Returns a disposer that tears down listeners and DOM.
  */
-export async function createRaidHudSelect(net: NetClient, initialRaidId: string, initialIsHost: boolean): Promise<() => void> {
+export async function createRaidHudSelect(net: NetClient, initialRaidId: string, initialIsHost: boolean, initialPlaybackState: PlaybackState = "playing"): Promise<() => void> {
   let isHost = initialIsHost;
-  let lastState: PlaybackState = "playing";
+  let lastState: PlaybackState = initialPlaybackState;
   const defaultLobbyCategory: RaidCategory = {
     id: "default-lobby",
     name: "Default Lobby",
@@ -184,7 +184,7 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
     populateSelect(currentCategory, activeRaidId);
     syncPlayback(lastState);
   });
-  syncPlayback("playing");
+  syncPlayback(initialPlaybackState);
 
   const selectRow = el("div", { className: "yas-raid-select-row" });
   selectRow.append(categoryBtn, selectDropdown);

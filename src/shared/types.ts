@@ -296,6 +296,7 @@ export type PendingInverse = {
   variantRng?: boolean;            // randomize a/b orientation at cast start
   ringColor?: string;              // hex colour of this mechanic's boss ring
   ringHeight?: number;             // vertical height of this mechanic's boss ring
+  telegraphAlpha?: number;          // optional fixed alpha for shown telegraph footprints
   rng: boolean;                    // randomize the inversion at cast start
   questionMark?: boolean;          // authored override of the inversion state
   damage: number;
@@ -312,6 +313,7 @@ export type ActiveInverse = {
   hiddenShapes: AOEShape[];
   ringColor?: string;              // hex colour of this mechanic's boss ring
   ringHeight?: number;             // vertical height of this mechanic's boss ring
+  telegraphAlpha?: number;          // optional fixed alpha for shown telegraph footprints
   inverted: boolean;               // true => "?" telegraph: hiddenShapes are lethal
   variantB: boolean;               // true => the b orientation was rolled (for bot solvers)
   telegraphStart: number;

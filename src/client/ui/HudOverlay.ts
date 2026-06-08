@@ -17,6 +17,8 @@ import { clamp01 } from "../../shared/math";
 declare const __YAS_DEBUG__: boolean | undefined;
 
 const DEBUG_POSITION_ENABLED = typeof __YAS_DEBUG__ !== "undefined" && __YAS_DEBUG__;
+const PARTY_SLOT_ORDER = ["mt", "ot", "h1", "h2", "m1", "m2", "r1", "r2"] as const;
+const PARTY_SLOT_INDEX = new Map<string, number>(PARTY_SLOT_ORDER.map((id, index) => [id, index]));
 
 // Map a status effect to a compact icon glyph (replaces the old text name). A plant arrow is
 // rotated to match the knockback heading ("➤" points east by default; screen +z is up).
@@ -48,6 +50,19 @@ function activeVisibleEffects(player: Player, time: number): Player["effects"] {
       return a.index - b.index;
     })
     .map(entry => entry.effect);
+}
+
+function partySortIndex(player: Player): number {
+  return PARTY_SLOT_INDEX.get(player.id) ?? PARTY_SLOT_ORDER.length;
+}
+
+function orderedPartyPlayers(players: Player[], localPlayerId: string | null): Player[] {
+  return [...players].sort((a, b) => {
+    if (a.id === localPlayerId) return -1;
+    if (b.id === localPlayerId) return 1;
+    const orderDelta = partySortIndex(a) - partySortIndex(b);
+    return orderDelta || a.id.localeCompare(b.id);
+  });
 }
 
 function buildEffectChip(effect: Player["effects"][number], time: number, className: string): HTMLSpanElement {
@@ -268,7 +283,7 @@ export class HudOverlay {
 
     const nameEl = document.createElement("span");
     nameEl.className = "party-name";
-    nameEl.textContent = player.role.toUpperCase() + (player.id === this.localPlayerId ? " (You)" : "");
+    nameEl.textContent = player.id.toUpperCase() + (player.id === this.localPlayerId ? " (You)" : "");
 
     const hpTrack = document.createElement("div");
     hpTrack.className = "party-hp-track";
@@ -364,12 +379,17 @@ export class HudOverlay {
       this.statusEl.className = "";
     }
 
-    if (this.partyRows.size === 0 && world.players.length > 0) {
-      for (const player of world.players) {
+    const partyPlayers = orderedPartyPlayers(world.players, this.localPlayerId);
+    if (this.partyRows.size === 0 && partyPlayers.length > 0) {
+      for (const player of partyPlayers) {
         const row = this.buildPartyRow(player);
         this.partyEl.appendChild(row.rowEl);
         this.partyRows.set(player.id, row);
       }
+    }
+    for (const player of partyPlayers) {
+      const row = this.partyRows.get(player.id);
+      if (row) this.partyEl.appendChild(row.rowEl);
     }
     // Spectate camera buttons only work while the local player is dead (or has no slot).
     const localAlive = this.localPlayerId
