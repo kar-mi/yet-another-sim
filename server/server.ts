@@ -10,7 +10,7 @@ import {
   type ServerMessage,
 } from "../src/shared/protocol";
 import { SessionManager } from "./session";
-import { logger, createSessionLog } from "./logger";
+import { logger, createSessionLog, debugEnabled } from "./logger";
 
 const ROOT = join(import.meta.dir, "..");
 const BUNDLE_DIR = join(ROOT, ".bundle");
@@ -115,6 +115,9 @@ const buildResult = await Bun.build({
   outdir: BUNDLE_DIR,
   target: "browser",
   sourcemap: "inline",
+  define: {
+    __YAS_DEBUG__: JSON.stringify(debugEnabled),
+  },
 });
 
 if (!buildResult.success) {

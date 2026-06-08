@@ -14,6 +14,10 @@ import { keyLabel } from "../settings";
 import type { Settings, ControllerType } from "../settings";
 import { clamp01 } from "../../shared/math";
 
+declare const __YAS_DEBUG__: boolean | undefined;
+
+const DEBUG_POSITION_ENABLED = typeof __YAS_DEBUG__ !== "undefined" && __YAS_DEBUG__;
+
 // Map a status effect to a compact icon glyph (replaces the old text name). A plant arrow is
 // rotated to match the knockback heading ("➤" points east by default; screen +z is up).
 function effectIcon(effect: Player["effects"][number]): { glyph: string; rotate?: number } {
@@ -96,7 +100,7 @@ export class HudOverlay {
   private castTimerEl!: HTMLDivElement;
   private slotKeybinds: HTMLSpanElement[] = [];
   private modeToggleBtn!: HTMLButtonElement;
-  private debugPositionBtn!: HTMLButtonElement;
+  private debugPositionBtn: HTMLButtonElement | null = null;
   private currentSettings!: Settings;
   private latestPlayer: Player | null = null;
   private debuffTrackerEl!: HTMLDivElement;
@@ -137,6 +141,10 @@ export class HudOverlay {
     this.slotKeybinds = Array.from(this.kbmHotbar.querySelectorAll<HTMLSpanElement>(".yas-keybind"));
     this.modeToggleBtn = this.root.querySelector<HTMLButtonElement>(".yas-hotbar-toggle")!;
     this.debugPositionBtn = this.root.querySelector<HTMLButtonElement>(".yas-hotbar-debug")!;
+    if (!DEBUG_POSITION_ENABLED) {
+      this.debugPositionBtn.remove();
+      this.debugPositionBtn = null;
+    }
     this.ctrlSprintSlot = this.controllerHotbar.querySelector<HTMLDivElement>(`[data-ctrl-slot='${ACTIONS.sprint.controllerSlot}']`)!;
     this.ctrlSprintCdOverlay = this.ctrlSprintSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
     this.ctrlSprintCdText = this.ctrlSprintSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
@@ -322,7 +330,7 @@ export class HudOverlay {
       this.onSettingsChange(next);
       this.applySettings(next);
     });
-    this.debugPositionBtn.addEventListener("click", () => this.logCurrentPosition());
+    this.debugPositionBtn?.addEventListener("click", () => this.logCurrentPosition());
   }
 
   private flashSlot(slot: HTMLDivElement): void {
