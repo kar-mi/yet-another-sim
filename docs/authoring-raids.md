@@ -513,6 +513,71 @@ fake** (inverted).
 
 See `raids/inverse-test.json` for honest / `?` / random crosses.
 
+### `spread_stack` — "?" that flips spread ↔ stack
+
+A fire "?" puzzle that resolves as **either spread or stack**. It shows one marker during the
+cast (`shown`); a per-cast **flip** decides what actually happens when the cast bar ends:
+
+- **Not inverted** (honest): it resolves as the `shown` mode.
+- **Inverted** (the "?"): the shown marker is a **lie** — it resolves as the **opposite** mode.
+
+The two modes:
+- **spread** — every alive player drops a small personal AOE (`spread.radius`). A player takes
+  `spread.damage` **once per circle they stand in**, so standing in another player's circle eats
+  their hit too (each player always eats their own once). Spread everyone out.
+- **stack** — a *random member* of the chosen `stack.groups` is marked; players within
+  `stack.radius` of the marked player split `stack.damage`. Fewer than `stack.requiredCount`
+  soakers → the stack **fails** and each soaker eats the full, unsplit hit (same rule as `group`).
+
+**Flip state** is decided at cast start, in this precedence: `questionMark` (authored override)
+> `rng` (seeded 50/50, true variation each pull) > not inverted.
+
+**Visuals.** Like `inverse`, the mechanic gets **one boss ring** (`ringColor` at `ringHeight`)
+with two orbs encoding the state (**dark blue = real**, **reddish-orange + yellow "?" = fake**).
+Use a height **above** any concurrent `inverse` ring to stack the two readouts. While casting,
+`shown: "spread"` draws a ground reticle (circle with inward triangles) plus a downward triangle
+over every player; `shown: "stack"` draws the stack marker on the marked player.
+
+```json
+{
+  "type": "spread_stack",
+  "t": 43,
+  "name": "Mystery Magic 3 (Fire)",
+  "telegraph": 5,
+  "shown": "spread",
+  "rng": true,
+  "damageType": "magical",
+  "spread": { "radius": 4, "damage": 80 },
+  "stack": { "groups": [["h1"], ["h2"]], "radius": 6, "requiredCount": 4, "damage": 200 },
+  "ringColor": "#f97316",
+  "ringHeight": 4.8,
+  "showCastBar": true
+}
+```
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `type` | yes | `"spread_stack"`. |
+| `t` | yes | Cast start time (seconds). The flip + marked member are rolled now. |
+| `name` | yes | Mechanic name (used in the log and cast bar). |
+| `telegraph` | yes | Cast duration in seconds (> 0); resolves at `t + telegraph`. |
+| `shown` | yes | Marker drawn during the cast: `"spread"` or `"stack"`. |
+| `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
+| `spread.radius` | yes | Each player's personal AOE radius (> 0). |
+| `spread.damage` | yes | Damage (≥ 0) per circle a player stands in. |
+| `stack.groups` | yes | Candidate groups of player ids; one member of the chosen group is marked. |
+| `stack.radius` | yes | Stack circle radius around the marked player. |
+| `stack.requiredCount` | no | Soakers needed to split the hit; fewer = full damage each. Default `1`. |
+| `stack.damage` | yes | Total stack damage (≥ 0), split evenly among soakers on success. |
+| `questionMark` | no | Force the flip state (`true` = always the "?", `false` = never). Overrides `rng`. |
+| `rng` | no | Randomise the flip each run (seeded 50/50). Default `false` (honest). |
+| `ringColor` | no | Hex colour of this mechanic's boss ring. Default fire orange `#f97316`. |
+| `ringHeight` | no | Vertical height of the boss ring. Default `2`. |
+| `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
+
+See `raids/dancing-mad-ultimate/graven-image-3.json` ("Mystery Magic 3 (Fire)") for a flip running
+alongside an `inverse` with a fire ring above the lightning ring.
+
 ### `gaze` — look-away / "?" eye
 
 An FFXIV-style **gaze**. An eye board appears in the world (`pos`, usually to the north) and at

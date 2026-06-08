@@ -263,6 +263,32 @@ const InverseEventSchema = z.object({
   showCastBar: z.boolean().optional(),
 });
 
+// A "?" mechanic that flips between spread (per-player AOEs) and stack (shared soak). It shows one
+// marker during the cast; when inverted ("?") it resolves as the opposite when the cast bar ends.
+const SpreadStackEventSchema = z.object({
+  type: z.literal("spread_stack"),
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  telegraph: z.number().positive(),
+  shown: z.enum(["spread", "stack"]),               // marker drawn during the cast
+  rng: z.boolean().optional(),                       // seeded 50/50 flip (else honest)
+  questionMark: z.boolean().optional(),              // authored override of the flip state
+  damageType: z.enum(["physical", "magical", "true"]),
+  spread: z.object({
+    radius: z.number().positive(),                   // each player's personal AOE radius
+    damage: z.number().nonnegative(),                // damage per circle a player stands in
+  }),
+  stack: z.object({
+    groups: z.array(z.array(z.string().min(1)).min(1)).min(1), // candidate groups; one member is marked
+    radius: z.number().positive(),                   // stack circle radius around the marked player
+    requiredCount: z.number().int().positive().default(1),     // soakers needed; fewer -> full damage each
+    damage: z.number().nonnegative(),                // total, split evenly among soakers on success
+  }),
+  ringColor: z.string().optional(),                  // hex colour of this mechanic's boss ring
+  ringHeight: z.number().optional(),                 // vertical height of this mechanic's boss ring
+  showCastBar: z.boolean().optional(),
+});
+
 const GazeVisualSchema = z.object({
   width: z.number().positive().default(4),  // eye board dimensions
   height: z.number().positive().default(3),
@@ -318,7 +344,7 @@ const EffectBurstEventSchema = z.object({
   showTelegraph: z.boolean().optional(),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, InverseEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema]);
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
@@ -500,6 +526,22 @@ export const RaidSchema = z.object({
         });
       }
     }
+  });
+
+  // spread_stack events: every stack-group member id must exist in the roster.
+  raid.events.forEach((event, i) => {
+    if (event.type !== "spread_stack") return;
+    event.stack.groups.forEach((group, g) => {
+      group.forEach(id => {
+        if (!playerIds.has(id)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["events", i, "stack", "groups", g],
+            message: `spread_stack references unknown player id "${id}"`,
+          });
+        }
+      });
+    });
   });
 
   // plant combination groups: every declared member id must exist in the roster.

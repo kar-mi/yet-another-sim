@@ -24,6 +24,8 @@ import type {
   PendingEffectSelect,
   ActiveInverse,
   PendingInverse,
+  ActiveSpreadStack,
+  PendingSpreadStack,
   ActiveGaze,
   PendingGaze,
   ActiveForcedMarch,
@@ -1012,7 +1014,77 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  // 3f. Gaze events: at cast start roll the reverse state (eye vs "?" eye). At resolve a player
+  // 3f. Spread/stack "?" events: at cast start roll the flip and pick the stack-mode marked member.
+  // The shown marker lies when inverted -> the actual mode is the opposite. At resolve, spread drops
+  // a personal AOE on every player (overlap = extra hits); stack soaks on the marked player.
+  const remainingPendingSpreadStacks: PendingSpreadStack[] = [];
+  const spreadStacks: ActiveSpreadStack[] = world.spreadStacks.map(s => ({ ...s }));
+  for (const ps of world.pendingSpreadStacks) {
+    if (ps.t <= time) {
+      const inverted = ps.questionMark ?? (ps.rng ? randFloat() < 0.5 : false);
+      const group = ps.stack.groups[randInt(ps.stack.groups.length)];
+      const marked = group[randInt(group.length)];
+      spreadStacks.push({
+        id: ps.id,
+        name: ps.name,
+        telegraphStart: ps.t,
+        resolveAt: ps.t + ps.telegraph,
+        shown: ps.shown,
+        inverted,
+        markedPlayerId: marked,
+        spread: ps.spread,
+        stack: ps.stack,
+        damageType: ps.damageType,
+        ringColor: ps.ringColor,
+        ringHeight: ps.ringHeight,
+        showCastBar: ps.showCastBar,
+        resolved: false,
+      });
+    } else {
+      remainingPendingSpreadStacks.push(ps);
+    }
+  }
+
+  const stillSpreadStacks: ActiveSpreadStack[] = [];
+  for (const ss of spreadStacks) {
+    if (!ss.resolved && ss.resolveAt <= time) {
+      const actual = ss.inverted ? (ss.shown === "spread" ? "stack" : "spread") : ss.shown;
+      if (actual === "spread") {
+        // Each alive player drops a personal AOE; a player eats it once per circle they stand in.
+        const owners = players.filter(p => p.alive);
+        for (const owner of owners) {
+          const circle: AOEShape = { kind: "circle", center: owner.pos, radius: ss.spread.radius };
+          for (const player of players) {
+            if (!player.alive || !pointInShape(circle, player.pos)) continue;
+            applyMechanicDamage(player, ss.spread.damage, ss.damageType, time);
+            log.push({ t: time, mechanic: ss.name, playerId: player.id, event: "hit" });
+          }
+        }
+      } else {
+        // Shared stack on the marked player (same rule as `group`): soakers inside split the hit;
+        // fewer than requiredCount -> the stack fails and each soaker eats the full damage.
+        const marked = players.find(p => p.id === ss.markedPlayerId);
+        if (marked?.alive) {
+          const circle: AOEShape = { kind: "circle", center: marked.pos, radius: ss.stack.radius };
+          const soakers = players.filter(p => p.alive && pointInShape(circle, p.pos));
+          const success = soakers.length >= ss.stack.requiredCount;
+          const per = success ? ss.stack.damage / soakers.length : ss.stack.damage;
+          for (const player of soakers) {
+            applyMechanicDamage(player, per, ss.damageType, time);
+            log.push({ t: time, mechanic: ss.name, playerId: player.id, event: "hit" });
+          }
+          ss.outcome = success ? "success" : "failure";
+        }
+      }
+      ss.resolved = true;
+    }
+    // Keep briefly after resolve so the renderer can flash the hit.
+    if (!ss.resolved || ss.resolveAt >= time - TARGETED_LINGER) {
+      stillSpreadStacks.push(ss);
+    }
+  }
+
+  // 3g. Gaze events: at cast start roll the reverse state (eye vs "?" eye). At resolve a player
   // is hit if they are facing the eye (normal) or NOT facing it (reverse "?"). Facing is the
   // player's last movement direction, so "looking away" means flicking the stick away then stopping.
   const remainingPendingGazes: PendingGaze[] = [];
@@ -1143,6 +1215,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
     && remainingPendingGroups.length === 0 && stillGroups.every(g => g.resolved)
     && remainingPendingEffectSelects.length === 0
     && remainingPendingInversions.length === 0 && stillInversions.every(i => i.resolved)
+    && remainingPendingSpreadStacks.length === 0 && stillSpreadStacks.every(s => s.resolved)
     && remainingPendingGazes.length === 0 && stillGazes.every(g => g.resolved)
     && remainingPendingForcedMarches.length === 0 && forcedMarches.every(fm => fm.triggered)
     && remainingPendingEffectBursts.length === 0;
@@ -1155,5 +1228,5 @@ export function tick(world: World, intents: Intents, dt: number): World {
     }
   }
 
-  return { ...world, time, rngState, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, pendingEffectSelects: remainingPendingEffectSelects, inversions: stillInversions, pendingInversions: remainingPendingInversions, gazes: stillGazes, pendingGazes: remainingPendingGazes, forcedMarches, pendingForcedMarches: remainingPendingForcedMarches, pendingEffectBursts: remainingPendingEffectBursts };
+  return { ...world, time, rngState, groupChoices, players, boss, active: stillActive, pending, log, status, tetherSources, pendingTethers: remainingPendingTethers, lineLinks: stillLineLinks, pendingLineLinks: remainingPendingLineLinks, pendingTargeted: remainingPendingTargeted, towers: stillTowers, pendingTowers: remainingPendingTowers, chains: stillChains, pendingChains: remainingPendingChains, groupMechanics: stillGroups, pendingGroups: remainingPendingGroups, pendingEffectSelects: remainingPendingEffectSelects, inversions: stillInversions, pendingInversions: remainingPendingInversions, spreadStacks: stillSpreadStacks, pendingSpreadStacks: remainingPendingSpreadStacks, gazes: stillGazes, pendingGazes: remainingPendingGazes, forcedMarches, pendingForcedMarches: remainingPendingForcedMarches, pendingEffectBursts: remainingPendingEffectBursts };
 }

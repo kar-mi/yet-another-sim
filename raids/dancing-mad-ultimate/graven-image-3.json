@@ -130,9 +130,11 @@
       ]
     },
     {
-      "type": "group", "t": 49, "name": "Mystery Magic 3 (Fire)", "rng": true,
-      "groups": [["h1"], ["h2"]],
-      "telegraph": 4, "radius": 6, "requiredCount": 4, "damage": 200, "damageType": "magical",
+      "type": "spread_stack", "t": 43, "name": "Mystery Magic 3 (Fire)", "telegraph": 5,
+      "shown": "spread", "rng": true, "damageType": "magical",
+      "spread": { "radius": 4, "damage": 80 },
+      "stack": { "groups": [["h1"], ["h2"]], "radius": 6, "requiredCount": 4, "damage": 200 },
+      "ringColor": "#f97316", "ringHeight": 4.8,
       "showCastBar": true
     }
   ],

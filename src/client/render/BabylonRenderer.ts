@@ -24,6 +24,7 @@ import { ChainLayer } from "./ChainLayer";
 import { TowerLayer } from "./TowerLayer";
 import { StackLayer } from "./StackLayer";
 import { InverseLayer } from "./InverseLayer";
+import { SpreadStackLayer } from "./SpreadStackLayer";
 import { GazeLayer } from "./GazeLayer";
 import { ForcedMarchLayer } from "./ForcedMarchLayer";
 import { WaymarkLayer } from "./WaymarkLayer";
@@ -55,6 +56,7 @@ export class BabylonRenderer implements Renderer {
   private towers!: TowerLayer;
   private stacks!: StackLayer;
   private inverse!: InverseLayer;
+  private spreadStacks!: SpreadStackLayer;
   private gaze!: GazeLayer;
   private forcedMarches!: ForcedMarchLayer;
   private waymarks!: WaymarkLayer;
@@ -145,6 +147,7 @@ export class BabylonRenderer implements Renderer {
     this.towers = new TowerLayer(this.scene);
     this.stacks = new StackLayer(this.scene);
     this.inverse = new InverseLayer(this.scene);
+    this.spreadStacks = new SpreadStackLayer(this.scene);
     this.gaze = new GazeLayer(this.scene);
     this.forcedMarches = new ForcedMarchLayer(this.scene);
     this.hud = new HudOverlay(sessionId, this.localPlayerId, this.onSettingsChange, id => this.setSpectateTarget(id));
@@ -191,6 +194,7 @@ export class BabylonRenderer implements Renderer {
     this.towers.sync(world.towers, world.time);
     this.stacks.sync(world.groupMechanics, world.players, world.time);
     this.inverse.sync(world.inversions, world.boss, world.time);
+    this.spreadStacks.sync(world.spreadStacks, world.boss, world.players, world.time);
     this.gaze.sync(world.gazes, world.time);
     this.forcedMarches.sync(world.forcedMarches, world.time);
     this.hud.sync(world);
@@ -252,6 +256,7 @@ export class BabylonRenderer implements Renderer {
     this.towers.dispose();
     this.stacks.dispose();
     this.inverse.dispose();
+    this.spreadStacks.dispose();
     this.gaze.dispose();
     this.forcedMarches.dispose();
     this.waymarks.dispose();

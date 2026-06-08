@@ -1,4 +1,4 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingInverse, PendingGaze, PendingForcedMarch, PendingEffectBurst } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingInverse, PendingSpreadStack, PendingGaze, PendingForcedMarch, PendingEffectBurst } from "../shared/types";
 import { vec2 } from "../shared/math";
 import { makeSeed, nextRandom, randomInt } from "../shared/rng";
 import type { RaidDef } from "./raidSchema";
@@ -140,6 +140,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const pendingGroups: PendingGroupEvent[] = [];
   const pendingEffectSelects: PendingEffectSelect[] = [];
   const pendingInversions: PendingInverse[] = [];
+  const pendingSpreadStacks: PendingSpreadStack[] = [];
   const pendingGazes: PendingGaze[] = [];
   const pendingForcedMarches: PendingForcedMarch[] = [];
   const pendingEffectBursts: PendingEffectBurst[] = [];
@@ -284,6 +285,27 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         },
         showCastBar: e.showCastBar ?? false,
       });
+    } else if (e.type === "spread_stack") {
+      pendingSpreadStacks.push({
+        id: `spread-stack-${index}`,
+        t: e.t,
+        name: e.name,
+        telegraph: e.telegraph,
+        shown: e.shown,
+        rng: e.rng ?? false,
+        questionMark: e.questionMark,
+        damageType: e.damageType,
+        spread: { radius: e.spread.radius, damage: e.spread.damage },
+        stack: {
+          groups: e.stack.groups,
+          radius: e.stack.radius,
+          requiredCount: e.stack.requiredCount,
+          damage: e.stack.damage,
+        },
+        ringColor: e.ringColor,
+        ringHeight: e.ringHeight,
+        showCastBar: e.showCastBar ?? false,
+      });
     } else if (e.type === "gaze") {
       pendingGazes.push({
         id: `gaze-${index}`,
@@ -369,7 +391,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     rngState,
     groupChoices: {},
     status: "running",
-    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingEffectSelects.length > 0 || pendingInversions.length > 0 || pendingGazes.length > 0 || pendingForcedMarches.length > 0 || pendingEffectBursts.length > 0,
+    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingEffectSelects.length > 0 || pendingInversions.length > 0 || pendingSpreadStacks.length > 0 || pendingGazes.length > 0 || pendingForcedMarches.length > 0 || pendingEffectBursts.length > 0,
     arena,
     waymarks,
     players,
@@ -392,6 +414,8 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     pendingEffectSelects,
     inversions: [],
     pendingInversions,
+    spreadStacks: [],
+    pendingSpreadStacks,
     gazes: [],
     pendingGazes,
     forcedMarches: [],

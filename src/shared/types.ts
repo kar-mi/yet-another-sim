@@ -290,6 +290,46 @@ export type ActiveInverse = {
   resolved: boolean;
 };
 
+// A "?" mechanic that flips between spread (per-player AOEs) and stack (shared soak).
+export type SpreadStackMode = "spread" | "stack";
+
+export type SpreadConfig = { radius: number; damage: number };
+export type StackConfig = { groups: string[][]; radius: number; requiredCount: number; damage: number };
+
+export type PendingSpreadStack = {
+  id: string;
+  t: number;
+  name: string;
+  telegraph: number;
+  shown: SpreadStackMode;          // marker drawn during the cast
+  rng: boolean;                    // seeded 50/50 flip at cast start
+  questionMark?: boolean;          // authored override of the flip state
+  damageType: DamageType;
+  spread: SpreadConfig;
+  stack: StackConfig;
+  ringColor?: string;              // hex colour of this mechanic's boss ring
+  ringHeight?: number;             // vertical height of this mechanic's boss ring
+  showCastBar: boolean;
+};
+
+export type ActiveSpreadStack = {
+  id: string;
+  name: string;
+  telegraphStart: number;
+  resolveAt: number;
+  shown: SpreadStackMode;          // what the markers display
+  inverted: boolean;               // true => "?": actual mode is the opposite of `shown`
+  markedPlayerId: string;          // stack-mode marked member (rolled even when shown=spread)
+  spread: SpreadConfig;
+  stack: StackConfig;
+  damageType: DamageType;
+  ringColor?: string;
+  ringHeight?: number;
+  showCastBar: boolean;
+  resolved: boolean;
+  outcome?: "success" | "failure"; // set at resolve (stack mode), drives the post-resolve flash
+};
+
 export type GazeVisual = { width: number; height: number; depth: number };
 
 export type PendingGaze = {
@@ -555,6 +595,8 @@ export type World = {
   pendingGroups: PendingGroupEvent[];
   inversions: ActiveInverse[];
   pendingInversions: PendingInverse[];
+  spreadStacks: ActiveSpreadStack[];
+  pendingSpreadStacks: PendingSpreadStack[];
   gazes: ActiveGaze[];
   pendingGazes: PendingGaze[];
   forcedMarches: ActiveForcedMarch[];
