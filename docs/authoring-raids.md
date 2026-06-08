@@ -525,9 +525,10 @@ The two modes:
 - **spread** — every alive player drops a small personal AOE (`spread.radius`). A player takes
   `spread.damage` **once per circle they stand in**, so standing in another player's circle eats
   their hit too (each player always eats their own once). Spread everyone out.
-- **stack** — a *random member* of the chosen `stack.groups` is marked; players within
-  `stack.radius` of the marked player split `stack.damage`. Fewer than `stack.requiredCount`
-  soakers → the stack **fails** and each soaker eats the full, unsplit hit (same rule as `group`).
+- **stack** — **one random member of *each* `stack.groups` is marked**, so two groups give two
+  separate stacks. Players within `stack.radius` of a marked player split that stack's
+  `stack.damage`; fewer than `stack.requiredCount` soakers → that stack **fails** and each soaker
+  eats the full, unsplit hit.
 
 **Flip state** is decided at cast start, in this precedence: `questionMark` (authored override)
 > `rng` (seeded 50/50, true variation each pull) > not inverted.
@@ -538,8 +539,8 @@ and the flip can still make it a lie.
 **Visuals.** Like `inverse`, the mechanic gets **one boss ring** (`ringColor` at `ringHeight`)
 with two orbs encoding the state (**dark blue = real**, **reddish-orange + yellow "?" = fake**).
 Use a height **above** any concurrent `inverse` ring to stack the two readouts. While casting,
-the spread form draws a downward triangle over **every** player's head; the stack form draws a
-blue **"ring with triangles pointing in" marker on top of the marked character's head**.
+the spread form draws a downward triangle over **every** player's head; the stack form draws an
+orange **"ring with triangles pointing in" marker on top of the marked character's head**.
 
 ```json
 {
@@ -568,10 +569,10 @@ blue **"ring with triangles pointing in" marker on top of the marked character's
 | `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
 | `spread.radius` | yes | Each player's personal AOE radius (> 0). |
 | `spread.damage` | yes | Damage (≥ 0) per circle a player stands in. |
-| `stack.groups` | yes | Candidate groups of player ids; one member of the chosen group is marked. |
-| `stack.radius` | yes | Stack circle radius around the marked player. |
-| `stack.requiredCount` | no | Soakers needed to split the hit; fewer = full damage each. Default `1`. |
-| `stack.damage` | yes | Total stack damage (≥ 0), split evenly among soakers on success. |
+| `stack.groups` | yes | Groups of player ids; **one member per group is marked** → one stack circle each. |
+| `stack.radius` | yes | Stack circle radius around each marked player. |
+| `stack.requiredCount` | no | Soakers needed per stack to split the hit; fewer = full damage each. Default `1`. |
+| `stack.damage` | yes | Damage (≥ 0) per stack, split evenly among that stack's soakers on success. |
 | `questionMark` | no | Force the flip state (`true` = always the "?", `false` = never). Overrides `rng`. |
 | `rng` | no | Randomise the flip each run (seeded 50/50). Default `false` (honest). |
 | `ringColor` | no | Hex colour of this mechanic's boss ring. Default fire orange `#f97316`. |

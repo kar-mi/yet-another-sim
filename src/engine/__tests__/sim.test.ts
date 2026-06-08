@@ -1934,6 +1934,28 @@ test("spread_stack: honest stack splits the hit among soakers on the marked play
   expect(hp("r1")).toBe(100); // outside the stack circle, untouched (no spread AOEs fired)
 });
 
+test("spread_stack: stack marks one player per group (two groups -> two stacks)", () => {
+  // Two groups -> m1 and h1 each anchor their own stack; the partner stacks on them, others stay out.
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({
+      m1: { spawn: [-8, 0] }, m2: { spawn: [-6, 0] },   // dps stack around m1
+      h1: { spawn: [8, 0] }, h2: { spawn: [6, 0] },      // healer stack around h1
+      mt: { spawn: [0, 15] }, ot: { spawn: [0, -15] }, r1: { spawn: [15, 15] }, r2: { spawn: [-15, -15] },
+    }),
+    events: [spreadStackEvent({ shown: "stack", stack: { groups: [["m1"], ["h1"]], radius: 6, requiredCount: 2, damage: 80 } })],
+  });
+  const w = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
+  const hp = (id: string) => w.players.find(p => p.id === id)!.hp;
+  expect(w.spreadStacks[0].markedPlayerIds.sort()).toEqual(["h1", "m1"]);
+  expect(hp("m1")).toBe(60); // m1 + m2 split 80 -> 40 each
+  expect(hp("m2")).toBe(60);
+  expect(hp("h1")).toBe(60); // h1 + h2 split 80 -> 40 each
+  expect(hp("h2")).toBe(60);
+  expect(hp("mt")).toBe(TANK_HP); // outside both circles
+  expect(hp("r1")).toBe(100);
+});
+
 test("spread_stack: a '?' flips a shown spread into a stack", () => {
   // shown=spread but questionMark -> actually a stack on h1. r1 (alone) would die to spread but is
   // safe under a stack; only the soakers near the marked h1 take the split.

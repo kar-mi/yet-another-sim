@@ -320,7 +320,7 @@ export type ActiveSpreadStack = {
   resolveAt: number;
   shown: SpreadStackMode;          // what the markers display
   inverted: boolean;               // true => "?": actual mode is the opposite of `shown`
-  markedPlayerId: string;          // stack-mode marked member (rolled even when shown=spread)
+  markedPlayerIds: string[];       // stack-mode marked member per group (rolled even when shown=spread)
   spread: SpreadConfig;
   stack: StackConfig;
   damageType: DamageType;

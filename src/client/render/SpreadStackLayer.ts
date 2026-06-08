@@ -2,6 +2,7 @@ import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
+import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
 import { CreateTorus } from "@babylonjs/core/Meshes/Builders/torusBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
@@ -20,16 +21,16 @@ const REAL_ORB = "#1e3a8f";
 const FAKE_ORB = "#ff5a1f";
 const QUESTION = "#ffdd33";
 
-const HEAD_Y = 3.2;        // downward spread triangle floating over a player
-const STACK_MARKER_Y = 3.4; // stack "ring with triangles in" billboard on top of the marked head
+const HEAD_Y = 2.4;        // downward spread triangle floating over a player
+const STACK_MARKER_Y = 2.6; // stack "ring with triangles in" flat disc, raised above the marked head
 
 type Handle = {
   mech: ActiveSpreadStack;
   ring: Mesh;
   orbs: Mesh[];
   ringMats: StandardMaterial[];
-  spread: Map<string, Mesh>; // playerId -> downward head triangle
-  stackMarker?: Mesh;        // "ring with triangles in" billboard over the marked character
+  spread: Map<string, Mesh>;       // playerId -> downward head triangle
+  stackMarkers: Map<string, Mesh>; // marked playerId (one per group) -> "ring with triangles in" disc
 };
 
 // Alpha-test billboard recipe (transparent DynamicTextures render a black square under alpha-blend).
@@ -92,7 +93,10 @@ export class SpreadStackLayer {
       const showSpread = !mech.resolved && mech.shown === "spread";
       const showStack = !mech.resolved && mech.shown === "stack";
       this.syncSpreadMarkers(handle, showSpread ? players : [], playerMap);
-      this.syncStackMarker(handle, showStack ? (playerMap.get(mech.markedPlayerId) ?? null) : null);
+      const marked = showStack
+        ? mech.markedPlayerIds.map(id => playerMap.get(id)).filter((p): p is Player => !!p && p.alive)
+        : [];
+      this.syncStackMarkers(handle, marked);
     }
   }
 
@@ -115,18 +119,23 @@ export class SpreadStackLayer {
     }
   }
 
-  private syncStackMarker(handle: Handle, marked: Player | null): void {
-    if (!marked) {
-      handle.stackMarker?.dispose(); handle.stackMarker = undefined;
-      return;
+  private syncStackMarkers(handle: Handle, marked: Player[]): void {
+    const want = new Set(marked.map(p => p.id));
+    for (const [id, mesh] of handle.stackMarkers) {
+      if (!want.has(id)) { mesh.dispose(); handle.stackMarkers.delete(id); }
     }
-    if (!handle.stackMarker) {
-      handle.stackMarker = CreatePlane(`ss-stack-marker-${handle.mech.id}`, { size: 1.6 }, this.scene);
-      handle.stackMarker.billboardMode = BabylonMesh.BILLBOARDMODE_ALL;
-      handle.stackMarker.isPickable = false;
-      handle.stackMarker.material = this.getStackMarkerMaterial();
+    for (const player of marked) {
+      let mesh = handle.stackMarkers.get(player.id);
+      if (!mesh) {
+        // A flat floor-style ring laid horizontally, raised up above the marked character's head.
+        mesh = CreateDisc(`ss-stack-marker-${handle.mech.id}-${player.id}`, { radius: 1.5, tessellation: 48 }, this.scene);
+        mesh.rotation.x = Math.PI / 2;
+        mesh.isPickable = false;
+        mesh.material = this.getStackMarkerMaterial();
+        handle.stackMarkers.set(player.id, mesh);
+      }
+      mesh.position.set(player.pos.x, STACK_MARKER_Y, player.pos.z);
     }
-    handle.stackMarker.position.set(marked.pos.x, STACK_MARKER_Y, marked.pos.z);
   }
 
   private createHandle(mech: ActiveSpreadStack): Handle {
@@ -155,7 +164,7 @@ export class SpreadStackLayer {
       ringMats.push(mat);
     }
 
-    return { mech, ring, orbs, ringMats, spread: new Map() };
+    return { mech, ring, orbs, ringMats, spread: new Map(), stackMarkers: new Map() };
   }
 
   private getHeadMaterial(): StandardMaterial {
@@ -184,18 +193,18 @@ export class SpreadStackLayer {
 
   private getStackMarkerMaterial(): StandardMaterial {
     if (this.stackMarkerMat) return this.stackMarkerMat;
-    // A "ring with triangles pointing in" (blue = stack), drawn as a billboard over the head.
+    // An orange "ring with triangles pointing in", drawn as a billboard over the head.
     const tex = new DynamicTexture("ss-stack-marker-tex", { width: 256, height: 256 }, this.scene, false);
     tex.hasAlpha = true;
     const ctx = tex.getContext();
     ctx.clearRect(0, 0, 256, 256);
     const cx = 128, cy = 128, R = 118;
-    ctx.strokeStyle = "#7fd4ff";
+    ctx.strokeStyle = "#ffae42";
     ctx.lineWidth = 10;
     ctx.beginPath();
     ctx.arc(cx, cy, R, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.fillStyle = "#33aaff";
+    ctx.fillStyle = "#ff7a1f";
     const n = 4, baseR = R - 6, tipR = R - 60, halfW = 26;
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2 - Math.PI / 2;
@@ -225,7 +234,8 @@ export class SpreadStackLayer {
     for (const mat of handle.ringMats) { mat.diffuseTexture?.dispose(); mat.dispose(); }
     for (const head of handle.spread.values()) head.dispose();
     handle.spread.clear();
-    handle.stackMarker?.dispose();
+    for (const mesh of handle.stackMarkers.values()) mesh.dispose();
+    handle.stackMarkers.clear();
   }
 
   dispose(): void {
