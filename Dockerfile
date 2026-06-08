@@ -9,6 +9,4 @@ RUN bun install --frozen-lockfile
 # Copy the rest of the source
 COPY . .
 
-EXPOSE 3000 9100
-
 CMD ["bun", "server/server.ts"]

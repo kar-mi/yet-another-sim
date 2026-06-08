@@ -9,5 +9,5 @@ services:
       - METRICS_TOKEN=${METRICS_TOKEN:?set METRICS_TOKEN in .env}
       - METRICS_PORT=${METRICS_PORT:-9100}
     ports:
-      - "${PORT:-3000}:${PORT:-3000}"
-      - "${METRICS_BIND_IP:-0.0.0.0}:${METRICS_PORT:-9100}:${METRICS_PORT:-9100}"
+      - "127.0.0.1:${PORT:-3000}:${PORT:-3000}"
+      - "127.0.0.1:${METRICS_PORT:-9100}:${METRICS_PORT:-9100}"
