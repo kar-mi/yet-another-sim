@@ -7,6 +7,7 @@ import { createWorld } from "../src/engine/world";
 import { CLOCK_SPOTS, EMPTY_RAID_ID, MAX_OBSERVERS, ROSTER, type ClientMessage, type LobbySlot, type LobbyStatus, type ServerMessage } from "../src/shared/protocol";
 import type { Intent, Intents, LogEntry, World } from "../src/shared/types";
 import { logger } from "../src/shared/logger";
+import { metrics } from "./metrics";
 
 /**
  * Per-session sink for simulation events (the entries the engine pushes onto
@@ -424,7 +425,9 @@ export class Session {
       this.latestIntents.set(playerId, { move: latestIntent.move });
     }
 
+    const tickStart = performance.now();
     this.world = tick(this.world, { ...computeBotIntents(this.world, DT), ...humanIntents }, DT);
+    metrics.tickDuration.observe((performance.now() - tickStart) / 1000);
     this.forwardSimLog();
     if (broadcastSnapshot) this.broadcast({ type: "snapshot", world: this.world });
 
@@ -489,6 +492,7 @@ export class Session {
 
     if (steps === MAX_CATCH_UP_STEPS && this.tickAccumulator >= DT) {
       this.tickAccumulator = 0;
+      metrics.catchupExhausted.inc();
     }
 
     if (steps > 0 && this.status === "running") {
