@@ -2019,6 +2019,64 @@ test("spread_stack solver sends bots to the spot for the actual mode", () => {
   expect(mtMove(mkWorld({ shown: "spread", questionMark: true }))).toBeGreaterThan(0); // lie -> stack spot
 });
 
+test("spread_stack solver picks spread spots by the active lightning orientation", () => {
+  const botSolvers = {
+    spreadStack: {
+      spread: { mt: [0, 0] as Vec },
+      stack: { mt: [0, 0] as Vec },
+      spreadLightning: { id: "lightning", shown: { mt: [-10, 0] as Vec }, inverted: { mt: [10, 0] as Vec } },
+    },
+  };
+  const mk = (lightningInverted: boolean) => {
+    const raid = loadRaid({
+      ...baseRaid,
+      players: roster({ mt: { spawn: [0, 0] } }),
+      events: [
+        {
+          type: "inverse", id: "lightning", t: 0, name: "Lightning", telegraph: 5,
+          damage: 0, damageType: "magical", questionMark: lightningInverted,
+          shownShapes: [{ kind: "circle", center: [50, 50], radius: 1 }],
+          hiddenShapes: [{ kind: "circle", center: [50, 50], radius: 1 }],
+        },
+        spreadStackEvent({ t: 0, telegraph: 5, shown: "spread" }),
+      ],
+      botSolvers,
+    });
+    return tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
+  };
+  expect(computeBotIntents(mk(false), 1 / 60).mt.move.x).toBeLessThan(0);    // honest -> shown spot (-x)
+  expect(computeBotIntents(mk(true), 1 / 60).mt.move.x).toBeGreaterThan(0);  // "?" -> inverted spot (+x)
+});
+
+test("spread_stack solver picks stack spots by the active lightning orientation", () => {
+  const botSolvers = {
+    spreadStack: {
+      spread: { mt: [0, 0] as Vec },
+      stack: { mt: [0, 0] as Vec },
+      stackLightning: { id: "lightning", shown: { mt: [-10, 0] as Vec }, inverted: { mt: [10, 0] as Vec } },
+    },
+  };
+  const mk = (lightningInverted: boolean) => {
+    const raid = loadRaid({
+      ...baseRaid,
+      players: roster({ mt: { spawn: [0, 0] } }),
+      events: [
+        {
+          type: "inverse", id: "lightning", t: 0, name: "Lightning", telegraph: 5,
+          damage: 0, damageType: "magical", questionMark: lightningInverted,
+          shownShapes: [{ kind: "circle", center: [50, 50], radius: 1 }],
+          hiddenShapes: [{ kind: "circle", center: [50, 50], radius: 1 }],
+        },
+        spreadStackEvent({ t: 0, telegraph: 5, shown: "stack" }),
+      ],
+      botSolvers,
+    });
+    return tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
+  };
+  expect(computeBotIntents(mk(false), 1 / 60).mt.move.x).toBeLessThan(0);    // honest -> shown stack (-x)
+  expect(computeBotIntents(mk(true), 1 / 60).mt.move.x).toBeGreaterThan(0);  // "?" -> inverted stack (+x)
+});
+
 // Gaze events: a player is hit if the eye (gz.pos) is in their facing hemisphere (normal) or
 // NOT in it (reverse). Players keep their default facing of 0 (= +Z) here, so "looking at" the
 // eye is decided by each player's position relative to the eye.

@@ -952,6 +952,11 @@ The **spread/stack** solver moves bots while a `spread_stack` mechanic is castin
 *actual* resolved mode (seeing through the `?`) and sends each bot to its `spread` or `stack` spot
 (`playerId -> [x, z]`). Human slots are not moved. Stack spots are usually one shared point per
 group (everyone in a group converges there, so it works whoever is marked).
+Optional `spreadLightning` / `stackLightning` override the spread / stack spots per concurrent-`inverse`
+orientation: name the inverse via `id`, then give `shown` positions (used when that inverse is *not*
+inverted) and `inverted` positions (used when it is). This lets bots spread or stack into the safe
+corridor of a simultaneous line-AOE mechanic. Falls back to base `spread`/`stack` when the named
+inverse isn't active.
 
 ```json
 {
@@ -970,7 +975,17 @@ group (everyone in a group converges there, so it works whoever is marked).
     },
     "spreadStack": {
       "spread": { "mt": [-6, 6], "ot": [6, 6], "h1": [0, -18], "h2": [18, 0] },
-      "stack": { "mt": [6, -6], "ot": [6, -6], "h1": [6, -6], "h2": [6, -6] }
+      "stack": { "mt": [6, -6], "ot": [6, -6], "h1": [6, -6], "h2": [6, -6] },
+      "spreadLightning": {
+        "id": "lightning",
+        "shown": { "mt": [-2, -2], "ot": [6, 6], "h1": [0, -18], "h2": [18, 0] },
+        "inverted": { "mt": [-6, 6], "ot": [2, -2], "h1": [0, -18], "h2": [18, 0] }
+      },
+      "stackLightning": {
+        "id": "lightning",
+        "shown": { "mt": [-6, -6], "h1": [-6, -6], "r1": [6, 6], "m2": [6, 6] },
+        "inverted": { "mt": [6, -6], "h1": [6, -6], "r1": [-6, 6], "m2": [-6, 6] }
+      }
     }
   }
 }

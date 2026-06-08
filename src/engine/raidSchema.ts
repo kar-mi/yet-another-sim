@@ -14,8 +14,20 @@ const BotSolversSchema = z.object({
     startAt: z.number().nonnegative().optional(),
   }).optional(),
   spreadStack: z.object({
-    spread: z.record(z.string().min(1), Vec2Schema), // playerId -> spread-mode spot
+    spread: z.record(z.string().min(1), Vec2Schema), // playerId -> spread-mode spot (base / no lightning)
     stack: z.record(z.string().min(1), Vec2Schema),  // playerId -> stack-mode spot (their group's stack point)
+    // Per-orientation overrides: read the named inverse ("lightning") and use `shown` positions
+    // when it is NOT inverted, `inverted` positions when it is, so bots dodge into the safe corridor.
+    spreadLightning: z.object({
+      id: z.string().min(1),
+      shown: z.record(z.string().min(1), Vec2Schema),
+      inverted: z.record(z.string().min(1), Vec2Schema),
+    }).optional(),
+    stackLightning: z.object({
+      id: z.string().min(1),
+      shown: z.record(z.string().min(1), Vec2Schema),
+      inverted: z.record(z.string().min(1), Vec2Schema),
+    }).optional(),
   }).optional(),
 }).optional();
 const RoleSchema = z.enum(["tank", "healer", "dps"]);

@@ -121,12 +121,12 @@
       "damage": 60, "damageType": "magical", "showCastBar": true,
       "rng": true, "ringColor": "#a855f7", "ringHeight": 3.2,
       "shownShapes": [
-        { "kind": "rect", "origin": [-19.09, -9.19], "direction": [1, 1], "width": 6, "length": 40 },
-        { "kind": "rect", "origin": [-9.19, -19.09], "direction": [1, 1], "width": 6, "length": 40 }
+        { "kind": "rect", "origin": [-17.85, -10.43], "direction": [1, 1], "width": 6.5, "length": 40 },
+        { "kind": "rect", "origin": [-10.43, -17.85], "direction": [1, 1], "width": 6.5, "length": 40 }
       ],
       "hiddenShapes": [
-        { "kind": "rect", "origin": [9.19, -19.09], "direction": [-1, 1], "width": 6, "length": 40 },
-        { "kind": "rect", "origin": [19.09, -9.19], "direction": [-1, 1], "width": 6, "length": 40 }
+        { "kind": "rect", "origin": [10.43, -17.85], "direction": [-1, 1], "width": 6.5, "length": 40 },
+        { "kind": "rect", "origin": [17.85, -10.43], "direction": [-1, 1], "width": 6.5, "length": 40 }
       ]
     },
     {

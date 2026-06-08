@@ -36,6 +36,16 @@ function toBotSolvers(raid: RaidDef): World["botSolvers"] {
     spreadStack: spreadStack && {
       spread: toSpots(spreadStack.spread),
       stack: toSpots(spreadStack.stack),
+      spreadLightning: spreadStack.spreadLightning && {
+        id: spreadStack.spreadLightning.id,
+        shown: toSpots(spreadStack.spreadLightning.shown),
+        inverted: toSpots(spreadStack.spreadLightning.inverted),
+      },
+      stackLightning: spreadStack.stackLightning && {
+        id: spreadStack.stackLightning.id,
+        shown: toSpots(spreadStack.stackLightning.shown),
+        inverted: toSpots(spreadStack.stackLightning.inverted),
+      },
     },
   };
 }

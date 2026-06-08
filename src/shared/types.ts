@@ -28,8 +28,18 @@ export type BotSolvers = {
     startAt?: number;
   };
   spreadStack?: {
-    spread: Record<string, Vec2>; // playerId -> spread-mode spot
+    spread: Record<string, Vec2>; // playerId -> spread-mode spot (base / no lightning)
     stack: Record<string, Vec2>;  // playerId -> stack-mode spot
+    spreadLightning?: {           // per-orientation spread override read from the named inverse
+      id: string;
+      shown: Record<string, Vec2>;    // positions when the inverse is NOT inverted
+      inverted: Record<string, Vec2>; // positions when the inverse is inverted
+    };
+    stackLightning?: {            // per-orientation stack override (same shape as spreadLightning)
+      id: string;
+      shown: Record<string, Vec2>;
+      inverted: Record<string, Vec2>;
+    };
   };
 };
 
