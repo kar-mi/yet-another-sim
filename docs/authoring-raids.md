@@ -532,11 +532,14 @@ The two modes:
 **Flip state** is decided at cast start, in this precedence: `questionMark` (authored override)
 > `rng` (seeded 50/50, true variation each pull) > not inverted.
 
+`shown: "random"` picks spread or stack per pull (seeded) — only **one** mechanic ever displays,
+and the flip can still make it a lie.
+
 **Visuals.** Like `inverse`, the mechanic gets **one boss ring** (`ringColor` at `ringHeight`)
 with two orbs encoding the state (**dark blue = real**, **reddish-orange + yellow "?" = fake**).
 Use a height **above** any concurrent `inverse` ring to stack the two readouts. While casting,
-`shown: "spread"` draws a ground reticle (circle with inward triangles) plus a downward triangle
-over every player; `shown: "stack"` draws the stack marker on the marked player.
+the spread form draws a downward triangle over **every** player's head; the stack form draws a
+blue **"ring with triangles pointing in" marker on top of the marked character's head**.
 
 ```json
 {
@@ -544,13 +547,13 @@ over every player; `shown: "stack"` draws the stack marker on the marked player.
   "t": 43,
   "name": "Mystery Magic 3 (Fire)",
   "telegraph": 5,
-  "shown": "spread",
+  "shown": "random",
   "rng": true,
   "damageType": "magical",
   "spread": { "radius": 4, "damage": 80 },
-  "stack": { "groups": [["h1"], ["h2"]], "radius": 6, "requiredCount": 4, "damage": 200 },
+  "stack": { "groups": [["r1", "r2", "m1", "m2"], ["h1", "h2"]], "radius": 6, "requiredCount": 4, "damage": 200 },
   "ringColor": "#f97316",
-  "ringHeight": 4.8,
+  "ringHeight": 7,
   "showCastBar": true
 }
 ```
@@ -561,7 +564,7 @@ over every player; `shown: "stack"` draws the stack marker on the marked player.
 | `t` | yes | Cast start time (seconds). The flip + marked member are rolled now. |
 | `name` | yes | Mechanic name (used in the log and cast bar). |
 | `telegraph` | yes | Cast duration in seconds (> 0); resolves at `t + telegraph`. |
-| `shown` | yes | Marker drawn during the cast: `"spread"` or `"stack"`. |
+| `shown` | yes | Marker drawn during the cast: `"spread"`, `"stack"`, or `"random"` (seeded pick each pull). |
 | `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
 | `spread.radius` | yes | Each player's personal AOE radius (> 0). |
 | `spread.damage` | yes | Damage (≥ 0) per circle a player stands in. |

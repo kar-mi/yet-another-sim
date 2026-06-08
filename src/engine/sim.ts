@@ -1021,6 +1021,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const spreadStacks: ActiveSpreadStack[] = world.spreadStacks.map(s => ({ ...s }));
   for (const ps of world.pendingSpreadStacks) {
     if (ps.t <= time) {
+      const shown = ps.shown === "random" ? (randFloat() < 0.5 ? "spread" : "stack") : ps.shown;
       const inverted = ps.questionMark ?? (ps.rng ? randFloat() < 0.5 : false);
       const group = ps.stack.groups[randInt(ps.stack.groups.length)];
       const marked = group[randInt(group.length)];
@@ -1029,7 +1030,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
         name: ps.name,
         telegraphStart: ps.t,
         resolveAt: ps.t + ps.telegraph,
-        shown: ps.shown,
+        shown,
         inverted,
         markedPlayerId: marked,
         spread: ps.spread,

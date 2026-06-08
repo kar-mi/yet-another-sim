@@ -270,7 +270,7 @@ const SpreadStackEventSchema = z.object({
   t: z.number().nonnegative(),
   name: z.string().min(1),
   telegraph: z.number().positive(),
-  shown: z.enum(["spread", "stack"]),               // marker drawn during the cast
+  shown: z.enum(["spread", "stack", "random"]),     // marker drawn during the cast ("random" = seeded per pull)
   rng: z.boolean().optional(),                       // seeded 50/50 flip (else honest)
   questionMark: z.boolean().optional(),              // authored override of the flip state
   damageType: z.enum(["physical", "magical", "true"]),

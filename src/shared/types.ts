@@ -292,6 +292,7 @@ export type ActiveInverse = {
 
 // A "?" mechanic that flips between spread (per-player AOEs) and stack (shared soak).
 export type SpreadStackMode = "spread" | "stack";
+export type SpreadStackShown = SpreadStackMode | "random"; // authored; "random" resolves to a concrete mode at cast start
 
 export type SpreadConfig = { radius: number; damage: number };
 export type StackConfig = { groups: string[][]; radius: number; requiredCount: number; damage: number };
@@ -301,7 +302,7 @@ export type PendingSpreadStack = {
   t: number;
   name: string;
   telegraph: number;
-  shown: SpreadStackMode;          // marker drawn during the cast
+  shown: SpreadStackShown;         // marker drawn during the cast ("random" = seeded per pull)
   rng: boolean;                    // seeded 50/50 flip at cast start
   questionMark?: boolean;          // authored override of the flip state
   damageType: DamageType;

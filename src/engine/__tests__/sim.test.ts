@@ -1967,6 +1967,19 @@ test("spread_stack rng eventually picks both honest and flipped", () => {
   expect(seen).toEqual(new Set([true, false]));
 });
 
+test("spread_stack shown:random eventually displays both spread and stack", () => {
+  const raid = {
+    ...baseRaid,
+    events: [spreadStackEvent({ t: 0, telegraph: 1, shown: "random" })],
+  };
+  const seen = new Set<string>();
+  for (let i = 0; i < 40; i++) {
+    const w = tick(createWorld(loadRaid(raid)), {}, 1 / 60); // promote on first tick
+    seen.add(w.spreadStacks[0].shown);
+  }
+  expect(seen).toEqual(new Set(["spread", "stack"]));
+});
+
 // Gaze events: a player is hit if the eye (gz.pos) is in their facing hemisphere (normal) or
 // NOT in it (reverse). Players keep their default facing of 0 (= +Z) here, so "looking at" the
 // eye is decided by each player's position relative to the eye.
