@@ -1,3 +1,4 @@
+import { addServerBreadcrumb, captureServerException } from "./sentry";
 import { join } from "path";
 import {
   ClientMessageSchema,
@@ -120,6 +121,11 @@ const buildResult = await Bun.build({
   sourcemap: "inline",
   define: {
     __YAS_DEBUG__: JSON.stringify(debugEnabled),
+    __SENTRY_CLIENT_DSN__: JSON.stringify(Bun.env.SENTRY_CLIENT_DSN || ""),
+    __SENTRY_ENABLED__: JSON.stringify(Bun.env.SENTRY_ENABLED ?? ""),
+    __SENTRY_ENVIRONMENT__: JSON.stringify(Bun.env.SENTRY_ENVIRONMENT || Bun.env.NODE_ENV || "development"),
+    __SENTRY_RELEASE__: JSON.stringify(Bun.env.SENTRY_RELEASE || ""),
+    __SENTRY_CLIENT_TRACES_SAMPLE_RATE__: JSON.stringify(Bun.env.SENTRY_CLIENT_TRACES_SAMPLE_RATE || "0"),
   },
 });
 
@@ -151,37 +157,43 @@ const server = Bun.serve<SocketData>({
   async fetch(req, server) {
     const url = new URL(req.url);
 
-    if (server.upgrade(req, { data: { clientId: crypto.randomUUID() } })) {
-      return undefined as unknown as Response;
-    }
-
-    if (url.pathname === "/api/raids") {
-      return Response.json(await loadRaidCategories());
-    }
-
-    // Serve bundled client
-    const relPath = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
-    const bundleFile = Bun.file(join(BUNDLE_DIR, relPath));
-    if (await bundleFile.exists()) return new Response(bundleFile);
-
-    // Serve static assets (effect icons, etc.) from /static/*. Validate the relative path to
-    // avoid traversal; only simple file-path characters are allowed.
-    if (url.pathname.startsWith("/static/")) {
-      const rel = url.pathname.slice("/static/".length);
-      if (/^[A-Za-z0-9_\-./]+$/.test(rel) && !rel.includes("..")) {
-        const staticFile = Bun.file(join(STATIC_DIR, rel));
-        if (await staticFile.exists()) return new Response(staticFile);
+    try {
+      if (server.upgrade(req, { data: { clientId: crypto.randomUUID() } })) {
+        return undefined as unknown as Response;
       }
+
+      if (url.pathname === "/api/raids") {
+        return Response.json(await loadRaidCategories());
+      }
+
+      // Serve bundled client
+      const relPath = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
+      const bundleFile = Bun.file(join(BUNDLE_DIR, relPath));
+      if (await bundleFile.exists()) return new Response(bundleFile);
+
+      // Serve static assets (effect icons, etc.) from /static/*. Validate the relative path to
+      // avoid traversal; only simple file-path characters are allowed.
+      if (url.pathname.startsWith("/static/")) {
+        const rel = url.pathname.slice("/static/".length);
+        if (/^[A-Za-z0-9_\-./]+$/.test(rel) && !rel.includes("..")) {
+          const staticFile = Bun.file(join(STATIC_DIR, rel));
+          if (await staticFile.exists()) return new Response(staticFile);
+        }
+        return new Response("Not found", { status: 404 });
+      }
+
+      const raidFileName = raidFileFromPath(url.pathname);
+      if (raidFileName) {
+        const raidFile = Bun.file(join(RAIDS_DIR, raidFileName));
+        if (await raidFile.exists()) return new Response(raidFile);
+      }
+
       return new Response("Not found", { status: 404 });
+    } catch (err) {
+      captureServerException(err, { area: "http.fetch", method: req.method, path: url.pathname });
+      logger.error("server", "request failed", { method: req.method, path: url.pathname, err });
+      return new Response("Internal server error", { status: 500 });
     }
-
-    const raidFileName = raidFileFromPath(url.pathname);
-    if (raidFileName) {
-      const raidFile = Bun.file(join(RAIDS_DIR, raidFileName));
-      if (await raidFile.exists()) return new Response(raidFile);
-    }
-
-    return new Response("Not found", { status: 404 });
   },
 
   websocket: {
@@ -189,34 +201,47 @@ const server = Bun.serve<SocketData>({
     open(ws) {
       clients.set(ws.data.clientId, ws);
       ws.send(JSON.stringify({ type: "joined", clientId: ws.data.clientId } satisfies ServerMessage));
+      addServerBreadcrumb("net", "WS connected", { clientId: ws.data.clientId });
       logger.info("net", "WS connected", { addr: ws.remoteAddress, clientId: ws.data.clientId });
     },
     async message(ws, msg) {
       metrics.wsMessagesTotal.inc();
+      const text = typeof msg === "string" ? msg : new TextDecoder().decode(msg);
+      let json: unknown;
       try {
-        const text = typeof msg === "string" ? msg : new TextDecoder().decode(msg);
-        const parsed = ClientMessageSchema.safeParse(JSON.parse(text));
-        if (!parsed.success) {
-          metrics.wsInvalidTotal.inc();
-          logger.warn("net", "invalid message", { clientId: ws.data.clientId });
-          ws.send(JSON.stringify({ type: "error", message: "Invalid message" } satisfies ServerMessage));
-          return;
-        }
-        if (parsed.data.type === "debugPosition") {
-          logger.debug("hud", "player position", { clientId: ws.data.clientId, ...parsed.data });
-          return;
-        }
-
-        await manager.handle(ws.data.clientId, parsed.data);
+        json = JSON.parse(text);
       } catch {
         metrics.wsInvalidTotal.inc();
         logger.warn("net", "invalid JSON", { clientId: ws.data.clientId });
         ws.send(JSON.stringify({ type: "error", message: "Invalid JSON" } satisfies ServerMessage));
+        return;
+      }
+
+      const parsed = ClientMessageSchema.safeParse(json);
+      if (!parsed.success) {
+        metrics.wsInvalidTotal.inc();
+        logger.warn("net", "invalid message", { clientId: ws.data.clientId });
+        ws.send(JSON.stringify({ type: "error", message: "Invalid message" } satisfies ServerMessage));
+        return;
+      }
+      if (parsed.data.type === "debugPosition") {
+        logger.debug("hud", "player position", { clientId: ws.data.clientId, ...parsed.data });
+        return;
+      }
+
+      addServerBreadcrumb("net", "WS message", { clientId: ws.data.clientId, type: parsed.data.type });
+      try {
+        await manager.handle(ws.data.clientId, parsed.data);
+      } catch (err) {
+        captureServerException(err, { area: "ws.message", clientId: ws.data.clientId, type: parsed.data.type });
+        logger.error("net", "message handler failed", { clientId: ws.data.clientId, type: parsed.data.type, err });
+        ws.send(JSON.stringify({ type: "error", message: "Server error" } satisfies ServerMessage));
       }
     },
     close(ws) {
       clients.delete(ws.data.clientId);
       manager.disconnect(ws.data.clientId);
+      addServerBreadcrumb("net", "WS disconnected", { clientId: ws.data.clientId });
       logger.debug("net", "WS disconnected", { clientId: ws.data.clientId });
     },
   },

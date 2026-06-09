@@ -11,6 +11,8 @@
   "dependencies": {
     "@babylonjs/core": "^9.0.0",
     "@babylonjs/gui": "^9.0.0",
+    "@sentry/browser": "^10.56.0",
+    "@sentry/bun": "^10.56.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
