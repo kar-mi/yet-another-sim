@@ -118,7 +118,8 @@ const buildResult = await Bun.build({
   entrypoints: [join(ROOT, "index.html")],
   outdir: BUNDLE_DIR,
   target: "browser",
-  sourcemap: "inline",
+  sourcemap: debugEnabled ? "inline" : "none",
+  env: "disable",
   define: {
     __YAS_DEBUG__: JSON.stringify(debugEnabled),
   },
