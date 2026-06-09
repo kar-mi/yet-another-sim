@@ -211,17 +211,26 @@ export function getIntent(cameraYaw: number, dt: number, mouse: { left: boolean;
   keyboardCameraPan = 0;
 
   if (controlScheme === "legacy" && !usingStick) {
-    // Legacy = camera-based: WSQE move relative to the camera.
-    if (strafe !== 0 || fb !== 0) {
-      move = relMove(strafe, fb, cameraYaw);
-      // Strafe or W → face camera-forward; S alone → face backward (turn around).
-      facing = (strafe !== 0 || fb > 0) ? cameraYaw : normalizeAngle(cameraYaw + Math.PI);
-    } else if (pan !== 0) {
-      // A/D: turn 90° to the side and walk in a straight line, facing that direction.
-      facing = normalizeAngle(cameraYaw + pan * (Math.PI / 2));
-      move = { x: Math.sin(facing), z: Math.cos(facing) };
+    // Legacy = camera-based: W/S + Q/E strafe + A/D all move relative to the camera and combine.
+    const lateral = Math.max(-1, Math.min(1, strafe + pan)); // Q/E strafe and A/D both move sideways
+    if (lateral !== 0 || fb !== 0) {
+      move = relMove(lateral, fb, cameraYaw);
+      const heading = Math.atan2(move.x, move.z);
+      if (pan !== 0 || strafe === 0) {
+        // A/D sidesteps and pure W/S → face the movement direction.
+        facing = heading;
+      } else if (fb === 0) {
+        // Pure Q/E strafe → face camera-forward (sidestep).
+        facing = cameraYaw;
+      } else if (fb > 0) {
+        // W + strafe → forward diagonal = the movement direction.
+        facing = heading;
+      } else {
+        // S + strafe → still a forward diagonal: face opposite the back-diagonal movement.
+        facing = Math.atan2(-move.x, -move.z);
+      }
     }
-    // Mouse pans the camera in legacy (handled by the renderer); A/D never pan it.
+    // Mouse pans the camera in legacy (handled by the renderer).
   } else if (usingStick) {
     // Gamepad: camera-relative move, character faces travel; right stick pans the camera.
     if (strafe !== 0 || fb !== 0) {
