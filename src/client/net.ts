@@ -1,5 +1,6 @@
 import type { ClientMessage, ServerMessage } from "../shared/protocol";
 import type { Boss, Player, World } from "../shared/types";
+import { shortestAngleDelta } from "../shared/math";
 
 type MessageType = ServerMessage["type"];
 type Handler<T extends MessageType> = (message: Extract<ServerMessage, { type: T }>) => void;
@@ -179,10 +180,7 @@ function lerp(a: number, b: number, t: number): number {
 }
 
 function lerpAngle(a: number, b: number, t: number): number {
-  let diff = b - a;
-  while (diff > Math.PI) diff -= Math.PI * 2;
-  while (diff < -Math.PI) diff += Math.PI * 2;
-  return a + diff * t;
+  return a + shortestAngleDelta(a, b) * t;
 }
 
 function interpolatePlayer(prev: Player | undefined, next: Player, t: number): Player {

@@ -61,6 +61,7 @@ const IntentVec2Schema = z.object({
 
 export const IntentSchema = z.object({
   move: IntentVec2Schema,
+  facing: z.number().optional(),
   jump: z.boolean().optional(),
   sprint: z.boolean().optional(),
   antiKnockback: z.boolean().optional(),

@@ -1,8 +1,10 @@
 export interface KeyBindings {
   moveForward: string;
   moveBack: string;
-  moveLeft: string;
-  moveRight: string;
+  strafeLeft: string;
+  strafeRight: string;
+  cameraPanLeft: string;
+  cameraPanRight: string;
   jump: string;
   sprint: string;
   antiKnockback: string;
@@ -11,7 +13,7 @@ export interface KeyBindings {
 
 export interface Settings {
   mouseSensitivity: number;
-  panButton: "left" | "right";
+  controlScheme: "legacy" | "standard";
   keyBindings: KeyBindings;
   hotbarMode: "kbm" | "controller";
   controllerSensitivity: number;
@@ -24,8 +26,10 @@ export interface Settings {
 export const DEFAULT_BINDINGS: KeyBindings = {
   moveForward: "KeyW",
   moveBack: "KeyS",
-  moveLeft: "KeyA",
-  moveRight: "KeyD",
+  strafeLeft: "KeyQ",
+  strafeRight: "KeyE",
+  cameraPanLeft: "KeyA",
+  cameraPanRight: "KeyD",
   jump: "Space",
   sprint: "Digit1",
   antiKnockback: "Digit2",
@@ -34,7 +38,7 @@ export const DEFAULT_BINDINGS: KeyBindings = {
 
 const DEFAULTS: Settings = {
   mouseSensitivity: 1,
-  panButton: "left",
+  controlScheme: "legacy",
   keyBindings: { ...DEFAULT_BINDINGS },
   hotbarMode: "kbm",
   controllerSensitivity: 2.0,

@@ -610,6 +610,7 @@ export type ActiveForcedMarch = {
 
 export type Intent = {
   move: Vec2;
+  facing?: number;             // absolute facing in radians (atan2(x, z)); when set, overrides movement-derived facing
   jump?: boolean;
   sprint?: boolean;
   antiKnockback?: boolean;

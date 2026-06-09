@@ -1037,6 +1037,7 @@ img.yas-debuff-icon {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 24px;
   background: rgba(4, 5, 14, 0.97);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -1052,7 +1053,30 @@ img.yas-debuff-icon {
   border: 1px solid rgba(100, 115, 175, 0.22);
   border-radius: 6px;
   min-width: 380px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
   box-shadow: 0 0 60px rgba(80, 100, 200, 0.08);
+  scrollbar-color: rgba(85, 95, 145, 0.72) rgba(10, 12, 28, 0.96);
+  scrollbar-width: thin;
+}
+
+.yas-menu-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.yas-menu-panel::-webkit-scrollbar-track {
+  background: rgba(10, 12, 28, 0.96);
+  border-radius: 3px;
+}
+
+.yas-menu-panel::-webkit-scrollbar-thumb {
+  background: rgba(85, 95, 145, 0.72);
+  border: 1px solid rgba(10, 12, 28, 0.96);
+  border-radius: 3px;
+}
+
+.yas-menu-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 168, 67, 0.55);
 }
 
 .yas-menu-title {

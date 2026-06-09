@@ -122,6 +122,21 @@ test("facing tracks movement direction and persists while idle", () => {
   expect(human(idle).facing).toBeCloseTo(human(movedZ).facing);
 });
 
+test("intent.facing overrides movement-derived facing (e.g. legacy strafe)", () => {
+  const raid = loadRaid(baseRaid);
+  const world = createWorld(raid);
+
+  // Moving +x but facing forced forward (+z) — like strafing while facing the camera.
+  const strafed = tick(world, { [HUMAN]: { move: { x: 1, z: 0 }, facing: 0 } }, 1 / 60);
+  expect(human(strafed).pos.x).toBeGreaterThan(human(world).pos.x);
+  expect(human(strafed).facing).toBeCloseTo(0);
+
+  // Facing-only update with no movement (turning in place).
+  const turned = tick(strafed, { [HUMAN]: { move: { x: 0, z: 0 }, facing: Math.PI / 2 } }, 1 / 60);
+  expect(human(turned).pos.x).toBeCloseTo(human(strafed).pos.x);
+  expect(human(turned).facing).toBeCloseTo(Math.PI / 2);
+});
+
 test("world includes a deterministic boss with a seeded threat table", () => {
   const raid = loadRaid(baseRaid);
   const world = createWorld(raid);

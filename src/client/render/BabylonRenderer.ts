@@ -28,6 +28,7 @@ import { SpreadStackLayer } from "./SpreadStackLayer";
 import { GazeLayer } from "./GazeLayer";
 import { ForcedMarchLayer } from "./ForcedMarchLayer";
 import { WaymarkLayer } from "./WaymarkLayer";
+import { setControlScheme } from "../input";
 
 // Sub-path imports drop some Babylon engine side-effect registrations.
 // Use explicit calls because referenced calls survive tree-shaking.
@@ -66,7 +67,7 @@ export class BabylonRenderer implements Renderer {
   private localPlayerId: string | null = null;
   private spectateTargetId: string | null = null;
   private onResize!: () => void;
-  private panButtonCode: number = 2;
+  private panButtons = { left: false, right: false };
   private controllerSensitivity = 2.0;
   private cameraAccel = false;
   private cameraAccelStrength = 1;
@@ -88,7 +89,7 @@ export class BabylonRenderer implements Renderer {
     this.scene.clearColor = new Color4(0.05, 0.05, 0.1, 1);
 
     this.camera = new ArcRotateCamera("cam", -Math.PI / 2, Math.PI / 3, 30, Vector3.Zero(), this.scene);
-    this.camera.movement.input.setInteraction("pointer", { button: 0, modifiers: { ctrl: true } }, "rotate");
+    this.camera.movement.input.setInteraction("pointer", { button: 0 }, "rotate");
     this.camera.movement.input.setInteraction("pointer", { button: 2 }, "rotate");
     this.camera.attachControl(false);
     this.camera.lowerRadiusLimit = 10;
@@ -97,17 +98,29 @@ export class BabylonRenderer implements Renderer {
     this.canvas.addEventListener("contextmenu", e => e.preventDefault());
 
     this.onPanDown = (e: PointerEvent) => {
-      if (e.button !== this.panButtonCode) return;
+      if (e.button === 0) this.panButtons.left = true;
+      else if (e.button === 2) this.panButtons.right = true;
+      else return;
       const lockRequest = this.canvas.requestPointerLock();
       if (lockRequest instanceof Promise) lockRequest.catch(() => {});
     };
     this.onPanUp = (e: PointerEvent) => {
-      if (e.button !== this.panButtonCode) return;
-      if (document.pointerLockElement === this.canvas) document.exitPointerLock();
+      if (e.button === 0) this.panButtons.left = false;
+      else if (e.button === 2) this.panButtons.right = false;
+      else return;
+      // Release the pointer lock only once both drag buttons are up.
+      if (!this.panButtons.left && !this.panButtons.right && document.pointerLockElement === this.canvas) {
+        document.exitPointerLock();
+      }
     };
     this.onLockChange = () => {
       const mouseInput = this.camera.inputs.attached.pointers as ArcRotateCameraPointersInput | undefined;
-      if (document.pointerLockElement !== this.canvas && mouseInput) mouseInput.onLostFocus();
+      if (document.pointerLockElement !== this.canvas) {
+        // Lock lost (e.g. Esc) without a pointerup — clear drag state so it doesn't stick.
+        this.panButtons.left = false;
+        this.panButtons.right = false;
+        if (mouseInput) mouseInput.onLostFocus();
+      }
     };
     this.canvas.addEventListener("pointerdown", this.onPanDown);
     document.addEventListener("pointerup", this.onPanUp);
@@ -216,14 +229,15 @@ export class BabylonRenderer implements Renderer {
 
   applySettings(s: Settings): void {
     const sens = 2000 / s.mouseSensitivity;
-    this.panButtonCode = s.panButton === "right" ? 2 : 0;
     this.controllerSensitivity = s.controllerSensitivity;
     this.cameraAccel = s.cameraAccel;
     this.cameraAccelStrength = s.cameraAccelStrength;
     this.camera.angularSensibilityX = sens;
     this.camera.angularSensibilityY = sens;
+    // Both mouse buttons drag-rotate the camera; facing rules differ per scheme (handled in input.ts).
     const mouseInput = this.camera.inputs.attached.pointers as ArcRotateCameraPointersInput | undefined;
-    if (mouseInput) mouseInput.buttons = [this.panButtonCode];
+    if (mouseInput) mouseInput.buttons = [0, 2];
+    setControlScheme(s.controlScheme);
     this.hud.applySettings(s);
   }
 
@@ -234,6 +248,16 @@ export class BabylonRenderer implements Renderer {
   getCameraYaw(): number {
     const fwd = this.camera.target.subtract(this.camera.position);
     return Math.atan2(fwd.x, fwd.z);
+  }
+
+  // Rotates the orbit camera by a yaw delta (radians). alpha runs opposite to yaw
+  // (see getCameraYaw), so we subtract. Used for A/D pan + Standard auto-trail.
+  rotateCameraYaw(delta: number): void {
+    this.camera.alpha -= delta;
+  }
+
+  getPanButtons(): { left: boolean; right: boolean } {
+    return this.panButtons;
   }
 
   setControllerType(type: ControllerType): void {

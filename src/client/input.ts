@@ -1,5 +1,5 @@
 import type { Intent } from "../shared/types";
-import { normalize } from "../shared/math";
+import { normalize, shortestAngleDelta, normalizeAngle } from "../shared/math";
 import { actionForControllerSlot } from "./actions";
 import type { ActionId } from "./actions";
 import { DEFAULT_BINDINGS } from "./settings";
@@ -15,6 +15,13 @@ let keyBindings: KeyBindings = { ...DEFAULT_BINDINGS };
 let prevButtons: boolean[] = [];
 let controllerDeadzone = 0.15;
 let selectedGamepadIndex: number | null = null;
+let controlScheme: "legacy" | "standard" = "legacy";
+let standardFacing = 0;         // client-tracked character facing for standard (char-based) scheme
+let standardFacingSynced = false;
+let keyboardCameraPan = 0;      // camera yaw delta produced by the last getIntent() call
+
+const STANDARD_TURN_RATE = 2.6; // rad/s character turn from A/D (standard)
+const CAMERA_FOLLOW_RATE = 4;   // camera auto-trail responsiveness (standard)
 
 function getGamepad(): Gamepad | null {
   const pads = navigator.getGamepads();
@@ -64,6 +71,16 @@ export function setKeyBindings(kb: KeyBindings): void {
 
 export function setControllerDeadzone(dz: number): void {
   controllerDeadzone = dz;
+}
+
+export function setControlScheme(scheme: "legacy" | "standard"): void {
+  controlScheme = scheme;
+  standardFacingSynced = false; // re-sync the character's facing to the camera on (re)entry
+}
+
+// Camera yaw delta (radians) the loop applies to the renderer after sending the intent.
+export function getKeyboardCameraPan(): number {
+  return keyboardCameraPan;
 }
 
 export function getRightStick(): { x: number; y: number } {
@@ -130,7 +147,7 @@ export function initInput(): () => void {
   };
 }
 
-export function getIntent(cameraYaw: number): Intent {
+export function getIntent(cameraYaw: number, dt: number, mouse: { left: boolean; right: boolean }): Intent {
   const jump = jumpPressed;
   jumpPressed = false;
   const sprint = sprintPressed;
@@ -142,19 +159,28 @@ export function getIntent(cameraYaw: number): Intent {
   const toggleInvincibility = invincibilityToggled || undefined;
   invincibilityToggled = false;
 
-  let x = 0, z = 0;
-  if (keys.has(keyBindings.moveForward)) z += 1;
-  if (keys.has(keyBindings.moveBack)) z -= 1;
-  if (keys.has(keyBindings.moveLeft)) x -= 1;
-  if (keys.has(keyBindings.moveRight)) x += 1;
+  // Movement axes: fb = forward/back (W/S), strafe = left/right (Q/E).
+  let fb = 0, strafe = 0;
+  if (keys.has(keyBindings.moveForward)) fb += 1;
+  if (keys.has(keyBindings.moveBack)) fb -= 1;
+  if (keys.has(keyBindings.strafeLeft)) strafe -= 1;
+  if (keys.has(keyBindings.strafeRight)) strafe += 1;
 
+  // A/D: camera pan (standard) or character turn (legacy). +1 = right, -1 = left.
+  let pan = 0;
+  if (keys.has(keyBindings.cameraPanLeft)) pan -= 1;
+  if (keys.has(keyBindings.cameraPanRight)) pan += 1;
+
+  // Gamepad: left stick overrides keyboard movement; face buttons drive the hotbar.
   const gp = getGamepad();
+  let usingStick = false;
   if (gp) {
     const lx = applyDeadzone(gp.axes[0] ?? 0, controllerDeadzone);
     const ly = applyDeadzone(gp.axes[1] ?? 0, controllerDeadzone);
     if (lx !== 0 || ly !== 0) {
-      x = lx;
-      z = -ly; // gamepad stick up = -1, forward should be +z
+      strafe = lx;
+      fb = -ly; // gamepad stick up = -1, forward should be +z
+      usingStick = true;
     }
 
     const rtHeld = (gp.buttons[7]?.value ?? 0) > 0.5;
@@ -174,10 +200,60 @@ export function getIntent(cameraYaw: number): Intent {
     prevButtons = Array.from(gp.buttons).map(b => b.pressed);
   }
 
-  if (x === 0 && z === 0) return { move: { x: 0, z: 0 }, jump, sprint, antiKnockback, provoke, toggleInvincibility };
+  // Move vector for strafe/forward axes, relative to a given heading angle.
+  const relMove = (st: number, f: number, ang: number) => {
+    const c = Math.cos(ang), s = Math.sin(ang);
+    return normalize({ x: st * c + f * s, z: -st * s + f * c });
+  };
 
-  // Rotate input by camera yaw so movement is camera-relative
-  const cos = Math.cos(cameraYaw);
-  const sin = Math.sin(cameraYaw);
-  return { move: normalize({ x: x * cos + z * sin, z: -x * sin + z * cos }), jump, sprint, antiKnockback, provoke, toggleInvincibility };
+  let move = { x: 0, z: 0 };
+  let facing: number | undefined;
+  keyboardCameraPan = 0;
+
+  if (controlScheme === "legacy" && !usingStick) {
+    // Legacy = camera-based: W/S + Q/E strafe + A/D all move relative to the camera and combine.
+    const lateral = Math.max(-1, Math.min(1, strafe + pan)); // Q/E strafe and A/D both move sideways
+    if (lateral !== 0 || fb !== 0) {
+      move = relMove(lateral, fb, cameraYaw);
+      const heading = Math.atan2(move.x, move.z);
+      if (pan !== 0 || strafe === 0) {
+        // A/D sidesteps and pure W/S → face the movement direction.
+        facing = heading;
+      } else if (fb === 0) {
+        // Pure Q/E strafe → face camera-forward (sidestep).
+        facing = cameraYaw;
+      } else if (fb > 0) {
+        // W + strafe → forward diagonal = the movement direction.
+        facing = heading;
+      } else {
+        // S + strafe → still a forward diagonal: face opposite the back-diagonal movement.
+        facing = Math.atan2(-move.x, -move.z);
+      }
+    }
+    // Mouse pans the camera in legacy (handled by the renderer).
+  } else if (usingStick) {
+    // Gamepad: camera-relative move, character faces travel; right stick pans the camera.
+    if (strafe !== 0 || fb !== 0) {
+      move = relMove(strafe, fb, cameraYaw);
+      facing = Math.atan2(move.x, move.z);
+    }
+  } else {
+    // Standard = character-based: facing changes ONLY via A/D (turn) or right mouse (face camera).
+    if (!standardFacingSynced) { standardFacing = cameraYaw; standardFacingSynced = true; }
+    if (mouse.right) {
+      standardFacing = cameraYaw;                 // free-look: character faces where the camera points
+    } else if (pan !== 0) {
+      standardFacing = normalizeAngle(standardFacing + pan * STANDARD_TURN_RATE * dt);
+    }
+    facing = standardFacing;
+    // WSQE move relative to the character's own facing (not the camera).
+    const moving = strafe !== 0 || fb !== 0;
+    if (moving) move = relMove(strafe, fb, standardFacing);
+    // Camera trails behind the character while moving/turning, unless the mouse is driving it.
+    if (!mouse.left && !mouse.right && (moving || pan !== 0)) {
+      keyboardCameraPan = shortestAngleDelta(cameraYaw, standardFacing) * Math.min(1, dt * CAMERA_FOLLOW_RATE);
+    }
+  }
+
+  return { move, facing, jump, sprint, antiKnockback, provoke, toggleInvincibility };
 }
