@@ -1,6 +1,5 @@
 import type { ClientMessage, ServerMessage } from "../shared/protocol";
 import type { Boss, Player, World } from "../shared/types";
-import { addClientBreadcrumb, setSentryClientId, setSentrySessionContext } from "./sentry";
 
 type MessageType = ServerMessage["type"];
 type Handler<T extends MessageType> = (message: Extract<ServerMessage, { type: T }>) => void;
@@ -32,11 +31,9 @@ export class NetClient {
     return new Promise((resolve, reject) => {
       const ws = this.attachSocket();
       ws.addEventListener("open", () => {
-        addClientBreadcrumb("net", "WebSocket opened", { url: this.url });
         resolve();
       }, { once: true });
       ws.addEventListener("error", () => {
-        addClientBreadcrumb("net", "WebSocket connection failed", { url: this.url });
         reject(new Error("Failed to connect to server"));
       }, { once: true });
     });
@@ -45,7 +42,6 @@ export class NetClient {
   send(message: ClientMessage): void {
     if (message.type === "join") {
       this.lastJoin = { sessionId: message.sessionId, raidId: message.raidId };
-      setSentrySessionContext({ sessionId: message.sessionId, raidId: message.raidId });
     }
     if (message.type === "claimSlot") this.claimedPlayerId = message.playerId;
     if (message.type === "releaseSlot" && this.claimedPlayerId === message.playerId) this.claimedPlayerId = null;
@@ -55,7 +51,6 @@ export class NetClient {
     if (message.type === "releaseObserver") this.observing = false;
 
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-    addClientBreadcrumb("net", "WebSocket send", { type: message.type });
     this.ws.send(JSON.stringify(message));
   }
 
@@ -103,7 +98,6 @@ export class NetClient {
   }
 
   private onClose(): void {
-    addClientBreadcrumb("net", "WebSocket closed", { hadSession: this.lastJoin !== null });
     this.ws = null;
     this.clientId = null;
     if (this.closing) return;
@@ -113,7 +107,6 @@ export class NetClient {
   private scheduleReconnect(): void {
     if (this.reconnectTimer || this.closing || !this.lastJoin) return;
     const delay = this.reconnectDelay;
-    addClientBreadcrumb("net", "WebSocket reconnect scheduled", { delay });
     this.reconnectDelay = Math.min(this.reconnectDelay * 2, RECONNECT_MAX_MS);
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
@@ -149,8 +142,6 @@ export class NetClient {
 
     if (message.type === "joined") {
       this.clientId = message.clientId;
-      setSentryClientId(message.clientId);
-      addClientBreadcrumb("net", "WebSocket joined", { clientId: message.clientId });
     }
     if (message.type === "lobby") {
       this.claimedPlayerId = message.slots.find(slot => slot.claimedByYou)?.playerId ?? null;

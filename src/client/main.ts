@@ -6,11 +6,9 @@ import { showLanding, showLobby } from "./ui/MainMenu";
 import { initSettingsPanel } from "./ui/SettingsPanel";
 import { createRaidHudSelect } from "./ui/RaidHudSelect";
 import { connect } from "./net";
-import { captureClientException, initClientSentry, setSentrySessionContext } from "./sentry";
 import { SessionIdSchema } from "../shared/protocol";
 import { consoleSink, logger, parseLevel } from "../shared/logger";
 
-initClientSentry();
 logger.configure({
   level: parseLevel(
     new URLSearchParams(location.search).get("log"),
@@ -57,12 +55,6 @@ async function main(): Promise<void> {
   for (;;) {
     homeBtn.style.display = "none";
     const session = await showLobby(net, sessionId);
-    setSentrySessionContext({
-      sessionId,
-      raidId: session.raidId,
-      playerId: session.yourPlayerId,
-      observing: session.yourPlayerId === null,
-    });
 
     renderer = new BabylonRenderer(canvas, nextSettings => {
       Object.assign(settings, nextSettings);
@@ -104,7 +96,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  captureClientException(err, { area: "app.fatal" });
   logger.error("app", "fatal", { err });
   const pre = document.createElement("pre");
   Object.assign(pre.style, { color: "red", padding: "1em" });
