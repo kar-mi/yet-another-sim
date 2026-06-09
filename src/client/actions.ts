@@ -46,8 +46,10 @@ export const KEYBOARD_HOTBAR_ACTIONS = ["sprint", "antiKnockback", "provoke"] as
 export const KEY_BINDING_LABELS: Record<keyof KeyBindings, string> = {
   moveForward: "FORWARD",
   moveBack: "BACK",
-  moveLeft: "LEFT",
-  moveRight: "RIGHT",
+  strafeLeft: "STRAFE LEFT",
+  strafeRight: "STRAFE RIGHT",
+  cameraPanLeft: "CAM LEFT",
+  cameraPanRight: "CAM RIGHT",
   jump: ACTIONS.jump.label,
   sprint: ACTIONS.sprint.label,
   antiKnockback: ACTIONS.antiKnockback.label,

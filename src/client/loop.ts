@@ -1,5 +1,5 @@
 import type { Renderer } from "./render/Renderer";
-import { getIntent, getRightStick } from "./input";
+import { getIntent, getRightStick, getKeyboardCameraPan } from "./input";
 import type { NetClient } from "./net";
 
 export function startNetLoop(renderer: Renderer, net: NetClient): () => void {
@@ -10,7 +10,9 @@ export function startNetLoop(renderer: Renderer, net: NetClient): () => void {
     const elapsed = Math.min((now - lastTime) / 1000, 0.1);
     lastTime = now;
 
-    net.send({ type: "intent", intent: getIntent(renderer.getCameraYaw()) });
+    const intent = getIntent(renderer.getCameraYaw(), elapsed, renderer.getPanButtons());
+    net.send({ type: "intent", intent });
+    renderer.rotateCameraYaw(getKeyboardCameraPan());
 
     const rs = getRightStick();
     renderer.applyControllerPan(rs.x, rs.y, elapsed);

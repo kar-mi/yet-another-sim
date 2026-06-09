@@ -19,7 +19,7 @@
   <div id="settings-panel">
     <div class="settings-tabs">
       <button class="settings-tab active" data-tab="camera">CAMERA</button>
-      <button class="settings-tab" data-tab="controls">CONTROLS</button>
+      <button class="settings-tab" data-tab="keybinds">KEYBINDS</button>
       <button class="settings-tab" data-tab="controller">CONTROLLER</button>
       <button class="settings-tab" data-tab="display">DISPLAY</button>
     </div>
@@ -33,37 +33,20 @@
       </div>
 
       <div class="settings-field">
-        <div class="settings-label">PAN BUTTON</div>
+        <div class="settings-label">CONTROL SCHEME</div>
         <div class="settings-radio-group">
           <label class="settings-radio-option">
-            <input type="radio" name="panBtn" value="left"> LEFT CLICK
+            <input type="radio" name="controlScheme" value="legacy"> LEGACY
           </label>
           <label class="settings-radio-option">
-            <input type="radio" name="panBtn" value="right"> RIGHT CLICK
+            <input type="radio" name="controlScheme" value="standard"> STANDARD
           </label>
         </div>
       </div>
 
-      <div class="settings-group-header">CONTROLLER</div>
-
-      <div class="settings-field">
-        <div class="settings-label">CONTROLLER SENSITIVITY: <span id="ctrl-sens-val" class="settings-value">2.0</span></div>
-        <input id="ctrl-sens-slider" type="range" min="0.5" max="6" step="0.5" value="2">
-      </div>
-
-      <div class="settings-field">
-        <label class="settings-check">
-          <input id="cam-accel-toggle" type="checkbox"> CAMERA ACCELERATION
-        </label>
-      </div>
-
-      <div class="settings-field">
-        <div class="settings-label">ACCELERATION STRENGTH: <span id="cam-accel-strength-val" class="settings-value">1.0</span></div>
-        <input id="cam-accel-strength" type="range" min="0" max="3" step="0.5" value="1">
-      </div>
     </div>
 
-    <div id="tab-controls" style="display:none">
+    <div id="tab-keybinds" style="display:none">
       <div class="keybind-row" data-action="moveForward">
         <span class="keybind-label"></span>
         <button class="keybind-btn" data-action="moveForward">W</button>
@@ -72,13 +55,21 @@
         <span class="keybind-label"></span>
         <button class="keybind-btn" data-action="moveBack">S</button>
       </div>
-      <div class="keybind-row" data-action="moveLeft">
+      <div class="keybind-row" data-action="strafeLeft">
         <span class="keybind-label"></span>
-        <button class="keybind-btn" data-action="moveLeft">A</button>
+        <button class="keybind-btn" data-action="strafeLeft">Q</button>
       </div>
-      <div class="keybind-row" data-action="moveRight">
+      <div class="keybind-row" data-action="strafeRight">
         <span class="keybind-label"></span>
-        <button class="keybind-btn" data-action="moveRight">D</button>
+        <button class="keybind-btn" data-action="strafeRight">E</button>
+      </div>
+      <div class="keybind-row" data-action="cameraPanLeft"> <!-- doubles as turn/move in legacy -->
+        <span class="keybind-label"></span>
+        <button class="keybind-btn" data-action="cameraPanLeft">A</button>
+      </div>
+      <div class="keybind-row" data-action="cameraPanRight"> <!-- doubles as turn/move in legacy -->
+        <span class="keybind-label"></span>
+        <button class="keybind-btn" data-action="cameraPanRight">D</button>
       </div>
       <div class="keybind-row" data-action="jump">
         <span class="keybind-label"></span>
@@ -100,6 +91,26 @@
     </div>
 
     <div id="tab-controller" style="display:none">
+      <div class="settings-group-header">CAMERA</div>
+
+      <div class="settings-field">
+        <div class="settings-label">CONTROLLER SENSITIVITY: <span id="ctrl-sens-val" class="settings-value">2.0</span></div>
+        <input id="ctrl-sens-slider" type="range" min="0.5" max="6" step="0.5" value="2">
+      </div>
+
+      <div class="settings-field">
+        <label class="settings-check">
+          <input id="cam-accel-toggle" type="checkbox"> CAMERA ACCELERATION
+        </label>
+      </div>
+
+      <div class="settings-field">
+        <div class="settings-label">ACCELERATION STRENGTH: <span id="cam-accel-strength-val" class="settings-value">1.0</span></div>
+        <input id="cam-accel-strength" type="range" min="0" max="3" step="0.5" value="1">
+      </div>
+
+      <div class="settings-group-header">DEVICE</div>
+
       <div class="settings-field">
         <div class="settings-label">CONNECTED CONTROLLER</div>
         <div class="controller-info">

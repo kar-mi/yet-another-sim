@@ -1,4 +1,4 @@
-import { listControllers, getControllerInfo, setActiveGamepad, setKeyBindings } from "../input";
+import { listControllers, getControllerInfo, setActiveGamepad, setKeyBindings, setControlScheme } from "../input";
 import { KEY_BINDING_LABELS } from "../actions";
 import { DEFAULT_BINDINGS, keyLabel, saveSettings } from "../settings";
 import type { KeyBindings, Settings } from "../settings";
@@ -23,7 +23,7 @@ export function initSettingsPanel(
   const camAccelToggle = document.getElementById("cam-accel-toggle") as HTMLInputElement;
   const camAccelStrength = document.getElementById("cam-accel-strength") as HTMLInputElement;
   const camAccelStrengthVal = document.getElementById("cam-accel-strength-val")!;
-  const panBtns = document.querySelectorAll<HTMLInputElement>('input[name="panBtn"]');
+  const schemeBtns = document.querySelectorAll<HTMLInputElement>('input[name="controlScheme"]');
   const uiScaleBtns = document.querySelectorAll<HTMLInputElement>('input[name="uiScale"]');
   const settingsPanel = document.getElementById("settings-panel")!;
 
@@ -38,7 +38,7 @@ export function initSettingsPanel(
   camAccelToggle.checked = settings.cameraAccel;
   camAccelStrength.value = String(settings.cameraAccelStrength);
   camAccelStrengthVal.textContent = settings.cameraAccelStrength.toFixed(1);
-  panBtns.forEach(btn => { btn.checked = btn.value === settings.panButton; });
+  schemeBtns.forEach(btn => { btn.checked = btn.value === settings.controlScheme; });
   uiScaleBtns.forEach(btn => { btn.checked = parseFloat(btn.value) === settings.uiScale; });
   applyUiScale(settings.uiScale);
 
@@ -109,11 +109,12 @@ export function initSettingsPanel(
     });
   });
 
-  panBtns.forEach(btn => {
+  schemeBtns.forEach(btn => {
     btn.addEventListener("change", () => {
       if (btn.checked) {
-        settings.panButton = btn.value as "left" | "right";
+        settings.controlScheme = btn.value as "legacy" | "standard";
         saveSettings(settings);
+        setControlScheme(settings.controlScheme);
         getRenderer()?.applySettings(settings);
       }
     });

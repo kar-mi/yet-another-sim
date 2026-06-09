@@ -74,7 +74,10 @@ export function applyPlayerMovement(ctx: TickContext): void {
       }
     } else if (!beingKnocked && intent && length(intent.move) > 0) {
       player.pos = add(player.pos, scale(normalize(intent.move), speed * dt));
-      player.facing = Math.atan2(intent.move.x, intent.move.z);
+      player.facing = intent.facing ?? Math.atan2(intent.move.x, intent.move.z);
+    } else if (!beingKnocked && intent && intent.facing !== undefined) {
+      // Facing-only update (e.g. turning in place while stationary).
+      player.facing = intent.facing;
     }
     if (beingKnocked) {
       player.pos = add(player.pos, scale(player.knockbackVelocity, dt));

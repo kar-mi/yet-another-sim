@@ -7,4 +7,6 @@ export interface Renderer {
   dispose(): void;
   getCameraYaw(): number;
   applyControllerPan(dx: number, dy: number, dt: number): void;
+  rotateCameraYaw(delta: number): void;
+  getPanButtons(): { left: boolean; right: boolean };
 }

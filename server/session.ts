@@ -34,6 +34,7 @@ const idleIntent: Intent = { move: { x: 0, z: 0 } };
 function cloneIntent(intent: Intent): Intent {
   return {
     move: { x: intent.move.x, z: intent.move.z },
+    facing: intent.facing,
     jump: intent.jump,
     sprint: intent.sprint,
     antiKnockback: intent.antiKnockback,
@@ -43,6 +44,7 @@ function cloneIntent(intent: Intent): Intent {
 function mergePendingIntent(previous: Intent | undefined, next: Intent): Intent {
   return {
     move: { x: next.move.x, z: next.move.z },
+    facing: next.facing ?? previous?.facing,
     jump: previous?.jump || next.jump || undefined,
     sprint: previous?.sprint || next.sprint || undefined,
     antiKnockback: previous?.antiKnockback || next.antiKnockback || undefined,
@@ -422,7 +424,9 @@ export class Session {
       if (!ownerId) continue;
       const latestIntent = this.latestIntents.get(playerId) ?? idleIntent;
       humanIntents[playerId] = latestIntent;
-      this.latestIntents.set(playerId, { move: latestIntent.move });
+      // Carry move + facing forward so the player keeps moving/facing between ticks when no
+      // fresh client intent arrived; one-shot actions (jump/sprint/…) are intentionally dropped.
+      this.latestIntents.set(playerId, { move: latestIntent.move, facing: latestIntent.facing });
     }
 
     const tickStart = performance.now();
