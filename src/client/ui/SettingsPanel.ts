@@ -1,7 +1,8 @@
 import { listControllers, getControllerInfo, setActiveGamepad, setKeyBindings, setControlScheme } from "../input";
-import { KEY_BINDING_LABELS } from "../actions";
+import { ACTIONS, CONTROLLER_BUTTON_LABELS, KEY_BINDING_LABELS } from "../actions";
 import { DEFAULT_BINDINGS, keyLabel, saveSettings } from "../settings";
-import type { KeyBindings, Settings } from "../settings";
+import type { ActionId } from "../actions";
+import type { ControllerType, KeyBindings, Settings } from "../settings";
 import type { BabylonRenderer } from "../render/BabylonRenderer";
 import pkg from "../../../package.json";
 
@@ -26,9 +27,14 @@ export function initSettingsPanel(
   const schemeBtns = document.querySelectorAll<HTMLInputElement>('input[name="controlScheme"]');
   const uiScaleBtns = document.querySelectorAll<HTMLInputElement>('input[name="uiScale"]');
   const settingsPanel = document.getElementById("settings-panel")!;
+  let currentControllerType: ControllerType = "unknown";
 
   const applyUiScale = (scale: number) => {
     document.documentElement.style.setProperty("--ui-scale", String(scale));
+  };
+
+  const isActionId = (action: string | undefined): action is ActionId => {
+    return !!action && action in ACTIONS;
   };
 
   sensitivitySlider.value = String(settings.mouseSensitivity);
@@ -51,6 +57,15 @@ export function initSettingsPanel(
     document.querySelectorAll<HTMLButtonElement>(".keybind-btn").forEach(btn => {
       const action = btn.dataset.action as keyof KeyBindings;
       btn.textContent = keyLabel(settings.keyBindings[action]);
+    });
+    const controllerLabels = CONTROLLER_BUTTON_LABELS[currentControllerType];
+    document.querySelectorAll<HTMLElement>(".keybind-controller").forEach(label => {
+      if (label.dataset.controllerLabel) {
+        label.textContent = label.dataset.controllerLabel;
+        return;
+      }
+      const action = label.dataset.action;
+      label.textContent = isActionId(action) ? controllerLabels[ACTIONS[action].controllerSlot] ?? "" : "";
     });
   };
   syncKeybindLabels();
@@ -162,12 +177,15 @@ export function initSettingsPanel(
       controllerBadge.textContent = info.type.toUpperCase();
       controllerBadge.className = `controller-badge controller-badge--${info.type}`;
       controllerName.textContent = info.name;
+      currentControllerType = info.type;
       getRenderer()?.setControllerType(info.type);
     } else {
       controllerBadge.textContent = "NO CONTROLLER";
       controllerBadge.className = "controller-badge controller-badge--none";
       controllerName.textContent = "";
+      currentControllerType = "unknown";
     }
+    syncKeybindLabels();
   }
 
   controllerSelect.addEventListener("change", () => {
