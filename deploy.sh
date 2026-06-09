@@ -11,6 +11,7 @@ git fetch origin "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
 echo "==> Rebuilding and restarting container"
+rm -rf .bundle
 docker compose up -d --build
 
 echo "==> Pruning dangling images"
