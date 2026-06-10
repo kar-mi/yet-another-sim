@@ -71,6 +71,7 @@ export class BabylonRenderer implements Renderer {
   private controllerSensitivity = 2.0;
   private cameraAccel = false;
   private cameraAccelStrength = 1;
+  private renderedPlayerHealthBars = true;
   private camAccelFactor = 1;
   private onPanDown!: (e: PointerEvent) => void;
   private onPanUp!: (e: PointerEvent) => void;
@@ -207,7 +208,7 @@ export class BabylonRenderer implements Renderer {
     if (focus) this.camera.target.set(focus.pos.x, 0, focus.pos.z);
 
     for (const player of world.players) {
-      this.healthBars.set(playerBarId(player.id), player.hp / player.maxHp, player.alive);
+      this.healthBars.set(playerBarId(player.id), player.hp / player.maxHp, player.alive && this.renderedPlayerHealthBars);
     }
     this.healthBars.set(bossBarId(world.boss.id), world.boss.hp / world.boss.maxHp, world.boss.hp > 0);
 
@@ -233,6 +234,7 @@ export class BabylonRenderer implements Renderer {
     this.controllerSensitivity = s.controllerSensitivity;
     this.cameraAccel = s.cameraAccel;
     this.cameraAccelStrength = s.cameraAccelStrength;
+    this.renderedPlayerHealthBars = s.renderedPlayerHealthBars;
     this.camera.angularSensibilityX = sens;
     this.camera.angularSensibilityY = sens;
     // Both mouse buttons drag-rotate the camera; facing rules differ per scheme (handled in input.ts).
