@@ -138,7 +138,7 @@ export function resolveAoe(ctx: TickContext): {
     }
     // Keep briefly after resolve so the renderer can flash the hit; targeted baits linger
     // longer so the circle stays visible where it landed (damage already applied at resolveAt).
-    const keepFor = mechanic.targeting ? TARGETED_LINGER : dt;
+    const keepFor = mechanic.lingerFor ?? (mechanic.targeting ? TARGETED_LINGER : dt);
     if (!mechanic.resolved || mechanic.resolveAt >= time - keepFor) {
       stillActive.push(mechanic);
     }

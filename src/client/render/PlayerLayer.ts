@@ -2,9 +2,11 @@ import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader";
 import "@babylonjs/loaders/glTF";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
+import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import type { Scene } from "@babylonjs/core/scene";
 import { logger } from "../../shared/logger";
 import type { Player } from "../../shared/types";
+import { glyphBillboardMaterial } from "./meshes/billboardMaterials";
 
 const PLAYER_CENTER_Y = 0.4;
 const PLAYER_MODEL_ROOT = "/static/model/";
@@ -13,6 +15,14 @@ const TANK_PLAYER_MODEL_FILE = "TankHermit.glb";
 const HEALER_PLAYER_MODEL_FILE = "HealHermit.glb";
 const DPS_PLAYER_MODEL_FILE = "DPSHermit.glb";
 const PLAYER_MODEL_SCALE = 3;
+const MARKER_Y = 2.6;
+const MARKER_SIZE = 0.65;
+const MARKER_SPACING = 0.7;
+
+type MarkerState = {
+  key: string;
+  meshes: Mesh[];
+};
 
 function modelFileForPlayer(player: Player): string {
   switch (player.role) {
@@ -29,6 +39,7 @@ function modelFileForPlayer(player: Player): string {
 export class PlayerLayer {
   private meshes = new Map<string, Mesh>();
   private modelRoots = new Map<string, AbstractMesh[]>();
+  private markers = new Map<string, MarkerState>();
 
   constructor(private scene: Scene) {}
 
@@ -69,7 +80,7 @@ export class PlayerLayer {
     }
   }
 
-  sync(players: Player[]): void {
+  sync(players: Player[], time: number): void {
     for (const player of players) {
       const mesh = this.meshes.get(player.id);
       if (!mesh) continue;
@@ -81,10 +92,45 @@ export class PlayerLayer {
       if (modelRoots) {
         for (const root of modelRoots) root.setEnabled(player.alive);
       }
+      this.syncMarkers(player, mesh, time);
     }
   }
 
   getMesh(id: string): Mesh | undefined {
     return this.meshes.get(id);
+  }
+
+  private syncMarkers(player: Player, anchor: Mesh, time: number): void {
+    const effects = player.alive
+      ? player.effects.filter(effect => effect.marker && effect.appliedAt + effect.duration > time)
+      : [];
+    const key = effects.map(effect => `${effect.id}:${effect.kind}:${effect.marker}`).join("|");
+    const current = this.markers.get(player.id);
+    if (current?.key === key) return;
+    if (current) {
+      for (const mesh of current.meshes) mesh.dispose(false, true);
+      this.markers.delete(player.id);
+    }
+    if (effects.length === 0) return;
+
+    const meshes: Mesh[] = [];
+    const startX = -((effects.length - 1) * MARKER_SPACING) / 2;
+    effects.forEach((effect, index) => {
+      const marker = effect.marker ?? "";
+      const plane = CreatePlane(`player-marker-${player.id}-${effect.id}`, { size: MARKER_SIZE }, this.scene);
+      plane.parent = anchor;
+      plane.position.set(startX + index * MARKER_SPACING, MARKER_Y, 0);
+      plane.billboardMode = Mesh.BILLBOARDMODE_ALL;
+      plane.isPickable = false;
+      plane.material = glyphBillboardMaterial(
+        this.scene,
+        `player-marker-mat-${player.id}-${effect.id}`,
+        `player-marker-tex-${player.id}-${effect.id}`,
+        marker,
+        effect.kind === "buff" ? "#79d7ff" : "#ff6b6b",
+      );
+      meshes.push(plane);
+    });
+    this.markers.set(player.id, { key, meshes });
   }
 }

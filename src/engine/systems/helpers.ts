@@ -184,6 +184,7 @@ export function applyEffect(player: Player, spec: EffectSpec, time: number, id: 
     behavior: spec.behavior,
     visibility: spec.visibility,
     icon: spec.icon,
+    marker: spec.marker,
     lockedTargetId,
     plantSlot,
   }];

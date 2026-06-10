@@ -79,6 +79,8 @@ export type EffectSpec = {
   visibility?: "visible" | "invisible";
   // Optional HUD icon: a bare filename served from /static/effects/. Falls back to a behavior glyph.
   icon?: string;
+  // Optional short marker rendered above the player while the effect is active.
+  marker?: string;
 };
 
 export type EffectBundle = {
@@ -96,6 +98,8 @@ export type StatusEffect = {
   visibility?: "visible" | "invisible";
   // Optional HUD icon: a bare filename served from /static/effects/. Falls back to a behavior glyph.
   icon?: string;
+  // Optional short marker rendered above the player while the effect is active.
+  marker?: string;
   // Set when a confusion debuff lands: the player it forces this player to walk toward.
   lockedTargetId?: string;
   // Plant slot index from the assigned combo. Used by bot solvers to place each arrow separately.
@@ -177,6 +181,9 @@ export type ActiveMechanic = {
   // The ground telegraph stays hidden until it resolves. "aggro" picks the boss's current
   // threat target (the player holding aggro).
   targeting?: { mode: "closest" | "furthest" | "aggro"; role?: Role; origin: Vec2 };
+  // Optional post-resolve visual linger override. Used by instant resolved visuals that would
+  // otherwise only survive one simulation tick.
+  lingerFor?: number;
 };
 
 export type PendingEvent = {
@@ -233,6 +240,18 @@ export type PendingEffectBurst = {
   showTelegraph: boolean;
 };
 
+export type EffectResolverAction =
+  | { kind: "spread"; radius: number; damage: number; damageType: DamageType }
+  | { kind: "stack"; radius: number; requiredCount: number; damage: number; damageType: DamageType }
+  | { kind: "cone_nearest"; angleDeg: number; length: number; damage: number; damageType: DamageType };
+
+export type EffectResolver = {
+  id: string;
+  name: string;
+  effectName: string;
+  action: EffectResolverAction;
+};
+
 export type PendingHeal = {
   id: string;
   t: number;
@@ -243,9 +262,10 @@ export type TowerVisual = {
   pillar: boolean;
   countCircles: boolean;
   fallingCylinder: boolean;
+  fallingObject?: "cylinder" | "sphere" | "box";
   groundStyle: "standard" | "tank"; // standard: yellow inner/red outer; tank: two red
   cylinderColor?: string; // hex, e.g. "#33ccff"
-  cylinderThickness?: number; // falling cylinder diameter
+  cylinderThickness?: number; // falling object diameter/width
 };
 
 export type PendingTower = {
@@ -262,6 +282,7 @@ export type PendingTower = {
   failureDamageType: DamageType;
   applyEffect?: EffectSpec;
   knockback?: Knockback;
+  resolveEventIds: string[];
   visual: TowerVisual;
 };
 
@@ -279,6 +300,7 @@ export type ActiveTower = {
   failureDamageType: DamageType;
   applyEffect?: EffectSpec;
   knockback?: Knockback;
+  resolveEventIds: string[];
   visual: TowerVisual;
   resolved: boolean;
   soakerCount: number;            // live valid-soaker count, drives count-circle fill
@@ -657,6 +679,7 @@ export type World = {
   forcedMarches: ActiveForcedMarch[];
   pendingForcedMarches: PendingForcedMarch[];
   pendingEffectBursts: PendingEffectBurst[];
+  effectResolvers: Record<string, EffectResolver>;
   pendingHeals: PendingHeal[];
   pendingEffectSelects: PendingEffectSelect[];
   pendingApplyEffects: PendingApplyEffect[];

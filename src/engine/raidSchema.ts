@@ -99,6 +99,7 @@ const ApplyEffectSchema = z.object({
   behavior: EffectBehaviorSchema,
   visibility: z.enum(["visible", "invisible"]).optional(),
   icon: z.string().min(1).optional(),   // HUD icon filename, served from /static/effects/
+  marker: z.string().min(1).max(8).optional(), // short above-head marker shown while active
 });
 
 const ApplyEffectsSchema = z.object({
@@ -207,9 +208,10 @@ const TowerVisualSchema = z.object({
   pillar: z.boolean().optional(),          // static rectangle column in the center
   countCircles: z.boolean().optional(),    // one floor circle per required soaker
   fallingCylinder: z.boolean().optional(), // cylinder descending in time with the cast
+  fallingObject: z.enum(["cylinder", "sphere", "box"]).optional(),
   groundStyle: z.enum(["standard", "tank"]).optional(), // standard: yellow inner/red outer; tank: two red
   cylinderColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), // falling cylinder color
-  cylinderThickness: z.number().positive().optional(), // falling cylinder diameter
+  cylinderThickness: z.number().positive().optional(), // falling object diameter/width
 });
 
 const TowerEventSchema = z.object({
@@ -227,7 +229,39 @@ const TowerEventSchema = z.object({
   failureDamageType: z.enum(["physical", "magical", "true"]),
   applyEffect: ApplyEffectSchema.optional(), // debuff applied to valid soakers on success
   knockback: KnockbackSchema.optional(),     // knockback applied to valid soakers on success
+  resolveEventIds: z.array(EventIdSchema).optional(), // effect_resolver ids invoked for valid inside soakers
   visual: TowerVisualSchema.optional(),
+});
+
+const EffectResolverActionSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("spread"),
+    radius: z.number().positive(),
+    damage: z.number().nonnegative(),
+    damageType: z.enum(["physical", "magical", "true"]),
+  }),
+  z.object({
+    kind: z.literal("stack"),
+    radius: z.number().positive(),
+    requiredCount: z.number().int().positive().default(1),
+    damage: z.number().nonnegative(),
+    damageType: z.enum(["physical", "magical", "true"]),
+  }),
+  z.object({
+    kind: z.literal("cone_nearest"),
+    angleDeg: z.number().positive().max(360),
+    length: z.number().positive(),
+    damage: z.number().nonnegative(),
+    damageType: z.enum(["physical", "magical", "true"]),
+  }),
+]);
+
+const EffectResolverEventSchema = z.object({
+  type: z.literal("effect_resolver"),
+  id: EventIdSchema,
+  name: z.string().min(1),
+  effectName: z.string().min(1),
+  action: EffectResolverActionSchema,
 });
 
 const ChainEventSchema = z.object({
@@ -407,7 +441,7 @@ const HealEventSchema = z.object({
   name: z.string().min(1),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema]);
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
@@ -463,6 +497,26 @@ export const RaidSchema = z.object({
       return;
     }
     eventIds.set(event.id, { type: event.type, index: i });
+  });
+
+  raid.events.forEach((event, i) => {
+    if (event.type !== "tower") return;
+    event.resolveEventIds?.forEach((id, j) => {
+      const target = eventIds.get(id);
+      if (!target) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["events", i, "resolveEventIds", j],
+          message: `tower resolveEventIds references unknown event id "${id}"`,
+        });
+      } else if (target.type !== "effect_resolver") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["events", i, "resolveEventIds", j],
+          message: `tower resolveEventIds "${id}" must reference an effect_resolver event, not ${target.type}`,
+        });
+      }
+    });
   });
 
   const seenMarks = new Set<string>();
