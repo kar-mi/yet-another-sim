@@ -18,8 +18,22 @@ const APEX_DEPTH = 0.9;   // distance from center to the forward (+Z) tip
 const REAR_SETBACK = 0.5; // distance from center back to the rear edge
 const REAR_HALF_WIDTH = 0.7;
 const PLAYER_MODEL_ROOT = "/static/model/";
-const PLAYER_MODEL_FILE = "AmbrHermit.glb";
+const DEFAULT_PLAYER_MODEL_FILE = "DefaultHermit.glb";
+const TANK_PLAYER_MODEL_FILE = "TankHermit.glb";
+const HEALER_PLAYER_MODEL_FILE = "HealHermit.glb";
+const DPS_PLAYER_MODEL_FILE = "DPSHermit.glb";
 const PLAYER_MODEL_SCALE = 3;
+
+function modelFileForPlayer(player: Player): string {
+  switch (player.role) {
+    case "tank":
+      return TANK_PLAYER_MODEL_FILE;
+    case "healer":
+      return HEALER_PLAYER_MODEL_FILE;
+    case "dps":
+      return DPS_PLAYER_MODEL_FILE;
+  }
+}
 
 // A vertically-centered triangular prism with its apex on +Z. Apex vertices are
 // tinted bright (front), rear vertices keep the role color, so the gradient shows facing.
@@ -89,13 +103,13 @@ export class PlayerLayer {
       mesh.position.set(player.pos.x, PLAYER_CENTER_Y + player.y, player.pos.z);
       mesh.rotation.y = player.facing;
       this.meshes.set(player.id, mesh);
-      void this.loadModel(player.id, mesh);
+      void this.loadModel(player.id, mesh, modelFileForPlayer(player));
     }
   }
 
-  private async loadModel(playerId: string, anchor: Mesh): Promise<void> {
+  private async loadModel(playerId: string, anchor: Mesh, modelFile: string): Promise<void> {
     try {
-      const result = await SceneLoader.ImportMeshAsync("", PLAYER_MODEL_ROOT, PLAYER_MODEL_FILE, this.scene);
+      const result = await SceneLoader.ImportMeshAsync("", PLAYER_MODEL_ROOT, modelFile, this.scene);
       if (anchor.isDisposed()) {
         for (const mesh of result.meshes) mesh.dispose();
         for (const group of result.animationGroups) group.dispose();
@@ -114,7 +128,10 @@ export class PlayerLayer {
       this.modelRoots.set(playerId, roots);
       anchor.isVisible = false;
     } catch (err) {
-      logger.warn("render", "failed to load player model", { file: PLAYER_MODEL_FILE, err });
+      logger.warn("render", "failed to load player model", { file: modelFile, err });
+      if (modelFile !== DEFAULT_PLAYER_MODEL_FILE) {
+        await this.loadModel(playerId, anchor, DEFAULT_PLAYER_MODEL_FILE);
+      }
     }
   }
 
