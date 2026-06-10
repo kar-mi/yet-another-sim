@@ -10,12 +10,15 @@ import {
   type PlaybackState,
   type RaidCategory,
   type RaidEntry,
+  type ServerMessage,
 } from "../../shared/protocol";
 import type { World } from "../../shared/types";
 import type { NetClient } from "../net";
 import { createElement } from "./dom";
 
 const LOBBY_SLOT_ORDER = ["mt", "ot", "h1", "h2", "m1", "m2", "r1", "r2"] as const;
+
+type LobbyMessage = Extract<ServerMessage, { type: "lobby" }>;
 
 function normalizeRaidEntry(value: unknown): RaidEntry | null {
   if (!value || typeof value !== "object") return null;
@@ -159,11 +162,7 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<{ wo
       return row;
     };
 
-    const renderObserverSlot = (message: {
-      observerCount: number;
-      maxObservers: number;
-      observingByYou: boolean;
-    }, claimedByMe: boolean): HTMLElement => {
+    const renderObserverSlot = (message: LobbyMessage, claimedByMe: boolean): HTMLElement => {
       const row = createElement("div", "yas-lobby-slot");
       const meta = createElement("div", "yas-lobby-slot-meta");
       meta.append(
@@ -182,16 +181,7 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<{ wo
       return row;
     };
 
-    const renderLobby = (message: {
-      hostClientId: string;
-      slots: LobbySlot[];
-      raidId: string;
-      raidName: string;
-      status: LobbyStatus;
-      observerCount: number;
-      maxObservers: number;
-      observingByYou: boolean;
-    }) => {
+    const renderLobby = (message: LobbyMessage) => {
       lastLobby = message;
       const subtitle = message.status === "lobby"
         ? `${message.raidName.toUpperCase()} — CLAIM PARTY SLOT`
@@ -244,16 +234,7 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<{ wo
       }
     };
 
-    let lastLobby: {
-      hostClientId: string;
-      slots: LobbySlot[];
-      raidId: string;
-      raidName: string;
-      status: LobbyStatus;
-      observerCount: number;
-      maxObservers: number;
-      observingByYou: boolean;
-    } | null = null;
+    let lastLobby: LobbyMessage | null = null;
 
     const disposers = [
       net.on("lobby", renderLobby),

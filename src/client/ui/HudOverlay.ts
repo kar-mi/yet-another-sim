@@ -8,6 +8,7 @@ import {
   CONTROLLER_MODIFIED_SLOTS,
   KEYBOARD_HOTBAR_SLOT_COUNT,
   actionForKeyboardSlot,
+  type ActionId,
   type ControllerSlotMeta,
 } from "../actions";
 import { keyLabel } from "../settings";
@@ -180,6 +181,18 @@ function syncEffectChips(
   }
 }
 
+// One hotbar skill (sprint/anti-kb/provoke), bundling its keyboard + controller slot elements and
+// per-slot cooldown overlays so the sync loop can treat all skills uniformly. Built from ACTIONS
+// metadata in the constructor.
+interface SkillSlotView {
+  action: ActionId;
+  slots: HTMLDivElement[];
+  cdOverlays: { overlay: HTMLDivElement; text: HTMLDivElement }[];
+  prevCooldown: number;
+  tankOnly: boolean;
+  read: (p: Player) => { activeSecs: number; cooldownSecs: number; cooldownMax: number };
+}
+
 export class HudOverlay {
   private root: HTMLDivElement;
   private statusEl: HTMLDivElement;
@@ -188,25 +201,7 @@ export class HudOverlay {
   private hpVal: HTMLSpanElement;
   private mpVal: HTMLSpanElement;
   private invulnBtn: HTMLButtonElement;
-  private sprintSlot: HTMLDivElement;
-  private sprintKeybind: HTMLSpanElement;
-  private sprintCdOverlay: HTMLDivElement;
-  private sprintCdText: HTMLDivElement;
-  private prevSprintCooldown = 0;
-  private antiKbSlot: HTMLDivElement;
-  private antiKbCdOverlay: HTMLDivElement;
-  private antiKbCdText: HTMLDivElement;
-  private prevAntiKbCooldown = 0;
-  private ctrlAntiKbSlot!: HTMLDivElement;
-  private ctrlAntiKbCdOverlay!: HTMLDivElement;
-  private ctrlAntiKbCdText!: HTMLDivElement;
-  private provokeSlot: HTMLDivElement;
-  private provokeCdOverlay: HTMLDivElement;
-  private provokeCdText: HTMLDivElement;
-  private prevProvokeCooldown = 0;
-  private ctrlProvokeSlot!: HTMLDivElement;
-  private ctrlProvokeCdOverlay!: HTMLDivElement;
-  private ctrlProvokeCdText!: HTMLDivElement;
+  private skillSlots: SkillSlotView[] = [];
   private sessionEl: HTMLDivElement;
   private partyEl!: HTMLDivElement;
   private partyRows = new Map<string, PartyRow>();
@@ -223,9 +218,6 @@ export class HudOverlay {
   private debuffTrackerState = createEffectRenderState();
   private kbmHotbar!: HTMLDivElement;
   private controllerHotbar!: HTMLDivElement;
-  private ctrlSprintSlot!: HTMLDivElement;
-  private ctrlSprintCdOverlay!: HTMLDivElement;
-  private ctrlSprintCdText!: HTMLDivElement;
 
   constructor(
     sessionId: string,
@@ -242,16 +234,6 @@ export class HudOverlay {
     this.hpVal = this.root.querySelector<HTMLSpanElement>("[data-hp-val]")!;
     this.mpVal = this.root.querySelector<HTMLSpanElement>("[data-mp-val]")!;
     this.invulnBtn = this.root.querySelector<HTMLButtonElement>(".yas-invuln-btn")!;
-    this.sprintSlot = this.root.querySelector<HTMLDivElement>(`[data-slot='${ACTIONS.sprint.keyboardSlot}']`)!;
-    this.sprintKeybind = this.sprintSlot.querySelector<HTMLSpanElement>(".yas-keybind")!;
-    this.sprintCdOverlay = this.sprintSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
-    this.sprintCdText = this.sprintSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
-    this.antiKbSlot = this.root.querySelector<HTMLDivElement>(`[data-slot='${ACTIONS.antiKnockback.keyboardSlot}']`)!;
-    this.antiKbCdOverlay = this.antiKbSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
-    this.antiKbCdText = this.antiKbSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
-    this.provokeSlot = this.root.querySelector<HTMLDivElement>(`[data-slot='${ACTIONS.provoke.keyboardSlot}']`)!;
-    this.provokeCdOverlay = this.provokeSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
-    this.provokeCdText = this.provokeSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
     this.debuffTrackerEl = this.root.querySelector<HTMLDivElement>(".yas-debuff-tracker")!;
     this.kbmHotbar = this.root.querySelector<HTMLDivElement>(".yas-hotbar")!;
     this.controllerHotbar = this.root.querySelector<HTMLDivElement>(".yas-controller-hotbar")!;
@@ -262,15 +244,29 @@ export class HudOverlay {
       this.debugPositionBtn.remove();
       this.debugPositionBtn = null;
     }
-    this.ctrlSprintSlot = this.controllerHotbar.querySelector<HTMLDivElement>(`[data-ctrl-slot='${ACTIONS.sprint.controllerSlot}']`)!;
-    this.ctrlSprintCdOverlay = this.ctrlSprintSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
-    this.ctrlSprintCdText = this.ctrlSprintSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
-    this.ctrlAntiKbSlot = this.controllerHotbar.querySelector<HTMLDivElement>(`[data-ctrl-slot='${ACTIONS.antiKnockback.controllerSlot}']`)!;
-    this.ctrlAntiKbCdOverlay = this.ctrlAntiKbSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
-    this.ctrlAntiKbCdText = this.ctrlAntiKbSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
-    this.ctrlProvokeSlot = this.controllerHotbar.querySelector<HTMLDivElement>(`[data-ctrl-slot='${ACTIONS.provoke.controllerSlot}']`)!;
-    this.ctrlProvokeCdOverlay = this.ctrlProvokeSlot.querySelector<HTMLDivElement>(".yas-cd-overlay")!;
-    this.ctrlProvokeCdText = this.ctrlProvokeSlot.querySelector<HTMLDivElement>(".yas-cd-text")!;
+    const skillSpecs: { action: ActionId; tankOnly?: boolean; read: SkillSlotView["read"] }[] = [
+      { action: "sprint", read: p => ({ activeSecs: p.sprintActive, cooldownSecs: p.sprintCooldown, cooldownMax: SPRINT_COOLDOWN }) },
+      { action: "antiKnockback", read: p => ({ activeSecs: p.antiKbActive, cooldownSecs: p.antiKbCooldown, cooldownMax: ANTI_KB_COOLDOWN }) },
+      { action: "provoke", tankOnly: true, read: p => ({ activeSecs: 0, cooldownSecs: p.provokeCooldown, cooldownMax: PROVOKE_COOLDOWN }) },
+    ];
+    this.skillSlots = skillSpecs.map(spec => {
+      const meta = ACTIONS[spec.action];
+      const slots = [
+        this.root.querySelector<HTMLDivElement>(`[data-slot='${meta.keyboardSlot}']`)!,
+        this.controllerHotbar.querySelector<HTMLDivElement>(`[data-ctrl-slot='${meta.controllerSlot}']`)!,
+      ];
+      return {
+        action: spec.action,
+        slots,
+        cdOverlays: slots.map(slot => ({
+          overlay: slot.querySelector<HTMLDivElement>(".yas-cd-overlay")!,
+          text: slot.querySelector<HTMLDivElement>(".yas-cd-text")!,
+        })),
+        prevCooldown: 0,
+        tankOnly: spec.tankOnly ?? false,
+        read: spec.read,
+      };
+    });
 
     this.statusEl = document.createElement("div");
     this.statusEl.id = "yas-status";
@@ -437,12 +433,9 @@ export class HudOverlay {
   }
 
   private bindEvents(): void {
-    this.sprintSlot.addEventListener("click", () => triggerAction("sprint"));
-    this.ctrlSprintSlot.addEventListener("click", () => triggerAction("sprint"));
-    this.antiKbSlot.addEventListener("click", () => triggerAction("antiKnockback"));
-    this.ctrlAntiKbSlot.addEventListener("click", () => triggerAction("antiKnockback"));
-    this.provokeSlot.addEventListener("click", () => triggerAction("provoke"));
-    this.ctrlProvokeSlot.addEventListener("click", () => triggerAction("provoke"));
+    for (const view of this.skillSlots) {
+      for (const slot of view.slots) slot.addEventListener("click", () => triggerAction(view.action));
+    }
     this.invulnBtn.addEventListener("click", () => { this.invulnBtn.blur(); toggleInvincibility(); });
 
     this.root.querySelectorAll<HTMLDivElement>(".yas-slot").forEach(slot => {
@@ -533,27 +526,15 @@ export class HudOverlay {
     this.mpFill.style.width = `${mpPct}%`;
     this.mpVal.textContent = `${Math.round(p.mp)} / ${p.maxMp}`;
 
-    this.prevSprintCooldown = this.renderSkillSlots(
-      [this.sprintSlot, this.ctrlSprintSlot],
-      [{ overlay: this.sprintCdOverlay, text: this.sprintCdText }, { overlay: this.ctrlSprintCdOverlay, text: this.ctrlSprintCdText }],
-      p.sprintActive, p.sprintCooldown, SPRINT_COOLDOWN, this.prevSprintCooldown,
-    );
-    this.prevAntiKbCooldown = this.renderSkillSlots(
-      [this.antiKbSlot, this.ctrlAntiKbSlot],
-      [{ overlay: this.antiKbCdOverlay, text: this.antiKbCdText }, { overlay: this.ctrlAntiKbCdOverlay, text: this.ctrlAntiKbCdText }],
-      p.antiKbActive, p.antiKbCooldown, ANTI_KB_COOLDOWN, this.prevAntiKbCooldown,
-    );
-
     // Provoke is tank-only: show its slots only for a tank local player. No active buff (instantaneous).
     const isTank = p.role === "tank";
-    this.provokeSlot.style.display = isTank ? "" : "none";
-    this.ctrlProvokeSlot.style.display = isTank ? "" : "none";
-    if (isTank) {
-      this.prevProvokeCooldown = this.renderSkillSlots(
-        [this.provokeSlot, this.ctrlProvokeSlot],
-        [{ overlay: this.provokeCdOverlay, text: this.provokeCdText }, { overlay: this.ctrlProvokeCdOverlay, text: this.ctrlProvokeCdText }],
-        0, p.provokeCooldown, PROVOKE_COOLDOWN, this.prevProvokeCooldown,
-      );
+    for (const view of this.skillSlots) {
+      if (view.tankOnly) {
+        for (const slot of view.slots) slot.style.display = isTank ? "" : "none";
+        if (!isTank) continue;
+      }
+      const { activeSecs, cooldownSecs, cooldownMax } = view.read(p);
+      view.prevCooldown = this.renderSkillSlots(view.slots, view.cdOverlays, activeSecs, cooldownSecs, cooldownMax, view.prevCooldown);
     }
   }
 
