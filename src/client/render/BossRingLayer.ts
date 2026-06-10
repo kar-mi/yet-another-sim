@@ -1,5 +1,4 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
-import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData";
 import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
@@ -7,6 +6,7 @@ import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Boss } from "../../shared/types";
+import { filteredCirclePaths } from "./meshes/meshPaths";
 
 const RING_Y = 0.03;        // just above the floor, matching other ground meshes
 const INNER_SCALE = 0.8;    // inner ring radius relative to the outer (boss.radius)
@@ -62,24 +62,21 @@ export class BossRingLayer {
 
   // A flat ring outline drawn as tube segments, skipping the cut gaps.
   private buildRing(radius: number, material: StandardMaterial): void {
-    const steps = 128;
-    let run: Vector3[] = [];
-    const flush = () => {
-      if (run.length >= 2) {
-        const tube = CreateTube("boss-ring-seg", { path: run, radius: TUBE_RADIUS, tessellation: 6, cap: 0 }, this.scene);
-        tube.material = material;
-        tube.parent = this.node!;
-        tube.isPickable = false;
-        this.meshes.push(tube);
-      }
-      run = [];
-    };
-    for (let i = 0; i <= steps; i++) {
-      const a = (i / steps) * Math.PI * 2;
-      if (Math.abs(angleDiff(a, 0)) > REAR_OPENING_HALF) { flush(); continue; } // skip the back
-      run.push(new Vector3(Math.sin(a) * radius, 0, Math.cos(a) * radius)); // 0 = +Z (front)
+    for (const path of filteredCirclePaths(
+      0,
+      0,
+      radius,
+      0,
+      128,
+      angle => Math.abs(angleDiff(angle, 0)) <= REAR_OPENING_HALF,
+      "z",
+    )) {
+      const tube = CreateTube("boss-ring-seg", { path, radius: TUBE_RADIUS, tessellation: 6, cap: 0 }, this.scene);
+      tube.material = material;
+      tube.parent = this.node!;
+      tube.isPickable = false;
+      this.meshes.push(tube);
     }
-    flush();
   }
 
   // Facing markers: front triangle pointing outward (+Z), plus small E/W

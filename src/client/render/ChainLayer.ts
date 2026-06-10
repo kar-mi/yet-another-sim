@@ -5,9 +5,9 @@ import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveChain, Player } from "../../shared/types";
+import { glyphBillboardMaterial } from "./meshes/billboardMaterials";
 
 const ICON_Y = 3.2;   // height of the chain icon above a player
 const LINE_Y = 1.0;   // height of the connecting tube
@@ -105,21 +105,8 @@ export class ChainLayer {
 
   private getIconMaterial(): StandardMaterial {
     if (this.iconMaterial) return this.iconMaterial;
-    const tex = new DynamicTexture("chain-icon-tex", { width: 128, height: 128 }, this.scene, false);
-    tex.hasAlpha = true;
-    // null x centers the ⛓ chains glyph horizontally; clear to transparent.
-    tex.drawText("⛓", null, 96, "bold 96px sans-serif", "#ffd24a", "transparent", true, true);
-    const mat = new StandardMaterial("chain-icon-mat", this.scene);
-    mat.diffuseTexture = tex;
-    mat.useAlphaFromDiffuseTexture = true;
-    mat.transparencyMode = StandardMaterial.MATERIAL_ALPHATEST; // discard transparent pixels
-    mat.alphaCutOff = 0.4;
-    mat.emissiveTexture = tex;
-    mat.emissiveColor = new Color3(1, 1, 1);
-    mat.disableLighting = true;
-    mat.backFaceCulling = false;
-    this.iconMaterial = mat;
-    return mat;
+    this.iconMaterial = glyphBillboardMaterial(this.scene, "chain-icon-mat", "chain-icon-tex", "⛓", "#ffd24a");
+    return this.iconMaterial;
   }
 
   dispose(): void {
