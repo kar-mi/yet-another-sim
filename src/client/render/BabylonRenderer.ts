@@ -145,6 +145,7 @@ export class BabylonRenderer implements Renderer {
         this.healthBars.link(playerBarId(player.id), mesh, {
           trackWidthPx: 64,
           offsetYPx: -45,
+          offsetForwardWorld: 0.8,
           color: "#35d05c",
         });
       }

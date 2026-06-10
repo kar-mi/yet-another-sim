@@ -11,6 +11,7 @@ import { clamp01 } from "../../shared/math";
 type HealthBarOptions = {
   trackWidthPx: number;
   offsetYPx: number;
+  offsetForwardWorld?: number;
   color: string;
 };
 
@@ -20,6 +21,7 @@ type HealthBar = {
   texture: AdvancedDynamicTexture;
   fill: Rectangle;
   offsetYWorld: number;
+  offsetForwardWorld: number;
 };
 
 export class HealthBarLayer {
@@ -70,7 +72,14 @@ export class HealthBarLayer {
 
     track.addControl(fill);
     texture.addControl(track);
-    this.bars.set(id, { target: mesh, plane, texture, fill, offsetYWorld: Math.abs(options.offsetYPx) / 100 });
+    this.bars.set(id, {
+      target: mesh,
+      plane,
+      texture,
+      fill,
+      offsetYWorld: Math.abs(options.offsetYPx) / 100,
+      offsetForwardWorld: options.offsetForwardWorld ?? 0,
+    });
   }
 
   set(id: string, pct: number, visible: boolean): void {
@@ -88,7 +97,9 @@ export class HealthBarLayer {
     const bounds = bar.target.getBoundingInfo().boundingBox;
     const min = bounds.minimumWorld;
     const max = bounds.maximumWorld;
-    bar.plane.position.set((min.x + max.x) / 2, max.y + bar.offsetYWorld, (min.z + max.z) / 2);
+    const forwardX = Math.sin(bar.target.rotation.y) * bar.offsetForwardWorld;
+    const forwardZ = Math.cos(bar.target.rotation.y) * bar.offsetForwardWorld;
+    bar.plane.position.set((min.x + max.x) / 2 + forwardX, max.y + bar.offsetYWorld, (min.z + max.z) / 2 + forwardZ);
   }
 
   dispose(): void {
