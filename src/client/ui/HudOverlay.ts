@@ -29,6 +29,7 @@ type PartyRow = {
   hpFill: HTMLDivElement;
   mpFill: HTMLDivElement;
   rowEl: HTMLDivElement;
+  statusDot: HTMLSpanElement;
   effectsEl: HTMLDivElement;
   effectState: EffectRenderState;
   camBtn?: HTMLButtonElement;
@@ -369,9 +370,18 @@ export class HudOverlay {
       });
     }
 
+    const nameRowEl = document.createElement("div");
+    nameRowEl.className = "party-name-row";
+
     const nameEl = document.createElement("span");
     nameEl.className = "party-name";
     nameEl.textContent = player.id.toUpperCase() + (player.id === this.localPlayerId ? " (You)" : "");
+
+    const statusDot = document.createElement("span");
+    statusDot.className = "party-status-dot";
+    statusDot.setAttribute("aria-hidden", "true");
+
+    nameRowEl.append(nameEl, statusDot);
 
     const hpTrack = document.createElement("div");
     hpTrack.className = "party-hp-track";
@@ -391,8 +401,8 @@ export class HudOverlay {
     effectsEl.className = "party-effects";
 
     if (camBtn) rowEl.appendChild(camBtn);
-    rowEl.append(nameEl, hpTrack, mpTrack, effectsEl);
-    return { hpFill, mpFill, rowEl, effectsEl, effectState: createEffectRenderState(), camBtn };
+    rowEl.append(nameRowEl, hpTrack, mpTrack, effectsEl);
+    return { hpFill, mpFill, rowEl, statusDot, effectsEl, effectState: createEffectRenderState(), camBtn };
   }
 
   private ensurePartyRows(players: Player[]): void {
@@ -489,6 +499,9 @@ export class HudOverlay {
       row.hpFill.style.width = `${hpPct}%`;
       row.mpFill.style.width = `${mpPct}%`;
       row.rowEl.classList.toggle("yas-dead", !player.alive);
+      row.statusDot.classList.toggle("is-joined", player.control === "human");
+      row.statusDot.classList.toggle("is-bot", player.control === "bot");
+      row.statusDot.title = player.control === "human" ? "Player joined" : "Bot slot";
       syncEffectChips(row.effectsEl, row.effectState, player, world.time, "party-effect");
     }
 
