@@ -61,6 +61,15 @@ The simulator currently supports the base loop for FFXIV-style raid mechanics:
 - JSON-authored arenas, waymarks, bot movement, and timelines
 - AOE, targeted bait, tether, chain, group stack, tower, knockback, and effect mechanics
 
+## Credits
+
+- `3d-crabz`: https://sovietshnuckums.itch.io/3d-crabz
+- `Necromancer` model: https://skfb.ly/pKOCF by Vindsval, licensed under Creative Commons Attribution 4.0
+
+## AI Usage
+
+This repository may include code, documentation, or asset integration work assisted by AI tools such as Claude and Codex. Changes produced with AI assistance should still be reviewed, tested, and understood before merge.
+
 ## Changelog
 
 Notable release notes are tracked in [CHANGELOG.md](CHANGELOG.md).
