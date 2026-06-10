@@ -1,4 +1,4 @@
-// Phase 3e: apply-effect events. Drop a buff/debuff straight onto players (all / by role / by id /
+// Apply-effect events: Drop a buff/debuff straight onto players (all / by role / by id /
 // by count, optionally a random subset).
 
 import type { TickContext } from "./context";
@@ -32,7 +32,7 @@ export function resolveApplyEffects(ctx: TickContext): PendingApplyEffect[] {
       pool = pool.slice(0, pae.count);
     }
     for (const target of pool) {
-      applyEffect(target, pae.applyEffect, time, `${pae.name}-${target.id}-eff`, players);
+      applyEffect(target, pae.applyEffect, time, `${pae.id}-${target.id}-eff`, players);
       log.push({ t: time, mechanic: pae.name, playerId: target.id, event: "hit" });
     }
   }

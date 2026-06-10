@@ -1,4 +1,4 @@
-// Phase 3: the core AOE pipeline. Promotes plain pending events (boss snapshots facing-anchored
+// AOE pipeline: Promotes plain pending events (boss snapshots facing-anchored
 // shapes), targeted baits, and effect-burst circles into one active list, then resolves every
 // mechanic past its resolveAt with FFXIV snapshot semantics (damage, effects, knockback).
 

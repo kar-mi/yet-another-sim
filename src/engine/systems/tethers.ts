@@ -5,6 +5,8 @@ import type { TickContext } from "./context";
 import type { TetherSource, PendingTether } from "../../shared/types";
 import { selectTargetPlayer, findInterceptor, applyEffect } from "./helpers";
 
+const TETHER_LINGER = 2;
+
 export function resolveTethers(ctx: TickContext): {
   tetherSources: TetherSource[];
   pendingTethers: PendingTether[];
@@ -69,6 +71,6 @@ export function resolveTethers(ctx: TickContext): {
   }
 
   // Cull sources finalized more than 2s ago
-  tetherSources = tetherSources.filter(ts => !ts.finalized || ts.finalizeAt > time - 2);
+  tetherSources = tetherSources.filter(ts => !ts.finalized || ts.finalizeAt > time - TETHER_LINGER);
   return { tetherSources, pendingTethers: remainingPendingTethers };
 }
