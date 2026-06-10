@@ -132,6 +132,26 @@ export type LobbySlot = {
 export type LobbyStatus = "lobby" | "running" | "paused" | "stopped" | "done";
 export type PlaybackState = "playing" | "paused" | "stopped";
 
+// Fields of World that never change after world creation (sim.ts carries them through untouched
+// via `...world`). They are sent once in `started`/`playback` and stripped from per-tick `snapshot`
+// messages, then re-merged client-side (net.ts). Pending/active arrays are NOT static — they mutate
+// as events fire and stay in every snapshot.
+export type StaticWorldKey =
+  | "arena" | "waymarks" | "duration" | "hasMechanics"
+  | "plantPlan" | "plantDebuffOrder" | "botSolvers";
+export type StaticWorld = Pick<World, StaticWorldKey>;
+export type DynamicWorld = Omit<World, StaticWorldKey>;
+
+export function toStaticWorld(world: World): StaticWorld {
+  const { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, botSolvers } = world;
+  return { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, botSolvers };
+}
+
+export function toDynamicWorld(world: World): DynamicWorld {
+  const { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, botSolvers, ...dynamic } = world;
+  return dynamic;
+}
+
 export type ServerMessage =
   | { type: "joined"; clientId: string }
   | {
@@ -148,5 +168,5 @@ export type ServerMessage =
     }
   | { type: "started"; world: World; yourPlayerId: string | null }
   | { type: "playback"; state: PlaybackState; raidId: string; hostClientId: string; world: World }
-  | { type: "snapshot"; world: World }
+  | { type: "snapshot"; world: DynamicWorld }
   | { type: "error"; message: string };

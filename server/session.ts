@@ -4,7 +4,7 @@ import { applyBotPatterns, loadBotPatterns, loadRaid } from "../src/engine/raidL
 import type { RaidDef } from "../src/engine/raidSchema";
 import { tick } from "../src/engine/sim";
 import { createWorld } from "../src/engine/world";
-import { CLOCK_SPOTS, EMPTY_RAID_ID, MAX_OBSERVERS, ROSTER, type ClientMessage, type LobbySlot, type LobbyStatus, type ServerMessage } from "../src/shared/protocol";
+import { CLOCK_SPOTS, EMPTY_RAID_ID, MAX_OBSERVERS, ROSTER, toDynamicWorld, type ClientMessage, type LobbySlot, type LobbyStatus, type ServerMessage } from "../src/shared/protocol";
 import type { Intent, Intents, LogEntry, World } from "../src/shared/types";
 import { logger } from "../src/shared/logger";
 import { metrics } from "./metrics";
@@ -419,12 +419,12 @@ export class Session {
     this.world = tick(this.world, { ...computeBotIntents(this.world, DT), ...humanIntents }, DT);
     metrics.tickDuration.observe((performance.now() - tickStart) / 1000);
     this.forwardSimLog();
-    if (broadcastSnapshot) this.broadcast({ type: "snapshot", world: this.world });
+    if (broadcastSnapshot) this.broadcast({ type: "snapshot", world: toDynamicWorld(this.world) });
 
     if (this.world.status !== "running") {
       this.status = "done";
       this.stopTick();
-      if (!broadcastSnapshot) this.broadcast({ type: "snapshot", world: this.world });
+      if (!broadcastSnapshot) this.broadcast({ type: "snapshot", world: toDynamicWorld(this.world) });
     }
   }
 
@@ -484,7 +484,7 @@ export class Session {
     }
 
     if (steps > 0 && this.status === "running") {
-      this.broadcast({ type: "snapshot", world: this.world });
+      this.broadcast({ type: "snapshot", world: toDynamicWorld(this.world) });
     }
   }
 

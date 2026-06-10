@@ -1,4 +1,4 @@
-import type { ClientMessage, ServerMessage } from "../shared/protocol";
+import { toStaticWorld, type ClientMessage, type ServerMessage, type StaticWorld } from "../shared/protocol";
 import type { Boss, Player, World } from "../shared/types";
 import { shortestAngleDelta } from "../shared/math";
 import { computeWorldRenderKeys, getWorldRenderKeys, setWorldRenderKeys, type WorldRenderKeys } from "./worldRenderKeys";
@@ -27,6 +27,8 @@ export class NetClient {
   private reconnectDelay = RECONNECT_INITIAL_MS;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private worldRenderKeys: WorldRenderKeys | null = null;
+  // Static world fields are sent once (started/playback) and re-merged into each per-tick snapshot.
+  private staticWorld: StaticWorld | null = null;
 
   constructor(private readonly url: string) {}
 
@@ -157,8 +159,11 @@ export class NetClient {
     }
     if (message.type === "started" || message.type === "playback") {
       this.worldRenderKeys = computeWorldRenderKeys(message.world);
+      this.staticWorld = toStaticWorld(message.world);
+      this.pushSnapshot(message.world);
+    } else if (message.type === "snapshot" && this.staticWorld) {
+      this.pushSnapshot({ ...this.staticWorld, ...message.world });
     }
-    if (message.type === "started" || message.type === "snapshot" || message.type === "playback") this.pushSnapshot(message.world);
 
     const handlers = this.handlers.get(message.type as MessageType);
     if (!handlers) return;
