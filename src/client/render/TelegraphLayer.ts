@@ -18,7 +18,7 @@ export class TelegraphLayer {
     const activeIds = new Set(visible.map(m => m.id));
     for (const [id, mesh] of this.meshes) {
       if (!activeIds.has(id)) {
-        mesh.dispose();
+        mesh.dispose(false, true);
         this.meshes.delete(id);
       }
     }

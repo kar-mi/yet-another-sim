@@ -31,7 +31,7 @@ export class StackLayer {
       if (!want.has(id)) { mesh.dispose(); this.icons.delete(id); }
     }
     for (const [id, mesh] of this.circles) {
-      if (!want.has(id)) { mesh.dispose(); this.circles.delete(id); }
+      if (!want.has(id)) { mesh.dispose(false, true); this.circles.delete(id); }
     }
 
     for (const group of groups) {
@@ -89,7 +89,7 @@ export class StackLayer {
 
   dispose(): void {
     for (const mesh of this.icons.values()) mesh.dispose();
-    for (const mesh of this.circles.values()) mesh.dispose();
+    for (const mesh of this.circles.values()) mesh.dispose(false, true);
     this.icons.clear();
     this.circles.clear();
     this.iconMaterial?.dispose();

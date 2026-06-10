@@ -42,7 +42,7 @@ export class ChainLayer {
       if (!wantIcons.has(key)) { mesh.dispose(); this.icons.delete(key); }
     }
     for (const [id, line] of this.lines) {
-      if (!wantLines.has(id)) { line.dispose(); this.lines.delete(id); }
+      if (!wantLines.has(id)) { line.dispose(false, true); this.lines.delete(id); }
     }
 
     for (const chain of chains) {
@@ -70,7 +70,7 @@ export class ChainLayer {
       const b = playerMap.get(chain.b);
       const oldLine = this.lines.get(chain.id);
       if (!a || !b) {
-        if (oldLine) { oldLine.dispose(); this.lines.delete(chain.id); }
+        if (oldLine) { oldLine.dispose(false, true); this.lines.delete(chain.id); }
         continue;
       }
 
@@ -124,7 +124,7 @@ export class ChainLayer {
 
   dispose(): void {
     for (const mesh of this.icons.values()) mesh.dispose();
-    for (const line of this.lines.values()) line.dispose();
+    for (const line of this.lines.values()) line.dispose(false, true);
     this.icons.clear();
     this.lines.clear();
     this.iconMaterial?.dispose();
