@@ -24,7 +24,7 @@ export class ChainLayer {
 
   constructor(private scene: Scene) {}
 
-  sync(chains: ActiveChain[], players: Player[], time: number): void {
+  sync(chains: ActiveChain[], players: Player[]): void {
     const playerMap = new Map(players.map(p => [p.id, p]));
 
     // Icons show only during the cast + connected phase (before break/burst).

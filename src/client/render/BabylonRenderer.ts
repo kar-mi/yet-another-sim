@@ -191,7 +191,7 @@ export class BabylonRenderer implements Renderer {
     this.arenaKey = key;
   }
 
-  sync(world: World, _alpha: number): void {
+  sync(world: World): void {
     const arenaKey = JSON.stringify(world.arena.zones);
     if (arenaKey !== this.arenaKey) this.buildArena(world.arena.zones, arenaKey);
     this.waymarks.sync(world.waymarks);
@@ -215,7 +215,7 @@ export class BabylonRenderer implements Renderer {
     this.telegraphs.sync(world.active, world.time);
     this.tethers.sync(world.tetherSources, world.players, world.time);
     this.lineLinks.sync(world.lineLinks, world.players, world.time);
-    this.chains.sync(world.chains, world.players, world.time);
+    this.chains.sync(world.chains, world.players);
     this.towers.sync(world.towers, world.time);
     this.stacks.sync(world.groupMechanics, world.players, world.time);
     this.inverse.sync(world.inversions, world.boss, world.time);

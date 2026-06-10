@@ -68,7 +68,7 @@ The simulator currently supports the base loop for FFXIV-style raid mechanics:
 
 ## AI Usage
 
-This repository may include code, documentation, or asset integration work assisted by AI tools such as Claude and Codex. Changes produced with AI assistance should still be reviewed, tested, and understood before merge.
+This repository includes code, documentation, or asset integration work assisted by AI tools such as Claude and Codex. Changes produced with AI assistance should still be reviewed, tested, and understood before merge.
 
 ## Changelog
 

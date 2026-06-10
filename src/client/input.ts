@@ -116,7 +116,7 @@ export function triggerAction(actionId: ActionId): void {
   }
 }
 
-export function pressAction(slot: number): void {
+function pressAction(slot: number): void {
   const actionId = actionForControllerSlot(slot);
   if (actionId) triggerAction(actionId);
 }
