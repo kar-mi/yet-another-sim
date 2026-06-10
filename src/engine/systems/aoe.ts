@@ -9,7 +9,7 @@ import type {
 } from "../../shared/types";
 import { pointInShape } from "../shapes";
 import { promotePending, anchorShape } from "../timeline";
-import { TARGETED_LINGER } from "../constants";
+import { AOE_RESOLVE_LINGER, TARGETED_LINGER } from "../constants";
 import {
   selectTargetPlayer, inPositionalArc, applyMechanicDamage, applyEffect,
   effectsForMechanic, balancedEffectOrders, applyKnockback, shapeOrigin, isEffectActiveAt,
@@ -61,6 +61,7 @@ export function resolveAoe(ctx: TickContext): {
         resolved: false,
         showCastBar: pt.showCastBar,
         showTelegraph: pt.showTelegraph,
+        telegraphMode: pt.telegraphMode,
         targeting: { mode: pt.targetMode, role: pt.role, origin: { x: 0, z: 0 } },
       });
     } else {
@@ -88,6 +89,7 @@ export function resolveAoe(ctx: TickContext): {
           resolved: false,
           showCastBar: pb.showCastBar && i === 0, // one cast bar for the whole set
           showTelegraph: pb.showTelegraph,
+          telegraphMode: pb.telegraphMode,
         });
       });
     } else {
@@ -206,7 +208,8 @@ export function resolveAoe(ctx: TickContext): {
     }
     // Keep briefly after resolve so the renderer can flash the hit; targeted baits linger
     // longer so the circle stays visible where it landed (damage already applied at resolveAt).
-    const keepFor = mechanic.lingerFor ?? (mechanic.targeting ? TARGETED_LINGER : dt);
+    const keepFor = mechanic.lingerFor
+      ?? (mechanic.targeting ? TARGETED_LINGER : mechanic.telegraphMode === "resolve" ? AOE_RESOLVE_LINGER : dt);
     if (!mechanic.resolved || mechanic.resolveAt >= time - keepFor) {
       stillActive.push(mechanic);
     }

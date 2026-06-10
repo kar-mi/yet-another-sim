@@ -137,6 +137,7 @@ leaving the area before then.
 | `applyEffect`   | no       | Buff/debuff applied to those hit (see [Effects](#effects)). |
 | `showCastBar`   | no       | `true` shows the on-screen cast bar with name + timer. Defaults to `false`. |
 | `showTelegraph` | no       | `true` (default) draws the ground marker. Set `false` for an **invisible** AOE — cast bar and damage still apply, but no floor circle is drawn. |
+| `telegraphMode` | no       | `"cast"` (default) draws during the cast and flashes at resolve. `"resolve"` hides the cast marker and only shows the 0.6s resolved flash. `showTelegraph: false` still draws nothing. |
 
 ### `aoe` — fixed-shape area
 
@@ -833,6 +834,7 @@ burst is independent of the named effect — it deals its own `damage`, unrelate
 | `knockback` | no | Knockback applied to each hit player (same shape as on `aoe`). |
 | `showCastBar` | no | Show a single cast bar for the set. Default `false`. |
 | `showTelegraph` | no | `true` (default) draws the ground circles. |
+| `telegraphMode` | no | `"cast"` (default) draws during the cast and flashes at resolve. `"resolve"` hides the cast marker and only shows the 0.6s resolved flash. `showTelegraph: false` still draws nothing. |
 
 ```json
 {

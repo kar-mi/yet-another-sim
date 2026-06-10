@@ -112,6 +112,7 @@ const KnockbackSchema = z.object({
   height: z.number().nonnegative().default(0), // 0 = horizontal knockback; >0 = knockup arc
   origin: Vec2Schema.optional(),               // defaults to the AOE shape's center/origin
 });
+const TelegraphModeSchema = z.enum(["cast", "resolve"]);
 
 const AOEEventSchema = z.object({
   type: z.literal("aoe").default("aoe"),
@@ -143,6 +144,7 @@ const AOEEventSchema = z.object({
   }).optional(),
   showCastBar: z.boolean().optional(),
   showTelegraph: z.boolean().optional(),
+  telegraphMode: TelegraphModeSchema.optional(),
 });
 
 const TargetedEventSchema = z.object({
@@ -159,6 +161,7 @@ const TargetedEventSchema = z.object({
   applyEffect: ApplyEffectSchema.optional(),
   showCastBar: z.boolean().optional(),
   showTelegraph: z.boolean().optional(),
+  telegraphMode: TelegraphModeSchema.optional(),
 });
 
 // A baited cast (targeting only — deals no damage itself): at cast START a player is selected
@@ -451,6 +454,7 @@ const EffectBurstEventSchema = z.object({
   knockback: KnockbackSchema.optional(),
   showCastBar: z.boolean().optional(),
   showTelegraph: z.boolean().optional(),
+  telegraphMode: TelegraphModeSchema.optional(),
 });
 
 const HealEventSchema = z.object({

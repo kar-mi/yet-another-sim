@@ -60,6 +60,7 @@ export function promotePending(
         resolved: false,
         showCastBar: event.showCastBar,
         showTelegraph: event.deferred ? false : event.showTelegraph,
+        telegraphMode: event.telegraphMode,
       });
     } else {
       remaining.push(event);

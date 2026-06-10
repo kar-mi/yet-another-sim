@@ -50,6 +50,7 @@ export type BotSolvers = {
 };
 
 export type DamageType = "physical" | "magical" | "true";
+export type TelegraphMode = "cast" | "resolve";
 
 export type EffectBehavior =
   | { kind: "none" }
@@ -186,6 +187,8 @@ export type ActiveMechanic = {
   showCastBar: boolean;
   // When false, the ground telegraph is never drawn; the cast bar and damage still apply.
   showTelegraph: boolean;
+  // "resolve" hides the marker while casting, then uses the normal resolved flash.
+  telegraphMode?: TelegraphMode;
   // When set, the circle's target (and center) is chosen at resolve time, not cast start.
   // The ground telegraph stays hidden until it resolves. "aggro" picks the boss's current
   // threat target (the player holding aggro).
@@ -216,6 +219,7 @@ export type PendingEvent = {
   deferred?: boolean;
   showCastBar: boolean;
   showTelegraph: boolean;
+  telegraphMode: TelegraphMode;
 };
 
 export type PendingTargetedEvent = {
@@ -231,6 +235,7 @@ export type PendingTargetedEvent = {
   applyEffect?: EffectSpec;
   showCastBar: boolean;
   showTelegraph: boolean;
+  telegraphMode: TelegraphMode;
 };
 
 
@@ -263,6 +268,7 @@ export type PendingEffectBurst = {
   knockback?: Knockback;
   showCastBar: boolean;
   showTelegraph: boolean;
+  telegraphMode: TelegraphMode;
 };
 
 export type EffectResolverAction =

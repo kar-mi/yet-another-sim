@@ -220,6 +220,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         applyEffect: e.applyEffect,
         showCastBar: e.showCastBar ?? false,
         showTelegraph: e.showTelegraph ?? true,
+        telegraphMode: e.telegraphMode ?? "cast",
       });
     } else if (e.type === "tower") {
       pendingTowers.push({
@@ -375,6 +376,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         knockback: e.knockback && toKnockback(e.knockback),
         showCastBar: e.showCastBar ?? false,
         showTelegraph: e.showTelegraph ?? true,
+        telegraphMode: e.telegraphMode ?? "cast",
       });
     } else if (e.type === "effect_resolver") {
       effectResolvers[e.id] = {
@@ -433,6 +435,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         deferred: e.deferred,
         showCastBar: e.showCastBar ?? false,
         showTelegraph: e.showTelegraph ?? true,
+        telegraphMode: e.telegraphMode ?? "cast",
       });
     }
   }

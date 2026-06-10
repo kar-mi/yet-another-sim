@@ -1821,7 +1821,7 @@ function storedBaitRaid(directionOffset: number, targetMode: "random" | "closest
         type: "aoe", id: "stored", t: 1, name: "Stored Ending", deferred: true,
         anchor: "boss", directionFrom: "bossFacing", directionOffset,
         telegraph: 1, damage: 50, damageType: "physical" as const,
-        shape: { kind: "cone", angleDeg: 90, length: 30 }, showCastBar: true,
+        shape: { kind: "cone", angleDeg: 90, length: 30 }, telegraphMode: "resolve", showCastBar: true,
       },
       {
         type: "bait", id: "bait", t: 4, name: "All Things Ending", targetMode,
@@ -1846,6 +1846,27 @@ test("a bait turns the boss to face its target and locks facing during the cast"
   const world = runTicks(createWorld(storedBaitRaid(0)), {}, Math.ceil(5 * 60)); // mid bait cast (4..6)
   expect(world.boss.currentTarget).toBe("mt");             // mt still holds aggro (north)
   expect(world.boss.facing).toBeCloseTo(Math.atan2(4, 0)); // but facing is locked toward h1 (east)
+});
+
+test("a resolve-only stored cleave is hidden while armed and flashes at resolve", () => {
+  let world = tick(createWorld(storedBaitRaid(0)), {}, 5); // mid bait cast (4..6)
+  const armed = world.active.find(m => m.id === "stored");
+  expect(armed?.armed).toBe(true);
+  expect(armed?.resolved).toBe(false);
+  expect(armed?.showTelegraph).toBe(true);
+  expect(armed?.telegraphMode).toBe("resolve");
+
+  world = tick(world, {}, 1); // resolveAt=6; active lingers for the resolved flash
+  const flashed = world.active.find(m => m.id === "stored");
+  expect(flashed?.resolved).toBe(true);
+  expect(flashed?.showTelegraph).toBe(true);
+  expect(flashed?.telegraphMode).toBe("resolve");
+
+  world = tick(world, {}, 0.59);
+  expect(world.active.find(m => m.id === "stored")?.resolved).toBe(true);
+
+  world = tick(world, {}, 0.02);
+  expect(world.active.some(m => m.id === "stored")).toBe(false);
 });
 
 test("future stored cleave fires toward the bait (front); rear is spared", () => {
