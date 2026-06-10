@@ -1,9 +1,7 @@
 import { z } from "zod";
 import type { Control, Intent, Role, World } from "./types";
 
-export const MAX_PLAYERS = 8;
 export const MAX_OBSERVERS = 5;
-export const MAX_SESSION_PARTICIPANTS = MAX_PLAYERS + MAX_OBSERVERS;
 
 // Canonical raid roster: fixed ids, roles, and order. Every raid must match this exactly.
 export const ROSTER: readonly { id: string; role: Role }[] = [

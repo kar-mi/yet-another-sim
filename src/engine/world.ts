@@ -171,7 +171,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const pendingEffectBursts: PendingEffectBurst[] = [];
   const pendingHeals: PendingHeal[] = [];
 
-  for (const [index, e] of raid.events.entries()) {
+  for (const e of raid.events) {
     if (e.type === "tether_source") {
       pendingTethers.push({
         id: e.id,

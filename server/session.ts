@@ -31,15 +31,6 @@ type RaidPlayerDef = RaidDef["players"][number];
 
 const idleIntent: Intent = { move: { x: 0, z: 0 } };
 
-function cloneIntent(intent: Intent): Intent {
-  return {
-    move: { x: intent.move.x, z: intent.move.z },
-    facing: intent.facing,
-    jump: intent.jump,
-    sprint: intent.sprint,
-    antiKnockback: intent.antiKnockback,
-  };
-}
 
 function mergePendingIntent(previous: Intent | undefined, next: Intent): Intent {
   return {
