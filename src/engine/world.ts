@@ -409,17 +409,9 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         name: e.name,
         targetMode: e.targetMode,
         role: e.role,
-        angleDeg: e.angleDeg,
-        length: e.length,
         telegraph: e.telegraph,
-        damage: e.damage,
-        damageType: e.damageType,
-        applyEffect: e.applyEffect,
-        applyEffects: e.applyEffects,
-        knockback: e.knockback && toKnockback(e.knockback),
         link: e.link,
         showCastBar: e.showCastBar ?? false,
-        showTelegraph: e.showTelegraph ?? true,
       });
     } else {
       pending.push({

@@ -199,7 +199,7 @@ dodge during the telegraph.
 | `directionFrom`   | no       | `"bossFacing"` sets the shape's `direction` to the boss's facing at cast start (the boss faces its current threat target). |
 | `directionOffset` | no       | Radians to rotate the `bossFacing` direction, clockwise. `0` = front (default), `π` = rear cleave, `-π/2` = the boss's left, `π/4` = front-right. |
 | `lockFacing`      | no       | Freezes the boss's facing for the cast's duration (it stops tracking its target), then resumes — keeping it aligned with its snapshotted cleave. **Defaults to `true`**; set `false` to let the boss keep turning mid-cast. |
-| `deferred`        | no       | **Stored cleave.** When `true`, the cast shows its cast bar but does **not** resolve at its own `t + telegraph`; it goes dormant (no ground telegraph) until a [`bait`](#bait--turn-lock-and-cleave-toward-a-baited-player) with a matching `link` arms it. The geometry is then computed from the boss's **locked facing at that moment** (so `directionOffset: 0`/`π` become front/rear relative to the baited player) and detonates together with the bait. Defaults to `false`. |
+| `deferred`        | no       | **Stored cleave.** When `true`, the cast shows its cast bar but does **not** resolve at its own `t + telegraph`; it goes dormant (no ground telegraph) until a [`bait`](#bait--turn-lock-and-aim-a-stored-cleave) with a matching `link` arms it. The geometry is then computed from the boss's **locked facing at that moment** (so `directionOffset: 0`/`π` become front/rear relative to the baited player) and detonates together with the bait. Defaults to `false`. |
 
 When you use these, the shape's own `origin`/`direction` may be omitted (they default and are
 overridden). Each flag is independent — e.g. `anchor: "boss"` with a static shape `direction` vector
@@ -278,13 +278,13 @@ can reposition during the telegraph. The ground marker stays hidden until it res
 | `radius`     | yes      | Circle radius (> 0). |
 | plus all [common fields](#common-fields-aoe--targeted) except `shape`. | | |
 
-### `bait` — turn, lock, and cleave toward a baited player
+### `bait` — turn, lock, and aim a stored cleave
 
-A boss-front **cone** aimed at a player chosen **at cast start** (unlike `targeted`, which picks
-at resolve). The boss turns to face that player and **locks** its facing for the cast, then the cone
-resolves on them at `t + telegraph`. Pair it with a [`deferred` stored cleave](#boss-anchored-cleaves-anchor--directionfrom)
-via `link` to detonate that cleave at the same instant, aimed from this locked facing — so a stored
-`future` (front) / `past` (rear) becomes "toward" / "away from" the baited player.
+Selects a player **at cast start** (unlike `targeted`, which picks at resolve), turns the boss to
+face them, and **locks** its facing for the cast. The bait deals **no damage itself** — its `link`
+names a [`deferred` stored cleave](#boss-anchored-cleaves-anchor--directionfrom) that is aimed from
+this locked facing and detonates at `t + telegraph`. A stored `future` (front) / `past` (rear) thus
+becomes "toward" / "away from" the baited player.
 
 ```json
 {
@@ -293,24 +293,19 @@ via `link` to detonate that cleave at the same instant, aimed from this locked f
   "t": 10,
   "name": "All Things Ending",
   "targetMode": "random",
-  "angleDeg": 60,
-  "length": 30,
   "telegraph": 4,
-  "damage": 70,
-  "damageType": "magical",
   "link": "future-ending",
   "showCastBar": true
 }
 ```
 
-| Field        | Required | Notes |
-|--------------|----------|-------|
-| `targetMode` | yes      | `"random"` (seeded RNG over living players), `"closest"`, or `"furthest"` (both measured from the boss). |
-| `role`       | no       | If set (`tank`/`healer`/`dps`), only that role is eligible to be baited. |
-| `angleDeg`   | yes      | Full width of the boss-front cone aimed at the baited player. |
-| `length`     | yes      | Cone length (> 0). |
-| `link`       | no       | Id of an earlier `aoe` with `deferred: true` (the stored cleave). When this bait resolves, that cleave detonates in the same tick using the boss's locked facing. |
-| plus all [common fields](#common-fields-aoe--targeted) except `shape`. | | |
+| Field         | Required | Notes |
+|---------------|----------|-------|
+| `targetMode`  | yes      | `"random"` (seeded RNG over living players), `"closest"`, or `"furthest"` (both measured from the boss). |
+| `role`        | no       | If set (`tank`/`healer`/`dps`), only that role is eligible to be baited. |
+| `telegraph`   | yes      | Cast duration; the linked cleave detonates at `t + telegraph`. |
+| `link`        | yes      | Id of an earlier `aoe` with `deferred: true` (the stored cleave) to aim and detonate. |
+| `showCastBar` | no       | Show the boss cast bar for the duration of the bait. |
 
 A full two-cast sequence (stored `Future Ending` cleave → 3s → baited `All Things Ending`) lives in
 `raids/debug/stored-bait-test.json`.

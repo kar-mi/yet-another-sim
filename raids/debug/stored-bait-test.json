@@ -34,11 +34,7 @@
       "t": 10,
       "name": "All Things Ending",
       "targetMode": "random",
-      "angleDeg": 60,
-      "length": 30,
       "telegraph": 4,
-      "damage": 70,
-      "damageType": "magical",
       "link": "future-ending",
       "showCastBar": true
     },
@@ -63,11 +59,7 @@
       "t": 24,
       "name": "All Things Ending",
       "targetMode": "furthest",
-      "angleDeg": 60,
-      "length": 30,
       "telegraph": 4,
-      "damage": 70,
-      "damageType": "magical",
       "link": "past-ending",
       "showCastBar": true
     }

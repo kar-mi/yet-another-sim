@@ -102,45 +102,38 @@ export function resolveAoe(ctx: TickContext): {
   for (const pb of ctx.world.pendingBaits) {
     if (pb.t > time) { remainingPendingBaits.push(pb); continue; }
     const target = selectBaitTarget(players, boss, pb.targetMode, pb.role, randInt);
-    if (!target) continue; // no valid target: fizzle (a linked stored cleave stays dormant)
+    if (!target) continue; // no valid target: fizzle (the linked stored cleave stays dormant)
     boss.facing = Math.atan2(target.pos.x - boss.pos.x, target.pos.z - boss.pos.z);
-    const cone = anchorShape(
-      boss,
-      { kind: "cone", origin: { x: 0, z: 0 }, direction: { x: 0, z: 1 }, angleDeg: pb.angleDeg, length: pb.length },
-      { anchor: "boss", directionFrom: "bossFacing", directionOffset: 0 },
-    );
+    // The bait deals no damage of its own: it is a turn + lock + cast-bar "controller". A zero-radius,
+    // zero-damage mechanic holds the boss facing and drives the cast bar without its own telegraph.
     active.push({
       id: pb.id,
       name: pb.name,
-      shape: cone,
+      shape: { kind: "circle", center: { x: boss.pos.x, z: boss.pos.z }, radius: 0 },
       telegraphStart: pb.t,
       resolveAt: pb.t + pb.telegraph,
-      damage: pb.damage,
-      damageType: pb.damageType,
-      applyEffect: pb.applyEffect,
-      applyEffects: pb.applyEffects,
-      knockback: pb.knockback,
+      damage: 0,
+      damageType: "true",
       lockFacing: true,
       resolved: false,
       showCastBar: pb.showCastBar,
-      showTelegraph: pb.showTelegraph,
+      showTelegraph: false,
     });
     // Arm the linked stored cleave (already dormant in `active` from its own earlier cast): recompute
-    // its geometry from the now-locked facing + its stored directionOffset, and share this resolveAt.
-    if (pb.link !== undefined) {
-      const stored = active.find(m => m.id === pb.link && m.deferred);
-      if (stored) {
-        stored.shape = anchorShape(boss, stored.shape, {
-          anchor: stored.anchor,
-          directionFrom: stored.directionFrom,
-          directionOffset: stored.directionOffset,
-        });
-        stored.telegraphStart = pb.t;
-        stored.resolveAt = pb.t + pb.telegraph;
-        stored.armed = true;
-        stored.showTelegraph = true;
-        stored.showCastBar = false;
-      }
+    // its geometry from the now-locked facing + its stored directionOffset, and share this resolveAt so
+    // the single cleave cone detonates at the bait's cast end.
+    const stored = active.find(m => m.id === pb.link && m.deferred);
+    if (stored) {
+      stored.shape = anchorShape(boss, stored.shape, {
+        anchor: stored.anchor,
+        directionFrom: stored.directionFrom,
+        directionOffset: stored.directionOffset,
+      });
+      stored.telegraphStart = pb.t;
+      stored.resolveAt = pb.t + pb.telegraph;
+      stored.armed = true;
+      stored.showTelegraph = true;
+      stored.showCastBar = false;
     }
   }
 

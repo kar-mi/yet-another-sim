@@ -161,9 +161,9 @@ const TargetedEventSchema = z.object({
   showTelegraph: z.boolean().optional(),
 });
 
-// A baited cast: at cast START a player is selected (random/closest/furthest), the boss turns to
-// face them and locks facing; a boss-front cone resolves on them at cast END. If `link` points at a
-// deferred `aoe` (stored cleave), that cleave detonates in the same tick using the locked facing.
+// A baited cast (targeting only — deals no damage itself): at cast START a player is selected
+// (random/closest/furthest), the boss turns to face them and locks facing for the cast. `link` names
+// a deferred `aoe` (stored cleave); that cleave is aimed from the locked facing and detonates at cast END.
 const BaitEventSchema = z.object({
   type: z.literal("bait"),
   id: EventIdSchema,
@@ -171,19 +171,10 @@ const BaitEventSchema = z.object({
   name: z.string().min(1),
   targetMode: z.enum(["random", "closest", "furthest"]),
   role: RoleSchema.optional(),
-  // Cone aimed at the baited player (boss-front cone, since the boss locks facing toward them).
-  angleDeg: z.number().positive().max(360),
-  length: z.number().positive(),
   telegraph: z.number().positive(),
-  damage: z.number().nonnegative(),
-  damageType: z.enum(["physical", "magical", "true"]),
-  applyEffect: ApplyEffectSchema.optional(),
-  applyEffects: ApplyEffectsSchema.optional(),
-  knockback: KnockbackSchema.optional(),
-  // Id of a deferred `aoe` (stored cleave) to detonate together with this bait.
-  link: z.string().min(1).optional(),
+  // Id of the deferred `aoe` (stored cleave) this bait aims and detonates at cast end.
+  link: z.string().min(1),
   showCastBar: z.boolean().optional(),
-  showTelegraph: z.boolean().optional(),
 });
 
 const TetherSourceEventSchema = z.object({

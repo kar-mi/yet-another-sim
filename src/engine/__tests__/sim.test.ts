@@ -1864,7 +1864,7 @@ test("the linked stored cleave detonates on the same tick the bait resolves", ()
   expect(byId(w, "m2").hp).toBe(100);                                  // nothing resolved yet
   expect(w.active.find(m => m.id === "stored")?.resolved).toBe(false); // armed but not yet detonated
   w = runTicks(w, {}, 6); // step past t=6
-  expect(byId(w, "m2").hp).toBeLessThan(100); // stored cleave + bait both land at the bait's resolve
+  expect(byId(w, "m2").hp).toBeLessThan(100); // the linked stored cleave detonates at the bait's resolve
 });
 
 test("random bait selection is deterministic under the seeded RNG", () => {

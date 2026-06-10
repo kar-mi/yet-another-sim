@@ -234,26 +234,18 @@ export type PendingTargetedEvent = {
 };
 
 
-// A bait selects a player at cast START (random/closest/furthest), turns + locks the boss toward
-// them, and resolves a boss-front cone on them at cast END. `link` (if set) is the id of a deferred
-// stored cleave to detonate in the same tick.
+// A bait selects a player at cast START (random/closest/furthest) and turns + locks the boss toward
+// them for the cast. It deals no damage itself; `link` is the id of a deferred stored cleave that the
+// bait aims (from the locked facing) and detonates at cast END.
 export type PendingBaitEvent = {
   id: string;
   t: number;
   name: string;
   targetMode: "random" | "closest" | "furthest";
   role?: Role;
-  angleDeg: number;
-  length: number;
   telegraph: number;
-  damage: number;
-  damageType: DamageType;
-  applyEffect?: EffectSpec;
-  applyEffects?: EffectBundle;
-  knockback?: Knockback;
-  link?: string;
+  link: string;
   showCastBar: boolean;
-  showTelegraph: boolean;
 };
 
 // An effect-burst spawns an AOE circle on every player carrying a named effect (e.g. a burst
