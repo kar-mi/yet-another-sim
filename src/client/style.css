@@ -248,7 +248,9 @@ body:focus-visible {
   color: rgba(212, 168, 67, 0.9);
 }
 
-#sensitivity-slider {
+#sensitivity-slider,
+#ctrl-sens-slider,
+#cam-accel-strength {
   width: 100%;
   accent-color: rgba(212, 168, 67, 0.85);
   cursor: pointer;
