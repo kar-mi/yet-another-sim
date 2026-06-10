@@ -173,6 +173,15 @@ export type ActiveMechanic = {
   positional?: PositionalArc;
   // While unresolved and casting, the boss holds its facing instead of tracking its target.
   lockFacing?: boolean;
+  // Stored-cleave (deferred) support: a `deferred` mechanic shows its own cast bar, then sits dormant
+  // (no telegraph, unresolved) until a linked `bait` arms it. `armed` flips it back to a normal
+  // resolving cone/rect; the anchor fields let its geometry be recomputed from the boss's locked
+  // facing at arm time (see promotePending + resolveAoe).
+  deferred?: boolean;
+  armed?: boolean;
+  anchor?: "boss";
+  directionFrom?: "bossFacing";
+  directionOffset?: number;
   resolved: boolean;
   showCastBar: boolean;
   // When false, the ground telegraph is never drawn; the cast bar and damage still apply.
@@ -203,6 +212,8 @@ export type PendingEvent = {
   directionFrom?: "bossFacing";
   directionOffset?: number;
   lockFacing?: boolean;
+  // When true, this cleave is stored: it does not resolve at its own cast end; a linked bait arms it.
+  deferred?: boolean;
   showCastBar: boolean;
   showTelegraph: boolean;
 };
@@ -222,6 +233,28 @@ export type PendingTargetedEvent = {
   showTelegraph: boolean;
 };
 
+
+// A bait selects a player at cast START (random/closest/furthest), turns + locks the boss toward
+// them, and resolves a boss-front cone on them at cast END. `link` (if set) is the id of a deferred
+// stored cleave to detonate in the same tick.
+export type PendingBaitEvent = {
+  id: string;
+  t: number;
+  name: string;
+  targetMode: "random" | "closest" | "furthest";
+  role?: Role;
+  angleDeg: number;
+  length: number;
+  telegraph: number;
+  damage: number;
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
+  applyEffects?: EffectBundle;
+  knockback?: Knockback;
+  link?: string;
+  showCastBar: boolean;
+  showTelegraph: boolean;
+};
 
 // An effect-burst spawns an AOE circle on every player carrying a named effect (e.g. a burst
 // around each sleeping player). At cast start it drops one normal AOE per carrier.
@@ -664,6 +697,7 @@ export type World = {
   lineLinks: ActiveLineLink[];
   pendingLineLinks: PendingLineLink[];
   pendingTargeted: PendingTargetedEvent[];
+  pendingBaits: PendingBaitEvent[];
   towers: ActiveTower[];
   pendingTowers: PendingTower[];
   chains: ActiveChain[];

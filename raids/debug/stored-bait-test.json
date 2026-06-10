@@ -1,0 +1,75 @@
+{
+  "name": "Stored Bait",
+  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 25 }] },
+  "duration": 36,
+  "players": [
+    { "id": "mt", "role": "tank", "control": "bot", "spawn": [0, 8] },
+    { "id": "ot", "role": "tank", "control": "bot", "spawn": [0, -8] },
+    { "id": "h1", "role": "healer", "control": "bot", "spawn": [-8, 0] },
+    { "id": "h2", "role": "healer", "control": "bot", "spawn": [8, 0] },
+    { "id": "r1", "role": "dps", "control": "bot", "spawn": [-5.66, 5.66] },
+    { "id": "r2", "role": "dps", "control": "bot", "spawn": [5.66, 5.66] },
+    { "id": "m1", "role": "dps", "control": "human", "spawn": [-5.66, -5.66] },
+    { "id": "m2", "role": "dps", "control": "bot", "spawn": [5.66, -5.66] }
+  ],
+  "events": [
+    {
+      "type": "aoe",
+      "id": "future-ending",
+      "t": 4,
+      "name": "Future Ending",
+      "deferred": true,
+      "anchor": "boss",
+      "directionFrom": "bossFacing",
+      "directionOffset": 0,
+      "telegraph": 3,
+      "damage": 80,
+      "damageType": "magical",
+      "shape": { "kind": "cone", "angleDeg": 90, "length": 30 },
+      "showCastBar": true
+    },
+    {
+      "type": "bait",
+      "id": "all-things-ending-1",
+      "t": 10,
+      "name": "All Things Ending",
+      "targetMode": "random",
+      "angleDeg": 60,
+      "length": 30,
+      "telegraph": 4,
+      "damage": 70,
+      "damageType": "magical",
+      "link": "future-ending",
+      "showCastBar": true
+    },
+    {
+      "type": "aoe",
+      "id": "past-ending",
+      "t": 18,
+      "name": "Past Ending",
+      "deferred": true,
+      "anchor": "boss",
+      "directionFrom": "bossFacing",
+      "directionOffset": 3.141592653589793,
+      "telegraph": 3,
+      "damage": 80,
+      "damageType": "magical",
+      "shape": { "kind": "cone", "angleDeg": 90, "length": 30 },
+      "showCastBar": true
+    },
+    {
+      "type": "bait",
+      "id": "all-things-ending-2",
+      "t": 24,
+      "name": "All Things Ending",
+      "targetMode": "furthest",
+      "angleDeg": 60,
+      "length": 30,
+      "telegraph": 4,
+      "damage": 70,
+      "damageType": "magical",
+      "link": "past-ending",
+      "showCastBar": true
+    }
+  ]
+}

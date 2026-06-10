@@ -116,7 +116,7 @@ Each player entry:
 ## Events (the timeline)
 
 Every event has a `type` that selects its schema. `type` defaults to `"aoe"` if omitted,
-which is why most examples skip it. The types are `aoe`, `targeted`, `tether_source`,
+which is why most examples skip it. The types are `aoe`, `targeted`, `bait`, `tether_source`,
 `chain`, `group`, and `tower`.
 
 All damaging events share the same lifecycle: the cast begins at `t`, and **resolves** at
@@ -199,6 +199,7 @@ dodge during the telegraph.
 | `directionFrom`   | no       | `"bossFacing"` sets the shape's `direction` to the boss's facing at cast start (the boss faces its current threat target). |
 | `directionOffset` | no       | Radians to rotate the `bossFacing` direction, clockwise. `0` = front (default), `π` = rear cleave, `-π/2` = the boss's left, `π/4` = front-right. |
 | `lockFacing`      | no       | Freezes the boss's facing for the cast's duration (it stops tracking its target), then resumes — keeping it aligned with its snapshotted cleave. **Defaults to `true`**; set `false` to let the boss keep turning mid-cast. |
+| `deferred`        | no       | **Stored cleave.** When `true`, the cast shows its cast bar but does **not** resolve at its own `t + telegraph`; it goes dormant (no ground telegraph) until a [`bait`](#bait--turn-lock-and-cleave-toward-a-baited-player) with a matching `link` arms it. The geometry is then computed from the boss's **locked facing at that moment** (so `directionOffset: 0`/`π` become front/rear relative to the baited player) and detonates together with the bait. Defaults to `false`. |
 
 When you use these, the shape's own `origin`/`direction` may be omitted (they default and are
 overridden). Each flag is independent — e.g. `anchor: "boss"` with a static shape `direction` vector
@@ -276,6 +277,43 @@ can reposition during the telegraph. The ground marker stays hidden until it res
 | `role`       | no       | If set (`tank`/`healer`/`dps`), only that role is eligible to be the target. |
 | `radius`     | yes      | Circle radius (> 0). |
 | plus all [common fields](#common-fields-aoe--targeted) except `shape`. | | |
+
+### `bait` — turn, lock, and cleave toward a baited player
+
+A boss-front **cone** aimed at a player chosen **at cast start** (unlike `targeted`, which picks
+at resolve). The boss turns to face that player and **locks** its facing for the cast, then the cone
+resolves on them at `t + telegraph`. Pair it with a [`deferred` stored cleave](#boss-anchored-cleaves-anchor--directionfrom)
+via `link` to detonate that cleave at the same instant, aimed from this locked facing — so a stored
+`future` (front) / `past` (rear) becomes "toward" / "away from" the baited player.
+
+```json
+{
+  "type": "bait",
+  "id": "all-things-ending",
+  "t": 10,
+  "name": "All Things Ending",
+  "targetMode": "random",
+  "angleDeg": 60,
+  "length": 30,
+  "telegraph": 4,
+  "damage": 70,
+  "damageType": "magical",
+  "link": "future-ending",
+  "showCastBar": true
+}
+```
+
+| Field        | Required | Notes |
+|--------------|----------|-------|
+| `targetMode` | yes      | `"random"` (seeded RNG over living players), `"closest"`, or `"furthest"` (both measured from the boss). |
+| `role`       | no       | If set (`tank`/`healer`/`dps`), only that role is eligible to be baited. |
+| `angleDeg`   | yes      | Full width of the boss-front cone aimed at the baited player. |
+| `length`     | yes      | Cone length (> 0). |
+| `link`       | no       | Id of an earlier `aoe` with `deferred: true` (the stored cleave). When this bait resolves, that cleave detonates in the same tick using the boss's locked facing. |
+| plus all [common fields](#common-fields-aoe--targeted) except `shape`. | | |
+
+A full two-cast sequence (stored `Future Ending` cleave → 3s → baited `All Things Ending`) lives in
+`raids/debug/stored-bait-test.json`.
 
 ### `tether_source` — buff/debuff tether
 
@@ -1134,6 +1172,7 @@ descriptive Zod error. The existing files in `raids/` double as references:
 
 - `sample-raid.json` — every shape kind (`circle`, `cone`, `rect`, `donut`).
 - `near-far-bait.json` — `targeted` events with `role` filters and `applyEffect`.
+- `stored-bait-test.json` — `deferred` stored cleaves (`Future`/`Past Ending`) linked to `bait` casts.
 - `debuff-test.json` — `vuln` and `dot` (moving/idle) behaviors.
 - `tether-test.json` — `tether_source` buff and debuff.
 - `line-link-test.json` — `line_link` from a north statue with hidden debuff, effect, and knockback.
