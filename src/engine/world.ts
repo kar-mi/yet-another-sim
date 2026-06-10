@@ -1,4 +1,4 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, Knockback, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingApplyEffect, PendingInverse, PendingSpreadStack, PendingGaze, PendingForcedMarch, PendingEffectBurst, PendingHeal } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, Knockback, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingApplyEffect, PendingInverse, PendingSpreadStack, PendingGaze, PendingForcedMarch, PendingEffectBurst, PendingHeal, EffectResolver } from "../shared/types";
 import { vec2 } from "../shared/math";
 import { makeSeed, nextRandom, randomInt } from "../shared/rng";
 import type { RaidDef } from "./raidSchema";
@@ -173,6 +173,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const pendingGazes: PendingGaze[] = [];
   const pendingForcedMarches: PendingForcedMarch[] = [];
   const pendingEffectBursts: PendingEffectBurst[] = [];
+  const effectResolvers: Record<string, EffectResolver> = {};
   const pendingHeals: PendingHeal[] = [];
 
   for (const e of raid.events) {
@@ -234,10 +235,12 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         failureDamageType: e.failureDamageType,
         applyEffect: e.applyEffect,
         knockback: e.knockback && toKnockback(e.knockback),
+        resolveEventIds: e.resolveEventIds ?? [],
         visual: {
           pillar: e.visual?.pillar ?? false,
           countCircles: e.visual?.countCircles ?? false,
-          fallingCylinder: e.visual?.fallingCylinder ?? false,
+          fallingCylinder: e.visual?.fallingCylinder ?? (e.visual?.fallingObject !== undefined),
+          fallingObject: e.visual?.fallingObject ?? (e.visual?.fallingCylinder ? "cylinder" : undefined),
           groundStyle: e.visual?.groundStyle ?? "standard",
           cylinderColor: e.visual?.cylinderColor,
           cylinderThickness: e.visual?.cylinderThickness,
@@ -372,6 +375,13 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         showCastBar: e.showCastBar ?? false,
         showTelegraph: e.showTelegraph ?? true,
       });
+    } else if (e.type === "effect_resolver") {
+      effectResolvers[e.id] = {
+        id: e.id,
+        name: e.name,
+        effectName: e.effectName,
+        action: e.action,
+      };
     } else if (e.type === "forced_march") {
       pendingForcedMarches.push({
         id: e.id,
@@ -450,6 +460,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     forcedMarches: [],
     pendingForcedMarches,
     pendingEffectBursts,
+    effectResolvers,
     pendingHeals,
     plantPlan,
     plantDebuffOrder,

@@ -654,6 +654,9 @@ resolves. At resolve time (`t + telegraph`) the engine counts the **valid soaker
 - If there are fewer than `requiredCount` valid soakers, the tower **fails** and the whole
   raid takes `failureDamage` (raidwide, applied flat — vulnerabilities do not amplify it).
 - If it succeeds, each valid soaker optionally receives `applyEffect` and/or `knockback`.
+- If `resolveEventIds` is set, each referenced `effect_resolver` triggers for valid soakers
+  inside the tower who carry that resolver's `effectName`; those matching debuffs are then removed.
+  This happens even if the tower has too few valid soakers and fails.
 - If `requiredRoles` is set, only those roles count as valid soakers. A wrong-role player
   standing in the tower is ignored — unless `wrongRoleLethal` is `true`, in which case they
   die. (Think FFXIV "support" towers: `requiredRoles: ["tank", "healer"]`.)
@@ -673,6 +676,7 @@ resolves. At resolve time (`t + telegraph`) the engine counts the **valid soaker
 | `failureDamageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
 | `applyEffect` | no | Debuff/buff applied to valid soakers on success (see [Effects](#effects)). |
 | `knockback` | no | Knockback applied to valid soakers on success (see [Knockback / knockup](#knockback--knockup)). |
+| `resolveEventIds` | no | Array of `effect_resolver` ids to trigger for valid soakers carrying matching debuffs. |
 | `visual` | no | Floor/marker visuals (see below). |
 
 The optional `visual` object controls how the tower is drawn (the flat disk + ring is always
@@ -682,10 +686,11 @@ shown):
 |-------|-------|
 | `pillar` | `true` draws a static column in the center. |
 | `countCircles` | `true` draws one small floor circle per `requiredCount`, filling as players step in. |
-| `fallingCylinder` | `true` draws a long thin cylinder that descends in time with the cast and reaches the floor at resolve. |
+| `fallingCylinder` | Legacy alias for `fallingObject: "cylinder"`. |
+| `fallingObject` | `"cylinder"`, `"sphere"`, or `"box"`; descends in time with the cast and reaches the floor at resolve. |
 | `groundStyle` | `"standard"` (yellow inner line, red outer edge) or `"tank"` (two red lines). Defaults to `"standard"`. |
-| `cylinderColor` | Hex string (e.g. `"#33ccff"`) for the falling cylinder. Defaults to cyan. |
-| `cylinderThickness` | Diameter of the falling cylinder (> 0). Defaults to a value scaled from the tower radius. |
+| `cylinderColor` | Hex string (e.g. `"#33ccff"`) for the falling object. Defaults to cyan. |
+| `cylinderThickness` | Diameter/width of the falling object (> 0). Defaults to a value scaled from the tower radius. |
 
 ```json
 {
@@ -710,7 +715,38 @@ shown):
 }
 ```
 
-See `raids/tower-test.json` for a full example with single, multi-soak, and support towers.
+See `raids/debug/tower-test.json` for a full example with single, multi-soak, and support towers.
+
+### `effect_resolver` — tower-triggered debuff action
+
+An `effect_resolver` is an inert event definition. It does nothing on its own; a tower invokes it
+through `resolveEventIds`. At tower resolve, every valid soaker inside who has an active effect
+named `effectName` triggers the resolver action, then loses the matching effect.
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `type` | yes | `"effect_resolver"`. |
+| `id` | yes | Referenced by a tower's `resolveEventIds`. |
+| `name` | yes | Mechanic name used in damage logs. |
+| `effectName` | yes | Active effect name required on the tower soaker. |
+| `action` | yes | One of the action objects below. |
+
+Actions:
+
+```json
+{ "kind": "spread", "radius": 3, "damage": 40, "damageType": "magical" }
+{ "kind": "stack", "radius": 5, "requiredCount": 2, "damage": 80, "damageType": "magical" }
+{ "kind": "cone_nearest", "angleDeg": 70, "length": 14, "damage": 60, "damageType": "physical" }
+```
+
+- **spread** — each triggered carrier drops a circle at their position; everyone inside each circle
+  takes the full damage.
+- **stack** — each triggered carrier drops a shared circle; if `requiredCount` living players are
+  inside, damage splits evenly, otherwise each soaker takes the full damage.
+- **cone_nearest** — each triggered carrier fires a cone toward the nearest other living player.
+  The carrier is not hit by their own cone.
+
+See `raids/debug/debuff-tower-test.json` for tower-gated spread, stack, and cone examples.
 
 ### `forced_march` — ground arrow that teleports the first entrant
 
@@ -887,6 +923,7 @@ bind them to the boss.
 | `duration` | yes      | Seconds the effect lasts (> 0). |
 | `visibility` | no    | `"visible"` (default) shows in the HUD; `"invisible"` stores the effect without a HUD chip. |
 | `icon`     | no       | HUD icon filename served from `static/effects/` (e.g. `"magic-vuln.png"`). Falls back to a generic glyph chosen from the behavior when omitted. |
+| `marker`   | no       | Short text rendered above the player while the effect is active. Works even when `visibility` is `"invisible"`. |
 | `behavior` | yes      | One of the behaviors below. |
 
 Normal `aoe` events can instead use `applyEffects` to apply multiple effects from one cast:

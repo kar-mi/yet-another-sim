@@ -6,6 +6,7 @@ import { CreateRibbon } from "@babylonjs/core/Meshes/Builders/ribbonBuilder";
 import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
+import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveTower } from "../../../shared/types";
@@ -29,7 +30,7 @@ export type TowerMeshes = {
   all: Mesh[];
   groundMats: StandardMaterial[]; // band + edge rings, recolored together on the flash
   countColor: Color3;
-  cylinder?: { mesh: Mesh; mat: StandardMaterial };
+  fallingObject?: { mesh: Mesh; mat: StandardMaterial; floorY: number };
   countCircles: { mesh: Mesh; mat: StandardMaterial }[];
 };
 
@@ -120,16 +121,29 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
     }
   }
 
-  // Optional falling cylinder (long, thin beam) with its own color; its height tracks the
-  // cast progress (floor = resolve).
-  let cylinder: { mesh: Mesh; mat: StandardMaterial } | undefined;
-  if (tower.visual.fallingCylinder) {
+  // Optional falling object with its own color; its height tracks the cast progress
+  // (floor = resolve). `fallingCylinder` is the legacy alias for `fallingObject: "cylinder"`.
+  let fallingObject: { mesh: Mesh; mat: StandardMaterial; floorY: number } | undefined;
+  const fallingKind = tower.visual.fallingObject ?? (tower.visual.fallingCylinder ? "cylinder" : undefined);
+  if (fallingKind) {
     const cylColor = parseColor(tower.visual.cylinderColor);
-    const mesh = CreateCylinder(`tower-cyl-${tower.id}`, {
-      diameter: tower.visual.cylinderThickness ?? Math.min(1.6, tower.radius * 0.6),
-      height: CYL_HEIGHT,
-      tessellation: 32,
-    }, scene);
+    const size = tower.visual.cylinderThickness ?? Math.min(1.6, tower.radius * 0.6);
+    let mesh: Mesh;
+    let floorY: number;
+    if (fallingKind === "sphere") {
+      mesh = CreateSphere(`tower-sphere-${tower.id}`, { diameter: size, segments: 32 }, scene);
+      floorY = size / 2;
+    } else if (fallingKind === "box") {
+      mesh = CreateBox(`tower-box-${tower.id}`, { width: size, depth: size, height: size }, scene);
+      floorY = size / 2;
+    } else {
+      mesh = CreateCylinder(`tower-cyl-${tower.id}`, {
+        diameter: size,
+        height: CYL_HEIGHT,
+        tessellation: 32,
+      }, scene);
+      floorY = CYL_HEIGHT / 2;
+    }
     mesh.position.set(x, CYL_TOP, z);
     mesh.isPickable = false;
     const mat = new StandardMaterial(`tower-cyl-mat-${tower.id}`, scene);
@@ -138,11 +152,11 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
     mat.specularColor = new Color3(0, 0, 0);
     mat.alpha = 0.4;
     mesh.material = mat;
-    cylinder = { mesh, mat };
+    fallingObject = { mesh, mat, floorY };
     all.push(mesh);
   }
 
-  const handle: TowerMeshes = { all, groundMats, countColor: innerColor, cylinder, countCircles };
+  const handle: TowerMeshes = { all, groundMats, countColor: innerColor, fallingObject, countCircles };
   updateTowerMeshes(handle, tower, tower.telegraphStart);
   return handle;
 }
@@ -151,10 +165,9 @@ export function updateTowerMeshes(handle: TowerMeshes, tower: ActiveTower, time:
   const span = tower.resolveAt - tower.telegraphStart;
   const progress = span > 0 ? clamp01((time - tower.telegraphStart) / span) : 1;
 
-  // Falling cylinder descends so its base meets the floor exactly at resolve.
-  if (handle.cylinder) {
-    const floorY = CYL_HEIGHT / 2;
-    handle.cylinder.mesh.position.y = CYL_TOP + (floorY - CYL_TOP) * progress;
+  // Falling object descends so its base meets the floor exactly at resolve.
+  if (handle.fallingObject) {
+    handle.fallingObject.mesh.position.y = CYL_TOP + (handle.fallingObject.floorY - CYL_TOP) * progress;
   }
 
   // Count circles: brighten the ones that currently have a valid soaker.
@@ -171,9 +184,9 @@ export function updateTowerMeshes(handle: TowerMeshes, tower: ActiveTower, time:
       mat.diffuseColor = c;
       mat.emissiveColor = c.scale(0.6);
     }
-    if (handle.cylinder) {
-      handle.cylinder.mat.diffuseColor = c;
-      handle.cylinder.mat.emissiveColor = c.scale(0.5);
+    if (handle.fallingObject) {
+      handle.fallingObject.mat.diffuseColor = c;
+      handle.fallingObject.mat.emissiveColor = c.scale(0.5);
     }
   }
 }

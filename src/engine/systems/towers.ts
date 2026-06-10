@@ -5,6 +5,7 @@ import type { TickContext } from "./context";
 import type { ActiveTower, PendingTower, AOEShape } from "../../shared/types";
 import { pointInShape } from "../shapes";
 import { applyEffect, applyKnockback } from "./helpers";
+import { triggerEffectResolver } from "./effectResolvers";
 import { cullResolved } from "./util";
 import { TOWER_LINGER } from "../constants";
 
@@ -31,6 +32,7 @@ export function resolveTowers(ctx: TickContext): {
         failureDamageType: pt.failureDamageType,
         applyEffect: pt.applyEffect,
         knockback: pt.knockback,
+        resolveEventIds: pt.resolveEventIds,
         visual: pt.visual,
         resolved: false,
         soakerCount: 0,
@@ -48,6 +50,11 @@ export function resolveTowers(ctx: TickContext): {
       tower.soakerCount = validSoakers.length;
 
       if (tower.resolveAt <= time) {
+        for (const id of tower.resolveEventIds) {
+          const resolver = ctx.world.effectResolvers[id];
+          if (resolver) triggerEffectResolver(ctx, resolver, validSoakers);
+        }
+
         // Wrong-role soakers die when the tower opts into lethal punishment.
         if (tower.requiredRoles && tower.wrongRoleLethal) {
           for (const p of inside) {

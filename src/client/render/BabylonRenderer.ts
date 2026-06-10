@@ -198,7 +198,7 @@ export class BabylonRenderer implements Renderer {
     if (renderKeys.arena !== this.arenaKey) this.buildArena(world.arena.zones, renderKeys.arena);
     this.waymarks.sync(world.waymarks, renderKeys.waymarks);
 
-    this.players.sync(world.players);
+    this.players.sync(world.players, world.time);
     this.boss.sync(world.boss);
     this.bossRing.sync(world.boss);
 

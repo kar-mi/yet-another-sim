@@ -106,7 +106,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
 
   return {
     ...world, time, rngState: ctx.rngState, groupChoices: ctx.groupChoices, players, boss,
-    active, pending, log: ctx.log, status,
+    active: [...active, ...ctx.resolvedAoeVisuals], pending, log: ctx.log, status,
     tetherSources, pendingTethers,
     lineLinks, pendingLineLinks,
     pendingTargeted,
