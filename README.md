@@ -66,6 +66,8 @@ The simulator currently supports the base loop for FFXIV-style raid mechanics:
 - `3d-crabz`: https://sovietshnuckums.itch.io/3d-crabz
 - "Skeith - dotHack//IMOQ Minecraft" (https://skfb.ly/6XxtB) by AzureDoomC is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/). 
 
+Status images from https://v2.xivapi.com/
+
 ## AI Usage
 
 This repository includes code, documentation, or asset integration work assisted by AI tools such as Claude and Codex. Changes produced with AI assistance should still be reviewed, tested, and understood before merge.
