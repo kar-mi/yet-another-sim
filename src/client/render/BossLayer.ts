@@ -1,15 +1,28 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
+import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader";
+import "@babylonjs/loaders/glTF";
+import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
+import { Space } from "@babylonjs/core/Maths/math.axis";
+import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Scene } from "@babylonjs/core/scene";
+import { logger } from "../../shared/logger";
 import type { Boss } from "../../shared/types";
+
+const BOSS_MODEL_ROOT = "/static/model/";
+const BOSS_MODEL_FILE = "necromancer.glb";
+const BOSS_MODEL_SCALE = 2;
+const BOSS_MODEL_RAISE = 0.2;
+const BOSS_MODEL_YAW_OFFSET = Math.PI;
 
 export class BossLayer {
   private mesh?: Mesh;
   private faceMarker?: Mesh;
+  private modelRoots?: AbstractMesh[];
 
   constructor(private scene: Scene) {}
 
@@ -50,6 +63,8 @@ export class BossLayer {
     faceMat.backFaceCulling = false;
     face.material = faceMat;
     this.faceMarker = face;
+
+    void this.loadModel(mesh);
   }
 
   private makeSmileyTexture(name: string): DynamicTexture {
@@ -73,14 +88,46 @@ export class BossLayer {
     return tex;
   }
 
+  private async loadModel(anchor: Mesh): Promise<void> {
+    try {
+      const result = await SceneLoader.ImportMeshAsync("", BOSS_MODEL_ROOT, BOSS_MODEL_FILE, this.scene);
+      if (anchor.isDisposed()) {
+        for (const mesh of result.meshes) mesh.dispose();
+        for (const group of result.animationGroups) group.dispose();
+        return;
+      }
+
+      for (const mesh of result.meshes) mesh.isPickable = false;
+      const roots = result.meshes.filter(mesh => !mesh.parent);
+      for (const root of roots) {
+        root.parent = anchor;
+        root.scaling.scaleInPlace(BOSS_MODEL_SCALE);
+        root.rotate(Vector3.Up(), BOSS_MODEL_YAW_OFFSET, Space.LOCAL);
+      }
+      const bounds = roots.map(root => root.getHierarchyBoundingVectors(true));
+      const minY = bounds.length > 0 ? Math.min(...bounds.map(b => b.min.y)) : 0;
+      for (const root of roots) {
+        root.position.y -= minY - BOSS_MODEL_RAISE;
+      }
+      const idleGroup = result.animationGroups.find(group => group.name.toLowerCase().includes("idle"));
+      (idleGroup ?? result.animationGroups[0])?.start(true);
+
+      this.modelRoots = roots;
+      anchor.isVisible = false;
+      if (this.faceMarker) this.faceMarker.isVisible = false;
+    } catch (err) {
+      logger.warn("render", "failed to load boss model", { file: BOSS_MODEL_FILE, err });
+    }
+  }
+
   sync(boss: Boss): void {
     if (!this.mesh) return;
     this.mesh.position.set(boss.pos.x, this.height / 2, boss.pos.z);
     this.mesh.rotation.y = boss.facing;
-    this.mesh.isVisible = boss.hp > 0;
+    this.mesh.isVisible = boss.hp > 0 && !this.modelRoots;
 
     // TEMP: keep the face square on the front surface, facing outward along boss.facing (0 = +Z).
-    if (this.faceMarker) {
+    if (this.faceMarker && !this.modelRoots) {
       const dist = boss.radius * BossLayer.HORIZONTAL_SCALE;
       this.faceMarker.position.set(
         boss.pos.x + Math.sin(boss.facing) * dist,
@@ -89,6 +136,9 @@ export class BossLayer {
       );
       this.faceMarker.rotation.y = boss.facing;
       this.faceMarker.isVisible = boss.hp > 0;
+    }
+    if (this.modelRoots) {
+      for (const root of this.modelRoots) root.setEnabled(boss.hp > 0);
     }
   }
 

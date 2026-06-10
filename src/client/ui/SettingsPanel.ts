@@ -24,6 +24,7 @@ export function initSettingsPanel(
   const camAccelToggle = document.getElementById("cam-accel-toggle") as HTMLInputElement;
   const camAccelStrength = document.getElementById("cam-accel-strength") as HTMLInputElement;
   const camAccelStrengthVal = document.getElementById("cam-accel-strength-val")!;
+  const renderedPlayerHpToggle = document.getElementById("rendered-player-hp-toggle") as HTMLInputElement;
   const schemeBtns = document.querySelectorAll<HTMLInputElement>('input[name="controlScheme"]');
   const uiScaleBtns = document.querySelectorAll<HTMLInputElement>('input[name="uiScale"]');
   const settingsPanel = document.getElementById("settings-panel")!;
@@ -44,6 +45,7 @@ export function initSettingsPanel(
   camAccelToggle.checked = settings.cameraAccel;
   camAccelStrength.value = String(settings.cameraAccelStrength);
   camAccelStrengthVal.textContent = settings.cameraAccelStrength.toFixed(1);
+  renderedPlayerHpToggle.checked = settings.renderedPlayerHealthBars;
   schemeBtns.forEach(btn => { btn.checked = btn.value === settings.controlScheme; });
   uiScaleBtns.forEach(btn => { btn.checked = parseFloat(btn.value) === settings.uiScale; });
   applyUiScale(settings.uiScale);
@@ -110,6 +112,12 @@ export function initSettingsPanel(
 
   camAccelToggle.addEventListener("change", () => {
     settings.cameraAccel = camAccelToggle.checked;
+    saveSettings(settings);
+    getRenderer()?.applySettings(settings);
+  });
+
+  renderedPlayerHpToggle.addEventListener("change", () => {
+    settings.renderedPlayerHealthBars = renderedPlayerHpToggle.checked;
     saveSettings(settings);
     getRenderer()?.applySettings(settings);
   });

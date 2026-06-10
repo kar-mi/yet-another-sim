@@ -7,6 +7,7 @@
       "dependencies": {
         "@babylonjs/core": "^9.0.0",
         "@babylonjs/gui": "^9.0.0",
+        "@babylonjs/loaders": "^9.0.0",
         "@opentelemetry/api": "^1.9.1",
         "@opentelemetry/exporter-trace-otlp-http": "^0.218.0",
         "@opentelemetry/resources": "^2.7.1",
@@ -22,6 +23,8 @@
     "@babylonjs/core": ["@babylonjs/core@9.9.1", "", {}, "sha512-zJf9YQbd+yQRA0se9NccFR9zVsu+pPRCXDqhnBXG9lg7j3XXUgRgmEFybPgyO8TOcnQ0p5+FAz6IsdS9hA63pw=="],
 
     "@babylonjs/gui": ["@babylonjs/gui@9.9.1", "", { "peerDependencies": { "@babylonjs/core": "^9.0.0" } }, "sha512-t09Qp4BWrwM3vRbNe0liWiuVNgIshT6JCcjjYpvTyRQ8NqQfzvas7BDPhkRRPj9+Vq04hhbBsCw96h6dtNsuhQ=="],
+
+    "@babylonjs/loaders": ["@babylonjs/loaders@9.11.0", "", { "peerDependencies": { "@babylonjs/core": "^9.0.0", "babylonjs-gltf2interface": "^9.0.0" } }, "sha512-l+bVNG3zOG4FhBT0WVlZSb49WVyzoduACMop/RDKQjVsSfUg2lMeKnHlrGccp/bsRxlR1Y/pKD9GQTkXsQ7gmQ=="],
 
     "@opentelemetry/api": ["@opentelemetry/api@1.9.1", "", {}, "sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q=="],
 
@@ -48,6 +51,8 @@
     "@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
 
     "@types/node": ["@types/node@25.9.1", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-xfrlY7UD5rMJk3ZVJP8BNzS28J36YJg+xp+LPXV1TdWxr8uMH5A860QNxYDGQe/ylDSgjxE52Q9VnO7p75tJxg=="],
+
+    "babylonjs-gltf2interface": ["babylonjs-gltf2interface@9.11.0", "", {}, "sha512-IhDr08yK7K2EHvwICX1fMb2dK5K86XSqWsJQxwqMhUOmjA9AtCPWbfXLBYt2f3J6xSBsHHP+2MDnT7oozUeVZQ=="],
 
     "bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 

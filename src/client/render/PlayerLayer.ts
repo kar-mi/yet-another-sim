@@ -1,4 +1,7 @@
 import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
+import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader";
+import "@babylonjs/loaders/glTF";
+import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
@@ -6,6 +9,7 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { RegisterEdgesRenderer } from "@babylonjs/core/Rendering/edgesRenderer";
 RegisterEdgesRenderer();
 import type { Scene } from "@babylonjs/core/scene";
+import { logger } from "../../shared/logger";
 import type { Player } from "../../shared/types";
 
 const PLAYER_HEIGHT = 0.8;
@@ -13,6 +17,23 @@ const PLAYER_CENTER_Y = PLAYER_HEIGHT / 2;
 const APEX_DEPTH = 0.9;   // distance from center to the forward (+Z) tip
 const REAR_SETBACK = 0.5; // distance from center back to the rear edge
 const REAR_HALF_WIDTH = 0.7;
+const PLAYER_MODEL_ROOT = "/static/model/";
+const DEFAULT_PLAYER_MODEL_FILE = "DefaultHermit.glb";
+const TANK_PLAYER_MODEL_FILE = "TankHermit.glb";
+const HEALER_PLAYER_MODEL_FILE = "HealHermit.glb";
+const DPS_PLAYER_MODEL_FILE = "DPSHermit.glb";
+const PLAYER_MODEL_SCALE = 3;
+
+function modelFileForPlayer(player: Player): string {
+  switch (player.role) {
+    case "tank":
+      return TANK_PLAYER_MODEL_FILE;
+    case "healer":
+      return HEALER_PLAYER_MODEL_FILE;
+    case "dps":
+      return DPS_PLAYER_MODEL_FILE;
+  }
+}
 
 // A vertically-centered triangular prism with its apex on +Z. Apex vertices are
 // tinted bright (front), rear vertices keep the role color, so the gradient shows facing.
@@ -72,6 +93,7 @@ function buildPrism(name: string, role: Player["role"], scene: Scene): Mesh {
 
 export class PlayerLayer {
   private meshes = new Map<string, Mesh>();
+  private modelRoots = new Map<string, AbstractMesh[]>();
 
   constructor(private scene: Scene) {}
 
@@ -81,6 +103,35 @@ export class PlayerLayer {
       mesh.position.set(player.pos.x, PLAYER_CENTER_Y + player.y, player.pos.z);
       mesh.rotation.y = player.facing;
       this.meshes.set(player.id, mesh);
+      void this.loadModel(player.id, mesh, modelFileForPlayer(player));
+    }
+  }
+
+  private async loadModel(playerId: string, anchor: Mesh, modelFile: string): Promise<void> {
+    try {
+      const result = await SceneLoader.ImportMeshAsync("", PLAYER_MODEL_ROOT, modelFile, this.scene);
+      if (anchor.isDisposed()) {
+        for (const mesh of result.meshes) mesh.dispose();
+        for (const group of result.animationGroups) group.dispose();
+        return;
+      }
+
+      for (const mesh of result.meshes) mesh.isPickable = false;
+      const roots = result.meshes.filter(mesh => !mesh.parent);
+      for (const root of roots) {
+        root.parent = anchor;
+        root.position.y -= PLAYER_CENTER_Y;
+        root.scaling.scaleInPlace(PLAYER_MODEL_SCALE);
+      }
+      for (const group of result.animationGroups) group.start(true);
+
+      this.modelRoots.set(playerId, roots);
+      anchor.isVisible = false;
+    } catch (err) {
+      logger.warn("render", "failed to load player model", { file: modelFile, err });
+      if (modelFile !== DEFAULT_PLAYER_MODEL_FILE) {
+        await this.loadModel(playerId, anchor, DEFAULT_PLAYER_MODEL_FILE);
+      }
     }
   }
 
@@ -92,7 +143,11 @@ export class PlayerLayer {
       mesh.position.y = PLAYER_CENTER_Y + player.y;
       mesh.position.z = player.pos.z;
       mesh.rotation.y = player.facing;
-      mesh.isVisible = player.alive;
+      const modelRoots = this.modelRoots.get(player.id);
+      mesh.isVisible = player.alive && !modelRoots;
+      if (modelRoots) {
+        for (const root of modelRoots) root.setEnabled(player.alive);
+      }
     }
   }
 

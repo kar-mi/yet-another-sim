@@ -21,6 +21,7 @@ export interface Settings {
   cameraAccel: boolean;
   cameraAccelStrength: number;
   uiScale: number;
+  renderedPlayerHealthBars: boolean;
 }
 
 export const DEFAULT_BINDINGS: KeyBindings = {
@@ -46,6 +47,7 @@ const DEFAULTS: Settings = {
   cameraAccel: false,
   cameraAccelStrength: 1,
   uiScale: 1.125,
+  renderedPlayerHealthBars: true,
 };
 
 const KEY = "yas_settings";
