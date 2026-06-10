@@ -14,6 +14,7 @@
   ],
   "events": [
     {
+      "id": "eruption",
       "t": 5,
       "name": "Eruption",
       "telegraph": 3,
@@ -22,6 +23,7 @@
       "shape": { "kind": "circle", "center": [10, 10], "radius": 8 }
     },
     {
+      "id": "back-cleave",
       "t": 13,
       "name": "Back Cleave",
       "telegraph": 3,
@@ -30,6 +32,7 @@
       "shape": { "kind": "cone", "origin": [0, 0], "direction": [0, -1], "angleDeg": 100, "length": 24 }
     },
     {
+      "id": "laser",
       "t": 21,
       "name": "Laser",
       "telegraph": 4,
@@ -38,6 +41,7 @@
       "shape": { "kind": "rect", "origin": [0, 0], "direction": [0, 1], "width": 6, "length": 40 }
     },
     {
+      "id": "ring-blast",
       "t": 30,
       "name": "Ring Blast",
       "telegraph": 4,
@@ -46,6 +50,7 @@
       "shape": { "kind": "donut", "center": [0, 0], "inner": 5, "outer": 22 }
     },
     {
+      "id": "pillars",
       "t": 40,
       "name": "Pillars",
       "telegraph": 3,

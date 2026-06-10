@@ -15,6 +15,7 @@
   "events": [
     {
       "type": "targeted",
+      "id": "near-bait",
       "t": 4,
       "name": "Near Bait",
       "targetMode": "closest",
@@ -26,6 +27,7 @@
     },
     {
       "type": "targeted",
+      "id": "far-bait",
       "t": 10,
       "name": "Far Bait",
       "targetMode": "furthest",
@@ -37,6 +39,7 @@
     },
     {
       "type": "targeted",
+      "id": "healer-snipe-furthest",
       "t": 16,
       "name": "Healer Snipe (Furthest)",
       "targetMode": "furthest",
@@ -55,6 +58,7 @@
     },
     {
       "type": "targeted",
+      "id": "tank-buster-closest-tank",
       "t": 23,
       "name": "Tank Buster (Closest Tank)",
       "targetMode": "closest",

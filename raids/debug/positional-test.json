@@ -14,6 +14,7 @@
   ],
   "events": [
     {
+      "id": "front-cleave-90",
       "t": 3,
       "name": "Front Cleave (90)",
       "telegraph": 4,
@@ -25,6 +26,7 @@
       "shape": { "kind": "cone", "angleDeg": 90, "length": 25 }
     },
     {
+      "id": "left-half-cleave",
       "t": 12,
       "name": "Left Half Cleave",
       "telegraph": 4,
@@ -37,6 +39,7 @@
       "shape": { "kind": "cone", "angleDeg": 180, "length": 25 }
     },
     {
+      "id": "rear-cleave-90",
       "t": 21,
       "name": "Rear Cleave (90)",
       "telegraph": 4,

@@ -15,6 +15,7 @@
   ],
   "events": [
     {
+      "id": "aoe",
       "t": 1,
       "name": "Aoe",
       "telegraph": 2,
@@ -25,6 +26,7 @@
       "shape": { "kind": "circle", "center": [0, 0], "radius": 38 }
     },
     {
+      "id": "fireball",
       "t": 4,
       "name": "Fireball",
       "telegraph": 3,
@@ -34,6 +36,7 @@
       "shape": { "kind": "circle", "center": [0, 0], "radius": 9 }
     },
     {
+      "id": "cleave",
       "t": 11,
       "name": "Cleave",
       "telegraph": 3,
@@ -43,6 +46,7 @@
       "shape": { "kind": "cone", "origin": [0, 0], "direction": [0, 1], "angleDeg": 90, "length": 22 }
     },
     {
+      "id": "crossfire",
       "t": 18,
       "name": "Crossfire",
       "telegraph": 4,
@@ -52,6 +56,7 @@
       "shape": { "kind": "rect", "origin": [0, 0], "direction": [1, 0], "width": 6, "length": 40 }
     },
     {
+      "id": "shockwave",
       "t": 26,
       "name": "Shockwave",
       "telegraph": 4,

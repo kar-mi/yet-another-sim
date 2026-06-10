@@ -34,6 +34,7 @@
     },
     {
       "type": "group",
+      "id": "stack-2",
       "link": "stack-1",
       "t": 12,
       "name": "Shared Sentence (Repeat)",

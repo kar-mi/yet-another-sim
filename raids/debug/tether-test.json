@@ -17,6 +17,7 @@
   "events": [
     {
       "type": "tether_source",
+      "id": "void-chain",
       "t": 5,
       "name": "Void Chain",
       "pos": [0, -14],
@@ -26,6 +27,7 @@
     },
     {
       "type": "tether_source",
+      "id": "life-bond",
       "t": 25,
       "name": "Life Bond",
       "pos": [10, -10],

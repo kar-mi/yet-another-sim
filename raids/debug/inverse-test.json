@@ -15,6 +15,7 @@
   "events": [
     {
       "type": "aoe",
+      "id": "stillness",
       "t": 0,
       "name": "Stillness",
       "telegraph": 15,
@@ -27,6 +28,7 @@
     },
     {
       "type": "inverse",
+      "id": "honest-cross",
       "t": 3,
       "name": "Honest Cross",
       "telegraph": 4,
@@ -46,6 +48,7 @@
     },
     {
       "type": "inverse",
+      "id": "question-cross",
       "t": 11,
       "name": "Question Cross",
       "telegraph": 4,
@@ -66,6 +69,7 @@
     },
     {
       "type": "inverse",
+      "id": "coin-flip-cross",
       "t": 19,
       "name": "Coin Flip Cross",
       "telegraph": 5,

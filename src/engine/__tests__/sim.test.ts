@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { computeBotIntents } from "../botIntent";
 import { tick, DEATH_FLOOR_Y, INITIAL_TANK_THREAT, PROVOKE_COOLDOWN } from "../sim";
 import { createWorld } from "../world";
-import { applyBotPatterns, loadBotPatterns, loadRaid } from "../raidLoader";
+import { applyBotPatterns, loadBotPatterns, loadRaid as loadRaidRaw } from "../raidLoader";
 import { CLOCK_SPOTS, ROSTER } from "../../shared/protocol";
 import { TANK_HP } from "./constants";
 import type { Intents, Player, StatusEffect, World } from "../../shared/types";
@@ -34,6 +34,21 @@ const baseRaid = {
   players: roster(),
   events: [] as unknown[],
 };
+
+function loadRaid(json: unknown) {
+  if (!json || typeof json !== "object" || !("events" in json) || !Array.isArray(json.events)) {
+    return loadRaidRaw(json);
+  }
+  const raid = json as { events: unknown[] };
+  return loadRaidRaw({
+    ...raid,
+    events: raid.events.map((event, i) => {
+      if (!event || typeof event !== "object" || "id" in event) return event;
+      const typedEvent = event as { type?: string };
+      return { id: `${typedEvent.type ?? "aoe"}-${i}`, ...typedEvent };
+    }),
+  });
+}
 
 function runTicks(world: ReturnType<typeof createWorld>, intents: Intents, count: number) {
   let w = world;
@@ -88,6 +103,22 @@ test("tick is deterministic", () => {
   }
 
   expect(JSON.stringify(w1)).toBe(JSON.stringify(w2));
+});
+
+test("raid events require globally unique authored ids", () => {
+  const event = {
+    type: "aoe",
+    id: "raidwide",
+    t: 0,
+    name: "Hit",
+    telegraph: 0.1,
+    damage: 1,
+    damageType: "magical",
+    shape: { kind: "circle", center: [0, 0], radius: 20 },
+  };
+
+  expect(() => loadRaidRaw({ ...baseRaid, events: [{ ...event, id: undefined }] })).toThrow(/Invalid raid JSON/);
+  expect(() => loadRaidRaw({ ...baseRaid, events: [event, { ...event, t: 1 }] })).toThrow(/duplicate event id/);
 });
 
 test("heal event restores living players to max HP", () => {
@@ -1981,6 +2012,7 @@ test("inverse variantRng rolls both orientations and makes the b shapes lethal w
 // Spread/stack "?" events: a fire mechanic that flips between spread (per-player AOEs) and stack.
 const spreadStackEvent = (over: Record<string, unknown> = {}) => ({
   type: "spread_stack" as const,
+  id: "fire",
   t: 0.1,
   name: "Fire",
   telegraph: 0.1,
@@ -2097,7 +2129,7 @@ test("spread_stack shown:random eventually displays both spread and stack", () =
 });
 
 test("spread_stack solver sends bots to the spot for the actual mode", () => {
-  const botSolvers = { spreadStack: { spread: { mt: [-10, 0] as Vec }, stack: { mt: [10, 0] as Vec } } };
+  const botSolvers = { spreadStack: { fire: { spread: { mt: [-10, 0] as Vec }, stack: { mt: [10, 0] as Vec } } } };
   const mkWorld = (over: Record<string, unknown>) => {
     const raid = loadRaid({
       ...baseRaid,
@@ -2116,9 +2148,11 @@ test("spread_stack solver sends bots to the spot for the actual mode", () => {
 test("spread_stack solver picks spread spots by the active lightning orientation", () => {
   const botSolvers = {
     spreadStack: {
-      spread: { mt: [0, 0] as Vec },
-      stack: { mt: [0, 0] as Vec },
-      spreadLightning: { id: "lightning", shown: { mt: [-10, 0] as Vec }, inverted: { mt: [10, 0] as Vec } },
+      fire: {
+        spread: { mt: [0, 0] as Vec },
+        stack: { mt: [0, 0] as Vec },
+        spreadLightning: { id: "lightning", shown: { mt: [-10, 0] as Vec }, inverted: { mt: [10, 0] as Vec } },
+      },
     },
   };
   const mk = (lightningInverted: boolean) => {
@@ -2145,12 +2179,14 @@ test("spread_stack solver picks spread spots by the active lightning orientation
 test("spread_stack solver picks variant-b spots when the lightning rolls orientation b", () => {
   const botSolvers = {
     spreadStack: {
-      spread: { mt: [0, 0] as Vec },
-      stack: { mt: [0, 0] as Vec },
-      spreadLightning: {
-        id: "lightning",
-        shown: { mt: [-10, 0] as Vec }, inverted: { mt: [10, 0] as Vec },     // variant a (x axis)
-        shownB: { mt: [0, -10] as Vec }, invertedB: { mt: [0, 10] as Vec },    // variant b (z axis)
+      fire: {
+        spread: { mt: [0, 0] as Vec },
+        stack: { mt: [0, 0] as Vec },
+        spreadLightning: {
+          id: "lightning",
+          shown: { mt: [-10, 0] as Vec }, inverted: { mt: [10, 0] as Vec },     // variant a (x axis)
+          shownB: { mt: [0, -10] as Vec }, invertedB: { mt: [0, 10] as Vec },    // variant b (z axis)
+        },
       },
     },
   };
@@ -2193,9 +2229,11 @@ test("spread_stack solver picks variant-b spots when the lightning rolls orienta
 test("spread_stack solver picks stack spots by the active lightning orientation", () => {
   const botSolvers = {
     spreadStack: {
-      spread: { mt: [0, 0] as Vec },
-      stack: { mt: [0, 0] as Vec },
-      stackLightning: { id: "lightning", shown: { mt: [-10, 0] as Vec }, inverted: { mt: [10, 0] as Vec } },
+      fire: {
+        spread: { mt: [0, 0] as Vec },
+        stack: { mt: [0, 0] as Vec },
+        stackLightning: { id: "lightning", shown: { mt: [-10, 0] as Vec }, inverted: { mt: [10, 0] as Vec } },
+      },
     },
   };
   const mk = (lightningInverted: boolean) => {

@@ -128,6 +128,7 @@ leaving the area before then.
 
 | Field           | Required | Notes |
 |-----------------|----------|-------|
+| `id`            | yes      | Stable mechanic id, unique across the raid file. Links and bot solvers use this value. |
 | `t`             | yes      | Cast start time in seconds (≥ 0). |
 | `name`          | yes      | Mechanic name (shown on the cast bar). |
 | `telegraph`     | yes      | Cast duration in seconds (> 0). |
@@ -143,6 +144,7 @@ The classic mechanic: a shape on the ground that hits whoever stands in it at re
 
 ```json
 {
+  "id": "fireball",
   "t": 4,
   "name": "Fireball",
   "telegraph": 3,
@@ -165,6 +167,7 @@ the full distance.
 
 ```json
 {
+  "id": "shockwave",
   "t": 6,
   "name": "Shockwave",
   "telegraph": 3,
@@ -254,6 +257,7 @@ can reposition during the telegraph. The ground marker stays hidden until it res
 ```json
 {
   "type": "targeted",
+  "id": "near-bait",
   "t": 4,
   "name": "Near Bait",
   "targetMode": "closest",
@@ -282,6 +286,7 @@ intercepted). See `raids/tether-test.json`.
 ```json
 {
   "type": "tether_source",
+  "id": "void-chain",
   "t": 5,
   "name": "Void Chain",
   "pos": [0, -14],
@@ -315,6 +320,7 @@ Unlike `tether_source`, these lines do not retarget or get intercepted.
 ```json
 {
   "type": "line_link",
+  "id": "north-statue",
   "t": 5,
   "name": "North Statue",
   "pos": [0, 22],
@@ -336,7 +342,7 @@ Unlike `tether_source`, these lines do not retarget or get intercepted.
 | Field | Required | Notes |
 |-------|----------|-------|
 | `type` | yes | `"line_link"`. |
-| `id` | no | Stable id used by another line link's `link` field. |
+| `id` | yes | Stable mechanic id, unique across the raid file. Used by another line link's `link` field. |
 | `t` | yes | When the link spawns. |
 | `name` | yes | Mechanic name. |
 | `pos` | yes | `[x, z]` source position. For a north statue, place this outside the arena at positive `z`. |
@@ -346,7 +352,7 @@ Unlike `tether_source`, these lines do not retarget or get intercepted.
 | `target.roleGroups` | no | Two role filters to choose between, e.g. `[["dps"], ["tank", "healer"]]`. The chosen group becomes `target.roles`. |
 | `target.count` | no | Number of eligible targets selected. Defaults to `1`, or to `playerIds.length` when `playerIds` is supplied. |
 | `rng` | no | With `target.roleGroups`, pick a seeded random role group. Without `rng`, choose the first group. |
-| `link` | no | With `target.roleGroups`, take the complement of the referenced line link's chosen role group. The source line link must set `id` and appear earlier, or earlier in the file when `t` is the same. |
+| `link` | no | With `target.roleGroups`, take the complement of the referenced line link's chosen role group. The source line link must appear earlier, or earlier in the file when `t` is the same. |
 | `hiddenDebuffName` | yes | Name of the hidden simulation debuff applied while the line is active. It does not show in the HUD. |
 | `applyEffect` | no | Visible buff/debuff applied to the linked player at resolve. |
 | `knockback` | no | Knockback applied to each stored target at resolve; defaults to origin `pos` unless `knockback.origin` is set. |
@@ -367,6 +373,7 @@ burst of `breakDamage` (vulnerabilities apply per the pair's `damageType`). See
 ```json
 {
   "type": "chain",
+  "id": "binding-chains",
   "t": 4,
   "name": "Binding Chains",
   "pairs": [["mt", "h1"], ["ot", "h2"]],
@@ -409,8 +416,8 @@ the marked player. Use it for "stack on a random player" mechanics where the tar
 - `rng: true` picks a random group **each run** (true randomness — not seeded). Without `rng` it
   always picks the first group.
 - `link: "<id>"` makes this event mark a member of the **complementary** group of an earlier
-  `group` event ("repeat with the opposite group"). The linked source must set an explicit `id`,
-  occur at an earlier `t`, and both events must have **exactly two** groups.
+  `group` event ("repeat with the opposite group"). The linked source must occur at an earlier
+  `t`, and both events must have **exactly two** groups.
 
 ```json
 {
@@ -440,7 +447,7 @@ the marked player. Use it for "stack on a random player" mechanics where the tar
 | `damage` | yes | **Total** shared damage (≥ 0), split evenly across the soakers on success. |
 | `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
 | `requiredCount` | no | Soakers needed inside the radius to share the hit; fewer = the stack fails (full damage each). Default `1`. |
-| `id` | no | Event id; required only if another event `link`s to it. |
+| `id` | yes | Stable mechanic id, unique across the raid file. |
 | `rng` | no | Pick a random group instead of the first. Default `false`. |
 | `link` | no | Id of an earlier `group` event whose complementary group to take (both must have 2 groups). |
 | `applyEffect` | no | Debuff/buff applied to each hit soaker (same shape as on `aoe`). |
@@ -549,6 +556,7 @@ orange **"ring with triangles pointing in" marker on top of the marked character
 ```json
 {
   "type": "spread_stack",
+  "id": "fire-1",
   "t": 43,
   "name": "Mystery Magic 3 (Fire)",
   "telegraph": 5,
@@ -566,6 +574,7 @@ orange **"ring with triangles pointing in" marker on top of the marked character
 | Field | Required | Notes |
 |-------|----------|-------|
 | `type` | yes | `"spread_stack"`. |
+| `id` | yes | Stable mechanic id, unique across the raid file. Use this as the key in `solvers.spreadStack`. |
 | `t` | yes | Cast start time (seconds). The flip + marked member are rolled now. |
 | `name` | yes | Mechanic name (used in the log and cast bar). |
 | `telegraph` | yes | Cast duration in seconds (> 0); resolves at `t + telegraph`. |
@@ -775,7 +784,7 @@ burst is independent of the named effect — it deals its own `damage`, unrelate
 Restores every living player to their own maximum HP immediately at `t`. Dead players stay dead.
 
 ```json
-{ "type": "heal", "t": 35, "name": "Raidwide Heal" }
+{ "type": "heal", "id": "raidwide-heal", "t": 35, "name": "Raidwide Heal" }
 ```
 
 ### `effect_select` — random player debuff
@@ -997,10 +1006,10 @@ array of points in plant-slot order, e.g. `[short, long]`.
 The double trouble solver moves bot-controlled players with active `doubleTrouble` debuffs to a
 role-based safe offset (`support` for tanks/healers, `dps` for DPS). Plant arrow solving takes
 priority when both debuffs are active. Set `startAt` to delay the solver until that encounter time.
-The **spread/stack** solver moves bots while a `spread_stack` mechanic is casting: it reads the
-*actual* resolved mode (seeing through the `?`) and sends each bot to its `spread` or `stack` spot
-(`playerId -> [x, z]`). Human slots are not moved. Stack spots are usually one shared point per
-group (everyone in a group converges there, so it works whoever is marked).
+The **spread/stack** solver is keyed by the target `spread_stack` mechanic id. While that mechanic
+is casting, it reads the *actual* resolved mode (seeing through the `?`) and sends each bot to its
+`spread` or `stack` spot (`playerId -> [x, z]`). Human slots are not moved. Stack spots are usually
+one shared point per group (everyone in a group converges there, so it works whoever is marked).
 Optional `spreadLightning` / `stackLightning` override the spread / stack spots per concurrent-`inverse`
 orientation: name the inverse via `id`, then give `shown` positions (used when that inverse is *not*
 inverted) and `inverted` positions (used when it is). This lets bots spread or stack into the safe
@@ -1024,17 +1033,19 @@ for its variant-**b** orientation; they fall back to `shown` / `inverted` when o
       }
     },
     "spreadStack": {
-      "spread": { "mt": [-6, 6], "ot": [6, 6], "h1": [0, -18], "h2": [18, 0] },
-      "stack": { "mt": [6, -6], "ot": [6, -6], "h1": [6, -6], "h2": [6, -6] },
-      "spreadLightning": {
-        "id": "lightning",
-        "shown": { "mt": [-2, -2], "ot": [6, 6], "h1": [0, -18], "h2": [18, 0] },
-        "inverted": { "mt": [-6, 6], "ot": [2, -2], "h1": [0, -18], "h2": [18, 0] }
-      },
-      "stackLightning": {
-        "id": "lightning",
-        "shown": { "mt": [-6, -6], "h1": [-6, -6], "r1": [6, 6], "m2": [6, 6] },
-        "inverted": { "mt": [6, -6], "h1": [6, -6], "r1": [-6, 6], "m2": [-6, 6] }
+      "fire-1": {
+        "spread": { "mt": [-6, 6], "ot": [6, 6], "h1": [0, -18], "h2": [18, 0] },
+        "stack": { "mt": [6, -6], "ot": [6, -6], "h1": [6, -6], "h2": [6, -6] },
+        "spreadLightning": {
+          "id": "lightning-1",
+          "shown": { "mt": [-2, -2], "ot": [6, 6], "h1": [0, -18], "h2": [18, 0] },
+          "inverted": { "mt": [-6, 6], "ot": [2, -2], "h1": [0, -18], "h2": [18, 0] }
+        },
+        "stackLightning": {
+          "id": "lightning-1",
+          "shown": { "mt": [-6, -6], "h1": [-6, -6], "r1": [6, 6], "m2": [6, 6] },
+          "inverted": { "mt": [6, -6], "h1": [6, -6], "r1": [-6, 6], "m2": [-6, 6] }
+        }
       }
     }
   }
@@ -1062,17 +1073,17 @@ A 45-second arena-wide circle, a baited tankbuster, and a donut, on a circular f
   ],
   "events": [
     {
-      "t": 3, "name": "Raidwide", "telegraph": 3, "damage": 30, "damageType": "magical",
+      "id": "raidwide", "t": 3, "name": "Raidwide", "telegraph": 3, "damage": 30, "damageType": "magical",
       "showCastBar": true,
       "shape": { "kind": "circle", "center": [0, 0], "radius": 30 }
     },
     {
-      "type": "targeted", "t": 10, "name": "Tank Buster", "targetMode": "closest",
+      "type": "targeted", "id": "tank-buster", "t": 10, "name": "Tank Buster", "targetMode": "closest",
       "role": "tank", "radius": 4, "telegraph": 3, "damage": 80, "damageType": "physical",
       "showCastBar": true
     },
     {
-      "t": 18, "name": "Shockwave", "telegraph": 4, "damage": 100, "damageType": "magical",
+      "id": "shockwave", "t": 18, "name": "Shockwave", "telegraph": 4, "damage": 100, "damageType": "magical",
       "shape": { "kind": "donut", "center": [0, 0], "inner": 7, "outer": 28 }
     }
   ]
