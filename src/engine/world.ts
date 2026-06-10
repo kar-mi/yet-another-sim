@@ -1,4 +1,4 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingApplyEffect, PendingInverse, PendingSpreadStack, PendingGaze, PendingForcedMarch, PendingEffectBurst, PendingHeal } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, Knockback, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingApplyEffect, PendingInverse, PendingSpreadStack, PendingGaze, PendingForcedMarch, PendingEffectBurst, PendingHeal } from "../shared/types";
 import { vec2 } from "../shared/math";
 import { makeSeed, nextRandom, randomInt } from "../shared/rng";
 import type { RaidDef } from "./raidSchema";
@@ -115,6 +115,10 @@ function toAOEShape(shape: AOEEventDef["shape"]): AOEShape {
   }
 }
 
+function toKnockback(kb: { distance: number; height: number; origin?: [number, number] }): Knockback {
+  return { distance: kb.distance, height: kb.height, origin: kb.origin ? toVec2(kb.origin) : undefined };
+}
+
 export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const arena: Arena = { zones: raid.arena.zones.map(toZoneShape) };
   const waymarks: Waymark[] = raid.waymarks?.map(w => ({ mark: w.mark, pos: toVec2(w.pos) })) ?? [];
@@ -171,7 +175,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const pendingEffectBursts: PendingEffectBurst[] = [];
   const pendingHeals: PendingHeal[] = [];
 
-  for (const [index, e] of raid.events.entries()) {
+  for (const e of raid.events) {
     if (e.type === "tether_source") {
       pendingTethers.push({
         id: e.id,
@@ -197,11 +201,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         target: e.target,
         hiddenDebuffName: e.hiddenDebuffName,
         applyEffect: e.applyEffect,
-        knockback: e.knockback && {
-          distance: e.knockback.distance,
-          height: e.knockback.height,
-          origin: e.knockback.origin ? toVec2(e.knockback.origin) : undefined,
-        },
+        knockback: e.knockback && toKnockback(e.knockback),
         visual: e.visual,
       });
     } else if (e.type === "targeted") {
@@ -233,11 +233,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         failureDamage: e.failureDamage,
         failureDamageType: e.failureDamageType,
         applyEffect: e.applyEffect,
-        knockback: e.knockback && {
-          distance: e.knockback.distance,
-          height: e.knockback.height,
-          origin: e.knockback.origin ? toVec2(e.knockback.origin) : undefined,
-        },
+        knockback: e.knockback && toKnockback(e.knockback),
         visual: {
           pillar: e.visual?.pillar ?? false,
           countCircles: e.visual?.countCircles ?? false,
@@ -320,11 +316,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         damage: e.damage,
         damageType: e.damageType,
         applyEffect: e.applyEffect,
-        knockback: e.knockback && {
-          distance: e.knockback.distance,
-          height: e.knockback.height,
-          origin: e.knockback.origin ? toVec2(e.knockback.origin) : undefined,
-        },
+        knockback: e.knockback && toKnockback(e.knockback),
         showCastBar: e.showCastBar ?? false,
       });
     } else if (e.type === "spread_stack") {
@@ -361,11 +353,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         damage: e.damage,
         damageType: e.damageType,
         applyEffect: e.applyEffect,
-        knockback: e.knockback && {
-          distance: e.knockback.distance,
-          height: e.knockback.height,
-          origin: e.knockback.origin ? toVec2(e.knockback.origin) : undefined,
-        },
+        knockback: e.knockback && toKnockback(e.knockback),
         showCastBar: e.showCastBar ?? false,
         visual: e.visual,
       });
@@ -380,11 +368,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         damage: e.damage,
         damageType: e.damageType,
         applyEffect: e.applyEffect,
-        knockback: e.knockback && {
-          distance: e.knockback.distance,
-          height: e.knockback.height,
-          origin: e.knockback.origin ? toVec2(e.knockback.origin) : undefined,
-        },
+        knockback: e.knockback && toKnockback(e.knockback),
         showCastBar: e.showCastBar ?? false,
         showTelegraph: e.showTelegraph ?? true,
       });
@@ -418,11 +402,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         damageType: e.damageType,
         applyEffect: e.applyEffect,
         applyEffects: e.applyEffects,
-        knockback: e.knockback && {
-          distance: e.knockback.distance,
-          height: e.knockback.height,
-          origin: e.knockback.origin ? toVec2(e.knockback.origin) : undefined,
-        },
+        knockback: e.knockback && toKnockback(e.knockback),
         positional: e.positional,
         anchor: e.anchor,
         directionFrom: e.directionFrom,

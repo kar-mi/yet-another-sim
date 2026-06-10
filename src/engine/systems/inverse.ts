@@ -1,4 +1,4 @@
-// Phase 3e: inverse ("?") events. At cast start roll the inversion (and optional B variant). The
+// Inverse ("?") events. At cast start roll the inversion (and optional B variant). The
 // shown shape is always drawn as the telegraph, but when inverted the "?" makes it a lie -> the
 // hidden shape is the lethal one.
 

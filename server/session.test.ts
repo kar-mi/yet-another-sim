@@ -48,7 +48,7 @@ function makeSession(options: { now?: () => number; lobbyTimeoutMs?: number } = 
     id: "test-room",
     raidId: "test-raid",
     raid: testRaid(),
-    send: (clientId, message) => sent.push({ clientId, message }),
+    send: (clientId, message) => sent.push({ clientId, message: typeof message === "string" ? JSON.parse(message) as ServerMessage : message }),
     autoTick: false,
     now: options.now,
     lobbyTimeoutMs: options.lobbyTimeoutMs,
@@ -380,7 +380,7 @@ test("concurrent joins to a new session id create one session", async () => {
   const sent: Array<{ clientId: string; message: ServerMessage }> = [];
   const manager = new SessionManager({
     raidsDir: "",
-    send: (clientId, message) => sent.push({ clientId, message }),
+    send: (clientId, message) => sent.push({ clientId, message: typeof message === "string" ? JSON.parse(message) as ServerMessage : message }),
   });
 
   await Promise.all([
@@ -400,7 +400,7 @@ test("empty raid synthesizes the canonical eight slots", async () => {
     id: "empty-room",
     raidId: EMPTY_RAID_ID,
     raid,
-    send: (clientId, message) => sent.push({ clientId, message }),
+    send: (clientId, message) => sent.push({ clientId, message: typeof message === "string" ? JSON.parse(message) as ServerMessage : message }),
     autoTick: false,
   });
 
@@ -413,7 +413,7 @@ test("existing sessions join by session id after raid changes", async () => {
   const sent: Array<{ clientId: string; message: ServerMessage }> = [];
   const manager = new SessionManager({
     raidsDir: "",
-    send: (clientId, message) => sent.push({ clientId, message }),
+    send: (clientId, message) => sent.push({ clientId, message: typeof message === "string" ? JSON.parse(message) as ServerMessage : message }),
   });
 
   await manager.handle("c1", { type: "join", sessionId: "room", raidId: EMPTY_RAID_ID });

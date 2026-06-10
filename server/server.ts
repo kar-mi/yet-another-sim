@@ -134,9 +134,9 @@ logger.info("build", "bundle ready");
 const clients = new Map<string, Bun.ServerWebSocket<SocketData>>();
 const manager = new SessionManager({
   raidsDir: RAIDS_DIR,
-  send(clientId: string, message: ServerMessage) {
+  send(clientId: string, message: ServerMessage | string) {
     const ws = clients.get(clientId);
-    if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message));
+    if (ws?.readyState === WebSocket.OPEN) ws.send(typeof message === "string" ? message : JSON.stringify(message));
   },
   createSessionLog,
 });

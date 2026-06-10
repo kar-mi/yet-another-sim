@@ -50,15 +50,14 @@ export function createTickContext(world: World, intents: Intents, dt: number): T
     actedByPlayer: new Map<string, boolean>(),
     rngState: world.rngState,
     forcedMarches: [] as ActiveForcedMarch[],
-  } as TickContext;
-
-  // Closures capture `ctx` so a bare reference (e.g. passed to effectsForMechanic) still advances
-  // the shared rngState.
-  (ctx as { randFloat: () => number }).randFloat = () => {
-    const r = nextRandom(ctx.rngState); ctx.rngState = r.state; return r.value;
-  };
-  (ctx as { randInt: (n: number) => number }).randInt = (n: number) => {
-    const r = randomInt(ctx.rngState, n); ctx.rngState = r.state; return r.value;
+    // Closures capture `ctx` so a bare reference (e.g. passed to effectsForMechanic) still advances
+    // the shared rngState.
+    randFloat: (): number => {
+      const r = nextRandom(ctx.rngState); ctx.rngState = r.state; return r.value;
+    },
+    randInt: (n: number): number => {
+      const r = randomInt(ctx.rngState, n); ctx.rngState = r.state; return r.value;
+    },
   };
   return ctx;
 }
