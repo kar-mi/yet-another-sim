@@ -9,8 +9,8 @@ import { logger } from "../../shared/logger";
 import type { Boss } from "../../shared/types";
 
 const BOSS_MODEL_ROOT = "/static/model/";
-const BOSS_MODEL_FILE = "necromancer.glb";
-const BOSS_MODEL_SCALE = 2;
+const BOSS_MODEL_FILE = "skeith.glb";
+const BOSS_MODEL_SCALE = 0.08;
 const BOSS_MODEL_RAISE = 0.2;
 const BOSS_MODEL_YAW_OFFSET = Math.PI;
 
