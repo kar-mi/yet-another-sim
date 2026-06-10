@@ -25,7 +25,7 @@
       "id": "stack-resolve",
       "name": "Stack Resolve",
       "effectName": "Stack Charge",
-      "action": { "kind": "stack", "radius": 4, "requiredCount": 2, "damage": 24, "damageType": "magical" }
+      "action": { "kind": "stack", "radius": 4, "requiredCount": 2, "damage": 200, "damageType": "magical" }
     },
     {
       "type": "effect_resolver",
