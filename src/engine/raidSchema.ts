@@ -4,6 +4,27 @@ import { ROSTER, RaidIdSchema } from "../shared/protocol";
 const Vec2Schema = z.tuple([z.number(), z.number()]);
 const WaypointSchema = z.object({ t: z.number().nonnegative(), pos: Vec2Schema });
 const SolverPlacementSchema = z.union([Vec2Schema, z.array(Vec2Schema).min(1)]);
+const EventIdSchema = z.string().min(1);
+const SpreadStackSolverSchema = z.object({
+  spread: z.record(z.string().min(1), Vec2Schema), // playerId -> spread-mode spot (base / no lightning)
+  stack: z.record(z.string().min(1), Vec2Schema),  // playerId -> stack-mode spot (their group's stack point)
+  // Per-orientation overrides: read the named inverse and use `shown` positions when it is NOT
+  // inverted, `inverted` positions when it is, so bots dodge into the safe corridor.
+  spreadLightning: z.object({
+    id: EventIdSchema,
+    shown: z.record(z.string().min(1), Vec2Schema),
+    inverted: z.record(z.string().min(1), Vec2Schema),
+    shownB: z.record(z.string().min(1), Vec2Schema).optional(),
+    invertedB: z.record(z.string().min(1), Vec2Schema).optional(),
+  }).optional(),
+  stackLightning: z.object({
+    id: EventIdSchema,
+    shown: z.record(z.string().min(1), Vec2Schema),
+    inverted: z.record(z.string().min(1), Vec2Schema),
+    shownB: z.record(z.string().min(1), Vec2Schema).optional(),
+    invertedB: z.record(z.string().min(1), Vec2Schema).optional(),
+  }).optional(),
+});
 const BotSolversSchema = z.object({
   plantArrows: z.object({
     placements: z.record(z.string().min(1), SolverPlacementSchema),
@@ -13,26 +34,7 @@ const BotSolversSchema = z.object({
     dps: Vec2Schema,
     startAt: z.number().nonnegative().optional(),
   }).optional(),
-  spreadStack: z.object({
-    spread: z.record(z.string().min(1), Vec2Schema), // playerId -> spread-mode spot (base / no lightning)
-    stack: z.record(z.string().min(1), Vec2Schema),  // playerId -> stack-mode spot (their group's stack point)
-    // Per-orientation overrides: read the named inverse ("lightning") and use `shown` positions
-    // when it is NOT inverted, `inverted` positions when it is, so bots dodge into the safe corridor.
-    spreadLightning: z.object({
-      id: z.string().min(1),
-      shown: z.record(z.string().min(1), Vec2Schema),
-      inverted: z.record(z.string().min(1), Vec2Schema),
-      shownB: z.record(z.string().min(1), Vec2Schema).optional(),
-      invertedB: z.record(z.string().min(1), Vec2Schema).optional(),
-    }).optional(),
-    stackLightning: z.object({
-      id: z.string().min(1),
-      shown: z.record(z.string().min(1), Vec2Schema),
-      inverted: z.record(z.string().min(1), Vec2Schema),
-      shownB: z.record(z.string().min(1), Vec2Schema).optional(),
-      invertedB: z.record(z.string().min(1), Vec2Schema).optional(),
-    }).optional(),
-  }).optional(),
+  spreadStack: z.record(EventIdSchema, SpreadStackSolverSchema).optional(),
 }).optional();
 const RoleSchema = z.enum(["tank", "healer", "dps"]);
 
@@ -112,6 +114,7 @@ const KnockbackSchema = z.object({
 
 const AOEEventSchema = z.object({
   type: z.literal("aoe").default("aoe"),
+  id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
   telegraph: z.number().positive(),
@@ -140,6 +143,7 @@ const AOEEventSchema = z.object({
 
 const TargetedEventSchema = z.object({
   type: z.literal("targeted"),
+  id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
   targetMode: z.enum(["closest", "furthest", "aggro"]),
@@ -155,6 +159,7 @@ const TargetedEventSchema = z.object({
 
 const TetherSourceEventSchema = z.object({
   type: z.literal("tether_source"),
+  id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
   pos: Vec2Schema,
@@ -183,7 +188,7 @@ const LineLinkVisualSchema = z.object({
 
 const LineLinkEventSchema = z.object({
   type: z.literal("line_link"),
-  id: z.string().min(1).optional(),
+  id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
   pos: Vec2Schema,
@@ -209,6 +214,7 @@ const TowerVisualSchema = z.object({
 
 const TowerEventSchema = z.object({
   type: z.literal("tower"),
+  id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
   telegraph: z.number().positive(),
@@ -226,6 +232,7 @@ const TowerEventSchema = z.object({
 
 const ChainEventSchema = z.object({
   type: z.literal("chain"),
+  id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
   pairs: z.array(z.tuple([z.string().min(1), z.string().min(1)])).min(1), // chained player-id pairs
@@ -242,7 +249,7 @@ const GroupEventSchema = z.object({
   type: z.literal("group"),
   t: z.number().nonnegative(),
   name: z.string().min(1),
-  id: z.string().min(1).optional(),                              // required if another event links to it
+  id: EventIdSchema,
   groups: z.array(z.array(z.string().min(1)).min(1)).min(1),     // candidate groups of player ids
   rng: z.boolean().optional(),                                   // pick a random group (else groups[0])
   link: z.string().min(1).optional(),                            // take complement of the referenced group event's choice
@@ -259,7 +266,7 @@ const EffectSelectEventSchema = z.object({
   type: z.literal("effect_select"),
   t: z.number().nonnegative(),
   name: z.string().min(1),
-  id: z.string().min(1).optional(),
+  id: EventIdSchema,
   groups: z.array(z.array(z.string().min(1)).min(1)).min(1),
   rng: z.boolean().optional(),
   link: z.string().min(1).optional(),
@@ -271,6 +278,7 @@ const EffectSelectEventSchema = z.object({
 // targets (random selection when `rng`, else roster order).
 const ApplyEffectEventSchema = z.object({
   type: z.literal("apply_effect"),
+  id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
   role: RoleSchema.optional(),
@@ -282,7 +290,7 @@ const ApplyEffectEventSchema = z.object({
 
 const InverseEventSchema = z.object({
   type: z.literal("inverse"),
-  id: z.string().min(1).optional(),                // stable id (e.g. "lightning") for bot solvers
+  id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
   telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
@@ -311,6 +319,7 @@ const InverseEventSchema = z.object({
 // marker during the cast; when inverted ("?") it resolves as the opposite when the cast bar ends.
 const SpreadStackEventSchema = z.object({
   type: z.literal("spread_stack"),
+  id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
   telegraph: z.number().positive(),
@@ -341,6 +350,7 @@ const GazeVisualSchema = z.object({
 
 const GazeEventSchema = z.object({
   type: z.literal("gaze"),
+  id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
   telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
@@ -358,6 +368,7 @@ const GazeEventSchema = z.object({
 
 const ForcedMarchEventSchema = z.object({
   type: z.literal("forced_march"),
+  id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
   pos: Vec2Schema,                         // center of the ground trigger zone
@@ -375,6 +386,7 @@ const ForcedMarchEventSchema = z.object({
 
 const EffectBurstEventSchema = z.object({
   type: z.literal("effect_burst"),
+  id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
   telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
@@ -390,6 +402,7 @@ const EffectBurstEventSchema = z.object({
 
 const HealEventSchema = z.object({
   type: z.literal("heal"),
+  id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
 });
@@ -438,6 +451,20 @@ export const RaidSchema = z.object({
   optionals: OptionalsSchema,
   botSolvers: BotSolversSchema,
 }).superRefine((raid, ctx) => {
+  const eventIds = new Map<string, { type: string; index: number }>();
+  raid.events.forEach((event, i) => {
+    const prior = eventIds.get(event.id);
+    if (prior) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["events", i, "id"],
+        message: `duplicate event id "${event.id}" also used by ${prior.type} at events[${prior.index}]`,
+      });
+      return;
+    }
+    eventIds.set(event.id, { type: event.type, index: i });
+  });
+
   const seenMarks = new Set<string>();
   raid.waymarks?.forEach((waymark, i) => {
     if (seenMarks.has(waymark.mark)) {
@@ -493,15 +520,7 @@ export const RaidSchema = z.object({
 
   const lineLinkEventsById = new Map<string, { t: number; index: number; groupCount: number }>();
   raid.events.forEach((event, i) => {
-    if (event.type !== "line_link" || event.id === undefined) return;
-    if (lineLinkEventsById.has(event.id)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["events", i, "id"],
-        message: `duplicate line_link id "${event.id}"`,
-      });
-      return;
-    }
+    if (event.type !== "line_link") return;
     lineLinkEventsById.set(event.id, {
       t: event.t,
       index: i,
@@ -515,7 +534,7 @@ export const RaidSchema = z.object({
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["events", i, "link"],
-        message: `link references unknown line_link id "${event.link}"; the source must set an explicit id`,
+        message: `link references unknown line_link id "${event.link}"`,
       });
     } else if (source.t > event.t || (source.t === event.t && source.index >= i)) {
       ctx.addIssue({
@@ -533,10 +552,10 @@ export const RaidSchema = z.object({
     }
   });
 
-  // group events: validate member ids, and that links reference an earlier 2-group event with an explicit id.
+  // group events: validate member ids, and that links reference an earlier 2-group event.
   const groupEventsById = new Map<string, { t: number; groupCount: number }>();
   raid.events.forEach(event => {
-    if ((event.type === "group" || event.type === "effect_select") && event.id !== undefined) {
+    if (event.type === "group" || event.type === "effect_select") {
       groupEventsById.set(event.id, { t: event.t, groupCount: event.groups.length });
     }
   });
@@ -559,7 +578,7 @@ export const RaidSchema = z.object({
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["events", i, "link"],
-          message: `link references unknown group event id "${event.link}"; the source must set an explicit id`,
+          message: `link references unknown group event id "${event.link}"`,
         });
       } else if (source.t >= event.t) {
         ctx.addIssue({
@@ -591,6 +610,27 @@ export const RaidSchema = z.object({
           });
         }
       });
+    });
+  });
+
+  const spreadStackIds = new Set(raid.events.filter(event => event.type === "spread_stack").map(event => event.id));
+  const inverseIds = new Set(raid.events.filter(event => event.type === "inverse").map(event => event.id));
+  Object.entries(raid.botSolvers?.spreadStack ?? {}).forEach(([id, solver]) => {
+    if (!spreadStackIds.has(id)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["botSolvers", "spreadStack", id],
+        message: `spreadStack solver references unknown spread_stack id "${id}"`,
+      });
+    }
+    ([solver.spreadLightning, solver.stackLightning] as const).forEach((override, overrideIndex) => {
+      if (override && !inverseIds.has(override.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["botSolvers", "spreadStack", id, overrideIndex === 0 ? "spreadLightning" : "stackLightning", "id"],
+          message: `lightning override references unknown inverse id "${override.id}"`,
+        });
+      }
     });
   });
 

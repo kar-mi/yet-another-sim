@@ -15,6 +15,7 @@
   "events": [
     {
       "type": "aoe",
+      "id": "stillness",
       "t": 0,
       "name": "Stillness",
       "telegraph": 36,
@@ -26,7 +27,7 @@
       "shape": { "kind": "circle", "center": [0, 0], "radius": 0.1 }
     },
     {
-      "type": "spread_stack", "t": 3, "name": "Honest Spread", "telegraph": 4,
+      "type": "spread_stack", "id": "honest-spread", "t": 3, "name": "Honest Spread", "telegraph": 4,
       "shown": "spread", "damageType": "magical",
       "spread": { "radius": 4, "damage": 40 },
       "stack": { "groups": [["r1", "r2", "m1", "m2"], ["h1", "h2", "mt", "ot"]], "radius": 6, "requiredCount": 4, "damage": 120 },
@@ -34,7 +35,7 @@
       "showCastBar": true
     },
     {
-      "type": "spread_stack", "t": 10, "name": "Honest Stack", "telegraph": 4,
+      "type": "spread_stack", "id": "honest-stack", "t": 10, "name": "Honest Stack", "telegraph": 4,
       "shown": "stack", "damageType": "magical",
       "spread": { "radius": 4, "damage": 40 },
       "stack": { "groups": [["r1", "r2", "m1", "m2"], ["h1", "h2", "mt", "ot"]], "radius": 6, "requiredCount": 4, "damage": 120 },
@@ -42,7 +43,7 @@
       "showCastBar": true
     },
     {
-      "type": "spread_stack", "t": 17, "name": "Lie: shows Spread, is Stack", "telegraph": 4,
+      "type": "spread_stack", "id": "lie-spread-is-stack", "t": 17, "name": "Lie: shows Spread, is Stack", "telegraph": 4,
       "shown": "spread", "questionMark": true, "damageType": "magical",
       "spread": { "radius": 4, "damage": 40 },
       "stack": { "groups": [["r1", "r2", "m1", "m2"], ["h1", "h2", "mt", "ot"]], "radius": 6, "requiredCount": 4, "damage": 120 },
@@ -50,7 +51,7 @@
       "showCastBar": true
     },
     {
-      "type": "spread_stack", "t": 24, "name": "Lie: shows Stack, is Spread", "telegraph": 4,
+      "type": "spread_stack", "id": "lie-stack-is-spread", "t": 24, "name": "Lie: shows Stack, is Spread", "telegraph": 4,
       "shown": "stack", "questionMark": true, "damageType": "magical",
       "spread": { "radius": 4, "damage": 40 },
       "stack": { "groups": [["r1", "r2", "m1", "m2"], ["h1", "h2", "mt", "ot"]], "radius": 6, "requiredCount": 4, "damage": 120 },
@@ -58,7 +59,7 @@
       "showCastBar": true
     },
     {
-      "type": "spread_stack", "t": 31, "name": "Coin Flip (random shown + ?)", "telegraph": 4,
+      "type": "spread_stack", "id": "coin-flip", "t": 31, "name": "Coin Flip (random shown + ?)", "telegraph": 4,
       "shown": "random", "rng": true, "damageType": "magical",
       "spread": { "radius": 4, "damage": 40 },
       "stack": { "groups": [["r1", "r2", "m1", "m2"], ["h1", "h2", "mt", "ot"]], "radius": 6, "requiredCount": 4, "damage": 120 },
@@ -68,13 +69,15 @@
   ],
   "botSolvers": {
     "spreadStack": {
-      "spread": {
-        "mt": [-6, 6], "ot": [6, 6], "h1": [0, -18], "h2": [18, 0],
-        "r1": [0, 18], "r2": [-18, 0], "m1": [-6, 6], "m2": [-6, -6]
-      },
-      "stack": {
-        "mt": [6, -6], "ot": [6, -6], "h1": [6, -6], "h2": [6, -6],
-        "r1": [-6, 6], "r2": [-6, 6], "m1": [-6, 6], "m2": [-6, 6]
+      "honest-spread": {
+        "spread": {
+          "mt": [-6, 6], "ot": [6, 6], "h1": [0, -18], "h2": [18, 0],
+          "r1": [0, 18], "r2": [-18, 0], "m1": [-6, 6], "m2": [-6, -6]
+        },
+        "stack": {
+          "mt": [6, -6], "ot": [6, -6], "h1": [6, -6], "h2": [6, -6],
+          "r1": [-6, 6], "r2": [-6, 6], "m1": [-6, 6], "m2": [-6, 6]
+        }
       }
     }
   },

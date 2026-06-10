@@ -14,6 +14,7 @@
   ],
   "events": [
     {
+      "id": "expose",
       "t": 3,
       "name": "Expose",
       "telegraph": 1,
@@ -28,6 +29,7 @@
       "shape": { "kind": "circle", "center": [0, 0], "radius": 10 }
     },
     {
+      "id": "typed-strike",
       "t": 7,
       "name": "Typed Strike",
       "telegraph": 1,
@@ -36,6 +38,7 @@
       "shape": { "kind": "circle", "center": [0, 0], "radius": 10 }
     },
     {
+      "id": "pyretic-brand",
       "t": 13,
       "name": "Pyretic Brand",
       "telegraph": 1,
@@ -50,6 +53,7 @@
       "shape": { "kind": "circle", "center": [0, 0], "radius": 10 }
     },
     {
+      "id": "deep-freeze",
       "t": 25,
       "name": "Deep Freeze",
       "telegraph": 1,

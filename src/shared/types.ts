@@ -18,6 +18,25 @@ export type Waymark = { mark: WaymarkId; pos: Vec2 };
 
 export type Waypoint = { t: number; pos: Vec2 };
 
+export type SpreadStackSolverConfig = {
+  spread: Record<string, Vec2>; // playerId -> spread-mode spot (base / no lightning)
+  stack: Record<string, Vec2>;  // playerId -> stack-mode spot
+  spreadLightning?: {           // per-orientation spread override read from the named inverse
+    id: string;
+    shown: Record<string, Vec2>;    // positions when the inverse is NOT inverted (variant a)
+    inverted: Record<string, Vec2>; // positions when the inverse is inverted (variant a)
+    shownB?: Record<string, Vec2>;    // variant-b, not inverted
+    invertedB?: Record<string, Vec2>; // variant-b, inverted
+  };
+  stackLightning?: {            // per-orientation stack override (same shape as spreadLightning)
+    id: string;
+    shown: Record<string, Vec2>;
+    inverted: Record<string, Vec2>;
+    shownB?: Record<string, Vec2>;
+    invertedB?: Record<string, Vec2>;
+  };
+};
+
 export type BotSolvers = {
   plantArrows?: {
     placements: Record<string, Vec2 | Vec2[]>;
@@ -27,24 +46,7 @@ export type BotSolvers = {
     dps: Vec2;
     startAt?: number;
   };
-  spreadStack?: {
-    spread: Record<string, Vec2>; // playerId -> spread-mode spot (base / no lightning)
-    stack: Record<string, Vec2>;  // playerId -> stack-mode spot
-    spreadLightning?: {           // per-orientation spread override read from the named inverse
-      id: string;
-      shown: Record<string, Vec2>;    // positions when the inverse is NOT inverted (variant a)
-      inverted: Record<string, Vec2>; // positions when the inverse is inverted (variant a)
-      shownB?: Record<string, Vec2>;    // variant-b, not inverted
-      invertedB?: Record<string, Vec2>; // variant-b, inverted
-    };
-    stackLightning?: {            // per-orientation stack override (same shape as spreadLightning)
-      id: string;
-      shown: Record<string, Vec2>;
-      inverted: Record<string, Vec2>;
-      shownB?: Record<string, Vec2>;
-      invertedB?: Record<string, Vec2>;
-    };
-  };
+  spreadStack?: Record<string, SpreadStackSolverConfig>;
 };
 
 export type DamageType = "physical" | "magical" | "true";
@@ -432,6 +434,7 @@ export type PendingEffectSelect = {
 // A standalone "drop this effect on players now" event. Targeting: `players` ids if given, else
 // `role` filter, else everyone alive; `count` caps how many (random when `rng`, else roster order).
 export type PendingApplyEffect = {
+  id: string;
   t: number;
   name: string;
   role?: Role;

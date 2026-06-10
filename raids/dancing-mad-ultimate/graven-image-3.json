@@ -42,6 +42,7 @@
   "events": [
         {
       "type": "aoe",
+      "id": "keep-boss-still",
       "t": 0,
       "name": "keep_boss_still",
       "telegraph": 67,
@@ -53,7 +54,7 @@
       "shape": { "kind": "circle", "center": [0, 0], "radius": 0.1 }
     },
     {
-      "t": 3, "name": "Teletrouncing", "telegraph": 5, "damage": 0, "damageType": "magical",
+      "id": "teletrouncing", "t": 3, "name": "Teletrouncing", "telegraph": 5, "damage": 0, "damageType": "magical",
       "showCastBar": true, "showTelegraph": false,
       "applyEffects": {
         "order": "shuffleBalanced",
@@ -66,7 +67,7 @@
     },
 
     {
-      "t": 17, "name": "Graven Image", "telegraph": 3, "damage": 0, "damageType": "true",
+      "id": "graven-image", "t": 17, "name": "Graven Image", "telegraph": 3, "damage": 0, "damageType": "true",
       "showCastBar": true, "showTelegraph": false,
       "shape": { "kind": "circle", "center": [0, 0], "radius": 0.1 }
     },
@@ -81,7 +82,7 @@
       "visual": { "kind": "statue", "width": 3, "height": 6, "depth": 1 }
     },
     {
-      "type": "line_link", "t": 22, "name": "Right Statue (Confuse)", "pos": [8, 24],
+      "type": "line_link", "id": "confuse-statue", "t": 22, "name": "Right Statue (Confuse)", "pos": [8, 24],
       "linkDuration": 6, "resolveAfter": 8,
       "link": "sleep-statue",
       "target": { "roleGroups": [["dps"], ["tank", "healer"]], "count": 4, "mode": "closest" },
@@ -111,15 +112,15 @@
     },
 
     {
-      "type": "effect_burst", "t": 30, "name": "Sleeper Burst", "telegraph": 0.5,
+      "type": "effect_burst", "id": "sleeper-burst", "t": 30, "name": "Sleeper Burst", "telegraph": 0.5,
       "effectName": "Sleep", "radius": 4, "damage": 40, "damageType": "magical",
       "showCastBar": false
     },
 
-    { "type": "heal", "t": 35, "name": "Raidwide Heal" },
+    { "type": "heal", "id": "raidwide-heal", "t": 35, "name": "Raidwide Heal" },
 
     {
-      "type": "inverse", "id": "lightning", "t": 43, "name": "Mystery Magic 3 (Lightning)", "telegraph": 5,
+      "type": "inverse", "id": "lightning-1", "t": 43, "name": "Mystery Magic 3 (Lightning)", "telegraph": 5,
       "damage": 60, "damageType": "magical", "showCastBar": true,
       "rng": true, "variantRng": true, "ringColor": "#a855f7", "ringHeight": 3.2, "telegraphAlpha": 0.1,
       "shownShapes": [
@@ -140,7 +141,7 @@
       ]
     },
     {
-      "type": "spread_stack", "t": 43, "name": "Mystery Magic 3 (Fire)", "telegraph": 5,
+      "type": "spread_stack", "id": "fire-1", "t": 43, "name": "Mystery Magic 3 (Fire)", "telegraph": 5,
       "shown": "random", "rng": true, "damageType": "magical",
       "spread": { "radius": 4, "damage": 80 },
       "stack": { "groups": [["r1", "r2", "m1", "m2"], ["h1", "h2", "mt", "ot"]], "radius": 6, "requiredCount": 4, "damage": 200 },

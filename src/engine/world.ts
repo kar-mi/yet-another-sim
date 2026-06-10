@@ -34,22 +34,24 @@ function toBotSolvers(raid: RaidDef): World["botSolvers"] {
       startAt: doubleTrouble.startAt,
     },
     spreadStack: spreadStack && {
-      spread: toSpots(spreadStack.spread),
-      stack: toSpots(spreadStack.stack),
-      spreadLightning: spreadStack.spreadLightning && {
-        id: spreadStack.spreadLightning.id,
-        shown: toSpots(spreadStack.spreadLightning.shown),
-        inverted: toSpots(spreadStack.spreadLightning.inverted),
-        shownB: spreadStack.spreadLightning.shownB && toSpots(spreadStack.spreadLightning.shownB),
-        invertedB: spreadStack.spreadLightning.invertedB && toSpots(spreadStack.spreadLightning.invertedB),
-      },
-      stackLightning: spreadStack.stackLightning && {
-        id: spreadStack.stackLightning.id,
-        shown: toSpots(spreadStack.stackLightning.shown),
-        inverted: toSpots(spreadStack.stackLightning.inverted),
-        shownB: spreadStack.stackLightning.shownB && toSpots(spreadStack.stackLightning.shownB),
-        invertedB: spreadStack.stackLightning.invertedB && toSpots(spreadStack.stackLightning.invertedB),
-      },
+      ...Object.fromEntries(Object.entries(spreadStack).map(([id, solver]) => [id, {
+        spread: toSpots(solver.spread),
+        stack: toSpots(solver.stack),
+        spreadLightning: solver.spreadLightning && {
+          id: solver.spreadLightning.id,
+          shown: toSpots(solver.spreadLightning.shown),
+          inverted: toSpots(solver.spreadLightning.inverted),
+          shownB: solver.spreadLightning.shownB && toSpots(solver.spreadLightning.shownB),
+          invertedB: solver.spreadLightning.invertedB && toSpots(solver.spreadLightning.invertedB),
+        },
+        stackLightning: solver.stackLightning && {
+          id: solver.stackLightning.id,
+          shown: toSpots(solver.stackLightning.shown),
+          inverted: toSpots(solver.stackLightning.inverted),
+          shownB: solver.stackLightning.shownB && toSpots(solver.stackLightning.shownB),
+          invertedB: solver.stackLightning.invertedB && toSpots(solver.stackLightning.invertedB),
+        },
+      }])),
     },
   };
 }
@@ -172,7 +174,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   for (const [index, e] of raid.events.entries()) {
     if (e.type === "tether_source") {
       pendingTethers.push({
-        id: `tether-${index}`,
+        id: e.id,
         t: e.t,
         pos: toVec2(e.pos),
         finalizeAfter: e.finalizeAfter,
@@ -184,7 +186,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       });
     } else if (e.type === "line_link") {
       pendingLineLinks.push({
-        id: e.id ?? `line-link-${index}`,
+        id: e.id,
         t: e.t,
         name: e.name,
         pos: toVec2(e.pos),
@@ -204,7 +206,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       });
     } else if (e.type === "targeted") {
       pendingTargeted.push({
-        id: `targeted-${index}`,
+        id: e.id,
         t: e.t,
         name: e.name,
         targetMode: e.targetMode,
@@ -219,7 +221,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       });
     } else if (e.type === "tower") {
       pendingTowers.push({
-        id: `tower-${index}`,
+        id: e.id,
         t: e.t,
         name: e.name,
         telegraph: e.telegraph,
@@ -247,7 +249,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       });
     } else if (e.type === "group") {
       pendingGroups.push({
-        id: e.id ?? `group-${index}`,
+        id: e.id,
         t: e.t,
         name: e.name,
         groups: e.groups,
@@ -263,7 +265,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       });
     } else if (e.type === "effect_select") {
       pendingEffectSelects.push({
-        id: e.id ?? `effect-select-${index}`,
+        id: e.id,
         t: e.t,
         name: e.name,
         groups: e.groups,
@@ -273,6 +275,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       });
     } else if (e.type === "apply_effect") {
       pendingApplyEffects.push({
+        id: e.id,
         t: e.t,
         name: e.name,
         role: e.role,
@@ -284,7 +287,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     } else if (e.type === "chain") {
       e.pairs.forEach(([a, b], pairIndex) => {
         pendingChains.push({
-          id: `chain-${index}-${pairIndex}`,
+          id: e.pairs.length === 1 ? e.id : `${e.id}-${pairIndex}`,
           t: e.t,
           name: e.name,
           a,
@@ -300,7 +303,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       });
     } else if (e.type === "inverse") {
       pendingInversions.push({
-        id: e.id ?? `inverse-${index}`,
+        id: e.id,
         t: e.t,
         name: e.name,
         telegraph: e.telegraph,
@@ -326,7 +329,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       });
     } else if (e.type === "spread_stack") {
       pendingSpreadStacks.push({
-        id: `spread-stack-${index}`,
+        id: e.id,
         t: e.t,
         name: e.name,
         telegraph: e.telegraph,
@@ -347,7 +350,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       });
     } else if (e.type === "gaze") {
       pendingGazes.push({
-        id: `gaze-${index}`,
+        id: e.id,
         t: e.t,
         name: e.name,
         telegraph: e.telegraph,
@@ -368,7 +371,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       });
     } else if (e.type === "effect_burst") {
       pendingEffectBursts.push({
-        id: `effect-burst-${index}`,
+        id: e.id,
         t: e.t,
         name: e.name,
         telegraph: e.telegraph,
@@ -387,7 +390,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       });
     } else if (e.type === "forced_march") {
       pendingForcedMarches.push({
-        id: `forced-march-${index}`,
+        id: e.id,
         t: e.t,
         name: e.name,
         pos: toVec2(e.pos),
@@ -400,13 +403,13 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       });
     } else if (e.type === "heal") {
       pendingHeals.push({
-        id: `heal-${index}`,
+        id: e.id,
         t: e.t,
         name: e.name,
       });
     } else {
       pending.push({
-        id: `event-${index}`,
+        id: e.id,
         t: e.t,
         name: e.name,
         shape: toAOEShape(e.shape),

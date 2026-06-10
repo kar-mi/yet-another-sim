@@ -14,6 +14,7 @@
   ],
   "events": [
     {
+      "id": "slumber-supports",
       "t": 3,
       "name": "Slumber (supports)",
       "telegraph": 1.5,
@@ -28,6 +29,7 @@
       "shape": { "kind": "circle", "center": [0, 0], "radius": 9 }
     },
     {
+      "id": "confusion-dps",
       "t": 3,
       "name": "Confusion (dps)",
       "telegraph": 1.5,
@@ -41,9 +43,9 @@
       },
       "shape": { "kind": "donut", "center": [0, 0], "inner": 12, "outer": 25 }
     },
-    { "type": "forced_march", "t": 4.5, "name": "March N", "pos": [0, 14],  "radius": 1.2, "direction": [0, 1],  "distance": 8, "duration": 25, "preDelay": 0.3, "postDelay": 0.3 },
-    { "type": "forced_march", "t": 4.5, "name": "March E", "pos": [14, 0],  "radius": 1.2, "direction": [1, 0],  "distance": 8, "duration": 25, "preDelay": 0.3, "postDelay": 0.3 },
-    { "type": "forced_march", "t": 4.5, "name": "March S", "pos": [0, -14], "radius": 1.2, "direction": [0, -1], "distance": 8, "duration": 25, "preDelay": 0.3, "postDelay": 0.3 },
-    { "type": "forced_march", "t": 4.5, "name": "March W", "pos": [-14, 0], "radius": 1.2, "direction": [-1, 0], "distance": 8, "duration": 25, "preDelay": 0.3, "postDelay": 0.3 }
+    { "type": "forced_march", "id": "march-n", "t": 4.5, "name": "March N", "pos": [0, 14],  "radius": 1.2, "direction": [0, 1],  "distance": 8, "duration": 25, "preDelay": 0.3, "postDelay": 0.3 },
+    { "type": "forced_march", "id": "march-e", "t": 4.5, "name": "March E", "pos": [14, 0],  "radius": 1.2, "direction": [1, 0],  "distance": 8, "duration": 25, "preDelay": 0.3, "postDelay": 0.3 },
+    { "type": "forced_march", "id": "march-s", "t": 4.5, "name": "March S", "pos": [0, -14], "radius": 1.2, "direction": [0, -1], "distance": 8, "duration": 25, "preDelay": 0.3, "postDelay": 0.3 },
+    { "type": "forced_march", "id": "march-w", "t": 4.5, "name": "March W", "pos": [-14, 0], "radius": 1.2, "direction": [-1, 0], "distance": 8, "duration": 25, "preDelay": 0.3, "postDelay": 0.3 }
   ]
 }

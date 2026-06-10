@@ -17,6 +17,7 @@
   "events": [
     {
       "type": "line_link",
+      "id": "north-statue",
       "t": 4,
       "name": "North Statue",
       "pos": [0, 34],

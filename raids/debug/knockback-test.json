@@ -14,6 +14,7 @@
   ],
   "events": [
     {
+      "id": "raidwide",
       "t": 2,
       "name": "Raidwide",
       "telegraph": 3,
@@ -24,6 +25,7 @@
       "shape": { "kind": "circle", "center": [0, 0], "radius": 30 }
     },
     {
+      "id": "shockwave",
       "t": 8,
       "name": "Shockwave",
       "telegraph": 3,
@@ -34,6 +36,7 @@
       "knockback": { "distance": 12 }
     },
     {
+      "id": "skyward-launch",
       "t": 15,
       "name": "Skyward Launch",
       "telegraph": 3,
@@ -44,6 +47,7 @@
       "knockback": { "distance": 10, "height": 9 }
     },
     {
+      "id": "tidal-crash",
       "t": 23,
       "name": "Tidal Crash",
       "telegraph": 4,
@@ -54,6 +58,7 @@
       "knockback": { "distance": 14, "origin": [0, -40] }
     },
     {
+      "id": "eruption",
       "t": 32,
       "name": "Eruption",
       "telegraph": 4,

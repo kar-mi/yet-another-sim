@@ -62,12 +62,12 @@ function solverWaypoint(player: Player, world: World): Vec2 | undefined {
   }
 
   // Spread/stack "?": go to the assigned spot for the *actual* mode (bots solve the real answer).
-  const spreadStack = world.spreadStacks.find(s => !s.resolved);
+  const spreadStack = world.spreadStacks.find(s => !s.resolved && world.botSolvers?.spreadStack?.[s.id]);
   if (spreadStack) {
+    const cfg = world.botSolvers?.spreadStack?.[spreadStack.id];
     const actual = spreadStack.inverted
       ? (spreadStack.shown === "spread" ? "stack" : "spread")
       : spreadStack.shown;
-    const cfg = world.botSolvers?.spreadStack;
     // Per-orientation override: when a named inverse ("lightning") is active, swap to the safe-corridor
     // positions for its current orientation; otherwise use the base positions.
     const orient = (base?: Record<string, Vec2>, override?: { id: string; shown: Record<string, Vec2>; inverted: Record<string, Vec2>; shownB?: Record<string, Vec2>; invertedB?: Record<string, Vec2> }) => {

@@ -15,6 +15,7 @@
   "events": [
     {
       "type": "tower",
+      "id": "single-tower",
       "t": 3,
       "name": "Single Tower",
       "telegraph": 4,
@@ -27,6 +28,7 @@
     },
     {
       "type": "tower",
+      "id": "double-tower",
       "t": 10,
       "name": "Double Tower",
       "telegraph": 4,
@@ -39,6 +41,7 @@
     },
     {
       "type": "tower",
+      "id": "support-tower",
       "t": 17,
       "name": "Support Tower",
       "telegraph": 5,

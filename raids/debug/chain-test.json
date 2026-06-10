@@ -17,6 +17,7 @@
   "events": [
     {
       "type": "chain",
+      "id": "binding-chains",
       "t": 4,
       "name": "Binding Chains",
       "pairs": [["mt", "h1"], ["ot", "h2"]],
