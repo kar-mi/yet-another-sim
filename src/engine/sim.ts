@@ -66,7 +66,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const { tetherSources, pendingTethers } = resolveTethers(ctx);
   const { lineLinks, pendingLineLinks } = resolveLineLinks(ctx);
   const { chains, pendingChains } = resolveChains(ctx);
-  const { active, pending, pendingTargeted, pendingEffectBursts } = resolveAoe(ctx);
+  const { active, pending, pendingTargeted, pendingBaits, pendingEffectBursts } = resolveAoe(ctx);
   const { towers, pendingTowers } = resolveTowers(ctx);
   const { groupMechanics, pendingGroups } = resolveGroups(ctx);
   const pendingEffectSelects = resolveEffectSelects(ctx);
@@ -84,6 +84,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
     && pendingTethers.length === 0 && tetherSources.every(ts => ts.finalized)
     && pendingLineLinks.length === 0 && lineLinks.every(link => link.resolved)
     && pendingTargeted.length === 0
+    && pendingBaits.length === 0
     && pendingTowers.length === 0 && towers.every(t => t.resolved)
     && pendingChains.length === 0 && chains.every(c => c.outcome !== undefined)
     && pendingGroups.length === 0 && groupMechanics.every(g => g.resolved)
@@ -110,6 +111,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
     tetherSources, pendingTethers,
     lineLinks, pendingLineLinks,
     pendingTargeted,
+    pendingBaits,
     towers, pendingTowers,
     chains, pendingChains,
     groupMechanics, pendingGroups,

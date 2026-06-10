@@ -13,7 +13,12 @@ export class TelegraphLayer {
     // A targeting cast picks its location at resolve time, so its ground circle stays hidden
     // until then. Treat it as inactive while casting so no placeholder mesh is created.
     // showTelegraph === false hides the ground marker entirely (cast bar + damage still apply).
-    const visible = mechanics.filter(m => m.showTelegraph && !(m.targeting && !m.resolved));
+    // telegraphMode === "resolve" suppresses the cast marker but keeps the resolved flash.
+    const visible = mechanics.filter(m =>
+      m.showTelegraph
+      && (m.telegraphMode !== "resolve" || m.resolved)
+      && !(m.targeting && !m.resolved)
+    );
     const activeIds = new Set(visible.map(m => m.id));
     for (const [id, mesh] of this.meshes) {
       if (!activeIds.has(id)) {

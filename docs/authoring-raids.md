@@ -116,7 +116,7 @@ Each player entry:
 ## Events (the timeline)
 
 Every event has a `type` that selects its schema. `type` defaults to `"aoe"` if omitted,
-which is why most examples skip it. The types are `aoe`, `targeted`, `tether_source`,
+which is why most examples skip it. The types are `aoe`, `targeted`, `bait`, `tether_source`,
 `chain`, `group`, and `tower`.
 
 All damaging events share the same lifecycle: the cast begins at `t`, and **resolves** at
@@ -137,6 +137,7 @@ leaving the area before then.
 | `applyEffect`   | no       | Buff/debuff applied to those hit (see [Effects](#effects)). |
 | `showCastBar`   | no       | `true` shows the on-screen cast bar with name + timer. Defaults to `false`. |
 | `showTelegraph` | no       | `true` (default) draws the ground marker. Set `false` for an **invisible** AOE — cast bar and damage still apply, but no floor circle is drawn. |
+| `telegraphMode` | no       | `"cast"` (default) draws during the cast and flashes at resolve. `"resolve"` hides the cast marker and only shows the 0.6s resolved flash. `showTelegraph: false` still draws nothing. |
 
 ### `aoe` — fixed-shape area
 
@@ -199,6 +200,7 @@ dodge during the telegraph.
 | `directionFrom`   | no       | `"bossFacing"` sets the shape's `direction` to the boss's facing at cast start (the boss faces its current threat target). |
 | `directionOffset` | no       | Radians to rotate the `bossFacing` direction, clockwise. `0` = front (default), `π` = rear cleave, `-π/2` = the boss's left, `π/4` = front-right. |
 | `lockFacing`      | no       | Freezes the boss's facing for the cast's duration (it stops tracking its target), then resumes — keeping it aligned with its snapshotted cleave. **Defaults to `true`**; set `false` to let the boss keep turning mid-cast. |
+| `deferred`        | no       | **Stored cleave.** When `true`, the cast shows its cast bar but does **not** resolve at its own `t + telegraph`; it goes dormant (no ground telegraph) until a [`bait`](#bait--turn-lock-and-aim-a-stored-cleave) with a matching `link` arms it. The geometry is then computed from the boss's **locked facing at that moment** (so `directionOffset: 0`/`π` become front/rear relative to the baited player) and detonates together with the bait. Defaults to `false`. |
 
 When you use these, the shape's own `origin`/`direction` may be omitted (they default and are
 overridden). Each flag is independent — e.g. `anchor: "boss"` with a static shape `direction` vector
@@ -276,6 +278,38 @@ can reposition during the telegraph. The ground marker stays hidden until it res
 | `role`       | no       | If set (`tank`/`healer`/`dps`), only that role is eligible to be the target. |
 | `radius`     | yes      | Circle radius (> 0). |
 | plus all [common fields](#common-fields-aoe--targeted) except `shape`. | | |
+
+### `bait` — turn, lock, and aim a stored cleave
+
+Selects a player **at cast start** (unlike `targeted`, which picks at resolve), turns the boss to
+face them, and **locks** its facing for the cast. The bait deals **no damage itself** — its `link`
+names a [`deferred` stored cleave](#boss-anchored-cleaves-anchor--directionfrom) that is aimed from
+this locked facing and detonates at `t + telegraph`. A stored `future` (front) / `past` (rear) thus
+becomes "toward" / "away from" the baited player.
+
+```json
+{
+  "type": "bait",
+  "id": "all-things-ending",
+  "t": 10,
+  "name": "All Things Ending",
+  "targetMode": "random",
+  "telegraph": 4,
+  "link": "future-ending",
+  "showCastBar": true
+}
+```
+
+| Field         | Required | Notes |
+|---------------|----------|-------|
+| `targetMode`  | yes      | `"random"` (seeded RNG over living players), `"closest"`, or `"furthest"` (both measured from the boss). |
+| `role`        | no       | If set (`tank`/`healer`/`dps`), only that role is eligible to be baited. |
+| `telegraph`   | yes      | Cast duration; the linked cleave detonates at `t + telegraph`. |
+| `link`        | yes      | Id of an earlier `aoe` with `deferred: true` (the stored cleave) to aim and detonate. |
+| `showCastBar` | no       | Show the boss cast bar for the duration of the bait. |
+
+A full two-cast sequence (stored `Future Ending` cleave → 3s → baited `All Things Ending`) lives in
+`raids/debug/stored-bait-test.json`.
 
 ### `tether_source` — buff/debuff tether
 
@@ -800,6 +834,7 @@ burst is independent of the named effect — it deals its own `damage`, unrelate
 | `knockback` | no | Knockback applied to each hit player (same shape as on `aoe`). |
 | `showCastBar` | no | Show a single cast bar for the set. Default `false`. |
 | `showTelegraph` | no | `true` (default) draws the ground circles. |
+| `telegraphMode` | no | `"cast"` (default) draws during the cast and flashes at resolve. `"resolve"` hides the cast marker and only shows the 0.6s resolved flash. `showTelegraph: false` still draws nothing. |
 
 ```json
 {
@@ -1134,6 +1169,7 @@ descriptive Zod error. The existing files in `raids/` double as references:
 
 - `sample-raid.json` — every shape kind (`circle`, `cone`, `rect`, `donut`).
 - `near-far-bait.json` — `targeted` events with `role` filters and `applyEffect`.
+- `stored-bait-test.json` — `deferred` stored cleaves (`Future`/`Past Ending`) linked to `bait` casts.
 - `debuff-test.json` — `vuln` and `dot` (moving/idle) behaviors.
 - `tether-test.json` — `tether_source` buff and debuff.
 - `line-link-test.json` — `line_link` from a north statue with hidden debuff, effect, and knockback.

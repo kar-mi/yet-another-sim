@@ -18,6 +18,7 @@ export const KNOCKBACK_FRICTION = 40; // ground deceleration (units/s^2); v0 = s
 export const INITIAL_TANK_THREAT = 1; // seed so a tank starts as the boss's target
 
 export const INTERCEPT_THRESHOLD = 2.0;
+export const AOE_RESOLVE_LINGER = 0.6; // seconds a resolve-only AOE stays visible after it resolves
 export const TARGETED_LINGER = 0.7; // seconds a targeted bait's circle stays visible after it resolves
 export const TOWER_LINGER = 0.7; // seconds a tower stays visible after it resolves (success/failure flash)
 export const CHAIN_LINGER = 0.7; // seconds a chain stays visible after it breaks/bursts (outcome flash)

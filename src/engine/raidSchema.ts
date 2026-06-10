@@ -112,6 +112,7 @@ const KnockbackSchema = z.object({
   height: z.number().nonnegative().default(0), // 0 = horizontal knockback; >0 = knockup arc
   origin: Vec2Schema.optional(),               // defaults to the AOE shape's center/origin
 });
+const TelegraphModeSchema = z.enum(["cast", "resolve"]);
 
 const AOEEventSchema = z.object({
   type: z.literal("aoe").default("aoe"),
@@ -132,6 +133,9 @@ const AOEEventSchema = z.object({
   // The boss freezes its facing for the duration of the cast (telegraph), then resumes.
   // Defaults to true; set false to let the boss keep tracking its target mid-cast.
   lockFacing: z.boolean().default(true),
+  // Store this cleave: do NOT resolve at its own cast end. A linked `bait` (see BaitEventSchema.link)
+  // arms and detonates it, computing the cone/rect geometry from the boss's locked facing at that time.
+  deferred: z.boolean().default(false),
   // Directional gate: only hit players whose bearing from the boss is within this arc.
   // `center` (radians, clockwise from boss facing; 0 = front) and full `width` (radians).
   positional: z.object({
@@ -140,6 +144,7 @@ const AOEEventSchema = z.object({
   }).optional(),
   showCastBar: z.boolean().optional(),
   showTelegraph: z.boolean().optional(),
+  telegraphMode: TelegraphModeSchema.optional(),
 });
 
 const TargetedEventSchema = z.object({
@@ -156,6 +161,23 @@ const TargetedEventSchema = z.object({
   applyEffect: ApplyEffectSchema.optional(),
   showCastBar: z.boolean().optional(),
   showTelegraph: z.boolean().optional(),
+  telegraphMode: TelegraphModeSchema.optional(),
+});
+
+// A baited cast (targeting only — deals no damage itself): at cast START a player is selected
+// (random/closest/furthest), the boss turns to face them and locks facing for the cast. `link` names
+// a deferred `aoe` (stored cleave); that cleave is aimed from the locked facing and detonates at cast END.
+const BaitEventSchema = z.object({
+  type: z.literal("bait"),
+  id: EventIdSchema,
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  targetMode: z.enum(["random", "closest", "furthest"]),
+  role: RoleSchema.optional(),
+  telegraph: z.number().positive(),
+  // Id of the deferred `aoe` (stored cleave) this bait aims and detonates at cast end.
+  link: z.string().min(1),
+  showCastBar: z.boolean().optional(),
 });
 
 const TetherSourceEventSchema = z.object({
@@ -432,6 +454,7 @@ const EffectBurstEventSchema = z.object({
   knockback: KnockbackSchema.optional(),
   showCastBar: z.boolean().optional(),
   showTelegraph: z.boolean().optional(),
+  telegraphMode: TelegraphModeSchema.optional(),
 });
 
 const HealEventSchema = z.object({
@@ -441,7 +464,7 @@ const HealEventSchema = z.object({
   name: z.string().min(1),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema]);
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
@@ -686,6 +709,29 @@ export const RaidSchema = z.object({
         });
       }
     });
+  });
+
+  // bait events: link (if set) must reference an earlier `aoe` with deferred:true (the stored cleave).
+  const deferredAoeById = new Map<string, { t: number; index: number }>();
+  raid.events.forEach((event, i) => {
+    if (event.type === "aoe" && event.deferred) deferredAoeById.set(event.id, { t: event.t, index: i });
+  });
+  raid.events.forEach((event, i) => {
+    if (event.type !== "bait" || event.link === undefined) return;
+    const source = deferredAoeById.get(event.link);
+    if (!source) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["events", i, "link"],
+        message: `bait link "${event.link}" must reference an aoe event with deferred:true`,
+      });
+    } else if (source.t > event.t || (source.t === event.t && source.index >= i)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["events", i, "link"],
+        message: `linked stored cleave "${event.link}" must occur earlier than the bait`,
+      });
+    }
   });
 
   // plant combination groups: every declared member id must exist in the roster.

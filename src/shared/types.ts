@@ -50,6 +50,7 @@ export type BotSolvers = {
 };
 
 export type DamageType = "physical" | "magical" | "true";
+export type TelegraphMode = "cast" | "resolve";
 
 export type EffectBehavior =
   | { kind: "none" }
@@ -173,10 +174,21 @@ export type ActiveMechanic = {
   positional?: PositionalArc;
   // While unresolved and casting, the boss holds its facing instead of tracking its target.
   lockFacing?: boolean;
+  // Stored-cleave (deferred) support: a `deferred` mechanic shows its own cast bar, then sits dormant
+  // (no telegraph, unresolved) until a linked `bait` arms it. `armed` flips it back to a normal
+  // resolving cone/rect; the anchor fields let its geometry be recomputed from the boss's locked
+  // facing at arm time (see promotePending + resolveAoe).
+  deferred?: boolean;
+  armed?: boolean;
+  anchor?: "boss";
+  directionFrom?: "bossFacing";
+  directionOffset?: number;
   resolved: boolean;
   showCastBar: boolean;
   // When false, the ground telegraph is never drawn; the cast bar and damage still apply.
   showTelegraph: boolean;
+  // "resolve" hides the marker while casting, then uses the normal resolved flash.
+  telegraphMode?: TelegraphMode;
   // When set, the circle's target (and center) is chosen at resolve time, not cast start.
   // The ground telegraph stays hidden until it resolves. "aggro" picks the boss's current
   // threat target (the player holding aggro).
@@ -203,8 +215,11 @@ export type PendingEvent = {
   directionFrom?: "bossFacing";
   directionOffset?: number;
   lockFacing?: boolean;
+  // When true, this cleave is stored: it does not resolve at its own cast end; a linked bait arms it.
+  deferred?: boolean;
   showCastBar: boolean;
   showTelegraph: boolean;
+  telegraphMode: TelegraphMode;
 };
 
 export type PendingTargetedEvent = {
@@ -220,8 +235,23 @@ export type PendingTargetedEvent = {
   applyEffect?: EffectSpec;
   showCastBar: boolean;
   showTelegraph: boolean;
+  telegraphMode: TelegraphMode;
 };
 
+
+// A bait selects a player at cast START (random/closest/furthest) and turns + locks the boss toward
+// them for the cast. It deals no damage itself; `link` is the id of a deferred stored cleave that the
+// bait aims (from the locked facing) and detonates at cast END.
+export type PendingBaitEvent = {
+  id: string;
+  t: number;
+  name: string;
+  targetMode: "random" | "closest" | "furthest";
+  role?: Role;
+  telegraph: number;
+  link: string;
+  showCastBar: boolean;
+};
 
 // An effect-burst spawns an AOE circle on every player carrying a named effect (e.g. a burst
 // around each sleeping player). At cast start it drops one normal AOE per carrier.
@@ -238,6 +268,7 @@ export type PendingEffectBurst = {
   knockback?: Knockback;
   showCastBar: boolean;
   showTelegraph: boolean;
+  telegraphMode: TelegraphMode;
 };
 
 export type EffectResolverAction =
@@ -664,6 +695,7 @@ export type World = {
   lineLinks: ActiveLineLink[];
   pendingLineLinks: PendingLineLink[];
   pendingTargeted: PendingTargetedEvent[];
+  pendingBaits: PendingBaitEvent[];
   towers: ActiveTower[];
   pendingTowers: PendingTower[];
   chains: ActiveChain[];

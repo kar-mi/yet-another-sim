@@ -1802,6 +1802,100 @@ test("lockFacing freezes the boss facing for the duration of the cast", () => {
   expect(w.boss.facing).toBeCloseTo(Math.atan2(0, 10));
 });
 
+// --- Stored cleave + linked bait -----------------------------------------
+
+// h1 sits closest (east, dist 4) so a "closest" bait targets it and the boss faces east (+X, ~π/2).
+// m2 is the east victim (front of the locked facing), m1 the west victim (rear). The stored cleave is
+// linked to the bait and detonates with it, aimed from the boss's locked facing + its directionOffset.
+const storedBaitRoster: Record<string, { spawn: Vec }> = {
+  h1: { spawn: [4, 0] }, m2: { spawn: [14, 0] }, m1: { spawn: [-14, 0] },
+};
+
+function storedBaitRaid(directionOffset: number, targetMode: "random" | "closest" | "furthest" = "closest") {
+  return loadRaid({
+    ...baseRaid,
+    duration: 8,
+    players: roster(storedBaitRoster),
+    events: [
+      {
+        type: "aoe", id: "stored", t: 1, name: "Stored Ending", deferred: true,
+        anchor: "boss", directionFrom: "bossFacing", directionOffset,
+        telegraph: 1, damage: 50, damageType: "physical" as const,
+        shape: { kind: "cone", angleDeg: 90, length: 30 }, telegraphMode: "resolve", showCastBar: true,
+      },
+      {
+        type: "bait", id: "bait", t: 4, name: "All Things Ending", targetMode,
+        angleDeg: 60, length: 30, telegraph: 2, damage: 40, damageType: "physical" as const,
+        link: "stored", showCastBar: true,
+      },
+    ],
+  });
+}
+
+test("a deferred stored cleave stays dormant and hidden until its linked bait arms it", () => {
+  const world = runTicks(createWorld(storedBaitRaid(0)), {}, Math.ceil(3 * 60)); // t=3: cast1 done, bait not yet
+  const stored = world.active.find(m => m.id === "stored");
+  expect(stored).toBeDefined();
+  expect(stored!.resolved).toBe(false);
+  expect(stored!.showTelegraph).toBe(false); // no ground telegraph while stored
+  expect(byId(world, "m1").hp).toBe(100);     // nothing has resolved yet
+  expect(byId(world, "m2").hp).toBe(100);
+});
+
+test("a bait turns the boss to face its target and locks facing during the cast", () => {
+  const world = runTicks(createWorld(storedBaitRaid(0)), {}, Math.ceil(5 * 60)); // mid bait cast (4..6)
+  expect(world.boss.currentTarget).toBe("mt");             // mt still holds aggro (north)
+  expect(world.boss.facing).toBeCloseTo(Math.atan2(4, 0)); // but facing is locked toward h1 (east)
+});
+
+test("a resolve-only stored cleave is hidden while armed and flashes at resolve", () => {
+  let world = tick(createWorld(storedBaitRaid(0)), {}, 5); // mid bait cast (4..6)
+  const armed = world.active.find(m => m.id === "stored");
+  expect(armed?.armed).toBe(true);
+  expect(armed?.resolved).toBe(false);
+  expect(armed?.showTelegraph).toBe(true);
+  expect(armed?.telegraphMode).toBe("resolve");
+
+  world = tick(world, {}, 1); // resolveAt=6; active lingers for the resolved flash
+  const flashed = world.active.find(m => m.id === "stored");
+  expect(flashed?.resolved).toBe(true);
+  expect(flashed?.showTelegraph).toBe(true);
+  expect(flashed?.telegraphMode).toBe("resolve");
+
+  world = tick(world, {}, 0.59);
+  expect(world.active.find(m => m.id === "stored")?.resolved).toBe(true);
+
+  world = tick(world, {}, 0.02);
+  expect(world.active.some(m => m.id === "stored")).toBe(false);
+});
+
+test("future stored cleave fires toward the bait (front); rear is spared", () => {
+  const world = runTicks(createWorld(storedBaitRaid(0)), {}, Math.ceil(6.1 * 60));
+  expect(byId(world, "m2").hp).toBeLessThan(100); // east (toward bait) -> hit
+  expect(byId(world, "m1").hp).toBe(100);         // west (rear) -> spared
+});
+
+test("past stored cleave fires away from the bait (rear)", () => {
+  const world = runTicks(createWorld(storedBaitRaid(Math.PI)), {}, Math.ceil(6.1 * 60));
+  expect(byId(world, "m1").hp).toBeLessThan(100); // west (rear, away from bait) -> hit by the cleave
+});
+
+test("the linked stored cleave detonates on the same tick the bait resolves", () => {
+  let w = runTicks(createWorld(storedBaitRaid(0)), {}, Math.ceil(5.95 * 60)); // just before resolveAt=6
+  expect(byId(w, "m2").hp).toBe(100);                                  // nothing resolved yet
+  expect(w.active.find(m => m.id === "stored")?.resolved).toBe(false); // armed but not yet detonated
+  w = runTicks(w, {}, 6); // step past t=6
+  expect(byId(w, "m2").hp).toBeLessThan(100); // the linked stored cleave detonates at the bait's resolve
+});
+
+test("random bait selection is deterministic under the seeded RNG", () => {
+  const raid = storedBaitRaid(0, "random");
+  const w1 = runTicks(createWorld(raid, 1), {}, Math.ceil(6.1 * 60));
+  const w2 = runTicks(createWorld(raid, 1), {}, Math.ceil(6.1 * 60));
+  expect(w1.players.map(p => p.hp)).toEqual(w2.players.map(p => p.hp));
+  expect(w1.boss.facing).toBeCloseTo(w2.boss.facing);
+});
+
 // --- RNG group mechanics -------------------------------------------------
 
 function groupRaid(events: unknown[], over: Record<string, { spawn?: Vec }> = {}) {
