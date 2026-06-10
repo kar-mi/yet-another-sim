@@ -39,16 +39,23 @@ function createEffectRenderState(): EffectRenderState {
   return { ids: [], timerBucket: -1, chips: [] };
 }
 
-// Map a status effect to a compact icon glyph (replaces the old text name). A plant arrow is
-// rotated to match the knockback heading ("➤" points east by default; screen +z is up).
-function effectIcon(effect: Player["effects"][number]): { glyph: string; rotate?: number } {
+function teleportentIcon([x, z]: [number, number]): string {
+  if (Math.abs(x) > Math.abs(z)) {
+    return x >= 0 ? "teleportent_right.png" : "teleportent_left.png";
+  }
+  return z >= 0 ? "teleportent_up.png" : "teleportent_down.png";
+}
+
+// Map a status effect to a compact image or glyph. Static debuff images are preferred for
+// raid-specific statuses; generic effects keep the old glyph fallback.
+function effectIcon(effect: Player["effects"][number]): { glyph?: string; src?: string; rotate?: number } {
   switch (effect.behavior.kind) {
     case "plant": {
-      const [x, z] = effect.behavior.direction;
-      return { glyph: "➤", rotate: (Math.atan2(-z, x) * 180) / Math.PI };
+      return { src: `/static/debuffs/${teleportentIcon(effect.behavior.direction)}` };
     }
-    case "sleep": return { glyph: "💤" };
-    case "confusion": return { glyph: "❓" };
+    case "sleep": return { src: "/static/debuffs/sleep.png" };
+    case "confusion": return { src: "/static/debuffs/confuse.png" };
+    case "doubleTrouble": return { src: "/static/debuffs/double-trouble.png" };
     case "vuln": return { glyph: "▼" };
     case "dot": {
       const c = effect.behavior.condition;
@@ -138,9 +145,14 @@ function buildEffectChip(
     img.src = `/static/effects/${effect.icon}`;
     img.alt = effect.name;
     iconEl = img;
+  } else if (icon.src) {
+    const img = document.createElement("img");
+    img.src = icon.src;
+    img.alt = effect.name;
+    iconEl = img;
   } else {
     iconEl = document.createElement("span");
-    iconEl.textContent = icon.glyph;
+    iconEl.textContent = icon.glyph ?? "";
   }
   iconEl.className = `${className}-icon`;
   if (icon.rotate !== undefined) iconEl.style.transform = `rotate(${icon.rotate}deg)`;

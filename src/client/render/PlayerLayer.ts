@@ -6,7 +6,7 @@ import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import type { Scene } from "@babylonjs/core/scene";
 import { logger } from "../../shared/logger";
 import type { Player } from "../../shared/types";
-import { glyphBillboardMaterial } from "./meshes/billboardMaterials";
+import { glyphBillboardMaterial, imageBillboardMaterial } from "./meshes/billboardMaterials";
 
 const PLAYER_CENTER_Y = 0.4;
 const PLAYER_MODEL_ROOT = "/static/model/";
@@ -17,6 +17,7 @@ const DPS_PLAYER_MODEL_FILE = "DPSHermit.glb";
 const PLAYER_MODEL_SCALE = 3;
 const MARKER_Y = 2.6;
 const MARKER_SIZE = 0.65;
+const MARKER_ICON_SCALE = 4;
 const MARKER_SPACING = 0.7;
 
 type MarkerState = {
@@ -102,9 +103,9 @@ export class PlayerLayer {
 
   private syncMarkers(player: Player, anchor: Mesh, time: number): void {
     const effects = player.alive
-      ? player.effects.filter(effect => effect.marker && effect.appliedAt + effect.duration > time)
+      ? player.effects.filter(effect => (effect.marker || effect.markerIcon) && effect.appliedAt + effect.duration > time)
       : [];
-    const key = effects.map(effect => `${effect.id}:${effect.kind}:${effect.marker}`).join("|");
+    const key = effects.map(effect => `${effect.id}:${effect.kind}:${effect.marker ?? ""}:${effect.markerIcon ?? ""}`).join("|");
     const current = this.markers.get(player.id);
     if (current?.key === key) return;
     if (current) {
@@ -117,18 +118,29 @@ export class PlayerLayer {
     const startX = -((effects.length - 1) * MARKER_SPACING) / 2;
     effects.forEach((effect, index) => {
       const marker = effect.marker ?? "";
-      const plane = CreatePlane(`player-marker-${player.id}-${effect.id}`, { size: MARKER_SIZE }, this.scene);
+      const markerIcon = effect.markerIcon;
+      const plane = CreatePlane(
+        `player-marker-${player.id}-${effect.id}`,
+        { size: markerIcon ? MARKER_SIZE * MARKER_ICON_SCALE : MARKER_SIZE },
+        this.scene,
+      );
       plane.parent = anchor;
       plane.position.set(startX + index * MARKER_SPACING, MARKER_Y, 0);
       plane.billboardMode = Mesh.BILLBOARDMODE_ALL;
       plane.isPickable = false;
-      plane.material = glyphBillboardMaterial(
-        this.scene,
-        `player-marker-mat-${player.id}-${effect.id}`,
-        `player-marker-tex-${player.id}-${effect.id}`,
-        marker,
-        effect.kind === "buff" ? "#79d7ff" : "#ff6b6b",
-      );
+      plane.material = markerIcon
+        ? imageBillboardMaterial(
+          this.scene,
+          `player-marker-mat-${player.id}-${effect.id}`,
+          `/static/head_markers/${markerIcon}`,
+        )
+        : glyphBillboardMaterial(
+          this.scene,
+          `player-marker-mat-${player.id}-${effect.id}`,
+          `player-marker-tex-${player.id}-${effect.id}`,
+          marker,
+          effect.kind === "buff" ? "#79d7ff" : "#ff6b6b",
+        );
       meshes.push(plane);
     });
     this.markers.set(player.id, { key, meshes });
