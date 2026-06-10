@@ -100,6 +100,7 @@ const ApplyEffectSchema = z.object({
   visibility: z.enum(["visible", "invisible"]).optional(),
   icon: z.string().min(1).optional(),   // HUD icon filename, served from /static/effects/
   marker: z.string().min(1).max(8).optional(), // short above-head marker shown while active
+  markerIcon: z.string().min(1).optional(), // above-head marker image filename, served from /static/head_markers/
 });
 
 const ApplyEffectsSchema = z.object({

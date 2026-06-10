@@ -44,7 +44,7 @@
         "kind": "debuff",
         "duration": 12,
         "visibility": "invisible",
-        "marker": "S",
+        "markerIcon": "defam_processed.png",
         "behavior": { "kind": "none" }
       }
     },
@@ -72,7 +72,7 @@
         "kind": "debuff",
         "duration": 10,
         "visibility": "invisible",
-        "marker": "K",
+        "markerIcon": "stack_processed.png",
         "behavior": { "kind": "none" }
       }
     },
@@ -100,7 +100,7 @@
         "kind": "debuff",
         "duration": 10,
         "visibility": "invisible",
-        "marker": "C",
+        "markerIcon": "cone_processed.png",
         "behavior": { "kind": "none" }
       }
     },

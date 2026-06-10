@@ -705,6 +705,7 @@ test("applyEffect can create an invisible debuff from any mechanic", () => {
           kind: "debuff" as const,
           duration: 10,
           visibility: "invisible" as const,
+          markerIcon: "defam_processed.png",
           behavior: { kind: "none" as const },
         },
         shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
@@ -713,7 +714,11 @@ test("applyEffect can create an invisible debuff from any mechanic", () => {
   });
 
   const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 20);
-  expect(human(world).effects.some(e => e.name === "Stored Sentence" && e.visibility === "invisible")).toBe(true);
+  expect(human(world).effects.some(e =>
+    e.name === "Stored Sentence"
+    && e.visibility === "invisible"
+    && e.markerIcon === "defam_processed.png",
+  )).toBe(true);
 });
 
 test("vuln does not amplify mismatched or expired damage", () => {
