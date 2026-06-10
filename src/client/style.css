@@ -573,12 +573,35 @@ body:focus-visible {
   box-shadow: 0 0 4px rgba(200, 184, 122, 0.6);
 }
 
+.party-name-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 3px;
+}
+
 .party-name {
-  display: block;
   font-size: 10px;
   color: #c8b87a;
-  letter-spacing: 0.05em;
-  margin-bottom: 3px;
+  letter-spacing: 0;
+}
+
+.party-status-dot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  box-shadow: 0 0 4px currentColor;
+}
+
+.party-status-dot.is-joined {
+  color: #35d05c;
+  background: #35d05c;
+}
+
+.party-status-dot.is-bot {
+  color: #df3333;
+  background: #df3333;
 }
 
 .party-hp-track,
