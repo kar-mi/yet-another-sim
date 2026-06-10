@@ -62,7 +62,6 @@ export function keyLabel(code: string): string {
 
 export type ControllerType = 'xbox' | 'ps5' | 'nintendo' | 'unknown';
 
-export { CONTROLLER_BUTTON_LABELS } from "./actions";
 
 export function loadSettings(): Settings {
   try {

@@ -9,8 +9,7 @@ export class WaymarkLayer {
 
   constructor(private scene: Scene) {}
 
-  sync(waymarks: Waymark[]): void {
-    const key = JSON.stringify(waymarks);
+  sync(waymarks: Waymark[], key: string): void {
     if (key === this.key) return;
     this.key = key;
 

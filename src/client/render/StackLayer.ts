@@ -4,9 +4,9 @@ import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveGroupMechanic, Player } from "../../shared/types";
+import { glyphBillboardMaterial } from "./meshes/billboardMaterials";
 
 const ICON_Y = 3.2;    // height of the stack marker above the marked player
 const CIRCLE_Y = 0.02; // ground circle just above the floor
@@ -31,7 +31,7 @@ export class StackLayer {
       if (!want.has(id)) { mesh.dispose(); this.icons.delete(id); }
     }
     for (const [id, mesh] of this.circles) {
-      if (!want.has(id)) { mesh.dispose(); this.circles.delete(id); }
+      if (!want.has(id)) { mesh.dispose(false, true); this.circles.delete(id); }
     }
 
     for (const group of groups) {
@@ -70,26 +70,13 @@ export class StackLayer {
 
   private getIconMaterial(): StandardMaterial {
     if (this.iconMaterial) return this.iconMaterial;
-    const tex = new DynamicTexture("stack-icon-tex", { width: 128, height: 128 }, this.scene, false);
-    tex.hasAlpha = true;
-    // null x centers the stack glyph horizontally; clear to transparent.
-    tex.drawText("❖", null, 96, "bold 96px sans-serif", "#66ccff", "transparent", true, true);
-    const mat = new StandardMaterial("stack-icon-mat", this.scene);
-    mat.diffuseTexture = tex;
-    mat.useAlphaFromDiffuseTexture = true;
-    mat.transparencyMode = StandardMaterial.MATERIAL_ALPHATEST; // discard transparent pixels
-    mat.alphaCutOff = 0.4;
-    mat.emissiveTexture = tex;
-    mat.emissiveColor = new Color3(1, 1, 1);
-    mat.disableLighting = true;
-    mat.backFaceCulling = false;
-    this.iconMaterial = mat;
-    return mat;
+    this.iconMaterial = glyphBillboardMaterial(this.scene, "stack-icon-mat", "stack-icon-tex", "❖", "#66ccff");
+    return this.iconMaterial;
   }
 
   dispose(): void {
     for (const mesh of this.icons.values()) mesh.dispose();
-    for (const mesh of this.circles.values()) mesh.dispose();
+    for (const mesh of this.circles.values()) mesh.dispose(false, true);
     this.icons.clear();
     this.circles.clear();
     this.iconMaterial?.dispose();

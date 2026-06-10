@@ -1,66 +1,32 @@
-import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
-import { CreateTorus } from "@babylonjs/core/Meshes/Builders/torusBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveSpreadStack, Boss, Player } from "../../shared/types";
+import { applyAlphaTest } from "./meshes/billboardMaterials";
+import {
+  createQuestionRing,
+  QUESTION_RING_DEFAULT_Y,
+  updateQuestionRing,
+  type QuestionRingMeshes,
+} from "./meshes/questionRingMeshes";
 
 // The fire "?" ring mirrors the inverse mechanic's ring: one ring per mechanic identifies it
 // (fire colour), and two orbs encode real (dark blue) vs a lying "?" (reddish-orange + yellow "?").
-const RING_RADIUS = 6;
-const RING_THICKNESS = 0.5;
-const ORBS_PER_RING = 2;
-const ORB_SIZE = 2.6;
-const DEFAULT_RING_Y = 2;
 const DEFAULT_RING_COLOR = "#f97316";
-const REAL_ORB = "#1e3a8f";
-const FAKE_ORB = "#ff5a1f";
-const QUESTION = "#ffdd33";
 
 const HEAD_Y = 2.4;        // downward spread triangle floating over a player
 const STACK_MARKER_Y = 2.6; // stack "ring with triangles in" flat disc, raised above the marked head
 
 type Handle = {
   mech: ActiveSpreadStack;
-  ring: Mesh;
-  orbs: Mesh[];
-  ringMats: StandardMaterial[];
+  questionRing: QuestionRingMeshes;
   spread: Map<string, Mesh>;       // playerId -> downward head triangle
   stackMarkers: Map<string, Mesh>; // marked playerId (one per group) -> "ring with triangles in" disc
 };
-
-// Alpha-test billboard recipe (transparent DynamicTextures render a black square under alpha-blend).
-function applyAlphaTest(mat: StandardMaterial, tex: DynamicTexture): void {
-  mat.diffuseTexture = tex;
-  mat.useAlphaFromDiffuseTexture = true;
-  mat.transparencyMode = StandardMaterial.MATERIAL_ALPHATEST;
-  mat.alphaCutOff = 0.4;
-  mat.emissiveTexture = tex;
-  mat.emissiveColor = new Color3(1, 1, 1);
-  mat.disableLighting = true;
-  mat.backFaceCulling = false;
-}
-
-function orbTexture(scene: Scene, id: string, inverted: boolean): DynamicTexture {
-  const tex = new DynamicTexture(id, { width: 128, height: 128 }, scene, false);
-  tex.hasAlpha = true;
-  const ctx = tex.getContext();
-  ctx.clearRect(0, 0, 128, 128);
-  ctx.beginPath();
-  ctx.arc(64, 64, 60, 0, Math.PI * 2);
-  ctx.fillStyle = inverted ? FAKE_ORB : REAL_ORB;
-  ctx.fill();
-  if (inverted) {
-    tex.drawText("?", null, 92, "bold 90px sans-serif", QUESTION, "", true, true);
-  } else {
-    tex.update();
-  }
-  return tex;
-}
 
 export class SpreadStackLayer {
   private handles = new Map<string, Handle>();
@@ -81,13 +47,8 @@ export class SpreadStackLayer {
       if (!handle) { handle = this.createHandle(mech); this.handles.set(mech.id, handle); }
 
       // Ring + orbs orbit the boss at this mechanic's authored height (fire above lightning).
-      const y = mech.ringHeight ?? DEFAULT_RING_Y;
-      handle.ring.position.set(boss.pos.x, y, boss.pos.z);
-      const spin = time * 0.7;
-      for (let i = 0; i < handle.orbs.length; i++) {
-        const a = (i / handle.orbs.length) * Math.PI * 2 + spin;
-        handle.orbs[i].position.set(boss.pos.x + Math.cos(a) * RING_RADIUS, y, boss.pos.z + Math.sin(a) * RING_RADIUS);
-      }
+      const y = mech.ringHeight ?? QUESTION_RING_DEFAULT_Y;
+      updateQuestionRing(handle.questionRing, boss.pos.x, boss.pos.z, y, time);
 
       // Player markers only while the cast is unresolved; the shown mode decides which.
       const showSpread = !mech.resolved && mech.shown === "spread";
@@ -139,32 +100,8 @@ export class SpreadStackLayer {
   }
 
   private createHandle(mech: ActiveSpreadStack): Handle {
-    const ringMats: StandardMaterial[] = [];
-    const ring = CreateTorus(`ss-ring-${mech.id}`, { diameter: RING_RADIUS * 2, thickness: RING_THICKNESS, tessellation: 48 }, this.scene);
-    ring.isPickable = false;
-    const ringColor = Color3.FromHexString(mech.ringColor ?? DEFAULT_RING_COLOR);
-    const ringMat = new StandardMaterial(`ss-ring-mat-${mech.id}`, this.scene);
-    ringMat.diffuseColor = ringColor;
-    ringMat.emissiveColor = ringColor;
-    ringMat.specularColor = new Color3(0, 0, 0);
-    ringMat.disableLighting = true;
-    ring.material = ringMat;
-    ringMats.push(ringMat);
-
-    const orbs: Mesh[] = [];
-    for (let i = 0; i < ORBS_PER_RING; i++) {
-      const orb = CreatePlane(`ss-orb-${mech.id}-${i}`, { size: ORB_SIZE }, this.scene);
-      orb.billboardMode = BabylonMesh.BILLBOARDMODE_ALL;
-      orb.isPickable = false;
-      const tex = orbTexture(this.scene, `ss-orb-tex-${mech.id}-${i}`, mech.inverted);
-      const mat = new StandardMaterial(`ss-orb-mat-${mech.id}-${i}`, this.scene);
-      applyAlphaTest(mat, tex);
-      orb.material = mat;
-      orbs.push(orb);
-      ringMats.push(mat);
-    }
-
-    return { mech, ring, orbs, ringMats, spread: new Map(), stackMarkers: new Map() };
+    const questionRing = createQuestionRing(this.scene, "ss", mech.id, mech.ringColor ?? DEFAULT_RING_COLOR, mech.inverted);
+    return { mech, questionRing, spread: new Map(), stackMarkers: new Map() };
   }
 
   private getHeadMaterial(): StandardMaterial {
@@ -229,9 +166,8 @@ export class SpreadStackLayer {
   }
 
   private disposeHandle(handle: Handle): void {
-    handle.ring.dispose();
-    for (const orb of handle.orbs) orb.dispose();
-    for (const mat of handle.ringMats) { mat.diffuseTexture?.dispose(); mat.dispose(); }
+    for (const mesh of handle.questionRing.all) mesh.dispose();
+    for (const mat of handle.questionRing.materials) { mat.diffuseTexture?.dispose(); mat.dispose(); }
     for (const head of handle.spread.values()) head.dispose();
     handle.spread.clear();
     for (const mesh of handle.stackMarkers.values()) mesh.dispose();

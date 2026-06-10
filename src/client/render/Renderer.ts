@@ -2,7 +2,7 @@ import type { World } from "../../shared/types";
 
 export interface Renderer {
   init(world: World, sessionId: string, localPlayerId?: string | null): void;
-  sync(world: World, alpha: number): void;
+  sync(world: World): void;
   render(): void;
   dispose(): void;
   getCameraYaw(): number;

@@ -29,10 +29,10 @@ export class LineLinkLayer {
     }
 
     for (const [id, mesh] of this.statues) {
-      if (!activeIds.has(id)) { mesh.dispose(); this.statues.delete(id); }
+      if (!activeIds.has(id)) { mesh.dispose(false, true); this.statues.delete(id); }
     }
     for (const [id, line] of this.lines) {
-      if (!activeLineIds.has(id)) { line.dispose(); this.lines.delete(id); }
+      if (!activeLineIds.has(id)) { line.dispose(false, true); this.lines.delete(id); }
     }
 
     for (const link of lineLinks) {
@@ -100,8 +100,8 @@ export class LineLinkLayer {
   }
 
   dispose(): void {
-    for (const mesh of this.statues.values()) mesh.dispose();
-    for (const line of this.lines.values()) line.dispose();
+    for (const mesh of this.statues.values()) mesh.dispose(false, true);
+    for (const line of this.lines.values()) line.dispose(false, true);
     this.statues.clear();
     this.lines.clear();
   }

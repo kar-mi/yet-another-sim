@@ -18,11 +18,11 @@ export class TetherLayer {
     const activeIds = new Set(tetherSources.map(ts => ts.id));
 
     for (const [id, mesh] of this.spheres) {
-      if (!activeIds.has(id)) { mesh.dispose(); this.spheres.delete(id); }
+      if (!activeIds.has(id)) { mesh.dispose(false, true); this.spheres.delete(id); }
     }
     for (const [id, line] of this.lines) {
       if (!activeIds.has(id)) {
-        line.dispose();
+        line.dispose(false, true);
         this.lines.delete(id);
       }
     }
@@ -54,7 +54,7 @@ export class TetherLayer {
       const oldLine = this.lines.get(ts.id);
       if (!tethered?.alive || ts.finalized) {
         if (oldLine) {
-          oldLine.dispose();
+          oldLine.dispose(false, true);
           this.lines.delete(ts.id);
         }
         continue;

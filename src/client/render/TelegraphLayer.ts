@@ -1,4 +1,3 @@
-import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
@@ -18,7 +17,7 @@ export class TelegraphLayer {
     const activeIds = new Set(visible.map(m => m.id));
     for (const [id, mesh] of this.meshes) {
       if (!activeIds.has(id)) {
-        mesh.dispose();
+        mesh.dispose(false, true);
         this.meshes.delete(id);
       }
     }
@@ -32,12 +31,12 @@ export class TelegraphLayer {
       if (!mesh) continue;
       const mat = mesh.material as StandardMaterial;
       if (mechanic.resolved) {
-        mat.diffuseColor = new Color3(1, 1, 1);
+        mat.diffuseColor.set(1, 1, 1);
         mat.alpha = 0.8;
       } else {
         const span = mechanic.resolveAt - mechanic.telegraphStart;
         const progress = span > 0 ? (time - mechanic.telegraphStart) / span : 1;
-        mat.diffuseColor = new Color3(1, Math.max(0, 0.8 - progress * 0.6), 0);
+        mat.diffuseColor.set(1, Math.max(0, 0.8 - progress * 0.6), 0);
         mat.alpha = 0.25 + progress * 0.45;
       }
     }

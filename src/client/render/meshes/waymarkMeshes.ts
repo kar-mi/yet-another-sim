@@ -6,6 +6,7 @@ import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Waymark, WaymarkId } from "../../../shared/types";
+import { circlePath } from "./meshPaths";
 
 // FFXIV waymark convention: letter/number pairs share a color.
 // A/1 red, B/2 yellow, C/3 blue, D/4 purple.
@@ -66,7 +67,7 @@ export function createWaymarkMeshes(scene: Scene, waymark: Waymark): Mesh[] {
   const { x, z } = waymark.pos;
 
   // Empty outlined shape on the floor: ring for letters, square border for numbers.
-  const path = isLetter(waymark.mark) ? circlePath(x, z) : squarePath(x, z);
+  const path = isLetter(waymark.mark) ? circlePath(x, z, SIZE, FLOOR_Y) : squarePath(x, z);
   const floor = CreateTube(`wm-${waymark.mark}`, {
     path,
     radius: 0.09,
@@ -89,16 +90,6 @@ export function createWaymarkMeshes(scene: Scene, waymark: Waymark): Mesh[] {
   addGlyphStrokes(scene, label, waymark.mark, color);
 
   return [floor, label];
-}
-
-function circlePath(cx: number, cz: number): Vector3[] {
-  const seg = 48;
-  const pts: Vector3[] = [];
-  for (let i = 0; i <= seg; i++) {
-    const a = (i / seg) * Math.PI * 2;
-    pts.push(new Vector3(cx + Math.cos(a) * SIZE, FLOOR_Y, cz + Math.sin(a) * SIZE));
-  }
-  return pts;
 }
 
 function squarePath(cx: number, cz: number): Vector3[] {

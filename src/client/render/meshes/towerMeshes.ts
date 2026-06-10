@@ -1,5 +1,4 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
-import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
 import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
@@ -11,6 +10,7 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveTower } from "../../../shared/types";
 import { clamp01 } from "../../../shared/math";
+import { circlePath } from "./meshPaths";
 
 const DEFAULT_CYLINDER_COLOR = "#33ccff";
 const DISK_Y = 0.02;      // flatter than waymarks (0.06)
@@ -35,16 +35,6 @@ export type TowerMeshes = {
 
 function parseColor(hex: string | undefined): Color3 {
   return Color3.FromHexString(hex ?? DEFAULT_CYLINDER_COLOR);
-}
-
-function circlePath(cx: number, cz: number, radius: number, y: number): Vector3[] {
-  const seg = 48;
-  const pts: Vector3[] = [];
-  for (let i = 0; i <= seg; i++) {
-    const a = (i / seg) * Math.PI * 2;
-    pts.push(new Vector3(cx + Math.cos(a) * radius, y, cz + Math.sin(a) * radius));
-  }
-  return pts;
 }
 
 export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes {

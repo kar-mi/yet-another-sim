@@ -29,6 +29,7 @@ import { GazeLayer } from "./GazeLayer";
 import { ForcedMarchLayer } from "./ForcedMarchLayer";
 import { WaymarkLayer } from "./WaymarkLayer";
 import { setControlScheme } from "../input";
+import { computeWorldRenderKeys, getWorldRenderKeys } from "../worldRenderKeys";
 
 // Sub-path imports drop some Babylon engine side-effect registrations.
 // Use explicit calls because referenced calls survive tree-shaking.
@@ -129,9 +130,10 @@ export class BabylonRenderer implements Renderer {
 
     new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
 
-    this.buildArena(world.arena.zones, JSON.stringify(world.arena.zones));
+    const renderKeys = getWorldRenderKeys(world) ?? computeWorldRenderKeys(world);
+    this.buildArena(world.arena.zones, renderKeys.arena);
     this.waymarks = new WaymarkLayer(this.scene);
-    this.waymarks.sync(world.waymarks);
+    this.waymarks.sync(world.waymarks, renderKeys.waymarks);
 
     this.players = new PlayerLayer(this.scene);
     this.players.init(world.players);
@@ -191,10 +193,10 @@ export class BabylonRenderer implements Renderer {
     this.arenaKey = key;
   }
 
-  sync(world: World, _alpha: number): void {
-    const arenaKey = JSON.stringify(world.arena.zones);
-    if (arenaKey !== this.arenaKey) this.buildArena(world.arena.zones, arenaKey);
-    this.waymarks.sync(world.waymarks);
+  sync(world: World): void {
+    const renderKeys = getWorldRenderKeys(world) ?? computeWorldRenderKeys(world);
+    if (renderKeys.arena !== this.arenaKey) this.buildArena(world.arena.zones, renderKeys.arena);
+    this.waymarks.sync(world.waymarks, renderKeys.waymarks);
 
     this.players.sync(world.players);
     this.boss.sync(world.boss);
@@ -215,7 +217,7 @@ export class BabylonRenderer implements Renderer {
     this.telegraphs.sync(world.active, world.time);
     this.tethers.sync(world.tetherSources, world.players, world.time);
     this.lineLinks.sync(world.lineLinks, world.players, world.time);
-    this.chains.sync(world.chains, world.players, world.time);
+    this.chains.sync(world.chains, world.players);
     this.towers.sync(world.towers, world.time);
     this.stacks.sync(world.groupMechanics, world.players, world.time);
     this.inverse.sync(world.inversions, world.boss, world.time);
