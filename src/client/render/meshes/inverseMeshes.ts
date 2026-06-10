@@ -112,15 +112,18 @@ export function updateInverseMeshes(handle: InverseMeshes, inv: ActiveInverse, b
   // Telegraph colour still warms by cast progress when no authored ring colour is present.
   const span = inv.resolveAt - inv.telegraphStart;
   const progress = span > 0 ? Math.min(1, Math.max(0, (time - inv.telegraphStart) / span)) : 1;
-  const telegraphColor = inv.ringColor ? Color3.FromHexString(inv.ringColor) : undefined;
   for (const mat of handle.telegraphMats) {
     if (inv.resolved) {
-      mat.diffuseColor = new Color3(1, 1, 1);
+      mat.diffuseColor.set(1, 1, 1);
       mat.alpha = 0.8;
     } else {
-      mat.diffuseColor = telegraphColor ?? (inv.inverted
-        ? new Color3(0.4, 0.6, 1)
-        : new Color3(1, Math.max(0, 0.8 - progress * 0.6), 0));
+      if (inv.ringColor) {
+        mat.diffuseColor.fromHexString(inv.ringColor);
+      } else if (inv.inverted) {
+        mat.diffuseColor.set(0.4, 0.6, 1);
+      } else {
+        mat.diffuseColor.set(1, Math.max(0, 0.8 - progress * 0.6), 0);
+      }
       mat.alpha = inv.telegraphAlpha ?? DEFAULT_TELEGRAPH_ALPHA;
     }
   }

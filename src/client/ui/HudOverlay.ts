@@ -19,6 +19,23 @@ declare const __YAS_DEBUG__: boolean | undefined;
 const DEBUG_POSITION_ENABLED = typeof __YAS_DEBUG__ !== "undefined" && __YAS_DEBUG__;
 const PARTY_SLOT_ORDER = ["mt", "ot", "h1", "h2", "m1", "m2", "r1", "r2"] as const;
 const PARTY_SLOT_INDEX = new Map<string, number>(PARTY_SLOT_ORDER.map((id, index) => [id, index]));
+const EFFECT_TIMER_STEP = 0.25;
+
+type EffectKind = Player["effects"][number]["kind"];
+type EffectChipHandle = { expiresAt: number; timerEl: HTMLSpanElement };
+type EffectRenderState = { ids: string[]; timerBucket: number; chips: EffectChipHandle[] };
+type PartyRow = {
+  hpFill: HTMLDivElement;
+  mpFill: HTMLDivElement;
+  rowEl: HTMLDivElement;
+  effectsEl: HTMLDivElement;
+  effectState: EffectRenderState;
+  camBtn?: HTMLButtonElement;
+};
+
+function createEffectRenderState(): EffectRenderState {
+  return { ids: [], timerBucket: -1, chips: [] };
+}
 
 // Map a status effect to a compact icon glyph (replaces the old text name). A plant arrow is
 // rotated to match the knockback heading ("➤" points east by default; screen +z is up).
@@ -39,17 +56,48 @@ function effectIcon(effect: Player["effects"][number]): { glyph: string; rotate?
   }
 }
 
-function activeVisibleEffects(player: Player, time: number): Player["effects"] {
-  return player.effects
-    .filter(e => e.visibility !== "invisible" && e.appliedAt + e.duration > time)
-    .map((effect, index) => ({ effect, index }))
-    .sort((a, b) => {
-      const aPlant = a.effect.behavior.kind === "plant";
-      const bPlant = b.effect.behavior.kind === "plant";
-      if (aPlant && bPlant) return (a.effect.plantSlot ?? a.index) - (b.effect.plantSlot ?? b.index);
-      return a.index - b.index;
-    })
-    .map(entry => entry.effect);
+function isActiveVisibleEffect(effect: Player["effects"][number], time: number, kind: EffectKind | null = null): boolean {
+  return effect.visibility !== "invisible"
+    && effect.appliedAt + effect.duration > time
+    && (kind === null || effect.kind === kind);
+}
+
+function hasSameActiveEffects(
+  player: Player,
+  time: number,
+  ids: string[],
+  kind: EffectKind | null = null,
+): boolean {
+  let index = 0;
+  for (const effect of player.effects) {
+    if (!isActiveVisibleEffect(effect, time, kind)) continue;
+    if (ids[index] !== effect.id) return false;
+    index++;
+  }
+  return index === ids.length;
+}
+
+function activeEffectIds(player: Player, time: number, kind: EffectKind | null = null): string[] {
+  const ids: string[] = [];
+  for (const effect of player.effects) {
+    if (isActiveVisibleEffect(effect, time, kind)) ids.push(effect.id);
+  }
+  return ids;
+}
+
+function sortedActiveVisibleEffects(player: Player, time: number, kind: EffectKind | null = null): Player["effects"] {
+  const effects: Array<{ effect: Player["effects"][number]; index: number }> = [];
+  for (let index = 0; index < player.effects.length; index++) {
+    const effect = player.effects[index];
+    if (isActiveVisibleEffect(effect, time, kind)) effects.push({ effect, index });
+  }
+  effects.sort((a, b) => {
+    const aPlant = a.effect.behavior.kind === "plant";
+    const bPlant = b.effect.behavior.kind === "plant";
+    if (aPlant && bPlant) return (a.effect.plantSlot ?? a.index) - (b.effect.plantSlot ?? b.index);
+    return a.index - b.index;
+  });
+  return effects.map(entry => entry.effect);
 }
 
 function partySortIndex(player: Player): number {
@@ -65,7 +113,19 @@ function orderedPartyPlayers(players: Player[], localPlayerId: string | null): P
   });
 }
 
-function buildEffectChip(effect: Player["effects"][number], time: number, className: string): HTMLSpanElement {
+function effectTimerBucket(time: number): number {
+  return Math.floor(time / EFFECT_TIMER_STEP);
+}
+
+function formatEffectTime(expiresAt: number, time: number): string {
+  return `${Math.ceil(Math.max(0, expiresAt - time))}s`;
+}
+
+function buildEffectChip(
+  effect: Player["effects"][number],
+  time: number,
+  className: string,
+): { element: HTMLSpanElement; handle: EffectChipHandle } {
   const effectEl = document.createElement("span");
   effectEl.className = `${className} ${className}-${effect.kind}`;
   effectEl.title = effect.name;
@@ -84,9 +144,40 @@ function buildEffectChip(effect: Player["effects"][number], time: number, classN
   if (icon.rotate !== undefined) iconEl.style.transform = `rotate(${icon.rotate}deg)`;
   const timerEl = document.createElement("span");
   timerEl.className = `${className}-timer`;
-  timerEl.textContent = `${Math.ceil(effect.appliedAt + effect.duration - time)}s`;
+  const expiresAt = effect.appliedAt + effect.duration;
+  timerEl.textContent = formatEffectTime(expiresAt, time);
   effectEl.append(iconEl, timerEl);
-  return effectEl;
+  return { element: effectEl, handle: { expiresAt, timerEl } };
+}
+
+function syncEffectChips(
+  container: HTMLElement,
+  state: EffectRenderState,
+  player: Player,
+  time: number,
+  className: string,
+  kind: EffectKind | null = null,
+): void {
+  const bucket = effectTimerBucket(time);
+  if (!hasSameActiveEffects(player, time, state.ids, kind)) {
+    const elements: HTMLSpanElement[] = [];
+    const chips: EffectChipHandle[] = [];
+    for (const effect of sortedActiveVisibleEffects(player, time, kind)) {
+      const chip = buildEffectChip(effect, time, className);
+      elements.push(chip.element);
+      chips.push(chip.handle);
+    }
+    container.replaceChildren(...elements);
+    state.ids = activeEffectIds(player, time, kind);
+    state.chips = chips;
+    state.timerBucket = bucket;
+    return;
+  }
+  if (state.timerBucket === bucket) return;
+  state.timerBucket = bucket;
+  for (const chip of state.chips) {
+    chip.timerEl.textContent = formatEffectTime(chip.expiresAt, time);
+  }
 }
 
 export class HudOverlay {
@@ -118,7 +209,7 @@ export class HudOverlay {
   private ctrlProvokeCdText!: HTMLDivElement;
   private sessionEl: HTMLDivElement;
   private partyEl!: HTMLDivElement;
-  private partyRows = new Map<string, { hpFill: HTMLDivElement; mpFill: HTMLDivElement; rowEl: HTMLDivElement; effectsEl: HTMLDivElement; camBtn?: HTMLButtonElement }>();
+  private partyRows = new Map<string, PartyRow>();
   private castBarEl!: HTMLDivElement;
   private castNameEl!: HTMLDivElement;
   private castFillEl!: HTMLDivElement;
@@ -129,6 +220,7 @@ export class HudOverlay {
   private currentSettings!: Settings;
   private latestPlayer: Player | null = null;
   private debuffTrackerEl!: HTMLDivElement;
+  private debuffTrackerState = createEffectRenderState();
   private kbmHotbar!: HTMLDivElement;
   private controllerHotbar!: HTMLDivElement;
   private ctrlSprintSlot!: HTMLDivElement;
@@ -263,7 +355,7 @@ export class HudOverlay {
       </div>`;
   }
 
-  private buildPartyRow(player: Player): { hpFill: HTMLDivElement; mpFill: HTMLDivElement; rowEl: HTMLDivElement; effectsEl: HTMLDivElement; camBtn?: HTMLButtonElement } {
+  private buildPartyRow(player: Player): PartyRow {
     const rowEl = document.createElement("div");
     rowEl.className = "party-member";
 
@@ -304,7 +396,17 @@ export class HudOverlay {
 
     if (camBtn) rowEl.appendChild(camBtn);
     rowEl.append(nameEl, hpTrack, mpTrack, effectsEl);
-    return { hpFill, mpFill, rowEl, effectsEl, camBtn };
+    return { hpFill, mpFill, rowEl, effectsEl, effectState: createEffectRenderState(), camBtn };
+  }
+
+  private ensurePartyRows(players: Player[]): void {
+    if (this.partyRows.size === players.length) return;
+    for (const player of orderedPartyPlayers(players, this.localPlayerId)) {
+      if (this.partyRows.has(player.id)) continue;
+      const row = this.buildPartyRow(player);
+      this.partyEl.appendChild(row.rowEl);
+      this.partyRows.set(player.id, row);
+    }
   }
 
   applySettings(settings: Settings): void {
@@ -379,18 +481,7 @@ export class HudOverlay {
       this.statusEl.className = "";
     }
 
-    const partyPlayers = orderedPartyPlayers(world.players, this.localPlayerId);
-    if (this.partyRows.size === 0 && partyPlayers.length > 0) {
-      for (const player of partyPlayers) {
-        const row = this.buildPartyRow(player);
-        this.partyEl.appendChild(row.rowEl);
-        this.partyRows.set(player.id, row);
-      }
-    }
-    for (const player of partyPlayers) {
-      const row = this.partyRows.get(player.id);
-      if (row) this.partyEl.appendChild(row.rowEl);
-    }
+    this.ensurePartyRows(world.players);
     // Spectate camera buttons only work while the local player is dead (or has no slot).
     const localAlive = this.localPlayerId
       ? (world.players.find(pl => pl.id === this.localPlayerId)?.alive ?? false)
@@ -405,10 +496,7 @@ export class HudOverlay {
       row.hpFill.style.width = `${hpPct}%`;
       row.mpFill.style.width = `${mpPct}%`;
       row.rowEl.classList.toggle("yas-dead", !player.alive);
-      row.effectsEl.replaceChildren();
-      for (const effect of activeVisibleEffects(player, world.time)) {
-        row.effectsEl.appendChild(buildEffectChip(effect, world.time, "party-effect"));
-      }
+      syncEffectChips(row.effectsEl, row.effectState, player, world.time, "party-effect");
     }
 
     const castingChain = world.chains.find(c => !c.resolved && c.showCastBar);
@@ -434,11 +522,7 @@ export class HudOverlay {
 
     if (!p) return;
 
-    const activeDebuffs = activeVisibleEffects(p, world.time).filter(effect => effect.kind === "debuff");
-    this.debuffTrackerEl.replaceChildren();
-    for (const effect of activeDebuffs) {
-      this.debuffTrackerEl.appendChild(buildEffectChip(effect, world.time, "yas-debuff"));
-    }
+    syncEffectChips(this.debuffTrackerEl, this.debuffTrackerState, p, world.time, "yas-debuff", "debuff");
 
     const hpPct = clamp01(p.hp / p.maxHp) * 100;
     this.hpFill.style.width = `${hpPct}%`;

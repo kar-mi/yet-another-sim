@@ -1,6 +1,7 @@
 import type { ClientMessage, ServerMessage } from "../shared/protocol";
 import type { Boss, Player, World } from "../shared/types";
 import { shortestAngleDelta } from "../shared/math";
+import { computeWorldRenderKeys, getWorldRenderKeys, setWorldRenderKeys, type WorldRenderKeys } from "./worldRenderKeys";
 
 type MessageType = ServerMessage["type"];
 type Handler<T extends MessageType> = (message: Extract<ServerMessage, { type: T }>) => void;
@@ -25,6 +26,7 @@ export class NetClient {
   private closing = false;
   private reconnectDelay = RECONNECT_INITIAL_MS;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private worldRenderKeys: WorldRenderKeys | null = null;
 
   constructor(private readonly url: string) {}
 
@@ -40,7 +42,7 @@ export class NetClient {
     });
   }
 
-  send(message: ClientMessage): void {
+  send(message: ClientMessage): boolean {
     if (message.type === "join") {
       this.lastJoin = { sessionId: message.sessionId, raidId: message.raidId };
     }
@@ -51,8 +53,9 @@ export class NetClient {
     }
     if (message.type === "releaseObserver") this.observing = false;
 
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return false;
     this.ws.send(JSON.stringify(message));
+    return true;
   }
 
   on<T extends MessageType>(type: T, handler: Handler<T>): () => void {
@@ -152,6 +155,9 @@ export class NetClient {
       this.claimedPlayerId = message.yourPlayerId;
       this.observing = message.yourPlayerId === null;
     }
+    if (message.type === "started" || message.type === "playback") {
+      this.worldRenderKeys = computeWorldRenderKeys(message.world);
+    }
     if (message.type === "started" || message.type === "snapshot" || message.type === "playback") this.pushSnapshot(message.world);
 
     const handlers = this.handlers.get(message.type as MessageType);
@@ -163,6 +169,8 @@ export class NetClient {
     const now = performance.now();
     const last = this.snapshots[this.snapshots.length - 1];
     if (last && now - last.t > SNAPSHOT_GAP_RESET_MS) this.snapshots.length = 0;
+    if (!this.worldRenderKeys) this.worldRenderKeys = computeWorldRenderKeys(world);
+    setWorldRenderKeys(world, this.worldRenderKeys);
     this.snapshots.push({ t: now, world });
     if (this.snapshots.length > SNAPSHOT_BUFFER_MAX) this.snapshots.shift();
   }
@@ -203,10 +211,13 @@ function interpolateBoss(prev: Boss, next: Boss, t: number): Boss {
 
 function interpolateWorld(prev: World, next: World, t: number): World {
   const prevById = new Map(prev.players.map(p => [p.id, p]));
-  return {
+  const world = {
     ...next,
     time: lerp(prev.time, next.time, t),
     players: next.players.map(playerB => interpolatePlayer(prevById.get(playerB.id), playerB, t)),
     boss: interpolateBoss(prev.boss, next.boss, t),
   };
+  const renderKeys = getWorldRenderKeys(next) ?? getWorldRenderKeys(prev);
+  if (renderKeys) setWorldRenderKeys(world, renderKeys);
+  return world;
 }
