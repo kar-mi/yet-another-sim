@@ -25,7 +25,7 @@ const TICK_MS = 1000 / 60;
 const MAX_CATCH_UP_STEPS = 5;
 export const LOBBY_TIMEOUT_MS = 10 * 60 * 1000;
 
-type SendMessage = (clientId: string, message: ServerMessage) => void;
+type SendMessage = (clientId: string, message: ServerMessage | string) => void;
 type TickHandle = ReturnType<typeof setInterval>;
 type RaidPlayerDef = RaidDef["players"][number];
 
@@ -98,7 +98,6 @@ export class Session {
   private tickHandle: TickHandle | null = null;
   private tickAccumulator = 0;
   private lastTickAt = 0;
-  private loggedLogIndex = 0;
   private readonly sessionLog: SessionLog | null;
 
   constructor(options: SessionOptions) {
@@ -190,7 +189,6 @@ export class Session {
     }
     this.latestIntents.clear();
     this.world = createWorld(this.raidWithSlotControls());
-    this.loggedLogIndex = 0;
     if (this.status === "lobby") {
       this.broadcastLobby();
       return;
@@ -249,7 +247,6 @@ export class Session {
     this.stopTick();
     this.latestIntents.clear();
     this.world = createWorld(this.raidWithSlotControls());
-    this.loggedLogIndex = 0;
     this.broadcastPlayback();
     logger.info("session", "raid stopped", { session: this.id, raid: this.raidId });
   }
@@ -267,7 +264,6 @@ export class Session {
     this.status = "running";
     this.latestIntents.clear();
     this.world = createWorld(this.raidWithSlotControls());
-    this.loggedLogIndex = 0;
     this.startTick();
     this.broadcastPlayback();
     this.broadcastStarted();
@@ -392,7 +388,6 @@ export class Session {
 
     this.status = "running";
     this.world = createWorld(this.raidWithSlotControls());
-    this.loggedLogIndex = 0;
 
     this.broadcastStarted();
 
@@ -434,13 +429,11 @@ export class Session {
   }
 
   private forwardSimLog(): void {
-    if (!this.sessionLog) return;
     const log = this.world.log;
-    if (this.loggedLogIndex > log.length) this.loggedLogIndex = 0; // world was reset
-    for (let i = this.loggedLogIndex; i < log.length; i++) {
-      this.sessionLog.event(log[i]!);
+    if (this.sessionLog) {
+      for (const entry of log) this.sessionLog.event(entry);
     }
-    this.loggedLogIndex = log.length;
+    if (log.length > 0) this.world = { ...this.world, log: [] };
   }
 
   isExpired(now = this.now()): boolean {
@@ -590,7 +583,8 @@ export class Session {
   }
 
   private broadcast(message: ServerMessage): void {
-    for (const clientId of this.clients) this.send(clientId, message);
+    const json = JSON.stringify(message);
+    for (const clientId of this.clients) this.send(clientId, json);
   }
 
   private sendError(clientId: string, message: string): void {
