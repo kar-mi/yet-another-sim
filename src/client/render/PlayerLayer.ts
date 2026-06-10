@@ -17,6 +17,7 @@ const DPS_PLAYER_MODEL_FILE = "DPSHermit.glb";
 const PLAYER_MODEL_SCALE = 3;
 const MARKER_Y = 2.6;
 const MARKER_SIZE = 0.65;
+const MARKER_ICON_SCALE = 4;
 const MARKER_SPACING = 0.7;
 
 type MarkerState = {
@@ -118,7 +119,11 @@ export class PlayerLayer {
     effects.forEach((effect, index) => {
       const marker = effect.marker ?? "";
       const markerIcon = effect.markerIcon;
-      const plane = CreatePlane(`player-marker-${player.id}-${effect.id}`, { size: MARKER_SIZE }, this.scene);
+      const plane = CreatePlane(
+        `player-marker-${player.id}-${effect.id}`,
+        { size: markerIcon ? MARKER_SIZE * MARKER_ICON_SCALE : MARKER_SIZE },
+        this.scene,
+      );
       plane.parent = anchor;
       plane.position.set(startX + index * MARKER_SPACING, MARKER_Y, 0);
       plane.billboardMode = Mesh.BILLBOARDMODE_ALL;
