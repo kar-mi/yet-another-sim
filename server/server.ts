@@ -1,4 +1,5 @@
 import { addServerTraceEvent, recordServerException, withServerSpan } from "./otel";
+import { parseRaidFile, readRaidObject } from "./raidFileReader";
 import { join } from "path";
 import {
   ClientMessageSchema,
@@ -27,9 +28,9 @@ interface SocketData {
 }
 
 function raidSegmentFromFile(file: string): string | null {
-  if (!file.endsWith(".json")) return null;
-
-  const segment = file.slice(0, -".json".length);
+  const ext = file.endsWith(".yaml") ? ".yaml" : file.endsWith(".yml") ? ".yml" : file.endsWith(".json") ? ".json" : null;
+  if (!ext) return null;
+  const segment = file.slice(0, -ext.length);
   return RAID_SEGMENT_REGEX.test(segment) ? segment : null;
 }
 
@@ -39,52 +40,69 @@ function raidFileFromPath(pathname: string): string | null {
 }
 
 async function loadCategoryRaids(categoryId: string, remaining: number): Promise<RaidEntry[]> {
-  const glob = new Bun.Glob("*.json");
   const dir = join(RAIDS_DIR, categoryId);
-  const files = (await Array.fromAsync(glob.scan(dir))).sort();
+  const EXTS = [".yaml", ".yml", ".json"] as const;
+
+  // Collect files across all extensions; first extension in priority order wins per segment.
+  const segmentMap = new Map<string, string>(); // segment → filename
+  for (const ext of EXTS) {
+    for (const file of await Array.fromAsync(new Bun.Glob(`*${ext}`).scan(dir))) {
+      const segment = file.slice(0, -ext.length);
+      if (!segmentMap.has(segment)) segmentMap.set(segment, file);
+    }
+  }
+
+  const files = [...segmentMap.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, file]) => file);
+
   const raids: RaidEntry[] = [];
 
   for (const file of files) {
-    if (file === "raid_info.json" || file.endsWith("-bots.json")) continue;
+    const base = raidSegmentFromFile(file);
+    if (!base || base === "raid_info" || base.endsWith("-bots")) continue;
     if (raids.length >= remaining) break;
 
-    const segment = raidSegmentFromFile(file);
-    if (!segment) {
-      logger.warn("raid", "skipping raid with invalid filename", { category: categoryId, file });
-      continue;
-    }
-
-    let json: { name?: unknown };
+    let obj: { name?: unknown };
     try {
-      json = await Bun.file(join(dir, file)).json() as { name?: unknown };
+      obj = await parseRaidFile(join(dir, file)) as { name?: unknown };
     } catch {
-      logger.warn("raid", "skipping raid with invalid JSON", { category: categoryId, file });
+      logger.warn("raid", "skipping raid with invalid file", { category: categoryId, file });
       continue;
     }
 
-    const name = normalizeRaidName(json.name);
+    const name = normalizeRaidName(obj.name);
     if (!name) {
       logger.warn("raid", "skipping raid with invalid name", { category: categoryId, file });
       continue;
     }
 
-    raids.push({ id: `${categoryId}/${segment}`, name });
+    raids.push({ id: `${categoryId}/${base}`, name });
   }
 
   return raids;
 }
 
 async function loadRaidCategories(): Promise<RaidCategory[]> {
-  const glob = new Bun.Glob("*/raid_info.json");
-  const infoFiles = (await Array.fromAsync(glob.scan(RAIDS_DIR))).sort();
+  const EXTS = [".yaml", ".yml", ".json"] as const;
+
+  // Collect raid_info files; first extension wins per category.
+  const categoryMap = new Map<string, string>(); // categoryId → infoFile path
+  for (const ext of EXTS) {
+    for (const raw of await Array.fromAsync(new Bun.Glob(`*/raid_info${ext}`).scan(RAIDS_DIR))) {
+      const infoFile = raw.replaceAll("\\", "/");
+      const categoryId = infoFile.slice(0, infoFile.indexOf("/"));
+      if (!categoryMap.has(categoryId)) categoryMap.set(categoryId, infoFile);
+    }
+  }
+
+  const infoEntries = [...categoryMap.entries()].sort(([a], [b]) => a.localeCompare(b));
   const categories: RaidCategory[] = [];
   let total = 0;
 
-  for (const rawInfoFile of infoFiles) {
+  for (const [categoryId, infoFile] of infoEntries) {
     if (total >= MAX_RAIDS) break;
 
-    const infoFile = rawInfoFile.replaceAll("\\", "/");
-    const categoryId = infoFile.slice(0, infoFile.indexOf("/"));
     if (!RAID_SEGMENT_REGEX.test(categoryId)) {
       logger.warn("raid", "skipping category with invalid folder name", { category: categoryId });
       continue;
@@ -92,9 +110,9 @@ async function loadRaidCategories(): Promise<RaidCategory[]> {
 
     let info: { name?: unknown; description?: unknown };
     try {
-      info = await Bun.file(join(RAIDS_DIR, infoFile)).json() as { name?: unknown; description?: unknown };
+      info = await parseRaidFile(join(RAIDS_DIR, infoFile)) as { name?: unknown; description?: unknown };
     } catch {
-      logger.warn("raid", "skipping category with invalid raid_info.json", { category: categoryId });
+      logger.warn("raid", "skipping category with invalid raid_info", { category: categoryId });
       continue;
     }
 
@@ -181,8 +199,13 @@ const server = Bun.serve<SocketData>({
 
         const raidFileName = raidFileFromPath(url.pathname);
         if (raidFileName) {
-          const raidFile = Bun.file(join(RAIDS_DIR, raidFileName));
-          if (await raidFile.exists()) return new Response(raidFile);
+          const basePath = join(RAIDS_DIR, raidFileName.slice(0, -".json".length));
+          try {
+            const obj = await readRaidObject(basePath);
+            return Response.json(obj);
+          } catch {
+            // no raid file found, fall through to 404
+          }
         }
 
         return new Response("Not found", { status: 404 });

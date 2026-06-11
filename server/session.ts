@@ -1,4 +1,5 @@
 import { dirname, join } from "path";
+import { readRaidObject } from "./raidFileReader";
 import { computeBotIntents } from "../src/engine/botIntent";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../src/engine/raidLoader";
 import type { RaidDef } from "../src/engine/raidSchema";
@@ -58,10 +59,10 @@ function createEmptyRaid(): RaidDef {
 export async function loadSessionRaid(raidId: string, raidsDir: string): Promise<RaidDef> {
   if (raidId === EMPTY_RAID_ID) return createEmptyRaid();
 
-  const raid = loadRaid(await Bun.file(join(raidsDir, `${raidId}.json`)).json());
+  const raid = loadRaid(await readRaidObject(join(raidsDir, raidId)));
   if (!raid.botPatterns) return raid;
   const categoryDir = dirname(raidId);
-  return applyBotPatterns(raid, loadBotPatterns(await Bun.file(join(raidsDir, categoryDir, `${raid.botPatterns}.json`)).json()));
+  return applyBotPatterns(raid, loadBotPatterns(await readRaidObject(join(raidsDir, categoryDir, raid.botPatterns))));
 }
 
 export type SessionStatus = LobbyStatus;

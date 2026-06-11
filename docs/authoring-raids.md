@@ -1,20 +1,59 @@
-# Authoring Raid JSON
+# Authoring Raids
 
-Raids are plain JSON files in the `raids/` directory. Each file describes an arena, a
+Raids are YAML or JSON files in the `raids/` directory (YAML is the preferred authoring format;
+JSON is fully supported and will continue to work forever). Each file describes an arena, a
 fixed roster of 8 players, and a timeline of events (mechanics) that resolve over time.
 The server validates every file against a strict schema (`src/engine/raidSchema.ts`) on
 load — an invalid file throws and the raid won't start.
 
 ## File location & naming
 
-- Put raid files in `raids/<id>.json`.
+- Put raid files in `raids/<category>/<id>.yaml` (or `.yml` / `.json`).
+- The server resolves extensions in order: `.yaml` → `.yml` → `.json` — the first match wins.
+  If both `foo.yaml` and `foo.json` exist in the same directory, only the YAML file is used.
 - `<id>` is the filename without extension and must match `^[a-z0-9][a-z0-9-]{0,63}$`
   (lowercase letters, digits, hyphens; can't start with a hyphen). It's the id used in the
   raid list and join URLs.
-- The server lists all `raids/*.json` via `/api/raids`, **except** files ending in
-  `-bots.json` — those are treated as bot-movement pattern files (see [Bot patterns](#bot-patterns)).
+- The server lists all raid files in each category directory, **except** files named
+  `raid_info` or ending in `-bots` — those are metadata/bot-pattern files
+  (see [Bot patterns](#bot-patterns)).
+- `raid_info` and bot-pattern files may also be YAML (`raid_info.yaml`, `*-bots.yaml`).
 
 ## Top-level shape
+
+YAML (preferred — supports comments and anchors):
+
+```yaml
+# Phase names and timing notes go here as comments
+name: Sample Raid
+arena:
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 38
+duration: 45
+botPatterns: sample-raid-bots  # optional; id of a *-bots file in the same directory
+players: [ ... ]               # exactly 8, see Roster
+events: [ ... ]                # timeline, see Events
+waymarks: [ ... ]              # optional, see Waymarks
+
+# YAML anchors let you define shared event defaults once:
+_towerBase: &towerBase
+  type: tower
+  telegraph: 4
+  radius: 3
+  failureDamage: 30
+
+# …then merge them into individual events (local keys override merged ones):
+events:
+  - <<: *towerBase
+    id: my-tower
+    t: 5
+    pos: [0, 12]
+    failureDamageType: magical
+```
+
+JSON (still fully supported):
 
 ```json
 {
@@ -22,9 +61,9 @@ load — an invalid file throws and the raid won't start.
   "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 38 }] },
   "duration": 45,
   "botPatterns": "sample-raid-bots",
-  "players": [ /* exactly 8, see Roster */ ],
-  "events": [ /* timeline, see Events */ ],
-  "waymarks": [ /* optional, see Waymarks */ ]
+  "players": [ ],
+  "events": [ ],
+  "waymarks": [ ]
 }
 ```
 
