@@ -1,0 +1,62 @@
+# Line Link Test — a north statue links to the four closest dps,
+# then resolves with knockback and a magic vulnerability.
+
+name: Line Link Test
+arena:
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 30
+duration: 35
+
+players:
+  - id: mt
+    role: tank
+    control: human
+    spawn: [0, 8]
+  - id: ot
+    role: tank
+    control: bot
+    spawn: [0, -8]
+  - id: h1
+    role: healer
+    control: bot
+    spawn: [-8, 0]
+  - id: h2
+    role: healer
+    control: bot
+    spawn: [8, 0]
+  - id: r1
+    role: dps
+    control: bot
+    spawn: [-5.66, 5.66]
+  - id: r2
+    role: dps
+    control: bot
+    spawn: [5.66, 5.66]
+  - id: m1
+    role: dps
+    control: bot
+    spawn: [-5.66, -5.66]
+  - id: m2
+    role: dps
+    control: bot
+    spawn: [5.66, -5.66]
+
+events:
+  - type: line_link
+    id: north-statue
+    t: 4
+    name: North Statue
+    pos: [0, 34]
+    linkDuration: 3
+    resolveAfter: 10
+    target: { roles: [dps], count: 4, mode: closest }
+    hiddenDebuffName: Line Linked
+    applyEffect:
+      name: Magic Vulnerability
+      kind: debuff
+      duration: 8
+      behavior: { kind: vuln, damageType: magical, multiplier: 1.5 }
+    knockback: { distance: 12 }
+    visual: { kind: statue, width: 3, height: 5, depth: 1 }

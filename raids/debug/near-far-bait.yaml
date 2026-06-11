@@ -1,0 +1,95 @@
+# Near & Far Bait — targeted AOEs on the closest/furthest player,
+# then role-filtered variants (healer snipe, tank buster).
+
+name: Near & Far Bait
+arena:
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 25
+duration: 32
+
+players:
+  - id: mt
+    role: tank
+    control: bot
+    spawn: [0, 8]
+  - id: ot
+    role: tank
+    control: bot
+    spawn: [0, -8]
+  - id: h1
+    role: healer
+    control: bot
+    spawn: [-8, 0]
+  - id: h2
+    role: healer
+    control: bot
+    spawn: [8, 0]
+  - id: r1
+    role: dps
+    control: bot
+    spawn: [-5.66, 5.66]
+  - id: r2
+    role: dps
+    control: bot
+    spawn: [5.66, 5.66]
+  - id: m1
+    role: dps
+    control: human
+    spawn: [-5.66, -5.66]
+  - id: m2
+    role: dps
+    control: bot
+    spawn: [5.66, -5.66]
+
+# Shared targeted-bait defaults.
+_baitBase: &baitBase
+  type: targeted
+  telegraph: 3
+  showCastBar: true
+
+events:
+  - <<: *baitBase
+    id: near-bait
+    t: 4
+    name: Near Bait
+    targetMode: closest
+    radius: 5
+    damage: 50
+    damageType: magical
+
+  - <<: *baitBase
+    id: far-bait
+    t: 10
+    name: Far Bait
+    targetMode: furthest
+    radius: 5
+    damage: 50
+    damageType: magical
+
+  # Role-filtered: snipes the furthest healer and applies a heavy vuln.
+  - <<: *baitBase
+    id: healer-snipe-furthest
+    t: 16
+    name: Healer Snipe (Furthest)
+    targetMode: furthest
+    role: healer
+    radius: 4
+    damage: 60
+    damageType: magical
+    applyEffect:
+      name: Magic Vulnerability Up
+      kind: debuff
+      duration: 10
+      behavior: { kind: vuln, damageType: magical, multiplier: 2 }
+
+  - <<: *baitBase
+    id: tank-buster-closest-tank
+    t: 23
+    name: Tank Buster (Closest Tank)
+    targetMode: closest
+    role: tank
+    radius: 4
+    damage: 80
+    damageType: physical

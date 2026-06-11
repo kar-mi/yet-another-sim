@@ -1,0 +1,54 @@
+# Arena Zones Test — demonstrates circle, rect, and polygon floor zones.
+
+name: Arena Zones Test
+arena:
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 12
+    - kind: rect
+      center: [18, 0]
+      width: 8
+      height: 20
+    - kind: polygon
+      vertices:
+        - [-24, -8]
+        - [-14, -8]
+        - [-19, 8]
+duration: 12
+
+players:
+  - id: mt
+    role: tank
+    control: human
+    spawn: [0, 8]
+  - id: ot
+    role: tank
+    control: bot
+    spawn: [0, -8]
+  - id: h1
+    role: healer
+    control: bot
+    spawn: [-8, 0]
+  - id: h2
+    role: healer
+    control: bot
+    spawn: [8, 0]
+  - id: r1
+    role: dps
+    control: bot
+    spawn: [-5.66, 5.66]
+  - id: r2
+    role: dps
+    control: bot
+    spawn: [5.66, 5.66]
+  - id: m1
+    role: dps
+    control: bot
+    spawn: [-5.66, -5.66]
+  - id: m2
+    role: dps
+    control: bot
+    spawn: [5.66, -5.66]
+
+events: []

@@ -1,0 +1,58 @@
+# Chain Test — two bonded pairs must separate past the break distance
+# before the break window ends.
+
+name: Chain Test
+arena:
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 30
+duration: 30
+
+players:
+  - id: mt
+    role: tank
+    control: human
+    spawn: [0, 4]
+  - id: ot
+    role: tank
+    control: bot
+    spawn: [0, -4]
+  - id: h1
+    role: healer
+    control: bot
+    spawn: [-4, 4]
+  - id: h2
+    role: healer
+    control: bot
+    spawn: [4, -4]
+  - id: r1
+    role: dps
+    control: bot
+    spawn: [-5.66, 5.66]
+  - id: r2
+    role: dps
+    control: bot
+    spawn: [5.66, 5.66]
+  - id: m1
+    role: dps
+    control: bot
+    spawn: [-5.66, -5.66]
+  - id: m2
+    role: dps
+    control: bot
+    spawn: [5.66, -5.66]
+
+events:
+  - type: chain
+    id: binding-chains
+    t: 4
+    name: Binding Chains
+    pairs: [[mt, h1], [ot, h2]]
+    telegraph: 4
+    breakWindow: 6
+    breakDistance: 12
+    breakDamage: 40
+    damageType: magical
+    debuffName: Chain Bond
+    showCastBar: true

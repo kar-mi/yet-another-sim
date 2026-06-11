@@ -1,17 +1,17 @@
 import { BotPatternsSchema, RaidSchema, type BotPatternsDef, type RaidDef } from "./raidSchema";
 
-export function loadRaid(json: unknown): RaidDef {
-  const result = RaidSchema.safeParse(json);
+export function loadRaid(value: unknown): RaidDef {
+  const result = RaidSchema.safeParse(value);
   if (!result.success) {
-    throw new Error(`Invalid raid JSON:\n${result.error.message}`);
+    throw new Error(`Invalid raid data:\n${result.error.message}`);
   }
   return result.data;
 }
 
-export function loadBotPatterns(json: unknown): BotPatternsDef {
-  const result = BotPatternsSchema.safeParse(json);
+export function loadBotPatterns(value: unknown): BotPatternsDef {
+  const result = BotPatternsSchema.safeParse(value);
   if (!result.success) {
-    throw new Error(`Invalid bot pattern JSON:\n${result.error.message}`);
+    throw new Error(`Invalid bot pattern data:\n${result.error.message}`);
   }
   return result.data;
 }

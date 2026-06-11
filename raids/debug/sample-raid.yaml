@@ -1,0 +1,102 @@
+# Sample Raid — basic shape tour: raidwide, circle, cone, rect, donut.
+
+name: Sample Raid
+arena:
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 20
+duration: 45
+botPatterns: sample-raid-bots
+
+players:
+  - id: mt
+    role: tank
+    control: bot
+    spawn: [-12, 12]
+  - id: ot
+    role: tank
+    control: bot
+    spawn: [0, -8]
+  - id: h1
+    role: healer
+    control: bot
+    spawn: [12, 12]
+  - id: h2
+    role: healer
+    control: bot
+    spawn: [8, 0]
+  - id: r1
+    role: dps
+    control: bot
+    spawn: [-5.66, 5.66]
+  - id: r2
+    role: dps
+    control: bot
+    spawn: [5.66, 5.66]
+  - id: m1
+    role: dps
+    control: human
+    spawn: [-5.66, -5.66]
+  - id: m2
+    role: dps
+    control: bot
+    spawn: [5.66, -5.66]
+
+events:
+  # Unavoidable raidwide (telegraph hidden).
+  - id: aoe
+    t: 1
+    name: Aoe
+    telegraph: 2
+    damage: 10
+    damageType: magical
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: [0, 0], radius: 38 }
+
+  - id: fireball
+    t: 4
+    name: Fireball
+    telegraph: 3
+    damage: 60
+    damageType: magical
+    showCastBar: true
+    shape: { kind: circle, center: [0, 0], radius: 9 }
+
+  - id: cleave
+    t: 11
+    name: Cleave
+    telegraph: 3
+    damage: 60
+    damageType: magical
+    showCastBar: false
+    shape: { kind: cone, origin: [0, 0], direction: [0, 1], angleDeg: 90, length: 22 }
+
+  - id: crossfire
+    t: 18
+    name: Crossfire
+    telegraph: 4
+    damage: 80
+    damageType: magical
+    showCastBar: true
+    shape: { kind: rect, origin: [0, 0], direction: [1, 0], width: 6, length: 40 }
+
+  - id: shockwave
+    t: 26
+    name: Shockwave
+    telegraph: 4
+    damage: 100
+    damageType: magical
+    showCastBar: false
+    shape: { kind: donut, center: [0, 0], inner: 7, outer: 30 }
+
+waymarks:
+  - { mark: A, pos: [0, 16] }
+  - { mark: B, pos: [16, 0] }
+  - { mark: C, pos: [0, -16] }
+  - { mark: D, pos: [-16, 0] }
+  - { mark: "1", pos: [10, 10] }
+  - { mark: "2", pos: [10, -10] }
+  - { mark: "3", pos: [-10, -10] }
+  - { mark: "4", pos: [-10, 10] }

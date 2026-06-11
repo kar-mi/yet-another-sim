@@ -1,0 +1,62 @@
+# Positional Arc Test — uses positional to gate a circle by boss-relative bearing.
+
+name: Positional Arc Test
+arena:
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 25
+duration: 18
+
+players:
+  - id: mt
+    role: tank
+    control: human
+    spawn: [0, 18]
+  - id: ot
+    role: tank
+    control: bot
+    spawn: [0, -18]
+  - id: h1
+    role: healer
+    control: bot
+    spawn: [-18, 0]
+  - id: h2
+    role: healer
+    control: bot
+    spawn: [18, 0]
+  - id: r1
+    role: dps
+    control: bot
+    spawn: [12, 12]
+  - id: r2
+    role: dps
+    control: bot
+    spawn: [-12, 12]
+  - id: m1
+    role: dps
+    control: bot
+    spawn: [-12, -12]
+  - id: m2
+    role: dps
+    control: bot
+    spawn: [12, -12]
+
+events:
+  - id: tail-swipe
+    t: 4
+    name: Tail Swipe
+    telegraph: 4
+    damage: 50
+    damageType: physical
+    showCastBar: true
+    shape: { kind: circle, center: [0, 0], radius: 20 }
+    positional:
+      center: 3.14159
+      width: 1.5708
+
+waymarks:
+  - { mark: A, pos: [0, 20] }
+  - { mark: B, pos: [20, 0] }
+  - { mark: C, pos: [0, -20] }
+  - { mark: D, pos: [-20, 0] }
