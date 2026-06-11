@@ -147,7 +147,7 @@
         "kind": "stack",
         "radius": 4,
         "requiredCount": 2,
-        "damage": 200,
+        "damage": 80,
         "damageType": "magical"
       }
     },
@@ -221,7 +221,7 @@
       "pos": [-6, 6],
       "radius": 3,
       "requiredCount": 2,
-      "failureDamage": 9999,
+      "failureDamage": 999999,
       "failureDamageType": "true",
       "resolveEventIds": [
         "forsaken-stack-resolve",
@@ -230,7 +230,8 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "fallingObject": "sphere"
+        "fallingObject": "sphere",
+        "cylinderThickness": 3
       }
     },
     {
@@ -242,7 +243,7 @@
       "pos": [6, 6],
       "radius": 3,
       "requiredCount": 2,
-      "failureDamage": 9999,
+      "failureDamage": 999999,
       "failureDamageType": "true",
       "resolveEventIds": [
         "forsaken-stack-resolve",
@@ -251,13 +252,14 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "fallingObject": "sphere"
+        "fallingObject": "sphere",
+        "cylinderThickness": 3
       }
     },
     {
       "type": "heal",
       "id": "heal-after-tower-1",
-      "t": 16.1,
+      "t": 18,
       "name": "Tower 1 Recovery"
     },
     {
@@ -269,7 +271,7 @@
       "pos": [-6, 2],
       "radius": 3,
       "requiredCount": 2,
-      "failureDamage": 9999,
+      "failureDamage": 999999,
       "failureDamageType": "true",
       "resolveEventIds": [
         "forsaken-stack-resolve",
@@ -278,7 +280,8 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "fallingObject": "sphere"
+        "fallingObject": "sphere",
+        "cylinderThickness": 3
       }
     },
     {
@@ -290,7 +293,7 @@
       "pos": [6, 2],
       "radius": 3,
       "requiredCount": 2,
-      "failureDamage": 9999,
+      "failureDamage": 999999,
       "failureDamageType": "true",
       "resolveEventIds": [
         "forsaken-stack-resolve",
@@ -299,13 +302,14 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "fallingObject": "sphere"
+        "fallingObject": "sphere",
+        "cylinderThickness": 3
       }
     },
     {
       "type": "heal",
       "id": "heal-after-tower-2",
-      "t": 27.1,
+      "t": 29,
       "name": "Tower 2 Recovery"
     },
     {
@@ -364,7 +368,7 @@
       "pos": [-6, -2],
       "radius": 3,
       "requiredCount": 2,
-      "failureDamage": 9999,
+      "failureDamage": 999999,
       "failureDamageType": "true",
       "resolveEventIds": [
         "forsaken-stack-resolve",
@@ -373,7 +377,8 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "fallingObject": "sphere"
+        "fallingObject": "sphere",
+        "cylinderThickness": 3
       }
     },
     {
@@ -385,7 +390,7 @@
       "pos": [6, -2],
       "radius": 3,
       "requiredCount": 2,
-      "failureDamage": 9999,
+      "failureDamage": 999999,
       "failureDamageType": "true",
       "resolveEventIds": [
         "forsaken-stack-resolve",
@@ -394,13 +399,14 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "fallingObject": "sphere"
+        "fallingObject": "sphere",
+        "cylinderThickness": 3
       }
     },
     {
       "type": "heal",
       "id": "heal-after-tower-3",
-      "t": 37.1,
+      "t": 39,
       "name": "Tower 3 Recovery"
     },
     {
@@ -412,7 +418,7 @@
       "pos": [-6, 6],
       "radius": 3,
       "requiredCount": 2,
-      "failureDamage": 9999,
+      "failureDamage": 999999,
       "failureDamageType": "true",
       "resolveEventIds": [
         "forsaken-stack-resolve",
@@ -421,7 +427,8 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "fallingObject": "sphere"
+        "fallingObject": "sphere",
+        "cylinderThickness": 3
       }
     },
     {
@@ -433,7 +440,7 @@
       "pos": [6, 6],
       "radius": 3,
       "requiredCount": 2,
-      "failureDamage": 9999,
+      "failureDamage": 999999,
       "failureDamageType": "true",
       "resolveEventIds": [
         "forsaken-stack-resolve",
@@ -442,13 +449,14 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "fallingObject": "sphere"
+        "fallingObject": "sphere",
+        "cylinderThickness": 3
       }
     },
     {
       "type": "heal",
       "id": "heal-after-tower-4",
-      "t": 47.1,
+      "t": 49,
       "name": "Tower 4 Recovery"
     },
     {
@@ -507,7 +515,7 @@
       "pos": [-6, 2],
       "radius": 3,
       "requiredCount": 2,
-      "failureDamage": 9999,
+      "failureDamage": 999999,
       "failureDamageType": "true",
       "resolveEventIds": [
         "forsaken-stack-resolve",
@@ -516,7 +524,8 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "fallingObject": "sphere"
+        "fallingObject": "sphere",
+        "cylinderThickness": 3
       }
     },
     {
@@ -528,7 +537,7 @@
       "pos": [6, 2],
       "radius": 3,
       "requiredCount": 2,
-      "failureDamage": 9999,
+      "failureDamage": 999999,
       "failureDamageType": "true",
       "resolveEventIds": [
         "forsaken-stack-resolve",
@@ -537,13 +546,14 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "fallingObject": "sphere"
+        "fallingObject": "sphere",
+        "cylinderThickness": 3
       }
     },
     {
       "type": "heal",
       "id": "heal-after-tower-5",
-      "t": 58.099999999999994,
+      "t": 60,
       "name": "Tower 5 Recovery"
     },
     {
@@ -555,7 +565,7 @@
       "pos": [-6, -2],
       "radius": 3,
       "requiredCount": 2,
-      "failureDamage": 9999,
+      "failureDamage": 999999,
       "failureDamageType": "true",
       "resolveEventIds": [
         "forsaken-stack-resolve",
@@ -564,7 +574,8 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "fallingObject": "sphere"
+        "fallingObject": "sphere",
+        "cylinderThickness": 3
       }
     },
     {
@@ -576,7 +587,7 @@
       "pos": [6, -2],
       "radius": 3,
       "requiredCount": 2,
-      "failureDamage": 9999,
+      "failureDamage": 999999,
       "failureDamageType": "true",
       "resolveEventIds": [
         "forsaken-stack-resolve",
@@ -585,13 +596,14 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "fallingObject": "sphere"
+        "fallingObject": "sphere",
+        "cylinderThickness": 3
       }
     },
     {
       "type": "heal",
       "id": "heal-after-tower-6",
-      "t": 69.1,
+      "t": 71,
       "name": "Tower 6 Recovery"
     },
     {
@@ -650,7 +662,7 @@
       "pos": [-6, -6],
       "radius": 3,
       "requiredCount": 2,
-      "failureDamage": 9999,
+      "failureDamage": 999999,
       "failureDamageType": "true",
       "resolveEventIds": [
         "forsaken-stack-resolve",
@@ -659,7 +671,8 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "fallingObject": "sphere"
+        "fallingObject": "sphere",
+        "cylinderThickness": 3
       }
     },
     {
@@ -671,7 +684,7 @@
       "pos": [6, -6],
       "radius": 3,
       "requiredCount": 2,
-      "failureDamage": 9999,
+      "failureDamage": 999999,
       "failureDamageType": "true",
       "resolveEventIds": [
         "forsaken-stack-resolve",
@@ -680,13 +693,14 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "fallingObject": "sphere"
+        "fallingObject": "sphere",
+        "cylinderThickness": 3
       }
     },
     {
       "type": "heal",
       "id": "heal-after-tower-7",
-      "t": 79.1,
+      "t": 81,
       "name": "Tower 7 Recovery"
     },
     {
@@ -698,7 +712,7 @@
       "pos": [-6, -6],
       "radius": 3,
       "requiredCount": 2,
-      "failureDamage": 9999,
+      "failureDamage": 999999,
       "failureDamageType": "true",
       "resolveEventIds": [
         "forsaken-stack-resolve",
@@ -707,7 +721,8 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "fallingObject": "sphere"
+        "fallingObject": "sphere",
+        "cylinderThickness": 3
       }
     },
     {
@@ -719,7 +734,7 @@
       "pos": [6, -6],
       "radius": 3,
       "requiredCount": 2,
-      "failureDamage": 9999,
+      "failureDamage": 999999,
       "failureDamageType": "true",
       "resolveEventIds": [
         "forsaken-stack-resolve",
@@ -728,13 +743,14 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "fallingObject": "sphere"
+        "fallingObject": "sphere",
+        "cylinderThickness": 3
       }
     },
     {
       "type": "heal",
       "id": "heal-after-tower-8",
-      "t": 89.1,
+      "t": 91,
       "name": "Tower 8 Recovery"
     },
     {
@@ -804,35 +820,35 @@
   "waymarks": [
     {
       "mark": "A",
-      "pos": [0, -12]
-    },
-    {
-      "mark": "B",
-      "pos": [12, 0]
-    },
-    {
-      "mark": "C",
       "pos": [0, 12]
     },
     {
-      "mark": "D",
+      "mark": "B",
       "pos": [-12, 0]
     },
     {
+      "mark": "C",
+      "pos": [0, -12]
+    },
+    {
+      "mark": "D",
+      "pos": [12, 0]
+    },
+    {
       "mark": "1",
-      "pos": [-6, -6]
-    },
-    {
-      "mark": "2",
-      "pos": [6, -6]
-    },
-    {
-      "mark": "3",
       "pos": [6, 6]
     },
     {
-      "mark": "4",
+      "mark": "2",
       "pos": [-6, 6]
+    },
+    {
+      "mark": "3",
+      "pos": [-6, -6]
+    },
+    {
+      "mark": "4",
+      "pos": [6, -6]
     }
   ]
 }

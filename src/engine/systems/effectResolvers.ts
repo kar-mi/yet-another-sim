@@ -57,10 +57,10 @@ function removeTriggeredEffects(triggered: Array<{ player: Player; effectIds: st
   }
 }
 
-export function triggerEffectResolver(ctx: TickContext, resolver: EffectResolver, carriers: Player[]): void {
+export function triggerEffectResolver(ctx: TickContext, resolver: EffectResolver, carriers: Player[]): Player[] {
   const { players, log, time } = ctx;
   const triggered = carriersWithActiveEffect(carriers, resolver, time);
-  if (triggered.length === 0) return;
+  if (triggered.length === 0) return [];
 
   const action = resolver.action;
   if (action.kind === "spread") {
@@ -111,4 +111,5 @@ export function triggerEffectResolver(ctx: TickContext, resolver: EffectResolver
   }
 
   removeTriggeredEffects(triggered);
+  return triggered.map(({ player }) => player);
 }

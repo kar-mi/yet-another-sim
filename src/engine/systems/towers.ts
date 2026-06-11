@@ -2,12 +2,18 @@
 // wrong-role ones) on success, or hit the whole raid with failure damage when undersoaked.
 
 import type { TickContext } from "./context";
-import type { ActiveTower, PendingTower, AOEShape } from "../../shared/types";
+import type { ActiveTower, PendingTower, AOEShape, Player } from "../../shared/types";
 import { pointInShape } from "../shapes";
 import { applyEffect, applyKnockback } from "./helpers";
 import { triggerEffectResolver } from "./effectResolvers";
+import { resolveForsakenTowerDebuffSwaps } from "./forsakenAssign";
 import { cullResolved } from "./util";
 import { TOWER_LINGER } from "../constants";
+
+function forsakenTowerNumber(id: string): number | undefined {
+  const match = /^tower-(\d+)-(?:left|right)$/.exec(id);
+  return match ? Number(match[1]) : undefined;
+}
 
 export function resolveTowers(ctx: TickContext): {
   towers: ActiveTower[];
@@ -16,6 +22,7 @@ export function resolveTowers(ctx: TickContext): {
   const { players, log, time } = ctx;
   const remainingPendingTowers: PendingTower[] = [];
   const towers: ActiveTower[] = ctx.world.towers.map(t => ({ ...t }));
+  const forsakenResolvedByTowerNumber = new Map<number, Player[]>();
   for (const pt of ctx.world.pendingTowers) {
     if (pt.t <= time) {
       towers.push({
@@ -61,13 +68,20 @@ export function resolveTowers(ctx: TickContext): {
           }
         }
 
+        const resolvedDebuffPlayers: Player[] = [];
         for (const id of tower.resolveEventIds) {
           const resolver = ctx.world.effectResolvers[id];
-          if (resolver) triggerEffectResolver(ctx, resolver, validSoakers);
+          if (resolver) resolvedDebuffPlayers.push(...triggerEffectResolver(ctx, resolver, validSoakers));
         }
 
         const success = validSoakers.length >= tower.requiredCount;
         if (success) {
+          const towerNumber = forsakenTowerNumber(tower.id);
+          if (towerNumber !== undefined && resolvedDebuffPlayers.length > 0) {
+            const existing = forsakenResolvedByTowerNumber.get(towerNumber) ?? [];
+            existing.push(...resolvedDebuffPlayers);
+            forsakenResolvedByTowerNumber.set(towerNumber, existing);
+          }
           for (const p of validSoakers) {
             if (!p.alive) continue;
             if (tower.applyEffect) applyEffect(p, tower.applyEffect, time, `${tower.id}-${p.id}-eff`, players);
@@ -89,6 +103,10 @@ export function resolveTowers(ctx: TickContext): {
         tower.outcome = success ? "success" : "failure";
       }
     }
+  }
+
+  for (const [towerNumber, resolvedPlayers] of forsakenResolvedByTowerNumber) {
+    resolveForsakenTowerDebuffSwaps(ctx, towerNumber, resolvedPlayers);
   }
 
   // Keep briefly after resolve so the renderer can flash success/failure.

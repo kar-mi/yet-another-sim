@@ -64,6 +64,14 @@ function runTicksWithBotIntents(world: ReturnType<typeof createWorld>, count: nu
   return w;
 }
 
+function runTicksWithComputedBotIntents(world: ReturnType<typeof createWorld>, count: number) {
+  let w = world;
+  for (let i = 0; i < count; i++) {
+    w = tick(w, computeBotIntents(w, 1 / 60), 1 / 60);
+  }
+  return w;
+}
+
 function withPlayerEffect(world: World, playerId: string, effect: StatusEffect): World {
   return {
     ...world,
@@ -282,6 +290,38 @@ test("forsaken raid and bot companion content load", async () => {
   expect(world.players.find(player => player.id === "h1")?.pattern?.[0]?.pos).toEqual({ x: -8, z: 0 });
   expect(raid.events.filter(event => event.type === "tower")).toHaveLength(16);
   expect(raid.events.some(event => event.type === "tower" && event.requiredRoles !== undefined)).toBe(false);
+  expect(raid.events.filter(event => event.type === "tower").every(event => event.failureDamage === 999999)).toBe(true);
+  expect(raid.events.filter(event => event.type === "tower").every(event => event.visual?.fallingObject === "sphere" && event.visual?.cylinderThickness === 3)).toBe(true);
+  expect(raid.events.filter(event => event.type === "heal").map(event => event.t)).toEqual([18, 29, 39, 49, 60, 71, 81, 91]);
+});
+
+test("forsaken tower swaps alternate odd and even debuff distributions", async () => {
+  const raidJson = await Bun.file("raids/dancing-mad-ultimate/forsaken.json").json() as { players: Array<Record<string, unknown>> };
+  const botJson = await Bun.file("raids/dancing-mad-ultimate/forsaken-bots.json").json();
+  const raid = loadRaid({
+    ...raidJson,
+    players: raidJson.players.map(player => ({ ...player, control: "bot" })),
+  });
+  const bots = loadBotPatterns(botJson);
+  const countCharges = (world: World) => {
+    const counts = { stack: 0, cone: 0, defamation: 0 };
+    for (const player of world.players) {
+      for (const effect of player.effects) {
+        if (effect.appliedAt + effect.duration <= world.time) continue;
+        if (effect.name === "Stack Charge") counts.stack++;
+        else if (effect.name === "Cone Charge") counts.cone++;
+        else if (effect.name === "Spread Charge") counts.defamation++;
+      }
+    }
+    return counts;
+  };
+
+  let world = createWorld(applyBotPatterns(raid, bots), 1);
+  world = runTicksWithComputedBotIntents(world, Math.ceil(16.2 * 60));
+  expect(countCharges(world)).toEqual({ stack: 0, cone: 4, defamation: 4 });
+
+  world = runTicksWithComputedBotIntents(world, Math.ceil((27.2 - world.time) * 60));
+  expect(countCharges(world)).toEqual({ stack: 2, cone: 3, defamation: 3 });
 });
 
 test("forsaken solver moves bots during authored tower and bait windows", () => {
@@ -2132,6 +2172,22 @@ test("tower effect resolver still triggers valid carriers when the tower fails",
   expect(mt.hp).toBe(TANK_HP - 15);
   expect(h1.hp).toBe(95);
   expect(m1.hp).toBe(95);
+});
+
+test("under-soaked tower applies lethal failure damage to all players", () => {
+  const raid = groupRaid([
+    {
+      type: "tower", id: "tower", t: 0, name: "Tower", telegraph: 0.5, pos: [0, 0], radius: 3,
+      requiredCount: 2, failureDamage: 999999, failureDamageType: "true",
+    },
+  ], {
+    mt: { spawn: [0, 0] }, h1: { spawn: [10, 0] }, m1: { spawn: [12, 0] },
+    ot: { spawn: [-12, 0] }, h2: { spawn: [0, 12] }, r1: { spawn: [0, -12] }, r2: { spawn: [10, 10] }, m2: { spawn: [-10, -10] },
+  });
+
+  const world = runTicks(createWorld(raid), noMove, Math.ceil(0.6 * 60));
+
+  expect(world.players.every(player => !player.alive)).toBe(true);
 });
 
 test("tower effect resolver ignores wrong-role players", () => {
