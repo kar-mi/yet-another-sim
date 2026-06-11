@@ -9,7 +9,7 @@ import type { Boss } from "../../shared/types";
 import { filteredCirclePaths } from "./meshes/meshPaths";
 
 const RING_Y = 0.03;        // just above the floor, matching other ground meshes
-const INNER_SCALE = 0.8;    // inner ring radius relative to the outer (boss.radius)
+const INNER_SCALE = 0.9;    // inner ring radius relative to the outer (boss.radius)
 const VISUAL_SCALE = 1.8;   // render a slightly larger ring without changing boss mechanics
 const TUBE_RADIUS = 0.06;   // ring line thickness
 // Connected front arc (0 = facing) wrapping to the SE/SW intercardinals (±135°),
