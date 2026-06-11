@@ -19,6 +19,7 @@ import { resolveTowers } from "./systems/towers";
 import { resolveGroups } from "./systems/groups";
 import { resolveEffectSelects } from "./systems/effectSelect";
 import { resolveApplyEffects } from "./systems/applyEffects";
+import { resolveForsakenAssigns } from "./systems/forsakenAssign";
 import { resolveInversions } from "./systems/inverse";
 import { resolveSpreadStacks } from "./systems/spreadStack";
 import { resolveGazes } from "./systems/gaze";
@@ -71,6 +72,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const { groupMechanics, pendingGroups } = resolveGroups(ctx);
   const pendingEffectSelects = resolveEffectSelects(ctx);
   const pendingApplyEffects = resolveApplyEffects(ctx);
+  const pendingForsakenAssigns = resolveForsakenAssigns(ctx);
   const { inversions, pendingInversions } = resolveInversions(ctx);
   const { spreadStacks, pendingSpreadStacks } = resolveSpreadStacks(ctx);
   const { gazes, pendingGazes } = resolveGazes(ctx);
@@ -95,7 +97,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
     && pendingGazes.length === 0 && gazes.every(g => g.resolved)
     && pendingForcedMarches.length === 0 && ctx.forcedMarches.every(fm => fm.triggered)
     && pendingEffectBursts.length === 0
-    && remainingPendingHeals.length === 0;
+    && remainingPendingHeals.length === 0
+    && pendingForsakenAssigns.length === 0;
   let status = world.status;
   if (status === "running") {
     if (!anyAlive) {
@@ -117,6 +120,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
     groupMechanics, pendingGroups,
     pendingEffectSelects,
     pendingApplyEffects,
+    pendingForsakenAssigns,
     inversions, pendingInversions,
     spreadStacks, pendingSpreadStacks,
     gazes, pendingGazes,

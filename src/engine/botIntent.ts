@@ -51,6 +51,25 @@ function plantComboKey(player: Player, world: World): string | undefined {
   return names.join(" ");
 }
 
+function forsakenSolverWaypoint(player: Player, world: World): Vec2 | undefined {
+  const solver = world.botSolvers?.forsaken;
+  if (!solver) return undefined;
+
+  for (const window of solver.baitWindows ?? []) {
+    if (world.time < window.start || world.time > window.end) continue;
+    const spot = solver.baitSpots?.[player.id]?.[window.index - 1];
+    if (spot) return spot;
+  }
+
+  for (const window of solver.towerWindows) {
+    if (world.time < window.start || world.time > window.end) continue;
+    const spot = solver.towerSpots[player.id]?.[window.tower - 1];
+    if (spot) return spot;
+  }
+
+  return undefined;
+}
+
 function solverWaypoint(player: Player, world: World): Vec2 | undefined {
   const slot = activePlantSlot(player);
   if (slot !== undefined) {
@@ -87,6 +106,9 @@ function solverWaypoint(player: Player, world: World): Vec2 | undefined {
     const spot = spots?.[player.id] ?? base?.[player.id];
     if (spot) return spot;
   }
+
+  const forsakenSpot = forsakenSolverWaypoint(player, world);
+  if (forsakenSpot) return forsakenSpot;
 
   if (hasActiveDoubleTrouble(player, world.time)) {
     const solver = world.botSolvers?.doubleTrouble;

@@ -243,6 +243,58 @@ test("bot patterns can carry plant arrow solver placements", () => {
   expect(world.botSolvers?.plantArrows?.placements["down down"]).toEqual([{ x: 18, z: 0 }, { x: 0, z: 18 }]);
 });
 
+test("bot patterns can carry forsaken solver spots", () => {
+  const raid = loadRaid(baseRaid);
+  const botPatterns = loadBotPatterns({
+    players: {},
+    solvers: {
+      forsaken: {
+        towerWindows: [{ start: 1, end: 3, tower: 1 }],
+        towerSpots: { mt: [[8, 0]] },
+      },
+    },
+  });
+  const world = createWorld(applyBotPatterns(raid, botPatterns));
+
+  expect(world.botSolvers?.forsaken?.towerSpots.mt[0]).toEqual({ x: 8, z: 0 });
+});
+
+test("forsaken raid and bot companion content load", async () => {
+  const raidJson = await Bun.file("raids/dancing-mad-ultimate/forsaken.json").json();
+  const botJson = await Bun.file("raids/dancing-mad-ultimate/forsaken-bots.json").json();
+  const raid = loadRaid(raidJson);
+  const bots = loadBotPatterns(botJson);
+  const world = createWorld(applyBotPatterns(raid, bots), 1);
+
+  expect(raid.name).toBe("Forsaken");
+  expect(world.forsakenPlan?.towerOrder.join("")).toBe("AAABBBBA");
+  expect(world.botSolvers?.forsaken?.towerWindows).toHaveLength(8);
+  expect(raid.events.filter(event => event.type === "tower")).toHaveLength(16);
+  expect(raid.events.some(event => event.type === "tower" && event.requiredRoles !== undefined)).toBe(false);
+});
+
+test("forsaken solver moves bots during authored tower and bait windows", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { control: "bot", spawn: [0, 0] }, m1: { spawn: [0, 15] } }),
+    botSolvers: {
+      forsaken: {
+        towerWindows: [{ start: 1, end: 3, tower: 1 }],
+        baitWindows: [{ start: 4, end: 5, index: 1 }],
+        towerSpots: { mt: [[8, 0]] },
+        baitSpots: { mt: [[-8, 0]] },
+      },
+    },
+  });
+
+  let world = createWorld(raid);
+  world = tick(world, {}, 1.1);
+  expect(computeBotIntents(world, 1 / 60).mt?.move.x).toBeGreaterThan(0);
+
+  world = tick(world, {}, 3);
+  expect(computeBotIntents(world, 1 / 60).mt?.move.x).toBeLessThan(0);
+});
+
 test("bot with a pattern can dodge an AOE while a bot without one is hit", () => {
   const aoe = { t: 3, name: "TestAOE", telegraph: 1, damage: 50, damageType: "physical" as const, shape: { kind: "circle", center: [0, 0], radius: 5 } };
   const movingRaid = loadRaid({
@@ -1100,6 +1152,73 @@ test("plant combinations assign each player a per-slot heading from their group'
   ].sort());
 });
 
+const forsakenOptionals = {
+  combinations: {
+    forsaken: {
+      rng: false,
+      patterns: [
+        {
+          id: "static",
+          pairs: [
+            { members: ["h1", "mt"], assignments: ["stack", "cone"], endings: ["future", "past"] },
+            { members: ["h2", "ot"], assignments: ["cone", "cone"], endings: ["past", "future"] },
+            { members: ["r1", "m1"], assignments: ["stack", "defamation"], endings: ["future", "past"] },
+            { members: ["r2", "m2"], assignments: ["defamation", "defamation"], endings: ["past", "future"] },
+          ],
+        },
+        {
+          id: "alternate",
+          pairs: [
+            { members: ["h1", "mt"], assignments: ["cone", "cone"], endings: ["past", "future"] },
+            { members: ["h2", "ot"], assignments: ["stack", "cone"], endings: ["future", "past"] },
+            { members: ["r1", "m1"], assignments: ["defamation", "defamation"], endings: ["past", "future"] },
+            { members: ["r2", "m2"], assignments: ["cone", "defamation"], endings: ["future", "past"] },
+          ],
+        },
+      ],
+    },
+  },
+};
+
+test("forsaken combinations build a static assignment plan when rng is false", () => {
+  const raid = loadRaid({ ...baseRaid, optionals: forsakenOptionals });
+  const world = createWorld(raid, 1);
+
+  expect(world.forsakenPlan?.patternId).toBe("static");
+  expect(world.forsakenPlan?.towerOrder).toEqual(["A", "A", "A", "B", "B", "B", "B", "A"]);
+  expect(world.forsakenPlan?.players.h1.assignment).toBe("stack");
+  expect(world.forsakenPlan?.players.h1.group).toBe("A");
+  expect(world.forsakenPlan?.players.h1.towerSlots).toEqual([1, 2, 3, 8]);
+  expect(world.forsakenPlan?.players.h2.group).toBe("B");
+  expect(world.forsakenPlan?.players.h2.towerSlots).toEqual([4, 5, 6, 7]);
+});
+
+test("forsaken combinations are deterministic for the same seeded rng", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    optionals: { combinations: { forsaken: { ...forsakenOptionals.combinations.forsaken, rng: true } } },
+  });
+  const a = createWorld(raid, 1).forsakenPlan;
+  const b = createWorld(raid, 1).forsakenPlan;
+
+  expect(a?.patternIndex).toBe(b?.patternIndex);
+  expect(a?.players).toEqual(b?.players);
+});
+
+test("forsaken_assign applies invisible assignment and short head marker effects", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    optionals: forsakenOptionals,
+    events: [{ type: "forsaken_assign", id: "assign", t: 0, name: "Forsaken Assignment", duration: 20, markerDuration: 5 }],
+  });
+  const world = runTicks(createWorld(raid, 1), noMove, 1);
+  const h1 = byId(world, "h1");
+
+  expect(h1.effects.some(e => e.name === "Forsaken Stack" && e.visibility === "invisible" && e.marker === undefined)).toBe(true);
+  expect(h1.effects.some(e => e.name === "Forsaken Stack Marker" && e.visibility === "invisible" && e.marker === "STACK" && e.duration === 5)).toBe(true);
+  expect(h1.effects.some(e => e.name === "Forsaken Future")).toBe(true);
+});
+
 test("plant direction \"option\" parses to a concrete vector (overridden by the combination plan)", () => {
   const raid = loadRaid({
     ...baseRaid,
@@ -1899,6 +2018,43 @@ test("random bait selection is deterministic under the seeded RNG", () => {
   const w2 = runTicks(createWorld(raid, 1), {}, Math.ceil(6.1 * 60));
   expect(w1.players.map(p => p.hp)).toEqual(w2.players.map(p => p.hp));
   expect(w1.boss.facing).toBeCloseTo(w2.boss.facing);
+});
+
+test("bait can pick stored cleave direction from the selected target's active effect", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    duration: 8,
+    players: roster(storedBaitRoster),
+    events: [
+      {
+        type: "aoe", id: "stored", t: 1, name: "Stored Ending", deferred: true,
+        anchor: "boss", directionFrom: "bossFacing", directionOffset: Math.PI,
+        telegraph: 1, damage: 50, damageType: "physical" as const,
+        shape: { kind: "cone", angleDeg: 90, length: 30 }, telegraphMode: "resolve", showCastBar: true,
+      },
+      {
+        type: "bait", id: "bait", t: 4, name: "All Things Ending", targetMode: "closest",
+        telegraph: 2, link: "stored", showCastBar: true,
+        directionOffsetByEffect: { "Forsaken Future": 0, "Forsaken Past": Math.PI },
+      },
+    ],
+  });
+
+  const futureWorld = runTicks(
+    withPlayerEffect(createWorld(raid), "h1", effect({ name: "Forsaken Future", duration: 10 })),
+    {},
+    Math.ceil(6.1 * 60),
+  );
+  expect(byId(futureWorld, "m2").hp).toBeLessThan(100);
+  expect(byId(futureWorld, "m1").hp).toBe(100);
+
+  const pastWorld = runTicks(
+    withPlayerEffect(createWorld(raid), "h1", effect({ name: "Forsaken Past", duration: 10 })),
+    {},
+    Math.ceil(6.1 * 60),
+  );
+  expect(byId(pastWorld, "m1").hp).toBeLessThan(100);
+  expect(byId(pastWorld, "m2").hp).toBe(100);
 });
 
 // --- RNG group mechanics -------------------------------------------------

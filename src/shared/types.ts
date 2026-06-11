@@ -47,6 +47,12 @@ export type BotSolvers = {
     startAt?: number;
   };
   spreadStack?: Record<string, SpreadStackSolverConfig>;
+  forsaken?: {
+    towerWindows: { start: number; end: number; tower: number }[];
+    baitWindows?: { start: number; end: number; index: number }[];
+    towerSpots: Record<string, Vec2[]>;
+    baitSpots?: Record<string, Vec2[]>;
+  };
 };
 
 export type DamageType = "physical" | "magical" | "true";
@@ -109,6 +115,41 @@ export type StatusEffect = {
   lockedTargetId?: string;
   // Plant slot index from the assigned combo. Used by bot solvers to place each arrow separately.
   plantSlot?: number;
+};
+
+export type ForsakenAssignmentKind = "cone" | "stack" | "spread" | "defamation";
+export type ForsakenEnding = "past" | "future";
+export type ForsakenGroup = "A" | "B";
+export type ForsakenTowerGroup = "X" | "Y";
+
+export type ForsakenPairAssignment = {
+  id: string;
+  members: [string, string];
+  assignments: [ForsakenAssignmentKind, ForsakenAssignmentKind];
+  endings: [ForsakenEnding, ForsakenEnding];
+  group: ForsakenGroup;
+};
+
+export type ForsakenPlayerAssignment = {
+  playerId: string;
+  pairId: string;
+  pairIndex: number;
+  assignment: ForsakenAssignmentKind;
+  ending: ForsakenEnding;
+  group: ForsakenGroup;
+  roleSide: "support" | "dps";
+  defaultSide: "left" | "right";
+  towerSlots: number[];
+  towerGroupBySlot: ForsakenTowerGroup[];
+};
+
+export type ForsakenPlan = {
+  patternId?: string;
+  patternIndex: number;
+  rng: boolean;
+  towerOrder: ForsakenGroup[];
+  pairs: ForsakenPairAssignment[];
+  players: Record<string, ForsakenPlayerAssignment>;
 };
 
 export type Knockback = {
@@ -254,6 +295,7 @@ export type PendingBaitEvent = {
   role?: Role;
   telegraph: number;
   link: string;
+  directionOffsetByEffect?: Record<string, number>;
   showCastBar: boolean;
 };
 
@@ -291,6 +333,14 @@ export type PendingHeal = {
   id: string;
   t: number;
   name: string;
+};
+
+export type PendingForsakenAssign = {
+  id: string;
+  t: number;
+  name: string;
+  duration: number;
+  markerDuration: number;
 };
 
 export type TowerVisual = {
@@ -717,6 +767,7 @@ export type World = {
   pendingEffectBursts: PendingEffectBurst[];
   effectResolvers: Record<string, EffectResolver>;
   pendingHeals: PendingHeal[];
+  pendingForsakenAssigns: PendingForsakenAssign[];
   pendingEffectSelects: PendingEffectSelect[];
   pendingApplyEffects: PendingApplyEffect[];
   // Per-player plant directions (one per plant slot), assigned from optionals.combinations.plant
@@ -726,5 +777,6 @@ export type World = {
   // Optional mapping from plant application order to combo slot. This lets a short-timer debuff
   // use a later combo slot while the displayed/solver combo order remains stable.
   plantDebuffOrder?: number[];
+  forsakenPlan?: ForsakenPlan;
   botSolvers?: BotSolvers;
 };

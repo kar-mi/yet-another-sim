@@ -31,6 +31,16 @@ function selectBaitTarget(
   return selectTargetPlayer(players, { x: boss.pos.x, z: boss.pos.z }, mode, role);
 }
 
+function baitDirectionOffset(target: Player, directionOffsetByEffect: Record<string, number> | undefined, time: number): number | undefined {
+  if (!directionOffsetByEffect) return undefined;
+  for (const effect of target.effects) {
+    if (isEffectActiveAt(effect, time) && directionOffsetByEffect[effect.name] !== undefined) {
+      return directionOffsetByEffect[effect.name];
+    }
+  }
+  return undefined;
+}
+
 export function resolveAoe(ctx: TickContext): {
   active: ActiveMechanic[];
   pending: PendingEvent[];
@@ -126,10 +136,11 @@ export function resolveAoe(ctx: TickContext): {
     // the single cleave cone detonates at the bait's cast end.
     const stored = active.find(m => m.id === pb.link && m.deferred);
     if (stored) {
+      const directionOffset = baitDirectionOffset(target, pb.directionOffsetByEffect, time) ?? stored.directionOffset;
       stored.shape = anchorShape(boss, stored.shape, {
         anchor: stored.anchor,
         directionFrom: stored.directionFrom,
-        directionOffset: stored.directionOffset,
+        directionOffset,
       });
       stored.telegraphStart = pb.t;
       stored.resolveAt = pb.t + pb.telegraph;

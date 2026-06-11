@@ -50,11 +50,6 @@ export function resolveTowers(ctx: TickContext): {
       tower.soakerCount = validSoakers.length;
 
       if (tower.resolveAt <= time) {
-        for (const id of tower.resolveEventIds) {
-          const resolver = ctx.world.effectResolvers[id];
-          if (resolver) triggerEffectResolver(ctx, resolver, validSoakers);
-        }
-
         // Wrong-role soakers die when the tower opts into lethal punishment.
         if (tower.requiredRoles && tower.wrongRoleLethal) {
           for (const p of inside) {
@@ -65,6 +60,12 @@ export function resolveTowers(ctx: TickContext): {
             }
           }
         }
+
+        for (const id of tower.resolveEventIds) {
+          const resolver = ctx.world.effectResolvers[id];
+          if (resolver) triggerEffectResolver(ctx, resolver, validSoakers);
+        }
+
         const success = validSoakers.length >= tower.requiredCount;
         if (success) {
           for (const p of validSoakers) {

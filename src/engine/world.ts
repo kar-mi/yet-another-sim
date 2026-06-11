@@ -1,4 +1,4 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, Knockback, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingBaitEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingApplyEffect, PendingInverse, PendingSpreadStack, PendingGaze, PendingForcedMarch, PendingEffectBurst, PendingHeal, EffectResolver } from "../shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, Knockback, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingBaitEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingApplyEffect, PendingInverse, PendingSpreadStack, PendingGaze, PendingForcedMarch, PendingEffectBurst, PendingHeal, PendingForsakenAssign, EffectResolver, ForsakenAssignmentKind, ForsakenGroup, ForsakenPlan } from "../shared/types";
 import { vec2 } from "../shared/math";
 import { makeSeed, nextRandom, randomInt } from "../shared/rng";
 import type { RaidDef } from "./raidSchema";
@@ -14,10 +14,13 @@ function toBotSolvers(raid: RaidDef): World["botSolvers"] {
   const plantArrows = raid.botSolvers?.plantArrows;
   const doubleTrouble = raid.botSolvers?.doubleTrouble;
   const spreadStack = raid.botSolvers?.spreadStack;
-  if (!plantArrows && !doubleTrouble && !spreadStack) return undefined;
+  const forsaken = raid.botSolvers?.forsaken;
+  if (!plantArrows && !doubleTrouble && !spreadStack && !forsaken) return undefined;
 
   const toSpots = (spots: Record<string, [number, number]>) =>
     Object.fromEntries(Object.entries(spots).map(([id, pos]) => [id, toVec2(pos)]));
+  const toSpotLists = (spots: Record<string, [number, number][]>) =>
+    Object.fromEntries(Object.entries(spots).map(([id, list]) => [id, list.map(toVec2)]));
 
   return {
     plantArrows: plantArrows && {
@@ -52,6 +55,12 @@ function toBotSolvers(raid: RaidDef): World["botSolvers"] {
           invertedB: solver.stackLightning.invertedB && toSpots(solver.stackLightning.invertedB),
         },
       }])),
+    },
+    forsaken: forsaken && {
+      towerWindows: forsaken.towerWindows.map(window => ({ ...window })),
+      baitWindows: forsaken.baitWindows?.map(window => ({ ...window })),
+      towerSpots: toSpotLists(forsaken.towerSpots),
+      baitSpots: forsaken.baitSpots && toSpotLists(forsaken.baitSpots),
     },
   };
 }
@@ -94,6 +103,77 @@ function buildPlantPlan(
   assign(plant.g1.members, swap ? plant.g2.combos : plant.g1.combos);
   assign(plant.g2.members, swap ? plant.g1.combos : plant.g2.combos);
   return { plan, rngState: nextState };
+}
+
+function normalizedForsakenKind(kind: ForsakenAssignmentKind): "cone" | "stack" | "defamation" {
+  return kind === "spread" ? "defamation" : kind;
+}
+
+function classifyForsakenPair(assignments: [ForsakenAssignmentKind, ForsakenAssignmentKind]): ForsakenGroup {
+  const kinds = assignments.map(normalizedForsakenKind).sort().join("+");
+  if (kinds === "cone+stack" || kinds === "defamation+stack" || kinds === "cone+defamation") return "A";
+  return "B";
+}
+
+function buildForsakenPlan(
+  raid: RaidDef,
+  players: Player[],
+  rngState: number,
+): { plan?: ForsakenPlan; rngState: number } {
+  const forsaken = raid.optionals?.combinations?.forsaken;
+  if (!forsaken) return { rngState };
+
+  let nextState = rngState;
+  let patternIndex = 0;
+  if (forsaken.rng && forsaken.patterns.length > 1) {
+    const roll = randomInt(nextState, forsaken.patterns.length);
+    nextState = roll.state;
+    patternIndex = roll.value;
+  }
+
+  const pattern = forsaken.patterns[patternIndex] ?? forsaken.patterns[0]!;
+  const roleById = new Map(players.map(player => [player.id, player.role]));
+  const pairs = pattern.pairs.map((pair, pairIndex) => {
+    const assignments = pair.assignments as [ForsakenAssignmentKind, ForsakenAssignmentKind];
+    return {
+      id: `pair-${pairIndex + 1}`,
+      members: pair.members,
+      assignments,
+      endings: pair.endings ?? (["future", "past"] as const),
+      group: classifyForsakenPair(assignments),
+    };
+  });
+  const playersById: ForsakenPlan["players"] = {};
+  for (const [pairIndex, pair] of pairs.entries()) {
+    pair.members.forEach((playerId, memberIndex) => {
+      const roleSide = roleById.get(playerId) === "dps" ? "dps" : "support";
+      const towerGroupBySlot = forsaken.towerOrder.map(group => group === pair.group ? "X" : "Y");
+      playersById[playerId] = {
+        playerId,
+        pairId: pair.id,
+        pairIndex,
+        assignment: pair.assignments[memberIndex],
+        ending: pair.endings[memberIndex],
+        group: pair.group,
+        roleSide,
+        defaultSide: roleSide === "support" ? "left" : "right",
+        towerSlots: forsaken.towerOrder.map((group, i) => group === pair.group ? i + 1 : 0).filter(slot => slot > 0),
+        towerGroupBySlot,
+      };
+    });
+  }
+
+  return {
+    plan: {
+      patternId: pattern.id,
+      patternIndex,
+      rng: forsaken.rng,
+      towerOrder: forsaken.towerOrder,
+      pairs,
+      players: playersById,
+    },
+    rngState: nextState,
+  };
 }
 
 function toZoneShape(zone: RaidDef["arena"]["zones"][number]): ZoneShape {
@@ -156,7 +236,8 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     facing: 0, threat, currentTarget: topThreatTarget(players, threat),
   };
 
-  const { plan: plantPlan, rngState } = buildPlantPlan(raid, seed);
+  const { plan: plantPlan, rngState: afterPlantRngState } = buildPlantPlan(raid, seed);
+  const { plan: forsakenPlan, rngState } = buildForsakenPlan(raid, players, afterPlantRngState);
   const plantDebuffOrder = raid.optionals?.combinations?.plant?.debuffOrder;
 
   const pending: PendingEvent[] = [];
@@ -176,6 +257,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const pendingEffectBursts: PendingEffectBurst[] = [];
   const effectResolvers: Record<string, EffectResolver> = {};
   const pendingHeals: PendingHeal[] = [];
+  const pendingForsakenAssigns: PendingForsakenAssign[] = [];
 
   for (const e of raid.events) {
     if (e.type === "tether_source") {
@@ -413,7 +495,16 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         role: e.role,
         telegraph: e.telegraph,
         link: e.link,
+        directionOffsetByEffect: e.directionOffsetByEffect,
         showCastBar: e.showCastBar ?? false,
+      });
+    } else if (e.type === "forsaken_assign") {
+      pendingForsakenAssigns.push({
+        id: e.id,
+        t: e.t,
+        name: e.name,
+        duration: e.duration,
+        markerDuration: e.markerDuration,
       });
     } else {
       pending.push({
@@ -445,7 +536,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     rngState,
     groupChoices: {},
     status: "running",
-    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingBaits.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingEffectSelects.length > 0 || pendingApplyEffects.length > 0 || pendingInversions.length > 0 || pendingSpreadStacks.length > 0 || pendingGazes.length > 0 || pendingForcedMarches.length > 0 || pendingEffectBursts.length > 0 || pendingHeals.length > 0,
+    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingBaits.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingEffectSelects.length > 0 || pendingApplyEffects.length > 0 || pendingInversions.length > 0 || pendingSpreadStacks.length > 0 || pendingGazes.length > 0 || pendingForcedMarches.length > 0 || pendingEffectBursts.length > 0 || pendingHeals.length > 0 || pendingForsakenAssigns.length > 0,
     arena,
     waymarks,
     players,
@@ -479,8 +570,10 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     pendingEffectBursts,
     effectResolvers,
     pendingHeals,
+    pendingForsakenAssigns,
     plantPlan,
     plantDebuffOrder,
+    forsakenPlan,
     botSolvers: toBotSolvers(raid),
   };
 }
