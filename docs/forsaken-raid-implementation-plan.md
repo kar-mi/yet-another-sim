@@ -1,253 +1,179 @@
 # Forsaken Raid Implementation Plan
 
-## Summary
+## Status / Gaps
 
-Implement Forsaken as a Dancing Mad Ultimate raid plan with two tracks:
+Implemented: `forsaken.json` (full tower + clone timeline), the `forsaken_assign` event,
+assignment/marker/ending effects, tower-gated debuff resolution, and soak swaps
+(`src/engine/systems/forsakenAssign.ts`). `forsaken-bots.json` has static per-tower and
+per-bait spots.
 
-1. Author the encounter skeleton with mechanics the simulator already supports.
-2. Add the missing reusable mechanics needed for an accurate full Forsaken sequence.
+Remaining work:
 
-The source notes are in `.claude/docs/forsaken.md`. They define the role-side rules, tower
-grouping, odd/even tower positioning, close/far clone baits, tower-only debuff resolution,
-and the P2 Forsaken timeline
+- Bot solver: replace the static `towerSpots` / `baitSpots` with the positioning rules
+  below (group X/Y, odd/even tower spots, stack tie-breaks, close/far past-future baits).
 
-## Current Support vs Gaps
-Bot resolver:
-- Forsaken assignment state: support/DPS side, odd/even tower rules, pair groups, group A/B
-  classification, and the eight-tower order need to be represented deterministically.
-- Bot solver support for the full tower and clone sequence.
+## Encounter Rules
 
-## Encounter Rules to Preserve
-- Tower Order
-  AAABBBBA
-- Base party groups:
-  - `h1/mt`
-  - `h2/ot`
-  - `r1/m1`
-  - `r2/m2`
-- Default side split:
-  - Supports left facing the boss.
-  - DPS right facing the boss.
-- Group classification:
-  - Group A if the pair receives `stack + cone` or `stack + defam` or `cone + defam`
-  - Group B if the pair receives `cone + cone` or `defam + defam`.
-  - Group X/Y will be A/B depending on if tower number ie. tower 1 is A is X, tower 4 is B is X
-    X is tower group, Y is non tower
-- Odd towers:
-  - Group X Cone players resolve on the left side.
-  - Group X Spread players resolve on the right side.
-  - Group X Right stack resolves in front aligned toward new north.
-  - Group X Left stack resolves on the boss hitbox ring.
-  - Cone bait should aim toward the stack side, not out to the arena edge.
-  - Group Y Non-tower supports always handle stack/cone on the left. tank north and healer south, outside the tower
-  - Group Y Non-tower DPS always stand in the stack on the right.
-- Same-role stack tie-breaks:
-  - Healer left, tank right.
-  - ranged left, Melee right,
-  - "melee right, tank is melee"
+### Groups
 
-- Even towers:
-    cone dps y - in tower, in boss hitbox to the right facing boss
-    cone support y in tower, in boss hitbox to the left facing boss
-    spread dps y - north middle ish, away from support
-    spread support y - north middle ish, away from support
+- Tower order: `AAABBBBA` (waves 1-3 = A, 4-7 = B, 8 = A).
+- Fixed pairs: `h1/mt`, `h2/ot`, `r1/m1`, `r2/m2`.
+- Default side split: supports left, DPS right, facing the boss.
+- Group A: the pair's two debuffs are `stack + cone`, `stack + defam`, or `cone + defam`.
+- Group B: the pair's two debuffs are `cone + cone` or `defam + defam`.
+- X = the group whose letter matches the current tower in `AAABBBBA`; Y = the other
+  group. X soaks the towers.
 
-  - group y Supports left, DPS right.
-      range near marker to bait cone
-  - group y Melee/tank  
-      opposite side of the towers
-      stand on the outer hitbox; moving inward will cause clipping with damage
+### Debuffs
 
-- Debuffs:
-  - Forsaken assignment debuffs should be invisible in the party status list but show an
-    icon/marker over the player's head. icon shows for 5 seconds then dispears, lasts for 60 seconds, only resolves on tower
-    odd tower
-  - odd one, always 2 stacks, 3 cones, and 3 debuffs
-  - even tower , always 4 cone and 4 defam
-  - since 4 players in towers will always swap debuff, use that to calculate swapping of two sets
-  - if someone misses a tower, apply lethal dmg to all players
+- Kinds: `stack`, `cone`, `defamation`. (No separate spread — defamation is the only
+  spread-style debuff. The defamation resolver uses the engine's `spread` action under
+  the hood, but is labeled and id'd as defamation: `forsaken-defamation-resolve` /
+  `Defamation Charge`.)
+- Invisible in the party status list; a head marker icon shows for 5 s
+  (`markerDuration`) then disappears. The assignment effect lasts 120 s and is
+  reapplied on each swap.
+- Initial (odd) set: 2 stacks + 3 cones + 3 defams.
+  - One support pair and one DPS pair get the stacks — one pair is `stack + cone`, the
+    other `stack + defam` (which pair gets cone vs defam alternates by pattern). These
+    are the two A pairs.
+  - The remaining support pair and DPS pair are `cone + cone` and `defam + defam` —
+    the two B pairs.
+- Even set: 4 cones + 4 defams, any order.
+- Resolution: only the 2 players inside each tower resolve their debuff (4 per wave
+  across the two towers).
+- Swap on soak (soakers only):
+  - After an odd tower (next wave is even): the 4 soakers receive 2 cones + 2 defams.
+  - After an even tower (next wave is odd): the 4 soakers receive 2 stacks + 1 cone +
+    1 defam — this guarantees the next odd tower always has its 2 stacks.
+  - Implemented as: deal the kinds missing from the next parity's target counts
+    (odd `2S/3C/3D`, even `0S/4C/4D`) to the soakers in roster order
+    (`mt, ot, h1, h2, r1, r2, m1, m2`). Consequence: post-swap stacks always land on
+    the soaking group's tank + healer.
+- Missing a tower: lethal damage to all players (`failureDamage`).
 
+### Odd towers
 
-## Implementation Changes
+- X cone player resolves on the left side.
+- X defam player resolves on the right side.
+- X right stack resolves in front, aligned toward new north.
+- X left stack resolves on the boss hitbox ring.
+- Cone bait aims toward the stack side, not out to the arena edge.
+- Y supports handle stack/cone on the left: tank north, healer south, outside the tower.
+- Y DPS stand in the stack on the right.
 
-### Raid Content
+### Stack side tie-breaks
 
-- Add `raids/dancing-mad-ultimate/forsaken.json`.
-- Add `raids/dancing-mad-ultimate/forsaken-bots.json`.
-- Keep the existing `raids/dancing-mad-ultimate/raid_info.json` category; no category
-  rename is needed.
-- Use a 20-yalm circular arena to match the existing Dancing Mad Ultimate content unless
-  later measurement proves Forsaken needs a larger scale.
-Diamond Waymarks
+Ordered precedence:
 
-convert using -100
-{"Name":"12y Waymarks","MapID":1094,"A":{"X":100.0,"Y":0.0,"Z":88.0,"ID":0,"Active":true},"B":{"X":112.0,"Y":0.0,"Z":100.0,"ID":1,"Active":true},"C":{"X":100.0,"Y":0.0,"Z":112.0,"ID":2,"Active":true},"D":{"X":88.0,"Y":0.0,"Z":100.0,"ID":3,"Active":true},"One":{"X":94.0,"Y":0.0,"Z":94.0,"ID":4,"Active":true},"Two":{"X":106.0,"Y":0.0,"Z":94.0,"ID":5,"Active":true},"Three":{"X":106.0,"Y":0.0,"Z":106.0,"ID":6,"Active":true},"Four":{"X":94.0,"Y":0.0,"Z":106.0,"ID":7,"Active":true}}
+1. If a healer holds a stack: healer left, the other player right.
+2. Otherwise tank counts as melee: ranged left, melee/tank right.
+3. Same-job stacks should be impossible under the assignment rules; if one occurs,
+   lower number goes left (e.g. `r1` left, `r2` right).
 
+### Even towers
 
-### Forsaken Assignment Model
+Left/right tower is relative to looking at the boss.
 
-Add a deterministic assignment helper for Forsaken rather than hard-coding every role in
-the raid JSON. The helper should produce:
+- The soaking group X holds 2 cones + 2 defams. The per-pair distribution is either
+  mixed (each pair has 1 cone + 1 defam) or split by role (both cones on one pair,
+  both defams on the other, either way around).
+- Tower split — each tower gets one cone + one defam:
+  - Mixed pairs: supports take the left tower, DPS take the right tower (facing the
+    boss).
+  - Split by role: healer left, tank right; melee DPS left, ranged DPS right — so each
+    tower still gets one support + one DPS.
+- Within a tower: the cone player stands on the boss hitbox toward the tower's outer
+  side, facing the boss; the defam player stands on the north/far side of the tower,
+  middle-ish, away from the cone.
+- Y supports left, DPS right; Y ranged stand near the waymark to bait the cone.
+- Y melee/tank: opposite side from the towers, on the outer boss hitbox — moving
+  inward clips the tower/defam damage.
 
-- Pair groups from the four fixed pairs: `h1/mt`, `h2/ot`, `r1/m1`, `r2/m2`.
-- Assignment type per player: `cone`, `stack`, `spread`, or `defamation`.
-- Group classification: A or B.
-- Tower order slot from the notes' `AAA BBBB A` sequence.
-- Side and spot metadata for odd/even towers.
+## Assignment Model (implemented)
 
-For v1, this can live as an `optionals.combinations.forsaken` block if that matches the
-existing plant-combination pattern. If the implementation becomes too specialized, use a
-dedicated `forsaken_assign` event that applies invisible assignment debuffs at the start
-of the Forsaken sequence.
+- Patterns live in `optionals.combinations.forsaken` in `forsaken.json`
+  (`rng: false`; patterns `baseline` and `alternate`). Each pair entry sets
+  `assignments` and `endings` (`past` / `future`).
+- The `forsaken_assign` event (`t: 3`, `duration: 120`, `markerDuration: 5`) applies
+  the assignment effect, head marker icon, ending effect, and ending text marker.
+- Soak swaps are handled by `resolveForsakenTowerDebuffSwaps` in
+  `src/engine/systems/forsakenAssign.ts`.
 
-### Bot Solver
+## Bot Solver
 
-Add bot support after the mechanics work for human-controlled slots. The solver should:
+The solver should:
 
-- Read the Forsaken assignment state.
+- Read the Forsaken assignment state (current charge per player + group X/Y).
 - Move support players to left-side planned spots and DPS to right-side planned spots.
-- Use odd tower positioning rules for cone, stack, spread, and defamation.
-- Use even tower static RMMR spots.
-- Move bait players to max melee close/far bait spots for clone lock-ins.
+- Use odd tower positioning rules for cone, stack, and defamation.
+- Use even tower spots per the rules above.
+- Move bait players to max melee close/far bait spots for clone lock-ins
+  (close = past, far = future).
 - Resume tower positions after clone cleaves.
 
 The initial `forsaken-bots.json` should focus on deterministic clear-path movement, not
 cover every possible player-error scenario.
 
-## Timeline
+## Timeline (from forsaken.json)
 
-•  Fight time    Encounter t    Shifted t    Event
-  ━━━━━━━━━━━━  ━━━━━━━━━━━━━  ━━━━━━━━━━━  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   3:28                  208            0    P2 start
-  ────────────  ─────────────  ───────────  ────────────────────────────
-   3:41                  221           13    Shared tankbuster
-  ────────────  ─────────────  ───────────  ────────────────────────────
-   3:55                  235           27    Forsaken raidwide
-  ────────────  ─────────────  ───────────  ────────────────────────────
-   4:08                  248           40    Towers 1 explode
-  ────────────  ─────────────  ───────────  ────────────────────────────
-   4:19                  259           51    Towers 2 + clone baits 1 past/future
-  ────────────  ─────────────  ───────────  ────────────────────────────
-   4:24                  264           56    Clones 1 lock in all ending start cast
-  ────────────  ─────────────  ───────────  ────────────────────────────
-   4:29                  269           61    Towers 3 + clone cleaves 1 all ending end cast
-  ────────────  ─────────────  ───────────  ────────────────────────────
-   4:39                  279           71    Towers 4 + clone baits 2 past/future
-  ────────────  ─────────────  ───────────  ──────────────────────────── 
-   4:46                  286           78    Clones 2 lock in all ending start cast
-  ────────────  ─────────────  ───────────  ────────────────────────────
-   4:50                  290           82    Towers 5 + clone cleaves 2 all ending end cast
-  ────────────  ─────────────  ───────────  ────────────────────────────
-   5:01                  301           93    Towers 6 + clone baits 3 past/future
-  ────────────  ─────────────  ───────────  ────────────────────────────
-   5:06                  306           98    Clones 3 lock in all ending start cast
-  ────────────  ─────────────  ───────────  ────────────────────────────
-   5:11                  311          103    Towers 7 + clone cleaves 3 all endgn end cast
-  ────────────  ─────────────  ───────────  ────────────────────────────
-   5:21                  321          113    Towers 8 + clone baits 4 past/future
-  ────────────  ─────────────  ───────────  ────────────────────────────
-   5:28                  328          120    Clones 4 lock in all ending start cast
-  ────────────  ─────────────  ───────────  ────────────────────────────
-   5:34                  334          126    Clone cleaves 4 all ending end cast
-  ────────────  ─────────────  ───────────  ────────────────────────────
-   5:41                  341          133    Forsaken ends raidwide
+`t` = cast start; resolve = `t + telegraph`. Raid `duration: 118`.
+Heal events at t = 18, 29, 39, 49, 60, 71, 81, 91.
 
-  Shifted authored duration: 142
+| Cast t | Resolve | Event |
+| ------ | ------- | ----- |
+| 3      | 6       | Forsaken raidwide; `forsaken_assign` applies debuffs at t=3 |
+| 11     | 16      | Towers 1 (A) |
+| 22     | 27      | Towers 2 (A) |
+| 27     | 32      | Past/Future ending 1 stored + clone bait 1 locks (closest) |
+| 32     | 37      | Towers 3 (A) + All Ending 1 clone cleaves |
+| 42     | 47      | Towers 4 (B) |
+| 47     | 54      | Past/Future ending 2 stored + clone bait 2 locks |
+| 54     | 58      | Towers 5 (B) + All Ending 2 clone cleaves |
+| 64     | 69      | Towers 6 (B) |
+| 69     | 74      | Past/Future ending 3 stored + clone bait 3 locks |
+| 74     | 79      | Towers 7 (B) + All Ending 3 clone cleaves |
+| 84     | 89      | Towers 8 (A) |
+| 89     | 96      | Past/Future ending 4 stored + clone bait 4 locks |
+| 96     | 102     | All Ending 4 clone cleaves |
+| 109    | 112     | Forsaken Ends raidwide |
+
+Clone cleave: 120° cone, length 24, anchored to boss facing; `Forsaken Future` fires
+forward (offset 0), `Forsaken Past` fires behind (offset π).
+
+## Tower Coordinates (from forsaken.json)
+
+All towers: radius 4, `requiredCount: 2`, centers on the 7.25 ring. Each wave's two
+towers sit 90° apart and the pair rotates 45° clockwise per wave (new north = the
+bisector of the pair: NE for wave 1, E for wave 2, ...).
+
+| Wave | Group | Left tower        | Right tower       | Resolve t |
+| ---- | ----- | ----------------- | ----------------- | --------- |
+| 1    | A     | [0, 7.25] N       | [7.25, 0] E       | 16        |
+| 2    | A     | [7.25, 7.25] NE   | [7.25, -7.25] SE  | 27        |
+| 3    | A     | [7.25, 0] E       | [0, -7.25] S      | 37        |
+| 4    | B     | [7.25, -7.25] SE  | [-7.25, -7.25] SW | 47        |
+| 5    | B     | [0, -7.25] S      | [-7.25, 0] W      | 58        |
+| 6    | B     | [-7.25, -7.25] SW | [-7.25, 7.25] NW  | 69        |
+| 7    | B     | [-7.25, 0] W      | [0, 7.25] N       | 79        |
+| 8    | A     | [-7.25, 7.25] NW  | [7.25, 7.25] NE   | 89        |
+
+Waymarks: `A [0, 12] N`, `B [-12, 0] W`, `C [0, -12] S`, `D [12, 0] E`,
+`1 [6, 6] NE`, `2 [-6, 6] NW`, `3 [-6, -6] SW`, `4 [6, -6] SE`.
 
 ## Implementation Order
-1. Author `forsaken.json` with the full timeline and placeholder assignment icons.
-2. Author `forsaken-bots.json` after manual human-slot validation.
+
+1. Fix the bot solver to follow the positioning rules above.
+2. Validate against human-slot play, then `forsaken-bots.json`.
 3. Validate the raid list and run the full Forsaken sequence in the browser.
 
 ## Test Plan
-
-Automated tests:
-
-- Schema accepts `clone_bait` and rejects invalid timing, missing cleave shape, or unknown
-  player ids.
-- Clone baits lock positions once and resolve from the locked clone state even if players
-  move afterward.
-- Past/future bait assignment is deterministic for the same seed.
-- Tower-gated debuff resolution consumes effects only from valid tower soakers.
-- Existing towers without `resolveEffects` still pass current tower tests unchanged.
-- Wrong-role lethal tower behavior runs before tower-gated effect resolution.
-- `forsaken.json` and `forsaken-bots.json` load through `loadRaid` / `loadBotPatterns`.
-
 Manual checks:
 
 - Start the Dancing Mad Ultimate Forsaken raid from the raid selector.
-- Confirm placeholder debuff icons/head markers appear for Forsaken assignments.
-- Confirm tower order follows the `AAA BBBB A` plan.
-- Confirm odd tower support/DPS side rules and same-role tie-breaks.
-- Confirm even tower static defined spots.
-- Confirm close/far clone baits lock
-- Confirm the final raidwide at `142` ends the mechanic sequence.
-
-Commands:
-
-```powershell
-bun test
-bun run typecheck
-bun run build
-```
-
-## Acceptance Criteria
-
-- `docs/forsaken-raid-implementation-plan.md` remains the source of truth for the full
-  Forsaken implementation sequence.
-- The simulator can load a `Forsaken` raid entry under Dancing Mad Ultimate.
-- A player can practice the full tower and clone sequence from P2 start through the ending
-  raidwide.
-- Unsupported approximations are removed before the raid is considered complete.
-- Existing debug raids and Graven Image 3 behavior continue to pass tests.
-
-## Assumptions
-
-- The source note file is `.claude/docs/forsaken.md`.
-- The first implementation should prefer reusable mechanics over one-off hard-coded
-  Forsaken behavior.
-- Placeholder icons are acceptable until final image assets are provided in `static/`.
-- Coordinates should start from the existing 20-yalm Dancing Mad Ultimate arena scale.
-- Exact clone cleave angles, tower coordinates, and debuff damage values may need one
-  tuning pass after browser verification.
-
-[0, 4],  [4, 0]
-[3.66, 3.66], [3.66, -3.66]
-[4, 0], [0, -4]
-[3.66, -3.66], [-3.66, -3.66]
-[0, -4],  [-4, 0]
- [-3.66, -3.66], [-3.66, 3.66]
- [-4, 0], [0, 4]
- [-3.66, 3.66], [3.66, 3.66]
-
-
- {
-      A
-      "spawn": [0, 4], [3.66, 3.66]
-    },
-   C
-      "spawn": [0, -4]
-    },
-    {
-      D
-      "spawn": [-4, 0]
-    },
-    {
-      B
-      "spawn": [4, 0]
-    },
-    {4
-      "spawn": [-3.66, 3.66]
-    },
-    {
-      1
-      "spawn": [3.66, 3.66]
-    },
-    {
-      3
-      "spawn": [-3.66, -3.66]
-    },
-    {
-      2
-      "spawn": [3.66, -3.66]
-    }
+- Confirm debuff icons/head markers appear for 5 s, and swaps reapply them per soak.
+- Confirm tower order follows the `AAABBBBA` plan.
+- Confirm odd tower support/DPS side rules and stack tie-breaks.
+- Confirm even tower spots.
+- Confirm close/far clone baits lock and past/future cleaves fire front/behind.
+- Confirm the final raidwide at resolve t=112 ends the mechanic sequence.

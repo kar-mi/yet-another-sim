@@ -111,7 +111,7 @@
               },
               {
                 "members": ["r2", "m2"],
-                "assignments": ["cone", "defamation"],
+                "assignments": ["stack", "defamation"],
                 "endings": ["future", "past"]
               }
             ]
@@ -166,21 +166,9 @@
     },
     {
       "type": "effect_resolver",
-      "id": "forsaken-spread-resolve",
-      "name": "Spread Resolve",
-      "effectName": "Spread Charge",
-      "action": {
-        "kind": "spread",
-        "radius": 2.5,
-        "damage": 8,
-        "damageType": "magical"
-      }
-    },
-    {
-      "type": "effect_resolver",
       "id": "forsaken-defamation-resolve",
       "name": "Defamation Resolve",
-      "effectName": "Spread Charge",
+      "effectName": "Defamation Charge",
       "action": {
         "kind": "spread",
         "radius": 2.5,
@@ -226,7 +214,6 @@
       "resolveEventIds": [
         "forsaken-stack-resolve",
         "forsaken-cone-resolve",
-        "forsaken-spread-resolve",
         "forsaken-defamation-resolve"
       ],
       "visual": {
@@ -249,7 +236,6 @@
       "resolveEventIds": [
         "forsaken-stack-resolve",
         "forsaken-cone-resolve",
-        "forsaken-spread-resolve",
         "forsaken-defamation-resolve"
       ],
       "visual": {
@@ -278,7 +264,6 @@
       "resolveEventIds": [
         "forsaken-stack-resolve",
         "forsaken-cone-resolve",
-        "forsaken-spread-resolve",
         "forsaken-defamation-resolve"
       ],
       "visual": {
@@ -301,7 +286,6 @@
       "resolveEventIds": [
         "forsaken-stack-resolve",
         "forsaken-cone-resolve",
-        "forsaken-spread-resolve",
         "forsaken-defamation-resolve"
       ],
       "visual": {
@@ -377,7 +361,6 @@
       "resolveEventIds": [
         "forsaken-stack-resolve",
         "forsaken-cone-resolve",
-        "forsaken-spread-resolve",
         "forsaken-defamation-resolve"
       ],
       "visual": {
@@ -400,7 +383,6 @@
       "resolveEventIds": [
         "forsaken-stack-resolve",
         "forsaken-cone-resolve",
-        "forsaken-spread-resolve",
         "forsaken-defamation-resolve"
       ],
       "visual": {
@@ -429,7 +411,6 @@
       "resolveEventIds": [
         "forsaken-stack-resolve",
         "forsaken-cone-resolve",
-        "forsaken-spread-resolve",
         "forsaken-defamation-resolve"
       ],
       "visual": {
@@ -452,7 +433,6 @@
       "resolveEventIds": [
         "forsaken-stack-resolve",
         "forsaken-cone-resolve",
-        "forsaken-spread-resolve",
         "forsaken-defamation-resolve"
       ],
       "visual": {
@@ -528,7 +508,6 @@
       "resolveEventIds": [
         "forsaken-stack-resolve",
         "forsaken-cone-resolve",
-        "forsaken-spread-resolve",
         "forsaken-defamation-resolve"
       ],
       "visual": {
@@ -551,7 +530,6 @@
       "resolveEventIds": [
         "forsaken-stack-resolve",
         "forsaken-cone-resolve",
-        "forsaken-spread-resolve",
         "forsaken-defamation-resolve"
       ],
       "visual": {
@@ -580,7 +558,6 @@
       "resolveEventIds": [
         "forsaken-stack-resolve",
         "forsaken-cone-resolve",
-        "forsaken-spread-resolve",
         "forsaken-defamation-resolve"
       ],
       "visual": {
@@ -603,7 +580,6 @@
       "resolveEventIds": [
         "forsaken-stack-resolve",
         "forsaken-cone-resolve",
-        "forsaken-spread-resolve",
         "forsaken-defamation-resolve"
       ],
       "visual": {
@@ -679,7 +655,6 @@
       "resolveEventIds": [
         "forsaken-stack-resolve",
         "forsaken-cone-resolve",
-        "forsaken-spread-resolve",
         "forsaken-defamation-resolve"
       ],
       "visual": {
@@ -702,7 +677,6 @@
       "resolveEventIds": [
         "forsaken-stack-resolve",
         "forsaken-cone-resolve",
-        "forsaken-spread-resolve",
         "forsaken-defamation-resolve"
       ],
       "visual": {
@@ -731,7 +705,6 @@
       "resolveEventIds": [
         "forsaken-stack-resolve",
         "forsaken-cone-resolve",
-        "forsaken-spread-resolve",
         "forsaken-defamation-resolve"
       ],
       "visual": {
@@ -754,7 +727,6 @@
       "resolveEventIds": [
         "forsaken-stack-resolve",
         "forsaken-cone-resolve",
-        "forsaken-spread-resolve",
         "forsaken-defamation-resolve"
       ],
       "visual": {

@@ -5,8 +5,8 @@ import { applyEffect, isEffectActiveAt } from "./helpers";
 const ASSIGNMENT_EFFECTS: Record<ForsakenAssignmentKind, { name: string; markerIcon: string }> = {
   cone: { name: "Cone Charge", markerIcon: "cone_processed.png" },
   stack: { name: "Stack Charge", markerIcon: "stack_processed.png" },
-  spread: { name: "Spread Charge", markerIcon: "defam_processed.png" },
-  defamation: { name: "Spread Charge", markerIcon: "defam_processed.png" },
+  spread: { name: "Defamation Charge", markerIcon: "defam_processed.png" },
+  defamation: { name: "Defamation Charge", markerIcon: "defam_processed.png" },
 };
 
 const ENDING_MARKERS: Record<string, string> = {

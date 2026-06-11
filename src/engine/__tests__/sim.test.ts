@@ -283,7 +283,7 @@ test("forsaken raid and bot companion content load", async () => {
   expect(byEventId("forsaken-end-raidwide")).toMatchObject({ t: 109 });
   expect(effectResolverById("forsaken-stack-resolve")).toMatchObject({ effectName: "Stack Charge" });
   expect(effectResolverById("forsaken-cone-resolve")).toMatchObject({ effectName: "Cone Charge" });
-  expect(effectResolverById("forsaken-defamation-resolve")).toMatchObject({ effectName: "Spread Charge" });
+  expect(effectResolverById("forsaken-defamation-resolve")).toMatchObject({ effectName: "Defamation Charge" });
   expect(world.forsakenPlan?.towerOrder.join("")).toBe("AAABBBBA");
   expect(world.botSolvers?.forsaken?.towerWindows).toHaveLength(8);
   expect(world.botSolvers?.forsaken?.towerWindows[0]).toEqual({ start: 9, end: 16, tower: 1 });
@@ -326,7 +326,7 @@ test("forsaken tower swaps alternate odd and even debuff distributions", async (
         if (effect.appliedAt + effect.duration <= world.time) continue;
         if (effect.name === "Stack Charge") counts.stack++;
         else if (effect.name === "Cone Charge") counts.cone++;
-        else if (effect.name === "Spread Charge") counts.defamation++;
+        else if (effect.name === "Defamation Charge") counts.defamation++;
       }
     }
     return counts;
