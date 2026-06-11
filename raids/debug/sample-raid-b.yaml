@@ -1,0 +1,85 @@
+# Sample Raid II — off-center circle, rear cone, laser rect, donut,
+# and a final corner pillar.
+
+name: Sample Raid II
+arena:
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 20
+duration: 50
+
+players:
+  - id: mt
+    role: tank
+    control: bot
+    spawn: [0, 8]
+  - id: ot
+    role: tank
+    control: human
+    spawn: [0, -8]
+  - id: h1
+    role: healer
+    control: bot
+    spawn: [-8, 0]
+  - id: h2
+    role: healer
+    control: bot
+    spawn: [8, 0]
+  - id: r1
+    role: dps
+    control: bot
+    spawn: [-5.66, 5.66]
+  - id: r2
+    role: dps
+    control: bot
+    spawn: [5.66, 5.66]
+  - id: m1
+    role: dps
+    control: bot
+    spawn: [-5.66, -5.66]
+  - id: m2
+    role: dps
+    control: bot
+    spawn: [5.66, -5.66]
+
+events:
+  - id: eruption
+    t: 5
+    name: Eruption
+    telegraph: 3
+    damage: 70
+    damageType: magical
+    shape: { kind: circle, center: [10, 10], radius: 8 }
+
+  - id: back-cleave
+    t: 13
+    name: Back Cleave
+    telegraph: 3
+    damage: 65
+    damageType: magical
+    shape: { kind: cone, origin: [0, 0], direction: [0, -1], angleDeg: 100, length: 24 }
+
+  - id: laser
+    t: 21
+    name: Laser
+    telegraph: 4
+    damage: 85
+    damageType: magical
+    shape: { kind: rect, origin: [0, 0], direction: [0, 1], width: 6, length: 40 }
+
+  - id: ring-blast
+    t: 30
+    name: Ring Blast
+    telegraph: 4
+    damage: 100
+    damageType: magical
+    shape: { kind: donut, center: [0, 0], inner: 5, outer: 22 }
+
+  - id: pillars
+    t: 40
+    name: Pillars
+    telegraph: 3
+    damage: 90
+    damageType: magical
+    shape: { kind: circle, center: [-12, -12], radius: 10 }

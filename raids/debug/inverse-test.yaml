@@ -1,0 +1,113 @@
+# Inverse Test — Kefka "?" crosses: honest, question-mark (always inverted),
+# and coin-flip (seeded rng). Shown vs hidden cone pairs swap on inversion.
+
+name: Inverse Test
+arena:
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 20
+duration: 30
+
+players:
+  - id: mt
+    role: tank
+    control: human
+    spawn: [0, 0]
+  - id: ot
+    role: tank
+    control: bot
+    spawn: [8, 8]
+  - id: h1
+    role: healer
+    control: bot
+    spawn: [-8, 8]
+  - id: h2
+    role: healer
+    control: bot
+    spawn: [8, -8]
+  - id: r1
+    role: dps
+    control: bot
+    spawn: [-8, -8]
+  - id: r2
+    role: dps
+    control: bot
+    spawn: [12, 0]
+  - id: m1
+    role: dps
+    control: bot
+    spawn: [-12, 0]
+  - id: m2
+    role: dps
+    control: bot
+    spawn: [0, 12]
+
+# Shared cross geometry — NW/SE shown, NE/SW hidden.
+_crossShown: &crossShown
+  - { kind: cone, origin: [0, 0], direction: [-1, 1], angleDeg: 80, length: 22 }
+  - { kind: cone, origin: [0, 0], direction: [1, -1], angleDeg: 80, length: 22 }
+_crossHidden: &crossHidden
+  - { kind: cone, origin: [0, 0], direction: [1, 1], angleDeg: 80, length: 22 }
+  - { kind: cone, origin: [0, 0], direction: [-1, -1], angleDeg: 80, length: 22 }
+
+# Shared cross event defaults.
+_crossBase: &crossBase
+  type: inverse
+  telegraph: 4
+  damage: 40
+  damageType: magical
+  showCastBar: true
+  ringHeight: 3.2
+  shownShapes: *crossShown
+  hiddenShapes: *crossHidden
+
+events:
+  # Lock the boss facing for the whole encounter.
+  - type: aoe
+    id: stillness
+    t: 0
+    name: Stillness
+    telegraph: 15
+    damage: 0
+    damageType: "true"
+    lockFacing: true
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: [0, 0], radius: 0.1 }
+
+  # Honest — shown shapes are the real hit.
+  - <<: *crossBase
+    id: honest-cross
+    t: 3
+    name: Honest Cross
+    ringColor: "#3b82f6"
+
+  # Question mark — always inverted to the hidden shapes.
+  - <<: *crossBase
+    id: question-cross
+    t: 11
+    name: Question Cross
+    questionMark: true
+    ringColor: "#ef4444"
+
+  # Coin flip — seeded rng decides inversion; punishes with magic vuln.
+  - <<: *crossBase
+    id: coin-flip-cross
+    t: 19
+    name: Coin Flip Cross
+    telegraph: 5
+    damage: 50
+    rng: true
+    ringColor: "#a855f7"
+    applyEffect:
+      name: Magic Vulnerability
+      kind: debuff
+      duration: 8
+      behavior: { kind: vuln, damageType: magical, multiplier: 1.5 }
+
+waymarks:
+  - { mark: A, pos: [0, 16] }
+  - { mark: B, pos: [16, 0] }
+  - { mark: C, pos: [0, -16] }
+  - { mark: D, pos: [-16, 0] }

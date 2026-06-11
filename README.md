@@ -3,7 +3,7 @@
 A base raid simulator for FFXIV-style encounters.
 
 The project runs a server-authoritative TypeScript simulation with a browser client for
-rendering and input. Raid encounters are authored as JSON timelines under `raids/`, then
+rendering and input. Raid encounters are authored as YAML timelines under `raids/`, then
 loaded by the Bun server and played in the browser.
 
 ## Requirements
@@ -42,13 +42,13 @@ bun test           # Run tests
 
 ## Raid Authoring
 
-Raid files live in `raids/<category>/<raid-id>.json`. Each raid defines an arena, an
-8-player roster, and a timeline of mechanics. Category folders include a
-`raid_info.json` file used by the raid browser.
+Raid files live in `raids/<category>/<raid-id>.yaml` (`.yml` and `.json` also work). Each
+raid defines an arena, an 8-player roster, and a timeline of mechanics. Category folders
+include a `raid_info.yaml` file used by the raid browser.
 
 Useful docs:
 
-- [Authoring Raid JSON](docs/authoring-raids.md)
+- [Authoring Raids](docs/authoring-raids.md)
 - [Movement & Scale](docs/movement-and-scale.md)
 
 ## Current Scope

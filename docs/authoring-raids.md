@@ -72,7 +72,7 @@ JSON (still fully supported):
 | `name`        | yes      | Display name, non-empty. |
 | `arena`       | yes      | `{ "zones": [...] }`, at least one zone. Defines the walkable floor. |
 | `duration`    | yes      | Encounter length in seconds (> 0). The run ends ("cleared") if players survive this long. |
-| `botPatterns` | no       | Id of a bot-pattern file (without `.json`). See [Bot patterns](#bot-patterns). |
+| `botPatterns` | no       | Id of a bot-pattern file (without extension). See [Bot patterns](#bot-patterns). |
 | `players`     | yes      | Exactly 8, in the canonical roster order below. |
 | `events`      | yes      | Array of events. May be empty. |
 | `waymarks`    | no       | Optional visual floor markers (A–D, 1–4). See [Waymarks](#waymarks). |
@@ -150,7 +150,7 @@ Each player entry:
 | `role`    | yes      | Must match the roster role for its index. |
 | `spawn`   | yes      | Starting `[x, z]`. |
 | `control` | no       | `"human"` (default) or `"bot"`. Humans are driven by connected players; bots follow patterns. |
-| `pattern` | no       | Inline movement waypoints (see below). Usually supplied via a `-bots.json` file instead. |
+| `pattern` | no       | Inline movement waypoints (see below). Usually supplied via a `-bots` file instead. |
 
 ## Events (the timeline)
 
@@ -248,7 +248,7 @@ gives a fixed-heading cleave that originates from the boss.
 Express a directional cleave with the `cone`'s `angleDeg` (full width) plus `directionOffset`:
 a front 90° cleave is `angleDeg: 90` with no offset; a rear cleave adds `directionOffset: 3.14159`
 (π); a left half-room cleave is `angleDeg: 180, directionOffset: -1.5708` (−π/2). See
-`raids/positional-test.json`.
+`raids/positional-test.yaml`.
 
 ```json
 {
@@ -348,13 +348,13 @@ becomes "toward" / "away from" the baited player.
 | `showCastBar` | no       | Show the boss cast bar for the duration of the bait. |
 
 A full two-cast sequence (stored `Future Ending` cleave → 3s → baited `All Things Ending`) lives in
-`raids/debug/stored-bait-test.json`.
+`raids/debug/stored-bait-test.yaml`.
 
 ### `tether_source` — buff/debuff tether
 
 Spawns a tether anchor at a point. The nearest player gets tethered; when it finalizes
 after `finalizeAfter` seconds, the effect is granted (or, for a debuff, applied unless
-intercepted). See `raids/tether-test.json`.
+intercepted). See `raids/tether-test.yaml`.
 
 ```json
 {
@@ -441,7 +441,7 @@ pair's distance when the chain connects *plus* `breakDistance` (e.g. starting 5 
 `breakDistance: 6` breaks at 11; starting on top of each other breaks at 6). Breaking removes
 the debuff (no damage). Any pair still chained when the window closes takes a single
 burst of `breakDamage` (vulnerabilities apply per the pair's `damageType`). See
-`raids/chain-test.json`.
+`raids/chain-test.yaml`.
 
 ```json
 {
@@ -526,7 +526,7 @@ the marked player. Use it for "stack on a random player" mechanics where the tar
 | `applyEffect` | no | Debuff/buff applied to each hit soaker (same shape as on `aoe`). |
 | `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
 
-See `raids/rng-stack.json` for a linked pair demonstrating opposite-group assignment.
+See `raids/rng-stack.yaml` for a linked pair demonstrating opposite-group assignment.
 
 ### `inverse` — "?" telegraph (lie / opposite-side)
 
@@ -595,7 +595,7 @@ fake** (inverted).
 | `knockback` | no | Knockback applied to each hit player (same shape as on `aoe`). |
 | `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
 
-See `raids/inverse-test.json` for honest / `?` / random crosses.
+See `raids/inverse-test.yaml` for honest / `?` / random crosses.
 
 ### `spread_stack` — "?" that flips spread ↔ stack
 
@@ -665,7 +665,7 @@ orange **"ring with triangles pointing in" marker on top of the marked character
 | `ringHeight` | no | Vertical height of the boss ring. Default `2`. |
 | `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
 
-See `raids/dancing-mad-ultimate/graven-image-3.json` ("Mystery Magic 3 (Fire)") for a flip running
+See `raids/dancing-mad-ultimate/graven-image-3.yaml` ("Mystery Magic 3 (Fire)") for a flip running
 alongside an `inverse` with a fire ring above the lightning ring.
 
 ### `gaze` — look-away / "?" eye
@@ -717,7 +717,7 @@ plain eye, or an eye with a yellow "?".
 | `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
 | `visual` | no | Eye board dimensions `{ width, height, depth }`. Defaults `4 × 3 × 0.4`. |
 
-See `raids/debug/gaze-test.json` for normal / reverse / random eyes.
+See `raids/debug/gaze-test.yaml` for normal / reverse / random eyes.
 
 ### `tower` — soak circle
 
@@ -788,7 +788,7 @@ shown):
 }
 ```
 
-See `raids/debug/tower-test.json` for a full example with single, multi-soak, and support towers.
+See `raids/debug/tower-test.yaml` for a full example with single, multi-soak, and support towers.
 
 ### `effect_resolver` — tower-triggered debuff action
 
@@ -819,7 +819,7 @@ Actions:
 - **cone_nearest** — each triggered carrier fires a cone toward the nearest other living player.
   The carrier is not hit by their own cone.
 
-See `raids/debug/debuff-tower-test.json` for tower-gated spread, stack, and cone examples.
+See `raids/debug/debuff-tower-test.yaml` for tower-gated spread, stack, and cone examples.
 
 ### `forced_march` — ground arrow that teleports the first entrant
 
@@ -1086,8 +1086,8 @@ supported.
 Bot-controlled players move along waypoint paths. You can inline a `pattern` on a player,
 but the convention is a separate file referenced by the raid's `botPatterns` field.
 
-- Name it `<raid>-bots.json` so it's excluded from the raid list.
-- Set `"botPatterns": "<raid>-bots"` (the id, without `.json`) on the raid.
+- Name it `<raid>-bots.yaml` so it's excluded from the raid list.
+- Set `botPatterns: <raid>-bots` (the id, without extension) on the raid.
 
 ```json
 {
@@ -1206,11 +1206,11 @@ A 45-second arena-wide circle, a baited tankbuster, and a donut, on a circular f
 The schema runs automatically when the server loads a raid; a bad file throws with a
 descriptive Zod error. The existing files in `raids/` double as references:
 
-- `sample-raid.json` — every shape kind (`circle`, `cone`, `rect`, `donut`).
-- `near-far-bait.json` — `targeted` events with `role` filters and `applyEffect`.
-- `stored-bait-test.json` — `deferred` stored cleaves (`Future`/`Past Ending`) linked to `bait` casts.
-- `debuff-test.json` — `vuln` and `dot` (moving/idle) behaviors.
-- `tether-test.json` — `tether_source` buff and debuff.
-- `line-link-test.json` — `line_link` from a north statue with hidden debuff, effect, and knockback.
-- `chain-test.json` — `chain` break-apart pairs with a debuff and burst.
-- `rng-stack.json` — `group` random shared-stack assignment with a linked opposite-group repeat.
+- `sample-raid.yaml` — every shape kind (`circle`, `cone`, `rect`, `donut`).
+- `near-far-bait.yaml` — `targeted` events with `role` filters and `applyEffect`.
+- `stored-bait-test.yaml` — `deferred` stored cleaves (`Future`/`Past Ending`) linked to `bait` casts.
+- `debuff-test.yaml` — `vuln` and `dot` (moving/idle) behaviors.
+- `tether-test.yaml` — `tether_source` buff and debuff.
+- `line-link-test.yaml` — `line_link` from a north statue with hidden debuff, effect, and knockback.
+- `chain-test.yaml` — `chain` break-apart pairs with a debuff and burst.
+- `rng-stack.yaml` — `group` random shared-stack assignment with a linked opposite-group repeat.

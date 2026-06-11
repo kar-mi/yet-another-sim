@@ -1,0 +1,70 @@
+# RNG Stack Test — random shared-stack assignment (h1 vs h2 group),
+# then a linked repeat that lands on the opposite group.
+
+name: RNG Stack Test
+arena:
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 30
+duration: 30
+
+players:
+  - id: mt
+    role: tank
+    control: human
+    spawn: [0, 4]
+  - id: ot
+    role: tank
+    control: bot
+    spawn: [0, -4]
+  - id: h1
+    role: healer
+    control: bot
+    spawn: [-4, 4]
+  - id: h2
+    role: healer
+    control: bot
+    spawn: [4, -4]
+  - id: r1
+    role: dps
+    control: bot
+    spawn: [-5.66, 5.66]
+  - id: r2
+    role: dps
+    control: bot
+    spawn: [5.66, 5.66]
+  - id: m1
+    role: dps
+    control: bot
+    spawn: [-5.66, -5.66]
+  - id: m2
+    role: dps
+    control: bot
+    spawn: [5.66, -5.66]
+
+# Shared stack defaults.
+_stackBase: &stackBase
+  type: group
+  groups: [[h1], [h2]]
+  telegraph: 5
+  radius: 6
+  requiredCount: 4
+  damage: 200
+  damageType: magical
+  showCastBar: true
+
+events:
+  # First stack — rng picks which group is marked.
+  - <<: *stackBase
+    id: stack-1
+    t: 4
+    name: Shared Sentence
+    rng: true
+
+  # Linked repeat — guaranteed to hit the opposite group.
+  - <<: *stackBase
+    id: stack-2
+    link: stack-1
+    t: 12
+    name: Shared Sentence (Repeat)

@@ -268,8 +268,8 @@ test("bot patterns can carry forsaken solver spots", () => {
 });
 
 test("forsaken raid and bot companion content load", async () => {
-  const raidJson = await Bun.file("raids/dancing-mad-ultimate/forsaken.json").json();
-  const botJson = await Bun.file("raids/dancing-mad-ultimate/forsaken-bots.json").json();
+  const raidJson = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken.yaml").text());
+  const botJson = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken-bots.yaml").text());
   const raid = loadRaid(raidJson);
   const bots = loadBotPatterns(botJson);
   const world = createWorld(applyBotPatterns(raid, bots), 1);
@@ -312,8 +312,8 @@ test("forsaken raid and bot companion content load", async () => {
 });
 
 test("forsaken tower swaps alternate odd and even debuff distributions", async () => {
-  const raidJson = await Bun.file("raids/dancing-mad-ultimate/forsaken.json").json() as { players: Array<Record<string, unknown>> };
-  const botJson = await Bun.file("raids/dancing-mad-ultimate/forsaken-bots.json").json();
+  const raidJson = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken.yaml").text()) as { players: Array<Record<string, unknown>> };
+  const botJson = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken-bots.yaml").text());
   const raid = loadRaid({
     ...raidJson,
     players: raidJson.players.map(player => ({ ...player, control: "bot" })),

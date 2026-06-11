@@ -1,0 +1,96 @@
+# Debuff Test — vuln, typed damage, pyretic (dot while moving),
+# and deep freeze (dot while idle), all centered circles.
+
+name: Debuff Test
+arena:
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 30
+duration: 45
+
+players:
+  - id: mt
+    role: tank
+    control: bot
+    spawn: [0, 8]
+  - id: ot
+    role: tank
+    control: bot
+    spawn: [0, -8]
+  - id: h1
+    role: healer
+    control: bot
+    spawn: [-8, 0]
+  - id: h2
+    role: healer
+    control: bot
+    spawn: [8, 0]
+  - id: r1
+    role: dps
+    control: bot
+    spawn: [-5.66, 5.66]
+  - id: r2
+    role: dps
+    control: bot
+    spawn: [5.66, 5.66]
+  - id: m1
+    role: dps
+    control: human
+    spawn: [-5.66, -5.66]
+  - id: m2
+    role: dps
+    control: bot
+    spawn: [5.66, -5.66]
+
+# Shared hit defaults — every event is a 1s telegraph circle on center.
+_hitBase: &hitBase
+  telegraph: 1
+  shape: { kind: circle, center: [0, 0], radius: 10 }
+
+events:
+  # Apply physical vuln, then follow up with a physical strike.
+  - <<: *hitBase
+    id: expose
+    t: 3
+    name: Expose
+    damage: 0
+    damageType: physical
+    applyEffect:
+      name: Physical Vulnerability
+      kind: debuff
+      duration: 8
+      behavior: { kind: vuln, damageType: physical, multiplier: 1.5 }
+
+  - <<: *hitBase
+    id: typed-strike
+    t: 7
+    name: Typed Strike
+    damage: 30
+    damageType: physical
+
+  # Pyretic — ticks while moving.
+  - <<: *hitBase
+    id: pyretic-brand
+    t: 13
+    name: Pyretic Brand
+    damage: 0
+    damageType: magical
+    applyEffect:
+      name: Pyretic
+      kind: debuff
+      duration: 8
+      behavior: { kind: dot, dps: 8, condition: moving }
+
+  # Deep Freeze — ticks while idle.
+  - <<: *hitBase
+    id: deep-freeze
+    t: 25
+    name: Deep Freeze
+    damage: 0
+    damageType: magical
+    applyEffect:
+      name: Freeze
+      kind: debuff
+      duration: 8
+      behavior: { kind: dot, dps: 8, condition: idle }
