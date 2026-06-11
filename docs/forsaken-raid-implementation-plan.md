@@ -2,10 +2,10 @@
 
 ## Status / Gaps
 
-Implemented: `forsaken.json` (full tower + clone timeline), the `forsaken_assign` event,
+Implemented: `forsaken.yaml` (full tower + clone timeline), the `forsaken_assign` event,
 assignment/marker/ending effects, tower-gated debuff resolution, soak swaps
 (`src/engine/systems/forsakenAssign.ts`), and the rule-driven bot solver
-(`src/engine/forsakenSolver.ts` — see "Bot Solver" below). `forsaken-bots.json` keeps
+(`src/engine/forsakenSolver.ts` — see "Bot Solver" below). `forsaken-bots.yaml` keeps
 the tower/bait windows plus static spots as a no-plan fallback.
 
 Remaining work: browser smoke test of the full sequence.
@@ -105,7 +105,7 @@ Left/right tower is relative to looking at the boss.
 
 ## Assignment Model (implemented)
 
-- Patterns live in `optionals.combinations.forsaken` in `forsaken.json`
+- Patterns live in `optionals.combinations.forsaken` in `forsaken.yaml`
   (`rng: false`; patterns `baseline` and `alternate`). Each pair entry sets
   `assignments` and `endings` (`past` / `future`).
 - The `forsaken_assign` event (`t: 3`, `duration: 120`, `markerDuration: 5`) applies
@@ -116,7 +116,7 @@ Left/right tower is relative to looking at the boss.
 ## Bot Solver (implemented)
 
 `src/engine/forsakenSolver.ts` computes spots from the assignment state during the
-authored windows in `forsaken-bots.json`; the static `towerSpots` / `baitSpots` there
+authored windows in `forsaken-bots.yaml`; the static `towerSpots` / `baitSpots` there
 remain only as a fallback when no Forsaken plan exists. The static t=0 spots hold the
 opening pattern (supports on the SE arc, DPS on the NW arc of the wave-1 frame) until
 the first tower window opens at t=9.
@@ -138,7 +138,7 @@ the first tower window opens at t=9.
 The solver covers deterministic clear-path movement, not every player-error scenario;
 a missed swap or death falls back to filling open tower slots in roster order.
 
-## Timeline (from forsaken.json)
+## Timeline (from forsaken.yaml)
 
 `t` = cast start; resolve = `t + telegraph`. Raid `duration: 118`.
 Heal events at t = 18, 29, 39, 49, 60, 71, 81, 91.
@@ -167,7 +167,7 @@ the whole fight (`boss-facing-lock`); each All Ending bait turns the boss toward
 locked (closest) target at cast start and the cleave detonates at cast end from that
 facing.
 
-## Tower Coordinates (from forsaken.json)
+## Tower Coordinates (from forsaken.yaml)
 
 All towers: radius 3, `requiredCount: 2`. Odd waves use cardinal towers on the 7.25
 ring; even waves use intercardinal towers at `(±7.25, ±7.25)` (radius ~10.25). The

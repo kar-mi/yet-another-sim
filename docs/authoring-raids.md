@@ -1,27 +1,26 @@
 # Authoring Raids
 
-Raids are YAML or JSON files in the `raids/` directory (YAML is the preferred authoring format;
-JSON is fully supported and will continue to work forever). Each file describes an arena, a
-fixed roster of 8 players, and a timeline of events (mechanics) that resolve over time.
+Raids are YAML files in the `raids/` directory. Each file describes an arena, a fixed
+roster of 8 players, and a timeline of events (mechanics) that resolve over time.
 The server validates every file against a strict schema (`src/engine/raidSchema.ts`) on
 load — an invalid file throws and the raid won't start.
 
 ## File location & naming
 
-- Put raid files in `raids/<category>/<id>.yaml` (or `.yml` / `.json`).
-- The server resolves extensions in order: `.yaml` → `.yml` → `.json` — the first match wins.
-  If both `foo.yaml` and `foo.json` exist in the same directory, only the YAML file is used.
+- Put raid files in `raids/<category>/<id>.yaml` (or `.yml`).
+- The server resolves extensions in order: `.yaml` → `.yml` — the first match wins.
 - `<id>` is the filename without extension and must match `^[a-z0-9][a-z0-9-]{0,63}$`
   (lowercase letters, digits, hyphens; can't start with a hyphen). It's the id used in the
   raid list and join URLs.
 - The server lists all raid files in each category directory, **except** files named
   `raid_info` or ending in `-bots` — those are metadata/bot-pattern files
   (see [Bot patterns](#bot-patterns)).
-- `raid_info` and bot-pattern files may also be YAML (`raid_info.yaml`, `*-bots.yaml`).
+- Category metadata and bot-pattern files use the same YAML extensions (`raid_info.yaml`,
+  `*-bots.yaml`).
 
 ## Top-level shape
 
-YAML (preferred — supports comments and anchors):
+YAML supports comments, anchors, and compact flow-style maps/lists for short fragments:
 
 ```yaml
 # Phase names and timing notes go here as comments
@@ -53,24 +52,10 @@ events:
     failureDamageType: magical
 ```
 
-JSON (still fully supported):
-
-```json
-{
-  "name": "Sample Raid",
-  "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 38 }] },
-  "duration": 45,
-  "botPatterns": "sample-raid-bots",
-  "players": [ ],
-  "events": [ ],
-  "waymarks": [ ]
-}
-```
-
 | Field         | Required | Notes |
 |---------------|----------|-------|
 | `name`        | yes      | Display name, non-empty. |
-| `arena`       | yes      | `{ "zones": [...] }`, at least one zone. Defines the walkable floor. |
+| `arena`       | yes      | `zones: [...]`, at least one zone. Defines the walkable floor. |
 | `duration`    | yes      | Encounter length in seconds (> 0). The run ends ("cleared") if players survive this long. |
 | `botPatterns` | no       | Id of a bot-pattern file (without extension). See [Bot patterns](#bot-patterns). |
 | `players`     | yes      | Exactly 8, in the canonical roster order below. |
@@ -89,7 +74,7 @@ JSON (still fully supported):
 `arena.zones` is a list; a point is "on the floor" if it's inside **any** zone. Combine
 zones to build non-circular arenas.
 
-```json
+```yaml
 { "kind": "circle",  "center": [0, 0], "radius": 38 }
 { "kind": "rect",    "center": [0, 0], "width": 40, "height": 20 }
 { "kind": "polygon", "vertices": [[-10, -10], [10, -10], [0, 12]] }
@@ -105,7 +90,7 @@ zones to build non-circular arenas.
 A–D / 1–4 spots raiders position around. They are **purely visual**: they have no
 collision and never affect damage, targeting, or simulation.
 
-```json
+```yaml
 "waymarks": [
   { "mark": "A", "pos": [0, 16] },
   { "mark": "1", "pos": [10, 10] }
@@ -140,7 +125,7 @@ collision and never affect damage, targeting, or simulation.
 
 Each player entry:
 
-```json
+```yaml
 { "id": "mt", "role": "tank", "control": "bot", "spawn": [-12, 12] }
 ```
 
@@ -182,7 +167,7 @@ leaving the area before then.
 
 The classic mechanic: a shape on the ground that hits whoever stands in it at resolve.
 
-```json
+```yaml
 {
   "id": "fireball",
   "t": 4,
@@ -205,7 +190,7 @@ the shape at resolve, pushing them directly **away from an origin** (direction i
 pure shove. While being displaced a player's own movement input is ignored, so they travel
 the full distance.
 
-```json
+```yaml
 {
   "id": "shockwave",
   "t": 6,
@@ -250,7 +235,7 @@ a front 90° cleave is `angleDeg: 90` with no offset; a rear cleave adds `direct
 (π); a left half-room cleave is `angleDeg: 180, directionOffset: -1.5708` (−π/2). See
 `raids/positional-test.yaml`.
 
-```json
+```yaml
 {
   "t": 8,
   "name": "Cleave",
@@ -274,7 +259,7 @@ spared. Omit it for a normal (omnidirectional) hit.
 | `center` | yes      | Arc center in radians, measured **clockwise from the boss's facing**. `0` = front, `π` = rear, `π/2` = the boss's right, `-π/2` = left, `π/4` = front-right intercardinal, etc. |
 | `width`  | yes      | Full angular width of the arc in radians (so the arc spans `center ± width/2`). E.g. `π/2` is a ±45° wedge; `π` is a 180° half cleave; `2π` covers everything. |
 
-```json
+```yaml
 {
   "t": 8,
   "name": "Tail Swipe",
@@ -295,7 +280,7 @@ of the boss (`center: 0, width: π`). It combines naturally with a boss-anchored
 A circle that snaps onto a player chosen **at resolve time** (not cast start), so players
 can reposition during the telegraph. The ground marker stays hidden until it resolves.
 
-```json
+```yaml
 {
   "type": "targeted",
   "id": "near-bait",
@@ -326,7 +311,7 @@ names a [`deferred` stored cleave](#boss-anchored-cleaves-anchor--directionfrom)
 this locked facing and detonates at `t + telegraph`. A stored `future` (front) / `past` (rear) thus
 becomes "toward" / "away from" the baited player.
 
-```json
+```yaml
 {
   "type": "bait",
   "id": "all-things-ending",
@@ -356,7 +341,7 @@ Spawns a tether anchor at a point. The nearest player gets tethered; when it fin
 after `finalizeAfter` seconds, the effect is granted (or, for a debuff, applied unless
 intercepted). See `raids/tether-test.yaml`.
 
-```json
+```yaml
 {
   "type": "tether_source",
   "id": "void-chain",
@@ -390,7 +375,7 @@ a hidden debuff immediately. The visual lines can disappear before the debuff re
 `t + resolveAfter`, only the stored targets resolve and can receive an effect and/or knockback.
 Unlike `tether_source`, these lines do not retarget or get intercepted.
 
-```json
+```yaml
 {
   "type": "line_link",
   "id": "north-statue",
@@ -443,7 +428,7 @@ the debuff (no damage). Any pair still chained when the window closes takes a si
 burst of `breakDamage` (vulnerabilities apply per the pair's `damageType`). See
 `raids/chain-test.yaml`.
 
-```json
+```yaml
 {
   "type": "chain",
   "id": "binding-chains",
@@ -492,7 +477,7 @@ the marked player. Use it for "stack on a random player" mechanics where the tar
   `group` event ("repeat with the opposite group"). The linked source must occur at an earlier
   `t`, and both events must have **exactly two** groups.
 
-```json
+```yaml
 {
   "type": "group",
   "id": "stack-1",
@@ -551,7 +536,7 @@ around the boss to identify it (`ringColor`) at an authored height (`ringHeight`
 riding the ring encode the state: **dark blue = real**, **reddish-orange with a yellow "?" =
 fake** (inverted).
 
-```json
+```yaml
 {
   "type": "inverse",
   "t": 3,
@@ -626,7 +611,7 @@ Use a height **above** any concurrent `inverse` ring to stack the two readouts. 
 the spread form draws a downward triangle over **every** player's head; the stack form draws an
 orange **"ring with triangles pointing in" marker on top of the marked character's head**.
 
-```json
+```yaml
 {
   "type": "spread_stack",
   "id": "fire-1",
@@ -686,7 +671,7 @@ a direction and stopping — facing persists, so you can re-face without walking
 authored `reverse` value (default `false`) is used. The drawn icon reflects the rolled state — a
 plain eye, or an eye with a yellow "?".
 
-```json
+```yaml
 {
   "type": "gaze",
   "t": 3,
@@ -765,7 +750,7 @@ shown):
 | `cylinderColor` | Hex string (e.g. `"#33ccff"`) for the falling object. Defaults to cyan. |
 | `cylinderThickness` | Diameter/width of the falling object (> 0). Defaults to a value scaled from the tower radius. |
 
-```json
+```yaml
 {
   "type": "tower",
   "t": 17,
@@ -806,7 +791,7 @@ named `effectName` triggers the resolver action, then loses the matching effect.
 
 Actions:
 
-```json
+```yaml
 { "kind": "spread", "radius": 3, "damage": 40, "damageType": "magical" }
 { "kind": "stack", "radius": 5, "requiredCount": 2, "damage": 80, "damageType": "magical" }
 { "kind": "cone_nearest", "angleDeg": 70, "length": 14, "damage": 60, "damageType": "physical" }
@@ -838,7 +823,7 @@ is then consumed (it fires once). If no one enters, it expires after `duration`.
 | `distance` | yes | How far the entrant is flung along `direction` (> 0). Beware flinging players off the arena. |
 | `duration` | yes | How long the trap stays armed before expiring (> 0). |
 
-```json
+```yaml
 {
   "type": "forced_march",
   "t": 12,
@@ -875,7 +860,7 @@ burst is independent of the named effect — it deals its own `damage`, unrelate
 | `showTelegraph` | no | `true` (default) draws the ground circles. |
 | `telegraphMode` | no | `"cast"` (default) draws during the cast and flashes at resolve. `"resolve"` hides the cast marker and only shows the 0.6s resolved flash. `showTelegraph: false` still draws nothing. |
 
-```json
+```yaml
 {
   "type": "effect_burst",
   "t": 32,
@@ -893,7 +878,7 @@ burst is independent of the named effect — it deals its own `damage`, unrelate
 
 Restores every living player to their own maximum HP immediately at `t`. Dead players stay dead.
 
-```json
+```yaml
 { "type": "heal", "id": "raidwide-heal", "t": 35, "name": "Raidwide Heal" }
 ```
 
@@ -902,7 +887,7 @@ Restores every living player to their own maximum HP immediately at `t`. Dead pl
 Chooses one group, then one random living member from that group, and applies `applyEffect`
 immediately at `t`. With a single group, this is a random member from that group.
 
-```json
+```yaml
 {
   "type": "effect_select",
   "t": 0,
@@ -926,7 +911,7 @@ Targeting: if `players` is given, only those ids; else if `role` is given, only 
 **all** living players. `count` (optional) caps how many of the matched pool are hit — selected in
 roster order, or randomly when `rng: true`.
 
-```json
+```yaml
 {
   "type": "apply_effect",
   "t": 12,
@@ -958,7 +943,7 @@ roster order, or randomly when `rng: true`.
 
 Used by `aoe` events (`shape`) — a point is hit if it falls inside the shape at resolve.
 
-```json
+```yaml
 { "kind": "circle", "center": [0, 0], "radius": 9 }
 { "kind": "donut",  "center": [0, 0], "inner": 7, "outer": 30 }
 { "kind": "cone",   "origin": [0, 0], "direction": [0, 1], "angleDeg": 90, "length": 22 }
@@ -979,7 +964,7 @@ bind them to the boss.
 `applyEffect` (on aoe/targeted/tower/group/line_link) and `tether_source.behavior` use the same behavior union.
 `applyEffect` wraps it with metadata:
 
-```json
+```yaml
 "applyEffect": {
   "name": "Magic Vulnerability Up",
   "kind": "debuff",
@@ -1002,7 +987,7 @@ bind them to the boss.
 
 Normal `aoe` events can instead use `applyEffects` to apply multiple effects from one cast:
 
-```json
+```yaml
 "applyEffects": {
   "order": "shuffleBalanced",
   "effects": [
@@ -1019,7 +1004,7 @@ effect lands first, not the combo slot mapping from `optionals.combinations.plan
 
 Behaviors:
 
-```json
+```yaml
 { "kind": "none" }
 { "kind": "vuln", "damageType": "magical", "multiplier": 2 }
 { "kind": "dot", "dps": 8, "condition": "always" }
@@ -1043,7 +1028,7 @@ The optional top-level `optionals` block holds per-mechanic pools that the engin
 at the start of a run (seeded, so it's reproducible). Currently only **plant** combinations are
 supported.
 
-```json
+```yaml
 "optionals": {
   "combinations": {
     "plant": {
@@ -1089,7 +1074,7 @@ but the convention is a separate file referenced by the raid's `botPatterns` fie
 - Name it `<raid>-bots.yaml` so it's excluded from the raid list.
 - Set `botPatterns: <raid>-bots` (the id, without extension) on the raid.
 
-```json
+```yaml
 {
   "players": {
     "mt": [
@@ -1128,7 +1113,7 @@ corridor of a simultaneous line-AOE mechanic. Falls back to base `spread`/`stack
 inverse isn't active. If that inverse uses `variantRng`, add optional `shownB` / `invertedB` tables
 for its variant-**b** orientation; they fall back to `shown` / `inverted` when omitted.
 
-```json
+```yaml
 {
   "players": {},
   "solvers": {
@@ -1167,7 +1152,7 @@ for its variant-**b** orientation; they fall back to `shown` / `inverted` when o
 
 A 45-second arena-wide circle, a baited tankbuster, and a donut, on a circular floor:
 
-```json
+```yaml
 {
   "name": "Demo Encounter",
   "arena": { "zones": [{ "kind": "circle", "center": [0, 0], "radius": 30 }] },

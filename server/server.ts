@@ -1,10 +1,9 @@
 import { addServerTraceEvent, recordServerException, withServerSpan } from "./otel";
-import { parseRaidFile, readRaidObject } from "./raidFileReader";
+import { parseRaidFile } from "./raidFileReader";
 import { join } from "path";
 import {
   ClientMessageSchema,
   MAX_RAIDS,
-  RAID_ID_REGEX,
   RAID_SEGMENT_REGEX,
   normalizeRaidName,
   type RaidCategory,
@@ -20,7 +19,6 @@ const ROOT = join(import.meta.dir, "..");
 const BUNDLE_DIR = join(ROOT, ".bundle");
 const RAIDS_DIR = join(ROOT, "raids");
 const STATIC_DIR = join(ROOT, "static");
-const RAID_FILE_RE = new RegExp(`^/raids/(${RAID_ID_REGEX.source.slice(1, -1)})\\.json$`);
 const PORT = Number(Bun.env.PORT || 3000);
 
 interface SocketData {
@@ -28,20 +26,15 @@ interface SocketData {
 }
 
 function raidSegmentFromFile(file: string): string | null {
-  const ext = file.endsWith(".yaml") ? ".yaml" : file.endsWith(".yml") ? ".yml" : file.endsWith(".json") ? ".json" : null;
+  const ext = file.endsWith(".yaml") ? ".yaml" : file.endsWith(".yml") ? ".yml" : null;
   if (!ext) return null;
   const segment = file.slice(0, -ext.length);
   return RAID_SEGMENT_REGEX.test(segment) ? segment : null;
 }
 
-function raidFileFromPath(pathname: string): string | null {
-  const match = pathname.match(RAID_FILE_RE);
-  return match ? `${match[1]}.json` : null;
-}
-
 async function loadCategoryRaids(categoryId: string, remaining: number): Promise<RaidEntry[]> {
   const dir = join(RAIDS_DIR, categoryId);
-  const EXTS = [".yaml", ".yml", ".json"] as const;
+  const EXTS = [".yaml", ".yml"] as const;
 
   // Collect files across all extensions; first extension in priority order wins per segment.
   const segmentMap = new Map<string, string>(); // segment → filename
@@ -84,7 +77,7 @@ async function loadCategoryRaids(categoryId: string, remaining: number): Promise
 }
 
 async function loadRaidCategories(): Promise<RaidCategory[]> {
-  const EXTS = [".yaml", ".yml", ".json"] as const;
+  const EXTS = [".yaml", ".yml"] as const;
 
   // Collect raid_info files; first extension wins per category.
   const categoryMap = new Map<string, string>(); // categoryId → infoFile path
@@ -195,17 +188,6 @@ const server = Bun.serve<SocketData>({
             if (await staticFile.exists()) return new Response(staticFile);
           }
           return new Response("Not found", { status: 404 });
-        }
-
-        const raidFileName = raidFileFromPath(url.pathname);
-        if (raidFileName) {
-          const basePath = join(RAIDS_DIR, raidFileName.slice(0, -".json".length));
-          try {
-            const obj = await readRaidObject(basePath);
-            return Response.json(obj);
-          } catch {
-            // no raid file found, fall through to 404
-          }
         }
 
         return new Response("Not found", { status: 404 });

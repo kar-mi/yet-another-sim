@@ -1,5 +1,5 @@
 import { expect, test, describe } from "bun:test";
-import { readRaidObject, parseRaidFile } from "./raidFileReader";
+import { readRaidObject } from "./raidFileReader";
 import { loadRaid } from "../src/engine/raidLoader";
 import { join } from "path";
 

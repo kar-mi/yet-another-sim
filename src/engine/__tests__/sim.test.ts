@@ -35,11 +35,11 @@ const baseRaid = {
   events: [] as unknown[],
 };
 
-function loadRaid(json: unknown) {
-  if (!json || typeof json !== "object" || !("events" in json) || !Array.isArray(json.events)) {
-    return loadRaidRaw(json);
+function loadRaid(value: unknown) {
+  if (!value || typeof value !== "object" || !("events" in value) || !Array.isArray(value.events)) {
+    return loadRaidRaw(value);
   }
-  const raid = json as { events: unknown[] };
+  const raid = value as { events: unknown[] };
   return loadRaidRaw({
     ...raid,
     events: raid.events.map((event, i) => {
@@ -125,7 +125,7 @@ test("raid events require globally unique authored ids", () => {
     shape: { kind: "circle", center: [0, 0], radius: 20 },
   };
 
-  expect(() => loadRaidRaw({ ...baseRaid, events: [{ ...event, id: undefined }] })).toThrow(/Invalid raid JSON/);
+  expect(() => loadRaidRaw({ ...baseRaid, events: [{ ...event, id: undefined }] })).toThrow(/Invalid raid data/);
   expect(() => loadRaidRaw({ ...baseRaid, events: [event, { ...event, t: 1 }] })).toThrow(/duplicate event id/);
 });
 
@@ -268,10 +268,10 @@ test("bot patterns can carry forsaken solver spots", () => {
 });
 
 test("forsaken raid and bot companion content load", async () => {
-  const raidJson = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken.yaml").text());
-  const botJson = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken-bots.yaml").text());
-  const raid = loadRaid(raidJson);
-  const bots = loadBotPatterns(botJson);
+  const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken.yaml").text());
+  const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken-bots.yaml").text());
+  const raid = loadRaid(raidData);
+  const bots = loadBotPatterns(botData);
   const world = createWorld(applyBotPatterns(raid, bots), 1);
   const byEventId = (id: string) => raid.events.find(event => event.id === id);
   const effectResolverById = (id: string) => raid.events.find(event => event.type === "effect_resolver" && event.id === id);
@@ -312,13 +312,13 @@ test("forsaken raid and bot companion content load", async () => {
 });
 
 test("forsaken tower swaps alternate odd and even debuff distributions", async () => {
-  const raidJson = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken.yaml").text()) as { players: Array<Record<string, unknown>> };
-  const botJson = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken-bots.yaml").text());
+  const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken.yaml").text()) as { players: Array<Record<string, unknown>> };
+  const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken-bots.yaml").text());
   const raid = loadRaid({
-    ...raidJson,
-    players: raidJson.players.map(player => ({ ...player, control: "bot" })),
+    ...raidData,
+    players: raidData.players.map(player => ({ ...player, control: "bot" })),
   });
-  const bots = loadBotPatterns(botJson);
+  const bots = loadBotPatterns(botData);
   const countCharges = (world: World) => {
     const counts = { stack: 0, cone: 0, defamation: 0 };
     for (const player of world.players) {

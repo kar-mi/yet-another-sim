@@ -38,7 +38,7 @@ Sprint is **1.3×**, matching FFXIV's in-combat Sprint (+30%).
 
 - `botIntent.ts` imports `MOVE_SPEED`, so bots and players always move at the same
   speed — no separate bot constant to keep in sync.
-- Some older raids (e.g. `sample-raid.json` at radius 38) predate this scale and were
+- Some older raids (e.g. `sample-raid.yaml` at radius 38) predate this scale and were
   not rescaled. New raids should be authored in yalms.
 - Changing `MOVE_SPEED` can break tests with fixed-duration travel assertions (e.g.
   the "walks off arena" fall test, whose tick window assumed the old speed). Run

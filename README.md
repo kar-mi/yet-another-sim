@@ -42,7 +42,7 @@ bun test           # Run tests
 
 ## Raid Authoring
 
-Raid files live in `raids/<category>/<raid-id>.yaml` (`.yml` and `.json` also work). Each
+Raid files live in `raids/<category>/<raid-id>.yaml` (`.yml` also works). Each
 raid defines an arena, an 8-player roster, and a timeline of mechanics. Category folders
 include a `raid_info.yaml` file used by the raid browser.
 
@@ -58,7 +58,7 @@ The simulator currently supports the base loop for FFXIV-style raid mechanics:
 - 8-player tank/healer/DPS rosters
 - Server-authoritative movement and simulation ticks
 - Browser rendering with Babylon.js
-- JSON-authored arenas, waymarks, bot movement, and timelines
+- YAML-authored arenas, waymarks, bot movement, and timelines
 - AOE, targeted bait, tether, chain, group stack, tower, knockback, and effect mechanics
 
 ## Credits
