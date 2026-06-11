@@ -1,0 +1,333 @@
+import { expect, test } from "bun:test";
+import { tick } from "../sim";
+import { createWorld } from "../world";
+import { TANK_HP } from "./constants";
+import type { Intents } from "../../shared/types";
+import { HUMAN, baseRaid, effect, human, loadRaid, roster, runTicks, withEffect } from "./helpers";
+import type { Vec } from "./helpers";
+
+test("toggleInvincibility intent flips the flag", () => {
+  const world0 = createWorld(loadRaid(baseRaid));
+  expect(human(world0).invincible).toBe(false);
+  const world1 = tick(world0, { [HUMAN]: { move: { x: 0, z: 0 }, toggleInvincibility: true } }, 1 / 60);
+  expect(human(world1).invincible).toBe(true);
+  const world2 = tick(world1, { [HUMAN]: { move: { x: 0, z: 0 }, toggleInvincibility: true } }, 1 / 60);
+  expect(human(world2).invincible).toBe(false);
+});
+
+test("invincible player takes no damage and cannot die in an AOE", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{ t: 3, name: "LethalAOE", telegraph: 2, damage: 999, damageType: "physical" as const, shape: { kind: "circle", center: [0, 0], radius: 10 } }],
+    players: roster({ m1: { spawn: [0, 0] } }),
+  });
+  // Toggle invincibility on with a single intent, then idle through the AOE resolve.
+  let world = tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 }, toggleInvincibility: true } }, 1 / 60);
+  expect(human(world).invincible).toBe(true);
+  world = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(5.1 * 60));
+  expect(human(world).hp).toBe(100);
+  expect(human(world).alive).toBe(true);
+});
+
+test("physical vuln amplifies matching damage and is consumed", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [
+      {
+        t: 0.1,
+        name: "Apply Vuln",
+        telegraph: 0.01,
+        damage: 0,
+        damageType: "physical" as const,
+        applyEffect: {
+          name: "Physical Vulnerability",
+          kind: "debuff" as const,
+          duration: 10,
+          behavior: { kind: "vuln" as const, damageType: "physical" as const, multiplier: 1.5 },
+        },
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
+      },
+      {
+        t: 0.3,
+        name: "Physical Hit",
+        telegraph: 0.01,
+        damage: 20,
+        damageType: "physical" as const,
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
+      },
+    ],
+  });
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.5 * 60));
+
+  expect(human(world).hp).toBeCloseTo(70);
+  expect(human(world).effects).toHaveLength(0);
+});
+
+test("applyEffect can create an invisible debuff from any mechanic", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [
+      {
+        t: 0.1,
+        name: "Invisible Debuff",
+        telegraph: 0.01,
+        damage: 0,
+        damageType: "magical" as const,
+        applyEffect: {
+          name: "Stored Sentence",
+          kind: "debuff" as const,
+          duration: 10,
+          visibility: "invisible" as const,
+          markerIcon: "defam_processed.png",
+          behavior: { kind: "none" as const },
+        },
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
+      },
+    ],
+  });
+
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 20);
+  expect(human(world).effects.some(e =>
+    e.name === "Stored Sentence"
+    && e.visibility === "invisible"
+    && e.markerIcon === "defam_processed.png",
+  )).toBe(true);
+});
+
+test("vuln does not amplify mismatched or expired damage", () => {
+  const magicalRaid = loadRaid({
+    ...baseRaid,
+    events: [
+      {
+        t: 0.1,
+        name: "Apply Vuln",
+        telegraph: 0.01,
+        damage: 0,
+        damageType: "physical" as const,
+        applyEffect: {
+          name: "Physical Vulnerability",
+          kind: "debuff" as const,
+          duration: 10,
+          behavior: { kind: "vuln" as const, damageType: "physical" as const, multiplier: 1.5 },
+        },
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
+      },
+      {
+        t: 0.3,
+        name: "Magical Hit",
+        telegraph: 0.01,
+        damage: 20,
+        damageType: "magical" as const,
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
+      },
+    ],
+  });
+  const magicalWorld = runTicks(createWorld(magicalRaid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.5 * 60));
+
+  expect(human(magicalWorld).hp).toBeCloseTo(80);
+  expect(human(magicalWorld).effects).toHaveLength(1);
+
+  const expiredRaid = loadRaid({
+    ...baseRaid,
+    events: [{
+      t: 0.1,
+      name: "Late Hit",
+      telegraph: 1,
+      damage: 20,
+      damageType: "physical" as const,
+      shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
+    }],
+  });
+  const expiredWorld = tick(withEffect(createWorld(expiredRaid), effect({
+    name: "Expired Vulnerability",
+    duration: 0.5,
+    behavior: { kind: "vuln", damageType: "physical", multiplier: 2 },
+  })), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1.2);
+
+  expect(human(expiredWorld).hp).toBeCloseTo(80);
+  expect(human(expiredWorld).effects).toHaveLength(0);
+});
+
+test("zero-damage matching mechanic does not consume vuln", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [
+      {
+        t: 0.1,
+        name: "Apply Vuln",
+        telegraph: 0.01,
+        damage: 0,
+        damageType: "physical" as const,
+        applyEffect: {
+          name: "Physical Vulnerability",
+          kind: "debuff" as const,
+          duration: 10,
+          behavior: { kind: "vuln" as const, damageType: "physical" as const, multiplier: 1.5 },
+        },
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
+      },
+      {
+        t: 0.3,
+        name: "Zero Strike",
+        telegraph: 0.01,
+        damage: 0,
+        damageType: "physical" as const,
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
+      },
+      {
+        t: 0.5,
+        name: "Physical Hit",
+        telegraph: 0.01,
+        damage: 20,
+        damageType: "physical" as const,
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
+      },
+    ],
+  });
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.7 * 60));
+
+  expect(human(world).hp).toBeCloseTo(70);
+  expect(human(world).effects).toHaveLength(0);
+});
+
+test("pyretic damages player actions", () => {
+  const pyretic = effect({ name: "Pyretic", behavior: { kind: "dot", dps: 10, condition: "moving" } });
+  const cases: Intents[] = [
+    { [HUMAN]: { move: { x: 1, z: 0 } } },
+    { [HUMAN]: { move: { x: 0, z: 0 }, jump: true } },
+    { [HUMAN]: { move: { x: 0, z: 0 }, sprint: true } },
+  ];
+
+  for (const intents of cases) {
+    const world = tick(withEffect(createWorld(loadRaid(baseRaid)), pyretic), intents, 1);
+    expect(human(world).hp).toBeCloseTo(90);
+  }
+
+  const idleWorld = tick(withEffect(createWorld(loadRaid(baseRaid)), pyretic), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1);
+  expect(human(idleWorld).hp).toBeCloseTo(100);
+});
+
+test("freeze damages player inactivity", () => {
+  const freeze = effect({ name: "Freeze", behavior: { kind: "dot", dps: 10, condition: "idle" } });
+  const idleWorld = tick(withEffect(createWorld(loadRaid(baseRaid)), freeze), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1);
+  expect(human(idleWorld).hp).toBeCloseTo(90);
+
+  const cases: Intents[] = [
+    { [HUMAN]: { move: { x: 1, z: 0 } } },
+    { [HUMAN]: { move: { x: 0, z: 0 }, jump: true } },
+    { [HUMAN]: { move: { x: 0, z: 0 }, sprint: true } },
+  ];
+  for (const intents of cases) {
+    const world = tick(withEffect(createWorld(loadRaid(baseRaid)), freeze), intents, 1);
+    expect(human(world).hp).toBeCloseTo(100);
+  }
+});
+
+test("dot condition \"always\" damages regardless of action", () => {
+  const bleed = effect({ name: "Bleed", behavior: { kind: "dot", dps: 10, condition: "always" } });
+  const idle = tick(withEffect(createWorld(loadRaid(baseRaid)), bleed), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1);
+  expect(human(idle).hp).toBeCloseTo(90);
+  const moving = tick(withEffect(createWorld(loadRaid(baseRaid)), bleed), { [HUMAN]: { move: { x: 1, z: 0 } } }, 1);
+  expect(human(moving).hp).toBeCloseTo(90);
+});
+
+test("apply_effect with no target hits all living players", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{
+      type: "apply_effect", t: 0, name: "Mark",
+      applyEffect: { name: "Mark", kind: "debuff", duration: 5, behavior: { kind: "none" } },
+    }],
+  });
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 2);
+  for (const p of world.players) {
+    expect(p.effects.some(e => e.name === "Mark")).toBe(true);
+  }
+});
+
+test("apply_effect narrows by role and count", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{
+      type: "apply_effect", t: 0, name: "Mark", role: "dps", count: 2,
+      applyEffect: { name: "Mark", kind: "debuff", duration: 5, behavior: { kind: "none" } },
+    }],
+  });
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 2);
+  const marked = world.players.filter(p => p.effects.some(e => e.name === "Mark"));
+  expect(marked).toHaveLength(2);
+  expect(marked.every(p => p.role === "dps")).toBe(true);
+});
+
+test("continuous effects respect tick timing boundaries", () => {
+  const newlyAppliedRaid = loadRaid({
+    ...baseRaid,
+    events: [{
+      t: 0.1,
+      name: "Apply Pyretic",
+      telegraph: 0.1,
+      damage: 0,
+      damageType: "physical" as const,
+      applyEffect: {
+        name: "Pyretic",
+        kind: "debuff" as const,
+        duration: 10,
+        behavior: { kind: "dot" as const, dps: 100, condition: "moving" as const },
+      },
+      shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
+    }],
+  });
+  const newlyAppliedWorld = tick(createWorld(newlyAppliedRaid), { [HUMAN]: { move: { x: 1, z: 0 } } }, 0.3);
+
+  expect(human(newlyAppliedWorld).hp).toBeCloseTo(100);
+  expect(human(newlyAppliedWorld).effects).toHaveLength(1);
+
+  const expiringWorld = tick(withEffect(createWorld(loadRaid(baseRaid)), effect({
+    name: "Short Pyretic",
+    duration: 0.25,
+    behavior: { kind: "dot", dps: 40, condition: "moving" },
+  })), { [HUMAN]: { move: { x: 1, z: 0 } } }, 1);
+
+  expect(human(expiringWorld).hp).toBeCloseTo(90);
+  expect(human(expiringWorld).effects).toHaveLength(0);
+});
+
+
+test("effect_burst drops an AOE on each carrier of the named effect", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [0, 0] }, m2: { spawn: [3, 0] }, mt: { spawn: [18, 0] } }),
+    events: [{ type: "effect_burst", t: 0.5, name: "Sleeper Burst", telegraph: 0.5, effectName: "Sleep", radius: 5, damage: 50, damageType: "magical" }],
+  });
+  const world = withEffect(createWorld(raid), effect({ name: "Sleep", duration: 20, behavior: { kind: "sleep" } }));
+  const after = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(1.2 * 60));
+  expect(human(after).hp).toBeLessThan(100); // m1 carries Sleep -> burst centered on it
+  expect(after.players.find(p => p.id === "m2")!.hp).toBeLessThan(100); // within radius of the carrier
+  expect(after.players.find(p => p.id === "mt")!.hp).toBe(TANK_HP); // far away, untouched
+});
+
+test("effect_select can apply double trouble, which expires into damage and knockback around the carrier", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0] }, ot: { spawn: [2, 0] }, h1: { spawn: [5, 0] } }),
+    events: [{
+      type: "effect_select", t: 0, name: "Double Trouble", groups: [["mt"]],
+      applyEffect: {
+        name: "Double Trouble", kind: "debuff", duration: 0.1,
+        behavior: { kind: "doubleTrouble", radius: 3, damage: 10, damageType: "magical", knockbackDistance: 6 },
+      },
+    }],
+  });
+
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 45);
+  const mt = world.players.find(p => p.id === "mt")!;
+  const ot = world.players.find(p => p.id === "ot")!;
+  const h1 = world.players.find(p => p.id === "h1")!;
+
+  expect(mt.hp).toBe(TANK_HP - 10);
+  expect(ot.hp).toBe(TANK_HP - 10);
+  expect(h1.hp).toBe(100);
+  expect(mt.pos.x).toBeCloseTo(0);
+  expect(ot.pos.x).toBeGreaterThan(2);
+});
+
