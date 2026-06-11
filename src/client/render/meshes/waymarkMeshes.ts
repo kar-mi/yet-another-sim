@@ -18,7 +18,7 @@ const WAYMARK_COLORS: Record<WaymarkId, Color3> = {
 };
 
 const FLOOR_Y = 0.06;
-const SIZE = 1.6;
+const WAYMARK_HALF_SIZE = 1.25;
 const GLYPH_SCALE = 1.15;
 const GLYPH_RADIUS = 0.055;
 const isLetter = (mark: WaymarkId) => mark >= "A" && mark <= "D";
@@ -67,7 +67,7 @@ export function createWaymarkMeshes(scene: Scene, waymark: Waymark): Mesh[] {
   const { x, z } = waymark.pos;
 
   // Empty outlined shape on the floor: ring for letters, square border for numbers.
-  const path = isLetter(waymark.mark) ? circlePath(x, z, SIZE, FLOOR_Y) : squarePath(x, z);
+  const path = isLetter(waymark.mark) ? circlePath(x, z, WAYMARK_HALF_SIZE, FLOOR_Y) : squarePath(x, z);
   const floor = CreateTube(`wm-${waymark.mark}`, {
     path,
     radius: 0.09,
@@ -93,7 +93,7 @@ export function createWaymarkMeshes(scene: Scene, waymark: Waymark): Mesh[] {
 }
 
 function squarePath(cx: number, cz: number): Vector3[] {
-  const h = SIZE;
+  const h = WAYMARK_HALF_SIZE;
   return [
     new Vector3(cx + h, FLOOR_Y, cz + h),
     new Vector3(cx + h, FLOOR_Y, cz - h),

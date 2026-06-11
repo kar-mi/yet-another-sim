@@ -2,6 +2,7 @@ import type { Vec2 } from "../shared/math";
 import type { Intents, Player, Waypoint, World } from "../shared/types";
 import { length, normalize, sub } from "../shared/math";
 import { MOVE_SPEED } from "./sim";
+import { forsakenSolverWaypoint } from "./forsakenSolver";
 
 function activeWaypoint(pattern: Waypoint[], time: number, after = -Infinity): Waypoint | undefined {
   let active: Waypoint | undefined;
@@ -87,6 +88,9 @@ function solverWaypoint(player: Player, world: World): Vec2 | undefined {
     const spot = spots?.[player.id] ?? base?.[player.id];
     if (spot) return spot;
   }
+
+  const forsakenSpot = forsakenSolverWaypoint(player, world);
+  if (forsakenSpot) return forsakenSpot;
 
   if (hasActiveDoubleTrouble(player, world.time)) {
     const solver = world.botSolvers?.doubleTrouble;

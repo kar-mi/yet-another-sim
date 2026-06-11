@@ -25,6 +25,31 @@ const SpreadStackSolverSchema = z.object({
     invertedB: z.record(z.string().min(1), Vec2Schema).optional(),
   }).optional(),
 });
+const ForsakenSolverSchema = z.object({
+  towerWindows: z.array(z.object({
+    start: z.number().nonnegative(),
+    end: z.number().nonnegative(),
+    tower: z.number().int().min(1).max(8),
+  })).min(1),
+  baitWindows: z.array(z.object({
+    start: z.number().nonnegative(),
+    end: z.number().nonnegative(),
+    index: z.number().int().min(1),
+  })).optional(),
+  towerSpots: z.record(z.string().min(1), z.array(Vec2Schema).min(1)),
+  baitSpots: z.record(z.string().min(1), z.array(Vec2Schema).min(1)).optional(),
+}).superRefine((solver, ctx) => {
+  solver.towerWindows.forEach((window, i) => {
+    if (window.end <= window.start) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["towerWindows", i, "end"], message: "tower window end must be after start" });
+    }
+  });
+  solver.baitWindows?.forEach((window, i) => {
+    if (window.end <= window.start) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["baitWindows", i, "end"], message: "bait window end must be after start" });
+    }
+  });
+});
 const BotSolversSchema = z.object({
   plantArrows: z.object({
     placements: z.record(z.string().min(1), SolverPlacementSchema),
@@ -35,6 +60,7 @@ const BotSolversSchema = z.object({
     startAt: z.number().nonnegative().optional(),
   }).optional(),
   spreadStack: z.record(EventIdSchema, SpreadStackSolverSchema).optional(),
+  forsaken: ForsakenSolverSchema.optional(),
 }).optional();
 const RoleSchema = z.enum(["tank", "healer", "dps"]);
 
@@ -178,6 +204,9 @@ const BaitEventSchema = z.object({
   telegraph: z.number().positive(),
   // Id of the deferred `aoe` (stored cleave) this bait aims and detonates at cast end.
   link: z.string().min(1),
+  // If the selected bait target has one of these active effect names, override the linked stored
+  // cleave's directionOffset for this bait. Used by Forsaken Past/Future Ending.
+  directionOffsetByEffect: z.record(z.string().min(1), z.number()).optional(),
   showCastBar: z.boolean().optional(),
 });
 
@@ -235,6 +264,7 @@ const TowerVisualSchema = z.object({
   groundStyle: z.enum(["standard", "tank"]).optional(), // standard: yellow inner/red outer; tank: two red
   cylinderColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), // falling cylinder color
   cylinderThickness: z.number().positive().optional(), // falling object diameter/width
+  fallingObjectAlpha: z.number().min(0).max(1).optional(), // falling object opacity
 });
 
 const TowerEventSchema = z.object({
@@ -465,7 +495,16 @@ const HealEventSchema = z.object({
   name: z.string().min(1),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema]);
+const ForsakenAssignEventSchema = z.object({
+  type: z.literal("forsaken_assign"),
+  id: EventIdSchema,
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  duration: z.number().positive().default(120),
+  markerDuration: z.number().positive().default(5),
+});
+
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema, ForsakenAssignEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
@@ -485,6 +524,18 @@ const PlantGroupSchema = z.object({
   members: z.array(z.string().min(1)).min(1),
   combos: z.array(PlantComboSchema).min(1),
 });
+const ForsakenAssignmentKindSchema = z.enum(["cone", "stack", "spread", "defamation"]);
+const ForsakenEndingSchema = z.enum(["past", "future"]);
+const ForsakenGroupSchema = z.enum(["A", "B"]);
+const ForsakenPatternPairSchema = z.object({
+  members: z.tuple([z.string().min(1), z.string().min(1)]),
+  assignments: z.tuple([ForsakenAssignmentKindSchema, ForsakenAssignmentKindSchema]),
+  endings: z.tuple([ForsakenEndingSchema, ForsakenEndingSchema]).optional(),
+});
+const ForsakenPatternSchema = z.object({
+  id: z.string().min(1).optional(),
+  pairs: z.array(ForsakenPatternPairSchema).length(4),
+});
 // Optional per-mechanic combinations. `plant` declares two groups (g1/g2) of members + combos.
 // `rng: true` flips a seeded coin each run to swap which group draws from which combo pool.
 const OptionalsSchema = z.object({
@@ -495,8 +546,26 @@ const OptionalsSchema = z.object({
       g1: PlantGroupSchema,
       g2: PlantGroupSchema,
     }).optional(),
+    forsaken: z.object({
+      rng: z.boolean().default(false),
+      towerOrder: z.array(ForsakenGroupSchema).length(8).default(["A", "A", "A", "B", "B", "B", "B", "A"]),
+      patterns: z.array(ForsakenPatternSchema).min(1),
+    }).optional(),
   }).optional(),
 }).optional();
+
+function normalizedForsakenKind(kind: z.infer<typeof ForsakenAssignmentKindSchema>): "cone" | "stack" | "defamation" {
+  return kind === "spread" ? "defamation" : kind;
+}
+
+function classifyForsakenPair(
+  assignments: [z.infer<typeof ForsakenAssignmentKindSchema>, z.infer<typeof ForsakenAssignmentKindSchema>],
+): "A" | "B" | undefined {
+  const kinds = assignments.map(normalizedForsakenKind).sort().join("+");
+  if (kinds === "cone+stack" || kinds === "defamation+stack" || kinds === "cone+defamation") return "A";
+  if (kinds === "cone+cone" || kinds === "defamation+defamation") return "B";
+  return undefined;
+}
 
 export const RaidSchema = z.object({
   name: z.string().min(1),
@@ -748,6 +817,48 @@ export const RaidSchema = z.object({
           });
         }
       });
+    });
+  }
+
+  const forsaken = raid.optionals?.combinations?.forsaken;
+  if (forsaken) {
+    forsaken.patterns.forEach((pattern, patternIndex) => {
+      const members = new Set<string>();
+      pattern.pairs.forEach((pair, pairIndex) => {
+        pair.members.forEach((id, memberIndex) => {
+          if (!playerIds.has(id)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["optionals", "combinations", "forsaken", "patterns", patternIndex, "pairs", pairIndex, "members", memberIndex],
+              message: `forsaken pattern references unknown player id "${id}"`,
+            });
+          }
+          if (members.has(id)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["optionals", "combinations", "forsaken", "patterns", patternIndex, "pairs", pairIndex, "members", memberIndex],
+              message: `forsaken pattern assigns player "${id}" more than once`,
+            });
+          }
+          members.add(id);
+        });
+        if (!classifyForsakenPair(pair.assignments)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["optionals", "combinations", "forsaken", "patterns", patternIndex, "pairs", pairIndex, "assignments"],
+            message: `forsaken pair assignments must classify as group A or B`,
+          });
+        }
+      });
+      for (const id of playerIds) {
+        if (!members.has(id)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["optionals", "combinations", "forsaken", "patterns", patternIndex, "pairs"],
+            message: `forsaken pattern does not assign player "${id}"`,
+          });
+        }
+      }
     });
   }
 });

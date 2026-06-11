@@ -99,6 +99,7 @@ export class Session {
   private tickAccumulator = 0;
   private lastTickAt = 0;
   private readonly sessionLog: SessionLog | null;
+  private botsInvincible = false;
 
   constructor(options: SessionOptions) {
     this.id = options.id;
@@ -153,6 +154,9 @@ export class Session {
       case "restart":
         this.restart(clientId);
         return;
+      case "setBotsInvincible":
+        this.setBotsInvincible(clientId, message.enabled);
+        return;
       case "intent":
         this.setIntent(clientId, message.intent);
         return;
@@ -189,6 +193,7 @@ export class Session {
     }
     this.latestIntents.clear();
     this.world = createWorld(this.raidWithSlotControls());
+    this.applyBotsInvincible();
     if (this.status === "lobby") {
       this.broadcastLobby();
       return;
@@ -247,6 +252,7 @@ export class Session {
     this.stopTick();
     this.latestIntents.clear();
     this.world = createWorld(this.raidWithSlotControls());
+    this.applyBotsInvincible();
     this.broadcastPlayback();
     logger.info("session", "raid stopped", { session: this.id, raid: this.raidId });
   }
@@ -264,6 +270,7 @@ export class Session {
     this.status = "running";
     this.latestIntents.clear();
     this.world = createWorld(this.raidWithSlotControls());
+    this.applyBotsInvincible();
     this.startTick();
     this.broadcastPlayback();
     this.broadcastStarted();
@@ -388,6 +395,7 @@ export class Session {
 
     this.status = "running";
     this.world = createWorld(this.raidWithSlotControls());
+    this.applyBotsInvincible();
 
     this.broadcastStarted();
 
@@ -400,6 +408,17 @@ export class Session {
     const playerId = this.playerForClient(clientId);
     if (!playerId) return;
     this.latestIntents.set(playerId, mergePendingIntent(this.latestIntents.get(playerId), intent));
+  }
+
+  setBotsInvincible(clientId: string, enabled: boolean): void {
+    if (clientId !== this.hostClientId) {
+      this.sendError(clientId, "Only the host can change bot invincibility");
+      return;
+    }
+
+    this.botsInvincible = enabled;
+    this.applyBotsInvincible();
+    if (this.status !== "lobby") this.broadcast({ type: "snapshot", world: toDynamicWorld(this.world) });
   }
 
   step(broadcastSnapshot = true): void {
@@ -417,6 +436,7 @@ export class Session {
 
     const tickStart = performance.now();
     this.world = tick(this.world, { ...computeBotIntents(this.world, DT), ...humanIntents }, DT);
+    this.applyBotsInvincible();
     metrics.tickDuration.observe((performance.now() - tickStart) / 1000);
     this.forwardSimLog();
     if (broadcastSnapshot) this.broadcast({ type: "snapshot", world: toDynamicWorld(this.world) });
@@ -513,10 +533,23 @@ export class Session {
 
     this.world = {
       ...this.world,
-      players: this.world.players.map(player => ({
-        ...player,
-        control: controlByPlayer.get(player.id) ?? player.control,
-      })),
+      players: this.world.players.map(player => {
+        const control = controlByPlayer.get(player.id) ?? player.control;
+        return {
+          ...player,
+          control,
+          invincible: control === "bot" ? this.botsInvincible : player.control === "bot" ? false : player.invincible,
+        };
+      }),
+    };
+  }
+
+  private applyBotsInvincible(): void {
+    this.world = {
+      ...this.world,
+      players: this.world.players.map(player => (
+        player.control === "bot" ? { ...player, invincible: this.botsInvincible } : player
+      )),
     };
   }
 

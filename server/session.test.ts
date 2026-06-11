@@ -240,6 +240,40 @@ test("claimed players use human intent while unclaimed patterned bots move", () 
   expect(fallbackBot.pos).toEqual({ x: 0, z: -8 });
 });
 
+test("host can toggle bot invincibility without changing humans", () => {
+  const { session } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+
+  session.setBotsInvincible("c1", true);
+
+  expect(session.world.players.find(player => player.id === "mt")?.invincible).toBe(false);
+  expect(session.world.players.filter(player => player.control === "bot").every(player => player.invincible)).toBe(true);
+
+  session.step(false);
+  expect(session.world.players.filter(player => player.control === "bot").every(player => player.invincible)).toBe(true);
+
+  session.restart("c1");
+  expect(session.world.players.filter(player => player.control === "bot").every(player => player.invincible)).toBe(true);
+
+  session.setBotsInvincible("c1", false);
+  expect(session.world.players.some(player => player.control === "bot" && player.invincible)).toBe(false);
+});
+
+test("non-host cannot toggle bot invincibility", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.join("c2");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+
+  session.setBotsInvincible("c2", true);
+
+  expect(session.world.players.some(player => player.control === "bot" && player.invincible)).toBe(false);
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Only the host can change bot invincibility")).toBe(true);
+});
+
 test("edge actions survive later movement intents before the next tick", () => {
   const { session } = makeSession();
   session.join("c1");
@@ -470,4 +504,10 @@ test("client message schema rejects out-of-range intent magnitudes", () => {
   });
 
   expect(parsed.success).toBe(false);
+});
+
+test("client message schema accepts bot invincibility toggle", () => {
+  const parsed = ClientMessageSchema.safeParse({ type: "setBotsInvincible", enabled: true });
+
+  expect(parsed.success).toBe(true);
 });

@@ -2,7 +2,6 @@ import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
 import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
-import { CreateRibbon } from "@babylonjs/core/Meshes/Builders/ribbonBuilder";
 import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
@@ -14,21 +13,22 @@ import { clamp01 } from "../../../shared/math";
 import { circlePath } from "./meshPaths";
 
 const DEFAULT_CYLINDER_COLOR = "#33ccff";
-const DISK_Y = 0.02;      // flatter than waymarks (0.06)
 const RING_Y = 0.03;
+const RING_RADIUS = 0.06;
 const CIRCLE_Y = 0.04;
 const INNER_RATIO = 0.82; // ring band inner edge as a fraction of the tower radius
 const CYL_TOP = 14;       // height the falling cylinder starts at
 const CYL_HEIGHT = 4;     // long and thin beam
 const YELLOW = new Color3(0.95, 0.8, 0.2);
 const RED = new Color3(0.9, 0.2, 0.2);
+const WHITE = new Color3(1, 1, 1);
 const SUCCESS = new Color3(0.2, 0.95, 0.35);
 const FAILURE = new Color3(0.95, 0.2, 0.2);
 
 // Handles to the meshes/materials a tower needs to update each frame.
 export type TowerMeshes = {
   all: Mesh[];
-  groundMats: StandardMaterial[]; // band + edge rings, recolored together on the flash
+  groundMats: StandardMaterial[]; // ground ring, recolored on the flash
   countColor: Color3;
   fallingObject?: { mesh: Mesh; mat: StandardMaterial; floorY: number };
   countCircles: { mesh: Mesh; mat: StandardMaterial }[];
@@ -43,41 +43,24 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
   const inner = tower.radius * INNER_RATIO;
   const all: Mesh[] = [];
 
-  // Ground ring (donut outline). Standard towers are yellow inside with a red outer edge;
-  // role ("tank") towers use two red lines.
+  // Single ground outline. Role styling only affects optional count/pillar visuals.
   const innerColor = tower.visual.groundStyle === "tank" ? RED : YELLOW;
-  const outerColor = RED;
+  const outerColor = WHITE;
 
-  const band = CreateRibbon(`tower-${tower.id}`, {
-    pathArray: [circlePath(x, z, tower.radius, DISK_Y), circlePath(x, z, inner, DISK_Y)],
+  const ring = CreateTube(`tower-ring-${tower.id}`, {
+    path: circlePath(x, z, tower.radius, RING_Y),
+    radius: RING_RADIUS,
+    tessellation: 8,
+    cap: BabylonMesh.CAP_ALL,
   }, scene);
-  band.isPickable = false;
-  const bandMat = new StandardMaterial(`tower-mat-${tower.id}`, scene);
-  bandMat.diffuseColor = innerColor;
-  bandMat.emissiveColor = innerColor.scale(0.4);
-  bandMat.specularColor = new Color3(0, 0, 0);
-  bandMat.backFaceCulling = false;
-  bandMat.alpha = 0.4;
-  band.material = bandMat;
-  all.push(band);
-
-  const groundMats: StandardMaterial[] = [bandMat];
-  for (const [edge, r, c] of [["outer", tower.radius, outerColor], ["inner", inner, innerColor]] as const) {
-    const ring = CreateTube(`tower-ring-${edge}-${tower.id}`, {
-      path: circlePath(x, z, r, RING_Y),
-      radius: 0.12,
-      tessellation: 8,
-      cap: BabylonMesh.CAP_ALL,
-    }, scene);
-    ring.isPickable = false;
-    const mat = new StandardMaterial(`tower-ring-${edge}-mat-${tower.id}`, scene);
-    mat.diffuseColor = c;
-    mat.emissiveColor = c.scale(0.7);
-    mat.specularColor = new Color3(0, 0, 0);
-    ring.material = mat;
-    groundMats.push(mat);
-    all.push(ring);
-  }
+  ring.isPickable = false;
+  const ringMat = new StandardMaterial(`tower-ring-mat-${tower.id}`, scene);
+  ringMat.diffuseColor = outerColor;
+  ringMat.emissiveColor = outerColor.scale(0.7);
+  ringMat.specularColor = new Color3(0, 0, 0);
+  ring.material = ringMat;
+  const groundMats: StandardMaterial[] = [ringMat];
+  all.push(ring);
 
   // Optional center pillar (the "rectangle" column).
   if (tower.visual.pillar) {
@@ -150,7 +133,7 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
     mat.diffuseColor = cylColor;
     mat.emissiveColor = cylColor.scale(0.4);
     mat.specularColor = new Color3(0, 0, 0);
-    mat.alpha = 0.4;
+    mat.alpha = tower.visual.fallingObjectAlpha ?? 0.4;
     mesh.material = mat;
     fallingObject = { mesh, mat, floorY };
     all.push(mesh);

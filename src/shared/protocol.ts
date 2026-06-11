@@ -107,6 +107,10 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     type: z.literal("restart"),
   }).strict(),
   z.object({
+    type: z.literal("setBotsInvincible"),
+    enabled: z.boolean(),
+  }).strict(),
+  z.object({
     type: z.literal("debugPosition"),
     playerId: PlayerIdSchema,
     x: z.number(),
@@ -138,17 +142,17 @@ export type PlaybackState = "playing" | "paused" | "stopped";
 // as events fire and stay in every snapshot.
 export type StaticWorldKey =
   | "arena" | "waymarks" | "duration" | "hasMechanics"
-  | "plantPlan" | "plantDebuffOrder" | "botSolvers" | "effectResolvers";
+  | "plantPlan" | "plantDebuffOrder" | "forsakenPlan" | "botSolvers" | "effectResolvers";
 export type StaticWorld = Pick<World, StaticWorldKey>;
 export type DynamicWorld = Omit<World, StaticWorldKey>;
 
 export function toStaticWorld(world: World): StaticWorld {
-  const { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, botSolvers, effectResolvers } = world;
-  return { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, botSolvers, effectResolvers };
+  const { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, forsakenPlan, botSolvers, effectResolvers } = world;
+  return { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, forsakenPlan, botSolvers, effectResolvers };
 }
 
 export function toDynamicWorld(world: World): DynamicWorld {
-  const { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, botSolvers, effectResolvers, ...dynamic } = world;
+  const { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, forsakenPlan, botSolvers, effectResolvers, ...dynamic } = world;
   return dynamic;
 }
 
