@@ -21,6 +21,7 @@ const CYL_TOP = 14;       // height the falling cylinder starts at
 const CYL_HEIGHT = 4;     // long and thin beam
 const YELLOW = new Color3(0.95, 0.8, 0.2);
 const RED = new Color3(0.9, 0.2, 0.2);
+const WHITE = new Color3(1, 1, 1);
 const SUCCESS = new Color3(0.2, 0.95, 0.35);
 const FAILURE = new Color3(0.95, 0.2, 0.2);
 
@@ -42,10 +43,9 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
   const inner = tower.radius * INNER_RATIO;
   const all: Mesh[] = [];
 
-  // Single ground outline. Standard towers keep the red outer edge only;
-  // role ("tank") towers use the same one-line outline.
+  // Single ground outline. Role styling only affects optional count/pillar visuals.
   const innerColor = tower.visual.groundStyle === "tank" ? RED : YELLOW;
-  const outerColor = RED;
+  const outerColor = WHITE;
 
   const ring = CreateTube(`tower-ring-${tower.id}`, {
     path: circlePath(x, z, tower.radius, RING_Y),
