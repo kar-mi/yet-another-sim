@@ -1,0 +1,73 @@
+# Authoring Demo — complete worked example from docs/authoring-raids.md.
+
+name: Demo Encounter
+arena:
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 30
+duration: 45
+
+players:
+  - id: mt
+    role: tank
+    control: bot
+    spawn: [0, 8]
+  - id: ot
+    role: tank
+    control: bot
+    spawn: [0, -8]
+  - id: h1
+    role: healer
+    control: bot
+    spawn: [-8, 0]
+  - id: h2
+    role: healer
+    control: bot
+    spawn: [8, 0]
+  - id: r1
+    role: dps
+    control: bot
+    spawn: [-5.66, 5.66]
+  - id: r2
+    role: dps
+    control: bot
+    spawn: [5.66, 5.66]
+  - id: m1
+    role: dps
+    control: human
+    spawn: [-5.66, -5.66]
+  - id: m2
+    role: dps
+    control: bot
+    spawn: [5.66, -5.66]
+
+events:
+  - id: raidwide
+    t: 3
+    name: Raidwide
+    telegraph: 3
+    damage: 30
+    damageType: magical
+    showCastBar: true
+    shape: { kind: circle, center: [0, 0], radius: 30 }
+
+  - type: targeted
+    id: tank-buster
+    t: 10
+    name: Tank Buster
+    targetMode: closest
+    role: tank
+    radius: 4
+    telegraph: 3
+    damage: 80
+    damageType: physical
+    showCastBar: true
+
+  - id: shockwave
+    t: 18
+    name: Shockwave
+    telegraph: 4
+    damage: 100
+    damageType: magical
+    shape: { kind: donut, center: [0, 0], inner: 7, outer: 28 }

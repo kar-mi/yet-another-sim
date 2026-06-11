@@ -1,6 +1,6 @@
 import { expect, test, describe } from "bun:test";
-import { readRaidObject } from "./raidFileReader";
-import { loadRaid } from "../src/engine/raidLoader";
+import { parseRaidFile, readRaidObject } from "./raidFileReader";
+import { loadBotPatterns, loadRaid } from "../src/engine/raidLoader";
 import { join } from "path";
 
 const RAIDS_DIR = join(import.meta.dir, "..", "raids");
@@ -56,5 +56,19 @@ describe("readRaidObject", () => {
 
   test("throws when no file exists", async () => {
     await expect(readRaidObject(join(RAIDS_DIR, "debug/nonexistent"))).rejects.toThrow();
+  });
+
+  test("all raid example YAML files pass schema validation", async () => {
+    for await (const file of new Bun.Glob("**/*.yaml").scan(RAIDS_DIR)) {
+      const normalized = file.replaceAll("\\", "/");
+      if (normalized.endsWith("/raid_info.yaml")) continue;
+
+      const obj = await parseRaidFile(join(RAIDS_DIR, file));
+      if (normalized.endsWith("-bots.yaml")) {
+        loadBotPatterns(obj);
+      } else {
+        loadRaid(obj);
+      }
+    }
   });
 });
