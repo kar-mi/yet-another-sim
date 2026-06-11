@@ -288,10 +288,21 @@ test("forsaken raid and bot companion content load", async () => {
   expect(world.botSolvers?.forsaken?.towerWindows).toHaveLength(8);
   expect(world.botSolvers?.forsaken?.towerWindows[0]).toEqual({ start: 9, end: 16, tower: 1 });
   expect(world.players.find(player => player.id === "h1")?.pattern?.[0]?.pos).toEqual({ x: -8, z: 0 });
-  expect(raid.events.filter(event => event.type === "tower")).toHaveLength(16);
+  const towerEvents = raid.events.filter(event => event.type === "tower");
+  expect(towerEvents).toHaveLength(16);
+  expect(towerEvents.map(event => event.pos)).toEqual([
+    [0, 4], [4, 0],
+    [3.66, 3.66], [3.66, -3.66],
+    [4, 0], [0, -4],
+    [3.66, -3.66], [-3.66, -3.66],
+    [0, -4], [-4, 0],
+    [-3.66, -3.66], [-3.66, 3.66],
+    [-4, 0], [0, 4],
+    [-3.66, 3.66], [3.66, 3.66],
+  ]);
   expect(raid.events.some(event => event.type === "tower" && event.requiredRoles !== undefined)).toBe(false);
-  expect(raid.events.filter(event => event.type === "tower").every(event => event.failureDamage === 999999)).toBe(true);
-  expect(raid.events.filter(event => event.type === "tower").every(event => (
+  expect(towerEvents.every(event => event.failureDamage === 999999)).toBe(true);
+  expect(towerEvents.every(event => (
     event.visual?.fallingObject === "sphere"
     && event.visual?.cylinderThickness === 3.5
     && event.visual?.fallingObjectAlpha === 0.7

@@ -211,22 +211,43 @@ bun run build
 - Exact clone cleave angles, tower coordinates, and debuff damage values may need one
   tuning pass after browser verification.
 
+[0, 4],  [4, 0]
+[3.66, 3.66], [3.66, -3.66]
+[4, 0], [0, -4]
+[3.66, -3.66], [-3.66, -3.66]
+[0, -4],  [-4, 0]
+ [-3.66, -3.66], [-3.66, 3.66]
+ [-4, 0], [0, 4]
+ [-3.66, 3.66], [3.66, 3.66]
 
-    {
-      "mark": "1",
-      "pos": [-6, -6]
+
+ {
+      A
+      "spawn": [0, 4], [3.66, 3.66]
+    },
+   C
+      "spawn": [0, -4]
     },
     {
-      "mark": "2",
-      "pos": [6, -6]
+      D
+      "spawn": [-4, 0]
     },
     {
-      "mark": "3",
-      "pos": [6, 6]
+      B
+      "spawn": [4, 0]
+    },
+    {4
+      "spawn": [-3.66, 3.66]
     },
     {
-      "mark": "4",
-      "pos": [-6, 6]
+      1
+      "spawn": [3.66, 3.66]
+    },
+    {
+      3
+      "spawn": [-3.66, -3.66]
+    },
+    {
+      2
+      "spawn": [3.66, -3.66]
     }
-
-possible tower positions
