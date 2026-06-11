@@ -16,10 +16,12 @@ Remaining work: browser smoke test of the full sequence.
 
 - Tower order: `AAABBBBA` (waves 1-3 = A, 4-7 = B, 8 = A).
 - Fixed pairs: `h1/mt`, `h2/ot`, `r1/m1`, `r2/m2`.
-- Default side split: supports west, DPS east — directions in the user's frame, where
-  the boss sits toward new north. In world coordinates that is the latRight side for
-  supports and latLeft for DPS: the wave-1 opening fan puts supports on the SE arc and
-  DPS on the NW arc.
+- Callout frame: strat directions are rotated 180° from the authored tower ids —
+  callout "left" is the authored `tower-N-right`, callout "south" points radially
+  outward (away from the boss). E.g. wave 1: callout-left tower = E tower between
+  waymarks 4 and 1; "outside south" of it = at the D marker.
+- Default side split: supports west (callout-left side), DPS east. The wave-1 opening
+  fan puts supports on the SE arc and DPS on the NW arc.
 - Group A: the pair's two debuffs are `stack + cone`, `stack + defam`, or `cone + defam`.
 - Group B: the pair's two debuffs are `cone + cone` or `defam + defam`.
 - X = the group whose letter matches the current tower in `AAABBBBA`; Y = the other
@@ -55,31 +57,31 @@ Remaining work: browser smoke test of the full sequence.
 
 ### Odd towers
 
-- X cone player resolves in the left tower, deep on the tower's south-left side
-  (clear of the left stack — with 2+ soakers guaranteed, the cone carrier doesn't
-  need to share it).
-- The Y healer baits the cone from outside the left tower's south-left edge, so the
-  cone fires relative south, away from the other tower (a right-tower cone would
-  mirror: baiter on the outer south-right).
-- X left stack resolves on the boss hitbox ring, just inside the left tower.
-- X right stack resolves inside the right tower, on the flank toward the boss-hitbox
-  north spot; X defam resolves on the right tower's relative-south side.
-- Y tank soaks the left stack from outside the tower.
-- Y DPS stand in the boss hitbox at relative north, biased toward the right tower —
-  they soak only the right (DPS-side) stack. Left stack = carrier + Y tank, right
-  stack = carrier + both Y DPS, so every stack keeps at least 2 soakers (under 2, the
-  stack hits for the full 80). Stack radius is 3 so the circles stay clear of the
-  other tower.
+Authored-id terms below; remember the callout frame is flipped (callout-left =
+authored right tower).
+
+- The support stack resolves at the middle of the right tower, on the boss ring.
+- The cone (any role) resolves in the same right tower, on its outward side, and is
+  baited radially outward by the Y healer standing just outside the tower (wave 1: at
+  the D marker) — the cone fires away from the boss and the other tower.
+- The Y tank holds the right tower's outer flank (toward latRight), outside the tower.
+- Support stack + cone + Y healer + Y tank form one 4-person stack.
+- The DPS stack resolves on the left tower's inner (boss-side) edge, inside the boss
+  ring; the defam (any role) resolves behind it in the same tower — more than 2.5
+  from everyone but inside the 4y stack.
+- Y DPS join the DPS stack from just outside the tower, between it and the boss —
+  DPS stack + defam + both Y DPS = the second 4-person stack.
 
 ### Stack side tie-breaks
 
-Ordered precedence:
+Ordered precedence (authored ids: left = the DPS-stack tower, right = the
+support-stack tower):
 
-1. If a healer holds a stack: healer right (with her pair-mate's defam), the other
-   player left.
-2. Otherwise tank counts as melee: ranged left, melee/tank right.
-3. Same-job stacks should be impossible under the assignment rules; if one occurs,
-   lower number goes left (e.g. `r1` left, `r2` right).
+1. A DPS-held stack goes left, a support-held stack right.
+2. Between two supports (post-swap waves put both stacks on tank + healer): healer
+   right, tank left.
+3. Same-role fallback: ranged left, then lower number left (e.g. `r1` left, `r2`
+   right).
 
 ### Even towers
 
@@ -93,10 +95,10 @@ Left/right tower is relative to looking at the boss.
     boss).
   - Split by role: healer left, tank right; melee DPS left, ranged DPS right — so each
     tower still gets one support + one DPS.
-- Within a tower: the cone player stands on the tower's inner (boss-side) edge,
-  shifted toward the tower's outer flank, facing the boss; the defam player stands on
-  the north/far side of the tower, away from the cone. (Even-wave towers sit on the
-  intercardinals at radius ~10.25, so they never overlap the boss hitbox.)
+- Within a tower: the cone player hugs the tower's inner edge on the ray toward their
+  Y baiter (keeping the baiter their nearest player); the defam player stands on the
+  north/far side of the tower, away from the cone. (Even-wave towers sit on the
+  intercardinals at radius ~10.25.)
 - Y supports left, DPS right; Y ranged stand near the waymark to bait the cone.
 - Y melee/tank: opposite side from the towers, on the outer boss hitbox — moving
   inward clips the tower/defam damage.
@@ -167,8 +169,11 @@ facing.
 
 ## Tower Coordinates (from forsaken.json)
 
-All towers: radius 4, `requiredCount: 2`. Odd waves use cardinal towers on the 7.25
-ring; even waves use intercardinal towers at `(±7.25, ±7.25)` (radius ~10.25). Each
+All towers: radius 3, `requiredCount: 2`. Odd waves use cardinal towers on the 7.25
+ring; even waves use intercardinal towers at `(±7.25, ±7.25)` (radius ~10.25). The
+boss ring renders at 7.8 (`boss.radius 3 × VISUAL_SCALE 2.6`, visual only) so it
+crosses every tower — just outside the odd tower middles, through the even towers'
+inner edges. Each
 wave's two towers sit 90° apart and the pair rotates 45° clockwise per wave (new
 north = the bisector of the pair: NE for wave 1, E for wave 2, ...).
 

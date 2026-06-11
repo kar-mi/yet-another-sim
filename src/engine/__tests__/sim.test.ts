@@ -301,7 +301,7 @@ test("forsaken raid and bot companion content load", async () => {
     [-7.25, 7.25], [7.25, 7.25],
   ]);
   expect(raid.events.some(event => event.type === "tower" && event.requiredRoles !== undefined)).toBe(false);
-  expect(towerEvents.every(event => event.radius === 4)).toBe(true);
+  expect(towerEvents.every(event => event.radius === 3)).toBe(true);
   expect(towerEvents.every(event => event.failureDamage === 999999)).toBe(true);
   expect(towerEvents.every(event => (
     event.visual?.fallingObject === "sphere"

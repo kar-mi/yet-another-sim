@@ -6,7 +6,9 @@ import { activeForsakenCharge } from "./systems/forsakenAssign";
 // Rule-driven Forsaken bot positioning (docs/forsaken-raid-implementation-plan.md).
 // All tower-wave spots are expressed in a rotating frame: "new north" is the bisector
 // of the wave's two towers, and left/right follow the authored tower-N-left/right ids
-// (the boss's left/right when it faces new north).
+// (the boss's left/right when it faces new north). NOTE: the user's strat callouts are
+// rotated 180° from this frame — their "left" tower is the authored tower-N-right and
+// their "south" points radially outward, away from the boss.
 
 const CLOSE_BAIT_RADIUS = 4.1; // max melee: past holders bait close
 const FAR_BAIT_RADIUS = 7.5;   // future holders bait far
@@ -28,13 +30,13 @@ function groupMembers(world: World, plan: ForsakenPlan, towerNumber: number, gro
   return world.players.filter(p => p.alive && plan.players[p.id]?.towerGroupBySlot[towerNumber - 1] === group);
 }
 
-// Stack side tie-breaks: healer right (the initial support pair holds stack + defam
-// and resolves together in the right tower; DPS take stack + cone in the left);
-// otherwise tank counts as melee (ranged left, melee right); same-job fallback =
-// lower id left.
+// Stack side tie-breaks (left = the authored tower-N-left = the DPS-stack tower):
+// a DPS-held stack goes left, a support-held stack right; between two supports the
+// healer goes right; same-role fallback = ranged left, then lower id left.
 function stackSides(stacks: Player[]): [Player | undefined, Player | undefined] {
   const [a, b] = stacks;
   if (!a || !b) return [a, b];
+  if ((a.role === "dps") !== (b.role === "dps")) return a.role === "dps" ? [a, b] : [b, a];
   if ((a.role === "healer") !== (b.role === "healer")) return a.role === "healer" ? [b, a] : [a, b];
   if (isRangedDps(a) !== isRangedDps(b)) return isRangedDps(a) ? [a, b] : [b, a];
   return a.id <= b.id ? [a, b] : [b, a];
@@ -64,15 +66,19 @@ function fillSlots(spots: SpotMap, slots: { spot: Vec2; preferred?: Player }[], 
   }
 }
 
-// Odd towers: X holds 2 stacks + 1 cone + 1 defam. Left tower = cone + left stack,
-// right tower = right stack + defam. The Y healer baits the cone from outside the left
-// tower's south-left edge so it fires relative south, away from the other tower; the Y
-// tank soaks the left stack; Y DPS stand in the boss hitbox at relative north, biased
-// toward the right stack so they soak only it — every stack keeps at least 2 soakers.
+// Odd towers, in the user's frame: "left" = the authored tower-N-right, "south" =
+// radially outward, away from the boss. The support stack resolves at the middle of
+// the right tower (on the boss ring), with the cone deeper in the same tower baited
+// radially outward by the Y healer (wave 1: at the D waymark); the Y tank holds the
+// tower's outer flank — all four form one 4-person stack. The DPS stack resolves on
+// the left tower's inner (boss-side) edge with the defam behind it in the same tower
+// (>2.5 from everyone but inside the 4y stack); the Y DPS join that stack from just
+// outside the tower, inside the boss ring — 4 soakers again.
 function oddTowerSpots(world: World, plan: ForsakenPlan, towerNumber: number, left: Vec2, right: Vec2, north: Vec2): SpotMap {
   const latLeft = rotateCCW(north);
   const latRight = scale(latLeft, -1);
   const uLeft = normalize(left);
+  const uRight = normalize(right);
   const spots: SpotMap = {};
   const x = groupMembers(world, plan, towerNumber, "X");
   const y = groupMembers(world, plan, towerNumber, "Y");
@@ -82,28 +88,24 @@ function oddTowerSpots(world: World, plan: ForsakenPlan, towerNumber: number, le
   const cone = x.find(p => charge(p) === "cone");
   const defam = x.find(p => charge(p) === "defamation");
 
-  const bossNorthSpot = scale(north, 2.8);
-  // Cone bait line: baiter outside the left tower on its south-left, carrier inside the
-  // tower on the same ray — the cone aims at the baiter, relative south, clear of the
-  // right tower, both stacks, and the boss-north soakers.
-  const baitDir = normalize(add(scale(north, -3.9), scale(latLeft, 2.8)));
-  const coneBaitSpot = add(left, scale(baitDir, 5.3));
-  const leftStackSpot = scale(uLeft, 4.0);              // boss hitbox ring, just inside the left tower
-  const rightStackSpot = add(right, scale(normalize(sub(bossNorthSpot, right)), 3.5)); // in-tower flank toward the boss-north soakers
-  const coneSpot = add(left, scale(baitDir, 3.4));      // deep on the tower's south side, clear of the left stack
-  const defamSpot = add(right, scale(north, -2.8));     // relative-south side of the right tower
+  const supportStackSpot = right;                       // middle of the right tower, on the boss ring
+  const coneSpot = add(right, scale(uRight, 2.5));      // outward side of the right tower, aimed at the Y healer
+  const coneBaitSpot = add(right, scale(uRight, 3.5));  // just outside the tower, radially out
+  const dpsStackSpot = add(left, scale(uLeft, -2.4));   // inner (boss-side) edge of the left tower
+  const defamSpot = add(left, scale(uLeft, 1.2));       // behind the stack in the left tower
 
   fillSlots(spots, [
-    { spot: leftStackSpot, preferred: leftStack },
-    { spot: rightStackSpot, preferred: rightStack },
+    { spot: dpsStackSpot, preferred: leftStack },
+    { spot: supportStackSpot, preferred: rightStack },
     { spot: coneSpot, preferred: cone },
     { spot: defamSpot, preferred: defam },
   ], x);
 
+  const lateral = scale(rotateCCW(uLeft), -1);
   for (const p of y) {
-    if (p.role === "tank") spots[p.id] = scale(uLeft, 1.8);
+    if (p.role === "tank") spots[p.id] = add(right, scale(latRight, 3.5));
     else if (p.role === "healer") spots[p.id] = coneBaitSpot;
-    else spots[p.id] = add(scale(north, 2.6), scale(latRight, isRangedDps(p) ? 0.9 : 1.6));
+    else spots[p.id] = add(add(left, scale(uLeft, -4.0)), scale(lateral, isRangedDps(p) ? 0.6 : -0.6));
   }
   return spots;
 }
@@ -121,14 +123,18 @@ function evenTowerSpots(world: World, plan: ForsakenPlan, towerNumber: number, l
   const y = groupMembers(world, plan, towerNumber, "Y");
   const charge = (p: Player) => activeForsakenCharge(p, world.time);
 
-  // Even-wave towers sit on the intercardinals (radius ~10.25), so they never overlap
-  // the boss hitbox: the cone takes the tower's inner (boss-side) edge shifted toward
-  // the tower's outer flank, the defam the far/new-north side.
-  const coneSpots = {
-    left: add(left, add(scale(normalize(left), -3.0), scale(latLeft, 0.8))),
-    right: add(right, add(scale(normalize(right), -3.0), scale(latRight, 0.8))),
+  const baiters = {
+    left: add(scale(latLeft, 5.5), scale(north, 1.5)),
+    right: add(scale(latRight, 5.5), scale(north, 1.5)),
   };
-  const defamSpots = { left: add(left, scale(north, 2.5)), right: add(right, scale(north, 2.5)) };
+  // Even-wave towers sit on the intercardinals (radius ~10.25). With towers at radius
+  // 3, the cone hugs the inner edge on the ray toward its Y baiter (so the baiter stays
+  // its nearest player), the defam the far/new-north side.
+  const coneSpots = {
+    left: add(left, scale(normalize(sub(baiters.left, left)), 2.6)),
+    right: add(right, scale(normalize(sub(baiters.right, right)), 2.6)),
+  };
+  const defamSpots = { left: add(left, scale(north, 2.2)), right: add(right, scale(north, 2.2)) };
 
   const xPairs = plan.pairs.filter(pair => pair.members.some(id => x.some(p => p.id === id)));
   const mixed = xPairs.length > 0 && xPairs.every(pair => {
@@ -155,9 +161,9 @@ function evenTowerSpots(world: World, plan: ForsakenPlan, towerNumber: number, l
   }
 
   for (const p of y) {
-    if (p.role === "healer") spots[p.id] = add(scale(latLeft, 5.5), scale(north, 1.5));
+    if (p.role === "healer") spots[p.id] = baiters.left;
     else if (p.role === "tank") spots[p.id] = add(scale(north, -3.4), scale(latLeft, 1.2));
-    else if (isRangedDps(p)) spots[p.id] = add(scale(latRight, 5.5), scale(north, 1.5));
+    else if (isRangedDps(p)) spots[p.id] = baiters.right;
     else spots[p.id] = add(scale(north, -3.4), scale(latRight, 1.2));
   }
   return spots;
