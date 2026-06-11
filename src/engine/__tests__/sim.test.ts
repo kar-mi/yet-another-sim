@@ -291,14 +291,14 @@ test("forsaken raid and bot companion content load", async () => {
   const towerEvents = raid.events.filter(event => event.type === "tower");
   expect(towerEvents).toHaveLength(16);
   expect(towerEvents.map(event => event.pos)).toEqual([
-    [0, 4], [4, 0],
-    [3.66, 3.66], [3.66, -3.66],
-    [4, 0], [0, -4],
-    [3.66, -3.66], [-3.66, -3.66],
-    [0, -4], [-4, 0],
-    [-3.66, -3.66], [-3.66, 3.66],
-    [-4, 0], [0, 4],
-    [-3.66, 3.66], [3.66, 3.66],
+    [0, 7.25], [7.25, 0],
+    [7.25, 7.25], [7.25, -7.25],
+    [7.25, 0], [0, -7.25],
+    [7.25, -7.25], [-7.25, -7.25],
+    [0, -7.25], [-7.25, 0],
+    [-7.25, -7.25], [-7.25, 7.25],
+    [-7.25, 0], [0, 7.25],
+    [-7.25, 7.25], [7.25, 7.25],
   ]);
   expect(raid.events.some(event => event.type === "tower" && event.requiredRoles !== undefined)).toBe(false);
   expect(towerEvents.every(event => event.failureDamage === 999999)).toBe(true);
