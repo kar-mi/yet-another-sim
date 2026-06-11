@@ -230,9 +230,7 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "pillar": true,
-        "countCircles": true,
-        "fallingCylinder": true
+        "fallingObject": "sphere"
       }
     },
     {
@@ -253,9 +251,7 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "pillar": true,
-        "countCircles": true,
-        "fallingCylinder": true
+        "fallingObject": "sphere"
       }
     },
     {
@@ -282,9 +278,7 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "pillar": true,
-        "countCircles": true,
-        "fallingCylinder": true
+        "fallingObject": "sphere"
       }
     },
     {
@@ -305,9 +299,7 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "pillar": true,
-        "countCircles": true,
-        "fallingCylinder": true
+        "fallingObject": "sphere"
       }
     },
     {
@@ -381,9 +373,7 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "pillar": true,
-        "countCircles": true,
-        "fallingCylinder": true
+        "fallingObject": "sphere"
       }
     },
     {
@@ -404,9 +394,7 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "pillar": true,
-        "countCircles": true,
-        "fallingCylinder": true
+        "fallingObject": "sphere"
       }
     },
     {
@@ -433,9 +421,7 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "pillar": true,
-        "countCircles": true,
-        "fallingCylinder": true
+        "fallingObject": "sphere"
       }
     },
     {
@@ -456,9 +442,7 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "pillar": true,
-        "countCircles": true,
-        "fallingCylinder": true
+        "fallingObject": "sphere"
       }
     },
     {
@@ -532,9 +516,7 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "pillar": true,
-        "countCircles": true,
-        "fallingCylinder": true
+        "fallingObject": "sphere"
       }
     },
     {
@@ -555,9 +537,7 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "pillar": true,
-        "countCircles": true,
-        "fallingCylinder": true
+        "fallingObject": "sphere"
       }
     },
     {
@@ -584,9 +564,7 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "pillar": true,
-        "countCircles": true,
-        "fallingCylinder": true
+        "fallingObject": "sphere"
       }
     },
     {
@@ -607,9 +585,7 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "pillar": true,
-        "countCircles": true,
-        "fallingCylinder": true
+        "fallingObject": "sphere"
       }
     },
     {
@@ -683,9 +659,7 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "pillar": true,
-        "countCircles": true,
-        "fallingCylinder": true
+        "fallingObject": "sphere"
       }
     },
     {
@@ -706,9 +680,7 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "pillar": true,
-        "countCircles": true,
-        "fallingCylinder": true
+        "fallingObject": "sphere"
       }
     },
     {
@@ -735,9 +707,7 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "pillar": true,
-        "countCircles": true,
-        "fallingCylinder": true
+        "fallingObject": "sphere"
       }
     },
     {
@@ -758,9 +728,7 @@
         "forsaken-defamation-resolve"
       ],
       "visual": {
-        "pillar": true,
-        "countCircles": true,
-        "fallingCylinder": true
+        "fallingObject": "sphere"
       }
     },
     {
