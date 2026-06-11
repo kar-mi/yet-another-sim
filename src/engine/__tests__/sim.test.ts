@@ -287,7 +287,7 @@ test("forsaken raid and bot companion content load", async () => {
   expect(world.forsakenPlan?.towerOrder.join("")).toBe("AAABBBBA");
   expect(world.botSolvers?.forsaken?.towerWindows).toHaveLength(8);
   expect(world.botSolvers?.forsaken?.towerWindows[0]).toEqual({ start: 9, end: 16, tower: 1 });
-  expect(world.players.find(player => player.id === "h1")?.pattern?.[0]?.pos).toEqual({ x: -8, z: 0 });
+  expect(world.players.find(player => player.id === "h1")?.pattern?.[0]?.pos).toEqual({ x: 7.39, z: -1.3 });
   const towerEvents = raid.events.filter(event => event.type === "tower");
   expect(towerEvents).toHaveLength(16);
   expect(towerEvents.map(event => event.pos)).toEqual([

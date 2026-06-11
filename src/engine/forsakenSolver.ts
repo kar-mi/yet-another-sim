@@ -1,6 +1,6 @@
 import type { ForsakenPlan, Player, World } from "../shared/types";
 import type { Vec2 } from "../shared/math";
-import { add, normalize, scale } from "../shared/math";
+import { add, normalize, scale, sub } from "../shared/math";
 import { activeForsakenCharge } from "./systems/forsakenAssign";
 
 // Rule-driven Forsaken bot positioning (docs/forsaken-raid-implementation-plan.md).
@@ -28,12 +28,14 @@ function groupMembers(world: World, plan: ForsakenPlan, towerNumber: number, gro
   return world.players.filter(p => p.alive && plan.players[p.id]?.towerGroupBySlot[towerNumber - 1] === group);
 }
 
-// Stack side tie-breaks: healer left; otherwise tank counts as melee (ranged left,
-// melee right); same-job fallback = lower id left.
+// Stack side tie-breaks: healer right (the initial support pair holds stack + defam
+// and resolves together in the right tower; DPS take stack + cone in the left);
+// otherwise tank counts as melee (ranged left, melee right); same-job fallback =
+// lower id left.
 function stackSides(stacks: Player[]): [Player | undefined, Player | undefined] {
   const [a, b] = stacks;
   if (!a || !b) return [a, b];
-  if ((a.role === "healer") !== (b.role === "healer")) return a.role === "healer" ? [a, b] : [b, a];
+  if ((a.role === "healer") !== (b.role === "healer")) return a.role === "healer" ? [b, a] : [a, b];
   if (isRangedDps(a) !== isRangedDps(b)) return isRangedDps(a) ? [a, b] : [b, a];
   return a.id <= b.id ? [a, b] : [b, a];
 }
@@ -63,8 +65,10 @@ function fillSlots(spots: SpotMap, slots: { spot: Vec2; preferred?: Player }[], 
 }
 
 // Odd towers: X holds 2 stacks + 1 cone + 1 defam. Left tower = cone + left stack,
-// right tower = defam + right stack. Y supports share the left stack from outside the
-// tower (tank north, healer south); Y DPS stand in the right stack.
+// right tower = right stack + defam. The Y healer baits the cone from outside the left
+// tower's south-left edge so it fires relative south, away from the other tower; the Y
+// tank soaks the left stack; Y DPS stand in the boss hitbox at relative north, biased
+// toward the right stack so they soak only it — every stack keeps at least 2 soakers.
 function oddTowerSpots(world: World, plan: ForsakenPlan, towerNumber: number, left: Vec2, right: Vec2, north: Vec2): SpotMap {
   const latLeft = rotateCCW(north);
   const latRight = scale(latLeft, -1);
@@ -78,10 +82,16 @@ function oddTowerSpots(world: World, plan: ForsakenPlan, towerNumber: number, le
   const cone = x.find(p => charge(p) === "cone");
   const defam = x.find(p => charge(p) === "defamation");
 
+  const bossNorthSpot = scale(north, 2.8);
+  // Cone bait line: baiter outside the left tower on its south-left, carrier inside the
+  // tower on the same ray — the cone aims at the baiter, relative south, clear of the
+  // right tower, both stacks, and the boss-north soakers.
+  const baitDir = normalize(add(scale(north, -3.9), scale(latLeft, 2.8)));
+  const coneBaitSpot = add(left, scale(baitDir, 5.3));
   const leftStackSpot = scale(uLeft, 4.0);              // boss hitbox ring, just inside the left tower
-  const rightStackSpot = add(right, scale(north, 2.0)); // front of the right tower, toward new north
-  const coneSpot = scale(uLeft, 9.45);                  // outer edge of the left tower; nearest player is the left stack, so the cone aims inward
-  const defamSpot = add(right, scale(latRight, 2.5));   // outer-right edge of the right tower, clear of the stack
+  const rightStackSpot = add(right, scale(normalize(sub(bossNorthSpot, right)), 3.5)); // in-tower flank toward the boss-north soakers
+  const coneSpot = add(left, scale(baitDir, 3.4));      // deep on the tower's south side, clear of the left stack
+  const defamSpot = add(right, scale(north, -2.8));     // relative-south side of the right tower
 
   fillSlots(spots, [
     { spot: leftStackSpot, preferred: leftStack },
@@ -91,9 +101,9 @@ function oddTowerSpots(world: World, plan: ForsakenPlan, towerNumber: number, le
   ], x);
 
   for (const p of y) {
-    if (p.role === "tank") spots[p.id] = add(scale(uLeft, 1.8), scale(north, 1.3));
-    else if (p.role === "healer") spots[p.id] = add(scale(uLeft, 1.8), scale(north, -1.3));
-    else spots[p.id] = add(rightStackSpot, add(scale(north, 2.8), scale(isRangedDps(p) ? latLeft : latRight, 0.8)));
+    if (p.role === "tank") spots[p.id] = scale(uLeft, 1.8);
+    else if (p.role === "healer") spots[p.id] = coneBaitSpot;
+    else spots[p.id] = add(scale(north, 2.6), scale(latRight, isRangedDps(p) ? 0.9 : 1.6));
   }
   return spots;
 }

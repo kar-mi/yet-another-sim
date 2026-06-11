@@ -16,7 +16,10 @@ Remaining work: browser smoke test of the full sequence.
 
 - Tower order: `AAABBBBA` (waves 1-3 = A, 4-7 = B, 8 = A).
 - Fixed pairs: `h1/mt`, `h2/ot`, `r1/m1`, `r2/m2`.
-- Default side split: supports left, DPS right, facing the boss.
+- Default side split: supports west, DPS east — directions in the user's frame, where
+  the boss sits toward new north. In world coordinates that is the latRight side for
+  supports and latLeft for DPS: the wave-1 opening fan puts supports on the SE arc and
+  DPS on the NW arc.
 - Group A: the pair's two debuffs are `stack + cone`, `stack + defam`, or `cone + defam`.
 - Group B: the pair's two debuffs are `cone + cone` or `defam + defam`.
 - X = the group whose letter matches the current tower in `AAABBBBA`; Y = the other
@@ -32,9 +35,9 @@ Remaining work: browser smoke test of the full sequence.
   (`markerDuration`) then disappears. The assignment effect lasts 120 s and is
   reapplied on each swap.
 - Initial (odd) set: 2 stacks + 3 cones + 3 defams.
-  - One support pair and one DPS pair get the stacks — one pair is `stack + cone`, the
-    other `stack + defam` (which pair gets cone vs defam alternates by pattern). These
-    are the two A pairs.
+  - One support pair and one DPS pair get the stacks — the support pair is
+    `stack + defam` (resolving together in the right tower) and the DPS pair is
+    `stack + cone` (left tower), in both patterns. These are the two A pairs.
   - The remaining support pair and DPS pair are `cone + cone` and `defam + defam` —
     the two B pairs.
 - Even set: 4 cones + 4 defams, any order.
@@ -52,19 +55,28 @@ Remaining work: browser smoke test of the full sequence.
 
 ### Odd towers
 
-- X cone player resolves on the left side.
-- X defam player resolves on the right side.
-- X right stack resolves in front, aligned toward new north.
-- X left stack resolves on the boss hitbox ring.
-- Cone bait aims toward the stack side, not out to the arena edge.
-- Y supports handle stack/cone on the left: tank north, healer south, outside the tower.
-- Y DPS stand in the stack on the right.
+- X cone player resolves in the left tower, deep on the tower's south-left side
+  (clear of the left stack — with 2+ soakers guaranteed, the cone carrier doesn't
+  need to share it).
+- The Y healer baits the cone from outside the left tower's south-left edge, so the
+  cone fires relative south, away from the other tower (a right-tower cone would
+  mirror: baiter on the outer south-right).
+- X left stack resolves on the boss hitbox ring, just inside the left tower.
+- X right stack resolves inside the right tower, on the flank toward the boss-hitbox
+  north spot; X defam resolves on the right tower's relative-south side.
+- Y tank soaks the left stack from outside the tower.
+- Y DPS stand in the boss hitbox at relative north, biased toward the right tower —
+  they soak only the right (DPS-side) stack. Left stack = carrier + Y tank, right
+  stack = carrier + both Y DPS, so every stack keeps at least 2 soakers (under 2, the
+  stack hits for the full 80). Stack radius is 3 so the circles stay clear of the
+  other tower.
 
 ### Stack side tie-breaks
 
 Ordered precedence:
 
-1. If a healer holds a stack: healer left, the other player right.
+1. If a healer holds a stack: healer right (with her pair-mate's defam), the other
+   player left.
 2. Otherwise tank counts as melee: ranged left, melee/tank right.
 3. Same-job stacks should be impossible under the assignment rules; if one occurs,
    lower number goes left (e.g. `r1` left, `r2` right).
@@ -103,7 +115,9 @@ Left/right tower is relative to looking at the boss.
 
 `src/engine/forsakenSolver.ts` computes spots from the assignment state during the
 authored windows in `forsaken-bots.json`; the static `towerSpots` / `baitSpots` there
-remain only as a fallback when no Forsaken plan exists.
+remain only as a fallback when no Forsaken plan exists. The static t=0 spots hold the
+opening pattern (supports on the SE arc, DPS on the NW arc of the wave-1 frame) until
+the first tower window opens at t=9.
 
 - Tower windows: group X/Y from the `AAABBBBA` slot, current charge from active
   effects, then the odd/even positioning rules above (stack tie-breaks and the

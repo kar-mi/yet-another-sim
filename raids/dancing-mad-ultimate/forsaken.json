@@ -71,7 +71,7 @@
             "pairs": [
               {
                 "members": ["h1", "mt"],
-                "assignments": ["stack", "cone"],
+                "assignments": ["stack", "defamation"],
                 "endings": ["future", "past"]
               },
               {
@@ -81,7 +81,7 @@
               },
               {
                 "members": ["r1", "m1"],
-                "assignments": ["stack", "defamation"],
+                "assignments": ["stack", "cone"],
                 "endings": ["future", "past"]
               },
               {
@@ -101,7 +101,7 @@
               },
               {
                 "members": ["h2", "ot"],
-                "assignments": ["stack", "cone"],
+                "assignments": ["stack", "defamation"],
                 "endings": ["future", "past"]
               },
               {
@@ -111,7 +111,7 @@
               },
               {
                 "members": ["r2", "m2"],
-                "assignments": ["stack", "defamation"],
+                "assignments": ["stack", "cone"],
                 "endings": ["future", "past"]
               }
             ]
@@ -145,7 +145,7 @@
       "effectName": "Stack Charge",
       "action": {
         "kind": "stack",
-        "radius": 4,
+        "radius": 3,
         "requiredCount": 2,
         "damage": 80,
         "damageType": "magical"
