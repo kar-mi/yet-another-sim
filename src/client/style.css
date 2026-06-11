@@ -763,7 +763,8 @@ img.party-effect-icon {
   gap: 8px;
 }
 
-.yas-invuln-btn {
+.yas-invuln-btn,
+.yas-bot-invuln-btn {
   pointer-events: all;
   flex-shrink: 0;
   width: 44px;
@@ -780,10 +781,18 @@ img.party-effect-icon {
   box-shadow: 0 0 6px rgba(70, 210, 110, 0.28);
 }
 
+.yas-bot-invuln-btn {
+  font-size: 11px;
+}
+
 .yas-invuln-btn:hover,
 .yas-invuln-btn:focus,
 .yas-invuln-btn:focus-visible,
-.yas-invuln-btn:active {
+.yas-invuln-btn:active,
+.yas-bot-invuln-btn:hover,
+.yas-bot-invuln-btn:focus,
+.yas-bot-invuln-btn:focus-visible,
+.yas-bot-invuln-btn:active {
   color: #d7ffe1;
   outline: none;
   border-color: rgba(70, 210, 110, 0.72);
@@ -795,7 +804,12 @@ img.party-effect-icon {
 .yas-invuln-btn.is-active:hover,
 .yas-invuln-btn.is-active:focus,
 .yas-invuln-btn.is-active:focus-visible,
-.yas-invuln-btn.is-active:active {
+.yas-invuln-btn.is-active:active,
+.yas-bot-invuln-btn.is-active,
+.yas-bot-invuln-btn.is-active:hover,
+.yas-bot-invuln-btn.is-active:focus,
+.yas-bot-invuln-btn.is-active:focus-visible,
+.yas-bot-invuln-btn.is-active:active {
   color: #ffe2e2;
   outline: none;
   border-color: rgba(235, 65, 65, 0.9);

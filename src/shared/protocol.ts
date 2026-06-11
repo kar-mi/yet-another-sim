@@ -107,6 +107,10 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     type: z.literal("restart"),
   }).strict(),
   z.object({
+    type: z.literal("setBotsInvincible"),
+    enabled: z.boolean(),
+  }).strict(),
+  z.object({
     type: z.literal("debugPosition"),
     playerId: PlayerIdSchema,
     x: z.number(),

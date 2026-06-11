@@ -62,6 +62,8 @@ async function main(): Promise<void> {
       saveSettings(settings);
     }, position => {
       net.send({ type: "debugPosition", ...position });
+    }, enabled => {
+      net.send({ type: "setBotsInvincible", enabled });
     });
     renderer.init(session.world, sessionId, session.yourPlayerId);
     renderer.applySettings(settings);

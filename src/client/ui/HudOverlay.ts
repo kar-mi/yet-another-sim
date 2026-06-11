@@ -214,6 +214,7 @@ export class HudOverlay {
   private hpVal: HTMLSpanElement;
   private mpVal: HTMLSpanElement;
   private invulnBtn: HTMLButtonElement;
+  private botInvulnBtn: HTMLButtonElement;
   private skillSlots: SkillSlotView[] = [];
   private sessionEl: HTMLDivElement;
   private partyEl!: HTMLDivElement;
@@ -238,6 +239,7 @@ export class HudOverlay {
     private onSettingsChange: (settings: Settings) => void = () => {},
     private onSpectate: (id: string) => void = () => {},
     private onDebugPosition: (position: { playerId: string; x: number; y: number; z: number }) => void = () => {},
+    private onBotsInvincibleChange: (enabled: boolean) => void = () => {},
   ) {
     this.root = this.buildHud();
     document.body.appendChild(this.root);
@@ -247,6 +249,7 @@ export class HudOverlay {
     this.hpVal = this.root.querySelector<HTMLSpanElement>("[data-hp-val]")!;
     this.mpVal = this.root.querySelector<HTMLSpanElement>("[data-mp-val]")!;
     this.invulnBtn = this.root.querySelector<HTMLButtonElement>(".yas-invuln-btn")!;
+    this.botInvulnBtn = this.root.querySelector<HTMLButtonElement>(".yas-bot-invuln-btn")!;
     this.debuffTrackerEl = this.root.querySelector<HTMLDivElement>(".yas-debuff-tracker")!;
     this.kbmHotbar = this.root.querySelector<HTMLDivElement>(".yas-hotbar")!;
     this.controllerHotbar = this.root.querySelector<HTMLDivElement>(".yas-controller-hotbar")!;
@@ -459,6 +462,11 @@ export class HudOverlay {
       for (const slot of view.slots) slot.addEventListener("click", () => triggerAction(view.action));
     }
     this.invulnBtn.addEventListener("click", () => { this.invulnBtn.blur(); toggleInvincibility(); });
+    this.botInvulnBtn.addEventListener("click", () => {
+      const enabled = !this.botInvulnBtn.classList.contains("is-active");
+      this.botInvulnBtn.blur();
+      this.onBotsInvincibleChange(enabled);
+    });
 
     this.root.querySelectorAll<HTMLDivElement>(".yas-slot").forEach(slot => {
       slot.addEventListener("mousedown", () => this.flashSlot(slot));
@@ -485,6 +493,8 @@ export class HudOverlay {
   sync(world: World): void {
     const p = world.players.find(player => player.id === this.localPlayerId) ?? world.players[0];
     this.latestPlayer = p ?? null;
+    const botPlayers = world.players.filter(player => player.control === "bot");
+    this.botInvulnBtn.classList.toggle("is-active", botPlayers.length > 0 && botPlayers.every(player => player.invincible));
 
     if (world.status === "cleared") {
       this.statusEl.textContent = "CLEARED";

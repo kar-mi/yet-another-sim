@@ -1,12 +1,12 @@
-import type { EffectSpec, PendingForsakenAssign } from "../../shared/types";
+import type { EffectSpec, ForsakenAssignmentKind, PendingForsakenAssign } from "../../shared/types";
 import type { TickContext } from "./context";
 import { applyEffect } from "./helpers";
 
-const ASSIGNMENT_MARKERS: Record<string, string> = {
-  cone: "CONE",
-  stack: "STACK",
-  spread: "SPRD",
-  defamation: "DEF",
+const ASSIGNMENT_EFFECTS: Record<ForsakenAssignmentKind, { name: string; markerIcon: string }> = {
+  cone: { name: "Cone Charge", markerIcon: "cone_processed.png" },
+  stack: { name: "Stack Charge", markerIcon: "stack_processed.png" },
+  spread: { name: "Spread Charge", markerIcon: "defam_processed.png" },
+  defamation: { name: "Spread Charge", markerIcon: "defam_processed.png" },
 };
 
 const ENDING_MARKERS: Record<string, string> = {
@@ -24,7 +24,18 @@ function assignmentEffect(name: string, duration: number): EffectSpec {
   };
 }
 
-function markerEffect(name: string, marker: string, duration: number): EffectSpec {
+function markerIconEffect(name: string, markerIcon: string, duration: number): EffectSpec {
+  return {
+    name,
+    kind: "debuff",
+    duration,
+    visibility: "invisible",
+    markerIcon,
+    behavior: { kind: "none" },
+  };
+}
+
+function markerTextEffect(name: string, marker: string, duration: number): EffectSpec {
   return {
     name,
     kind: "debuff",
@@ -51,12 +62,13 @@ export function resolveForsakenAssigns(ctx: TickContext): PendingForsakenAssign[
       const assignment = plan.players[player.id];
       if (!assignment) continue;
 
-      const assignmentName = `Forsaken ${assignment.assignment[0].toUpperCase()}${assignment.assignment.slice(1)}`;
+      const assignmentSpec = ASSIGNMENT_EFFECTS[assignment.assignment];
+      const assignmentName = assignmentSpec.name;
       const endingName = `Forsaken ${assignment.ending[0].toUpperCase()}${assignment.ending.slice(1)}`;
       applyEffect(player, assignmentEffect(assignmentName, event.duration), ctx.time, `${event.id}-${player.id}-assignment`, ctx.players);
-      applyEffect(player, markerEffect(`${assignmentName} Marker`, ASSIGNMENT_MARKERS[assignment.assignment], event.markerDuration), ctx.time, `${event.id}-${player.id}-assignment-marker`, ctx.players);
+      applyEffect(player, markerIconEffect(`${assignmentName} Marker`, assignmentSpec.markerIcon, event.markerDuration), ctx.time, `${event.id}-${player.id}-assignment-marker`, ctx.players);
       applyEffect(player, assignmentEffect(endingName, event.duration), ctx.time, `${event.id}-${player.id}-ending`, ctx.players);
-      applyEffect(player, markerEffect(`${endingName} Marker`, ENDING_MARKERS[assignment.ending], event.markerDuration), ctx.time, `${event.id}-${player.id}-ending-marker`, ctx.players);
+      applyEffect(player, markerTextEffect(`${endingName} Marker`, ENDING_MARKERS[assignment.ending], event.markerDuration), ctx.time, `${event.id}-${player.id}-ending-marker`, ctx.players);
     }
   }
   return remaining;

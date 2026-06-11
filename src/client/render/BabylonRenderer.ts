@@ -82,6 +82,7 @@ export class BabylonRenderer implements Renderer {
     private canvas: HTMLCanvasElement,
     private onSettingsChange: (settings: Settings) => void = () => {},
     private onDebugPosition: (position: { playerId: string; x: number; y: number; z: number }) => void = () => {},
+    private onBotsInvincibleChange: (enabled: boolean) => void = () => {},
   ) {}
 
   init(world: World, sessionId: string, localPlayerId: string | null = null): void {
@@ -177,6 +178,7 @@ export class BabylonRenderer implements Renderer {
       this.onSettingsChange,
       id => this.setSpectateTarget(id),
       this.onDebugPosition,
+      this.onBotsInvincibleChange,
     );
 
     this.onResize = () => this.engine.resize();

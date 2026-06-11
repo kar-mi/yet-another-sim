@@ -265,10 +265,21 @@ test("forsaken raid and bot companion content load", async () => {
   const raid = loadRaid(raidJson);
   const bots = loadBotPatterns(botJson);
   const world = createWorld(applyBotPatterns(raid, bots), 1);
+  const byEventId = (id: string) => raid.events.find(event => event.id === id);
+  const effectResolverById = (id: string) => raid.events.find(event => event.type === "effect_resolver" && event.id === id);
 
   expect(raid.name).toBe("Forsaken");
+  expect(raid.duration).toBe(118);
+  expect(byEventId("forsaken-raidwide")).toMatchObject({ t: 3 });
+  expect(byEventId("forsaken-assign")).toMatchObject({ t: 3 });
+  expect(byEventId("forsaken-end-raidwide")).toMatchObject({ t: 109 });
+  expect(effectResolverById("forsaken-stack-resolve")).toMatchObject({ effectName: "Stack Charge" });
+  expect(effectResolverById("forsaken-cone-resolve")).toMatchObject({ effectName: "Cone Charge" });
+  expect(effectResolverById("forsaken-defamation-resolve")).toMatchObject({ effectName: "Spread Charge" });
   expect(world.forsakenPlan?.towerOrder.join("")).toBe("AAABBBBA");
   expect(world.botSolvers?.forsaken?.towerWindows).toHaveLength(8);
+  expect(world.botSolvers?.forsaken?.towerWindows[0]).toEqual({ start: 9, end: 16, tower: 1 });
+  expect(world.players.find(player => player.id === "h1")?.pattern?.[0]?.pos).toEqual({ x: -8, z: 0 });
   expect(raid.events.filter(event => event.type === "tower")).toHaveLength(16);
   expect(raid.events.some(event => event.type === "tower" && event.requiredRoles !== undefined)).toBe(false);
 });
@@ -1214,8 +1225,8 @@ test("forsaken_assign applies invisible assignment and short head marker effects
   const world = runTicks(createWorld(raid, 1), noMove, 1);
   const h1 = byId(world, "h1");
 
-  expect(h1.effects.some(e => e.name === "Forsaken Stack" && e.visibility === "invisible" && e.marker === undefined)).toBe(true);
-  expect(h1.effects.some(e => e.name === "Forsaken Stack Marker" && e.visibility === "invisible" && e.marker === "STACK" && e.duration === 5)).toBe(true);
+  expect(h1.effects.some(e => e.name === "Stack Charge" && e.visibility === "invisible" && e.marker === undefined)).toBe(true);
+  expect(h1.effects.some(e => e.name === "Stack Charge Marker" && e.visibility === "invisible" && e.markerIcon === "stack_processed.png" && e.duration === 5)).toBe(true);
   expect(h1.effects.some(e => e.name === "Forsaken Future")).toBe(true);
 });
 
