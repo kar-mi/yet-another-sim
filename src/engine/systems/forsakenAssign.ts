@@ -14,7 +14,7 @@ const ENDING_MARKERS: Record<string, string> = {
   past: "P",
 };
 
-type ForsakenChargeKind = "stack" | "cone" | "defamation";
+export type ForsakenChargeKind = "stack" | "cone" | "defamation";
 
 const FORSAKEN_CHARGE_ORDER: ForsakenChargeKind[] = ["stack", "cone", "defamation"];
 const FORSAKEN_ODD_TOWER_COUNTS: Record<ForsakenChargeKind, number> = { stack: 2, cone: 3, defamation: 3 };
@@ -61,7 +61,7 @@ function normalizedChargeKind(effectName: string): ForsakenChargeKind | undefine
   return undefined;
 }
 
-function activeForsakenCharge(player: Player, time: number): ForsakenChargeKind | undefined {
+export function activeForsakenCharge(player: Player, time: number): ForsakenChargeKind | undefined {
   for (const effect of player.effects) {
     const kind = normalizedChargeKind(effect.name);
     if (kind && isEffectActiveAt(effect, time)) return kind;

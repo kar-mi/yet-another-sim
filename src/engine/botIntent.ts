@@ -2,6 +2,7 @@ import type { Vec2 } from "../shared/math";
 import type { Intents, Player, Waypoint, World } from "../shared/types";
 import { length, normalize, sub } from "../shared/math";
 import { MOVE_SPEED } from "./sim";
+import { forsakenSolverWaypoint } from "./forsakenSolver";
 
 function activeWaypoint(pattern: Waypoint[], time: number, after = -Infinity): Waypoint | undefined {
   let active: Waypoint | undefined;
@@ -49,25 +50,6 @@ function plantComboKey(player: Player, world: World): string | undefined {
   const names = combo.map(directionName);
   if (names.some(name => name === undefined)) return undefined;
   return names.join(" ");
-}
-
-function forsakenSolverWaypoint(player: Player, world: World): Vec2 | undefined {
-  const solver = world.botSolvers?.forsaken;
-  if (!solver) return undefined;
-
-  for (const window of solver.baitWindows ?? []) {
-    if (world.time < window.start || world.time > window.end) continue;
-    const spot = solver.baitSpots?.[player.id]?.[window.index - 1];
-    if (spot) return spot;
-  }
-
-  for (const window of solver.towerWindows) {
-    if (world.time < window.start || world.time > window.end) continue;
-    const spot = solver.towerSpots[player.id]?.[window.tower - 1];
-    if (spot) return spot;
-  }
-
-  return undefined;
 }
 
 function solverWaypoint(player: Player, world: World): Vec2 | undefined {

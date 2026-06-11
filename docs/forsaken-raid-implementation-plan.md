@@ -3,14 +3,12 @@
 ## Status / Gaps
 
 Implemented: `forsaken.json` (full tower + clone timeline), the `forsaken_assign` event,
-assignment/marker/ending effects, tower-gated debuff resolution, and soak swaps
-(`src/engine/systems/forsakenAssign.ts`). `forsaken-bots.json` has static per-tower and
-per-bait spots.
+assignment/marker/ending effects, tower-gated debuff resolution, soak swaps
+(`src/engine/systems/forsakenAssign.ts`), and the rule-driven bot solver
+(`src/engine/forsakenSolver.ts` — see "Bot Solver" below). `forsaken-bots.json` keeps
+the tower/bait windows plus static spots as a no-plan fallback.
 
-Remaining work:
-
-- Bot solver: replace the static `towerSpots` / `baitSpots` with the positioning rules
-  below (group X/Y, odd/even tower spots, stack tie-breaks, close/far past-future baits).
+Remaining work: browser smoke test of the full sequence.
 
 ## Encounter Rules
 
@@ -83,9 +81,10 @@ Left/right tower is relative to looking at the boss.
     boss).
   - Split by role: healer left, tank right; melee DPS left, ranged DPS right — so each
     tower still gets one support + one DPS.
-- Within a tower: the cone player stands on the boss hitbox toward the tower's outer
-  side, facing the boss; the defam player stands on the north/far side of the tower,
-  middle-ish, away from the cone.
+- Within a tower: the cone player stands on the tower's inner (boss-side) edge,
+  shifted toward the tower's outer flank, facing the boss; the defam player stands on
+  the north/far side of the tower, away from the cone. (Even-wave towers sit on the
+  intercardinals at radius ~10.25, so they never overlap the boss hitbox.)
 - Y supports left, DPS right; Y ranged stand near the waymark to bait the cone.
 - Y melee/tank: opposite side from the towers, on the outer boss hitbox — moving
   inward clips the tower/defam damage.
@@ -100,20 +99,28 @@ Left/right tower is relative to looking at the boss.
 - Soak swaps are handled by `resolveForsakenTowerDebuffSwaps` in
   `src/engine/systems/forsakenAssign.ts`.
 
-## Bot Solver
+## Bot Solver (implemented)
 
-The solver should:
+`src/engine/forsakenSolver.ts` computes spots from the assignment state during the
+authored windows in `forsaken-bots.json`; the static `towerSpots` / `baitSpots` there
+remain only as a fallback when no Forsaken plan exists.
 
-- Read the Forsaken assignment state (current charge per player + group X/Y).
-- Move support players to left-side planned spots and DPS to right-side planned spots.
-- Use odd tower positioning rules for cone, stack, and defamation.
-- Use even tower spots per the rules above.
-- Move bait players to max melee close/far bait spots for clone lock-ins
-  (close = past, far = future).
-- Resume tower positions after clone cleaves.
+- Tower windows: group X/Y from the `AAABBBBA` slot, current charge from active
+  effects, then the odd/even positioning rules above (stack tie-breaks and the
+  mixed/role-split even tower split included). Positions are computed in the rotating
+  new-north frame from the wave's actual `tower-N-left` / `tower-N-right` events.
+- Bait windows: everyone clusters toward the new north of the simultaneous tower wave
+  (wave 2N+1 for bait N) — past holders at max melee (4.1), future holders far (7.5)
+  on the same bearing. The locked closest target is therefore a past baiter, so the
+  Past cleave (facing + π) fires away from the towers; a Future lock would aim at the
+  cluster itself, equally clear of the towers.
+- Bait window 4 runs through the final cleave at t=102 (no towers then, and no heal
+  afterward).
+- The `boss-facing-lock` event holds boss facing for the whole fight, so only the All
+  Ending bait casts turn the boss — cleave directions are deterministic.
 
-The initial `forsaken-bots.json` should focus on deterministic clear-path movement, not
-cover every possible player-error scenario.
+The solver covers deterministic clear-path movement, not every player-error scenario;
+a missed swap or death falls back to filling open tower slots in roster order.
 
 ## Timeline (from forsaken.json)
 
@@ -139,13 +146,17 @@ Heal events at t = 18, 29, 39, 49, 60, 71, 81, 91.
 | 109    | 112     | Forsaken Ends raidwide |
 
 Clone cleave: 120° cone, length 24, anchored to boss facing; `Forsaken Future` fires
-forward (offset 0), `Forsaken Past` fires behind (offset π).
+forward (offset 0), `Forsaken Past` fires behind (offset π). Boss facing is locked for
+the whole fight (`boss-facing-lock`); each All Ending bait turns the boss toward its
+locked (closest) target at cast start and the cleave detonates at cast end from that
+facing.
 
 ## Tower Coordinates (from forsaken.json)
 
-All towers: radius 4, `requiredCount: 2`, centers on the 7.25 ring. Each wave's two
-towers sit 90° apart and the pair rotates 45° clockwise per wave (new north = the
-bisector of the pair: NE for wave 1, E for wave 2, ...).
+All towers: radius 4, `requiredCount: 2`. Odd waves use cardinal towers on the 7.25
+ring; even waves use intercardinal towers at `(±7.25, ±7.25)` (radius ~10.25). Each
+wave's two towers sit 90° apart and the pair rotates 45° clockwise per wave (new
+north = the bisector of the pair: NE for wave 1, E for wave 2, ...).
 
 | Wave | Group | Left tower        | Right tower       | Resolve t |
 | ---- | ----- | ----------------- | ----------------- | --------- |
@@ -163,11 +174,15 @@ Waymarks: `A [0, 12] N`, `B [-12, 0] W`, `C [0, -12] S`, `D [12, 0] E`,
 
 ## Implementation Order
 
-1. Fix the bot solver to follow the positioning rules above.
-2. Validate against human-slot play, then `forsaken-bots.json`.
+1. ~~Fix the bot solver to follow the positioning rules above.~~ Done.
+2. Validate against human-slot play.
 3. Validate the raid list and run the full Forsaken sequence in the browser.
 
 ## Test Plan
+
+Automated (`bun test`): the all-bot full run asserts the swap counts after every tower
+wave, zero tower failures, and full-roster survival to the end of the sequence.
+
 Manual checks:
 
 - Start the Dancing Mad Ultimate Forsaken raid from the raid selector.

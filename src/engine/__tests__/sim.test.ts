@@ -333,11 +333,28 @@ test("forsaken tower swaps alternate odd and even debuff distributions", async (
   };
 
   let world = createWorld(applyBotPatterns(raid, bots), 1);
-  world = runTicksWithComputedBotIntents(world, Math.ceil(16.2 * 60));
-  expect(countCharges(world)).toEqual({ stack: 0, cone: 4, defamation: 4 });
+  // Towers resolve at 16/27/37/47/58/69/79/89; odd waves swap soakers to the even
+  // set (0/4/4), even waves back to the odd set (2/3/3).
+  const checkpoints: [number, ReturnType<typeof countCharges>][] = [
+    [16.2, { stack: 0, cone: 4, defamation: 4 }],
+    [27.2, { stack: 2, cone: 3, defamation: 3 }],
+    [37.2, { stack: 0, cone: 4, defamation: 4 }],
+    [47.2, { stack: 2, cone: 3, defamation: 3 }],
+    [58.2, { stack: 0, cone: 4, defamation: 4 }],
+    [69.2, { stack: 2, cone: 3, defamation: 3 }],
+    [79.2, { stack: 0, cone: 4, defamation: 4 }],
+    [89.2, { stack: 2, cone: 3, defamation: 3 }],
+  ];
+  for (const [t, counts] of checkpoints) {
+    world = runTicksWithComputedBotIntents(world, Math.ceil((t - world.time) * 60));
+    expect(countCharges(world)).toEqual(counts);
+  }
 
-  world = runTicksWithComputedBotIntents(world, Math.ceil((27.2 - world.time) * 60));
-  expect(countCharges(world)).toEqual({ stack: 2, cone: 3, defamation: 3 });
+  // Full clear: no tower failures (failure logs a "hit" for the whole raid) and the
+  // all-bot roster survives to the end of the sequence.
+  world = runTicksWithComputedBotIntents(world, Math.ceil((118 - world.time) * 60));
+  expect(world.log.some(entry => entry.mechanic.startsWith("Forsaken Tower") && entry.event === "hit")).toBe(false);
+  expect(world.players.map(p => `${p.id}:${p.alive}`)).toEqual(world.players.map(p => `${p.id}:true`));
 });
 
 test("forsaken solver moves bots during authored tower and bait windows", () => {
