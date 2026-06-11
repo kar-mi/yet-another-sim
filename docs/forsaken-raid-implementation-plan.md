@@ -212,3 +212,21 @@ bun run build
   tuning pass after browser verification.
 
 
+    {
+      "mark": "1",
+      "pos": [-6, -6]
+    },
+    {
+      "mark": "2",
+      "pos": [6, -6]
+    },
+    {
+      "mark": "3",
+      "pos": [6, 6]
+    },
+    {
+      "mark": "4",
+      "pos": [-6, 6]
+    }
+
+possible tower positions

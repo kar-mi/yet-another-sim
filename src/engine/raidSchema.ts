@@ -264,6 +264,7 @@ const TowerVisualSchema = z.object({
   groundStyle: z.enum(["standard", "tank"]).optional(), // standard: yellow inner/red outer; tank: two red
   cylinderColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), // falling cylinder color
   cylinderThickness: z.number().positive().optional(), // falling object diameter/width
+  fallingObjectAlpha: z.number().min(0).max(1).optional(), // falling object opacity
 });
 
 const TowerEventSchema = z.object({

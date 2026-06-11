@@ -351,6 +351,7 @@ export type TowerVisual = {
   groundStyle: "standard" | "tank"; // standard: yellow inner/red outer; tank: two red
   cylinderColor?: string; // hex, e.g. "#33ccff"
   cylinderThickness?: number; // falling object diameter/width
+  fallingObjectAlpha?: number; // falling object opacity
 };
 
 export type PendingTower = {

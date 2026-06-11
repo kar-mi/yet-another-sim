@@ -150,7 +150,7 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
     mat.diffuseColor = cylColor;
     mat.emissiveColor = cylColor.scale(0.4);
     mat.specularColor = new Color3(0, 0, 0);
-    mat.alpha = 0.4;
+    mat.alpha = tower.visual.fallingObjectAlpha ?? 0.4;
     mesh.material = mat;
     fallingObject = { mesh, mat, floorY };
     all.push(mesh);

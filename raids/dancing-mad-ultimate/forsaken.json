@@ -231,7 +231,8 @@
       ],
       "visual": {
         "fallingObject": "sphere",
-        "cylinderThickness": 3
+        "cylinderThickness": 3.5,
+        "fallingObjectAlpha": 0.7
       }
     },
     {
@@ -253,7 +254,8 @@
       ],
       "visual": {
         "fallingObject": "sphere",
-        "cylinderThickness": 3
+        "cylinderThickness": 3.5,
+        "fallingObjectAlpha": 0.7
       }
     },
     {
@@ -281,7 +283,8 @@
       ],
       "visual": {
         "fallingObject": "sphere",
-        "cylinderThickness": 3
+        "cylinderThickness": 3.5,
+        "fallingObjectAlpha": 0.7
       }
     },
     {
@@ -303,7 +306,8 @@
       ],
       "visual": {
         "fallingObject": "sphere",
-        "cylinderThickness": 3
+        "cylinderThickness": 3.5,
+        "fallingObjectAlpha": 0.7
       }
     },
     {
@@ -378,7 +382,8 @@
       ],
       "visual": {
         "fallingObject": "sphere",
-        "cylinderThickness": 3
+        "cylinderThickness": 3.5,
+        "fallingObjectAlpha": 0.7
       }
     },
     {
@@ -400,7 +405,8 @@
       ],
       "visual": {
         "fallingObject": "sphere",
-        "cylinderThickness": 3
+        "cylinderThickness": 3.5,
+        "fallingObjectAlpha": 0.7
       }
     },
     {
@@ -428,7 +434,8 @@
       ],
       "visual": {
         "fallingObject": "sphere",
-        "cylinderThickness": 3
+        "cylinderThickness": 3.5,
+        "fallingObjectAlpha": 0.7
       }
     },
     {
@@ -450,7 +457,8 @@
       ],
       "visual": {
         "fallingObject": "sphere",
-        "cylinderThickness": 3
+        "cylinderThickness": 3.5,
+        "fallingObjectAlpha": 0.7
       }
     },
     {
@@ -525,7 +533,8 @@
       ],
       "visual": {
         "fallingObject": "sphere",
-        "cylinderThickness": 3
+        "cylinderThickness": 3.5,
+        "fallingObjectAlpha": 0.7
       }
     },
     {
@@ -547,7 +556,8 @@
       ],
       "visual": {
         "fallingObject": "sphere",
-        "cylinderThickness": 3
+        "cylinderThickness": 3.5,
+        "fallingObjectAlpha": 0.7
       }
     },
     {
@@ -575,7 +585,8 @@
       ],
       "visual": {
         "fallingObject": "sphere",
-        "cylinderThickness": 3
+        "cylinderThickness": 3.5,
+        "fallingObjectAlpha": 0.7
       }
     },
     {
@@ -597,7 +608,8 @@
       ],
       "visual": {
         "fallingObject": "sphere",
-        "cylinderThickness": 3
+        "cylinderThickness": 3.5,
+        "fallingObjectAlpha": 0.7
       }
     },
     {
@@ -672,7 +684,8 @@
       ],
       "visual": {
         "fallingObject": "sphere",
-        "cylinderThickness": 3
+        "cylinderThickness": 3.5,
+        "fallingObjectAlpha": 0.7
       }
     },
     {
@@ -694,7 +707,8 @@
       ],
       "visual": {
         "fallingObject": "sphere",
-        "cylinderThickness": 3
+        "cylinderThickness": 3.5,
+        "fallingObjectAlpha": 0.7
       }
     },
     {
@@ -722,7 +736,8 @@
       ],
       "visual": {
         "fallingObject": "sphere",
-        "cylinderThickness": 3
+        "cylinderThickness": 3.5,
+        "fallingObjectAlpha": 0.7
       }
     },
     {
@@ -744,7 +759,8 @@
       ],
       "visual": {
         "fallingObject": "sphere",
-        "cylinderThickness": 3
+        "cylinderThickness": 3.5,
+        "fallingObjectAlpha": 0.7
       }
     },
     {

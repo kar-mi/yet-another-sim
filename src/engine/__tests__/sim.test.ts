@@ -291,7 +291,11 @@ test("forsaken raid and bot companion content load", async () => {
   expect(raid.events.filter(event => event.type === "tower")).toHaveLength(16);
   expect(raid.events.some(event => event.type === "tower" && event.requiredRoles !== undefined)).toBe(false);
   expect(raid.events.filter(event => event.type === "tower").every(event => event.failureDamage === 999999)).toBe(true);
-  expect(raid.events.filter(event => event.type === "tower").every(event => event.visual?.fallingObject === "sphere" && event.visual?.cylinderThickness === 3)).toBe(true);
+  expect(raid.events.filter(event => event.type === "tower").every(event => (
+    event.visual?.fallingObject === "sphere"
+    && event.visual?.cylinderThickness === 3.5
+    && event.visual?.fallingObjectAlpha === 0.7
+  ))).toBe(true);
   expect(raid.events.filter(event => event.type === "heal").map(event => event.t)).toEqual([18, 29, 39, 49, 60, 71, 81, 91]);
 });
 

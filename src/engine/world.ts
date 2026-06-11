@@ -328,6 +328,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
           groundStyle: e.visual?.groundStyle ?? "standard",
           cylinderColor: e.visual?.cylinderColor,
           cylinderThickness: e.visual?.cylinderThickness,
+          fallingObjectAlpha: e.visual?.fallingObjectAlpha,
         },
       });
     } else if (e.type === "group") {
