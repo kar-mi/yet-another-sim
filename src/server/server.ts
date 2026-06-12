@@ -34,6 +34,11 @@ function parsePositiveInt(name: string, raw: string | undefined, fallback: numbe
 }
 const MAX_SESSIONS = parsePositiveInt("MAX_SESSIONS", Bun.env.MAX_SESSIONS, 10);
 
+// Client->server messages (intents, joins, claims) are all tiny, so cap accepted WS payloads well
+// below Bun's ~16 MB default to cheaply reject abusive oversized frames. This bounds ingress only;
+// the large outbound resync (full input log) is not governed by it.
+const MAX_WS_PAYLOAD_BYTES = 1 << 20; // 1 MiB
+
 interface SocketData {
   clientId: string;
 }
@@ -229,6 +234,10 @@ const server = Bun.serve<SocketData>({
 
   websocket: {
     idleTimeout: 660,
+    // Input frames are small and highly repetitive, so negotiated compression shrinks both the
+    // 60 Hz relay stream and the one-shot full-input-log resync sent on late join / reconnect.
+    perMessageDeflate: true,
+    maxPayloadLength: MAX_WS_PAYLOAD_BYTES,
     open(ws) {
       clients.set(ws.data.clientId, ws);
       ws.send(JSON.stringify({ type: "joined", clientId: ws.data.clientId } satisfies ServerMessage));
