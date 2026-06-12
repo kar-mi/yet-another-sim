@@ -12,35 +12,27 @@ duration: 45
 players:
   - id: mt
     role: tank
-    control: bot
     spawn: [0, 7]
   - id: ot
     role: tank
-    control: bot
     spawn: [7, 0]
   - id: h1
     role: healer
-    control: bot
     spawn: [0, -7]
   - id: h2
     role: healer
-    control: bot
     spawn: [-7, 0]
   - id: r1
     role: dps
-    control: bot
     spawn: [0, 20]
   - id: r2
     role: dps
-    control: bot
     spawn: [20, 0]
   - id: m1
     role: dps
-    control: human
     spawn: [0, -20]
   - id: m2
     role: dps
-    control: bot
     spawn: [-20, 0]
 
 # Shared forced-march trap defaults — merged into each march event.

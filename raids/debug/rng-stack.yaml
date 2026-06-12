@@ -13,35 +13,27 @@ botPatterns: rng-stack-bots
 players:
   - id: mt
     role: tank
-    control: human
     spawn: [0, 4]
   - id: ot
     role: tank
-    control: bot
     spawn: [0, -4]
   - id: h1
     role: healer
-    control: bot
     spawn: [-4, 4]
   - id: h2
     role: healer
-    control: bot
     spawn: [4, -4]
   - id: r1
     role: dps
-    control: bot
     spawn: [-5.66, 5.66]
   - id: r2
     role: dps
-    control: bot
     spawn: [5.66, 5.66]
   - id: m1
     role: dps
-    control: bot
     spawn: [-5.66, -5.66]
   - id: m2
     role: dps
-    control: bot
     spawn: [5.66, -5.66]
 
 # Shared stack defaults.

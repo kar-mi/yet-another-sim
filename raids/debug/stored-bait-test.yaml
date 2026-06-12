@@ -12,53 +12,45 @@ duration: 36
 players:
   - id: mt
     role: tank
-    control: bot
     spawn: [0, 3]
     pattern:
       - { t: 10.5, pos: [0, -14] }
       - { t: 19, pos: [0, 6] }
   - id: ot
     role: tank
-    control: bot
     spawn: [0, -8]
     pattern:
       - { t: 10.5, pos: [0, -14] }
       - { t: 19, pos: [-4, 12] }
   - id: h1
     role: healer
-    control: bot
     spawn: [-8, 0]
     pattern:
       - { t: 10.5, pos: [-10, -10] }
       - { t: 19, pos: [-10, 10] }
   - id: h2
     role: healer
-    control: bot
     spawn: [8, 0]
     pattern:
       - { t: 10.5, pos: [10, -10] }
       - { t: 19, pos: [10, 10] }
   - id: r1
     role: dps
-    control: bot
     spawn: [-5.66, 5.66]
     pattern:
       - { t: 10.5, pos: [-8, -12] }
       - { t: 19, pos: [-8, 12] }
   - id: r2
     role: dps
-    control: bot
     spawn: [5.66, 5.66]
     pattern:
       - { t: 10.5, pos: [8, -12] }
       - { t: 19, pos: [8, 12] }
   - id: m1
     role: dps
-    control: human
     spawn: [-5.66, -5.66]
   - id: m2
     role: dps
-    control: bot
     spawn: [5.66, -5.66]
     pattern:
       - { t: 10.5, pos: [5.66, -14] }

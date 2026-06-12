@@ -12,43 +12,35 @@ duration: 26
 players:
   - id: mt
     role: tank
-    control: human
     spawn: [0, 8]
   - id: ot
     role: tank
-    control: bot
     spawn: [-8, -8]
     pattern:
       - { t: 14, pos: [-12.5, 0.5] }
   - id: h1
     role: healer
-    control: bot
     spawn: [0, 12]
   - id: h2
     role: healer
-    control: bot
     spawn: [6, 6]
   - id: r1
     role: dps
-    control: bot
     spawn: [8, -2]
     pattern:
       - { t: 7, pos: [11, 0] }
   - id: r2
     role: dps
-    control: bot
     spawn: [8, 2]
     pattern:
       - { t: 7, pos: [13, 0] }
   - id: m1
     role: dps
-    control: bot
     spawn: [-5, -5]
     pattern:
       - { t: 14, pos: [-11.5, -0.5] }
   - id: m2
     role: dps
-    control: bot
     spawn: [5, -5]
 
 # Shared tower defaults — merged into each event with <<: *towerBase.

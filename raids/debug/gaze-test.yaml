@@ -12,35 +12,27 @@ duration: 30
 players:
   - id: mt
     role: tank
-    control: human
     spawn: [0, 0]
   - id: ot
     role: tank
-    control: bot
     spawn: [8, 8]
   - id: h1
     role: healer
-    control: bot
     spawn: [-8, 8]
   - id: h2
     role: healer
-    control: bot
     spawn: [8, -8]
   - id: r1
     role: dps
-    control: bot
     spawn: [-8, -8]
   - id: r2
     role: dps
-    control: bot
     spawn: [12, 0]
   - id: m1
     role: dps
-    control: bot
     spawn: [-12, 0]
   - id: m2
     role: dps
-    control: bot
     spawn: [0, 12]
 
 # Shared eye defaults — north eye board.

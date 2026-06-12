@@ -12,35 +12,27 @@ duration: 30
 players:
   - id: mt
     role: tank
-    control: bot
     spawn: [0, 18]
   - id: ot
     role: tank
-    control: bot
     spawn: [0, -18]
   - id: h1
     role: healer
-    control: bot
     spawn: [-18, 0]
   - id: h2
     role: healer
-    control: bot
     spawn: [18, 0]
   - id: r1
     role: dps
-    control: bot
     spawn: [12, 12]
   - id: r2
     role: dps
-    control: bot
     spawn: [-12, 12]
   - id: m1
     role: dps
-    control: human
     spawn: [-12, -12]
   - id: m2
     role: dps
-    control: bot
     spawn: [12, -12]
 
 # Shared cleave defaults — anchored to the boss, aimed by its facing.
