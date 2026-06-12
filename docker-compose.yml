@@ -12,3 +12,18 @@ services:
     ports:
       - "127.0.0.1:${PORT:-3000}:${PORT:-3000}"
       - "127.0.0.1:${METRICS_PORT:-9100}:${METRICS_PORT:-9100}"
+    # Since the relay swap, RAM is the per-room ceiling: a running room buffers one input frame
+    # per tick (growing to MBs over a pull), and CPU per room is ~0. Cap memory per backend and
+    # size MAX_SESSIONS against this, not cores. Tune from process_resident_memory_bytes.
+    mem_limit: ${MEM_LIMIT:-2g}
+    # With per-room CPU near zero, open WebSockets (≤13/room) become the real limit as
+    # MAX_SESSIONS rises — lift the file-descriptor ceiling to match.
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    # Persist per-session replay logs (logs/sessions/*.jsonl) + the app log so they survive
+    # restarts and can be rotated host-side (logrotate/cron). Each pull appends a tick-0 world
+    # header plus every frame batch, so this dir grows continuously and needs age/size retention.
+    volumes:
+      - ./logs:/app/logs
