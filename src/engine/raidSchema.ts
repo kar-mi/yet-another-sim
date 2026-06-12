@@ -3,28 +3,7 @@ import { ROSTER, RaidIdSchema } from "../shared/protocol";
 
 const Vec2Schema = z.tuple([z.number(), z.number()]);
 const WaypointSchema = z.object({ t: z.number().nonnegative(), pos: Vec2Schema });
-const SolverPlacementSchema = z.union([Vec2Schema, z.array(Vec2Schema).min(1)]);
 const EventIdSchema = z.string().min(1);
-const SpreadStackSolverSchema = z.object({
-  spread: z.record(z.string().min(1), Vec2Schema), // playerId -> spread-mode spot (base / no lightning)
-  stack: z.record(z.string().min(1), Vec2Schema),  // playerId -> stack-mode spot (their group's stack point)
-  // Per-orientation overrides: read the named inverse and use `shown` positions when it is NOT
-  // inverted, `inverted` positions when it is, so bots dodge into the safe corridor.
-  spreadLightning: z.object({
-    id: EventIdSchema,
-    shown: z.record(z.string().min(1), Vec2Schema),
-    inverted: z.record(z.string().min(1), Vec2Schema),
-    shownB: z.record(z.string().min(1), Vec2Schema).optional(),
-    invertedB: z.record(z.string().min(1), Vec2Schema).optional(),
-  }).optional(),
-  stackLightning: z.object({
-    id: EventIdSchema,
-    shown: z.record(z.string().min(1), Vec2Schema),
-    inverted: z.record(z.string().min(1), Vec2Schema),
-    shownB: z.record(z.string().min(1), Vec2Schema).optional(),
-    invertedB: z.record(z.string().min(1), Vec2Schema).optional(),
-  }).optional(),
-});
 const ForsakenSolverSchema = z.object({
   towerWindows: z.array(z.object({
     start: z.number().nonnegative(),
@@ -50,19 +29,32 @@ const ForsakenSolverSchema = z.object({
     }
   });
 });
-const BotSolversSchema = z.object({
-  plantArrows: z.object({
-    placements: z.record(z.string().min(1), SolverPlacementSchema),
-  }).optional(),
-  doubleTrouble: z.object({
-    support: Vec2Schema,
-    dps: Vec2Schema,
-    startAt: z.number().nonnegative().optional(),
-  }).optional(),
-  spreadStack: z.record(EventIdSchema, SpreadStackSolverSchema).optional(),
-  forsaken: ForsakenSolverSchema.optional(),
-}).optional();
 const RoleSchema = z.enum(["tank", "healer", "dps"]);
+const GenericSolverRuleSchema = z.object({
+  when: z.object({
+    // segment-prefix match on a resolved mechanic id; an array requires all listed mechanics at once
+    mechanic: z.union([EventIdSchema, z.array(EventIdSchema).min(1)]).optional(),
+    role: RoleSchema.optional(),
+    debuff: z.string().min(1).optional(), // active effect name on the bot
+    plant: z.string().min(1).optional(),  // the bot's assigned plant combo key (e.g. "right right")
+    plantSlot: z.number().int().nonnegative().optional(), // restrict to a plant slot; omit to match either
+  }),
+  startAt: z.number().nonnegative().optional(),
+  endAt: z.number().nonnegative().optional(),
+  spots: z.record(z.string().min(1), Vec2Schema).optional(),
+  spot: Vec2Schema.optional(),
+}).superRefine((rule, ctx) => {
+  if (rule.when.mechanic === undefined && rule.when.debuff === undefined && rule.when.plant === undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["when"], message: "rule must have at least one of when.mechanic / when.debuff / when.plant" });
+  }
+  if (rule.spots === undefined && rule.spot === undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["spot"], message: "rule must have at least one of spot / spots" });
+  }
+});
+const BotSolversSchema = z.object({
+  forsaken: ForsakenSolverSchema.optional(),
+  generic: z.array(GenericSolverRuleSchema).optional(),
+}).optional();
 
 const WaymarkSchema = z.object({
   mark: z.enum(["A", "B", "C", "D", "1", "2", "3", "4"]),
@@ -509,7 +501,6 @@ export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
   role: RoleSchema,
-  control: z.enum(["human", "bot"]).default("human"),
   spawn: Vec2Schema,
   pattern: z.array(WaypointSchema).optional(),
 });
@@ -757,27 +748,6 @@ export const RaidSchema = z.object({
           });
         }
       });
-    });
-  });
-
-  const spreadStackIds = new Set(raid.events.filter(event => event.type === "spread_stack").map(event => event.id));
-  const inverseIds = new Set(raid.events.filter(event => event.type === "inverse").map(event => event.id));
-  Object.entries(raid.botSolvers?.spreadStack ?? {}).forEach(([id, solver]) => {
-    if (!spreadStackIds.has(id)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["botSolvers", "spreadStack", id],
-        message: `spreadStack solver references unknown spread_stack id "${id}"`,
-      });
-    }
-    ([solver.spreadLightning, solver.stackLightning] as const).forEach((override, overrideIndex) => {
-      if (override && !inverseIds.has(override.id)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["botSolvers", "spreadStack", id, overrideIndex === 0 ? "spreadLightning" : "stackLightning", "id"],
-          message: `lightning override references unknown inverse id "${override.id}"`,
-        });
-      }
     });
   });
 

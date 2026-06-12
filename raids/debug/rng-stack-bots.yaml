@@ -1,0 +1,30 @@
+# Bot companion for rng-stack.yaml — exercises the generic, data-driven solver end to end.
+#
+# The two "Shared Sentence" events are `group` mechanics (groups: [[h1], [h2]]). Each rolls which
+# group is marked; the generic solver matches the resolved id `stack-<n>.g<index>` and sends every
+# bot to that group's stack point, so the bots visibly split toward whichever healer was rolled.
+#
+# Rule order matters (first match wins): the role-conditioned rule is listed before the general
+# rule for the same mechanic so it can override it for tanks.
+
+players: {}
+
+solvers:
+  generic:
+    # Role-conditioned example: tanks bait a step further out on the first sentence.
+    - when: { mechanic: stack-1.g0, role: tank }
+      spot: [-7, 7]
+    - when: { mechanic: stack-1.g1, role: tank }
+      spot: [7, -7]
+
+    # First sentence — stack on whichever healer's group was rolled.
+    - when: { mechanic: stack-1.g0 }
+      spot: [-4, 4]
+    - when: { mechanic: stack-1.g1 }
+      spot: [4, -4]
+
+    # Linked repeat — lands on the opposite group; same per-group stack points.
+    - when: { mechanic: stack-2.g0 }
+      spot: [-4, 4]
+    - when: { mechanic: stack-2.g1 }
+      spot: [4, -4]

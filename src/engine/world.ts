@@ -11,11 +11,9 @@ function toVec2(arr: [number, number]) {
 }
 
 function toBotSolvers(raid: RaidDef): World["botSolvers"] {
-  const plantArrows = raid.botSolvers?.plantArrows;
-  const doubleTrouble = raid.botSolvers?.doubleTrouble;
-  const spreadStack = raid.botSolvers?.spreadStack;
   const forsaken = raid.botSolvers?.forsaken;
-  if (!plantArrows && !doubleTrouble && !spreadStack && !forsaken) return undefined;
+  const generic = raid.botSolvers?.generic;
+  if (!forsaken && !generic) return undefined;
 
   const toSpots = (spots: Record<string, [number, number]>) =>
     Object.fromEntries(Object.entries(spots).map(([id, pos]) => [id, toVec2(pos)]));
@@ -23,45 +21,19 @@ function toBotSolvers(raid: RaidDef): World["botSolvers"] {
     Object.fromEntries(Object.entries(spots).map(([id, list]) => [id, list.map(toVec2)]));
 
   return {
-    plantArrows: plantArrows && {
-      placements: Object.fromEntries(
-        Object.entries(plantArrows.placements).map(([key, pos]) => [
-          key,
-          typeof pos[0] === "number" ? toVec2(pos as [number, number]) : (pos as [number, number][]).map(toVec2),
-        ]),
-      ),
-    },
-    doubleTrouble: doubleTrouble && {
-      support: toVec2(doubleTrouble.support),
-      dps: toVec2(doubleTrouble.dps),
-      startAt: doubleTrouble.startAt,
-    },
-    spreadStack: spreadStack && {
-      ...Object.fromEntries(Object.entries(spreadStack).map(([id, solver]) => [id, {
-        spread: toSpots(solver.spread),
-        stack: toSpots(solver.stack),
-        spreadLightning: solver.spreadLightning && {
-          id: solver.spreadLightning.id,
-          shown: toSpots(solver.spreadLightning.shown),
-          inverted: toSpots(solver.spreadLightning.inverted),
-          shownB: solver.spreadLightning.shownB && toSpots(solver.spreadLightning.shownB),
-          invertedB: solver.spreadLightning.invertedB && toSpots(solver.spreadLightning.invertedB),
-        },
-        stackLightning: solver.stackLightning && {
-          id: solver.stackLightning.id,
-          shown: toSpots(solver.stackLightning.shown),
-          inverted: toSpots(solver.stackLightning.inverted),
-          shownB: solver.stackLightning.shownB && toSpots(solver.stackLightning.shownB),
-          invertedB: solver.stackLightning.invertedB && toSpots(solver.stackLightning.invertedB),
-        },
-      }])),
-    },
     forsaken: forsaken && {
       towerWindows: forsaken.towerWindows.map(window => ({ ...window })),
       baitWindows: forsaken.baitWindows?.map(window => ({ ...window })),
       towerSpots: toSpotLists(forsaken.towerSpots),
       baitSpots: forsaken.baitSpots && toSpotLists(forsaken.baitSpots),
     },
+    generic: generic?.map(rule => ({
+      when: { ...rule.when },
+      startAt: rule.startAt,
+      endAt: rule.endAt,
+      spots: rule.spots && toSpots(rule.spots),
+      spot: rule.spot && toVec2(rule.spot),
+    })),
   };
 }
 
@@ -206,7 +178,8 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const players: Player[] = raid.players.map(p => ({
     id: p.id,
     role: p.role,
-    control: p.control,
+    // Every slot starts as a bot; the server flips it to "human" when a client claims the slot.
+    control: "bot",
     pattern: p.pattern?.map(waypoint => ({ t: waypoint.t, pos: toVec2(waypoint.pos) })),
     pos: toVec2(p.spawn),
     y: 0,

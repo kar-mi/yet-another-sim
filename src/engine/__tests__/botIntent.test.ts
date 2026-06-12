@@ -4,14 +4,14 @@ import { tick } from "../sim";
 import { createWorld } from "../world";
 import { applyBotPatterns, loadBotPatterns } from "../raidLoader";
 import type { World } from "../../shared/types";
-import { HUMAN, baseRaid, effect, human, loadRaid, roster, runTicksWithBotIntents, runTicksWithComputedBotIntents, withEffect, withPlayerEffect } from "./helpers";
+import { HUMAN, baseRaid, effect, human, loadRaid, roster, runTicksWithBotIntents, runTicksWithComputedBotIntents, withControl, withEffect, withPlayerEffect } from "./helpers";
 
 test("bot intents are deterministic", () => {
   const raid = loadRaid({
     ...baseRaid,
     players: roster({
       m1: { spawn: [0, 15] },
-      mt: { control: "bot", spawn: [0, 0], pattern: [{ t: 0, pos: [10, 0] }, { t: 1, pos: [10, 10] }] },
+      mt: { spawn: [0, 0], pattern: [{ t: 0, pos: [10, 0] }, { t: 1, pos: [10, 10] }] },
     }),
   });
 
@@ -28,7 +28,7 @@ test("bot intents are deterministic", () => {
 test("bot patterns can be loaded from a companion definition", () => {
   const raid = loadRaid({
     ...baseRaid,
-    players: roster({ m1: { spawn: [0, 15] }, mt: { control: "bot", spawn: [0, 0] } }),
+    players: roster({ m1: { spawn: [0, 15] }, mt: { spawn: [0, 0] } }),
   });
   const botPatterns = loadBotPatterns({
     players: {
@@ -40,21 +40,21 @@ test("bot patterns can be loaded from a companion definition", () => {
   expect(world.players.find(player => player.id === "mt")?.pattern).toEqual([{ t: 0, pos: { x: 8, z: 0 } }]);
 });
 
-test("bot patterns can carry plant arrow solver placements", () => {
+test("bot patterns can carry generic plant solver rules", () => {
   const raid = loadRaid(baseRaid);
   const botPatterns = loadBotPatterns({
     players: {},
     solvers: {
-      plantArrows: {
-        placements: {
-          "down down": [[18, 0], [0, 18]],
-        },
-      },
+      generic: [
+        { when: { plant: "down down", plantSlot: 0 }, spot: [18, 0] },
+        { when: { plant: "down down", plantSlot: 1 }, spot: [0, 18] },
+      ],
     },
   });
   const world = createWorld(applyBotPatterns(raid, botPatterns));
 
-  expect(world.botSolvers?.plantArrows?.placements["down down"]).toEqual([{ x: 18, z: 0 }, { x: 0, z: 18 }]);
+  expect(world.botSolvers?.generic?.[0]?.when).toEqual({ plant: "down down", plantSlot: 0 });
+  expect(world.botSolvers?.generic?.[1]?.spot).toEqual({ x: 0, z: 18 });
 });
 
 test("bot patterns can carry forsaken solver spots", () => {
@@ -166,7 +166,7 @@ test("forsaken tower swaps alternate odd and even debuff distributions", async (
 test("forsaken solver moves bots during authored tower and bait windows", () => {
   const raid = loadRaid({
     ...baseRaid,
-    players: roster({ mt: { control: "bot", spawn: [0, 0] }, m1: { spawn: [0, 15] } }),
+    players: roster({ mt: { spawn: [0, 0] }, m1: { spawn: [0, 15] } }),
     botSolvers: {
       forsaken: {
         towerWindows: [{ start: 1, end: 3, tower: 1 }],
@@ -222,7 +222,10 @@ test("plant arrow solver moves bots toward the placement for their assigned comb
   });
   const botPatterns = loadBotPatterns({
     players: {},
-    solvers: { plantArrows: { placements: { "down down": [[18, 0], [0, 18]] } } },
+    solvers: { generic: [
+      { when: { plant: "down down", plantSlot: 0 }, spot: [18, 0] },
+      { when: { plant: "down down", plantSlot: 1 }, spot: [0, 18] },
+    ] },
   });
   const world = withPlayerEffect(createWorld(applyBotPatterns(raid, botPatterns)), "mt", effect({
     name: "Plant",
@@ -251,7 +254,10 @@ test("plant arrow solver uses the active plant slot for two-position combos", ()
   });
   const botPatterns = loadBotPatterns({
     players: {},
-    solvers: { plantArrows: { placements: { "right right": [[18, 0], [0, 18]] } } },
+    solvers: { generic: [
+      { when: { plant: "right right", plantSlot: 0 }, spot: [18, 0] },
+      { when: { plant: "right right", plantSlot: 1 }, spot: [0, 18] },
+    ] },
   });
   const world = withPlayerEffect(createWorld(applyBotPatterns(raid, botPatterns)), "mt", effect({
     name: "Plant (long)",
@@ -280,7 +286,7 @@ test("plant arrow solver falls back to authored bot waypoints when no placement 
   });
   const botPatterns = loadBotPatterns({
     players: {},
-    solvers: { plantArrows: { placements: { "down down": [18, 0] } } },
+    solvers: { generic: [{ when: { plant: "down down" }, spot: [18, 0] }] },
   });
   const world = withPlayerEffect(createWorld(applyBotPatterns(raid, botPatterns)), "mt", effect({
     name: "Plant",
@@ -297,7 +303,7 @@ test("plant arrow solver falls back to authored bot waypoints when no placement 
 test("plant arrow solver does not move human-controlled players", () => {
   const raid = loadRaid({
     ...baseRaid,
-    players: roster({ m1: { control: "human", spawn: [0, 0] } }),
+    players: roster({ m1: { spawn: [0, 0] } }),
     optionals: {
       combinations: {
         plant: {
@@ -309,13 +315,13 @@ test("plant arrow solver does not move human-controlled players", () => {
   });
   const botPatterns = loadBotPatterns({
     players: {},
-    solvers: { plantArrows: { placements: { "down down": [18, 0] } } },
+    solvers: { generic: [{ when: { plant: "down down" }, spot: [18, 0] }] },
   });
-  const world = withEffect(createWorld(applyBotPatterns(raid, botPatterns)), effect({
+  const world = withControl(withEffect(createWorld(applyBotPatterns(raid, botPatterns)), effect({
     name: "Plant",
     behavior: { kind: "plant", direction: [0, -1], distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
     plantSlot: 0,
-  }));
+  })), "m1", "human");
 
   expect(computeBotIntents(world, 1 / 60).m1).toBeUndefined();
 });

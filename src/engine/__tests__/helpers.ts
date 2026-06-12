@@ -5,20 +5,21 @@ import { createWorld } from "../world";
 import { CLOCK_SPOTS, ROSTER } from "../../shared/protocol";
 import type { Intents, Player, StatusEffect, World } from "../../shared/types";
 
-// The default human-controlled slot used across these tests (a dps).
+// The slot these tests treat as the human player (a dps) — the target of withEffect and the noMove
+// override. Control is no longer authored on raids; use withControl to actually mark it human.
 export const HUMAN = "m1";
 
 export type Vec = [number, number];
-export type Override = { spawn?: Vec; control?: "human" | "bot"; pattern?: { t: number; pos: Vec }[] };
+export type Override = { spawn?: Vec; pattern?: { t: number; pos: Vec }[] };
 
 // Build the canonical roster (mt, ot, h1, h2, r1, r2, m1, m2) at clock spots, with per-id overrides.
+// Raids no longer author control; every slot loads as a bot. Use withControl to mark a human slot.
 export function roster(over: Record<string, Override> = {}) {
   return ROSTER.map(({ id, role }) => {
     const o = over[id] ?? {};
     return {
       id,
       role,
-      control: o.control ?? (id === HUMAN ? "human" : "bot"),
       spawn: o.spawn ?? (CLOCK_SPOTS[id] as Vec),
       ...(o.pattern ? { pattern: o.pattern } : {}),
     };
@@ -81,6 +82,14 @@ export function withPlayerEffect(world: World, playerId: string, effect: StatusE
 
 export function withEffect(world: World, effect: StatusEffect): World {
   return withPlayerEffect(world, HUMAN, effect);
+}
+
+// Mark a slot as human-controlled at the world level (control is no longer authored on the raid).
+export function withControl(world: World, playerId: string, control: "human" | "bot"): World {
+  return {
+    ...world,
+    players: world.players.map(player => player.id === playerId ? { ...player, control } : player),
+  };
 }
 
 export function effect(overrides: Partial<StatusEffect> = {}): StatusEffect {

@@ -12,35 +12,27 @@ duration: 36
 players:
   - id: mt
     role: tank
-    control: bot
     spawn: [0, 8]
   - id: ot
     role: tank
-    control: bot
     spawn: [0, -8]
   - id: h1
     role: healer
-    control: bot
     spawn: [-8, 0]
   - id: h2
     role: healer
-    control: bot
     spawn: [8, 0]
   - id: r1
     role: dps
-    control: bot
     spawn: [-5.66, 5.66]
   - id: r2
     role: dps
-    control: bot
     spawn: [5.66, 5.66]
   - id: m1
     role: dps
-    control: human
     spawn: [-5.66, -5.66]
   - id: m2
     role: dps
-    control: bot
     spawn: [5.66, -5.66]
 
 # Shared spread/stack defaults.
@@ -107,26 +99,11 @@ events:
     rng: true
 
 botSolvers:
-  spreadStack:
-    honest-spread:
-      spread:
-        mt: [-6, 6]
-        ot: [6, 6]
-        h1: [0, -18]
-        h2: [18, 0]
-        r1: [0, 18]
-        r2: [-18, 0]
-        m1: [-6, 6]
-        m2: [-6, -6]
-      stack:
-        mt: [6, -6]
-        ot: [6, -6]
-        h1: [6, -6]
-        h2: [6, -6]
-        r1: [-6, 6]
-        r2: [-6, 6]
-        m1: [-6, 6]
-        m2: [-6, 6]
+  generic:
+    - when: { mechanic: honest-spread.spread }
+      spots: { mt: [-6, 6], ot: [6, 6], h1: [0, -18], h2: [18, 0], r1: [0, 18], r2: [-18, 0], m1: [-6, 6], m2: [-6, -6] }
+    - when: { mechanic: honest-spread.stack }
+      spots: { mt: [6, -6], ot: [6, -6], h1: [6, -6], h2: [6, -6], r1: [-6, 6], r2: [-6, 6], m1: [-6, 6], m2: [-6, 6] }
 
 waymarks:
   - { mark: A, pos: [0, 16] }

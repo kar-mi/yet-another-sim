@@ -6,9 +6,10 @@ import { loadSessionRaid, Session, SessionManager, type SessionStatus } from "./
 
 const D = 5.66;
 type Vec = [number, number];
-type Override = { control?: "human" | "bot"; spawn?: Vec; pattern?: { t: number; pos: Vec }[] };
+type Override = { spawn?: Vec; pattern?: { t: number; pos: Vec }[] };
 
 // Canonical roster builder for test raids (matches the enforced mt/ot/h1/h2/r1/r2/m1/m2 order).
+// Control is not authored; slots determine it, so claim a slot to make a player human.
 function players(over: Record<string, Override> = {}) {
   const base: [string, string, Vec][] = [
     ["mt", "tank", [0, 8]], ["ot", "tank", [0, -8]],
@@ -16,7 +17,7 @@ function players(over: Record<string, Override> = {}) {
     ["r1", "dps", [-D, D]], ["r2", "dps", [D, D]],
     ["m1", "dps", [-D, -D]], ["m2", "dps", [D, -D]],
   ];
-  return base.map(([id, role, spawn]) => ({ id, role, control: "bot", spawn, ...(over[id] ?? {}) }));
+  return base.map(([id, role, spawn]) => ({ id, role, spawn, ...(over[id] ?? {}) }));
 }
 
 function testRaid() {
@@ -25,7 +26,7 @@ function testRaid() {
     arena: { zones: [{ kind: "circle", center: [0, 0], radius: 30 }] },
     duration: 30,
     players: players({
-      mt: { control: "human", spawn: [0, 0] },
+      mt: { spawn: [0, 0] },
       h1: { spawn: [0, 0], pattern: [{ t: 0, pos: [5, 0] }] },
     }),
     events: [],

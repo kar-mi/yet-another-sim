@@ -44,115 +44,64 @@ players:
     - { t: 25, pos: [8, 0] }
 
 solvers:
-  doubleTrouble:
-    support: [-8, 7]
-    dps: [7, -8]
-    startAt: 20
+  # Generic, data-driven rules in priority order: plant arrows, then Mystery Magic 3 fire/lightning,
+  # then Double Trouble.
+  generic:
+    # Teletrouncing plant arrows — each bot goes to the spot for its assigned combo and active plant
+    # slot (short = slot 0, long = slot 1).
+    - { when: { plant: right right, plantSlot: 0 }, spot: [0, 12] }
+    - { when: { plant: right right, plantSlot: 1 }, spot: [-6, 12] }
+    - { when: { plant: right down, plantSlot: 0 }, spot: [6, 12] }
+    - { when: { plant: right down, plantSlot: 1 }, spot: [12, 12] }
+    - { when: { plant: down down, plantSlot: 0 }, spot: [12, 6] }
+    - { when: { plant: down down, plantSlot: 1 }, spot: [12, 0] }
+    - { when: { plant: down left, plantSlot: 0 }, spot: [12, -6] }
+    - { when: { plant: down left, plantSlot: 1 }, spot: [12, -12] }
+    - { when: { plant: left left, plantSlot: 0 }, spot: [6, -12] }
+    - { when: { plant: left left, plantSlot: 1 }, spot: [0, -12] }
+    - { when: { plant: left up, plantSlot: 0 }, spot: [-6, -12] }
+    - { when: { plant: left up, plantSlot: 1 }, spot: [-12, -12] }
+    - { when: { plant: up up, plantSlot: 0 }, spot: [-12, -6] }
+    - { when: { plant: up up, plantSlot: 1 }, spot: [-12, 0] }
+    - { when: { plant: up right, plantSlot: 0 }, spot: [-12, 6] }
+    - { when: { plant: up right, plantSlot: 1 }, spot: [-12, 12] }
 
-  plantArrows:
-    placements:
-      right right: [[0, 12], [-6, 12]]
-      right down: [[6, 12], [12, 12]]
-      down down: [[12, 6], [12, 0]]
-      down left: [[12, -6], [12, -12]]
-      left left: [[6, -12], [0, -12]]
-      left up: [[-6, -12], [-12, -12]]
-      up up: [[-12, -6], [-12, 0]]
-      up right: [[-12, 6], [-12, 12]]
+    # Mystery Magic 3 Fire — spread/stack "?" (fire-1) crossed with the lightning-1 inverse
+    # orientation. Two-mechanic rules (mode + lightning orientation) come first; the bare
+    # fire-1.<mode> rule is the no-lightning fallback. Bots solve the actual mode, so questionMark
+    # is already resolved in the fire-1.spread / fire-1.stack resolved id.
+    # Spread, by lightning orientation.
+    - when: { mechanic: [fire-1.spread, lightning-1.shown.a] }
+      spots: { mt: [6.83, 5.13], ot: [6, -6], h1: [-5.08, -17.27], h2: [17.5, 4.24], r1: [0, 18], r2: [-18, 0], m1: [2.07, -2.17], m2: [-6, -6] }
+    - when: { mechanic: [fire-1.spread, lightning-1.inverted.a] }
+      spots: { mt: [6, 6], ot: [-2.07, 2.17], h1: [0, -18], h2: [18, 0], r1: [5.08, 17.27], r2: [-17.5, -4.24], m1: [-6, 6], m2: [-6.83, -5.13] }
+    - when: { mechanic: [fire-1.spread, lightning-1.shown.b] }
+      spots: { mt: [-6.83, 5.13], ot: [-6, -6], h1: [5.08, -17.27], h2: [-17.5, 4.24], r1: [0, 18], r2: [18, 0], m1: [-2.07, -2.17], m2: [6, -6] }
+    - when: { mechanic: [fire-1.spread, lightning-1.inverted.b] }
+      spots: { mt: [-6, 6], ot: [2.07, 2.17], h1: [0, -18], h2: [-18, 0], r1: [-5.08, 17.27], r2: [17.5, -4.24], m1: [6, 6], m2: [6.83, -5.13] }
+    - when: { mechanic: fire-1.spread }
+      spots: { mt: [6, 6], ot: [6, -6], h1: [0, -18], h2: [18, 0], r1: [0, 18], r2: [-18, 0], m1: [-6, 6], m2: [-6, -6] }
 
-  spreadStack:
-    fire-1:
-      spread:
-        mt: [6, 6]
-        ot: [6, -6]
-        h1: [0, -18]
-        h2: [18, 0]
-        r1: [0, 18]
-        r2: [-18, 0]
-        m1: [-6, 6]
-        m2: [-6, -6]
-      stack:
-        mt: [6, -6]
-        ot: [6, -6]
-        h1: [6, -6]
-        h2: [6, -6]
-        r1: [-6, 6]
-        r2: [-6, 6]
-        m1: [-6, 6]
-        m2: [-6, 6]
-      spreadLightning:
-        id: lightning-1
-        shown:
-          mt: [6.83, 5.13]
-          ot: [6, -6]
-          h1: [-5.08, -17.27]
-          h2: [17.5, 4.24]
-          r1: [0, 18]
-          r2: [-18, 0]
-          m1: [2.07, -2.17]
-          m2: [-6, -6]
-        inverted:
-          mt: [6, 6]
-          ot: [-2.07, 2.17]
-          h1: [0, -18]
-          h2: [18, 0]
-          r1: [5.08, 17.27]
-          r2: [-17.5, -4.24]
-          m1: [-6, 6]
-          m2: [-6.83, -5.13]
-        shownB:
-          mt: [-6.83, 5.13]
-          ot: [-6, -6]
-          h1: [5.08, -17.27]
-          h2: [-17.5, 4.24]
-          r1: [0, 18]
-          r2: [18, 0]
-          m1: [-2.07, -2.17]
-          m2: [6, -6]
-        invertedB:
-          mt: [-6, 6]
-          ot: [2.07, 2.17]
-          h1: [0, -18]
-          h2: [-18, 0]
-          r1: [-5.08, 17.27]
-          r2: [17.5, -4.24]
-          m1: [6, 6]
-          m2: [6.83, -5.13]
-      stackLightning:
-        id: lightning-1
-        shown:
-          r1: [-7.74, 7.82]
-          r2: [-7.74, 7.82]
-          m1: [-7.74, 7.82]
-          m2: [-7.74, 7.82]
-          mt: [6, -6]
-          ot: [6, -6]
-          h1: [6, -6]
-          h2: [6, -6]
-        inverted:
-          r1: [-6, 6]
-          r2: [-6, 6]
-          m1: [-6, 6]
-          m2: [-6, 6]
-          mt: [7.74, -7.82]
-          ot: [7.74, -7.82]
-          h1: [7.74, -7.82]
-          h2: [7.74, -7.82]
-        shownB:
-          r1: [7.74, 7.82]
-          r2: [7.74, 7.82]
-          m1: [7.74, 7.82]
-          m2: [7.74, 7.82]
-          mt: [-6, -6]
-          ot: [-6, -6]
-          h1: [-6, -6]
-          h2: [-6, -6]
-        invertedB:
-          r1: [6, 6]
-          r2: [6, 6]
-          m1: [6, 6]
-          m2: [6, 6]
-          mt: [-7.74, -7.82]
-          ot: [-7.74, -7.82]
-          h1: [-7.74, -7.82]
-          h2: [-7.74, -7.82]
+    # Stack, by lightning orientation.
+    - when: { mechanic: [fire-1.stack, lightning-1.shown.a] }
+      spots: { r1: [-7.74, 7.82], r2: [-7.74, 7.82], m1: [-7.74, 7.82], m2: [-7.74, 7.82], mt: [6, -6], ot: [6, -6], h1: [6, -6], h2: [6, -6] }
+    - when: { mechanic: [fire-1.stack, lightning-1.inverted.a] }
+      spots: { r1: [-6, 6], r2: [-6, 6], m1: [-6, 6], m2: [-6, 6], mt: [7.74, -7.82], ot: [7.74, -7.82], h1: [7.74, -7.82], h2: [7.74, -7.82] }
+    - when: { mechanic: [fire-1.stack, lightning-1.shown.b] }
+      spots: { r1: [7.74, 7.82], r2: [7.74, 7.82], m1: [7.74, 7.82], m2: [7.74, 7.82], mt: [-6, -6], ot: [-6, -6], h1: [-6, -6], h2: [-6, -6] }
+    - when: { mechanic: [fire-1.stack, lightning-1.inverted.b] }
+      spots: { r1: [6, 6], r2: [6, 6], m1: [6, 6], m2: [6, 6], mt: [-7.74, -7.82], ot: [-7.74, -7.82], h1: [-7.74, -7.82], h2: [-7.74, -7.82] }
+    - when: { mechanic: fire-1.stack }
+      spots: { mt: [6, -6], ot: [6, -6], h1: [6, -6], h2: [6, -6], r1: [-6, 6], r2: [-6, 6], m1: [-6, 6], m2: [-6, 6] }
+
+    # Double Trouble — once the debuff has settled (startAt 20), support and dps split to opposite
+    # safe offsets so the expiry knockback throws them clear of each other.
+    - when: { debuff: Double Trouble, role: tank }
+      startAt: 20
+      spot: [-8, 7]
+    - when: { debuff: Double Trouble, role: healer }
+      startAt: 20
+      spot: [-8, 7]
+    - when: { debuff: Double Trouble, role: dps }
+      startAt: 20
+      spot: [7, -8]
