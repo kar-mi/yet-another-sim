@@ -139,7 +139,6 @@ Each player entry. Excerpt from `raids/debug/sample-raid.yaml`:
 players:
   - id: mt
     role: tank
-    control: bot
     spawn: [-12, 12]
 ```
 
@@ -148,7 +147,6 @@ players:
 | `id`      | yes      | Must match the roster id for its index. |
 | `role`    | yes      | Must match the roster role for its index. |
 | `spawn`   | yes      | Starting `[x, z]`. |
-| `control` | no       | `"human"` (default) or `"bot"`. Humans are driven by connected players; bots follow patterns. |
 | `pattern` | no       | Inline movement waypoints (see below). Usually supplied via a `-bots` file instead. |
 
 ## Events (the timeline)
@@ -1248,35 +1246,27 @@ duration: 45
 players:
   - id: mt
     role: tank
-    control: bot
     spawn: [0, 8]
   - id: ot
     role: tank
-    control: bot
     spawn: [0, -8]
   - id: h1
     role: healer
-    control: bot
     spawn: [-8, 0]
   - id: h2
     role: healer
-    control: bot
     spawn: [8, 0]
   - id: r1
     role: dps
-    control: bot
     spawn: [-5.66, 5.66]
   - id: r2
     role: dps
-    control: bot
     spawn: [5.66, 5.66]
   - id: m1
     role: dps
-    control: human
     spawn: [-5.66, -5.66]
   - id: m2
     role: dps
-    control: bot
     spawn: [5.66, -5.66]
 
 events:

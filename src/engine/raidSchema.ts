@@ -528,7 +528,6 @@ export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
   role: RoleSchema,
-  control: z.enum(["human", "bot"]).default("bot"),
   spawn: Vec2Schema,
   pattern: z.array(WaypointSchema).optional(),
 });

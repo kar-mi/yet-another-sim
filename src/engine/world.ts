@@ -214,7 +214,8 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const players: Player[] = raid.players.map(p => ({
     id: p.id,
     role: p.role,
-    control: p.control,
+    // Every slot starts as a bot; the server flips it to "human" when a client claims the slot.
+    control: "bot",
     pattern: p.pattern?.map(waypoint => ({ t: waypoint.t, pos: toVec2(waypoint.pos) })),
     pos: toVec2(p.spawn),
     y: 0,

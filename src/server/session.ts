@@ -46,7 +46,7 @@ function mergePendingIntent(previous: Intent | undefined, next: Intent): Intent 
 }
 
 function createEmptyRaid(): RaidDef {
-  const players: RaidPlayerDef[] = ROSTER.map(({ id, role }) => ({ id, role, control: "bot", spawn: CLOCK_SPOTS[id] }));
+  const players: RaidPlayerDef[] = ROSTER.map(({ id, role }) => ({ id, role, spawn: CLOCK_SPOTS[id] }));
   return {
     name: "(empty)",
     arena: { zones: [{ kind: "circle", center: [0, 0], radius: 20 }] },
@@ -114,7 +114,7 @@ export class Session {
     this.lastActivity = this.now();
 
     for (const player of this.raid.players) this.slots.set(player.id, null);
-    this.world = createWorld(this.raidWithSlotControls());
+    this.world = this.freshWorld();
   }
 
   join(clientId: string): void {
@@ -193,7 +193,7 @@ export class Session {
       this.slots.set(openPlayer.id, ownerId);
     }
     this.latestIntents.clear();
-    this.world = createWorld(this.raidWithSlotControls());
+    this.world = this.freshWorld();
     this.applyBotsInvincible();
     if (this.status === "lobby") {
       this.broadcastLobby();
@@ -252,7 +252,7 @@ export class Session {
     this.status = "stopped";
     this.stopTick();
     this.latestIntents.clear();
-    this.world = createWorld(this.raidWithSlotControls());
+    this.world = this.freshWorld();
     this.applyBotsInvincible();
     this.broadcastPlayback();
     logger.info("session", "raid stopped", { session: this.id, raid: this.raidId });
@@ -270,7 +270,7 @@ export class Session {
 
     this.status = "running";
     this.latestIntents.clear();
-    this.world = createWorld(this.raidWithSlotControls());
+    this.world = this.freshWorld();
     this.applyBotsInvincible();
     this.startTick();
     this.broadcastPlayback();
@@ -395,7 +395,7 @@ export class Session {
     }
 
     this.status = "running";
-    this.world = createWorld(this.raidWithSlotControls());
+    this.world = this.freshWorld();
     this.applyBotsInvincible();
 
     this.broadcastStarted();
@@ -516,10 +516,14 @@ export class Session {
     return null;
   }
 
-  private raidWithSlotControls(): RaidDef {
+  // Build a fresh world from the raid and stamp each slot's current control (a slot is "human"
+  // once a client owns it, otherwise "bot"). Raids no longer author control — it is purely a
+  // function of slot ownership.
+  private freshWorld(): World {
+    const world = createWorld(this.raid);
     return {
-      ...this.raid,
-      players: this.raid.players.map(player => ({
+      ...world,
+      players: world.players.map(player => ({
         ...player,
         control: this.slots.get(player.id) ? "human" : "bot",
       })),

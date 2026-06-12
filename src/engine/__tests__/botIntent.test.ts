@@ -4,14 +4,14 @@ import { tick } from "../sim";
 import { createWorld } from "../world";
 import { applyBotPatterns, loadBotPatterns } from "../raidLoader";
 import type { World } from "../../shared/types";
-import { HUMAN, baseRaid, effect, human, loadRaid, roster, runTicksWithBotIntents, runTicksWithComputedBotIntents, withEffect, withPlayerEffect } from "./helpers";
+import { HUMAN, baseRaid, effect, human, loadRaid, roster, runTicksWithBotIntents, runTicksWithComputedBotIntents, withControl, withEffect, withPlayerEffect } from "./helpers";
 
 test("bot intents are deterministic", () => {
   const raid = loadRaid({
     ...baseRaid,
     players: roster({
       m1: { spawn: [0, 15] },
-      mt: { control: "bot", spawn: [0, 0], pattern: [{ t: 0, pos: [10, 0] }, { t: 1, pos: [10, 10] }] },
+      mt: { spawn: [0, 0], pattern: [{ t: 0, pos: [10, 0] }, { t: 1, pos: [10, 10] }] },
     }),
   });
 
@@ -28,7 +28,7 @@ test("bot intents are deterministic", () => {
 test("bot patterns can be loaded from a companion definition", () => {
   const raid = loadRaid({
     ...baseRaid,
-    players: roster({ m1: { spawn: [0, 15] }, mt: { control: "bot", spawn: [0, 0] } }),
+    players: roster({ m1: { spawn: [0, 15] }, mt: { spawn: [0, 0] } }),
   });
   const botPatterns = loadBotPatterns({
     players: {
@@ -166,7 +166,7 @@ test("forsaken tower swaps alternate odd and even debuff distributions", async (
 test("forsaken solver moves bots during authored tower and bait windows", () => {
   const raid = loadRaid({
     ...baseRaid,
-    players: roster({ mt: { control: "bot", spawn: [0, 0] }, m1: { spawn: [0, 15] } }),
+    players: roster({ mt: { spawn: [0, 0] }, m1: { spawn: [0, 15] } }),
     botSolvers: {
       forsaken: {
         towerWindows: [{ start: 1, end: 3, tower: 1 }],
@@ -297,7 +297,7 @@ test("plant arrow solver falls back to authored bot waypoints when no placement 
 test("plant arrow solver does not move human-controlled players", () => {
   const raid = loadRaid({
     ...baseRaid,
-    players: roster({ m1: { control: "human", spawn: [0, 0] } }),
+    players: roster({ m1: { spawn: [0, 0] } }),
     optionals: {
       combinations: {
         plant: {
@@ -311,11 +311,11 @@ test("plant arrow solver does not move human-controlled players", () => {
     players: {},
     solvers: { plantArrows: { placements: { "down down": [18, 0] } } },
   });
-  const world = withEffect(createWorld(applyBotPatterns(raid, botPatterns)), effect({
+  const world = withControl(withEffect(createWorld(applyBotPatterns(raid, botPatterns)), effect({
     name: "Plant",
     behavior: { kind: "plant", direction: [0, -1], distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
     plantSlot: 0,
-  }));
+  })), "m1", "human");
 
   expect(computeBotIntents(world, 1 / 60).m1).toBeUndefined();
 });
