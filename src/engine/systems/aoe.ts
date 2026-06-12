@@ -10,6 +10,7 @@ import type {
 import { pointInShape } from "../shapes";
 import { promotePending, anchorShape } from "../timeline";
 import { AOE_RESOLVE_LINGER, TARGETED_LINGER } from "../constants";
+import { atan2 } from "../../shared/dmath";
 import {
   selectTargetPlayer, inPositionalArc, applyMechanicDamage, applyEffect,
   effectsForMechanic, balancedEffectOrders, applyKnockback, shapeOrigin, isEffectActiveAt,
@@ -117,7 +118,7 @@ export function resolveAoe(ctx: TickContext): {
     if (pb.t > time) { remainingPendingBaits.push(pb); continue; }
     const target = selectBaitTarget(players, boss, pb.targetMode, pb.role, randInt);
     if (!target) continue; // no valid target: fizzle (the linked stored cleave stays dormant)
-    boss.facing = Math.atan2(target.pos.x - boss.pos.x, target.pos.z - boss.pos.z);
+    boss.facing = atan2(target.pos.x - boss.pos.x, target.pos.z - boss.pos.z);
     // The bait deals no damage of its own: it is a turn + lock + cast-bar "controller". A zero-radius,
     // zero-damage mechanic holds the boss facing and drives the cast bar without its own telegraph.
     active.push({

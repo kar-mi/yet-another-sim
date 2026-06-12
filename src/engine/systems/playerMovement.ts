@@ -6,6 +6,7 @@ import type { TickContext } from "./context";
 import type { EffectBehavior } from "../../shared/types";
 import { add, sub, scale, normalize, length } from "../../shared/math";
 import { isOnFloor } from "../shapes";
+import { atan2 } from "../../shared/dmath";
 import { activeEffectOfKind, didAct, applyMechanicDamage } from "./helpers";
 import {
   MOVE_SPEED, SPRINT_MULTIPLIER, JUMP_SPEED, GRAVITY, DEATH_FLOOR_Y,
@@ -69,12 +70,12 @@ export function applyPlayerMovement(ctx: TickContext): void {
           log.push({ t: time, mechanic: confusion.name, playerId: target.id, event: "hit" });
         } else {
           player.pos = add(player.pos, scale(normalize(toTarget), MOVE_SPEED * dt));
-          player.facing = Math.atan2(toTarget.x, toTarget.z);
+          player.facing = atan2(toTarget.x, toTarget.z);
         }
       }
     } else if (!beingKnocked && intent && length(intent.move) > 0) {
       player.pos = add(player.pos, scale(normalize(intent.move), speed * dt));
-      player.facing = intent.facing ?? Math.atan2(intent.move.x, intent.move.z);
+      player.facing = intent.facing ?? atan2(intent.move.x, intent.move.z);
     } else if (!beingKnocked && intent && intent.facing !== undefined) {
       // Facing-only update (e.g. turning in place while stationary).
       player.facing = intent.facing;

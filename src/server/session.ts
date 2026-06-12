@@ -1,12 +1,10 @@
 import { dirname, join } from "path";
 import { readRaidObject } from "./raidFileReader";
-import { computeBotIntents } from "../engine/botIntent";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../engine/raidLoader";
 import type { RaidDef } from "../engine/raidSchema";
-import { tick } from "../engine/sim";
 import { createWorld } from "../engine/world";
-import { CLOCK_SPOTS, EMPTY_RAID_ID, MAX_OBSERVERS, ROSTER, toDynamicWorld, type ClientMessage, type LobbySlot, type LobbyStatus, type ServerMessage } from "../shared/protocol";
-import type { Intent, Intents, LogEntry, World } from "../shared/types";
+import { CLOCK_SPOTS, EMPTY_RAID_ID, MAX_OBSERVERS, ROSTER, type ClientMessage, type Frame, type LobbySlot, type LobbyStatus, type ServerMessage } from "../shared/protocol";
+import type { Intent, Intents, World } from "../shared/types";
 import { logger } from "../shared/logger";
 import { metrics } from "./metrics";
 
@@ -17,13 +15,20 @@ import { metrics } from "./metrics";
  * the server entry; left undefined in tests so no files are touched.
  */
 export interface SessionLog {
-  event(entry: LogEntry): void;
+  frame(startTick: number, frames: Frame[]): void;
   close(): void;
 }
 
 const DT = 1 / 60;
 const TICK_MS = 1000 / 60;
 const MAX_CATCH_UP_STEPS = 5;
+// Defensive ceiling so a room whose host never sends `simEnded` can't relay idle frames forever.
+// Generous slack past the raid duration; the host normally ends the pull near `duration`.
+const PULL_GRACE_SECONDS = 30;
+// Bound the per-tick desync-hash table so it can't grow without limit on a long pull.
+const MAX_HASH_WINDOW = 64;
+// Clients report a hash every ~5s; drop anything more frequent so a client can't spam the relay.
+const MIN_HASH_REPORT_MS = 1000;
 export const LOBBY_TIMEOUT_MS = 10 * 60 * 1000;
 // Pristine lobbies (never started, no slot claimed) are reaped far sooner so a flood
 // of unused rooms can't squat on the per-backend cap. Never exceeds LOBBY_TIMEOUT_MS.
@@ -89,7 +94,12 @@ export class Session {
   status: SessionStatus = "lobby";
   hostClientId = "";
   raidRequestSeq = 0;
+  // The pull's initial (tick-0) world. The server never ticks it — clients run the engine. It is
+  // sent on `started` so a fresh/late client can rebuild the world by replaying the input log.
   world: World;
+  // Authoritative input log: one merged-intent Frame per simulated tick since the pull started.
+  // `inputLog.length` is the current tick. Sent in full for late join / resync; tiny (KB-scale).
+  readonly inputLog: Frame[] = [];
 
   private raid: RaidDef;
   private readonly send: SendMessage;
@@ -102,6 +112,12 @@ export class Session {
   private tickHandle: TickHandle | null = null;
   private tickAccumulator = 0;
   private lastTickAt = 0;
+  private frameBatch: Frame[] = [];
+  private maxPullTicks = Infinity;
+  // First world hash reported for a tick is treated as canonical; later mismatches are desyncs.
+  private readonly canonicalHashes = new Map<number, number>();
+  // Last time each client's hash report was accepted, for rate-capping.
+  private readonly lastHashReportAt = new Map<string, number>();
   private readonly sessionLog: SessionLog | null;
   private botsInvincible = false;
 
@@ -118,6 +134,7 @@ export class Session {
 
     for (const player of this.raid.players) this.slots.set(player.id, null);
     this.world = this.freshWorld();
+    this.resetPull();
   }
 
   join(clientId: string): void {
@@ -164,6 +181,12 @@ export class Session {
       case "intent":
         this.setIntent(clientId, message.intent);
         return;
+      case "simEnded":
+        this.simEnded(clientId, message.tick);
+        return;
+      case "worldHash":
+        this.reportWorldHash(clientId, message.tick, message.hash);
+        return;
     }
   }
 
@@ -198,6 +221,7 @@ export class Session {
     this.latestIntents.clear();
     this.world = this.freshWorld();
     this.applyBotsInvincible();
+    this.resetPull();
     if (this.status === "lobby") {
       this.broadcastLobby();
       return;
@@ -225,8 +249,8 @@ export class Session {
       return;
     }
 
+    // Clients resume stepping from the frames that follow; the local world held while paused.
     this.status = "running";
-    this.world = { ...this.world, status: "running" };
     this.startTick();
     this.broadcastPlayback();
     logger.info("session", "resumed", { session: this.id, raid: this.raidId });
@@ -239,6 +263,7 @@ export class Session {
     }
     if (this.status !== "running") return;
 
+    this.flushFrames(); // deliver everything up to the pause point before halting the relay
     this.status = "paused";
     this.stopTick();
     this.broadcastPlayback();
@@ -257,6 +282,9 @@ export class Session {
     this.latestIntents.clear();
     this.world = this.freshWorld();
     this.applyBotsInvincible();
+    this.resetPull();
+    // Reset every client's local world to the fresh (frozen) one, then signal the stopped state.
+    this.broadcastStarted();
     this.broadcastPlayback();
     logger.info("session", "raid stopped", { session: this.id, raid: this.raidId });
   }
@@ -275,6 +303,7 @@ export class Session {
     this.latestIntents.clear();
     this.world = this.freshWorld();
     this.applyBotsInvincible();
+    this.resetPull();
     this.startTick();
     this.broadcastPlayback();
     this.broadcastStarted();
@@ -337,7 +366,7 @@ export class Session {
     this.broadcastLobby();
 
     if (this.status === "running" || this.status === "paused" || this.status === "stopped") {
-      this.send(clientId, { type: "started", world: this.world, yourPlayerId: playerId });
+      this.send(clientId, this.startedMessage(playerId));
     }
   }
 
@@ -371,7 +400,7 @@ export class Session {
     this.broadcastLobby();
 
     if (this.status === "running" || this.status === "paused" || this.status === "stopped") {
-      this.send(clientId, { type: "started", world: this.world, yourPlayerId: null });
+      this.send(clientId, this.startedMessage(null));
     }
   }
 
@@ -400,6 +429,7 @@ export class Session {
     this.status = "running";
     this.world = this.freshWorld();
     this.applyBotsInvincible();
+    this.resetPull();
 
     this.broadcastStarted();
 
@@ -420,44 +450,121 @@ export class Session {
       return;
     }
 
+    // Bot invincibility rides in every frame; clients apply it deterministically as they step, so
+    // the change takes effect on the next relayed tick. `this.world` keeps it for late-join display.
     this.botsInvincible = enabled;
     this.applyBotsInvincible();
-    if (this.status !== "lobby") this.broadcast({ type: "snapshot", world: toDynamicWorld(this.world) });
   }
 
-  step(broadcastSnapshot = true): void {
+  // Advance the relay by one tick: stamp the merged human intents for this tick, append to the input
+  // log, and (unless batching) broadcast immediately. The server never runs `tick()`; clients do.
+  step(broadcast = true): void {
     if (this.status !== "running") return;
+    this.produceFrame();
+    if (broadcast) this.flushFrames();
+  }
 
-    const humanIntents: Intents = {};
+  // Merge each owned slot's latest intent into this tick's frame, mirroring the old `step()` exactly:
+  // move + facing carry forward between ticks; one-shot actions (jump/sprint/provoke/…) fire once.
+  private buildFrame(): Frame {
+    const intents: Intents = {};
     for (const [playerId, ownerId] of this.slots) {
       if (!ownerId) continue;
       const latestIntent = this.latestIntents.get(playerId) ?? idleIntent;
-      humanIntents[playerId] = latestIntent;
-      // Carry move + facing forward so the player keeps moving/facing between ticks when no
-      // fresh client intent arrived; one-shot actions (jump/sprint/…) are intentionally dropped.
+      intents[playerId] = latestIntent;
       this.latestIntents.set(playerId, { move: latestIntent.move, facing: latestIntent.facing });
     }
-
-    const tickStart = performance.now();
-    this.world = tick(this.world, { ...computeBotIntents(this.world, DT), ...humanIntents }, DT);
-    this.applyBotsInvincible();
-    metrics.tickDuration.observe((performance.now() - tickStart) / 1000);
-    this.forwardSimLog();
-    if (broadcastSnapshot) this.broadcast({ type: "snapshot", world: toDynamicWorld(this.world) });
-
-    if (this.world.status !== "running") {
-      this.status = "done";
-      this.stopTick();
-      if (!broadcastSnapshot) this.broadcast({ type: "snapshot", world: toDynamicWorld(this.world) });
-    }
+    return { intents, botsInvincible: this.botsInvincible };
   }
 
-  private forwardSimLog(): void {
-    const log = this.world.log;
-    if (this.sessionLog) {
-      for (const entry of log) this.sessionLog.event(entry);
+  private produceFrame(): void {
+    const frame = this.buildFrame();
+    this.inputLog.push(frame);
+    this.frameBatch.push(frame);
+    this.sessionLog?.frame(this.inputLog.length - 1, [frame]);
+    if (this.inputLog.length >= this.maxPullTicks) this.endPullDefensively();
+  }
+
+  private flushFrames(): void {
+    if (this.frameBatch.length === 0) return;
+    const startTick = this.inputLog.length - this.frameBatch.length;
+    this.broadcast({ type: "frames", startTick, frames: this.frameBatch });
+    metrics.framesBroadcast.inc(this.frameBatch.length);
+    this.frameBatch = [];
+  }
+
+  // Reset per-pull relay state. Called whenever a fresh tick-0 world is built (start/restart/stop/
+  // setRaid) so the input log, batching, and desync window start clean.
+  private resetPull(): void {
+    this.inputLog.length = 0;
+    this.frameBatch = [];
+    this.canonicalHashes.clear();
+    this.lastHashReportAt.clear();
+    this.tickAccumulator = 0;
+    this.maxPullTicks = Math.ceil((this.world.duration + PULL_GRACE_SECONDS) / DT);
+  }
+
+  private startedMessage(playerId: string | null): ServerMessage {
+    return { type: "started", world: this.world, yourPlayerId: playerId, tick: this.inputLog.length, frames: this.inputLog };
+  }
+
+  // The host's local sim reached a terminal state (wiped/cleared). Stop relaying and mark the pull
+  // done — equivalent authority to the host's `stop`, which it can already do at any time.
+  simEnded(clientId: string, tick: number): void {
+    if (clientId !== this.hostClientId) {
+      this.sendError(clientId, "Only the host can end the session");
+      return;
     }
-    if (log.length > 0) this.world = { ...this.world, log: [] };
+    if (this.status !== "running") return;
+    this.flushFrames();
+    this.status = "done";
+    this.stopTick();
+    this.broadcastPlayback();
+    logger.info("session", "sim ended", { session: this.id, raid: this.raidId, tick, ticks: this.inputLog.length });
+  }
+
+  // Defensive: a host that never sends `simEnded` would otherwise have the room relay idle frames
+  // forever (running sessions never expire). Cap the pull well past its duration and finish it.
+  private endPullDefensively(): void {
+    this.flushFrames();
+    this.status = "done";
+    this.stopTick();
+    this.broadcastPlayback();
+    logger.warn("session", "pull hit tick ceiling without simEnded", { session: this.id, ticks: this.inputLog.length });
+  }
+
+  // Desync detection: the first hash seen for a tick is canonical. A later, different hash for the
+  // same tick means that client's floats diverged — count it and resync the offender by replaying.
+  reportWorldHash(clientId: string, tick: number, hash: number): void {
+    const now = this.now();
+    if (now - (this.lastHashReportAt.get(clientId) ?? -Infinity) < MIN_HASH_REPORT_MS) return;
+    this.lastHashReportAt.set(clientId, now);
+
+    const canonical = this.canonicalHashes.get(tick);
+    if (canonical === undefined) {
+      this.canonicalHashes.set(tick, hash);
+      this.pruneHashWindow();
+      return;
+    }
+    if (canonical === hash) return;
+    metrics.desyncTotal.inc();
+    logger.warn("session", "world desync", { session: this.id, tick, expected: canonical, got: hash, clientId });
+    this.resync(clientId);
+  }
+
+  private resync(clientId: string): void {
+    if (this.observers.has(clientId)) {
+      this.send(clientId, this.startedMessage(null));
+      return;
+    }
+    const playerId = this.playerForClient(clientId);
+    if (playerId) this.send(clientId, this.startedMessage(playerId));
+  }
+
+  private pruneHashWindow(): void {
+    if (this.canonicalHashes.size <= MAX_HASH_WINDOW) return;
+    const oldest = Math.min(...this.canonicalHashes.keys());
+    this.canonicalHashes.delete(oldest);
   }
 
   isExpired(now = this.now()): boolean {
@@ -505,7 +612,7 @@ export class Session {
 
     let steps = 0;
     while (this.tickAccumulator >= DT && steps < MAX_CATCH_UP_STEPS && this.status === "running") {
-      this.step(false);
+      this.produceFrame();
       this.tickAccumulator -= DT;
       steps++;
     }
@@ -515,9 +622,9 @@ export class Session {
       metrics.catchupExhausted.inc();
     }
 
-    if (steps > 0 && this.status === "running") {
-      this.broadcast({ type: "snapshot", world: toDynamicWorld(this.world) });
-    }
+    // Relay everything produced this loop in one message (≈1 frame per call at 60Hz; more only when
+    // catching up). Tiny per-tick frames already keep egress to a couple KB/s per client.
+    this.flushFrames();
   }
 
   private playerForClient(clientId: string): string | null {
@@ -605,29 +712,21 @@ export class Session {
 
   private broadcastPlayback(): void {
     const state = this.status === "running" ? "playing" : this.status === "paused" ? "paused" : "stopped";
-    this.broadcast({ type: "playback", state, raidId: this.raidId, hostClientId: this.hostClientId, world: this.world });
+    this.broadcast({ type: "playback", state, raidId: this.raidId, hostClientId: this.hostClientId });
   }
 
   private broadcastStarted(): void {
     for (const connectedClientId of this.clients) {
-      const playerId = this.playerForClient(connectedClientId);
       if (this.observers.has(connectedClientId)) {
-        this.send(connectedClientId, {
-          type: "started",
-          world: this.world,
-          yourPlayerId: null,
-        });
+        this.send(connectedClientId, this.startedMessage(null));
         continue;
       }
+      const playerId = this.playerForClient(connectedClientId);
       if (!playerId) {
         this.sendError(connectedClientId, "Claim a slot to join the running session");
         continue;
       }
-      this.send(connectedClientId, {
-        type: "started",
-        world: this.world,
-        yourPlayerId: playerId,
-      });
+      this.send(connectedClientId, this.startedMessage(playerId));
     }
   }
 

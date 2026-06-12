@@ -20,6 +20,7 @@ import type {
 import type { Vec2 } from "../../shared/math";
 import { sub, scale, normalize, length, dot } from "../../shared/math";
 import { GRAVITY, KNOCKBACK_FRICTION, INTERCEPT_THRESHOLD } from "../constants";
+import { sin, cos, acos } from "../../shared/dmath";
 
 export function topThreatTarget(players: Player[], threat: Record<string, number>): string | null {
   let best: string | null = null;
@@ -98,9 +99,9 @@ export function inPositionalArc(boss: Boss, pos: Vec2, arc: PositionalArc): bool
   if (length(to) < 1e-6) return true; // on top of the boss: always inside
   // Arc center direction in world space (0 = +Z, clockwise), then unsigned angular distance.
   const centerWorld = boss.facing + arc.center;
-  const centerVec = { x: Math.sin(centerWorld), z: Math.cos(centerWorld) };
+  const centerVec = { x: sin(centerWorld), z: cos(centerWorld) };
   const cosAng = Math.max(-1, Math.min(1, dot(normalize(to), centerVec)));
-  return Math.acos(cosAng) <= arc.width / 2;
+  return acos(cosAng) <= arc.width / 2;
 }
 
 // Gaze: is the player facing the source within the given half-angle? Player facing is a radian
@@ -109,9 +110,9 @@ export function inPositionalArc(boss: Boss, pos: Vec2, arc: PositionalArc): bool
 export function isLookingAt(facing: number, from: Vec2, to: Vec2, halfAngle: number): boolean {
   const d = sub(to, from);
   if (length(d) < 1e-6) return true; // on top of the source: always counts as looking at it
-  const face = { x: Math.sin(facing), z: Math.cos(facing) };
+  const face = { x: sin(facing), z: cos(facing) };
   const cosAng = Math.max(-1, Math.min(1, dot(normalize(d), face)));
-  return Math.acos(cosAng) <= halfAngle;
+  return acos(cosAng) <= halfAngle;
 }
 
 function isOnTetherLine(pPos: Vec2, src: Vec2, tgt: Vec2): boolean {

@@ -1,19 +1,28 @@
-import { toStaticWorld, type ClientMessage, type ServerMessage, type StaticWorld } from "../shared/protocol";
+import { type ClientMessage, type Frame, type ServerMessage } from "../shared/protocol";
 import type { Boss, Player, World } from "../shared/types";
 import { shortestAngleDelta } from "../shared/math";
+import { tick } from "../engine/sim";
+import { computeBotIntents } from "../engine/botIntent";
+import { worldHash } from "../shared/worldHash";
 import { computeWorldRenderKeys, getWorldRenderKeys, setWorldRenderKeys, type WorldRenderKeys } from "./worldRenderKeys";
 
 type MessageType = ServerMessage["type"];
 type Handler<T extends MessageType> = (message: Extract<ServerMessage, { type: T }>) => void;
 
+const DT = 1 / 60;
 const RENDER_DELAY_MS = 33;
 const SNAPSHOT_BUFFER_MAX = 32;
 const SNAPSHOT_GAP_RESET_MS = 250;
 const RECONNECT_INITIAL_MS = 500;
 const RECONNECT_MAX_MS = 8000;
+// Report a world hash this often (in ticks) so the server can detect cross-client desync.
+const HASH_INTERVAL = 300;
 
 type Snapshot = { t: number; world: World };
 
+// Server-relayed deterministic lockstep: every client runs the engine locally. The server sends the
+// initial world plus a stream of input frames; stepping `tick()` from the same seed + frames yields
+// a byte-identical world on every client. No world snapshots are ever sent during play.
 export class NetClient {
   clientId: string | null = null;
 
@@ -27,8 +36,13 @@ export class NetClient {
   private reconnectDelay = RECONNECT_INITIAL_MS;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private worldRenderKeys: WorldRenderKeys | null = null;
-  // Static world fields are sent once (started/playback) and re-merged into each per-tick snapshot.
-  private staticWorld: StaticWorld | null = null;
+
+  // Local simulation state.
+  private world: World | null = null;
+  private appliedTick = 0;       // number of input frames applied == current sim tick
+  private lastHashTick = 0;      // tick of the last hash report
+  private isHost = false;
+  private simEndedSent = false;  // host: simEnded already reported for this pull
 
   constructor(private readonly url: string) {}
 
@@ -152,22 +166,73 @@ export class NetClient {
     if (message.type === "lobby") {
       this.claimedPlayerId = message.slots.find(slot => slot.claimedByYou)?.playerId ?? null;
       this.observing = message.observingByYou;
+      this.isHost = this.clientId !== null && this.clientId === message.hostClientId;
+    }
+    if (message.type === "playback") {
+      this.isHost = this.clientId !== null && this.clientId === message.hostClientId;
     }
     if (message.type === "started") {
       this.claimedPlayerId = message.yourPlayerId;
       this.observing = message.yourPlayerId === null;
-    }
-    if (message.type === "started" || message.type === "playback") {
-      this.worldRenderKeys = computeWorldRenderKeys(message.world);
-      this.staticWorld = toStaticWorld(message.world);
-      this.pushSnapshot(message.world);
-    } else if (message.type === "snapshot" && this.staticWorld) {
-      this.pushSnapshot({ ...this.staticWorld, ...message.world });
+      this.applyStarted(message);
+    } else if (message.type === "frames") {
+      this.applyFrames(message);
     }
 
     const handlers = this.handlers.get(message.type as MessageType);
     if (!handlers) return;
     for (const handler of handlers) handler(message);
+  }
+
+  // Adopt the pull's initial world and fast-forward by replaying the supplied input log so a fresh
+  // start lands at tick 0 and a late join / resync lands exactly where the rest of the room is.
+  private applyStarted(message: Extract<ServerMessage, { type: "started" }>): void {
+    this.worldRenderKeys = computeWorldRenderKeys(message.world);
+    this.world = message.world;
+    this.appliedTick = 0;
+    this.simEndedSent = false;
+    for (const frame of message.frames) this.stepOne(frame);
+    this.lastHashTick = this.appliedTick;
+    this.snapshots.length = 0;
+    this.pushSnapshot(this.world);
+  }
+
+  // Apply an incremental run of input frames. `startTick` lets us drop already-applied frames (after
+  // a resync) and detect a gap (missed frames) that warrants a full resync via rejoin.
+  private applyFrames(message: Extract<ServerMessage, { type: "frames" }>): void {
+    if (!this.world) return;
+    const offset = this.appliedTick - message.startTick;
+    if (offset < 0) { this.resumeSession(); return; } // gap: missed frames, resync from scratch
+    for (let i = offset; i < message.frames.length; i++) {
+      this.stepOne(message.frames[i]);
+      this.pushSnapshot(this.world);
+    }
+    this.maybeReportHash();
+    this.maybeReportSimEnded();
+  }
+
+  // One deterministic engine step. Control is derived from the frame's intent keys (a slot is human
+  // exactly when it has an intent this tick) and bot invincibility from the frame, so every client's
+  // `computeBotIntents` is identical. Stops at a terminal world so a finished pull isn't over-run.
+  private stepOne(frame: Frame): void {
+    const world = this.world;
+    if (!world || world.status !== "running") return;
+    const prepared = applyFrameControls(world, frame);
+    const bots = computeBotIntents(prepared, DT);
+    this.world = tick(prepared, { ...bots, ...frame.intents }, DT);
+    this.appliedTick++;
+  }
+
+  private maybeReportHash(): void {
+    if (!this.world || this.appliedTick - this.lastHashTick < HASH_INTERVAL) return;
+    this.lastHashTick = this.appliedTick;
+    this.send({ type: "worldHash", tick: this.appliedTick, hash: worldHash(this.world) });
+  }
+
+  private maybeReportSimEnded(): void {
+    if (!this.isHost || this.simEndedSent || !this.world || this.world.status === "running") return;
+    this.simEndedSent = true;
+    this.send({ type: "simEnded", tick: this.appliedTick });
   }
 
   private pushSnapshot(world: World): void {
@@ -179,6 +244,25 @@ export class NetClient {
     this.snapshots.push({ t: now, world });
     if (this.snapshots.length > SNAPSHOT_BUFFER_MAX) this.snapshots.shift();
   }
+}
+
+// Reconcile a world's per-player control + bot invincibility with an input frame before stepping.
+// This is the single source of truth for who is human each tick, keeping bot computation identical
+// across clients regardless of when slots were claimed/released.
+function applyFrameControls(world: World, frame: Frame): World {
+  return {
+    ...world,
+    players: world.players.map(player => {
+      const human = frame.intents[player.id] !== undefined;
+      const control = human ? "human" : "bot";
+      // Humans manage their own invincibility via the toggleInvincibility intent (handled in tick);
+      // bots follow the host's practice toggle carried in the frame.
+      const invincible = human ? player.invincible : frame.botsInvincible;
+      return player.control === control && player.invincible === invincible
+        ? player
+        : { ...player, control, invincible };
+    }),
+  };
 }
 
 export async function connect(): Promise<NetClient> {

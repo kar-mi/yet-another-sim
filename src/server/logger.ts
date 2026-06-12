@@ -4,15 +4,15 @@ import { mkdirSync } from "node:fs";
 import { join } from "path";
 import { consoleSink, formatRecord, logger, parseLevel, type LogRecord, type Sink } from "../shared/logger";
 import type { SessionLog } from "./session";
-import type { LogEntry } from "../shared/types";
+import type { Frame } from "../shared/protocol";
 
 const ROOT = join(import.meta.dir, "..", "..");
 const LOG_DIR = join(ROOT, "logs");
 const LOG_FILE = join(LOG_DIR, "sim.log");
 const SESSION_LOG_DIR = join(LOG_DIR, "sessions");
 
-// Per-session logs still open, flushed/closed on shutdown so buffered
-// simulation events aren't lost when sessions are active at exit.
+// Per-session replay logs still open, flushed/closed on shutdown so buffered
+// input frames aren't lost when sessions are active at exit.
 const activeSessionLogs = new Set<SessionLog>();
 let flushFileSink: () => void = () => {};
 
@@ -58,12 +58,14 @@ logger.configure({
   sinks: [consoleSink, createFileSink()],
 });
 
-// Per-session simulation event log: one batched file per session at
-// logs/sessions/<id>.log, written regardless of LOG_LEVEL.
+// Per-session input replay log: one batched JSONL file per session at logs/sessions/<id>.jsonl,
+// written regardless of LOG_LEVEL. In server-relayed lockstep the server no longer simulates, so
+// the input frames it relays ARE the session — replaying them against the initial world (same seed)
+// reproduces the entire pull deterministically.
 export function createSessionLog(sessionId: string): SessionLog {
   mkdirSync(SESSION_LOG_DIR, { recursive: true });
   const safeId = sessionId.replace(/[^a-zA-Z0-9_-]/g, "_");
-  const writer = Bun.file(join(SESSION_LOG_DIR, `${safeId}.log`)).writer();
+  const writer = Bun.file(join(SESSION_LOG_DIR, `${safeId}.jsonl`)).writer();
 
   let dirty = false;
   const flush = () => {
@@ -75,8 +77,8 @@ export function createSessionLog(sessionId: string): SessionLog {
   timer.unref();
 
   const sessionLog: SessionLog = {
-    event(entry: LogEntry): void {
-      writer.write(`t=${entry.t.toFixed(2)} ${entry.event} ${entry.mechanic} ${entry.playerId}\n`);
+    frame(startTick: number, frames: Frame[]): void {
+      writer.write(JSON.stringify({ startTick, frames }) + "\n");
       dirty = true;
     },
     close(): void {

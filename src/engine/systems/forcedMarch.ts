@@ -8,6 +8,7 @@ import type { ActiveForcedMarch, PendingForcedMarch } from "../../shared/types";
 import { add, sub, normalize, scale, length } from "../../shared/math";
 import { applyEffect } from "./helpers";
 import { FORCED_MARCH_LINGER } from "../constants";
+import { atan2 } from "../../shared/dmath";
 
 export function resolveForcedMarches(ctx: TickContext): PendingForcedMarch[] {
   const { players, log, time } = ctx;
@@ -48,7 +49,7 @@ export function resolveForcedMarches(ctx: TickContext): PendingForcedMarch[] {
         const anchor = fm.relativeMove ? (fm.capturedFrom ?? fm.pos) : fm.pos;
         captured.pos = add(anchor, scale(normalize(fm.direction), fm.distance));
         captured.botWaypointResumeAfter = time;
-        captured.facing = Math.atan2(fm.direction.x, fm.direction.z);
+        captured.facing = atan2(fm.direction.x, fm.direction.z);
         log.push({ t: time, mechanic: fm.name, playerId: captured.id, event: "hit" });
       }
       fm.teleported = true;
