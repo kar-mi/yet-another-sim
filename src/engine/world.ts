@@ -1,5 +1,6 @@
 import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, Knockback, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingBaitEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingApplyEffect, PendingInverse, PendingSpreadStack, PendingGaze, PendingForcedMarch, PendingEffectBurst, PendingHeal, PendingForsakenAssign, EffectResolver, ForsakenAssignmentKind, ForsakenGroup, ForsakenPlan } from "../shared/types";
 import { vec2 } from "../shared/math";
+import type { Vec2 } from "../shared/math";
 import { makeSeed, nextRandom, randomInt } from "../shared/rng";
 import type { RaidDef } from "./raidSchema";
 import { INITIAL_TANK_THREAT, topThreatTarget } from "./sim";
@@ -11,26 +12,18 @@ function toVec2(arr: [number, number]) {
 }
 
 function toBotSolvers(raid: RaidDef): World["botSolvers"] {
-  const forsaken = raid.botSolvers?.forsaken;
   const generic = raid.botSolvers?.generic;
-  if (!forsaken && !generic) return undefined;
+  if (!generic) return undefined;
 
   const toSpots = (spots: Record<string, [number, number]>) =>
     Object.fromEntries(Object.entries(spots).map(([id, pos]) => [id, toVec2(pos)]));
-  const toSpotLists = (spots: Record<string, [number, number][]>) =>
-    Object.fromEntries(Object.entries(spots).map(([id, list]) => [id, list.map(toVec2)]));
 
   return {
-    forsaken: forsaken && {
-      towerWindows: forsaken.towerWindows.map(window => ({ ...window })),
-      baitWindows: forsaken.baitWindows?.map(window => ({ ...window })),
-      towerSpots: toSpotLists(forsaken.towerSpots),
-      baitSpots: forsaken.baitSpots && toSpotLists(forsaken.baitSpots),
-    },
-    generic: generic?.map(rule => ({
+    generic: generic.map(rule => ({
       when: { ...rule.when },
       startAt: rule.startAt,
       endAt: rule.endAt,
+      frame: rule.frame,
       spots: rule.spots && toSpots(rule.spots),
       spot: rule.spot && toVec2(rule.spot),
     })),
@@ -213,6 +206,20 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const { plan: forsakenPlan, rngState } = buildForsakenPlan(raid, players, afterPlantRngState);
   const plantDebuffOrder = raid.optionals?.combinations?.plant?.debuffOrder;
 
+  // Generic-solver partner/group maps. Forsaken is the only current producer, but these are plain
+  // fields any pairing/grouping mechanic can populate; the generic solver never reads forsakenPlan.
+  const partners: Record<string, string> = {};
+  const playerGroups: Record<string, string> = {};
+  if (forsakenPlan) {
+    for (const pair of forsakenPlan.pairs) {
+      partners[pair.members[0]] = pair.members[1];
+      partners[pair.members[1]] = pair.members[0];
+    }
+    for (const [id, assignment] of Object.entries(forsakenPlan.players)) {
+      playerGroups[id] = assignment.group;
+    }
+  }
+
   const pending: PendingEvent[] = [];
   const pendingTethers: PendingTether[] = [];
   const pendingLineLinks: PendingLineLink[] = [];
@@ -231,6 +238,8 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const effectResolvers: Record<string, EffectResolver> = {};
   const pendingHeals: PendingHeal[] = [];
   const pendingForsakenAssigns: PendingForsakenAssign[] = [];
+  // Static positions of positioned events, for generic-solver explicit frames (frame: [eventIds]).
+  const eventPositions: Record<string, Vec2> = {};
 
   for (const e of raid.events) {
     if (e.type === "tether_source") {
@@ -266,6 +275,8 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         id: e.id,
         t: e.t,
         name: e.name,
+        labels: e.labels,
+        group: e.group,
         targetMode: e.targetMode,
         role: e.role,
         radius: e.radius,
@@ -278,10 +289,13 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         telegraphMode: e.telegraphMode ?? "cast",
       });
     } else if (e.type === "tower") {
+      eventPositions[e.id] = toVec2(e.pos);
       pendingTowers.push({
         id: e.id,
         t: e.t,
         name: e.name,
+        labels: e.labels,
+        group: e.group,
         telegraph: e.telegraph,
         pos: toVec2(e.pos),
         radius: e.radius,
@@ -465,6 +479,8 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         id: e.id,
         t: e.t,
         name: e.name,
+        labels: e.labels,
+        group: e.group,
         targetMode: e.targetMode,
         role: e.role,
         telegraph: e.telegraph,
@@ -485,6 +501,8 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         id: e.id,
         t: e.t,
         name: e.name,
+        labels: e.labels,
+        group: e.group,
         shape: toAOEShape(e.shape),
         telegraph: e.telegraph,
         damage: e.damage,
@@ -549,5 +567,8 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     plantDebuffOrder,
     forsakenPlan,
     botSolvers: toBotSolvers(raid),
+    partners,
+    playerGroups,
+    eventPositions,
   };
 }

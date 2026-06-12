@@ -62,6 +62,8 @@ export function resolveAoe(ctx: TickContext): {
       active.push({
         id: pt.id,
         name: pt.name,
+        labels: pt.labels,
+        group: pt.group,
         shape: { kind: "circle", center: { x: 0, z: 0 }, radius: pt.radius },
         telegraphStart: pt.t,
         resolveAt: pt.t + pt.telegraph,
@@ -121,6 +123,8 @@ export function resolveAoe(ctx: TickContext): {
     active.push({
       id: pb.id,
       name: pb.name,
+      labels: pb.labels,
+      group: pb.group,
       shape: { kind: "circle", center: { x: boss.pos.x, z: boss.pos.z }, radius: 0 },
       telegraphStart: pb.t,
       resolveAt: pb.t + pb.telegraph,

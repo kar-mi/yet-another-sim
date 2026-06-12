@@ -1,5 +1,6 @@
-# Bot patterns + solver data for Forsaken — opening spots, tower/bait
-# timing windows, and per-player spots for each tower and bait index.
+# Bot patterns + generic-solver rules for Forsaken — opening spots plus rotated-frame
+# tower/bait rules. Spots are authored in a frame whose north is the bisector of the
+# wave's two towers; the engine rotates them per wave (45° each). See docs/authoring-raids.md.
 
 players:
   mt:
@@ -19,39 +20,69 @@ players:
   m2:
     - { t: 0, pos: [-6.14, 4.3] }
 
+# Past holders bait at the 4.1 ring, future holders at 7.5; each pair sits at its
+# slot angle ((pairIndex - 1.5) * 12°) off the wave bisector. Reused across all four baits.
+_pastBait: &pastBait
+  h1: [-1.267, 3.8993]
+  mt: [-1.267, 3.8993]
+  h2: [-0.4286, 4.0775]
+  ot: [-0.4286, 4.0775]
+  r1: [0.4286, 4.0775]
+  m1: [0.4286, 4.0775]
+  r2: [1.267, 3.8993]
+  m2: [1.267, 3.8993]
+_futureBait: &futureBait
+  h1: [-2.3176, 7.1329]
+  mt: [-2.3176, 7.1329]
+  h2: [-0.784, 7.4589]
+  ot: [-0.784, 7.4589]
+  r1: [0.784, 7.4589]
+  m1: [0.784, 7.4589]
+  r2: [2.3176, 7.1329]
+  m2: [2.3176, 7.1329]
+
 solvers:
-  forsaken:
-    towerWindows:
-      - { start: 9.0, end: 16.0, tower: 1 }
-      - { start: 20.0, end: 27.0, tower: 2 }
-      - { start: 30.0, end: 37.0, tower: 3 }
-      - { start: 40.0, end: 47.0, tower: 4 }
-      - { start: 52.0, end: 58.0, tower: 5 }
-      - { start: 62.0, end: 69.0, tower: 6 }
-      - { start: 72.0, end: 79.0, tower: 7 }
-      - { start: 82.0, end: 89.0, tower: 8 }
-    baitWindows:
-      - { start: 27.0, end: 32.0, index: 1 }
-      - { start: 47.0, end: 54.0, index: 2 }
-      - { start: 69.0, end: 74.0, index: 3 }
-      - { start: 89.0, end: 102.5, index: 4 }
-    # One spot per tower window (1-8), per player.
-    towerSpots:
-      h1: [[-0.25, 7.25], [7.0, 7.25], [7.0, 0.0], [-3.5, 7.5], [3.5, 7.5], [7.5, 3.5], [7.5, -3.5], [-7.5, 7.25]]
-      mt: [[0.25, 7.25], [7.5, 7.25], [7.5, 0.0], [-3.5, 7.5], [3.5, 7.5], [7.5, 3.5], [7.5, -3.5], [-7.0, 7.25]]
-      h2: [[-3.5, -7.5], [-7.5, -3.5], [-7.5, 3.5], [7.0, -7.25], [-0.25, -7.25], [-7.5, -7.25], [-7.5, 0.0], [0.0, -8.0]]
-      ot: [[-3.5, -7.5], [-7.5, -3.5], [-7.5, 3.5], [7.5, -7.25], [0.25, -7.25], [-7.0, -7.25], [-7.0, 0.0], [0.0, -8.0]]
-      r1: [[7.0, 0.0], [7.0, -7.25], [-0.25, -7.25], [-3.5, 7.5], [3.5, 7.5], [7.5, 3.5], [7.5, -3.5], [7.0, 7.25]]
-      m1: [[7.5, 0.0], [7.5, -7.25], [0.25, -7.25], [-3.5, 7.5], [3.5, 7.5], [7.5, 3.5], [7.5, -3.5], [7.5, 7.25]]
-      r2: [[-3.5, -7.5], [-7.5, -3.5], [-7.5, 3.5], [-7.5, -7.25], [-7.5, 0.0], [-7.5, 7.25], [-0.25, 7.25], [0.0, -8.0]]
-      m2: [[-3.5, -7.5], [-7.5, -3.5], [-7.5, 3.5], [-7.0, -7.25], [-7.0, 0.0], [-7.0, 7.25], [0.25, 7.25], [0.0, -8.0]]
-    # One spot per bait window (1-4), per player.
-    baitSpots:
-      h1: [[-3.5, 2.2], [-3.5, 2.2], [-3.5, 2.2], [-3.5, 2.2]]
-      mt: [[-2.2, 3.5], [-2.2, 3.5], [-2.2, 3.5], [-2.2, 3.5]]
-      h2: [[3.5, 2.2], [3.5, 2.2], [3.5, 2.2], [3.5, 2.2]]
-      ot: [[2.2, 3.5], [2.2, 3.5], [2.2, 3.5], [2.2, 3.5]]
-      r1: [[-3.5, -2.2], [-3.5, -2.2], [-3.5, -2.2], [-3.5, -2.2]]
-      m1: [[-2.2, -3.5], [-2.2, -3.5], [-2.2, -3.5], [-2.2, -3.5]]
-      r2: [[3.5, -2.2], [3.5, -2.2], [3.5, -2.2], [3.5, -2.2]]
-      m2: [[2.2, -3.5], [2.2, -3.5], [2.2, -3.5], [2.2, -3.5]]
+  generic:
+    # --- Endings: baited before towers so the cluster forms during the clone marker. The frame
+    #     is the coincident tower wave's bisector (continued 45° rotation lands bait 4 on wave 1).
+    - { when: { mechanic: bait-1, debuff: Forsaken Past },   frame: [tower-3-left, tower-3-right], spots: *pastBait }
+    - { when: { mechanic: bait-1, debuff: Forsaken Future }, frame: [tower-3-left, tower-3-right], spots: *futureBait }
+    - { when: { mechanic: bait-2, debuff: Forsaken Past },   frame: [tower-5-left, tower-5-right], spots: *pastBait }
+    - { when: { mechanic: bait-2, debuff: Forsaken Future }, frame: [tower-5-left, tower-5-right], spots: *futureBait }
+    - { when: { mechanic: bait-3, debuff: Forsaken Past },   frame: [tower-7-left, tower-7-right], spots: *pastBait }
+    - { when: { mechanic: bait-3, debuff: Forsaken Future }, frame: [tower-7-left, tower-7-right], spots: *futureBait }
+    - { when: { mechanic: bait-4, debuff: Forsaken Past },   frame: [tower-1-left, tower-1-right], spots: *pastBait }
+    - { when: { mechanic: bait-4, debuff: Forsaken Future }, frame: [tower-1-left, tower-1-right], spots: *futureBait }
+
+    # --- Odd tower waves (one stack pair + cone + defam soak the two towers; the off-group
+    #     supports the soak). Frame north = the wave's tower bisector.
+    # Soaking group (X). The two stacks always split across the towers: the healer holds the
+    # support stack (right), the other carrier the dps stack (left). Same-charge cone/defam pairs
+    # share a tower (still two soakers each).
+    - { when: { mechanic: tower-odd, soaks: true, debuff: Stack Charge, role: healer }, frame: matched, spot: [5.1265, 5.1265] }
+    - { when: { mechanic: tower-odd, soaks: true, debuff: Stack Charge },               frame: matched, spot: [-3.4295, 3.4295] }
+    - { when: { mechanic: tower-odd, soaks: true, debuff: Cone Charge },                frame: matched, spot: [6.8943, 6.8943] }
+    - { when: { mechanic: tower-odd, soaks: true, debuff: Defamation Charge },          frame: matched, spot: [-5.975, 5.975] }
+    # Off group (Y): tank flanks, healer baits the cone, dps split ranged/melee.
+    - { when: { mechanic: tower-odd, soaks: false, role: tank },   frame: matched, spot: [8.6265, 5.1265] }
+    - { when: { mechanic: tower-odd, soaks: false, role: healer }, frame: matched, spot: [7.6014, 7.6014] }
+    - { when: { mechanic: tower-odd, soaks: false, role: dps },    frame: matched, spots: { r1: [-1.8738, 2.7224], r2: [-1.8738, 2.7224], m1: [-2.7224, 1.8738], m2: [-2.7224, 1.8738] } }
+
+    # --- Even tower waves (two cones + two defams, one cone + one defam per tower). Mixed pairs
+    #     split support-left / dps-right; same-charge pairs split by role. Frame north = bisector.
+    # Soaking group (X) — mixed pairs (cone + defam partner):
+    - { when: { mechanic: tower-even, soaks: true, debuff: Cone Charge, partnerDebuff: Defamation Charge, role: dps }, frame: matched, spot: [6.493, 4.7627] }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Cone Charge, partnerDebuff: Defamation Charge },            frame: matched, spot: [-6.493, 4.7627] }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Defamation Charge, partnerDebuff: Cone Charge, role: dps }, frame: matched, spot: [7.25, 9.45] }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Defamation Charge, partnerDebuff: Cone Charge },            frame: matched, spot: [-7.25, 9.45] }
+    # Soaking group (X) — same-charge pairs (role split: healer/melee left, tank/ranged right):
+    - { when: { mechanic: tower-even, soaks: true, debuff: Cone Charge, partnerDebuff: Cone Charge, role: healer }, frame: matched, spot: [-6.493, 4.7627] }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Cone Charge, partnerDebuff: Cone Charge, role: tank },   frame: matched, spot: [6.493, 4.7627] }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Cone Charge, partnerDebuff: Cone Charge, role: dps },    frame: matched, spots: { r1: [6.493, 4.7627], r2: [6.493, 4.7627], m1: [-6.493, 4.7627], m2: [-6.493, 4.7627] } }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Defamation Charge, partnerDebuff: Defamation Charge, role: healer }, frame: matched, spot: [-7.25, 9.45] }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Defamation Charge, partnerDebuff: Defamation Charge, role: tank },   frame: matched, spot: [7.25, 9.45] }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Defamation Charge, partnerDebuff: Defamation Charge, role: dps },    frame: matched, spots: { r1: [7.25, 9.45], r2: [7.25, 9.45], m1: [-7.25, 9.45], m2: [-7.25, 9.45] } }
+    # Off group (Y): healer/ranged bait the cones laterally, tank/melee hold opposite the towers.
+    - { when: { mechanic: tower-even, soaks: false, role: healer }, frame: matched, spot: [-5.5, 1.5] }
+    - { when: { mechanic: tower-even, soaks: false, role: tank },   frame: matched, spot: [-1.2, -3.4] }
+    - { when: { mechanic: tower-even, soaks: false, role: dps },    frame: matched, spots: { r1: [5.5, 1.5], r2: [5.5, 1.5], m1: [1.2, -3.4], m2: [1.2, -3.4] } }

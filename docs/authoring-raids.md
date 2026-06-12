@@ -1130,15 +1130,14 @@ others stay at their spawn (or are driven by a human).
 After forced march, plant teleport, or knockback moves a bot, waypoints at or before that forced
 movement time are ignored. Add a later waypoint when the bot should resume authored movement.
 
-Bot pattern files can also define runtime bot solvers. Positioning is expressed with the **generic
-solver** below: plant arrows via `when.plant`, spread/stack (including its concurrent-`inverse`
-"lightning" corridors) via multi-mechanic `when.mechanic`, and debuff dodges like Double Trouble via
-`when.debuff` + `role`. See `raids/dancing-mad-ultimate/graven-image-3-bots.yaml` for all three.
+Bot pattern files define runtime bot solvers entirely through the **generic solver** below: plant
+arrows via `when.plant`, spread/stack (including its concurrent-`inverse` "lightning" corridors) via
+multi-mechanic `when.mechanic`, and debuff dodges like Double Trouble via `when.debuff` + `role`. See
+`raids/dancing-mad-ultimate/graven-image-3-bots.yaml` for all three.
 
-`solvers.forsaken` is the one remaining dedicated (non-generic) solver: its spots are computed each
-tick from the live assignment plan, tower positions, and active charges, so they can't be expressed
-as fixed generic rules. It's configured under `solvers.forsaken` with `towerWindows` / `baitWindows`
-(and optional per-window `towerSpots` / `baitSpots` fallbacks); see `forsaken-bots.yaml`.
+Even rotating, state-dependent fights are expressible: `forsaken-bots.yaml` solves all eight of
+Forsaken's 45°-rotating tower waves and the Past/Future ending baits with ~28 generic rules, using
+event `labels`/`group`, `when.soaks` / `when.partnerDebuff`, and rotated-frame spots (see below).
 
 ### Generic solver
 
@@ -1148,27 +1147,44 @@ engine builds, for every bot, the set of currently-active mechanics (each as a *
 event id extended with its RNG outcome), the bot's role, and its active debuffs, then walks the rules
 in order. The **first** rule whose conditions all match *and* that supplies a spot for that bot wins,
 sending it to `spots[<its id>]` (falling back to `spot`). New lookup-style mechanics then need zero
-solver code. It is checked before the bespoke solvers, so a generic rule can override them.
+solver code. When no rule matches, the bot falls back to its authored waypoints.
 
 A rule has:
 
-- `when` — all conditions are ANDed; a rule must specify at least one of `mechanic` / `debuff` / `plant`:
-  - `mechanic` — segment-prefix match on a resolved id (see the suffix table below). Split both on
-    `.`; the rule matches if its segments are a prefix of the resolved id's, so `lightning-1` matches
-    `lightning-1.inverted.b`, and `lightning-1.inverted` matches only the inverted orientations. The
-    rule is active during that mechanic's telegraph→resolve window. Pass an **array** to require
-    several mechanics at once — e.g. `mechanic: [fire-1.spread, lightning-1.inverted.a]` only matches
-    while a spread_stack resolves to spread *and* a concurrent inverse rolled inverted/variant-a.
+- `when` — all conditions are ANDed; a rule must specify at least one of `mechanic` / `debuff` /
+  `partnerDebuff` / `plant`:
+  - `mechanic` — segment-prefix match on a resolved id (see the suffix table below) **or** an exact
+    match against one of the mechanic's authored `labels`. Split both on `.`; the rule matches if its
+    segments are a prefix of the resolved id's, so `lightning-1` matches `lightning-1.inverted.b`, and
+    `lightning-1.inverted` matches only the inverted orientations. The rule is active during that
+    mechanic's telegraph→resolve window. Pass an **array** to require several mechanics at once — e.g.
+    `mechanic: [fire-1.spread, lightning-1.inverted.a]` only matches while a spread_stack resolves to
+    spread *and* a concurrent inverse rolled inverted/variant-a.
   - `role` — `tank` | `healer` | `dps`.
-  - `debuff` — an active effect name on the bot; a debuff-only rule is active while that debuff is.
+  - `debuff` — an active effect name on the bot (or an **array** requiring all listed names). A
+    debuff-only rule is active while that debuff is.
+  - `partnerDebuff` — same matching, against the bot's partner (`world.partners`, populated e.g. from a
+    Forsaken pair plan). Lets one bot's spot depend on its partner's assignment.
+  - `soaks` — `true`/`false`, compared against the group of the first live mechanic matched by
+    `when.mechanic` (which is required). `true` matches bots whose group (`world.playerGroups`) equals
+    the mechanic's `group`; `false` matches bots whose group differs (and the mechanic has a group).
   - `plant` — the bot's assigned plant combo key (e.g. `"right right"`, from `optionals.combinations.plant`);
     active while the bot carries a plant debuff. Add `plantSlot` (0 = short, 1 = long) to target one slot;
     omit it to match either. One `(combo, slot) → spot` rule per placement, e.g.
     `- { when: { plant: right right, plantSlot: 0 }, spot: [0, 12] }`.
 - `startAt` / `endAt` — optional absolute time clamps on the activation window.
+- `frame` — optional rotated coordinate frame for the spot(s). `"matched"` sets north to the bisector
+  of the live matched mechanics' positions (e.g. a wave's two towers — requires `when.mechanic`); a
+  list of event ids sets north from those events' **static** positions. A frame coord `[x, z]` maps to
+  world `x · right + z · north`, with `right = { x: north.z, z: -north.x }` and the arena centre as
+  origin. One spot set then serves every wave of a rotating mechanic. A rule whose frame can't be
+  computed yields no spot (falls through).
 - `spots` (`playerId -> [x, z]`) and/or `spot` (`[x, z]` for every matching bot); `spots[id]` wins.
   A rule must specify at least one. If a rule matches but supplies no spot for this bot, the search
   falls through to later rules.
+
+Any positioned event can carry `labels` (a string list, matched by `when.mechanic`) and a `group`
+string (compared by `when.soaks`) — currently on `aoe`, `tower`, `targeted`, and `bait` events.
 
 Resolved-id suffixes by mechanic kind (RNG outcomes are appended so rules can target a specific roll):
 

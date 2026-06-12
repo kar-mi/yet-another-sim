@@ -28,6 +28,8 @@ export function resolveTowers(ctx: TickContext): {
       towers.push({
         id: pt.id,
         name: pt.name,
+        labels: pt.labels,
+        group: pt.group,
         pos: pt.pos,
         radius: pt.radius,
         telegraphStart: pt.t,

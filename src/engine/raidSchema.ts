@@ -4,55 +4,41 @@ import { ROSTER, RaidIdSchema } from "../shared/protocol";
 const Vec2Schema = z.tuple([z.number(), z.number()]);
 const WaypointSchema = z.object({ t: z.number().nonnegative(), pos: Vec2Schema });
 const EventIdSchema = z.string().min(1);
-const ForsakenSolverSchema = z.object({
-  towerWindows: z.array(z.object({
-    start: z.number().nonnegative(),
-    end: z.number().nonnegative(),
-    tower: z.number().int().min(1).max(8),
-  })).min(1),
-  baitWindows: z.array(z.object({
-    start: z.number().nonnegative(),
-    end: z.number().nonnegative(),
-    index: z.number().int().min(1),
-  })).optional(),
-  towerSpots: z.record(z.string().min(1), z.array(Vec2Schema).min(1)),
-  baitSpots: z.record(z.string().min(1), z.array(Vec2Schema).min(1)).optional(),
-}).superRefine((solver, ctx) => {
-  solver.towerWindows.forEach((window, i) => {
-    if (window.end <= window.start) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["towerWindows", i, "end"], message: "tower window end must be after start" });
-    }
-  });
-  solver.baitWindows?.forEach((window, i) => {
-    if (window.end <= window.start) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["baitWindows", i, "end"], message: "bait window end must be after start" });
-    }
-  });
-});
 const RoleSchema = z.enum(["tank", "healer", "dps"]);
+const DebuffMatchSchema = z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]);
 const GenericSolverRuleSchema = z.object({
   when: z.object({
-    // segment-prefix match on a resolved mechanic id; an array requires all listed mechanics at once
+    // segment-prefix match on a resolved mechanic id OR an exact match on one of its labels;
+    // an array requires all listed mechanics at once
     mechanic: z.union([EventIdSchema, z.array(EventIdSchema).min(1)]).optional(),
     role: RoleSchema.optional(),
-    debuff: z.string().min(1).optional(), // active effect name on the bot
+    debuff: DebuffMatchSchema.optional(),        // active effect name(s) on the bot (all required)
+    partnerDebuff: DebuffMatchSchema.optional(), // active effect name(s) on the bot's partner
+    soaks: z.boolean().optional(),               // bot's group vs the matched mechanic's group
     plant: z.string().min(1).optional(),  // the bot's assigned plant combo key (e.g. "right right")
     plantSlot: z.number().int().nonnegative().optional(), // restrict to a plant slot; omit to match either
   }),
   startAt: z.number().nonnegative().optional(),
   endAt: z.number().nonnegative().optional(),
+  // Rotated spot frame: "matched" (north = bisector of the live matched mechanics) or an explicit
+  // list of positioned event ids (north from their static positions).
+  frame: z.union([z.literal("matched"), z.array(EventIdSchema).min(1)]).optional(),
   spots: z.record(z.string().min(1), Vec2Schema).optional(),
   spot: Vec2Schema.optional(),
 }).superRefine((rule, ctx) => {
-  if (rule.when.mechanic === undefined && rule.when.debuff === undefined && rule.when.plant === undefined) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["when"], message: "rule must have at least one of when.mechanic / when.debuff / when.plant" });
+  const hasCondition = rule.when.mechanic !== undefined || rule.when.debuff !== undefined
+    || rule.when.partnerDebuff !== undefined || rule.when.plant !== undefined;
+  if (!hasCondition) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["when"], message: "rule must have at least one of when.mechanic / when.debuff / when.partnerDebuff / when.plant" });
+  }
+  if ((rule.when.soaks !== undefined || rule.frame === "matched") && rule.when.mechanic === undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["when"], message: "when.soaks and frame: \"matched\" require when.mechanic" });
   }
   if (rule.spots === undefined && rule.spot === undefined) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["spot"], message: "rule must have at least one of spot / spots" });
   }
 });
 const BotSolversSchema = z.object({
-  forsaken: ForsakenSolverSchema.optional(),
   generic: z.array(GenericSolverRuleSchema).optional(),
 }).optional();
 
@@ -138,6 +124,8 @@ const AOEEventSchema = z.object({
   id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
+  labels: z.array(z.string().min(1)).optional(), // bot-solver labels (GenericSolverRule.when.mechanic)
+  group: z.string().min(1).optional(),           // bot-solver group (GenericSolverRule.when.soaks)
   telegraph: z.number().positive(),
   damage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
@@ -171,6 +159,8 @@ const TargetedEventSchema = z.object({
   id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
+  labels: z.array(z.string().min(1)).optional(), // bot-solver labels (GenericSolverRule.when.mechanic)
+  group: z.string().min(1).optional(),           // bot-solver group (GenericSolverRule.when.soaks)
   targetMode: z.enum(["closest", "furthest", "aggro"]),
   role: RoleSchema.optional(),
   radius: z.number().positive(),
@@ -191,6 +181,8 @@ const BaitEventSchema = z.object({
   id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
+  labels: z.array(z.string().min(1)).optional(), // bot-solver labels (GenericSolverRule.when.mechanic)
+  group: z.string().min(1).optional(),           // bot-solver group (GenericSolverRule.when.soaks)
   targetMode: z.enum(["random", "closest", "furthest"]),
   role: RoleSchema.optional(),
   telegraph: z.number().positive(),
@@ -264,6 +256,8 @@ const TowerEventSchema = z.object({
   id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
+  labels: z.array(z.string().min(1)).optional(), // bot-solver labels (GenericSolverRule.when.mechanic)
+  group: z.string().min(1).optional(),           // bot-solver group (GenericSolverRule.when.soaks)
   telegraph: z.number().positive(),
   pos: Vec2Schema,
   radius: z.number().positive(),

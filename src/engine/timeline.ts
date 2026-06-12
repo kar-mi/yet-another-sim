@@ -38,6 +38,8 @@ export function promotePending(
       promoted.push({
         id: event.id,
         name: event.name,
+        labels: event.labels,
+        group: event.group,
         // Deferred (stored) cleaves don't snapshot geometry now; a linked bait recomputes it from the
         // boss's locked facing at arm time, so keep the raw shape as a hidden placeholder until then.
         shape: event.deferred ? event.shape : resolveAnchoredShape(event, boss),
