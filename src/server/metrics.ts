@@ -28,33 +28,6 @@ class Gauge implements Metric {
   }
 }
 
-class Histogram implements Metric {
-  // `counts[i]` is the cumulative number of observations <= buckets[i], so it
-  // maps directly onto Prometheus's `_bucket{le=...}` lines without extra work.
-  private readonly counts: number[];
-  private sum = 0;
-  private count = 0;
-  constructor(readonly name: string, readonly help: string, private readonly buckets: number[]) {
-    this.counts = new Array(buckets.length).fill(0);
-  }
-  observe(v: number): void {
-    this.sum += v;
-    this.count++;
-    for (let i = 0; i < this.buckets.length; i++) {
-      if (v <= this.buckets[i]!) this.counts[i]!++;
-    }
-  }
-  render(): string {
-    const lines = [`# HELP ${this.name} ${this.help}`, `# TYPE ${this.name} histogram`];
-    for (let i = 0; i < this.buckets.length; i++) {
-      lines.push(`${this.name}_bucket{le="${this.buckets[i]}"} ${this.counts[i]}`);
-    }
-    lines.push(`${this.name}_bucket{le="+Inf"} ${this.count}`);
-    lines.push(`${this.name}_sum ${this.sum}`);
-    lines.push(`${this.name}_count ${this.count}`);
-    return lines.join("\n");
-  }
-}
 
 class Registry {
   private readonly metrics: Metric[] = [];
