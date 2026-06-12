@@ -80,7 +80,7 @@ export const metrics = {
   desyncTotal: registry.register(
     new Counter(
       "sim_desync_total",
-      "Times two clients reported divergent world hashes for the same tick (a resync was issued).",
+      "Times a client's world hash diverged from the host's canonical hash for the same tick (a resync was issued).",
     ),
   ),
   catchupExhausted: registry.register(
