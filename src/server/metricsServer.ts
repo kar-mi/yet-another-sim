@@ -9,6 +9,7 @@ import { metrics, registry } from "./metrics";
 interface MetricsSources {
   sessionsActive: () => number;
   clientsConnected: () => number;
+  sessionsCapacity: number;
 }
 
 function authorized(req: Request, token: string): boolean {
@@ -40,6 +41,8 @@ export function startMetricsServer(sources: MetricsSources): void {
 
   const port = Number(Bun.env.METRICS_PORT || 9100);
   const hostname = Bun.env.METRICS_HOST || "0.0.0.0";
+  // Capacity is configured at startup and never changes for the process lifetime.
+  metrics.sessionsCapacity.set(sources.sessionsCapacity);
   startRuntimeCollectors();
 
   const server = Bun.serve({

@@ -6,6 +6,7 @@ services:
     restart: unless-stopped
     environment:
       - PORT=${PORT:-3000}
+      - MAX_SESSIONS=${MAX_SESSIONS:-10}
       - METRICS_TOKEN=${METRICS_TOKEN:?set METRICS_TOKEN in .env}
       - METRICS_PORT=${METRICS_PORT:-9100}
     ports:

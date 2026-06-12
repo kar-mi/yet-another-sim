@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { loadRaid } from "../engine/raidLoader";
 import { ClientMessageSchema, EMPTY_RAID_ID, MAX_OBSERVERS } from "../shared/protocol";
 import type { ServerMessage } from "../shared/protocol";
-import { loadSessionRaid, Session, SessionManager, type SessionStatus } from "./session";
+import { capacitySnapshot, EMPTY_LOBBY_TIMEOUT_MS, loadSessionRaid, LOBBY_TIMEOUT_MS, Session, SessionManager, type SessionStatus } from "./session";
 
 const D = 5.66;
 type Vec = [number, number];
@@ -470,6 +470,27 @@ test("inactive lobby expires after configured timeout", () => {
   expect(session.isExpired()).toBe(true);
 });
 
+test("an unused lobby expires on the shorter empty timeout", () => {
+  let now = 0;
+  const { session } = makeSession({ now: () => now });
+
+  expect(session.isExpired()).toBe(false);
+  now = EMPTY_LOBBY_TIMEOUT_MS;
+  expect(session.isExpired()).toBe(true);
+});
+
+test("claiming a slot keeps the lobby on the full timeout", () => {
+  let now = 0;
+  const { session } = makeSession({ now: () => now });
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+
+  now = EMPTY_LOBBY_TIMEOUT_MS;
+  expect(session.isExpired()).toBe(false);
+  now = LOBBY_TIMEOUT_MS;
+  expect(session.isExpired()).toBe(true);
+});
+
 test("finished session expires once idle past the timeout", () => {
   let now = 0;
   const { session } = makeSession({ now: () => now, lobbyTimeoutMs: 1000 });
@@ -505,6 +526,77 @@ test("client message schema rejects out-of-range intent magnitudes", () => {
   });
 
   expect(parsed.success).toBe(false);
+});
+
+function makeManager(maxSessions?: number) {
+  const sent: Array<{ clientId: string; message: ServerMessage }> = [];
+  const manager = new SessionManager({
+    raidsDir: "",
+    send: (clientId, message) => sent.push({ clientId, message: typeof message === "string" ? JSON.parse(message) as ServerMessage : message }),
+    maxSessions,
+  });
+  return { manager, sent };
+}
+
+test("creates a new session while below capacity", async () => {
+  const { manager } = makeManager(2);
+
+  await manager.handle("c1", { type: "join", sessionId: "room-1", raidId: EMPTY_RAID_ID });
+
+  expect(manager.sessions.size).toBe(1);
+});
+
+test("rejects a new session once at capacity", async () => {
+  const { manager, sent } = makeManager(1);
+
+  await manager.handle("c1", { type: "join", sessionId: "room-1", raidId: EMPTY_RAID_ID });
+  await manager.handle("c2", { type: "join", sessionId: "room-2", raidId: EMPTY_RAID_ID });
+
+  expect(manager.sessions.size).toBe(1);
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Server is full")).toBe(true);
+});
+
+test("joining an existing session is allowed at capacity", async () => {
+  const { manager, sent } = makeManager(1);
+
+  await manager.handle("c1", { type: "join", sessionId: "room-1", raidId: EMPTY_RAID_ID });
+  await manager.handle("c2", { type: "join", sessionId: "room-1", raidId: EMPTY_RAID_ID });
+
+  expect(manager.sessions.size).toBe(1);
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "lobby")).toBe(true);
+  expect(sent.some(entry => entry.message.type === "error" && entry.message.message === "Server is full")).toBe(false);
+});
+
+test("disconnecting the last client frees capacity", async () => {
+  const { manager, sent } = makeManager(1);
+
+  await manager.handle("c1", { type: "join", sessionId: "room-1", raidId: EMPTY_RAID_ID });
+  manager.disconnect("c1");
+  expect(manager.sessions.size).toBe(0);
+
+  await manager.handle("c2", { type: "join", sessionId: "room-2", raidId: EMPTY_RAID_ID });
+
+  expect(manager.sessions.size).toBe(1);
+  expect(sent.some(entry => entry.message.type === "error" && entry.message.message === "Server is full")).toBe(false);
+});
+
+test("concurrent creation cannot exceed maxSessions", async () => {
+  const { manager } = makeManager(1);
+
+  await Promise.all([
+    manager.handle("c1", { type: "join", sessionId: "room-1", raidId: EMPTY_RAID_ID }),
+    manager.handle("c2", { type: "join", sessionId: "room-2", raidId: EMPTY_RAID_ID }),
+  ]);
+
+  expect(manager.sessions.size).toBe(1);
+});
+
+test("capacity snapshot reports availability", () => {
+  expect(capacitySnapshot(3, 10)).toEqual({ sessions: 3, maxSessions: 10, availableSessions: 7 });
+});
+
+test("capacity snapshot clamps availability at zero", () => {
+  expect(capacitySnapshot(12, 10)).toEqual({ sessions: 12, maxSessions: 10, availableSessions: 0 });
 });
 
 test("client message schema accepts bot invincibility toggle", () => {
