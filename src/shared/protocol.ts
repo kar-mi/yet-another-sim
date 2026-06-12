@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Control, Intent, Role, World } from "./types";
+import type { Control, Intent, Intents, Role, World } from "./types";
 
 export const MAX_OBSERVERS = 5;
 
@@ -121,6 +121,18 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     type: z.literal("intent"),
     intent: IntentSchema,
   }).strict(),
+  // Lockstep: the host signals that its local sim reached a terminal state (wiped/cleared) so the
+  // server can stop relaying and mark the pull done.
+  z.object({
+    type: z.literal("simEnded"),
+    tick: z.number().int().nonnegative(),
+  }).strict(),
+  // Lockstep: clients periodically report a hash of their local world for desync detection.
+  z.object({
+    type: z.literal("worldHash"),
+    tick: z.number().int().nonnegative(),
+    hash: z.number().int(),
+  }).strict(),
 ]);
 
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
@@ -136,26 +148,11 @@ export type LobbySlot = {
 export type LobbyStatus = "lobby" | "running" | "paused" | "stopped" | "done";
 export type PlaybackState = "playing" | "paused" | "stopped";
 
-// Fields of World that never change after world creation (sim.ts carries them through untouched
-// via `...world`). They are sent once in `started`/`playback` and stripped from per-tick `snapshot`
-// messages, then re-merged client-side (net.ts). Pending/active arrays are NOT static — they mutate
-// as events fire and stay in every snapshot.
-export type StaticWorldKey =
-  | "arena" | "waymarks" | "duration" | "hasMechanics"
-  | "plantPlan" | "plantDebuffOrder" | "forsakenPlan" | "botSolvers" | "effectResolvers"
-  | "partners" | "playerGroups" | "eventPositions";
-export type StaticWorld = Pick<World, StaticWorldKey>;
-export type DynamicWorld = Omit<World, StaticWorldKey>;
-
-export function toStaticWorld(world: World): StaticWorld {
-  const { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, forsakenPlan, botSolvers, effectResolvers, partners, playerGroups, eventPositions } = world;
-  return { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, forsakenPlan, botSolvers, effectResolvers, partners, playerGroups, eventPositions };
-}
-
-export function toDynamicWorld(world: World): DynamicWorld {
-  const { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, forsakenPlan, botSolvers, effectResolvers, partners, playerGroups, eventPositions, ...dynamic } = world;
-  return dynamic;
-}
+// One simulated tick's worth of authoritative input in server-relayed lockstep. `intents` holds the
+// merged human intents keyed by playerId (a slot is human-controlled this tick exactly when it has
+// an entry — clients derive `control` from these keys so bot computation stays identical). A frame
+// carries no world state: every client steps `tick()` locally from these inputs.
+export type Frame = { intents: Intents; botsInvincible: boolean };
 
 export type ServerMessage =
   | { type: "joined"; clientId: string }
@@ -171,7 +168,11 @@ export type ServerMessage =
       maxObservers: number;
       observingByYou: boolean;
     }
-  | { type: "started"; world: World; yourPlayerId: string | null }
-  | { type: "playback"; state: PlaybackState; raidId: string; hostClientId: string; world: World }
-  | { type: "snapshot"; world: DynamicWorld }
+  // The pull's initial (tick-0) world plus the input log up to `tick`. On a fresh start `tick` is 0
+  // and `frames` is empty; for a late join / resync `tick` is the current tick and `frames` is the
+  // full log from tick 0 so the client fast-forwards locally.
+  | { type: "started"; world: World; yourPlayerId: string | null; tick: number; frames: Frame[] }
+  | { type: "playback"; state: PlaybackState; raidId: string; hostClientId: string }
+  // Incremental input frames to step locally. `startTick` is the tick index of the first frame.
+  | { type: "frames"; startTick: number; frames: Frame[] }
   | { type: "error"; message: string };

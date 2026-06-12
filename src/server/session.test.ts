@@ -223,22 +223,23 @@ test("observers must leave observer mode before claiming a player slot", () => {
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "error" && entry.message.message === "Leave observer mode before claiming a slot")).toBe(true);
 });
 
-test("claimed players use human intent while unclaimed patterned bots move", () => {
-  const { session } = makeSession();
+test("relayed frames carry only human intents; bots are derived client-side", () => {
+  const { session, sent } = makeSession();
   session.join("c1");
   session.claimSlot("c1", "mt");
   session.start("c1");
 
   session.setIntent("c1", { move: { x: 1, z: 0 } });
-  for (let i = 0; i < 10; i++) session.step();
+  session.step();
 
-  const claimed = session.world.players.find(player => player.id === "mt")!;
-  const patternedBot = session.world.players.find(player => player.id === "h1")!;
-  const fallbackBot = session.world.players.find(player => player.id === "ot")!;
+  expect(session.inputLog).toHaveLength(1);
+  const frame = session.inputLog[0];
+  expect(frame.intents.mt?.move).toEqual({ x: 1, z: 0 });
+  expect(frame.intents.ot).toBeUndefined(); // unclaimed bots are not in the frame
+  expect(frame.intents.h1).toBeUndefined();
 
-  expect(claimed.pos.x).toBeGreaterThan(0);
-  expect(patternedBot.pos.x).toBeGreaterThan(0);
-  expect(fallbackBot.pos).toEqual({ x: 0, z: -8 });
+  const framesMsg = sent.find(entry => entry.clientId === "c1" && entry.message.type === "frames");
+  expect(framesMsg?.message).toMatchObject({ type: "frames", startTick: 0 });
 });
 
 test("host can toggle bot invincibility without changing humans", () => {
@@ -275,7 +276,7 @@ test("non-host cannot toggle bot invincibility", () => {
   expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Only the host can change bot invincibility")).toBe(true);
 });
 
-test("edge actions survive later movement intents before the next tick", () => {
+test("edge actions survive later movement intents within the same tick's frame", () => {
   const { session } = makeSession();
   session.join("c1");
   session.claimSlot("c1", "mt");
@@ -285,9 +286,9 @@ test("edge actions survive later movement intents before the next tick", () => {
   session.setIntent("c1", { move: { x: 1, z: 0 } });
   session.step();
 
-  const claimed = session.world.players.find(player => player.id === "mt")!;
-  expect(claimed.y).toBeGreaterThan(0);
-  expect(claimed.pos.x).toBeGreaterThan(0);
+  const intent = session.inputLog[0].intents.mt!;
+  expect(intent.jump).toBe(true);
+  expect(intent.move).toEqual({ x: 1, z: 0 });
 });
 
 test("disconnect converts claimed slot back to bot", () => {
@@ -360,15 +361,109 @@ test("host can restart the current raid", () => {
   session.start("c1");
   session.step(false);
 
-  expect(session.world.time).toBeGreaterThan(0);
+  expect(session.inputLog.length).toBeGreaterThan(0);
 
   session.restart("c1");
 
   expect(session.status).toBe("running");
   expect(session.raidId).toBe("test-raid");
+  expect(session.inputLog).toHaveLength(0);
   expect(session.world.time).toBe(0);
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "playback" && entry.message.state === "playing")).toBe(true);
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === "mt")).toBe(true);
+});
+
+test("late joiner receives the initial world plus the full input log to fast-forward", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+  session.setIntent("c1", { move: { x: 1, z: 0 } });
+  session.step(false);
+  session.step(false);
+
+  session.join("c2");
+  session.claimSlot("c2", "ot");
+
+  const started = sent.find(entry => entry.clientId === "c2" && entry.message.type === "started");
+  const message = started?.message as Extract<ServerMessage, { type: "started" }> | undefined;
+  expect(message?.tick).toBe(2);
+  expect(message?.frames).toHaveLength(2);
+  expect(message?.world.time).toBe(0); // initial world; the client replays the frames locally
+  expect(message?.yourPlayerId).toBe("ot");
+});
+
+test("only the host can end the session via simEnded", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.join("c2");
+  session.claimSlot("c1", "mt");
+  session.claimSlot("c2", "ot");
+  session.start("c1");
+
+  session.simEnded("c2", 5);
+  expect(session.status).toBe("running");
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error")).toBe(true);
+
+  session.simEnded("c1", 5);
+  expect(session.status).toBe("done");
+  expect(sent.some(entry => entry.message.type === "playback" && entry.message.state === "stopped")).toBe(true);
+});
+
+test("divergent world hashes for a tick resync the offending client", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.join("c2");
+  session.claimSlot("c1", "mt");
+  session.claimSlot("c2", "ot");
+  session.start("c1");
+  session.step(false);
+
+  session.reportWorldHash("c1", 1, 111); // first hash for tick 1 is canonical
+  const before = sent.filter(entry => entry.clientId === "c2" && entry.message.type === "started").length;
+  session.reportWorldHash("c2", 1, 222); // mismatch -> resend started + log to c2
+
+  const after = sent.filter(entry => entry.clientId === "c2" && entry.message.type === "started").length;
+  expect(after).toBe(before + 1);
+});
+
+test("matching world hashes do not resync", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.join("c2");
+  session.claimSlot("c1", "mt");
+  session.claimSlot("c2", "ot");
+  session.start("c1");
+  session.step(false);
+
+  session.reportWorldHash("c1", 1, 999); // canonical
+  const before = sent.filter(entry => entry.message.type === "started").length;
+  session.reportWorldHash("c2", 1, 999); // agrees -> no resync
+  expect(sent.filter(entry => entry.message.type === "started").length).toBe(before);
+});
+
+test("non-host report before the host's is buffered, then judged against the host's hash", () => {
+  const { session, sent } = makeSession();
+  session.join("c1"); // host
+  session.join("c2");
+  session.join("c3");
+  session.claimSlot("c1", "mt");
+  session.claimSlot("c2", "ot");
+  session.claimSlot("c3", "h1");
+  session.start("c1");
+  session.step(false);
+
+  // A desynced client reports first, before the host — must be buffered, not acted on yet.
+  session.reportWorldHash("c2", 1, 222);
+  session.reportWorldHash("c3", 1, 999); // honest, agrees with the (not-yet-known) host hash
+  const startedBefore = (id: string) => sent.filter(e => e.clientId === id && e.message.type === "started").length;
+  const c2Before = startedBefore("c2");
+  const c3Before = startedBefore("c3");
+
+  // Host's hash lands and becomes canonical: the buffered desynced client is resynced, the honest one is not.
+  session.reportWorldHash("c1", 1, 999);
+  expect(startedBefore("c2")).toBe(c2Before + 1);
+  expect(startedBefore("c3")).toBe(c3Before);
 });
 
 test("host can restart after the session ends", () => {

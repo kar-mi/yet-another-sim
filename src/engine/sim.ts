@@ -7,6 +7,7 @@
 // and re-exports the public constants/helpers that other modules import from "./sim".
 
 import type { World, Intents, PendingHeal } from "../shared/types";
+import { atan2 } from "../shared/dmath";
 import { createTickContext } from "./systems/context";
 import { topThreatTarget } from "./systems/helpers";
 import { applyPlayerMovement } from "./systems/playerMovement";
@@ -59,7 +60,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
     m.lockFacing && !m.resolved && m.telegraphStart <= time && m.resolveAt > time);
   if (boss.currentTarget && !facingLocked) {
     const target = players.find(p => p.id === boss.currentTarget)!;
-    boss.facing = Math.atan2(target.pos.x - boss.pos.x, target.pos.z - boss.pos.z);
+    boss.facing = atan2(target.pos.x - boss.pos.x, target.pos.z - boss.pos.z);
   }
 
   // Per-mechanic systems, in fixed order (RNG determinism — do not reorder).

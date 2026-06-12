@@ -70,12 +70,17 @@ class Registry {
 export const registry = new Registry();
 
 export const metrics = {
-  // Sim health — the signals that matter most for a fixed-step game loop.
-  tickDuration: registry.register(
-    new Histogram(
-      "sim_tick_duration_seconds",
-      "Wall time spent in a single engine tick().",
-      [0.0005, 0.001, 0.002, 0.005, 0.01, 0.0167, 0.02, 0.05],
+  // Relay health — in server-relayed lockstep the server forwards input frames instead of ticking.
+  framesBroadcast: registry.register(
+    new Counter(
+      "sim_frames_broadcast_total",
+      "Input frames (one per simulated tick) relayed to clients across all sessions.",
+    ),
+  ),
+  desyncTotal: registry.register(
+    new Counter(
+      "sim_desync_total",
+      "Times a client's world hash diverged from the host's canonical hash for the same tick (a resync was issued).",
     ),
   ),
   catchupExhausted: registry.register(

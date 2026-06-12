@@ -1,6 +1,7 @@
 import type { Vec2 } from "../shared/math";
 import { dot, length, normalize } from "../shared/math";
 import type { AOEShape, ZoneShape } from "../shared/types";
+import { cos } from "../shared/dmath";
 
 function circleContains(center: Vec2, radius: number, p: Vec2): boolean {
   const dx = p.x - center.x;
@@ -27,7 +28,7 @@ export function pointInShape(shape: AOEShape, p: Vec2): boolean {
       const dist = length({ x: dx, z: dz });
       if (dist > shape.length || dist === 0) return false;
       const pDir = { x: dx / dist, z: dz / dist };
-      const cosHalf = Math.cos((shape.angleDeg / 2) * (Math.PI / 180));
+      const cosHalf = cos((shape.angleDeg / 2) * (Math.PI / 180));
       return dot(dir, pDir) >= cosHalf;
     }
 
