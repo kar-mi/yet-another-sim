@@ -646,7 +646,7 @@ Excerpt from `raids/debug/spread-stack-test.yaml`:
 | Field | Required | Notes |
 |-------|----------|-------|
 | `type` | yes | `"spread_stack"`. |
-| `id` | yes | Stable mechanic id, unique across the raid file. Use this as the key in `solvers.spreadStack`. |
+| `id` | yes | Stable mechanic id, unique across the raid file. Generic-solver rules match it as `<id>.spread` / `<id>.stack`. |
 | `t` | yes | Cast start time (seconds). The flip + marked member are rolled now. |
 | `name` | yes | Mechanic name (used in the log and cast bar). |
 | `telegraph` | yes | Cast duration in seconds (> 0); resolves at `t + telegraph`. |
@@ -1130,55 +1130,15 @@ others stay at their spawn (or are driven by a human).
 After forced march, plant teleport, or knockback moves a bot, waypoints at or before that forced
 movement time are ignored. Add a later waypoint when the bot should resume authored movement.
 
-Bot pattern files can also define runtime bot solvers. The plant arrow solver moves bot-controlled
-players with active plant debuffs to the explicit placement matching their assigned plant combo and
-current plant slot; claimed human slots are not moved by the solver. If a combo has no placement,
-the bot falls back to its authored waypoint pattern. A placement can be one `[x, z]` point or an
-array of points in plant-slot order, e.g. `[short, long]`.
-The double trouble solver moves bot-controlled players with active `doubleTrouble` debuffs to a
-role-based safe offset (`support` for tanks/healers, `dps` for DPS). Plant arrow solving takes
-priority when both debuffs are active. Set `startAt` to delay the solver until that encounter time.
-The **spread/stack** solver is keyed by the target `spread_stack` mechanic id. While that mechanic
-is casting, it reads the *actual* resolved mode (seeing through the `?`) and sends each bot to its
-`spread` or `stack` spot (`playerId -> [x, z]`). Human slots are not moved. Stack spots are usually
-one shared point per group (everyone in a group converges there, so it works whoever is marked).
-Optional `spreadLightning` / `stackLightning` override the spread / stack spots per concurrent-`inverse`
-orientation: name the inverse via `id`, then give `shown` positions (used when that inverse is *not*
-inverted) and `inverted` positions (used when it is). This lets bots spread or stack into the safe
-corridor of a simultaneous line-AOE mechanic. Falls back to base `spread`/`stack` when the named
-inverse isn't active. If that inverse uses `variantRng`, add optional `shownB` / `invertedB` tables
-for its variant-**b** orientation; they fall back to `shown` / `inverted` when omitted.
-Excerpt from `raids/dancing-mad-ultimate/graven-image-3-bots.yaml`:
+Bot pattern files can also define runtime bot solvers. Positioning is expressed with the **generic
+solver** below: plant arrows via `when.plant`, spread/stack (including its concurrent-`inverse`
+"lightning" corridors) via multi-mechanic `when.mechanic`, and debuff dodges like Double Trouble via
+`when.debuff` + `role`. See `raids/dancing-mad-ultimate/graven-image-3-bots.yaml` for all three.
 
-```yaml
-solvers:
-  doubleTrouble:
-    support: [-8, 7]
-    dps: [7, -8]
-    startAt: 20
-
-  plantArrows:
-    placements:
-      right right: [[0, 12], [-6, 12]]
-      right down: [[6, 12], [12, 12]]
-
-  spreadStack:
-    fire-1:
-      spread:
-        mt: [6, 6]
-        ot: [6, -6]
-      stack:
-        mt: [6, -6]
-        ot: [6, -6]
-      spreadLightning:
-        id: lightning-1
-        shown:
-          mt: [6.83, 5.13]
-          ot: [6, -6]
-        inverted:
-          mt: [6, 6]
-          ot: [-2.07, 2.17]
-```
+`solvers.forsaken` is the one remaining dedicated (non-generic) solver: its spots are computed each
+tick from the live assignment plan, tower positions, and active charges, so they can't be expressed
+as fixed generic rules. It's configured under `solvers.forsaken` with `towerWindows` / `baitWindows`
+(and optional per-window `towerSpots` / `baitSpots` fallbacks); see `forsaken-bots.yaml`.
 
 ### Generic solver
 
@@ -1192,13 +1152,19 @@ solver code. It is checked before the bespoke solvers, so a generic rule can ove
 
 A rule has:
 
-- `when` — all conditions are ANDed; a rule must specify at least one of `mechanic` / `debuff`:
+- `when` — all conditions are ANDed; a rule must specify at least one of `mechanic` / `debuff` / `plant`:
   - `mechanic` — segment-prefix match on a resolved id (see the suffix table below). Split both on
     `.`; the rule matches if its segments are a prefix of the resolved id's, so `lightning-1` matches
     `lightning-1.inverted.b`, and `lightning-1.inverted` matches only the inverted orientations. The
-    rule is active during that mechanic's telegraph→resolve window.
+    rule is active during that mechanic's telegraph→resolve window. Pass an **array** to require
+    several mechanics at once — e.g. `mechanic: [fire-1.spread, lightning-1.inverted.a]` only matches
+    while a spread_stack resolves to spread *and* a concurrent inverse rolled inverted/variant-a.
   - `role` — `tank` | `healer` | `dps`.
   - `debuff` — an active effect name on the bot; a debuff-only rule is active while that debuff is.
+  - `plant` — the bot's assigned plant combo key (e.g. `"right right"`, from `optionals.combinations.plant`);
+    active while the bot carries a plant debuff. Add `plantSlot` (0 = short, 1 = long) to target one slot;
+    omit it to match either. One `(combo, slot) → spot` rule per placement, e.g.
+    `- { when: { plant: right right, plantSlot: 0 }, spot: [0, 12] }`.
 - `startAt` / `endAt` — optional absolute time clamps on the activation window.
 - `spots` (`playerId -> [x, z]`) and/or `spot` (`[x, z]` for every matching bot); `spots[id]` wins.
   A rule must specify at least one. If a rule matches but supplies no spot for this bot, the search

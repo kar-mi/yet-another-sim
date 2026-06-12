@@ -162,7 +162,11 @@ test("double trouble solver moves marked bots behind their role group", () => {
   const raid = loadRaid({
     ...baseRaid,
     players: roster({ mt: { spawn: [0, 0] }, r1: { spawn: [0, 0] } }),
-    botSolvers: { doubleTrouble: { support: [-7, 7], dps: [7, -7], startAt: 20 } },
+    botSolvers: { generic: [
+      { when: { debuff: "Double Trouble", role: "tank" }, startAt: 20, spot: [-7, 7] },
+      { when: { debuff: "Double Trouble", role: "healer" }, startAt: 20, spot: [-7, 7] },
+      { when: { debuff: "Double Trouble", role: "dps" }, startAt: 20, spot: [7, -7] },
+    ] },
   });
   const doubleTrouble = effect({
     name: "Double Trouble",
@@ -198,12 +202,12 @@ test("plant arrow solver remains deterministic with seeded plant rng", () => {
   const botPatterns = loadBotPatterns({
     players: {},
     solvers: {
-      plantArrows: {
-        placements: {
-          "down down": [[18, 0], [0, 18]],
-          "up up": [[-18, 0], [0, -18]],
-        },
-      },
+      generic: [
+        { when: { plant: "down down", plantSlot: 0 }, spot: [18, 0] },
+        { when: { plant: "down down", plantSlot: 1 }, spot: [0, 18] },
+        { when: { plant: "up up", plantSlot: 0 }, spot: [-18, 0] },
+        { when: { plant: "up up", plantSlot: 1 }, spot: [0, -18] },
+      ],
     },
   });
   const plannedRaid = applyBotPatterns(raid, botPatterns);

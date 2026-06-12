@@ -65,19 +65,59 @@ function hasActiveDebuff(player: Player, name: string, time: number): boolean {
     effect.name === name && effect.appliedAt <= time && effect.appliedAt + effect.duration > time);
 }
 
+function directionName(direction: [number, number]): "up" | "down" | "left" | "right" | undefined {
+  const [x, z] = direction;
+  if (x === 0 && z === 1) return "up";
+  if (x === 0 && z === -1) return "down";
+  if (x === -1 && z === 0) return "left";
+  if (x === 1 && z === 0) return "right";
+  return undefined;
+}
+
+// The plant slot (short/long) of the bot's most urgent active plant debuff (earliest expiry).
+function activePlantSlot(player: Player): number | undefined {
+  let active: Player["effects"][number] | undefined;
+  for (const effect of player.effects) {
+    if (effect.behavior.kind !== "plant") continue;
+    if (!active || effect.appliedAt + effect.duration < active.appliedAt + active.duration) {
+      active = effect;
+    }
+  }
+  return active?.plantSlot;
+}
+
+// The bot's assigned plant combo as a space-joined key (e.g. "right right"), or undefined when it
+// has no active plant debuff / no assigned plan. Mirrors the placement keys in the generic rules.
+function plantComboKey(player: Player, world: World): string | undefined {
+  if (activePlantSlot(player) === undefined) return undefined;
+  const combo = world.plantPlan[player.id];
+  if (!combo?.length) return undefined;
+  const names = combo.map(directionName);
+  if (names.some(name => name === undefined)) return undefined;
+  return names.join(" ");
+}
+
 function ruleMatches(rule: GenericSolverRule, player: Player, world: World, mechanics: ResolvedMechanic[]): boolean {
   const time = world.time;
   if (rule.startAt !== undefined && time < rule.startAt) return false;
   if (rule.endAt !== undefined && time > rule.endAt) return false;
 
-  const { mechanic, role, debuff } = rule.when;
+  const { mechanic, role, debuff, plant, plantSlot } = rule.when;
   if (role !== undefined && player.role !== role) return false;
   if (debuff !== undefined && !hasActiveDebuff(player, debuff, time)) return false;
+  if (plant !== undefined) {
+    if (plantComboKey(player, world) !== plant) return false;
+    if (plantSlot !== undefined && activePlantSlot(player) !== plantSlot) return false;
+  }
   if (mechanic !== undefined) {
-    const segments = mechanic.split(".");
-    const live = mechanics.some(m =>
-      m.telegraphStart <= time && time <= m.resolveAt && prefixMatches(segments, m.resolvedId));
-    if (!live) return false;
+    // A list requires every mechanic to be live at once (segment-prefix match within its window).
+    const required = Array.isArray(mechanic) ? mechanic : [mechanic];
+    for (const id of required) {
+      const segments = id.split(".");
+      const live = mechanics.some(m =>
+        m.telegraphStart <= time && time <= m.resolveAt && prefixMatches(segments, m.resolvedId));
+      if (!live) return false;
+    }
   }
   return true;
 }

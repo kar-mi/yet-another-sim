@@ -18,34 +18,20 @@ export type Waymark = { mark: WaymarkId; pos: Vec2 };
 
 export type Waypoint = { t: number; pos: Vec2 };
 
-export type SpreadStackSolverConfig = {
-  spread: Record<string, Vec2>; // playerId -> spread-mode spot (base / no lightning)
-  stack: Record<string, Vec2>;  // playerId -> stack-mode spot
-  spreadLightning?: {           // per-orientation spread override read from the named inverse
-    id: string;
-    shown: Record<string, Vec2>;    // positions when the inverse is NOT inverted (variant a)
-    inverted: Record<string, Vec2>; // positions when the inverse is inverted (variant a)
-    shownB?: Record<string, Vec2>;    // variant-b, not inverted
-    invertedB?: Record<string, Vec2>; // variant-b, inverted
-  };
-  stackLightning?: {            // per-orientation stack override (same shape as spreadLightning)
-    id: string;
-    shown: Record<string, Vec2>;
-    inverted: Record<string, Vec2>;
-    shownB?: Record<string, Vec2>;
-    invertedB?: Record<string, Vec2>;
-  };
-};
-
 // One ordered, data-driven bot-solver rule (see docs/authoring-raids.md "Generic solver").
 // A rule is active during a matched mechanic's telegraph->resolve window (and/or while a named
 // debuff is active), optionally clamped by startAt/endAt. When active it sends each matching bot
 // to spots[its id] ?? spot. Conditions in `when` are ANDed.
 export type GenericSolverRule = {
   when: {
-    mechanic?: string; // segment-prefix match on a resolved mechanic id (e.g. "lightning-1" matches "lightning-1.inverted.b")
+    // segment-prefix match on a resolved mechanic id (e.g. "lightning-1" matches "lightning-1.inverted.b").
+    // An array requires every listed mechanic to be active at once (e.g. a spread_stack mode AND a
+    // concurrent inverse orientation).
+    mechanic?: string | string[];
     role?: Role;
     debuff?: string;   // active effect name on the bot
+    plant?: string;    // the bot's assigned plant combo key (e.g. "right right"); active while it carries a plant debuff
+    plantSlot?: number; // restrict to a specific plant slot (short/long); omit to match either
   };
   startAt?: number;
   endAt?: number;
@@ -54,15 +40,6 @@ export type GenericSolverRule = {
 };
 
 export type BotSolvers = {
-  plantArrows?: {
-    placements: Record<string, Vec2 | Vec2[]>;
-  };
-  doubleTrouble?: {
-    support: Vec2;
-    dps: Vec2;
-    startAt?: number;
-  };
-  spreadStack?: Record<string, SpreadStackSolverConfig>;
   forsaken?: {
     towerWindows: { start: number; end: number; tower: number }[];
     baitWindows?: { start: number; end: number; index: number }[];

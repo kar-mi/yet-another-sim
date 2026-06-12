@@ -1,64 +1,23 @@
 # Bot solver data for lightning-variant-test — spread/stack spots plus
 # lightning-adjusted positions for each shown/inverted A/B outcome.
+#
+# Generic rules: two-mechanic rules (spread/stack mode + lightning-1 orientation) come first; the
+# bare fire-1.<mode> rule is the no-lightning fallback. Bots solve the actual mode, so the resolved
+# id is already fire-1.spread / fire-1.stack.
 
 players: {}
 
 solvers:
-  spreadStack:
-    fire-1:
-      spread:
-        mt: [6, 6]
-        ot: [6, -6]
-        h1: [0, -18]
-        h2: [18, 0]
-        r1: [0, 18]
-        r2: [-18, 0]
-        m1: [-6, 6]
-        m2: [-6, -6]
-      stack:
-        mt: [6, -6]
-        ot: [6, -6]
-        h1: [6, -6]
-        h2: [6, -6]
-        r1: [-6, 6]
-        r2: [-6, 6]
-        m1: [-6, 6]
-        m2: [-6, 6]
-      spreadLightning:
-        id: lightning-1
-        shown:
-          mt: [6.83, 5.13]
-          ot: [6, -6]
-          h1: [-5.08, -17.27]
-          h2: [17.5, 4.24]
-          r1: [0, 18]
-          r2: [-18, 0]
-          m1: [2.07, -2.17]
-          m2: [-6, -6]
-        inverted:
-          mt: [6, 6]
-          ot: [-2.07, 2.17]
-          h1: [0, -18]
-          h2: [18, 0]
-          r1: [5.08, 17.27]
-          r2: [-17.5, -4.24]
-          m1: [-6, 6]
-          m2: [-6.83, -5.13]
-        shownB:
-          mt: [-6.83, 5.13]
-          ot: [-6, -6]
-          h1: [5.08, -17.27]
-          h2: [-17.5, 4.24]
-          r1: [0, 18]
-          r2: [18, 0]
-          m1: [-2.07, -2.17]
-          m2: [6, -6]
-        invertedB:
-          mt: [-6, 6]
-          ot: [2.07, 2.17]
-          h1: [0, -18]
-          h2: [-18, 0]
-          r1: [-5.08, 17.27]
-          r2: [17.5, -4.24]
-          m1: [6, 6]
-          m2: [6.83, -5.13]
+  generic:
+    - when: { mechanic: [fire-1.spread, lightning-1.shown.a] }
+      spots: { mt: [6.83, 5.13], ot: [6, -6], h1: [-5.08, -17.27], h2: [17.5, 4.24], r1: [0, 18], r2: [-18, 0], m1: [2.07, -2.17], m2: [-6, -6] }
+    - when: { mechanic: [fire-1.spread, lightning-1.inverted.a] }
+      spots: { mt: [6, 6], ot: [-2.07, 2.17], h1: [0, -18], h2: [18, 0], r1: [5.08, 17.27], r2: [-17.5, -4.24], m1: [-6, 6], m2: [-6.83, -5.13] }
+    - when: { mechanic: [fire-1.spread, lightning-1.shown.b] }
+      spots: { mt: [-6.83, 5.13], ot: [-6, -6], h1: [5.08, -17.27], h2: [-17.5, 4.24], r1: [0, 18], r2: [18, 0], m1: [-2.07, -2.17], m2: [6, -6] }
+    - when: { mechanic: [fire-1.spread, lightning-1.inverted.b] }
+      spots: { mt: [-6, 6], ot: [2.07, 2.17], h1: [0, -18], h2: [-18, 0], r1: [-5.08, 17.27], r2: [17.5, -4.24], m1: [6, 6], m2: [6.83, -5.13] }
+    - when: { mechanic: fire-1.spread }
+      spots: { mt: [6, 6], ot: [6, -6], h1: [0, -18], h2: [18, 0], r1: [0, 18], r2: [-18, 0], m1: [-6, 6], m2: [-6, -6] }
+    - when: { mechanic: fire-1.stack }
+      spots: { mt: [6, -6], ot: [6, -6], h1: [6, -6], h2: [6, -6], r1: [-6, 6], r2: [-6, 6], m1: [-6, 6], m2: [-6, 6] }
