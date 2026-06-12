@@ -3,6 +3,7 @@ import type { Intents, Player, Waypoint, World } from "../shared/types";
 import { length, normalize, sub } from "../shared/math";
 import { MOVE_SPEED } from "./sim";
 import { forsakenSolverWaypoint } from "./forsakenSolver";
+import { genericSolverWaypoint } from "./genericSolver";
 
 function activeWaypoint(pattern: Waypoint[], time: number, after = -Infinity): Waypoint | undefined {
   let active: Waypoint | undefined;
@@ -53,6 +54,10 @@ function plantComboKey(player: Player, world: World): string | undefined {
 }
 
 function solverWaypoint(player: Player, world: World): Vec2 | undefined {
+  // Generic, data-driven rules are checked first so they can override the bespoke solvers below.
+  const generic = genericSolverWaypoint(player, world);
+  if (generic) return generic;
+
   const slot = activePlantSlot(player);
   if (slot !== undefined) {
     const key = plantComboKey(player, world);

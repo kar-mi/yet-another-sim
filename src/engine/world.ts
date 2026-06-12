@@ -15,7 +15,8 @@ function toBotSolvers(raid: RaidDef): World["botSolvers"] {
   const doubleTrouble = raid.botSolvers?.doubleTrouble;
   const spreadStack = raid.botSolvers?.spreadStack;
   const forsaken = raid.botSolvers?.forsaken;
-  if (!plantArrows && !doubleTrouble && !spreadStack && !forsaken) return undefined;
+  const generic = raid.botSolvers?.generic;
+  if (!plantArrows && !doubleTrouble && !spreadStack && !forsaken && !generic) return undefined;
 
   const toSpots = (spots: Record<string, [number, number]>) =>
     Object.fromEntries(Object.entries(spots).map(([id, pos]) => [id, toVec2(pos)]));
@@ -62,6 +63,13 @@ function toBotSolvers(raid: RaidDef): World["botSolvers"] {
       towerSpots: toSpotLists(forsaken.towerSpots),
       baitSpots: forsaken.baitSpots && toSpotLists(forsaken.baitSpots),
     },
+    generic: generic?.map(rule => ({
+      when: { ...rule.when },
+      startAt: rule.startAt,
+      endAt: rule.endAt,
+      spots: rule.spots && toSpots(rule.spots),
+      spot: rule.spot && toVec2(rule.spot),
+    })),
   };
 }
 

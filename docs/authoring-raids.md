@@ -1182,6 +1182,55 @@ solvers:
           ot: [-2.07, 2.17]
 ```
 
+### Generic solver
+
+The **generic** solver is a data-driven alternative to the bespoke solvers above: instead of new
+engine code per mechanic, you write an ordered list of rules under `solvers.generic`. Each tick the
+engine builds, for every bot, the set of currently-active mechanics (each as a *resolved id* — the
+event id extended with its RNG outcome), the bot's role, and its active debuffs, then walks the rules
+in order. The **first** rule whose conditions all match *and* that supplies a spot for that bot wins,
+sending it to `spots[<its id>]` (falling back to `spot`). New lookup-style mechanics then need zero
+solver code. It is checked before the bespoke solvers, so a generic rule can override them.
+
+A rule has:
+
+- `when` — all conditions are ANDed; a rule must specify at least one of `mechanic` / `debuff`:
+  - `mechanic` — segment-prefix match on a resolved id (see the suffix table below). Split both on
+    `.`; the rule matches if its segments are a prefix of the resolved id's, so `lightning-1` matches
+    `lightning-1.inverted.b`, and `lightning-1.inverted` matches only the inverted orientations. The
+    rule is active during that mechanic's telegraph→resolve window.
+  - `role` — `tank` | `healer` | `dps`.
+  - `debuff` — an active effect name on the bot; a debuff-only rule is active while that debuff is.
+- `startAt` / `endAt` — optional absolute time clamps on the activation window.
+- `spots` (`playerId -> [x, z]`) and/or `spot` (`[x, z]` for every matching bot); `spots[id]` wins.
+  A rule must specify at least one. If a rule matches but supplies no spot for this bot, the search
+  falls through to later rules.
+
+Resolved-id suffixes by mechanic kind (RNG outcomes are appended so rules can target a specific roll):
+
+| Mechanic kind | Resolved id |
+| --- | --- |
+| `aoe`, `tower` (and pending towers) | plain `<id>` (active during its telegraph) |
+| `inverse` | `<id>.shown` / `<id>.inverted`, then `.a` / `.b` (rolled variant) — e.g. `lightning-1.inverted.b` |
+| `spread_stack` | `<id>.spread` / `<id>.stack` — the **actual** mode (sees through the `?`) |
+| `gaze` | `<id>.normal` / `<id>.reverse` |
+| `group` | `<id>.g<index>` — the rolled group index from the event's `groups` list |
+
+Excerpt from `raids/debug/rng-stack-bots.yaml` (a `group` mechanic with `groups: [[h1], [h2]]`):
+
+```yaml
+solvers:
+  generic:
+    # Role-conditioned rule first so it overrides the general rule for tanks.
+    - when: { mechanic: stack-1.g0, role: tank }
+      spot: [-7, 7]
+    # General rule: every bot stacks on the rolled group's point.
+    - when: { mechanic: stack-1.g0 }
+      spot: [-4, 4]
+    - when: { mechanic: stack-1.g1 }
+      spot: [4, -4]
+```
+
 ## Worked example
 
 A 45-second arena-wide circle, a baited tankbuster, and a donut, on a circular floor.

@@ -37,6 +37,22 @@ export type SpreadStackSolverConfig = {
   };
 };
 
+// One ordered, data-driven bot-solver rule (see docs/authoring-raids.md "Generic solver").
+// A rule is active during a matched mechanic's telegraph->resolve window (and/or while a named
+// debuff is active), optionally clamped by startAt/endAt. When active it sends each matching bot
+// to spots[its id] ?? spot. Conditions in `when` are ANDed.
+export type GenericSolverRule = {
+  when: {
+    mechanic?: string; // segment-prefix match on a resolved mechanic id (e.g. "lightning-1" matches "lightning-1.inverted.b")
+    role?: Role;
+    debuff?: string;   // active effect name on the bot
+  };
+  startAt?: number;
+  endAt?: number;
+  spots?: Record<string, Vec2>; // per-player spot; wins over spot
+  spot?: Vec2;                   // one spot for every matching bot
+};
+
 export type BotSolvers = {
   plantArrows?: {
     placements: Record<string, Vec2 | Vec2[]>;
@@ -53,6 +69,7 @@ export type BotSolvers = {
     towerSpots: Record<string, Vec2[]>;
     baitSpots?: Record<string, Vec2[]>;
   };
+  generic?: GenericSolverRule[];
 };
 
 export type DamageType = "physical" | "magical" | "true";

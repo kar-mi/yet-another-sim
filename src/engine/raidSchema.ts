@@ -50,6 +50,25 @@ const ForsakenSolverSchema = z.object({
     }
   });
 });
+const RoleSchema = z.enum(["tank", "healer", "dps"]);
+const GenericSolverRuleSchema = z.object({
+  when: z.object({
+    mechanic: EventIdSchema.optional(), // segment-prefix match on a resolved mechanic id
+    role: RoleSchema.optional(),
+    debuff: z.string().min(1).optional(), // active effect name on the bot
+  }),
+  startAt: z.number().nonnegative().optional(),
+  endAt: z.number().nonnegative().optional(),
+  spots: z.record(z.string().min(1), Vec2Schema).optional(),
+  spot: Vec2Schema.optional(),
+}).superRefine((rule, ctx) => {
+  if (rule.when.mechanic === undefined && rule.when.debuff === undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["when"], message: "rule must have at least one of when.mechanic / when.debuff" });
+  }
+  if (rule.spots === undefined && rule.spot === undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["spot"], message: "rule must have at least one of spot / spots" });
+  }
+});
 const BotSolversSchema = z.object({
   plantArrows: z.object({
     placements: z.record(z.string().min(1), SolverPlacementSchema),
@@ -61,8 +80,8 @@ const BotSolversSchema = z.object({
   }).optional(),
   spreadStack: z.record(EventIdSchema, SpreadStackSolverSchema).optional(),
   forsaken: ForsakenSolverSchema.optional(),
+  generic: z.array(GenericSolverRuleSchema).optional(),
 }).optional();
-const RoleSchema = z.enum(["tank", "healer", "dps"]);
 
 const WaymarkSchema = z.object({
   mark: z.enum(["A", "B", "C", "D", "1", "2", "3", "4"]),

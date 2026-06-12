@@ -8,6 +8,7 @@ arena:
       center: [0, 0]
       radius: 30
 duration: 30
+botPatterns: rng-stack-bots
 
 players:
   - id: mt
