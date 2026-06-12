@@ -20,39 +20,17 @@ players:
   m2:
     - { t: 0, pos: [-6.14, 4.3] }
 
-# Past holders bait at the 4.1 ring, future holders at 7.5; each pair sits at its
-# slot angle ((pairIndex - 1.5) * 12°) off the wave bisector. Reused across all four baits.
-_pastBait: &pastBait
-  h1: [-1.267, 3.8993]
-  mt: [-1.267, 3.8993]
-  h2: [-0.4286, 4.0775]
-  ot: [-0.4286, 4.0775]
-  r1: [0.4286, 4.0775]
-  m1: [0.4286, 4.0775]
-  r2: [1.267, 3.8993]
-  m2: [1.267, 3.8993]
-_futureBait: &futureBait
-  h1: [-2.3176, 7.1329]
-  mt: [-2.3176, 7.1329]
-  h2: [-0.784, 7.4589]
-  ot: [-0.784, 7.4589]
-  r1: [0.784, 7.4589]
-  m1: [0.784, 7.4589]
-  r2: [2.3176, 7.1329]
-  m2: [2.3176, 7.1329]
-
 solvers:
   generic:
-    # --- Endings: baited before towers so the cluster forms during the clone marker. The frame
-    #     is the coincident tower wave's bisector (continued 45° rotation lands bait 4 on wave 1).
-    - { when: { mechanic: bait-1, debuff: Forsaken Past },   frame: [tower-3-left, tower-3-right], spots: *pastBait }
-    - { when: { mechanic: bait-1, debuff: Forsaken Future }, frame: [tower-3-left, tower-3-right], spots: *futureBait }
-    - { when: { mechanic: bait-2, debuff: Forsaken Past },   frame: [tower-5-left, tower-5-right], spots: *pastBait }
-    - { when: { mechanic: bait-2, debuff: Forsaken Future }, frame: [tower-5-left, tower-5-right], spots: *futureBait }
-    - { when: { mechanic: bait-3, debuff: Forsaken Past },   frame: [tower-7-left, tower-7-right], spots: *pastBait }
-    - { when: { mechanic: bait-3, debuff: Forsaken Future }, frame: [tower-7-left, tower-7-right], spots: *futureBait }
-    - { when: { mechanic: bait-4, debuff: Forsaken Past },   frame: [tower-1-left, tower-1-right], spots: *pastBait }
-    - { when: { mechanic: bait-4, debuff: Forsaken Future }, frame: [tower-1-left, tower-1-right], spots: *futureBait }
+    # --- Endings: everyone clusters at max melee on one side so the closest baits, and the 180°
+    #     stored cone fires into the empty hemisphere. The frame north is the coincident tower
+    #     wave's bisector (continued 45° rotation lands bait 4 on wave 1). Past (rear cone) baits
+    #     toward the towers (+north) so the rear cleave fires away; Future (front cone) baits on
+    #     the far side (-north) so the front cleave fires away; both then soak the tower (+north).
+    - { when: { mechanic: bait-1 }, frame: [tower-3-left, tower-3-right], spot: [0, -6] } # Future
+    - { when: { mechanic: bait-2 }, frame: [tower-5-left, tower-5-right], spot: [0, 6] }  # Past
+    - { when: { mechanic: bait-3 }, frame: [tower-7-left, tower-7-right], spot: [0, -6] } # Future
+    - { when: { mechanic: bait-4 }, frame: [tower-1-left, tower-1-right], spot: [0, 6] }  # Past
 
     # --- Odd tower waves (one stack pair + cone + defam soak the two towers; the off-group
     #     supports the soak). Frame north = the wave's tower bisector.

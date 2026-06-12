@@ -92,8 +92,8 @@ test("forsaken raid and bot companion content load", async () => {
   expect(effectResolverById("forsaken-cone-resolve")).toMatchObject({ effectName: "Cone Charge" });
   expect(effectResolverById("forsaken-defamation-resolve")).toMatchObject({ effectName: "Defamation Charge" });
   expect(world.forsakenPlan?.towerOrder.join("")).toBe("AAABBBBA");
-  expect(world.botSolvers?.generic).toHaveLength(28);
-  expect(world.botSolvers?.generic?.[0]?.when).toEqual({ mechanic: "bait-1", debuff: "Forsaken Past" });
+  expect(world.botSolvers?.generic).toHaveLength(24);
+  expect(world.botSolvers?.generic?.[0]?.when).toEqual({ mechanic: "bait-1" });
   expect(world.botSolvers?.generic?.[0]?.frame).toEqual(["tower-3-left", "tower-3-right"]);
   expect(world.players.find(player => player.id === "h1")?.pattern?.[0]?.pos).toEqual({ x: 7.39, z: -1.3 });
   const towerEvents = raid.events.filter(event => event.type === "tower");

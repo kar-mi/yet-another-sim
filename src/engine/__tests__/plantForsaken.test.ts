@@ -333,7 +333,8 @@ test("forsaken_assign applies invisible assignment and short head marker effects
 
   expect(h1.effects.some(e => e.name === "Stack Charge" && e.visibility === "invisible" && e.marker === undefined)).toBe(true);
   expect(h1.effects.some(e => e.name === "Stack Charge Marker" && e.visibility === "invisible" && e.markerIcon === "stack_processed.png" && e.duration === 5)).toBe(true);
-  expect(h1.effects.some(e => e.name === "Forsaken Future")).toBe(true);
+  // Past/Future is no longer a per-player debuff (it's each ending cone's directionOffset).
+  expect(h1.effects.some(e => e.name.startsWith("Forsaken "))).toBe(false);
 });
 
 test("plant direction \"option\" parses to a concrete vector (overridden by the combination plan)", () => {

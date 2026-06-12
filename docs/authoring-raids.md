@@ -1136,8 +1136,8 @@ multi-mechanic `when.mechanic`, and debuff dodges like Double Trouble via `when.
 `raids/dancing-mad-ultimate/graven-image-3-bots.yaml` for all three.
 
 Even rotating, state-dependent fights are expressible: `forsaken-bots.yaml` solves all eight of
-Forsaken's 45°-rotating tower waves and the Past/Future ending baits with ~28 generic rules, using
-event `labels`/`group`, `when.soaks` / `when.partnerDebuff`, and rotated-frame spots (see below).
+Forsaken's 45°-rotating tower waves and the four stored-cone ending baits with ~24 generic rules,
+using event `labels`/`group`, `when.soaks` / `when.partnerDebuff`, and rotated-frame spots (see below).
 
 ### Generic solver
 

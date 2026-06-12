@@ -69,17 +69,18 @@ _towerBase: &towerBase
     cylinderThickness: 3.5
     fallingObjectAlpha: 0.7
 
-# Deferred boss-facing ending cone, stored then baited.
+# Deferred half-arena (180°) ending cone, stored then baited. Each instance sets its own
+# directionOffset at store time: 0 = Future (front, toward the baited player), π = Past (rear,
+# away from the baited player). The boss only turns when the linked bait fires.
 _endingBase: &endingBase
   type: aoe
   deferred: true
   anchor: boss
   directionFrom: bossFacing
-  directionOffset: 0
   telegraph: 5
   damage: 90
   damageType: magical
-  shape: { kind: cone, angleDeg: 120, length: 24 }
+  shape: { kind: cone, angleDeg: 180, length: 24 }
   telegraphMode: resolve
   showCastBar: false
 
@@ -94,14 +95,11 @@ _closeBaitBase: &closeBaitBase
   showCastBar: false
   showTelegraph: true
 
-# Bait that fires a stored ending; direction flips by Past/Future debuff.
+# Bait that turns the boss to the closest player and fires its linked stored ending.
 _allEndingBase: &allEndingBase
   type: bait
   targetMode: closest
   telegraph: 5
-  directionOffsetByEffect:
-    Forsaken Future: 0
-    Forsaken Past: 3.141592653589793
   showCastBar: true
 
 events:
@@ -192,11 +190,12 @@ events:
     t: 29
     name: Tower 2 Recovery
 
-  # Ending 1 — stored at 27, baited at 32 alongside tower 3.
+  # Ending 1 (Future / front) — stored at 27, baited at 32 alongside tower 3.
   - <<: *endingBase
     id: ending-store-1
     t: 27.0
-    name: Past/Future Ending 1
+    name: Future Ending 1
+    directionOffset: 0
   - <<: *closeBaitBase
     id: close-bait-1
     t: 27.0
@@ -246,11 +245,12 @@ events:
     t: 49
     name: Tower 4 Recovery
 
-  # Ending 2 — longer store window (telegraph 7), baited with tower 5.
+  # Ending 2 (Past / rear) — longer store window (telegraph 7), baited with tower 5.
   - <<: *endingBase
     id: ending-store-2
     t: 47.0
-    name: Past/Future Ending 2
+    name: Past Ending 2
+    directionOffset: 3.141592653589793
     telegraph: 7
   - <<: *closeBaitBase
     id: close-bait-2
@@ -305,11 +305,12 @@ events:
     t: 71
     name: Tower 6 Recovery
 
-  # Ending 3 — stored at 69, baited at 74 alongside tower 7.
+  # Ending 3 (Future / front) — stored at 69, baited at 74 alongside tower 7.
   - <<: *endingBase
     id: ending-store-3
     t: 69.0
-    name: Past/Future Ending 3
+    name: Future Ending 3
+    directionOffset: 0
   - <<: *closeBaitBase
     id: close-bait-3
     t: 69.0
@@ -359,11 +360,12 @@ events:
     t: 91
     name: Tower 8 Recovery
 
-  # Ending 4 — final stored cone, then the closing raidwide.
+  # Ending 4 (Past / rear) — final stored cone, then the closing raidwide.
   - <<: *endingBase
     id: ending-store-4
     t: 89.0
-    name: Past/Future Ending 4
+    name: Past Ending 4
+    directionOffset: 3.141592653589793
     telegraph: 7
   - <<: *closeBaitBase
     id: close-bait-4
@@ -375,6 +377,9 @@ events:
     id: all-ending-4
     t: 96.0
     name: All Ending 4
+    # No tower follows ending 4, so the bait itself is labeled to hold the cluster (away from the
+    # rear cleave) through resolve. Earlier baits hand off to their coincident tower instead.
+    labels: [bait-4]
     telegraph: 6
     link: ending-store-4
 
