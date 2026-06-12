@@ -1,13 +1,13 @@
 import { dirname, join } from "path";
 import { readRaidObject } from "./raidFileReader";
-import { computeBotIntents } from "../src/engine/botIntent";
-import { applyBotPatterns, loadBotPatterns, loadRaid } from "../src/engine/raidLoader";
-import type { RaidDef } from "../src/engine/raidSchema";
-import { tick } from "../src/engine/sim";
-import { createWorld } from "../src/engine/world";
-import { CLOCK_SPOTS, EMPTY_RAID_ID, MAX_OBSERVERS, ROSTER, toDynamicWorld, type ClientMessage, type LobbySlot, type LobbyStatus, type ServerMessage } from "../src/shared/protocol";
-import type { Intent, Intents, LogEntry, World } from "../src/shared/types";
-import { logger } from "../src/shared/logger";
+import { computeBotIntents } from "../engine/botIntent";
+import { applyBotPatterns, loadBotPatterns, loadRaid } from "../engine/raidLoader";
+import type { RaidDef } from "../engine/raidSchema";
+import { tick } from "../engine/sim";
+import { createWorld } from "../engine/world";
+import { CLOCK_SPOTS, EMPTY_RAID_ID, MAX_OBSERVERS, ROSTER, toDynamicWorld, type ClientMessage, type LobbySlot, type LobbyStatus, type ServerMessage } from "../shared/protocol";
+import type { Intent, Intents, LogEntry, World } from "../shared/types";
+import { logger } from "../shared/logger";
 import { metrics } from "./metrics";
 
 /**

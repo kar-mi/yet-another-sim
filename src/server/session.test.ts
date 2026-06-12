@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
-import { loadRaid } from "../src/engine/raidLoader";
-import { ClientMessageSchema, EMPTY_RAID_ID, MAX_OBSERVERS } from "../src/shared/protocol";
-import type { ServerMessage } from "../src/shared/protocol";
+import { loadRaid } from "../engine/raidLoader";
+import { ClientMessageSchema, EMPTY_RAID_ID, MAX_OBSERVERS } from "../shared/protocol";
+import type { ServerMessage } from "../shared/protocol";
 import { loadSessionRaid, Session, SessionManager, type SessionStatus } from "./session";
 
 const D = 5.66;

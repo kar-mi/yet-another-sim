@@ -9,13 +9,13 @@ import {
   type RaidCategory,
   type RaidEntry,
   type ServerMessage,
-} from "../src/shared/protocol";
+} from "../shared/protocol";
 import { SessionManager } from "./session";
 import { logger, createSessionLog, debugEnabled } from "./logger";
 import { metrics } from "./metrics";
 import { startMetricsServer } from "./metricsServer";
 
-const ROOT = join(import.meta.dir, "..");
+const ROOT = join(import.meta.dir, "..", "..");
 const BUNDLE_DIR = join(ROOT, ".bundle");
 const RAIDS_DIR = join(ROOT, "raids");
 const STATIC_DIR = join(ROOT, "static");
