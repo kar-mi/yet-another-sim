@@ -24,28 +24,32 @@ export type Waypoint = { t: number; pos: Vec2 };
 // to spots[its id] ?? spot. Conditions in `when` are ANDed.
 export type GenericSolverRule = {
   when: {
-    // segment-prefix match on a resolved mechanic id (e.g. "lightning-1" matches "lightning-1.inverted.b").
-    // An array requires every listed mechanic to be active at once (e.g. a spread_stack mode AND a
-    // concurrent inverse orientation).
+    // segment-prefix match on a resolved mechanic id (e.g. "lightning-1" matches "lightning-1.inverted.b")
+    // OR an exact match against one of the resolved mechanic's labels. An array requires every listed
+    // mechanic to be active at once (e.g. a spread_stack mode AND a concurrent inverse orientation).
     mechanic?: string | string[];
     role?: Role;
-    debuff?: string;   // active effect name on the bot
+    debuff?: string | string[];   // active effect name(s) on the bot; an array requires all of them
+    partnerDebuff?: string | string[]; // active effect name(s) on the bot's partner (world.partners)
+    // Compares the bot's group (world.playerGroups) to the group of the first live matched mechanic.
+    // true => equal (the bot soaks this wave); false => the mechanic has a group and the bot's differs.
+    // Requires when.mechanic.
+    soaks?: boolean;
     plant?: string;    // the bot's assigned plant combo key (e.g. "right right"); active while it carries a plant debuff
     plantSlot?: number; // restrict to a specific plant slot (short/long); omit to match either
   };
   startAt?: number;
   endAt?: number;
+  // Optional rotated frame for spot coordinates. "matched": north = normalize(Σ positions) of the
+  // live matched mechanics (e.g. a tower pair's bisector). string[]: north from those events' static
+  // positions. A frame coord [x, z] maps to world x·right + z·north (right = {x: north.z, z: -north.x}),
+  // origin = arena center. A rule whose frame can't be computed yields no spot (falls through).
+  frame?: "matched" | string[];
   spots?: Record<string, Vec2>; // per-player spot; wins over spot
   spot?: Vec2;                   // one spot for every matching bot
 };
 
 export type BotSolvers = {
-  forsaken?: {
-    towerWindows: { start: number; end: number; tower: number }[];
-    baitWindows?: { start: number; end: number; index: number }[];
-    towerSpots: Record<string, Vec2[]>;
-    baitSpots?: Record<string, Vec2[]>;
-  };
   generic?: GenericSolverRule[];
 };
 
@@ -202,6 +206,9 @@ export type PositionalArc = { center: number; width: number };
 export type ActiveMechanic = {
   id: string;
   name: string;
+  // Optional bot-solver labels/group carried from the authored event (see GenericSolverRule).
+  labels?: string[];
+  group?: string;
   shape: AOEShape;
   telegraphStart: number;
   resolveAt: number;
@@ -241,6 +248,8 @@ export type PendingEvent = {
   id: string;
   t: number;
   name: string;
+  labels?: string[];
+  group?: string;
   shape: AOEShape;
   telegraph: number;
   damage: number;
@@ -265,6 +274,8 @@ export type PendingTargetedEvent = {
   id: string;
   t: number;
   name: string;
+  labels?: string[];
+  group?: string;
   targetMode: "closest" | "furthest" | "aggro";
   role?: Role;
   radius: number;
@@ -285,6 +296,8 @@ export type PendingBaitEvent = {
   id: string;
   t: number;
   name: string;
+  labels?: string[];
+  group?: string;
   targetMode: "random" | "closest" | "furthest";
   role?: Role;
   telegraph: number;
@@ -352,6 +365,8 @@ export type PendingTower = {
   id: string;
   t: number;
   name: string;
+  labels?: string[];
+  group?: string;
   telegraph: number;
   pos: Vec2;
   radius: number;
@@ -369,6 +384,8 @@ export type PendingTower = {
 export type ActiveTower = {
   id: string;
   name: string;
+  labels?: string[];
+  group?: string;
   pos: Vec2;
   radius: number;
   telegraphStart: number;
@@ -774,4 +791,12 @@ export type World = {
   plantDebuffOrder?: number[];
   forsakenPlan?: ForsakenPlan;
   botSolvers?: BotSolvers;
+  // Generic solver support, populated at world build (any mechanic can fill these; the generic
+  // solver never reads forsakenPlan directly):
+  // - partners: player id -> its paired player id (for when.partnerDebuff).
+  // - playerGroups: player id -> its group label (for when.soaks vs a mechanic's group).
+  // - eventPositions: static positioned event id -> position (for explicit frame: [ids]).
+  partners: Record<string, string>;
+  playerGroups: Record<string, string>;
+  eventPositions: Record<string, Vec2>;
 };

@@ -57,20 +57,21 @@ test("bot patterns can carry generic plant solver rules", () => {
   expect(world.botSolvers?.generic?.[1]?.spot).toEqual({ x: 0, z: 18 });
 });
 
-test("bot patterns can carry forsaken solver spots", () => {
+test("bot patterns can carry generic rules with soaks/partnerDebuff/frame", () => {
   const raid = loadRaid(baseRaid);
   const botPatterns = loadBotPatterns({
     players: {},
     solvers: {
-      forsaken: {
-        towerWindows: [{ start: 1, end: 3, tower: 1 }],
-        towerSpots: { mt: [[8, 0]] },
-      },
+      generic: [
+        { when: { mechanic: "tower-odd", soaks: true, debuff: ["Stack Charge"], partnerDebuff: "Cone Charge" }, frame: "matched", spot: [8, 0] },
+      ],
     },
   });
   const world = createWorld(applyBotPatterns(raid, botPatterns));
 
-  expect(world.botSolvers?.forsaken?.towerSpots.mt[0]).toEqual({ x: 8, z: 0 });
+  expect(world.botSolvers?.generic?.[0]?.when).toEqual({ mechanic: "tower-odd", soaks: true, debuff: ["Stack Charge"], partnerDebuff: "Cone Charge" });
+  expect(world.botSolvers?.generic?.[0]?.frame).toBe("matched");
+  expect(world.botSolvers?.generic?.[0]?.spot).toEqual({ x: 8, z: 0 });
 });
 
 test("forsaken raid and bot companion content load", async () => {
@@ -91,8 +92,9 @@ test("forsaken raid and bot companion content load", async () => {
   expect(effectResolverById("forsaken-cone-resolve")).toMatchObject({ effectName: "Cone Charge" });
   expect(effectResolverById("forsaken-defamation-resolve")).toMatchObject({ effectName: "Defamation Charge" });
   expect(world.forsakenPlan?.towerOrder.join("")).toBe("AAABBBBA");
-  expect(world.botSolvers?.forsaken?.towerWindows).toHaveLength(8);
-  expect(world.botSolvers?.forsaken?.towerWindows[0]).toEqual({ start: 9, end: 16, tower: 1 });
+  expect(world.botSolvers?.generic).toHaveLength(24);
+  expect(world.botSolvers?.generic?.[0]?.when).toEqual({ mechanic: "bait-1" });
+  expect(world.botSolvers?.generic?.[0]?.frame).toEqual(["tower-3-left", "tower-3-right"]);
   expect(world.players.find(player => player.id === "h1")?.pattern?.[0]?.pos).toEqual({ x: 7.39, z: -1.3 });
   const towerEvents = raid.events.filter(event => event.type === "tower");
   expect(towerEvents).toHaveLength(16);
@@ -163,26 +165,25 @@ test("forsaken tower swaps alternate odd and even debuff distributions", async (
   expect(world.players.map(p => `${p.id}:${p.alive}`)).toEqual(world.players.map(p => `${p.id}:true`));
 });
 
-test("forsaken solver moves bots during authored tower and bait windows", () => {
+test("generic solver moves bots during a labeled tower window using a rotated frame", () => {
+  // Two towers form a frame whose north is their bisector ([0,5]+[5,0] -> [0.707, 0.707]).
+  const tower = (id: string, pos: [number, number]) => ({
+    type: "tower", id, t: 1, name: id, labels: ["wave"], telegraph: 5, pos,
+    radius: 3, failureDamage: 0, failureDamageType: "true" as const,
+  });
   const raid = loadRaid({
     ...baseRaid,
     players: roster({ mt: { spawn: [0, 0] }, m1: { spawn: [0, 15] } }),
-    botSolvers: {
-      forsaken: {
-        towerWindows: [{ start: 1, end: 3, tower: 1 }],
-        baitWindows: [{ start: 4, end: 5, index: 1 }],
-        towerSpots: { mt: [[8, 0]] },
-        baitSpots: { mt: [[-8, 0]] },
-      },
-    },
+    events: [tower("wave-left", [0, 5]), tower("wave-right", [5, 0])],
+    botSolvers: { generic: [{ when: { mechanic: "wave" }, frame: "matched", spot: [0, 5] }] },
   });
 
   let world = createWorld(raid);
   world = tick(world, {}, 1.1);
-  expect(computeBotIntents(world, 1 / 60).mt?.move.x).toBeGreaterThan(0);
-
-  world = tick(world, {}, 3);
-  expect(computeBotIntents(world, 1 / 60).mt?.move.x).toBeLessThan(0);
+  // Frame coord [0, 5] -> 5 * north -> +x and +z.
+  const intent = computeBotIntents(world, 1 / 60).mt;
+  expect(intent?.move.x).toBeGreaterThan(0);
+  expect(intent?.move.z).toBeGreaterThan(0);
 });
 
 test("bot with a pattern can dodge an AOE while a bot without one is hit", () => {

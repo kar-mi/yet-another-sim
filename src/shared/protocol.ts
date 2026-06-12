@@ -142,17 +142,18 @@ export type PlaybackState = "playing" | "paused" | "stopped";
 // as events fire and stay in every snapshot.
 export type StaticWorldKey =
   | "arena" | "waymarks" | "duration" | "hasMechanics"
-  | "plantPlan" | "plantDebuffOrder" | "forsakenPlan" | "botSolvers" | "effectResolvers";
+  | "plantPlan" | "plantDebuffOrder" | "forsakenPlan" | "botSolvers" | "effectResolvers"
+  | "partners" | "playerGroups" | "eventPositions";
 export type StaticWorld = Pick<World, StaticWorldKey>;
 export type DynamicWorld = Omit<World, StaticWorldKey>;
 
 export function toStaticWorld(world: World): StaticWorld {
-  const { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, forsakenPlan, botSolvers, effectResolvers } = world;
-  return { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, forsakenPlan, botSolvers, effectResolvers };
+  const { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, forsakenPlan, botSolvers, effectResolvers, partners, playerGroups, eventPositions } = world;
+  return { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, forsakenPlan, botSolvers, effectResolvers, partners, playerGroups, eventPositions };
 }
 
 export function toDynamicWorld(world: World): DynamicWorld {
-  const { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, forsakenPlan, botSolvers, effectResolvers, ...dynamic } = world;
+  const { arena, waymarks, duration, hasMechanics, plantPlan, plantDebuffOrder, forsakenPlan, botSolvers, effectResolvers, partners, playerGroups, eventPositions, ...dynamic } = world;
   return dynamic;
 }
 

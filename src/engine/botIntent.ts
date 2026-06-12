@@ -2,7 +2,6 @@ import type { Vec2 } from "../shared/math";
 import type { Intents, Player, Waypoint, World } from "../shared/types";
 import { length, normalize, sub } from "../shared/math";
 import { MOVE_SPEED } from "./sim";
-import { forsakenSolverWaypoint } from "./forsakenSolver";
 import { genericSolverWaypoint } from "./genericSolver";
 
 function activeWaypoint(pattern: Waypoint[], time: number, after = -Infinity): Waypoint | undefined {
@@ -13,14 +12,6 @@ function activeWaypoint(pattern: Waypoint[], time: number, after = -Infinity): W
     }
   }
   return active;
-}
-
-function solverWaypoint(player: Player, world: World): Vec2 | undefined {
-  // Generic, data-driven rules are checked first so they can override the forsaken solver below.
-  const generic = genericSolverWaypoint(player, world);
-  if (generic) return generic;
-
-  return forsakenSolverWaypoint(player, world);
 }
 
 function moveIntent(player: Player, target: Vec2, dt: number) {
@@ -37,7 +28,7 @@ export function computeBotIntents(world: World, dt: number): Intents {
   for (const player of world.players) {
     if (!player.alive || player.control !== "bot") continue;
 
-    const solverTarget = solverWaypoint(player, world);
+    const solverTarget = genericSolverWaypoint(player, world);
     if (solverTarget) {
       intents[player.id] = moveIntent(player, solverTarget, dt);
       continue;

@@ -1,7 +1,17 @@
 import type { Vec2 } from "../shared/math";
+import { add, normalize } from "../shared/math";
 import type { GenericSolverRule, Player, World } from "../shared/types";
 
-type ResolvedMechanic = { resolvedId: string; telegraphStart: number; resolveAt: number };
+// A live unresolved mechanic the generic solver can match against. `labels`/`group`/`pos` are carried
+// from the authored event (towers have a position; targeted/bait/aoe carry labels+group but no pos).
+type ResolvedMechanic = {
+  resolvedId: string;
+  telegraphStart: number;
+  resolveAt: number;
+  labels?: string[];
+  group?: string;
+  pos?: Vec2;
+};
 
 // Walk the unresolved active mechanics in the world and yield each one's resolved id (the base
 // event id extended with dot-separated RNG-outcome segments) plus its telegraph->resolve window.
@@ -11,13 +21,13 @@ export function resolvedMechanics(world: World): ResolvedMechanic[] {
 
   // Plain (non-RNG) telegraphs: the resolved id is just the event id.
   for (const m of world.active) {
-    if (!m.resolved) out.push({ resolvedId: m.id, telegraphStart: m.telegraphStart, resolveAt: m.resolveAt });
+    if (!m.resolved) out.push({ resolvedId: m.id, telegraphStart: m.telegraphStart, resolveAt: m.resolveAt, labels: m.labels, group: m.group });
   }
   for (const t of world.towers) {
-    if (!t.resolved) out.push({ resolvedId: t.id, telegraphStart: t.telegraphStart, resolveAt: t.resolveAt });
+    if (!t.resolved) out.push({ resolvedId: t.id, telegraphStart: t.telegraphStart, resolveAt: t.resolveAt, labels: t.labels, group: t.group, pos: t.pos });
   }
   for (const t of world.pendingTowers) {
-    out.push({ resolvedId: t.id, telegraphStart: t.t - t.telegraph, resolveAt: t.t });
+    out.push({ resolvedId: t.id, telegraphStart: t.t - t.telegraph, resolveAt: t.t, labels: t.labels, group: t.group, pos: t.pos });
   }
 
   // Inverse "?": id + .inverted/.shown + .a/.b (the rolled orientation).
@@ -60,9 +70,20 @@ function prefixMatches(ruleSegments: string[], resolvedId: string): boolean {
   return ruleSegments.every((segment, i) => segment === idSegments[i]);
 }
 
+// A rule mechanic id matches a live mechanic by segment-prefix on its id OR an exact label match.
+function mechanicMatches(id: string, mechanic: ResolvedMechanic): boolean {
+  return prefixMatches(id.split("."), mechanic.resolvedId) || (mechanic.labels?.includes(id) ?? false);
+}
+
 function hasActiveDebuff(player: Player, name: string, time: number): boolean {
   return player.effects.some(effect =>
     effect.name === name && effect.appliedAt <= time && effect.appliedAt + effect.duration > time);
+}
+
+// Every listed effect name must be active on the player (a single string is treated as a 1-element list).
+function hasAllDebuffs(player: Player, debuff: string | string[], time: number): boolean {
+  const names = Array.isArray(debuff) ? debuff : [debuff];
+  return names.every(name => hasActiveDebuff(player, name, time));
 }
 
 function directionName(direction: [number, number]): "up" | "down" | "left" | "right" | undefined {
@@ -97,43 +118,90 @@ function plantComboKey(player: Player, world: World): string | undefined {
   return names.join(" ");
 }
 
-function ruleMatches(rule: GenericSolverRule, player: Player, world: World, mechanics: ResolvedMechanic[]): boolean {
+// Evaluate a rule's `when` conditions for this bot. Returns the live mechanics matched by the first
+// `when.mechanic` entry (for soaks / frame: "matched"), or null when the rule does not apply.
+function ruleMatches(rule: GenericSolverRule, player: Player, world: World, mechanics: ResolvedMechanic[]): ResolvedMechanic[] | null {
   const time = world.time;
-  if (rule.startAt !== undefined && time < rule.startAt) return false;
-  if (rule.endAt !== undefined && time > rule.endAt) return false;
+  if (rule.startAt !== undefined && time < rule.startAt) return null;
+  if (rule.endAt !== undefined && time > rule.endAt) return null;
 
-  const { mechanic, role, debuff, plant, plantSlot } = rule.when;
-  if (role !== undefined && player.role !== role) return false;
-  if (debuff !== undefined && !hasActiveDebuff(player, debuff, time)) return false;
-  if (plant !== undefined) {
-    if (plantComboKey(player, world) !== plant) return false;
-    if (plantSlot !== undefined && activePlantSlot(player) !== plantSlot) return false;
+  const { mechanic, role, debuff, partnerDebuff, soaks, plant, plantSlot } = rule.when;
+  if (role !== undefined && player.role !== role) return null;
+  if (debuff !== undefined && !hasAllDebuffs(player, debuff, time)) return null;
+  if (partnerDebuff !== undefined) {
+    const partner = world.players.find(p => p.id === world.partners?.[player.id]);
+    if (!partner || !hasAllDebuffs(partner, partnerDebuff, time)) return null;
   }
+  if (plant !== undefined) {
+    if (plantComboKey(player, world) !== plant) return null;
+    if (plantSlot !== undefined && activePlantSlot(player) !== plantSlot) return null;
+  }
+
+  // The live mechanics matched by the first listed id, used by soaks / frame. A list requires every
+  // listed mechanic to be live at once (segment-prefix or label match within its window).
+  let matched: ResolvedMechanic[] = [];
   if (mechanic !== undefined) {
-    // A list requires every mechanic to be live at once (segment-prefix match within its window).
     const required = Array.isArray(mechanic) ? mechanic : [mechanic];
     for (const id of required) {
-      const segments = id.split(".");
-      const live = mechanics.some(m =>
-        m.telegraphStart <= time && time <= m.resolveAt && prefixMatches(segments, m.resolvedId));
-      if (!live) return false;
+      const live = mechanics.filter(m => m.telegraphStart <= time && time <= m.resolveAt && mechanicMatches(id, m));
+      if (live.length === 0) return null;
+      if (matched.length === 0) matched = live;
     }
   }
-  return true;
+
+  if (soaks !== undefined) {
+    const group = matched[0]?.group;
+    if (group === undefined) return null;
+    const playerGroup = world.playerGroups?.[player.id];
+    if (soaks ? playerGroup !== group : playerGroup === group) return null;
+  }
+
+  return matched;
+}
+
+// Compute the frame's north vector: "matched" sums the positions of the live matched mechanics
+// (a tower pair's bisector); a list sums those events' static positions. Returns undefined when no
+// positioned event contributes (the rule then yields no spot for this bot).
+function frameNorth(frame: "matched" | string[], matched: ResolvedMechanic[], world: World): Vec2 | undefined {
+  let sum: Vec2 = { x: 0, z: 0 };
+  if (frame === "matched") {
+    for (const m of matched) if (m.pos) sum = add(sum, m.pos);
+  } else {
+    for (const id of frame) {
+      const pos = world.eventPositions?.[id];
+      if (pos) sum = add(sum, pos);
+    }
+  }
+  if (sum.x === 0 && sum.z === 0) return undefined;
+  return normalize(sum);
+}
+
+// Map a frame coordinate [x, z] to world space: x along right (north rotated -90°), z along north.
+function frameToWorld(spot: Vec2, north: Vec2): Vec2 {
+  const right: Vec2 = { x: north.z, z: -north.x };
+  return {
+    x: spot.x * right.x + spot.z * north.x,
+    z: spot.x * right.z + spot.z * north.z,
+  };
 }
 
 // Generic, data-driven bot solver: iterate world.botSolvers.generic in order; the first rule whose
 // conditions all match and that yields a spot for this bot wins. Returns undefined when no rule
-// applies, letting the caller fall back to other solvers / authored waypoints.
+// applies, letting the caller fall back to authored waypoints.
 export function genericSolverWaypoint(player: Player, world: World): Vec2 | undefined {
   const rules = world.botSolvers?.generic;
   if (!rules?.length) return undefined;
 
   const mechanics = resolvedMechanics(world);
   for (const rule of rules) {
-    if (!ruleMatches(rule, player, world, mechanics)) continue;
+    const matched = ruleMatches(rule, player, world, mechanics);
+    if (matched === null) continue;
     const spot = rule.spots?.[player.id] ?? rule.spot;
-    if (spot) return spot;
+    if (!spot) continue;
+    if (rule.frame === undefined) return spot;
+    const north = frameNorth(rule.frame, matched, world);
+    if (!north) continue; // frame uncomputable: fall through to the next rule
+    return frameToWorld(spot, north);
   }
   return undefined;
 }

@@ -195,6 +195,95 @@ test("a rule is inactive outside the mechanic's telegraph window", () => {
   expect(genericSolverWaypoint(player({}), make(16))).toBeUndefined();
 });
 
+test("a mechanic matches a resolved mechanic by label", () => {
+  const w = world({
+    time: 2,
+    active: [{ id: "close-bait-1", labels: ["bait-1"], telegraphStart: 0, resolveAt: 5, resolved: false }],
+    botSolvers: { generic: [{ when: { mechanic: "bait-1" }, spot: { x: 6, z: 6 } }] },
+  });
+  expect(genericSolverWaypoint(player({}), w)).toEqual({ x: 6, z: 6 });
+});
+
+test("a debuff array requires every listed effect to be active", () => {
+  const base = { time: 2, botSolvers: { generic: [{ when: { debuff: ["A", "B"] }, spot: { x: 1, z: 1 } }] } };
+  const both = player({ effects: [{ name: "A", appliedAt: 0, duration: 5 }, { name: "B", appliedAt: 0, duration: 5 }] as Player["effects"] });
+  const one = player({ effects: [{ name: "A", appliedAt: 0, duration: 5 }] as Player["effects"] });
+  expect(genericSolverWaypoint(both, world(base))).toEqual({ x: 1, z: 1 });
+  expect(genericSolverWaypoint(one, world(base))).toBeUndefined();
+});
+
+test("partnerDebuff checks the bot's partner via world.partners", () => {
+  const p1 = player({ id: "p1", effects: [] });
+  const p2 = player({ id: "p2", effects: [{ name: "Cone", appliedAt: 0, duration: 5 }] as Player["effects"] });
+  const w = world({
+    time: 2,
+    players: [p1, p2],
+    partners: { p1: "p2", p2: "p1" },
+    botSolvers: { generic: [{ when: { partnerDebuff: "Cone" }, spot: { x: 1, z: 1 } }] },
+  });
+  expect(genericSolverWaypoint(p1, w)).toEqual({ x: 1, z: 1 }); // partner p2 has Cone
+  expect(genericSolverWaypoint(p2, w)).toBeUndefined();         // partner p1 has nothing
+});
+
+test("soaks compares the bot's group to the matched mechanic's group", () => {
+  const make = () => world({
+    time: 2,
+    towers: [{ id: "tower-1", group: "A", pos: { x: 0, z: 5 }, telegraphStart: 0, resolveAt: 5, resolved: false }],
+    playerGroups: { soaker: "A", other: "B" },
+    botSolvers: {
+      generic: [
+        { when: { mechanic: "tower-1", soaks: true }, spot: { x: 1, z: 1 } },
+        { when: { mechanic: "tower-1", soaks: false }, spot: { x: 9, z: 9 } },
+      ],
+    },
+  });
+  expect(genericSolverWaypoint(player({ id: "soaker" }), make())).toEqual({ x: 1, z: 1 });
+  expect(genericSolverWaypoint(player({ id: "other" }), make())).toEqual({ x: 9, z: 9 });
+});
+
+test("frame: matched rotates a spot into the matched towers' bisector frame", () => {
+  // Two towers at [0,5] and [5,0]: north = bisector [0.707, 0.707]; a frame [0, 5] spot maps to 5*north.
+  const w = world({
+    time: 2,
+    towers: [
+      { id: "t-l", labels: ["wave"], pos: { x: 0, z: 5 }, telegraphStart: 0, resolveAt: 5, resolved: false },
+      { id: "t-r", labels: ["wave"], pos: { x: 5, z: 0 }, telegraphStart: 0, resolveAt: 5, resolved: false },
+    ],
+    botSolvers: { generic: [{ when: { mechanic: "wave" }, frame: "matched", spot: { x: 0, z: 5 } }] },
+  });
+  const spot = genericSolverWaypoint(player({}), w)!;
+  expect(spot.x).toBeCloseTo(3.5355, 3);
+  expect(spot.z).toBeCloseTo(3.5355, 3);
+});
+
+test("frame: [eventIds] rotates using static event positions", () => {
+  // Frame north from events at [0,-5] and [-5,0]: bisector [-0.707, -0.707]; spot [0, 5] -> 5*north.
+  const w = world({
+    time: 2,
+    active: [{ id: "bait", telegraphStart: 0, resolveAt: 5, resolved: false }],
+    eventPositions: { "ev-a": { x: 0, z: -5 }, "ev-b": { x: -5, z: 0 } },
+    botSolvers: { generic: [{ when: { mechanic: "bait" }, frame: ["ev-a", "ev-b"], spot: { x: 0, z: 5 } }] },
+  });
+  const spot = genericSolverWaypoint(player({}), w)!;
+  expect(spot.x).toBeCloseTo(-3.5355, 3);
+  expect(spot.z).toBeCloseTo(-3.5355, 3);
+});
+
+test("a rule whose frame cannot be computed falls through to the next rule", () => {
+  const w = world({
+    time: 2,
+    active: [{ id: "bait", telegraphStart: 0, resolveAt: 5, resolved: false }],
+    eventPositions: {},
+    botSolvers: {
+      generic: [
+        { when: { mechanic: "bait" }, frame: ["missing"], spot: { x: 1, z: 1 } },
+        { when: { mechanic: "bait" }, spot: { x: 9, z: 9 } },
+      ],
+    },
+  });
+  expect(genericSolverWaypoint(player({}), w)).toEqual({ x: 9, z: 9 });
+});
+
 test("generic solver rules load from a -bots companion and convert spots to Vec2", async () => {
   const raidData = Bun.YAML.parse(await Bun.file("raids/debug/rng-stack.yaml").text());
   const botData = Bun.YAML.parse(await Bun.file("raids/debug/rng-stack-bots.yaml").text());
