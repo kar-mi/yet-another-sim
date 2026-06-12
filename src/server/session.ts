@@ -15,6 +15,8 @@ import { metrics } from "./metrics";
  * the server entry; left undefined in tests so no files are touched.
  */
 export interface SessionLog {
+  // One-time pull header (tick-0 world + raid id) so the relayed frames are replayable on their own.
+  header(raidId: string, world: World): void;
   frame(startTick: number, frames: Frame[]): void;
   close(): void;
 }
@@ -98,7 +100,10 @@ export class Session {
   // sent on `started` so a fresh/late client can rebuild the world by replaying the input log.
   world: World;
   // Authoritative input log: one merged-intent Frame per simulated tick since the pull started.
-  // `inputLog.length` is the current tick. Sent in full for late join / resync; tiny (KB-scale).
+  // `inputLog.length` is the current tick. Sent in full on late join / resync and replayed
+  // synchronously by the client. Bounded by pull length (~18k frames / 5min at 60Hz, MBs of JSON),
+  // so the replay blocks the joining client briefly — fine for MVP-length pulls.
+  // TODO: chunk the replay or periodically checkpoint the world server-side to cap resync cost.
   readonly inputLog: Frame[] = [];
 
   private raid: RaidDef;
@@ -114,8 +119,13 @@ export class Session {
   private lastTickAt = 0;
   private frameBatch: Frame[] = [];
   private maxPullTicks = Infinity;
-  // First world hash reported for a tick is treated as canonical; later mismatches are desyncs.
+  // Canonical world hash per tick = the host's hash (it has end-of-pull authority); a mismatch from
+  // any other client is a desync. Trusting the host avoids "resyncing" honest clients toward a
+  // desynced one when that client happens to report first.
   private readonly canonicalHashes = new Map<number, number>();
+  // Non-host hash reports awaiting the host's canonical hash for the same tick (the host's report
+  // may arrive later); verified and dropped once the host's hash lands.
+  private readonly pendingHashes = new Map<number, Map<string, number>>();
   // Last time each client's hash report was accepted, for rate-capping.
   private readonly lastHashReportAt = new Map<string, number>();
   private readonly sessionLog: SessionLog | null;
@@ -499,9 +509,14 @@ export class Session {
     this.inputLog.length = 0;
     this.frameBatch = [];
     this.canonicalHashes.clear();
+    this.pendingHashes.clear();
     this.lastHashReportAt.clear();
     this.tickAccumulator = 0;
     this.maxPullTicks = Math.ceil((this.world.duration + PULL_GRACE_SECONDS) / DT);
+    // On a real pull start (start/restart set status="running" before this; the constructor's
+    // lobby-time reset does not), record the tick-0 world so the session log is self-contained:
+    // its seed + this header let the relayed frames be replayed without any other state.
+    if (this.status === "running") this.sessionLog?.header(this.raidId, this.world);
   }
 
   private startedMessage(playerId: string | null): ServerMessage {
@@ -540,15 +555,32 @@ export class Session {
     if (now - (this.lastHashReportAt.get(clientId) ?? -Infinity) < MIN_HASH_REPORT_MS) return;
     this.lastHashReportAt.set(clientId, now);
 
+    if (clientId === this.hostClientId) {
+      this.canonicalHashes.set(tick, hash);
+      const pending = this.pendingHashes.get(tick);
+      if (pending) {
+        for (const [cid, reported] of pending) if (reported !== hash) this.flagDesync(tick, hash, reported, cid);
+        this.pendingHashes.delete(tick);
+      }
+      this.pruneHashWindow();
+      return;
+    }
+
     const canonical = this.canonicalHashes.get(tick);
     if (canonical === undefined) {
-      this.canonicalHashes.set(tick, hash);
+      let pending = this.pendingHashes.get(tick);
+      if (!pending) { pending = new Map(); this.pendingHashes.set(tick, pending); }
+      pending.set(clientId, hash);
       this.pruneHashWindow();
       return;
     }
     if (canonical === hash) return;
+    this.flagDesync(tick, canonical, hash, clientId);
+  }
+
+  private flagDesync(tick: number, expected: number, got: number, clientId: string): void {
     metrics.desyncTotal.inc();
-    logger.warn("session", "world desync", { session: this.id, tick, expected: canonical, got: hash, clientId });
+    logger.warn("session", "world desync", { session: this.id, tick, expected, got, clientId });
     this.resync(clientId);
   }
 
@@ -562,9 +594,14 @@ export class Session {
   }
 
   private pruneHashWindow(): void {
-    if (this.canonicalHashes.size <= MAX_HASH_WINDOW) return;
-    const oldest = Math.min(...this.canonicalHashes.keys());
-    this.canonicalHashes.delete(oldest);
+    while (this.canonicalHashes.size > MAX_HASH_WINDOW) {
+      this.canonicalHashes.delete(Math.min(...this.canonicalHashes.keys()));
+    }
+    // Pending reports for a tick the host never canonicalized (e.g. its report was rate-dropped)
+    // would otherwise leak; bound them the same way.
+    while (this.pendingHashes.size > MAX_HASH_WINDOW) {
+      this.pendingHashes.delete(Math.min(...this.pendingHashes.keys()));
+    }
   }
 
   isExpired(now = this.now()): boolean {

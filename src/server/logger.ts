@@ -60,7 +60,8 @@ logger.configure({
 
 // Per-session input replay log: one batched JSONL file per session at logs/sessions/<id>.jsonl,
 // written regardless of LOG_LEVEL. In server-relayed lockstep the server no longer simulates, so
-// the input frames it relays ARE the session — replaying them against the initial world (same seed)
+// the input frames it relays ARE the session. Each pull opens with a header line carrying the
+// tick-0 world (seed included) + raid id; replaying the subsequent frame lines against that world
 // reproduces the entire pull deterministically.
 export function createSessionLog(sessionId: string): SessionLog {
   mkdirSync(SESSION_LOG_DIR, { recursive: true });
@@ -77,6 +78,10 @@ export function createSessionLog(sessionId: string): SessionLog {
   timer.unref();
 
   const sessionLog: SessionLog = {
+    header(raidId, world): void {
+      writer.write(JSON.stringify({ header: true, raidId, world }) + "\n");
+      dirty = true;
+    },
     frame(startTick: number, frames: Frame[]): void {
       writer.write(JSON.stringify({ startTick, frames }) + "\n");
       dirty = true;

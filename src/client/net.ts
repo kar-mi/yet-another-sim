@@ -40,7 +40,6 @@ export class NetClient {
   // Local simulation state.
   private world: World | null = null;
   private appliedTick = 0;       // number of input frames applied == current sim tick
-  private lastHashTick = 0;      // tick of the last hash report
   private isHost = false;
   private simEndedSent = false;  // host: simEnded already reported for this pull
 
@@ -192,7 +191,6 @@ export class NetClient {
     this.appliedTick = 0;
     this.simEndedSent = false;
     for (const frame of message.frames) this.stepOne(frame);
-    this.lastHashTick = this.appliedTick;
     this.snapshots.length = 0;
     this.pushSnapshot(this.world);
   }
@@ -206,8 +204,8 @@ export class NetClient {
     for (let i = offset; i < message.frames.length; i++) {
       this.stepOne(message.frames[i]);
       this.pushSnapshot(this.world);
+      this.maybeReportHash();
     }
-    this.maybeReportHash();
     this.maybeReportSimEnded();
   }
 
@@ -216,16 +214,25 @@ export class NetClient {
   // `computeBotIntents` is identical. Stops at a terminal world so a finished pull isn't over-run.
   private stepOne(frame: Frame): void {
     const world = this.world;
-    if (!world || world.status !== "running") return;
-    const prepared = applyFrameControls(world, frame);
-    const bots = computeBotIntents(prepared, DT);
-    this.world = tick(prepared, { ...bots, ...frame.intents }, DT);
+    if (!world) return;
+    if (world.status === "running") {
+      const prepared = applyFrameControls(world, frame);
+      const bots = computeBotIntents(prepared, DT);
+      this.world = tick(prepared, { ...bots, ...frame.intents }, DT);
+      // world.log is render-irrelevant on the client and excluded from worldHash; clear it each
+      // tick (mirroring the old server step) so it can't grow unbounded across a long pull.
+      if (this.world.log.length > 0) this.world.log.length = 0;
+    }
+    // Advance even when terminal so appliedTick stays in lockstep with the server's frame count;
+    // the server keeps relaying frames until the host's simEnded round-trips. Otherwise the next
+    // batch's startTick would outrun a frozen appliedTick and trigger a spurious full rejoin.
     this.appliedTick++;
   }
 
+  // Report on fixed tick boundaries (not a per-client delta) so every client hashes the SAME ticks.
+  // Each client steps every tick, so alignment is guaranteed and the server can actually compare.
   private maybeReportHash(): void {
-    if (!this.world || this.appliedTick - this.lastHashTick < HASH_INTERVAL) return;
-    this.lastHashTick = this.appliedTick;
+    if (!this.world || this.appliedTick === 0 || this.appliedTick % HASH_INTERVAL !== 0) return;
     this.send({ type: "worldHash", tick: this.appliedTick, hash: worldHash(this.world) });
   }
 

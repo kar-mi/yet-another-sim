@@ -442,6 +442,30 @@ test("matching world hashes do not resync", () => {
   expect(sent.filter(entry => entry.message.type === "started").length).toBe(before);
 });
 
+test("non-host report before the host's is buffered, then judged against the host's hash", () => {
+  const { session, sent } = makeSession();
+  session.join("c1"); // host
+  session.join("c2");
+  session.join("c3");
+  session.claimSlot("c1", "mt");
+  session.claimSlot("c2", "ot");
+  session.claimSlot("c3", "h1");
+  session.start("c1");
+  session.step(false);
+
+  // A desynced client reports first, before the host — must be buffered, not acted on yet.
+  session.reportWorldHash("c2", 1, 222);
+  session.reportWorldHash("c3", 1, 999); // honest, agrees with the (not-yet-known) host hash
+  const startedBefore = (id: string) => sent.filter(e => e.clientId === id && e.message.type === "started").length;
+  const c2Before = startedBefore("c2");
+  const c3Before = startedBefore("c3");
+
+  // Host's hash lands and becomes canonical: the buffered desynced client is resynced, the honest one is not.
+  session.reportWorldHash("c1", 1, 999);
+  expect(startedBefore("c2")).toBe(c2Before + 1);
+  expect(startedBefore("c3")).toBe(c3Before);
+});
+
 test("host can restart after the session ends", () => {
   const { session, sent } = makeSession();
   session.join("c1");
