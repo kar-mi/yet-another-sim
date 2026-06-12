@@ -85,6 +85,7 @@ export const metrics = {
     ),
   ),
   sessionsActive: registry.register(new Gauge("sim_sessions_active", "Sessions currently in the manager.")),
+  sessionsCapacity: registry.register(new Gauge("sim_sessions_capacity", "Configured maximum sessions per backend (MAX_SESSIONS).")),
   clientsConnected: registry.register(new Gauge("sim_clients_connected", "Open WebSocket clients.")),
 
   // Network.

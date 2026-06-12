@@ -10,7 +10,7 @@ import {
   type RaidEntry,
   type ServerMessage,
 } from "../shared/protocol";
-import { SessionManager } from "./session";
+import { SessionManager, capacitySnapshot } from "./session";
 import { logger, createSessionLog, debugEnabled } from "./logger";
 import { metrics } from "./metrics";
 import { startMetricsServer } from "./metricsServer";
@@ -20,6 +20,19 @@ const BUNDLE_DIR = join(ROOT, ".bundle");
 const RAIDS_DIR = join(ROOT, "raids");
 const STATIC_DIR = join(ROOT, "static");
 const PORT = Number(Bun.env.PORT || 3000);
+
+// Maximum allocated rooms on this backend. A bad cap must fail startup, never be
+// silently coerced into an unbounded or nonsensical limit.
+function parsePositiveInt(name: string, raw: string | undefined, fallback: number): number {
+  if (raw === undefined || raw === "") return fallback;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value <= 0) {
+    logger.error("config", `${name} must be a positive integer`, { value: raw });
+    process.exit(1);
+  }
+  return value;
+}
+const MAX_SESSIONS = parsePositiveInt("MAX_SESSIONS", Bun.env.MAX_SESSIONS, 10);
 
 interface SocketData {
   clientId: string;
@@ -150,12 +163,14 @@ const manager = new SessionManager({
     if (ws?.readyState === WebSocket.OPEN) ws.send(typeof message === "string" ? message : JSON.stringify(message));
   },
   createSessionLog,
+  maxSessions: MAX_SESSIONS,
 });
 setInterval(() => manager.pruneExpired(), 60_000);
 
 startMetricsServer({
   sessionsActive: () => manager.sessions.size,
   clientsConnected: () => clients.size,
+  sessionsCapacity: MAX_SESSIONS,
 });
 
 const server = Bun.serve<SocketData>({
@@ -172,6 +187,19 @@ const server = Bun.serve<SocketData>({
 
         if (url.pathname === "/api/raids") {
           return Response.json(await loadRaidCategories());
+        }
+
+        // Liveness only — always 200 while the process is up. Capacity is never
+        // encoded here so a full backend stays reachable for joins/reconnects.
+        if (url.pathname === "/health") {
+          return new Response("OK");
+        }
+
+        // Capacity snapshot for fleet tooling. Not exposed through Caddy by default.
+        if (url.pathname === "/metrics/sessions") {
+          return Response.json(capacitySnapshot(manager.sessions.size, MAX_SESSIONS), {
+            headers: { "Cache-Control": "no-store" },
+          });
         }
 
         // Serve bundled client

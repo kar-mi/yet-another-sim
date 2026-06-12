@@ -25,6 +25,9 @@ const DT = 1 / 60;
 const TICK_MS = 1000 / 60;
 const MAX_CATCH_UP_STEPS = 5;
 export const LOBBY_TIMEOUT_MS = 10 * 60 * 1000;
+// Pristine lobbies (never started, no slot claimed) are reaped far sooner so a flood
+// of unused rooms can't squat on the per-backend cap. Never exceeds LOBBY_TIMEOUT_MS.
+export const EMPTY_LOBBY_TIMEOUT_MS = 90 * 1000;
 
 type SendMessage = (clientId: string, message: ServerMessage | string) => void;
 type TickHandle = ReturnType<typeof setInterval>;
@@ -458,7 +461,15 @@ export class Session {
   }
 
   isExpired(now = this.now()): boolean {
-    return this.status !== "running" && now - this.lastActivity >= this.lobbyTimeoutMs;
+    if (this.status === "running") return false;
+    const timeout = this.isUnusedLobby() ? Math.min(EMPTY_LOBBY_TIMEOUT_MS, this.lobbyTimeoutMs) : this.lobbyTimeoutMs;
+    return now - this.lastActivity >= timeout;
+  }
+
+  // A never-started lobby with no slot claimed — the cheap artifact a mass-create
+  // flood leaves behind. Once a slot is claimed or the raid starts, it is "in use".
+  private isUnusedLobby(): boolean {
+    return this.status === "lobby" && ![...this.slots.values()].some(owner => owner !== null);
   }
 
   dispose(): void {
@@ -637,6 +648,19 @@ export interface SessionManagerOptions {
   now?: () => number;
   lobbyTimeoutMs?: number;
   createSessionLog?: (sessionId: string) => SessionLog;
+  /** Maximum allocated rooms on this backend. Defaults to unlimited. */
+  maxSessions?: number;
+}
+
+export interface CapacitySnapshot {
+  sessions: number;
+  maxSessions: number;
+  availableSessions: number;
+}
+
+/** Point-in-time room capacity, used by the /metrics/sessions endpoint. */
+export function capacitySnapshot(sessions: number, maxSessions: number): CapacitySnapshot {
+  return { sessions, maxSessions, availableSessions: Math.max(0, maxSessions - sessions) };
 }
 
 export class SessionManager {
@@ -648,6 +672,7 @@ export class SessionManager {
   private readonly now?: () => number;
   private readonly lobbyTimeoutMs?: number;
   private readonly createSessionLog?: (sessionId: string) => SessionLog;
+  private readonly maxSessions: number;
 
   constructor(options: SessionManagerOptions) {
     this.raidsDir = options.raidsDir;
@@ -655,6 +680,11 @@ export class SessionManager {
     this.now = options.now;
     this.lobbyTimeoutMs = options.lobbyTimeoutMs;
     this.createSessionLog = options.createSessionLog;
+    this.maxSessions = options.maxSessions ?? Infinity;
+  }
+
+  sessionCount(): number {
+    return this.sessions.size;
   }
 
   async handle(clientId: string, message: ClientMessage): Promise<void> {
@@ -708,9 +738,22 @@ export class SessionManager {
 
     let session = this.sessions.get(sessionId);
     if (!session) {
+      // Joining an existing room is always allowed even when full; only creating a
+      // new room is gated. Prune dead lobbies first so they don't reject spuriously.
+      this.pruneExpired();
+      if (this.sessionCount() >= this.maxSessions) {
+        this.send(clientId, { type: "error", message: "Server is full" });
+        return;
+      }
+
       const raid = await loadSessionRaid(raidId, this.raidsDir);
       session = this.sessions.get(sessionId);
       if (!session) {
+        // Re-check after the await: a concurrent create may have filled the pool.
+        if (this.sessionCount() >= this.maxSessions) {
+          this.send(clientId, { type: "error", message: "Server is full" });
+          return;
+        }
         session = new Session({
           id: sessionId,
           raidId,
