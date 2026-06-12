@@ -2,9 +2,9 @@
   "name": "yet-another-sim",
   "version": "0.2.0",
   "scripts": {
-    "dev": "bun --watch server/server.ts",
+    "dev": "bun --watch src/server/server.ts",
     "build": "rm -rf .bundle && bun build ./index.html --outdir .bundle --sourcemap=none --env=disable",
-    "start": "bun server/server.ts",
+    "start": "bun src/server/server.ts",
     "typecheck": "bunx tsc --noEmit",
     "test": "bun test"
   },

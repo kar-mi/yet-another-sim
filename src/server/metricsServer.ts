@@ -3,7 +3,7 @@
 // token (constant-time compared); if METRICS_TOKEN is unset the endpoint refuses
 // to start, so metrics are never exposed unauthenticated by accident.
 import { timingSafeEqual } from "node:crypto";
-import { logger } from "../src/shared/logger";
+import { logger } from "../shared/logger";
 import { metrics, registry } from "./metrics";
 
 interface MetricsSources {
