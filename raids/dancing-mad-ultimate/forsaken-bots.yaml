@@ -21,15 +21,23 @@ players:
     - { t: 0, pos: [-6.14, 4.3] }
 
 _positions:
+  _odd:
+    _ls: &oLeftStack [4.565, 4.9265]
+    _rs: &oRightStack [-4.6295, 3.5295]
+    _cone: &oCone [6.8943, 6.8943]
+    _defam: &odefam [-7.975, 7.975]
+    _nst: &oNonSoakTank [2.065, 2.6265]
+    _nsh: &oNonSoakHeal [9.414, 8.344]
+    _nsd: &oNonSoakDPS [-1.8738, 2.7224]
   _even:
-    _ir:  &innerRightTower  [-4, 2.6]
-    _il:  &innerLeftTower   [4, 2.6]
-    _or:  &outerRightTower [-5.85, 9.05]
-    _ol:  &outerLeftTower  [5.85, 9.05]
-    _nsm: &nonSoakMelee  [-3.5, -5.0]
-    _nst: &nonSoakTank [3.5, -5.0]
-    _nsr: &nonSoakRange [-10.5, 1.25]
-    _nsh: &nonSoakHeal [10.5, 1.25]
+    _ir:  &eInnerRightTower  [-4, 2.6]
+    _il:  &eInnerLeftTower   [4, 2.6]
+    _or:  &eOuterRightTower [-5.85, 9.05]
+    _ol:  &eOuterLeftTower  [5.85, 9.05]
+    _nsm: &eNonSoakMelee  [-3.5, -5.0]
+    _nst: &eNonSoakTank [3.5, -5.0]
+    _nsr: &eNonSoakRange [-10.5, 1.25]
+    _nsh: &eNonSoakHeal [10.5, 1.25]
 
 solvers:
   generic:
@@ -48,14 +56,14 @@ solvers:
     # Soaking group (X). The two stacks always split across the towers: the healer holds the
     # support stack (right), the other carrier the dps stack (left). Same-charge cone/defam pairs
     # share a tower (still two soakers each).
-    - { when: { mechanic: tower-odd, soaks: true, debuff: Stack Charge, role: healer }, frame: matched, spot: [4.565, 4.9265] } #should be supports
-    - { when: { mechanic: tower-odd, soaks: true, debuff: Stack Charge },               frame: matched, spot: [-4.6295, 3.5295] }
-    - { when: { mechanic: tower-odd, soaks: true, debuff: Cone Charge },                frame: matched, spot: [6.8943, 6.8943] }
-    - { when: { mechanic: tower-odd, soaks: true, debuff: Defamation Charge },          frame: matched, spot: [-7.975, 7.975] }
+    - { when: { mechanic: tower-odd, soaks: true, debuff: Stack Charge, role: healer }, frame: matched, spot: *leftStack } #should be supports
+    - { when: { mechanic: tower-odd, soaks: true, debuff: Stack Charge },               frame: matched, spot: *rightStack }
+    - { when: { mechanic: tower-odd, soaks: true, debuff: Cone Charge },                frame: matched, spot: *cone }
+    - { when: { mechanic: tower-odd, soaks: true, debuff: Defamation Charge },          frame: matched, spot: *defam }
     # Off group (Y): tank flanks, healer baits the cone, dps split ranged/melee.
-    - { when: { mechanic: tower-odd, soaks: false, role: tank },   frame: matched, spot: [2.065, 2.6265] }
-    - { when: { mechanic: tower-odd, soaks: false, role: healer }, frame: matched, spot: [9.414, 8.344] }
-    - { when: { mechanic: tower-odd, soaks: false, role: dps },    frame: matched, spots: { r1: [-1.8738, 2.7224], r2: [-1.8738, 2.7224], m1: [-2.7224, 1.8738], m2: [-2.7224, 1.8738] } }
+    - { when: { mechanic: tower-odd, soaks: false, role: tank },   frame: matched, spot: *nonSoakTank}
+    - { when: { mechanic: tower-odd, soaks: false, role: healer }, frame: matched, spot: *nonSoakHealer }
+    - { when: { mechanic: tower-odd, soaks: false, role: dps },    frame: matched, spots: { r1: *nonSoakDPS, r2: *nonSoakDPS, m1: *nonSoakDPS, m2: *nonSoakDPS } }
 
     # --- Even tower waves (two cones + two defams, one cone + one defam per tower). Mixed pairs
     #     split support-left / dps-right; same-charge pairs split by role. Frame north = bisector.
