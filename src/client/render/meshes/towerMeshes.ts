@@ -8,8 +8,8 @@ import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder"
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveTower } from "../../../shared/types";
-import { clamp01 } from "../../../shared/math";
+import type { ActiveTower } from "@shared/types";
+import { clamp01 } from "@shared/math";
 import { circlePath } from "./meshPaths";
 
 const DEFAULT_CYLINDER_COLOR = "#33ccff";

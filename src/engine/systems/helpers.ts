@@ -16,11 +16,11 @@ import type {
   ActiveMechanic,
   Knockback,
   AOEShape,
-} from "../../shared/types";
-import type { Vec2 } from "../../shared/math";
-import { sub, scale, normalize, length, dot } from "../../shared/math";
-import { GRAVITY, KNOCKBACK_FRICTION, INTERCEPT_THRESHOLD } from "../constants";
-import { sin, cos, acos } from "../../shared/dmath";
+} from "@shared/types";
+import type { Vec2 } from "@shared/math";
+import { sub, scale, normalize, length, dot } from "@shared/math";
+import { GRAVITY, KNOCKBACK_FRICTION, INTERCEPT_THRESHOLD } from "@shared/constants";
+import { sin, cos, acos } from "@shared/dmath";
 
 export function topThreatTarget(players: Player[], threat: Record<string, number>): string | null {
   let best: string | null = null;

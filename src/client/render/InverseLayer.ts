@@ -1,5 +1,5 @@
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveInverse, Boss } from "../../shared/types";
+import type { ActiveInverse, Boss } from "@shared/types";
 import { createInverseMeshes, updateInverseMeshes, type InverseMeshes } from "./meshes/inverseMeshes";
 
 export class InverseLayer {

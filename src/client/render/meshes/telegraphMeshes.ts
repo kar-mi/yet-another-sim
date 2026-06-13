@@ -6,8 +6,8 @@ import { CreateGround } from "@babylonjs/core/Meshes/Builders/groundBuilder";
 import { CreateRibbon } from "@babylonjs/core/Meshes/Builders/ribbonBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveMechanic, AOEShape } from "../../../shared/types";
-import { normalize } from "../../../shared/math";
+import type { ActiveMechanic, AOEShape } from "@shared/types";
+import { normalize } from "@shared/math";
 
 // Geometry-only ground mesh for an AOE shape (no material). Shared by the telegraph layer
 // and other layers that need to draw a shape footprint (e.g. the inverse "?" telegraph).

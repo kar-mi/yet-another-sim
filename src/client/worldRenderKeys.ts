@@ -1,4 +1,4 @@
-import type { World } from "../shared/types";
+import type { World } from "@shared/types";
 
 export type WorldRenderKeys = {
   arena: string;

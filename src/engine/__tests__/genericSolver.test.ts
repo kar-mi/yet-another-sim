@@ -4,7 +4,7 @@ import { computeBotIntents } from "../botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../raidLoader";
-import type { Player, World } from "../../shared/types";
+import type { Player, World } from "@shared/types";
 
 // Minimal World/Player builders: the solver only reads a handful of fields, so we construct just
 // those and cast, keeping each case readable.

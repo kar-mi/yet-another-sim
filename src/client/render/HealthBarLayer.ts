@@ -6,7 +6,7 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Scene } from "@babylonjs/core/scene";
-import { clamp01 } from "../../shared/math";
+import { clamp01 } from "@shared/math";
 
 type HealthBarOptions = {
   trackWidthPx: number;

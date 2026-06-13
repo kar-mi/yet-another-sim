@@ -1,7 +1,7 @@
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveMechanic } from "../../shared/types";
+import type { ActiveMechanic } from "@shared/types";
 import { createTelegraphMesh } from "./meshes/telegraphMeshes";
 
 export class TelegraphLayer {

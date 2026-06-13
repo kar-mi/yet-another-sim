@@ -3,11 +3,10 @@
 // assembles a fresh world snapshot. The order matters because the seeded PRNG is drawn in sequence
 // (see systems/context.ts) — reordering systems changes RNG outcomes and breaks reproducibility.
 //
-// Each mechanic family lives in its own system under ./systems. This file only orchestrates them
-// and re-exports the public constants/helpers that other modules import from "./sim".
+// Each mechanic family lives in its own system under ./systems. This file only orchestrates them.
 
-import type { World, Intents, PendingHeal } from "../shared/types";
-import { atan2 } from "../shared/dmath";
+import type { World, Intents, PendingHeal } from "@shared/types";
+import { atan2 } from "@shared/dmath";
 import { createTickContext } from "./systems/context";
 import { topThreatTarget } from "./systems/helpers";
 import { applyPlayerMovement } from "./systems/playerMovement";
@@ -25,15 +24,6 @@ import { resolveInversions } from "./systems/inverse";
 import { resolveSpreadStacks } from "./systems/spreadStack";
 import { resolveGazes } from "./systems/gaze";
 import { applyStatusEffects } from "./systems/statusEffects";
-
-// Re-exported for backward compatibility: world.ts/botIntent.ts/HudOverlay.ts and the tests import
-// these from "./sim".
-export {
-  MOVE_SPEED, SPRINT_MULTIPLIER, JUMP_SPEED, GRAVITY, DEATH_FLOOR_Y,
-  SPRINT_DURATION, SPRINT_COOLDOWN, ANTI_KB_DURATION, ANTI_KB_COOLDOWN,
-  PROVOKE_COOLDOWN, PROVOKE_LEAD, KNOCKBACK_FRICTION, INITIAL_TANK_THREAT,
-} from "./constants";
-export { topThreatTarget } from "./systems/helpers";
 
 export function tick(world: World, intents: Intents, dt: number): World {
   const ctx = createTickContext(world, intents, dt);

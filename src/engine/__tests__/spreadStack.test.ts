@@ -3,7 +3,7 @@ import { computeBotIntents } from "../botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
 import { TANK_HP } from "./constants";
-import type { World } from "../../shared/types";
+import type { World } from "@shared/types";
 import { HUMAN, baseRaid, loadRaid, roster, runTicks } from "./helpers";
 import type { Vec } from "./helpers";
 

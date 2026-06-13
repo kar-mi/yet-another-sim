@@ -9,7 +9,7 @@ import {
   type RaidCategory,
   type RaidEntry,
   type ServerMessage,
-} from "../shared/protocol";
+} from "@shared/protocol";
 import { SessionManager, capacitySnapshot } from "./session";
 import { logger, createSessionLog, debugEnabled } from "./logger";
 import { metrics } from "./metrics";

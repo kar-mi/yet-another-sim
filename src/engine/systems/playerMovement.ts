@@ -3,16 +3,16 @@
 // threat table (provoke), the log, and the actedByPlayer map (read later by status-effect dots).
 
 import type { TickContext } from "./context";
-import type { EffectBehavior } from "../../shared/types";
-import { add, sub, scale, normalize, length } from "../../shared/math";
+import type { EffectBehavior } from "@shared/types";
+import { add, sub, scale, normalize, length } from "@shared/math";
 import { isOnFloor } from "../shapes";
-import { atan2 } from "../../shared/dmath";
+import { atan2 } from "@shared/dmath";
 import { activeEffectOfKind, didAct, applyMechanicDamage } from "./helpers";
 import {
   MOVE_SPEED, SPRINT_MULTIPLIER, JUMP_SPEED, GRAVITY, DEATH_FLOOR_Y,
   SPRINT_DURATION, SPRINT_COOLDOWN, ANTI_KB_DURATION, ANTI_KB_COOLDOWN,
   PROVOKE_COOLDOWN, PROVOKE_LEAD, KNOCKBACK_FRICTION,
-} from "../constants";
+} from "@shared/constants";
 
 export function applyPlayerMovement(ctx: TickContext): void {
   const { players, boss, log, time, dt, intents, actedByPlayer } = ctx;

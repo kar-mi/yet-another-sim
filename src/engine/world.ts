@@ -1,9 +1,10 @@
-import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, Knockback, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingBaitEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingApplyEffect, PendingInverse, PendingSpreadStack, PendingGaze, PendingForcedMarch, PendingEffectBurst, PendingHeal, PendingForsakenAssign, EffectResolver, ForsakenAssignmentKind, ForsakenGroup, ForsakenPlan } from "../shared/types";
-import { vec2 } from "../shared/math";
-import type { Vec2 } from "../shared/math";
-import { makeSeed, nextRandom, randomInt } from "../shared/rng";
+import type { World, Player, Boss, Arena, ZoneShape, AOEShape, Waymark, Knockback, PendingEvent, PendingTether, PendingLineLink, PendingTargetedEvent, PendingBaitEvent, PendingTower, PendingChain, PendingGroupEvent, PendingEffectSelect, PendingApplyEffect, PendingInverse, PendingSpreadStack, PendingGaze, PendingForcedMarch, PendingEffectBurst, PendingHeal, PendingForsakenAssign, EffectResolver, ForsakenAssignmentKind, ForsakenGroup, ForsakenPlan } from "@shared/types";
+import { vec2 } from "@shared/math";
+import type { Vec2 } from "@shared/math";
+import { makeSeed, nextRandom, randomInt } from "@shared/rng";
 import type { RaidDef } from "./raidSchema";
-import { INITIAL_TANK_THREAT, topThreatTarget } from "./sim";
+import { INITIAL_TANK_THREAT } from "@shared/constants";
+import { topThreatTarget } from "./systems/helpers";
 
 export const ROLE_HP: Record<Player["role"], number> = { tank: 160, healer: 100, dps: 100 };
 

@@ -5,7 +5,7 @@ import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
 import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { Waymark, WaymarkId } from "../../../shared/types";
+import type { Waymark, WaymarkId } from "@shared/types";
 import { circlePath } from "./meshPaths";
 
 // FFXIV waymark convention: letter/number pairs share a color.

@@ -2,7 +2,7 @@
 // linked event) and apply a visible effect to the chosen member.
 
 import type { TickContext } from "./context";
-import type { PendingEffectSelect } from "../../shared/types";
+import type { PendingEffectSelect } from "@shared/types";
 import { applyEffect } from "./helpers";
 
 export function resolveEffectSelects(ctx: TickContext): PendingEffectSelect[] {

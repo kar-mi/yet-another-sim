@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
-import { tick, INITIAL_TANK_THREAT } from "../sim";
+import { tick } from "../sim";
+import { INITIAL_TANK_THREAT } from "@shared/constants";
 import { createWorld } from "../world";
 import { loadRaid as loadRaidRaw } from "../raidLoader";
 import { TANK_HP } from "./constants";

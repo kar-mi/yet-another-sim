@@ -5,7 +5,7 @@ import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { Boss } from "../../shared/types";
+import type { Boss } from "@shared/types";
 import { filteredCirclePaths } from "./meshes/meshPaths";
 
 const RING_Y = 0.03;        // just above the floor, matching other ground meshes

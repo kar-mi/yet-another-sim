@@ -1,5 +1,5 @@
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveForcedMarch } from "../../shared/types";
+import type { ActiveForcedMarch } from "@shared/types";
 import { createForcedMarchMeshes, updateForcedMarchMeshes, type ForcedMarchMeshes } from "./meshes/forcedMarchMeshes";
 
 export class ForcedMarchLayer {

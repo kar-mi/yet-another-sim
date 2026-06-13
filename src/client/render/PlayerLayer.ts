@@ -4,8 +4,8 @@ import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import type { Scene } from "@babylonjs/core/scene";
-import { logger } from "../../shared/logger";
-import type { Player } from "../../shared/types";
+import { logger } from "@shared/logger";
+import type { Player } from "@shared/types";
 import { glyphBillboardMaterial, imageBillboardMaterial } from "./meshes/billboardMaterials";
 
 const PLAYER_CENTER_Y = 0.4;

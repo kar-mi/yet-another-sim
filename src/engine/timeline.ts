@@ -1,5 +1,5 @@
-import type { ActiveMechanic, AOEShape, Boss, PendingEvent } from "../shared/types";
-import { sin, cos } from "../shared/dmath";
+import type { ActiveMechanic, AOEShape, Boss, PendingEvent } from "@shared/types";
+import { sin, cos } from "@shared/dmath";
 
 // Snapshot a boss-anchored cone/rect against the boss (FFXIV-style): origin from boss.pos,
 // direction from boss.facing (0 = +Z, matching the sim convention). Used both at cast start

@@ -1,4 +1,4 @@
-import { EMPTY_RAID_ID, type PlaybackState, type RaidCategory } from "../../shared/protocol";
+import { EMPTY_RAID_ID, type PlaybackState, type RaidCategory } from "@shared/protocol";
 import type { NetClient } from "../net";
 import { loadRaidCategories } from "./MainMenu";
 import { el } from "./dom";

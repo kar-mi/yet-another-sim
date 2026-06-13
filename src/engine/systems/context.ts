@@ -7,8 +7,8 @@
 // `randInt`/`randFloat` call advances `rngState`, so reordering systems changes which mechanic gets
 // which random value and breaks reproducibility. Do not reorder the calls in the orchestrator.
 
-import type { World, Intents, Player, Boss, LogEntry, ActiveForcedMarch, ActiveMechanic } from "../../shared/types";
-import { nextRandom, randomInt } from "../../shared/rng";
+import type { World, Intents, Player, Boss, LogEntry, ActiveForcedMarch, ActiveMechanic } from "@shared/types";
+import { nextRandom, randomInt } from "@shared/rng";
 
 export interface TickContext {
   readonly world: World;        // incoming snapshot (read-only source for pending/active fields)

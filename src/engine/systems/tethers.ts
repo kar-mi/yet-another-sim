@@ -2,7 +2,7 @@
 // living player, allow interception before finalization, then finalize into a buff/debuff effect.
 
 import type { TickContext } from "./context";
-import type { TetherSource, PendingTether } from "../../shared/types";
+import type { TetherSource, PendingTether } from "@shared/types";
 import { selectTargetPlayer, findInterceptor, applyEffect } from "./helpers";
 
 const TETHER_LINGER = 2;

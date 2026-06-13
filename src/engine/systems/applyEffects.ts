@@ -2,7 +2,7 @@
 // by count, optionally a random subset).
 
 import type { TickContext } from "./context";
-import type { PendingApplyEffect } from "../../shared/types";
+import type { PendingApplyEffect } from "@shared/types";
 import { applyEffect } from "./helpers";
 
 export function resolveApplyEffects(ctx: TickContext): PendingApplyEffect[] {

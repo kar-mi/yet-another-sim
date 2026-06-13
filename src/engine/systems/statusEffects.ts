@@ -3,7 +3,7 @@
 // expired effects. Plant traps are appended to ctx.forcedMarches (built in phase 1c) for next tick.
 
 import type { TickContext } from "./context";
-import type { AOEShape } from "../../shared/types";
+import type { AOEShape } from "@shared/types";
 import { pointInShape } from "../shapes";
 import { effectActiveDt, applyMechanicDamage, applyKnockback, isEffectActiveAt } from "./helpers";
 

@@ -4,11 +4,11 @@
 // plant-spawned traps to it (those new traps are intentionally not culled until next tick).
 
 import type { TickContext } from "./context";
-import type { ActiveForcedMarch, PendingForcedMarch } from "../../shared/types";
-import { add, sub, normalize, scale, length } from "../../shared/math";
+import type { ActiveForcedMarch, PendingForcedMarch } from "@shared/types";
+import { add, sub, normalize, scale, length } from "@shared/math";
 import { applyEffect } from "./helpers";
-import { FORCED_MARCH_LINGER } from "../constants";
-import { atan2 } from "../../shared/dmath";
+import { FORCED_MARCH_LINGER } from "@shared/constants";
+import { atan2 } from "@shared/dmath";
 
 export function resolveForcedMarches(ctx: TickContext): PendingForcedMarch[] {
   const { players, log, time } = ctx;

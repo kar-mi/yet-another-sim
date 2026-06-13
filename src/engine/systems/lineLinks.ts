@@ -2,10 +2,10 @@
 // until resolve. Role-group targets can be chosen as the complement of a linked event (or randomly).
 
 import type { TickContext } from "./context";
-import type { ActiveLineLink, PendingLineLink } from "../../shared/types";
+import type { ActiveLineLink, PendingLineLink } from "@shared/types";
 import { selectLineLinkTargets, applyEffect, applyKnockback } from "./helpers";
 import { cullResolved } from "./util";
-import { LINE_LINK_LINGER } from "../constants";
+import { LINE_LINK_LINGER } from "@shared/constants";
 
 export function resolveLineLinks(ctx: TickContext): {
   lineLinks: ActiveLineLink[];
