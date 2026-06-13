@@ -20,6 +20,17 @@ players:
   m2:
     - { t: 0, pos: [-6.14, 4.3] }
 
+_positions:
+  _even:
+    _ir:  &innerRightTower  [-4, 2.6]
+    _il:  &innerLeftTower   [4, 2.6]
+    _or:  &outerRightTower [-5.85, 9.05]
+    _ol:  &outerLeftTower  [5.85, 9.05]
+    _nsm: &nonSoakMelee  [-3.5, -5.0]
+    _nst: &nonSoakTank [3.5, -5.0]
+    _nsr: &nonSoakRange [-10.5, 1.25]
+    _nsh: &nonSoakHeal [10.5, 1.25]
+
 solvers:
   generic:
     # --- Endings: everyone clusters at max melee on one side so the closest baits, and the 180°
@@ -49,18 +60,18 @@ solvers:
     # --- Even tower waves (two cones + two defams, one cone + one defam per tower). Mixed pairs
     #     split support-left / dps-right; same-charge pairs split by role. Frame north = bisector.
     # Soaking group (X) — mixed pairs (cone + defam partner):
-    - { when: { mechanic: tower-even, soaks: true, debuff: Cone Charge, partnerDebuff: Defamation Charge, role: dps }, frame: matched, spot: [6.493, 4.7627] }
-    - { when: { mechanic: tower-even, soaks: true, debuff: Cone Charge, partnerDebuff: Defamation Charge },            frame: matched, spot: [-6.493, 4.7627] }
-    - { when: { mechanic: tower-even, soaks: true, debuff: Defamation Charge, partnerDebuff: Cone Charge, role: dps }, frame: matched, spot: [7.25, 9.45] }
-    - { when: { mechanic: tower-even, soaks: true, debuff: Defamation Charge, partnerDebuff: Cone Charge },            frame: matched, spot: [-7.25, 9.45] }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Cone Charge, partnerDebuff: Defamation Charge, role: dps }, frame: matched, spot: *innerLeftTower }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Cone Charge, partnerDebuff: Defamation Charge },            frame: matched, spot: *innerRightTower }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Defamation Charge, partnerDebuff: Cone Charge, role: dps }, frame: matched, spot: *outerLeftTower }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Defamation Charge, partnerDebuff: Cone Charge },            frame: matched, spot: *outerRightTower }
     # Soaking group (X) — same-charge pairs (role split: tank/ranged left, healer/melee right):
-    - { when: { mechanic: tower-even, soaks: true, debuff: Cone Charge, partnerDebuff: Cone Charge, role: healer }, frame: matched, spot: [6.493, 4.7627] }
-    - { when: { mechanic: tower-even, soaks: true, debuff: Cone Charge, partnerDebuff: Cone Charge, role: tank },   frame: matched, spot: [-6.493, 4.7627] }
-    - { when: { mechanic: tower-even, soaks: true, debuff: Cone Charge, partnerDebuff: Cone Charge, role: dps },    frame: matched, spots: { r1: [-6.493, 4.7627], r2: [-6.493, 4.7627], m1: [6.493, 4.7627], m2: [6.493, 4.7627] } }
-    - { when: { mechanic: tower-even, soaks: true, debuff: Defamation Charge, partnerDebuff: Defamation Charge, role: healer }, frame: matched, spot: [7.25, 9.45] }
-    - { when: { mechanic: tower-even, soaks: true, debuff: Defamation Charge, partnerDebuff: Defamation Charge, role: tank },   frame: matched, spot: [-7.25, 9.45] }
-    - { when: { mechanic: tower-even, soaks: true, debuff: Defamation Charge, partnerDebuff: Defamation Charge, role: dps },    frame: matched, spots: { r1: [-7.25, 9.45], r2: [-7.25, 9.45], m1: [7.25, 9.45], m2: [7.25, 9.45] } }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Cone Charge, partnerDebuff: Cone Charge, role: healer }, frame: matched, spot: *innerLeftTower }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Cone Charge, partnerDebuff: Cone Charge, role: tank },   frame: matched, spot: *innerRightTower }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Cone Charge, partnerDebuff: Cone Charge, role: dps },    frame: matched, spots: { r1: *innerRightTower, r2: *innerRightTower, m1: *innerLeftTower, m2: *innerLeftTower } }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Defamation Charge, partnerDebuff: Defamation Charge, role: healer }, frame: matched, spot: *outerLeftTower }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Defamation Charge, partnerDebuff: Defamation Charge, role: tank },   frame: matched, spot: *outerRightTower }
+    - { when: { mechanic: tower-even, soaks: true, debuff: Defamation Charge, partnerDebuff: Defamation Charge, role: dps },    frame: matched, spots: { r1: *outerRightTower, r2: *outerRightTower, m1: *outerLeftTower, m2: *outerLeftTower } }
     # Off group (Y): healer holds the right tower corner, ranged the left; tank/melee hold opposite the towers.
-    - { when: { mechanic: tower-even, soaks: false, role: healer }, frame: matched, spot: [7.24, 1.25] }
-    - { when: { mechanic: tower-even, soaks: false, role: tank },   frame: matched, spot: [2.5, -5.0] }
-    - { when: { mechanic: tower-even, soaks: false, role: dps },    frame: matched, spots: { r1: [-7.24, 1.25], r2: [-7.24, 1.25], m1: [-2.5, -5.0], m2: [-2.5, -5.0] } }
+    - { when: { mechanic: tower-even, soaks: false, role: healer }, frame: matched, spot: *nonSoakHeal }
+    - { when: { mechanic: tower-even, soaks: false, role: tank },   frame: matched, spot: *nonSoakTank }
+    - { when: { mechanic: tower-even, soaks: false, role: dps },    frame: matched, spots: { m1: *nonSoakMelee, m2: *nonSoakMelee, r1: *nonSoakRange, r2: *nonSoakRange } }
