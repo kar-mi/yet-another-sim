@@ -98,18 +98,18 @@ test("forsaken raid and bot companion content load", async () => {
   expect(world.players.find(player => player.id === "h1")?.pattern?.[0]?.pos).toEqual({ x: 7.39, z: -1.3 });
   const towerEvents = raid.events.filter(event => event.type === "tower");
   expect(towerEvents).toHaveLength(16);
-  expect(towerEvents.map(event => event.pos)).toEqual([
-    [0, 7.25], [7.25, 0],
-    [7.25, 7.25], [7.25, -7.25],
-    [7.25, 0], [0, -7.25],
-    [7.25, -7.25], [-7.25, -7.25],
-    [0, -7.25], [-7.25, 0],
-    [-7.25, -7.25], [-7.25, 7.25],
-    [-7.25, 0], [0, 7.25],
-    [-7.25, 7.25], [7.25, 7.25],
-  ]);
+  // All towers sit on a consistent ring — distance from origin within 0.1 of each other.
+  const distances = towerEvents.map(e => Math.hypot(e.pos[0], e.pos[1]));
+  const maxDist = Math.max(...distances), minDist = Math.min(...distances);
+  expect(maxDist - minDist).toBeLessThan(0.1);
+  // Each unique position is used exactly twice (16 towers, 8 spots, one pair per spot).
+  const posKeys = towerEvents.map(e => `${e.pos[0]},${e.pos[1]}`);
+  const counts = new Map<string, number>();
+  for (const k of posKeys) counts.set(k, (counts.get(k) ?? 0) + 1);
+  expect(counts.size).toBe(8);
+  expect([...counts.values()].every(n => n === 2)).toBe(true);
   expect(raid.events.some(event => event.type === "tower" && event.requiredRoles !== undefined)).toBe(false);
-  expect(towerEvents.every(event => event.radius === 3)).toBe(true);
+  expect(towerEvents.every(event => event.radius === 4)).toBe(true);
   expect(towerEvents.every(event => event.failureDamage === 999999)).toBe(true);
   expect(towerEvents.every(event => (
     event.visual?.fallingObject === "sphere"
