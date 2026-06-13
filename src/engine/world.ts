@@ -226,30 +226,35 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     }
   }
 
-  const pending: PendingEvent[] = [];
-  const pendingTethers: PendingTether[] = [];
-  const pendingLineLinks: PendingLineLink[] = [];
-  const pendingTargeted: PendingTargetedEvent[] = [];
-  const pendingBaits: PendingBaitEvent[] = [];
-  const pendingTowers: PendingTower[] = [];
-  const pendingChains: PendingChain[] = [];
-  const pendingGroups: PendingGroupEvent[] = [];
-  const pendingEffectSelects: PendingEffectSelect[] = [];
-  const pendingApplyEffects: PendingApplyEffect[] = [];
-  const pendingInversions: PendingInverse[] = [];
-  const pendingSpreadStacks: PendingSpreadStack[] = [];
-  const pendingGazes: PendingGaze[] = [];
-  const pendingForcedMarches: PendingForcedMarch[] = [];
-  const pendingEffectBursts: PendingEffectBurst[] = [];
-  const effectResolvers: Record<string, EffectResolver> = {};
-  const pendingHeals: PendingHeal[] = [];
-  const pendingForsakenAssigns: PendingForsakenAssign[] = [];
+  // One collection per World pending/resolver field. Keys match the World field names exactly so the
+  // return can `...collections` and TypeScript enforces the mapping (a typo becomes a compile error).
+  const collections = {
+    pending: [] as PendingEvent[],
+    pendingTethers: [] as PendingTether[],
+    pendingLineLinks: [] as PendingLineLink[],
+    pendingTargeted: [] as PendingTargetedEvent[],
+    pendingBaits: [] as PendingBaitEvent[],
+    pendingTowers: [] as PendingTower[],
+    pendingChains: [] as PendingChain[],
+    pendingGroups: [] as PendingGroupEvent[],
+    pendingEffectSelects: [] as PendingEffectSelect[],
+    pendingApplyEffects: [] as PendingApplyEffect[],
+    pendingInversions: [] as PendingInverse[],
+    pendingSpreadStacks: [] as PendingSpreadStack[],
+    pendingGazes: [] as PendingGaze[],
+    pendingForcedMarches: [] as PendingForcedMarch[],
+    pendingEffectBursts: [] as PendingEffectBurst[],
+    pendingHeals: [] as PendingHeal[],
+    pendingForsakenAssigns: [] as PendingForsakenAssign[],
+    effectResolvers: {} as Record<string, EffectResolver>,
+  };
   // Static positions of positioned events, for generic-solver explicit frames (frame: [eventIds]).
   const eventPositions: Record<string, Vec2> = {};
 
   for (const e of raid.events) {
-    if (e.type === "tether_source") {
-      pendingTethers.push({
+    switch (e.type) {
+    case "tether_source": {
+      collections.pendingTethers.push({
         id: e.id,
         t: e.t,
         pos: toVec2(e.pos),
@@ -260,8 +265,10 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         effectDuration: e.effectDuration,
         icon: e.icon,
       });
-    } else if (e.type === "line_link") {
-      pendingLineLinks.push({
+      break;
+    }
+    case "line_link": {
+      collections.pendingLineLinks.push({
         id: e.id,
         t: e.t,
         name: e.name,
@@ -276,8 +283,10 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         knockback: e.knockback && toKnockback(e.knockback),
         visual: e.visual,
       });
-    } else if (e.type === "targeted") {
-      pendingTargeted.push({
+      break;
+    }
+    case "targeted": {
+      collections.pendingTargeted.push({
         id: e.id,
         t: e.t,
         name: e.name,
@@ -294,9 +303,11 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         showTelegraph: e.showTelegraph ?? true,
         telegraphMode: e.telegraphMode ?? "cast",
       });
-    } else if (e.type === "tower") {
+      break;
+    }
+    case "tower": {
       eventPositions[e.id] = toVec2(e.pos);
-      pendingTowers.push({
+      collections.pendingTowers.push({
         id: e.id,
         t: e.t,
         name: e.name,
@@ -324,8 +335,10 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
           fallingObjectAlpha: e.visual?.fallingObjectAlpha,
         },
       });
-    } else if (e.type === "group") {
-      pendingGroups.push({
+      break;
+    }
+    case "group": {
+      collections.pendingGroups.push({
         id: e.id,
         t: e.t,
         name: e.name,
@@ -340,8 +353,10 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         applyEffect: e.applyEffect,
         showCastBar: e.showCastBar ?? false,
       });
-    } else if (e.type === "effect_select") {
-      pendingEffectSelects.push({
+      break;
+    }
+    case "effect_select": {
+      collections.pendingEffectSelects.push({
         id: e.id,
         t: e.t,
         name: e.name,
@@ -350,8 +365,10 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         link: e.link,
         applyEffect: e.applyEffect,
       });
-    } else if (e.type === "apply_effect") {
-      pendingApplyEffects.push({
+      break;
+    }
+    case "apply_effect": {
+      collections.pendingApplyEffects.push({
         id: e.id,
         t: e.t,
         name: e.name,
@@ -361,9 +378,11 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         rng: e.rng ?? false,
         applyEffect: e.applyEffect,
       });
-    } else if (e.type === "chain") {
+      break;
+    }
+    case "chain": {
       e.pairs.forEach(([a, b], pairIndex) => {
-        pendingChains.push({
+        collections.pendingChains.push({
           id: e.pairs.length === 1 ? e.id : `${e.id}-${pairIndex}`,
           t: e.t,
           name: e.name,
@@ -378,8 +397,10 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
           showCastBar: e.showCastBar ?? false,
         });
       });
-    } else if (e.type === "inverse") {
-      pendingInversions.push({
+      break;
+    }
+    case "inverse": {
+      collections.pendingInversions.push({
         id: e.id,
         t: e.t,
         name: e.name,
@@ -400,8 +421,10 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         knockback: e.knockback && toKnockback(e.knockback),
         showCastBar: e.showCastBar ?? false,
       });
-    } else if (e.type === "spread_stack") {
-      pendingSpreadStacks.push({
+      break;
+    }
+    case "spread_stack": {
+      collections.pendingSpreadStacks.push({
         id: e.id,
         t: e.t,
         name: e.name,
@@ -421,8 +444,10 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         ringHeight: e.ringHeight,
         showCastBar: e.showCastBar ?? false,
       });
-    } else if (e.type === "gaze") {
-      pendingGazes.push({
+      break;
+    }
+    case "gaze": {
+      collections.pendingGazes.push({
         id: e.id,
         t: e.t,
         name: e.name,
@@ -438,8 +463,10 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         showCastBar: e.showCastBar ?? false,
         visual: e.visual,
       });
-    } else if (e.type === "effect_burst") {
-      pendingEffectBursts.push({
+      break;
+    }
+    case "effect_burst": {
+      collections.pendingEffectBursts.push({
         id: e.id,
         t: e.t,
         name: e.name,
@@ -454,15 +481,19 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         showTelegraph: e.showTelegraph ?? true,
         telegraphMode: e.telegraphMode ?? "cast",
       });
-    } else if (e.type === "effect_resolver") {
-      effectResolvers[e.id] = {
+      break;
+    }
+    case "effect_resolver": {
+      collections.effectResolvers[e.id] = {
         id: e.id,
         name: e.name,
         effectName: e.effectName,
         action: e.action,
       };
-    } else if (e.type === "forced_march") {
-      pendingForcedMarches.push({
+      break;
+    }
+    case "forced_march": {
+      collections.pendingForcedMarches.push({
         id: e.id,
         t: e.t,
         name: e.name,
@@ -474,14 +505,18 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         preDelay: e.preDelay,
         postDelay: e.postDelay,
       });
-    } else if (e.type === "heal") {
-      pendingHeals.push({
+      break;
+    }
+    case "heal": {
+      collections.pendingHeals.push({
         id: e.id,
         t: e.t,
         name: e.name,
       });
-    } else if (e.type === "bait") {
-      pendingBaits.push({
+      break;
+    }
+    case "bait": {
+      collections.pendingBaits.push({
         id: e.id,
         t: e.t,
         name: e.name,
@@ -494,16 +529,20 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         directionOffsetByEffect: e.directionOffsetByEffect,
         showCastBar: e.showCastBar ?? false,
       });
-    } else if (e.type === "forsaken_assign") {
-      pendingForsakenAssigns.push({
+      break;
+    }
+    case "forsaken_assign": {
+      collections.pendingForsakenAssigns.push({
         id: e.id,
         t: e.t,
         name: e.name,
         duration: e.duration,
         markerDuration: e.markerDuration,
       });
-    } else {
-      pending.push({
+      break;
+    }
+    case "aoe": {
+      collections.pending.push({
         id: e.id,
         t: e.t,
         name: e.name,
@@ -526,49 +565,43 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
         showTelegraph: e.showTelegraph ?? true,
         telegraphMode: e.telegraphMode ?? "cast",
       });
+      break;
+    }
+    default: {
+      const _exhaustive: never = e;
+      throw new Error(`Unknown event type: ${(e as { type: string }).type}`);
+    }
     }
   }
+
+  // `effectResolvers` is a Record (not a pending list), so Array.isArray excludes it: a raid with
+  // only effect_resolver events stays hasMechanics:false, matching the previous hand-written OR.
+  const hasMechanics = Object.values(collections).some(v => Array.isArray(v) && v.length > 0);
 
   return {
     time: 0,
     rngState,
     groupChoices: {},
     status: "running",
-    hasMechanics: pending.length > 0 || pendingTethers.length > 0 || pendingLineLinks.length > 0 || pendingTargeted.length > 0 || pendingBaits.length > 0 || pendingTowers.length > 0 || pendingChains.length > 0 || pendingGroups.length > 0 || pendingEffectSelects.length > 0 || pendingApplyEffects.length > 0 || pendingInversions.length > 0 || pendingSpreadStacks.length > 0 || pendingGazes.length > 0 || pendingForcedMarches.length > 0 || pendingEffectBursts.length > 0 || pendingHeals.length > 0 || pendingForsakenAssigns.length > 0,
+    hasMechanics,
     arena,
     waymarks,
     players,
     boss,
-    active: [],
-    pending,
     log: [],
     duration: raid.duration,
+    // Active-mechanic runtime lists; always empty at world creation (resolvers populate them).
+    active: [],
     tetherSources: [],
-    pendingTethers,
     lineLinks: [],
-    pendingLineLinks,
-    pendingTargeted,
-    pendingBaits,
     towers: [],
-    pendingTowers,
     chains: [],
-    pendingChains,
     groupMechanics: [],
-    pendingGroups,
-    pendingEffectSelects,
-    pendingApplyEffects,
     inversions: [],
-    pendingInversions,
     spreadStacks: [],
-    pendingSpreadStacks,
     gazes: [],
-    pendingGazes,
     forcedMarches: [],
-    pendingForcedMarches,
-    pendingEffectBursts,
-    effectResolvers,
-    pendingHeals,
-    pendingForsakenAssigns,
+    ...collections,
     plantPlan,
     plantDebuffOrder,
     forsakenPlan,
