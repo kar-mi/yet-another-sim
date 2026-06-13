@@ -6,7 +6,8 @@ import { createWorld } from "../engine/world";
 import { CLOCK_SPOTS, EMPTY_RAID_ID, MAX_OBSERVERS, ROSTER, type ClientMessage, type Frame, type LobbySlot, type LobbyStatus, type ServerMessage } from "@shared/protocol";
 import type { Intent, Intents, World } from "@shared/types";
 import { logger } from "@shared/logger";
-import { metrics } from "./metrics";
+import { DesyncTracker } from "./desyncTracker";
+import { FrameRelay } from "./frameRelay";
 
 /**
  * Per-session sink for simulation events (the entries the engine pushes onto
@@ -21,23 +22,12 @@ export interface SessionLog {
   close(): void;
 }
 
-const DT = 1 / 60;
-const TICK_MS = 1000 / 60;
-const MAX_CATCH_UP_STEPS = 5;
-// Defensive ceiling so a room whose host never sends `simEnded` can't relay idle frames forever.
-// Generous slack past the raid duration; the host normally ends the pull near `duration`.
-const PULL_GRACE_SECONDS = 30;
-// Bound the per-tick desync-hash table so it can't grow without limit on a long pull.
-const MAX_HASH_WINDOW = 64;
-// Clients report a hash every ~5s; drop anything more frequent so a client can't spam the relay.
-const MIN_HASH_REPORT_MS = 1000;
 export const LOBBY_TIMEOUT_MS = 10 * 60 * 1000;
 // Pristine lobbies (never started, no slot claimed) are reaped far sooner so a flood
 // of unused rooms can't squat on the per-backend cap. Never exceeds LOBBY_TIMEOUT_MS.
 export const EMPTY_LOBBY_TIMEOUT_MS = 90 * 1000;
 
 type SendMessage = (clientId: string, message: ServerMessage | string) => void;
-type TickHandle = ReturnType<typeof setInterval>;
 type RaidPlayerDef = RaidDef["players"][number];
 
 const idleIntent: Intent = { move: { x: 0, z: 0 } };
@@ -100,37 +90,24 @@ export class Session {
   // The pull's initial (tick-0) world. The server never ticks it — clients run the engine. It is
   // sent on `started` so a fresh/late client can rebuild the world by replaying the input log.
   world: World;
-  // Authoritative input log: one merged-intent Frame per simulated tick since the pull started.
-  // `inputLog.length` is the current tick. Sent in full on late join / resync and replayed
-  // synchronously by the client. Bounded by pull length (~18k frames / 5min at 60Hz, MBs of JSON),
-  // so the replay blocks the joining client briefly — fine for MVP-length pulls.
-  // TODO: chunk the replay or periodically checkpoint the world server-side to cap resync cost.
-  readonly inputLog: Frame[] = [];
 
   private raid: RaidDef;
   private readonly send: SendMessage;
   private readonly clients = new Set<string>();
   private readonly latestIntents = new Map<string, Intent>();
   private readonly now: () => number;
-  private readonly autoTick: boolean;
-  private readonly lobbyTimeoutMs: number;
   private lastActivity: number;
-  private tickHandle: TickHandle | null = null;
-  private tickAccumulator = 0;
-  private lastTickAt = 0;
-  private frameBatch: Frame[] = [];
-  private maxPullTicks = Infinity;
-  // Canonical world hash per tick = the host's hash (it has end-of-pull authority); a mismatch from
-  // any other client is a desync. Trusting the host avoids "resyncing" honest clients toward a
-  // desynced one when that client happens to report first.
-  private readonly canonicalHashes = new Map<number, number>();
-  // Non-host hash reports awaiting the host's canonical hash for the same tick (the host's report
-  // may arrive later); verified and dropped once the host's hash lands.
-  private readonly pendingHashes = new Map<number, Map<string, number>>();
-  // Last time each client's hash report was accepted, for rate-capping.
-  private readonly lastHashReportAt = new Map<string, number>();
+  private readonly lobbyTimeoutMs: number;
+  private readonly relay: FrameRelay;
+  private readonly desync: DesyncTracker;
   private readonly sessionLog: SessionLog | null;
   private botsInvincible = false;
+
+  // Authoritative input log: one merged-intent Frame per simulated tick since the pull started.
+  // Owned by the relay; exposed for late-join / resync (`started` sends it in full to be replayed).
+  get inputLog(): Frame[] {
+    return this.relay.inputLog;
+  }
 
   constructor(options: SessionOptions) {
     this.id = options.id;
@@ -138,10 +115,19 @@ export class Session {
     this.raid = options.raid;
     this.send = options.send;
     this.now = options.now ?? Date.now;
-    this.autoTick = options.autoTick ?? true;
     this.lobbyTimeoutMs = options.lobbyTimeoutMs ?? LOBBY_TIMEOUT_MS;
     this.sessionLog = options.createSessionLog?.(options.id) ?? null;
     this.lastActivity = this.now();
+    this.desync = new DesyncTracker({ sessionId: this.id, now: this.now, onDesync: clientId => this.resync(clientId) });
+    this.relay = new FrameRelay({
+      now: this.now,
+      autoTick: options.autoTick ?? true,
+      sessionLog: this.sessionLog,
+      buildFrame: () => this.buildFrame(),
+      onFrames: (startTick, frames) => this.broadcast({ type: "frames", startTick, frames }),
+      onCeiling: () => this.endPullDefensively(),
+      isRunning: () => this.status === "running",
+    });
 
     for (const player of this.raid.players) this.slots.set(player.id, null);
     this.world = this.freshWorld();
@@ -239,7 +225,7 @@ export class Session {
     }
 
     this.status = "running";
-    this.startTick();
+    this.relay.start();
     this.broadcastPlayback();
     this.broadcastStarted();
     logger.info("session", "raid changed", { session: this.id, raid: this.raidId });
@@ -262,7 +248,7 @@ export class Session {
 
     // Clients resume stepping from the frames that follow; the local world held while paused.
     this.status = "running";
-    this.startTick();
+    this.relay.start();
     this.broadcastPlayback();
     logger.info("session", "resumed", { session: this.id, raid: this.raidId });
   }
@@ -274,9 +260,9 @@ export class Session {
     }
     if (this.status !== "running") return;
 
-    this.flushFrames(); // deliver everything up to the pause point before halting the relay
+    this.relay.flush(); // deliver everything up to the pause point before halting the relay
     this.status = "paused";
-    this.stopTick();
+    this.relay.stop();
     this.broadcastPlayback();
     logger.info("session", "paused", { session: this.id, raid: this.raidId });
   }
@@ -289,7 +275,7 @@ export class Session {
     if (this.status === "lobby") return;
 
     this.status = "stopped";
-    this.stopTick();
+    this.relay.stop();
     this.latestIntents.clear();
     this.world = this.freshWorld();
     this.applyBotsInvincible();
@@ -315,7 +301,7 @@ export class Session {
     this.world = this.freshWorld();
     this.applyBotsInvincible();
     this.resetPull();
-    this.startTick();
+    this.relay.start();
     this.broadcastPlayback();
     this.broadcastStarted();
     logger.info("session", "raid restarted", { session: this.id, raid: this.raidId });
@@ -444,7 +430,7 @@ export class Session {
 
     this.broadcastStarted();
 
-    this.startTick();
+    this.relay.start();
     logger.info("session", "raid started", { session: this.id, raid: this.raidId });
   }
 
@@ -467,16 +453,16 @@ export class Session {
     this.applyBotsInvincible();
   }
 
-  // Advance the relay by one tick: stamp the merged human intents for this tick, append to the input
-  // log, and (unless batching) broadcast immediately. The server never runs `tick()`; clients do.
+  // Advance the relay by one tick (produce a frame, broadcast unless batching). The server never runs
+  // `tick()`; clients do. Frame production/relay lives in FrameRelay.
   step(broadcast = true): void {
     if (this.status !== "running") return;
-    this.produceFrame();
-    if (broadcast) this.flushFrames();
+    this.relay.produceFrame();
+    if (broadcast) this.relay.flush();
   }
 
-  // Merge each owned slot's latest intent into this tick's frame, mirroring the old `step()` exactly:
-  // move + facing carry forward between ticks; one-shot actions (jump/sprint/provoke/…) fire once.
+  // Merge each owned slot's latest intent into this tick's frame: move + facing carry forward between
+  // ticks; one-shot actions (jump/sprint/provoke/…) fire once. Injected into FrameRelay.buildFrame.
   private buildFrame(): Frame {
     const intents: Intents = {};
     for (const [playerId, ownerId] of this.slots) {
@@ -488,32 +474,11 @@ export class Session {
     return { intents, botsInvincible: this.botsInvincible };
   }
 
-  private produceFrame(): void {
-    const frame = this.buildFrame();
-    this.inputLog.push(frame);
-    this.frameBatch.push(frame);
-    this.sessionLog?.frame(this.inputLog.length - 1, [frame]);
-    if (this.inputLog.length >= this.maxPullTicks) this.endPullDefensively();
-  }
-
-  private flushFrames(): void {
-    if (this.frameBatch.length === 0) return;
-    const startTick = this.inputLog.length - this.frameBatch.length;
-    this.broadcast({ type: "frames", startTick, frames: this.frameBatch });
-    metrics.framesBroadcast.inc(this.frameBatch.length);
-    this.frameBatch = [];
-  }
-
-  // Reset per-pull relay state. Called whenever a fresh tick-0 world is built (start/restart/stop/
-  // setRaid) so the input log, batching, and desync window start clean.
+  // Reset per-pull state whenever a fresh tick-0 world is built (start/restart/stop/setRaid) so the
+  // input log, batching, and desync window start clean.
   private resetPull(): void {
-    this.inputLog.length = 0;
-    this.frameBatch = [];
-    this.canonicalHashes.clear();
-    this.pendingHashes.clear();
-    this.lastHashReportAt.clear();
-    this.tickAccumulator = 0;
-    this.maxPullTicks = Math.ceil((this.world.duration + PULL_GRACE_SECONDS) / DT);
+    this.relay.reset(this.world.duration);
+    this.desync.reset();
     // On a real pull start (start/restart set status="running" before this; the constructor's
     // lobby-time reset does not), record the tick-0 world so the session log is self-contained:
     // its seed + this header let the relayed frames be replayed without any other state.
@@ -532,9 +497,9 @@ export class Session {
       return;
     }
     if (this.status !== "running") return;
-    this.flushFrames();
+    this.relay.flush();
     this.status = "done";
-    this.stopTick();
+    this.relay.stop();
     this.broadcastPlayback();
     logger.info("session", "sim ended", { session: this.id, raid: this.raidId, tick, ticks: this.inputLog.length });
   }
@@ -542,47 +507,16 @@ export class Session {
   // Defensive: a host that never sends `simEnded` would otherwise have the room relay idle frames
   // forever (running sessions never expire). Cap the pull well past its duration and finish it.
   private endPullDefensively(): void {
-    this.flushFrames();
+    this.relay.flush();
     this.status = "done";
-    this.stopTick();
+    this.relay.stop();
     this.broadcastPlayback();
     logger.warn("session", "pull hit tick ceiling without simEnded", { session: this.id, ticks: this.inputLog.length });
   }
 
-  // Desync detection: the first hash seen for a tick is canonical. A later, different hash for the
-  // same tick means that client's floats diverged — count it and resync the offender by replaying.
+  // Desync detection is delegated to DesyncTracker; a flagged divergence resyncs the offender here.
   reportWorldHash(clientId: string, tick: number, hash: number): void {
-    const now = this.now();
-    if (now - (this.lastHashReportAt.get(clientId) ?? -Infinity) < MIN_HASH_REPORT_MS) return;
-    this.lastHashReportAt.set(clientId, now);
-
-    if (clientId === this.hostClientId) {
-      this.canonicalHashes.set(tick, hash);
-      const pending = this.pendingHashes.get(tick);
-      if (pending) {
-        for (const [cid, reported] of pending) if (reported !== hash) this.flagDesync(tick, hash, reported, cid);
-        this.pendingHashes.delete(tick);
-      }
-      this.pruneHashWindow();
-      return;
-    }
-
-    const canonical = this.canonicalHashes.get(tick);
-    if (canonical === undefined) {
-      let pending = this.pendingHashes.get(tick);
-      if (!pending) { pending = new Map(); this.pendingHashes.set(tick, pending); }
-      pending.set(clientId, hash);
-      this.pruneHashWindow();
-      return;
-    }
-    if (canonical === hash) return;
-    this.flagDesync(tick, canonical, hash, clientId);
-  }
-
-  private flagDesync(tick: number, expected: number, got: number, clientId: string): void {
-    metrics.desyncTotal.inc();
-    logger.warn("session", "world desync", { session: this.id, tick, expected, got, clientId });
-    this.resync(clientId);
+    this.desync.report(clientId, tick, hash, clientId === this.hostClientId);
   }
 
   private resync(clientId: string): void {
@@ -592,17 +526,6 @@ export class Session {
     }
     const playerId = this.playerForClient(clientId);
     if (playerId) this.send(clientId, this.startedMessage(playerId));
-  }
-
-  private pruneHashWindow(): void {
-    while (this.canonicalHashes.size > MAX_HASH_WINDOW) {
-      this.canonicalHashes.delete(Math.min(...this.canonicalHashes.keys()));
-    }
-    // Pending reports for a tick the host never canonicalized (e.g. its report was rate-dropped)
-    // would otherwise leak; bound them the same way.
-    while (this.pendingHashes.size > MAX_HASH_WINDOW) {
-      this.pendingHashes.delete(Math.min(...this.pendingHashes.keys()));
-    }
   }
 
   isExpired(now = this.now()): boolean {
@@ -618,51 +541,12 @@ export class Session {
   }
 
   dispose(): void {
-    this.stopTick();
+    this.relay.stop();
     this.sessionLog?.close();
   }
 
   private touch(): void {
     this.lastActivity = this.now();
-  }
-
-  private stopTick(): void {
-    if (!this.tickHandle) return;
-    clearInterval(this.tickHandle);
-    this.tickHandle = null;
-  }
-
-  private startTick(): void {
-    if (!this.autoTick) return;
-    this.lastTickAt = this.now();
-    this.tickAccumulator = 0;
-    this.stopTick();
-    this.tickHandle = setInterval(() => this.runDueTicks(), TICK_MS);
-  }
-
-  private runDueTicks(): void {
-    if (this.status !== "running") return;
-
-    const now = this.now();
-    const elapsed = Math.min((now - this.lastTickAt) / 1000, 0.25);
-    this.lastTickAt = now;
-    this.tickAccumulator += Math.max(0, elapsed);
-
-    let steps = 0;
-    while (this.tickAccumulator >= DT && steps < MAX_CATCH_UP_STEPS && this.status === "running") {
-      this.produceFrame();
-      this.tickAccumulator -= DT;
-      steps++;
-    }
-
-    if (steps === MAX_CATCH_UP_STEPS && this.tickAccumulator >= DT) {
-      this.tickAccumulator = 0;
-      metrics.catchupExhausted.inc();
-    }
-
-    // Relay everything produced this loop in one message (≈1 frame per call at 60Hz; more only when
-    // catching up). Tiny per-tick frames already keep egress to a couple KB/s per client.
-    this.flushFrames();
   }
 
   private playerForClient(clientId: string): string | null {
