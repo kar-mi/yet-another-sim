@@ -134,7 +134,7 @@ events:
     id: forsaken-stack-resolve
     name: Stack Resolve
     effectName: Stack Charge
-    action: { kind: stack, radius: 4, requiredCount: 2, damage: 80, damageType: magical }
+    action: { kind: stack, radius: 4, requiredCount: 3, damage: 80, damageType: magical }
   - type: effect_resolver
     id: forsaken-cone-resolve
     name: Cone Resolve
