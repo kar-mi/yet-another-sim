@@ -49,6 +49,7 @@ include a `raid_info.yaml` file used by the raid browser.
 Useful docs:
 
 - [Authoring Raids](docs/authoring-raids.md)
+- [Authoring Bot Patterns](docs/authoring-bot-patterns.md)
 - [Movement & Scale](docs/movement-and-scale.md)
 
 ## Current Scope
