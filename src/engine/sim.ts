@@ -3,27 +3,17 @@
 // assembles a fresh world snapshot. The order matters because the seeded PRNG is drawn in sequence
 // (see systems/context.ts) — reordering systems changes RNG outcomes and breaks reproducibility.
 //
-// Each mechanic family lives in its own system under ./systems. This file only orchestrates them.
+// Each mechanic family lives in its own module in the registry (mechanicRegistry.ts), which defines
+// the fixed resolve order. This file only orchestrates: movement/targeting, the registry resolve
+// loop, status effects, and status derivation.
 
 import type { World, Intents, PendingHeal } from "@shared/types";
 import { atan2 } from "@shared/dmath";
 import { createTickContext } from "./systems/context";
 import { topThreatTarget } from "./systems/helpers";
 import { applyPlayerMovement } from "./systems/playerMovement";
-import { resolveForcedMarches } from "./systems/forcedMarch";
-import { resolveTethers } from "./systems/tethers";
-import { resolveLineLinks } from "./systems/lineLinks";
-import { resolveChains } from "./systems/chains";
-import { resolveAoe } from "./systems/aoe";
-import { resolveTowers } from "./systems/towers";
-import { resolveGroups } from "./systems/groups";
-import { resolveEffectSelects } from "./systems/effectSelect";
-import { resolveApplyEffects } from "./systems/applyEffects";
-import { resolveForsakenAssigns } from "./systems/forsakenAssign";
-import { resolveInversions } from "./systems/inverse";
-import { resolveSpreadStacks } from "./systems/spreadStack";
-import { resolveGazes } from "./systems/gaze";
 import { applyStatusEffects } from "./systems/statusEffects";
+import { REGISTRY } from "./mechanicRegistry";
 
 export function tick(world: World, intents: Intents, dt: number): World {
   const ctx = createTickContext(world, intents, dt);
@@ -32,7 +22,8 @@ export function tick(world: World, intents: Intents, dt: number): World {
   // 1. Player movement, cooldowns, confusion/knockback carry, vertical physics.
   applyPlayerMovement(ctx);
 
-  // Pending full-raid heals resolve before targeting so revived HP is reflected this tick.
+  // Pending full-raid heals resolve before targeting so revived HP is reflected this tick. (Heals
+  // resolve inline here rather than in the registry loop because targeting below must see them.)
   for (const heal of world.pendingHeals) {
     if (heal.t <= time) {
       for (const player of players) {
@@ -53,43 +44,29 @@ export function tick(world: World, intents: Intents, dt: number): World {
     boss.facing = atan2(target.pos.x - boss.pos.x, target.pos.z - boss.pos.z);
   }
 
-  // Per-mechanic systems, in fixed order (RNG determinism — do not reorder).
-  const pendingForcedMarches = resolveForcedMarches(ctx);
-  const { tetherSources, pendingTethers } = resolveTethers(ctx);
-  const { lineLinks, pendingLineLinks } = resolveLineLinks(ctx);
-  const { chains, pendingChains } = resolveChains(ctx);
-  const { active, pending, pendingTargeted, pendingBaits, pendingEffectBursts } = resolveAoe(ctx);
-  const { towers, pendingTowers } = resolveTowers(ctx);
-  const { groupMechanics, pendingGroups } = resolveGroups(ctx);
-  const pendingEffectSelects = resolveEffectSelects(ctx);
-  const pendingApplyEffects = resolveApplyEffects(ctx);
-  const pendingForsakenAssigns = resolveForsakenAssigns(ctx);
-  const { inversions, pendingInversions } = resolveInversions(ctx);
-  const { spreadStacks, pendingSpreadStacks } = resolveSpreadStacks(ctx);
-  const { gazes, pendingGazes } = resolveGazes(ctx);
+  // 2-3. Per-mechanic systems run in the fixed RNG-critical REGISTRY order (do not reorder). Each
+  // module's resolve returns the World slice(s) it owns, merged into the next snapshot. Resolvers
+  // read from ctx.world (the incoming snapshot), so building `next` incrementally is safe.
+  const next: World = { ...world, time, players, boss };
+  for (const mechanic of REGISTRY) {
+    if (mechanic.resolve) Object.assign(next, mechanic.resolve(ctx));
+  }
 
-  // 4. Continuous status effects, doubleTrouble/plant expiry, effect culling.
+  // 4. Continuous status effects, doubleTrouble/plant expiry, effect culling. May append plant traps
+  // to ctx.forcedMarches, so the active forcedMarches are read from ctx after this runs.
   applyStatusEffects(ctx);
 
-  // 5. Derive status. "cleared" requires every pending and active mechanic to have resolved.
+  // Finalize ctx-derived fields that settle only after every system + status effects have run.
+  next.rngState = ctx.rngState;
+  next.groupChoices = ctx.groupChoices;
+  next.log = ctx.log;
+  next.forcedMarches = ctx.forcedMarches;
+  next.active = [...next.active, ...ctx.resolvedAoeVisuals];
+  next.pendingHeals = remainingPendingHeals;
+
+  // 5. Derive status. "cleared" requires every mechanic family to have fully resolved.
   const anyAlive = players.some(p => p.alive);
-  const allResolved = pending.length === 0 && active.every(m => m.resolved)
-    && pendingTethers.length === 0 && tetherSources.every(ts => ts.finalized)
-    && pendingLineLinks.length === 0 && lineLinks.every(link => link.resolved)
-    && pendingTargeted.length === 0
-    && pendingBaits.length === 0
-    && pendingTowers.length === 0 && towers.every(t => t.resolved)
-    && pendingChains.length === 0 && chains.every(c => c.outcome !== undefined)
-    && pendingGroups.length === 0 && groupMechanics.every(g => g.resolved)
-    && pendingEffectSelects.length === 0
-    && pendingApplyEffects.length === 0
-    && pendingInversions.length === 0 && inversions.every(i => i.resolved)
-    && pendingSpreadStacks.length === 0 && spreadStacks.every(s => s.resolved)
-    && pendingGazes.length === 0 && gazes.every(g => g.resolved)
-    && pendingForcedMarches.length === 0 && ctx.forcedMarches.every(fm => fm.triggered)
-    && pendingEffectBursts.length === 0
-    && remainingPendingHeals.length === 0
-    && pendingForsakenAssigns.length === 0;
+  const allResolved = REGISTRY.every(mechanic => mechanic.isResolved ? mechanic.isResolved(next) : true);
   let status = world.status;
   if (status === "running") {
     if (!anyAlive) {
@@ -98,25 +75,6 @@ export function tick(world: World, intents: Intents, dt: number): World {
       status = "cleared";
     }
   }
-
-  return {
-    ...world, time, rngState: ctx.rngState, groupChoices: ctx.groupChoices, players, boss,
-    active: [...active, ...ctx.resolvedAoeVisuals], pending, log: ctx.log, status,
-    tetherSources, pendingTethers,
-    lineLinks, pendingLineLinks,
-    pendingTargeted,
-    pendingBaits,
-    towers, pendingTowers,
-    chains, pendingChains,
-    groupMechanics, pendingGroups,
-    pendingEffectSelects,
-    pendingApplyEffects,
-    pendingForsakenAssigns,
-    inversions, pendingInversions,
-    spreadStacks, pendingSpreadStacks,
-    gazes, pendingGazes,
-    forcedMarches: ctx.forcedMarches, pendingForcedMarches,
-    pendingEffectBursts,
-    pendingHeals: remainingPendingHeals,
-  };
+  next.status = status;
+  return next;
 }
