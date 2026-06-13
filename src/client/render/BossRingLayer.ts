@@ -10,7 +10,8 @@ import { filteredCirclePaths } from "./meshes/meshPaths";
 
 const RING_Y = 0.03;        // just above the floor, matching other ground meshes
 const INNER_SCALE = 0.9;    // inner ring radius relative to the outer (boss.radius)
-const VISUAL_SCALE = 2.6;   // render a larger ring without changing boss mechanics (7.8 with boss.radius 3 — crosses every Forsaken tower)
+const VISUAL_SCALE = 2.0;   // render a larger ring without changing boss mechanics  
+// TODO - make this a raid param. kefka is 2.0, other bosses will ahve their own size
 const TUBE_RADIUS = 0.06;   // ring line thickness
 // Connected front arc (0 = facing) wrapping to the SE/SW intercardinals (±135°),
 // leaving only the rear 90° open. Draw only within REAR_OPENING_HALF of the front.
@@ -41,7 +42,7 @@ export class BossRingLayer {
     this.node = new TransformNode("boss-ring", this.scene);
 
     const red = this.makeMaterial("boss-ring-red", new Color3(0.9, 0.13, 0.12));
-    const white = this.makeMaterial("boss-ring-white", new Color3(1, 1, 1));
+    const white = this.makeMaterial("boss-ring-red-2",new Color3(0.9, 0.13, 0.12));
 
     const radius = boss.radius * VISUAL_SCALE;
     this.buildRing(radius, red);                // outer ring red
@@ -82,7 +83,7 @@ export class BossRingLayer {
   // Facing markers: front triangle pointing outward (+Z), plus small E/W
   // triangles inside the ring pointing north (toward facing).
   private buildMarkers(radius: number, red: StandardMaterial, white: StandardMaterial): void {
-    const frontTip = radius * 0.3, frontHalf = radius * 0.2;
+    const frontTip = radius * 0.2, frontHalf = radius * 0.07;
     this.addTriangle([
       0, 0, radius + frontTip, // tip (outward)
       -frontHalf, 0, radius,
