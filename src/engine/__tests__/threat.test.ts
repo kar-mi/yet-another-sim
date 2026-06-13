@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
-import { tick, PROVOKE_COOLDOWN } from "../sim";
+import { tick } from "../sim";
+import { PROVOKE_COOLDOWN } from "@shared/constants";
 import { createWorld } from "../world";
 import { HUMAN, baseRaid, byId, human, loadRaid } from "./helpers";
 

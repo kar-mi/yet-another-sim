@@ -1,6 +1,6 @@
-import type { World, Player } from "../../shared/types";
+import type { World, Player } from "@shared/types";
 import { triggerAction, toggleInvincibility } from "../input";
-import { SPRINT_COOLDOWN, ANTI_KB_COOLDOWN, PROVOKE_COOLDOWN } from "../../engine/sim";
+import { SPRINT_COOLDOWN, ANTI_KB_COOLDOWN, PROVOKE_COOLDOWN } from "@shared/constants";
 import {
   ACTIONS,
   CONTROLLER_BUTTON_LABELS,
@@ -13,7 +13,7 @@ import {
 } from "../actions";
 import { keyLabel } from "../settings";
 import type { Settings, ControllerType } from "../settings";
-import { clamp01 } from "../../shared/math";
+import { clamp01 } from "@shared/math";
 
 declare const __YAS_DEBUG__: boolean | undefined;
 

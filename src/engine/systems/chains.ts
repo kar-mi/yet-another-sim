@@ -2,10 +2,10 @@
 // on expiry. The chain entity is authoritative; the debuff is display-only.
 
 import type { TickContext } from "./context";
-import type { ActiveChain, PendingChain, EffectSpec } from "../../shared/types";
-import { length, sub } from "../../shared/math";
+import type { ActiveChain, PendingChain, EffectSpec } from "@shared/types";
+import { length, sub } from "@shared/math";
 import { applyEffect } from "./helpers";
-import { CHAIN_LINGER } from "../constants";
+import { CHAIN_LINGER } from "@shared/constants";
 
 export function resolveChains(ctx: TickContext): {
   chains: ActiveChain[];

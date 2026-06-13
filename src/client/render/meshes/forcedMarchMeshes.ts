@@ -6,8 +6,8 @@ import { CreateGround } from "@babylonjs/core/Meshes/Builders/groundBuilder";
 import { CreateRibbon } from "@babylonjs/core/Meshes/Builders/ribbonBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveForcedMarch } from "../../../shared/types";
-import { normalize } from "../../../shared/math";
+import type { ActiveForcedMarch } from "@shared/types";
+import { normalize } from "@shared/math";
 
 // A forced-march trap is drawn as a translucent floor ring with a bright arrow pointing in the
 // teleport direction. The first player to step inside is flung `distance` along the arrow; the

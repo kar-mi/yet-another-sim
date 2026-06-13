@@ -2,7 +2,6 @@ import { expect, test } from "bun:test";
 import { computeBotIntents } from "../botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
-import type { Player } from "../../shared/types";
 import { HUMAN, baseRaid, human, loadRaid, roster, runTicks, runTicksWithBotIntents } from "./helpers";
 import type { Vec } from "./helpers";
 

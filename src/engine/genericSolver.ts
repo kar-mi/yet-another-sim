@@ -1,6 +1,6 @@
-import type { Vec2 } from "../shared/math";
-import { add, normalize } from "../shared/math";
-import type { GenericSolverRule, Player, World } from "../shared/types";
+import type { Vec2 } from "@shared/math";
+import { add, normalize } from "@shared/math";
+import type { GenericSolverRule, Player, World } from "@shared/types";
 
 // A live unresolved mechanic the generic solver can match against. `labels`/`group`/`pos` are carried
 // from the authored event (towers have a position; targeted/bait/aoe carry labels+group but no pos).

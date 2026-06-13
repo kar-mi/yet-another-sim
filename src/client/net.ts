@@ -1,9 +1,9 @@
-import { type ClientMessage, type Frame, type ServerMessage } from "../shared/protocol";
-import type { Boss, Player, World } from "../shared/types";
-import { shortestAngleDelta } from "../shared/math";
+import { type ClientMessage, type Frame, type ServerMessage } from "@shared/protocol";
+import type { Boss, Player, World } from "@shared/types";
+import { shortestAngleDelta } from "@shared/math";
 import { tick } from "../engine/sim";
 import { computeBotIntents } from "../engine/botIntent";
-import { worldHash } from "../shared/worldHash";
+import { worldHash } from "@shared/worldHash";
 import { computeWorldRenderKeys, getWorldRenderKeys, setWorldRenderKeys, type WorldRenderKeys } from "./worldRenderKeys";
 
 type MessageType = ServerMessage["type"];

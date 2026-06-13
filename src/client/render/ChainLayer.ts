@@ -6,7 +6,7 @@ import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveChain, Player } from "../../shared/types";
+import type { ActiveChain, Player } from "@shared/types";
 import { glyphBillboardMaterial } from "./meshes/billboardMaterials";
 
 const ICON_Y = 3.2;   // height of the chain icon above a player

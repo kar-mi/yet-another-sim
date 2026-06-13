@@ -1,6 +1,6 @@
-// Simulation constants. Physics/movement constants are public (imported by botIntent, world,
-// and client HUD); the LINGER constants govern how long a resolved mechanic stays visible so the
-// renderer can flash its outcome. sim.ts re-exports the public ones for backward compatibility.
+// Simulation constants. Physics/movement constants are imported by botIntent, world, and the
+// client HUD; the LINGER constants govern how long a resolved mechanic stays visible so the
+// renderer can flash its outcome.
 
 export const MOVE_SPEED = 6;
 export const SPRINT_MULTIPLIER = 1.3;

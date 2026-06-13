@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
-import { tick, DEATH_FLOOR_Y } from "../sim";
+import { tick } from "../sim";
+import { DEATH_FLOOR_Y } from "@shared/constants";
 import { createWorld } from "../world";
 import { HUMAN, baseRaid, human, loadRaid, roster, runTicks } from "./helpers";
 

@@ -1,7 +1,7 @@
-import type { Vec2 } from "../shared/math";
-import type { Intents, Player, Waypoint, World } from "../shared/types";
-import { length, normalize, sub } from "../shared/math";
-import { MOVE_SPEED } from "./sim";
+import type { Vec2 } from "@shared/math";
+import type { Intents, Player, Waypoint, World } from "@shared/types";
+import { length, normalize, sub } from "@shared/math";
+import { MOVE_SPEED } from "@shared/constants";
 import { genericSolverWaypoint } from "./genericSolver";
 
 function activeWaypoint(pattern: Waypoint[], time: number, after = -Infinity): Waypoint | undefined {

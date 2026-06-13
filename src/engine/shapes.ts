@@ -1,7 +1,7 @@
-import type { Vec2 } from "../shared/math";
-import { dot, length, normalize } from "../shared/math";
-import type { AOEShape, ZoneShape } from "../shared/types";
-import { cos } from "../shared/dmath";
+import type { Vec2 } from "@shared/math";
+import { dot, length, normalize } from "@shared/math";
+import type { AOEShape, ZoneShape } from "@shared/types";
+import { cos } from "@shared/dmath";
 
 function circleContains(center: Vec2, radius: number, p: Vec2): boolean {
   const dx = p.x - center.x;

@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { tick } from "../sim";
 import { createWorld } from "../world";
 import { TANK_HP } from "./constants";
-import type { Intents } from "../../shared/types";
+import type { Intents } from "@shared/types";
 import { HUMAN, baseRaid, effect, human, loadRaid, roster, runTicks, withEffect } from "./helpers";
 import type { Vec } from "./helpers";
 

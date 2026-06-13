@@ -6,11 +6,11 @@ import type { TickContext } from "./context";
 import type {
   ActiveMechanic, PendingEvent, PendingTargetedEvent, PendingBaitEvent, PendingEffectBurst,
   Player, Role, Boss,
-} from "../../shared/types";
+} from "@shared/types";
 import { pointInShape } from "../shapes";
 import { promotePending, anchorShape } from "../timeline";
-import { AOE_RESOLVE_LINGER, TARGETED_LINGER } from "../constants";
-import { atan2 } from "../../shared/dmath";
+import { AOE_RESOLVE_LINGER, TARGETED_LINGER } from "@shared/constants";
+import { atan2 } from "@shared/dmath";
 import {
   selectTargetPlayer, inPositionalArc, applyMechanicDamage, applyEffect,
   effectsForMechanic, balancedEffectOrders, applyKnockback, shapeOrigin, isEffectActiveAt,

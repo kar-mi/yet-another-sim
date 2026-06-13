@@ -2,11 +2,11 @@
 // random member to mark; at resolve split the unavoidable damage across whoever stacks in.
 
 import type { TickContext } from "./context";
-import type { ActiveGroupMechanic, PendingGroupEvent, AOEShape } from "../../shared/types";
+import type { ActiveGroupMechanic, PendingGroupEvent, AOEShape } from "@shared/types";
 import { pointInShape } from "../shapes";
 import { applyMechanicDamage, applyEffect } from "./helpers";
 import { cullResolved } from "./util";
-import { TARGETED_LINGER } from "../constants";
+import { TARGETED_LINGER } from "@shared/constants";
 
 export function resolveGroups(ctx: TickContext): {
   groupMechanics: ActiveGroupMechanic[];

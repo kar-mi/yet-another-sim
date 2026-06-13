@@ -1,9 +1,9 @@
-import type { AOEShape, EffectResolver, Player } from "../../shared/types";
-import { length, sub } from "../../shared/math";
+import type { AOEShape, EffectResolver, Player } from "@shared/types";
+import { length, sub } from "@shared/math";
 import { pointInShape } from "../shapes";
 import type { TickContext } from "./context";
 import { applyMechanicDamage, isEffectActiveAt } from "./helpers";
-import { TARGETED_LINGER } from "../constants";
+import { TARGETED_LINGER } from "@shared/constants";
 
 function addResolvedAoeVisual(ctx: TickContext, id: string, name: string, shape: AOEShape): void {
   ctx.resolvedAoeVisuals.push({

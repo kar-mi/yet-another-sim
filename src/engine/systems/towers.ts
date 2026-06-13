@@ -2,13 +2,13 @@
 // wrong-role ones) on success, or hit the whole raid with failure damage when undersoaked.
 
 import type { TickContext } from "./context";
-import type { ActiveTower, PendingTower, AOEShape, Player } from "../../shared/types";
+import type { ActiveTower, PendingTower, AOEShape, Player } from "@shared/types";
 import { pointInShape } from "../shapes";
 import { applyEffect, applyKnockback } from "./helpers";
 import { triggerEffectResolver } from "./effectResolvers";
 import { resolveForsakenTowerDebuffSwaps } from "./forsakenAssign";
 import { cullResolved } from "./util";
-import { TOWER_LINGER } from "../constants";
+import { TOWER_LINGER } from "@shared/constants";
 
 function forsakenTowerNumber(id: string): number | undefined {
   const match = /^tower-(\d+)-(?:left|right)$/.exec(id);

@@ -1,4 +1,4 @@
-import type { EffectSpec, ForsakenAssignmentKind, PendingForsakenAssign, Player } from "../../shared/types";
+import type { EffectSpec, ForsakenAssignmentKind, PendingForsakenAssign, Player } from "@shared/types";
 import type { TickContext } from "./context";
 import { applyEffect, isEffectActiveAt } from "./helpers";
 

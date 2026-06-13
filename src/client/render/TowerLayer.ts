@@ -1,5 +1,5 @@
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveTower } from "../../shared/types";
+import type { ActiveTower } from "@shared/types";
 import { createTowerMeshes, updateTowerMeshes, type TowerMeshes } from "./meshes/towerMeshes";
 
 export class TowerLayer {

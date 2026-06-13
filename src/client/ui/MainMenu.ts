@@ -11,8 +11,8 @@ import {
   type RaidCategory,
   type RaidEntry,
   type ServerMessage,
-} from "../../shared/protocol";
-import type { World } from "../../shared/types";
+} from "@shared/protocol";
+import type { World } from "@shared/types";
 import type { NetClient } from "../net";
 import { createElement } from "./dom";
 

@@ -6,8 +6,8 @@ import { showLanding, showLobby } from "./ui/MainMenu";
 import { initSettingsPanel } from "./ui/SettingsPanel";
 import { createRaidHudSelect } from "./ui/RaidHudSelect";
 import { connect } from "./net";
-import { SessionIdSchema } from "../shared/protocol";
-import { consoleSink, logger, parseLevel } from "../shared/logger";
+import { SessionIdSchema } from "@shared/protocol";
+import { consoleSink, logger, parseLevel } from "@shared/logger";
 
 logger.configure({
   level: parseLevel(

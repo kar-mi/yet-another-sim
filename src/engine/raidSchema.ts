@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ROSTER, RaidIdSchema } from "../shared/protocol";
+import { ROSTER, RaidIdSchema } from "@shared/protocol";
 
 const Vec2Schema = z.tuple([z.number(), z.number()]);
 const WaypointSchema = z.object({ t: z.number().nonnegative(), pos: Vec2Schema });

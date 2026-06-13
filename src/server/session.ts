@@ -3,9 +3,9 @@ import { readRaidObject } from "./raidFileReader";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../engine/raidLoader";
 import type { RaidDef } from "../engine/raidSchema";
 import { createWorld } from "../engine/world";
-import { CLOCK_SPOTS, EMPTY_RAID_ID, MAX_OBSERVERS, ROSTER, type ClientMessage, type Frame, type LobbySlot, type LobbyStatus, type ServerMessage } from "../shared/protocol";
-import type { Intent, Intents, World } from "../shared/types";
-import { logger } from "../shared/logger";
+import { CLOCK_SPOTS, EMPTY_RAID_ID, MAX_OBSERVERS, ROSTER, type ClientMessage, type Frame, type LobbySlot, type LobbyStatus, type ServerMessage } from "@shared/protocol";
+import type { Intent, Intents, World } from "@shared/types";
+import { logger } from "@shared/logger";
 import { metrics } from "./metrics";
 
 /**

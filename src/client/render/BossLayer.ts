@@ -5,8 +5,8 @@ import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Space } from "@babylonjs/core/Maths/math.axis";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Scene } from "@babylonjs/core/scene";
-import { logger } from "../../shared/logger";
-import type { Boss } from "../../shared/types";
+import { logger } from "@shared/logger";
+import type { Boss } from "@shared/types";
 
 const BOSS_MODEL_ROOT = "/static/model/";
 const BOSS_MODEL_FILE = "skeith.glb";

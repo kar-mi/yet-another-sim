@@ -1,7 +1,7 @@
 import type { Renderer } from "./render/Renderer";
 import { getIntent, getRightStick, getKeyboardCameraPan } from "./input";
 import type { NetClient } from "./net";
-import type { Intent } from "../shared/types";
+import type { Intent } from "@shared/types";
 
 function hasOneShotIntent(intent: Intent): boolean {
   return !!(

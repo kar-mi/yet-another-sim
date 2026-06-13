@@ -1,5 +1,5 @@
-import type { Intent } from "../shared/types";
-import { normalize, shortestAngleDelta, normalizeAngle } from "../shared/math";
+import type { Intent } from "@shared/types";
+import { normalize, shortestAngleDelta, normalizeAngle } from "@shared/math";
 import { actionForControllerSlot } from "./actions";
 import type { ActionId } from "./actions";
 import { DEFAULT_BINDINGS } from "./settings";

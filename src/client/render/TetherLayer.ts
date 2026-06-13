@@ -6,7 +6,7 @@ import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { TetherSource, Player } from "../../shared/types";
+import type { TetherSource, Player } from "@shared/types";
 
 export class TetherLayer {
   private spheres = new Map<string, Mesh>();

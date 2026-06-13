@@ -2,7 +2,7 @@ import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveInverse, Boss } from "../../../shared/types";
+import type { ActiveInverse, Boss } from "@shared/types";
 import {
   createQuestionRing,
   QUESTION_RING_DEFAULT_Y,

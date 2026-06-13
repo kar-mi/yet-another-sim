@@ -3,11 +3,11 @@
 // spread drops a personal AOE on every player (overlap = extra hits); stack soaks on the marked.
 
 import type { TickContext } from "./context";
-import type { ActiveSpreadStack, PendingSpreadStack, AOEShape } from "../../shared/types";
+import type { ActiveSpreadStack, PendingSpreadStack, AOEShape } from "@shared/types";
 import { pointInShape } from "../shapes";
 import { applyMechanicDamage } from "./helpers";
 import { cullResolved } from "./util";
-import { TARGETED_LINGER } from "../constants";
+import { TARGETED_LINGER } from "@shared/constants";
 
 export function resolveSpreadStacks(ctx: TickContext): {
   spreadStacks: ActiveSpreadStack[];

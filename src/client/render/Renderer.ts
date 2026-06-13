@@ -1,4 +1,4 @@
-import type { World } from "../../shared/types";
+import type { World } from "@shared/types";
 
 export interface Renderer {
   init(world: World, sessionId: string, localPlayerId?: string | null): void;

@@ -1,5 +1,5 @@
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveGaze } from "../../shared/types";
+import type { ActiveGaze } from "@shared/types";
 import { createGazeMeshes, updateGazeMeshes, type GazeMeshes } from "./meshes/gazeMeshes";
 
 export class GazeLayer {

@@ -3,8 +3,8 @@ import { computeBotIntents } from "../botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
 import { applyBotPatterns, loadBotPatterns } from "../raidLoader";
-import type { World } from "../../shared/types";
-import { HUMAN, baseRaid, effect, human, loadRaid, roster, runTicksWithBotIntents, runTicksWithComputedBotIntents, withControl, withEffect, withPlayerEffect } from "./helpers";
+import type { World } from "@shared/types";
+import { HUMAN, baseRaid, effect, loadRaid, roster, runTicksWithBotIntents, runTicksWithComputedBotIntents, withControl, withEffect, withPlayerEffect } from "./helpers";
 
 test("bot intents are deterministic", () => {
   const raid = loadRaid({

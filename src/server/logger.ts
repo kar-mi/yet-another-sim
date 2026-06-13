@@ -2,9 +2,9 @@
 // Importing this module for its side effect configures the shared `logger`.
 import { mkdirSync } from "node:fs";
 import { join } from "path";
-import { consoleSink, formatRecord, logger, parseLevel, type LogRecord, type Sink } from "../shared/logger";
+import { consoleSink, formatRecord, logger, parseLevel, type LogRecord, type Sink } from "@shared/logger";
 import type { SessionLog } from "./session";
-import type { Frame } from "../shared/protocol";
+import type { Frame } from "@shared/protocol";
 
 const ROOT = join(import.meta.dir, "..", "..");
 const LOG_DIR = join(ROOT, "logs");

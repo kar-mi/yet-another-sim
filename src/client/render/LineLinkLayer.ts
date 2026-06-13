@@ -6,7 +6,7 @@ import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveLineLink, Player } from "../../shared/types";
+import type { ActiveLineLink, Player } from "@shared/types";
 
 const LINE_COLOR = new Color3(0.25, 0.85, 1.0);
 const STATUE_COLOR = new Color3(0.45, 0.5, 0.58);

@@ -5,7 +5,7 @@ import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveSpreadStack, Boss, Player } from "../../shared/types";
+import type { ActiveSpreadStack, Boss, Player } from "@shared/types";
 import { applyAlphaTest } from "./meshes/billboardMaterials";
 import {
   createQuestionRing,

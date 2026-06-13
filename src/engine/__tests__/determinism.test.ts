@@ -3,9 +3,9 @@ import { computeBotIntents } from "../botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../raidLoader";
-import { worldHash } from "../../shared/worldHash";
+import { worldHash } from "@shared/worldHash";
 import type { RaidDef } from "../raidSchema";
-import type { World } from "../../shared/types";
+import type { World } from "@shared/types";
 
 // Server-relayed lockstep requires that `tick` produce byte-identical worlds from the same seed +
 // inputs on every client, and that the entire simulation state live in `World` (so a late joiner

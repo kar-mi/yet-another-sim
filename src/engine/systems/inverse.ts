@@ -3,7 +3,7 @@
 // hidden shape is the lethal one.
 
 import type { TickContext } from "./context";
-import type { ActiveInverse, PendingInverse } from "../../shared/types";
+import type { ActiveInverse, PendingInverse } from "@shared/types";
 import { pointInShape } from "../shapes";
 import { applyMechanicDamage, applyEffect, applyKnockback, shapeOrigin } from "./helpers";
 import { cullResolved } from "./util";

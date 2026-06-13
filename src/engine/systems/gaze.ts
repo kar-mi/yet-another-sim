@@ -3,7 +3,7 @@
 // last movement direction, so "looking away" means flicking the stick away then stopping.
 
 import type { TickContext } from "./context";
-import type { ActiveGaze, PendingGaze } from "../../shared/types";
+import type { ActiveGaze, PendingGaze } from "@shared/types";
 import { applyMechanicDamage, applyEffect, applyKnockback, isLookingAt } from "./helpers";
 import { cullResolved } from "./util";
 
