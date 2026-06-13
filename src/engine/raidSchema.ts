@@ -552,10 +552,20 @@ function classifyForsakenPair(
   return undefined;
 }
 
+const BossSchema = z.object({
+  pos: Vec2Schema.default([0, 0]),
+  radius: z.number().positive().default(3),
+  ring: z.object({
+    scale: z.number().positive().default(2),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#e62120"),
+  }).default({ scale: 2, color: "#e62120" }),
+}).default({ pos: [0, 0], radius: 3, ring: { scale: 2, color: "#e62120" } });
+
 export const RaidSchema = z.object({
   name: z.string().min(1),
   arena: z.object({ zones: z.array(ZoneShapeSchema).min(1) }),
   duration: z.number().positive(),
+  boss: BossSchema,
   botPatterns: RaidIdSchema.optional(),
   players: z.array(PlayerDefSchema).length(ROSTER.length),
   events: z.array(EventSchema),

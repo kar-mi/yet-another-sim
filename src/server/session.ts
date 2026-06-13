@@ -61,6 +61,7 @@ function createEmptyRaid(): RaidDef {
     name: "(empty)",
     arena: { zones: [{ kind: "circle", center: [0, 0], radius: 20 }] },
     duration: 30,
+    boss: { pos: [0, 0], radius: 3, ring: { scale: 2, color: "#e62120" } },
     players,
     events: [],
   };

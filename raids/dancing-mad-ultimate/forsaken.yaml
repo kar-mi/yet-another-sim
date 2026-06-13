@@ -8,6 +8,12 @@ arena:
       center: [0, 0]
       radius: 20
 duration: 118
+boss:
+  pos: [0, 0]
+  radius: 3
+  ring:
+    scale: 2
+    color: "#e62120"
 botPatterns: forsaken-bots
 
 # Tower positions on the 8-radius ring, named by compass direction.

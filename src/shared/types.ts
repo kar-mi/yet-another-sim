@@ -190,6 +190,8 @@ export type Boss = {
   facing: number;                  // radians, 0 = +Z (matches player facing convention)
   currentTarget: string | null;    // player id with top threat
   threat: Record<string, number>;  // playerId -> threat value
+  ringScale: number;               // floor-ring visual scale (BossRingLayer)
+  ringColor: string;               // floor-ring hex color
 };
 
 export type AOEShape =
