@@ -14,7 +14,7 @@ load — an invalid file throws and the raid won't start.
   raid list and join URLs.
 - The server lists all raid files in each category directory, **except** files named
   `raid_info` or ending in `-bots` — those are metadata/bot-pattern files
-  (see [Bot patterns](#bot-patterns)).
+  (see [Authoring Bot Patterns](authoring-bot-patterns.md)).
 - Category metadata and bot-pattern files use the same YAML extensions (`raid_info.yaml`,
   `*-bots.yaml`).
 
@@ -54,7 +54,7 @@ events:
 | `name`        | yes      | Display name, non-empty. |
 | `arena`       | yes      | `zones: [...]`, at least one zone. Defines the walkable floor. |
 | `duration`    | yes      | Encounter length in seconds (> 0). The run ends ("cleared") if players survive this long. |
-| `botPatterns` | no       | Id of a bot-pattern file (without extension). See [Bot patterns](#bot-patterns). |
+| `botPatterns` | no       | Id of a bot-pattern file (without extension). See [Authoring Bot Patterns](authoring-bot-patterns.md). |
 | `players`     | yes      | Exactly 8, in the canonical roster order below. |
 | `events`      | yes      | Array of events. May be empty. |
 | `waymarks`    | no       | Optional visual floor markers (A–D, 1–4). See [Waymarks](#waymarks). |
@@ -1106,110 +1106,10 @@ optionals:
 
 ## Bot patterns
 
-Bot-controlled players move along waypoint paths. You can inline a `pattern` on a player,
-but the convention is a separate file referenced by the raid's `botPatterns` field.
-
-- Name it `<raid>-bots.yaml` so it's excluded from the raid list.
-- Set `botPatterns: <raid>-bots` (the id, without extension) on the raid.
-Excerpt from `raids/debug/sample-raid-bots.yaml`:
-
-```yaml
-players:
-  mt:
-    - { t: 5, pos: [-12, -8] }
-    - { t: 13, pos: [-12, 8] }
-    - { t: 20, pos: [-3, 0] }
-  h1:
-    - { t: 5, pos: [12, -8] }
-    - { t: 13, pos: [12, 8] }
-    - { t: 20, pos: [3, 0] }
-```
-
-Each waypoint is `{ t: <seconds>, pos: [x, z] }`. Only listed players get patterns;
-others stay at their spawn (or are driven by a human).
-After forced march, plant teleport, or knockback moves a bot, waypoints at or before that forced
-movement time are ignored. Add a later waypoint when the bot should resume authored movement.
-
-Bot pattern files define runtime bot solvers entirely through the **generic solver** below: plant
-arrows via `when.plant`, spread/stack (including its concurrent-`inverse` "lightning" corridors) via
-multi-mechanic `when.mechanic`, and debuff dodges like Double Trouble via `when.debuff` + `role`. See
-`raids/dancing-mad-ultimate/graven-image-3-bots.yaml` for all three.
-
-Even rotating, state-dependent fights are expressible: `forsaken-bots.yaml` solves all eight of
-Forsaken's 45°-rotating tower waves and the four stored-cone ending baits with ~24 generic rules,
-using event `labels`/`group`, `when.soaks` / `when.partnerDebuff`, and rotated-frame spots (see below).
-
-### Generic solver
-
-The **generic** solver is a data-driven alternative to the bespoke solvers above: instead of new
-engine code per mechanic, you write an ordered list of rules under `solvers.generic`. Each tick the
-engine builds, for every bot, the set of currently-active mechanics (each as a *resolved id* — the
-event id extended with its RNG outcome), the bot's role, and its active debuffs, then walks the rules
-in order. The **first** rule whose conditions all match *and* that supplies a spot for that bot wins,
-sending it to `spots[<its id>]` (falling back to `spot`). New lookup-style mechanics then need zero
-solver code. When no rule matches, the bot falls back to its authored waypoints.
-
-A rule has:
-
-- `when` — all conditions are ANDed; a rule must specify at least one of `mechanic` / `debuff` /
-  `partnerDebuff` / `plant`:
-  - `mechanic` — segment-prefix match on a resolved id (see the suffix table below) **or** an exact
-    match against one of the mechanic's authored `labels`. Split both on `.`; the rule matches if its
-    segments are a prefix of the resolved id's, so `lightning-1` matches `lightning-1.inverted.b`, and
-    `lightning-1.inverted` matches only the inverted orientations. The rule is active during that
-    mechanic's telegraph→resolve window. Pass an **array** to require several mechanics at once — e.g.
-    `mechanic: [fire-1.spread, lightning-1.inverted.a]` only matches while a spread_stack resolves to
-    spread *and* a concurrent inverse rolled inverted/variant-a.
-  - `role` — `tank` | `healer` | `dps`.
-  - `debuff` — an active effect name on the bot (or an **array** requiring all listed names). A
-    debuff-only rule is active while that debuff is.
-  - `partnerDebuff` — same matching, against the bot's partner (`world.partners`, populated e.g. from a
-    Forsaken pair plan). Lets one bot's spot depend on its partner's assignment.
-  - `soaks` — `true`/`false`, compared against the group of the first live mechanic matched by
-    `when.mechanic` (which is required). `true` matches bots whose group (`world.playerGroups`) equals
-    the mechanic's `group`; `false` matches bots whose group differs (and the mechanic has a group).
-  - `plant` — the bot's assigned plant combo key (e.g. `"right right"`, from `optionals.combinations.plant`);
-    active while the bot carries a plant debuff. Add `plantSlot` (0 = short, 1 = long) to target one slot;
-    omit it to match either. One `(combo, slot) → spot` rule per placement, e.g.
-    `- { when: { plant: right right, plantSlot: 0 }, spot: [0, 12] }`.
-- `startAt` / `endAt` — optional absolute time clamps on the activation window.
-- `frame` — optional rotated coordinate frame for the spot(s). `"matched"` sets north to the bisector
-  of the live matched mechanics' positions (e.g. a wave's two towers — requires `when.mechanic`); a
-  list of event ids sets north from those events' **static** positions. A frame coord `[x, z]` maps to
-  world `x · right + z · north`, with `right = { x: north.z, z: -north.x }` and the arena centre as
-  origin. One spot set then serves every wave of a rotating mechanic. A rule whose frame can't be
-  computed yields no spot (falls through).
-- `spots` (`playerId -> [x, z]`) and/or `spot` (`[x, z]` for every matching bot); `spots[id]` wins.
-  A rule must specify at least one. If a rule matches but supplies no spot for this bot, the search
-  falls through to later rules.
-
-Any positioned event can carry `labels` (a string list, matched by `when.mechanic`) and a `group`
-string (compared by `when.soaks`) — currently on `aoe`, `tower`, `targeted`, and `bait` events.
-
-Resolved-id suffixes by mechanic kind (RNG outcomes are appended so rules can target a specific roll):
-
-| Mechanic kind | Resolved id |
-| --- | --- |
-| `aoe`, `tower` (and pending towers) | plain `<id>` (active during its telegraph) |
-| `inverse` | `<id>.shown` / `<id>.inverted`, then `.a` / `.b` (rolled variant) — e.g. `lightning-1.inverted.b` |
-| `spread_stack` | `<id>.spread` / `<id>.stack` — the **actual** mode (sees through the `?`) |
-| `gaze` | `<id>.normal` / `<id>.reverse` |
-| `group` | `<id>.g<index>` — the rolled group index from the event's `groups` list |
-
-Excerpt from `raids/debug/rng-stack-bots.yaml` (a `group` mechanic with `groups: [[h1], [h2]]`):
-
-```yaml
-solvers:
-  generic:
-    # Role-conditioned rule first so it overrides the general rule for tanks.
-    - when: { mechanic: stack-1.g0, role: tank }
-      spot: [-7, 7]
-    # General rule: every bot stacks on the rolled group's point.
-    - when: { mechanic: stack-1.g0 }
-      spot: [-4, 4]
-    - when: { mechanic: stack-1.g1 }
-      spot: [4, -4]
-```
+Bot-controlled players are driven by a separate `<raid>-bots.yaml` file: static waypoint paths and/or
+data-driven `solvers.generic` rules that react to live mechanics. Set `botPatterns: <raid>-bots` (the
+id, without extension) on the raid to attach it. The full reference — waypoints, the generic solver,
+resolved-id suffixes, and rotated `frame` spots — lives in [Authoring Bot Patterns](authoring-bot-patterns.md).
 
 ## Worked example
 

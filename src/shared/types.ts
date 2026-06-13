@@ -18,7 +18,7 @@ export type Waymark = { mark: WaymarkId; pos: Vec2 };
 
 export type Waypoint = { t: number; pos: Vec2 };
 
-// One ordered, data-driven bot-solver rule (see docs/authoring-raids.md "Generic solver").
+// One ordered, data-driven bot-solver rule (see docs/authoring-bot-patterns.md "Generic solver").
 // A rule is active during a matched mechanic's telegraph->resolve window (and/or while a named
 // debuff is active), optionally clamped by startAt/endAt. When active it sends each matching bot
 // to spots[its id] ?? spot. Conditions in `when` are ANDed.
