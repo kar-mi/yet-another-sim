@@ -58,6 +58,28 @@ events:
 | `players`     | yes      | Exactly 8, in the canonical roster order below. |
 | `events`      | yes      | Array of events. May be empty. |
 | `waymarks`    | no       | Optional visual floor markers (A–D, 1–4). See [Waymarks](#waymarks). |
+| `boss`        | no       | Optional boss config. See [Boss](#boss). Defaults to Kefka's values when omitted. |
+
+## Boss
+
+The optional `boss:` block controls the boss's mechanical properties and floor-ring visuals. Every field has a default so you only need to specify what differs from Kefka.
+
+| Field        | Default    | Notes |
+|--------------|------------|-------|
+| `pos`        | `[0, 0]`   | Boss spawn position `[x, z]`. |
+| `radius`     | `3`        | Mechanical hitbox radius (also scales the floor ring). |
+| `ring.scale` | `2`        | Floor-ring radius = `radius * ring.scale`. Larger values make the ring bigger without changing the hitbox. |
+| `ring.color` | `#e62120`  | Hex color for the floor ring (e.g. `#3aa0ff` for blue). |
+
+Example — larger blue ring:
+
+```yaml
+boss:
+  radius: 5
+  ring:
+    scale: 3
+    color: "#3aa0ff"
+```
 
 ## Coordinate system
 

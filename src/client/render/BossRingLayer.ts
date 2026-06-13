@@ -10,8 +10,6 @@ import { filteredCirclePaths } from "./meshes/meshPaths";
 
 const RING_Y = 0.03;        // just above the floor, matching other ground meshes
 const INNER_SCALE = 0.9;    // inner ring radius relative to the outer (boss.radius)
-const VISUAL_SCALE = 2.0;   // render a larger ring without changing boss mechanics  
-// TODO - make this a raid param. kefka is 2.0, other bosses will ahve their own size
 const TUBE_RADIUS = 0.06;   // ring line thickness
 // Connected front arc (0 = facing) wrapping to the SE/SW intercardinals (±135°),
 // leaving only the rear 90° open. Draw only within REAR_OPENING_HALF of the front.
@@ -41,10 +39,11 @@ export class BossRingLayer {
   private build(boss: Boss): void {
     this.node = new TransformNode("boss-ring", this.scene);
 
-    const red = this.makeMaterial("boss-ring-red", new Color3(0.9, 0.13, 0.12));
-    const white = this.makeMaterial("boss-ring-red-2",new Color3(0.9, 0.13, 0.12));
+    const ringColor = Color3.FromHexString(boss.ringColor);
+    const red = this.makeMaterial("boss-ring-red", ringColor);
+    const white = this.makeMaterial("boss-ring-red-2", ringColor);
 
-    const radius = boss.radius * VISUAL_SCALE;
+    const radius = boss.radius * boss.ringScale;
     this.buildRing(radius, red);                // outer ring red
     this.buildRing(radius * INNER_SCALE, white); // inner ring white
     this.buildMarkers(radius, red, white);

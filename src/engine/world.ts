@@ -199,8 +199,13 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     if (p.alive) threat[p.id] = p.role === "tank" ? INITIAL_TANK_THREAT : 0;
   }
   const boss: Boss = {
-    id: "boss", pos: { x: 0, z: 0 }, hp: 1000, maxHp: 1000, radius: 3,
+    id: "boss",
+    pos: toVec2(raid.boss.pos),
+    hp: 1000, maxHp: 1000,
+    radius: raid.boss.radius,
     facing: 0, threat, currentTarget: topThreatTarget(players, threat),
+    ringScale: raid.boss.ring.scale,
+    ringColor: raid.boss.ring.color,
   };
 
   const { plan: plantPlan, rngState: afterPlantRngState } = buildPlantPlan(raid, seed);
