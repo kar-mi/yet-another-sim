@@ -528,19 +528,23 @@ const PlantGroupSchema = z.object({
   members: z.array(z.string().min(1)).min(1),
   combos: z.array(PlantComboSchema).min(1),
 });
-const ForsakenAssignmentKindSchema = z.enum(["cone", "stack", "spread", "defamation"]);
-const ForsakenGroupSchema = z.enum(["A", "B"]);
-const ForsakenPatternPairSchema = z.object({
+// A pairing pair: two player ids, an optional group label (for bot-solver when.soaks) and optional
+// per-member initial charge kinds (for a reassign event's `initial: "plan"` opener).
+const PairingPairSchema = z.object({
   members: z.tuple([z.string().min(1), z.string().min(1)]),
-  assignments: z.tuple([ForsakenAssignmentKindSchema, ForsakenAssignmentKindSchema]),
+  group: z.string().min(1).optional(),
+  charges: z.tuple([z.string().min(1), z.string().min(1)]).optional(),
 });
-const ForsakenPatternSchema = z.object({
+const PairingPatternSchema = z.object({
   id: z.string().min(1).optional(),
-  pairs: z.array(ForsakenPatternPairSchema).length(4),
+  pairs: z.array(PairingPairSchema).min(1),
 });
 // Optional per-mechanic combinations. `plant` declares two groups (g1/g2) of members + combos.
-// `rng: true` flips a seeded coin each run to swap which group draws from which combo pool.
+// `pairings` declares patterns of player pairs (one selected per run when `rng`), each carrying an
+// optional group label + initial charges that feed world.partners / playerGroups / initialCharges.
 const OptionalsSchema = z.object({
+  // Seeded per-run rotation of tower-wave positions around their canonical ring (see rotateTowerWaves).
+  towerRng: z.boolean().default(false),
   combinations: z.object({
     plant: z.object({
       rng: z.boolean().default(false),
@@ -548,27 +552,12 @@ const OptionalsSchema = z.object({
       g1: PlantGroupSchema,
       g2: PlantGroupSchema,
     }).optional(),
-    forsaken: z.object({
+    pairings: z.object({
       rng: z.boolean().default(false),
-      towerRng: z.boolean().default(false),
-      towerOrder: z.array(ForsakenGroupSchema).length(8).default(["A", "A", "A", "B", "B", "B", "B", "A"]),
-      patterns: z.array(ForsakenPatternSchema).min(1),
+      patterns: z.array(PairingPatternSchema).min(1),
     }).optional(),
   }).optional(),
 }).optional();
-
-function normalizedForsakenKind(kind: z.infer<typeof ForsakenAssignmentKindSchema>): "cone" | "stack" | "defamation" {
-  return kind === "spread" ? "defamation" : kind;
-}
-
-function classifyForsakenPair(
-  assignments: [z.infer<typeof ForsakenAssignmentKindSchema>, z.infer<typeof ForsakenAssignmentKindSchema>],
-): "A" | "B" | undefined {
-  const kinds = assignments.map(normalizedForsakenKind).sort().join("+");
-  if (kinds === "cone+stack" || kinds === "defamation+stack" || kinds === "cone+defamation") return "A";
-  if (kinds === "cone+cone" || kinds === "defamation+defamation") return "B";
-  return undefined;
-}
 
 const BossSchema = z.object({
   pos: Vec2Schema.default([0, 0]),
@@ -812,45 +801,29 @@ export const RaidSchema = z.object({
     });
   }
 
-  const forsaken = raid.optionals?.combinations?.forsaken;
-  if (forsaken) {
-    forsaken.patterns.forEach((pattern, patternIndex) => {
+  const pairings = raid.optionals?.combinations?.pairings;
+  if (pairings) {
+    pairings.patterns.forEach((pattern, patternIndex) => {
       const members = new Set<string>();
       pattern.pairs.forEach((pair, pairIndex) => {
         pair.members.forEach((id, memberIndex) => {
           if (!playerIds.has(id)) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              path: ["optionals", "combinations", "forsaken", "patterns", patternIndex, "pairs", pairIndex, "members", memberIndex],
-              message: `forsaken pattern references unknown player id "${id}"`,
+              path: ["optionals", "combinations", "pairings", "patterns", patternIndex, "pairs", pairIndex, "members", memberIndex],
+              message: `pairing pattern references unknown player id "${id}"`,
             });
           }
           if (members.has(id)) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              path: ["optionals", "combinations", "forsaken", "patterns", patternIndex, "pairs", pairIndex, "members", memberIndex],
-              message: `forsaken pattern assigns player "${id}" more than once`,
+              path: ["optionals", "combinations", "pairings", "patterns", patternIndex, "pairs", pairIndex, "members", memberIndex],
+              message: `pairing pattern assigns player "${id}" more than once`,
             });
           }
           members.add(id);
         });
-        if (!classifyForsakenPair(pair.assignments)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["optionals", "combinations", "forsaken", "patterns", patternIndex, "pairs", pairIndex, "assignments"],
-            message: `forsaken pair assignments must classify as group A or B`,
-          });
-        }
       });
-      for (const id of playerIds) {
-        if (!members.has(id)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["optionals", "combinations", "forsaken", "patterns", patternIndex, "pairs"],
-            message: `forsaken pattern does not assign player "${id}"`,
-          });
-        }
-      }
     });
   }
 });

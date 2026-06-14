@@ -269,27 +269,27 @@ test("plant combinations assign each player a per-slot heading from their group'
   ].sort());
 });
 
-const forsakenOptionals = {
+const pairingsOptionals = {
   combinations: {
-    forsaken: {
+    pairings: {
       rng: false,
       patterns: [
         {
           id: "static",
           pairs: [
-            { members: ["h1", "mt"], assignments: ["stack", "cone"] },
-            { members: ["h2", "ot"], assignments: ["cone", "cone"] },
-            { members: ["r1", "m1"], assignments: ["stack", "defamation"] },
-            { members: ["r2", "m2"], assignments: ["defamation", "defamation"] },
+            { members: ["h1", "mt"], group: "A", charges: ["stack", "cone"] },
+            { members: ["h2", "ot"], group: "B", charges: ["cone", "cone"] },
+            { members: ["r1", "m1"], group: "A", charges: ["stack", "defamation"] },
+            { members: ["r2", "m2"], group: "B", charges: ["defamation", "defamation"] },
           ],
         },
         {
           id: "alternate",
           pairs: [
-            { members: ["h1", "mt"], assignments: ["cone", "cone"] },
-            { members: ["h2", "ot"], assignments: ["stack", "cone"] },
-            { members: ["r1", "m1"], assignments: ["defamation", "defamation"] },
-            { members: ["r2", "m2"], assignments: ["cone", "defamation"] },
+            { members: ["h1", "mt"], group: "B", charges: ["cone", "cone"] },
+            { members: ["h2", "ot"], group: "A", charges: ["stack", "cone"] },
+            { members: ["r1", "m1"], group: "B", charges: ["defamation", "defamation"] },
+            { members: ["r2", "m2"], group: "A", charges: ["cone", "defamation"] },
           ],
         },
       ],
@@ -297,24 +297,24 @@ const forsakenOptionals = {
   },
 };
 
-test("forsaken combinations build the generic pairing maps when rng is false", () => {
-  const raid = loadRaid({ ...baseRaid, optionals: forsakenOptionals });
+test("pairing combinations build the generic pairing maps when rng is false", () => {
+  const raid = loadRaid({ ...baseRaid, optionals: pairingsOptionals });
   const world = createWorld(raid, 1);
 
-  // partners (paired player), playerGroups (A/B from the pair's charge combo), and initialCharges
-  // (each player's planned charge kind for the reassign opener).
+  // partners (paired player), playerGroups (each pair's declared group), and initialCharges (each
+  // member's declared charge kind for the reassign opener).
   expect(world.partners.h1).toBe("mt");
   expect(world.partners.mt).toBe("h1");
   expect(world.initialCharges.h1).toBe("stack");
   expect(world.initialCharges.mt).toBe("cone");
-  expect(world.playerGroups.h1).toBe("A"); // cone+stack -> A
-  expect(world.playerGroups.h2).toBe("B"); // cone+cone -> B
+  expect(world.playerGroups.h1).toBe("A");
+  expect(world.playerGroups.h2).toBe("B");
 });
 
-test("forsaken combinations are deterministic for the same seeded rng", () => {
+test("pairing combinations are deterministic for the same seeded rng", () => {
   const raid = loadRaid({
     ...baseRaid,
-    optionals: { combinations: { forsaken: { ...forsakenOptionals.combinations.forsaken, rng: true } } },
+    optionals: { combinations: { pairings: { ...pairingsOptionals.combinations.pairings, rng: true } } },
   });
   const a = createWorld(raid, 1);
   const b = createWorld(raid, 1);
@@ -332,7 +332,7 @@ test("reassign opener applies invisible charge and short head-marker effects fro
   });
   const raid = loadRaid({
     ...baseRaid,
-    optionals: forsakenOptionals,
+    optionals: pairingsOptionals,
     events: [{
       type: "reassign", id: "assign", t: 0, name: "Forsaken Assignment", initial: "plan",
       charges: [

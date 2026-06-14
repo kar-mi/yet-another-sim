@@ -56,35 +56,35 @@ players:
     spawn: [5.66, -5.66]
 
 optionals:
+  towerRng: true
   combinations:
-    forsaken:
+    pairings:
       rng: true
-      towerRng: true
       patterns:
         - id: baseline
           pairs:
-            - { members: [h1, mt], assignments: [stack, defamation] }
-            - { members: [h2, ot], assignments: [cone, cone] }
-            - { members: [r1, m1], assignments: [stack, cone] }
-            - { members: [r2, m2], assignments: [defamation, defamation] }
+            - { members: [h1, mt], group: A, charges: [stack, defamation] }
+            - { members: [h2, ot], group: B, charges: [cone, cone] }
+            - { members: [r1, m1], group: A, charges: [stack, cone] }
+            - { members: [r2, m2], group: B, charges: [defamation, defamation] }
         - id: alternate
           pairs:
-            - { members: [h1, mt], assignments: [cone, cone] }
-            - { members: [h2, ot], assignments: [stack, defamation] }
-            - { members: [r1, m1], assignments: [defamation, defamation] }
-            - { members: [r2, m2], assignments: [stack, cone] }
+            - { members: [h1, mt], group: B, charges: [cone, cone] }
+            - { members: [h2, ot], group: A, charges: [stack, defamation] }
+            - { members: [r1, m1], group: B, charges: [defamation, defamation] }
+            - { members: [r2, m2], group: A, charges: [stack, cone] }
         - id: pattern-c
           pairs:
-            - { members: [h1, mt], assignments: [stack, defamation] }
-            - { members: [h2, ot], assignments: [cone, cone] }
-            - { members: [r1, m1], assignments: [defamation, defamation] }
-            - { members: [r2, m2], assignments: [stack, cone] }
+            - { members: [h1, mt], group: A, charges: [stack, defamation] }
+            - { members: [h2, ot], group: B, charges: [cone, cone] }
+            - { members: [r1, m1], group: B, charges: [defamation, defamation] }
+            - { members: [r2, m2], group: A, charges: [stack, cone] }
         - id: pattern-d
           pairs:
-            - { members: [h1, mt], assignments: [cone, cone] }
-            - { members: [h2, ot], assignments: [stack, defamation] }
-            - { members: [r1, m1], assignments: [stack, cone] }
-            - { members: [r2, m2], assignments: [defamation, defamation] }
+            - { members: [h1, mt], group: B, charges: [cone, cone] }
+            - { members: [h2, ot], group: A, charges: [stack, defamation] }
+            - { members: [r1, m1], group: A, charges: [stack, cone] }
+            - { members: [r2, m2], group: B, charges: [defamation, defamation] }
 
 # Shared lethal tower defaults — every tower resolves the charge debuffs
 # of its soakers via the three resolvers below.
@@ -177,7 +177,7 @@ events:
     showTelegraph: false
     shape: { kind: circle, center: [0, 0], radius: 20 }
   # Charge distribution + per-tower re-balance. The opener stamps each player's planned charge
-  # (world.initialCharges, from optionals.combinations.forsaken). After each tower wave resolves
+  # (world.initialCharges, from optionals.combinations.pairings). After each tower wave resolves
   # (its soakers' charges consumed by the resolvers above), it re-balances back up to the next
   # wave's target counts, dealt to the just-resolved soakers in roster order.
   - type: reassign

@@ -115,9 +115,6 @@ export type StatusEffect = {
   plantSlot?: number;
 };
 
-export type ForsakenAssignmentKind = "cone" | "stack" | "spread" | "defamation";
-export type ForsakenGroup = "A" | "B";
-
 // Generic "reassign" mechanic: distribute named charge debuffs across players, then re-balance to
 // target counts after a labelled mechanic resolves. `charges` maps each kind to its effect + marker
 // spec; `initial: "plan"` opens by applying world.initialCharges; `onResolve` keys a trigger label

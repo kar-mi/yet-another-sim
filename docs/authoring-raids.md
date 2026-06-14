@@ -998,7 +998,7 @@ Models a "passing charges" mechanic (e.g. FFXIV Forsaken): the opener stamps eac
 charge debuff, and after each soak wave the charges are re-balanced back up to target counts onto the
 players who just soaked. `charges` maps each named `kind` to its `effect` (and optional above-head
 `marker`) spec. The opener (`initial: "plan"`) applies each player's planned kind from
-`initialCharges` — the per-player map the engine derives from `optionals.combinations.forsaken`. After
+`initialCharges` — the per-player map from [`optionals.combinations.pairings`](#optional-combinations). After
 a mechanic whose label appears in `onResolve` resolves a charge (its soakers' debuffs are consumed by
 the [tower resolvers](#effect_resolver--tower-triggered-debuff-action) first), the deficit between the
 label's target counts and the live counts is dealt onto the just-resolved soakers, in roster order.
@@ -1118,8 +1118,9 @@ behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay
 ## Optional combinations
 
 The optional top-level `optionals` block holds per-mechanic pools that the engine assigns to players
-at the start of a run (seeded, so it's reproducible). Currently only **plant** combinations are
-supported. Excerpt from `raids/dancing-mad-ultimate/graven-image-3.yaml`:
+at the start of a run (seeded, so it's reproducible): **plant** and **pairings** combinations, plus
+the standalone **`towerRng`** flag (`optionals.towerRng: true` seeds a per-run rotation of tower-wave
+positions around their canonical ring). Excerpt from `raids/dancing-mad-ultimate/graven-image-3.yaml`:
 
 ```yaml
 optionals:
@@ -1161,6 +1162,36 @@ optionals:
   the `direction` written on the `plant` behavior in the event (which then only acts as a fallback
   for raids with no `optionals`). Give each `Tele-Trouncing` plant event a placeholder `direction`
   to satisfy the schema.
+
+### `pairings`
+
+Pairs players into duos and (optionally) labels each pair's group + initial charges. It populates the
+generic `world.partners` (paired player, for bot-solver `when.partnerDebuff`), `world.playerGroups`
+(for `when.soaks` vs a mechanic's `group`), and `world.initialCharges` (the [`reassign`](#reassign--distribute-charge-debuffs-then-re-balance-after-soaks)
+opener). Excerpt from `raids/dancing-mad-ultimate/forsaken.yaml`:
+
+```yaml
+optionals:
+  combinations:
+    pairings:
+      rng: true
+      patterns:
+        - id: baseline
+          pairs:
+            - { members: [h1, mt], group: A, charges: [stack, defamation] }
+            - { members: [h2, ot], group: B, charges: [cone, cone] }
+            # ... one pair per duo
+        - id: alternate
+          pairs: [ ... ]   # an alternative pairing/charge layout
+```
+
+- A **pattern** is one full pairing layout. `rng: true` picks a pattern at random per run (seeded);
+  `rng: false` (default) always uses the first.
+- Each **pair** has `members: [a, b]` (required) plus optional `group` (any label string, matched
+  against tower/mechanic `group` fields) and `charges: [kindA, kindB]` (the charge kind each member
+  carries — must match a `kind` in the consuming `reassign` event's `charges`).
+- Validation: a player may appear in at most one pair per pattern, and all ids must exist in the
+  roster. A pattern may cover a subset of the roster — unlisted players simply get no pairing.
 
 ## Bot patterns
 
