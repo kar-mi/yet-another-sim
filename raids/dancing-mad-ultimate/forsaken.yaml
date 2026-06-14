@@ -176,12 +176,28 @@ events:
     showCastBar: true
     showTelegraph: false
     shape: { kind: circle, center: [0, 0], radius: 20 }
-  - type: forsaken_assign
-    id: forsaken-assign
+  # Charge distribution + per-tower re-balance. The opener stamps each player's planned charge
+  # (world.initialCharges, from optionals.combinations.forsaken). After each tower wave resolves
+  # (its soakers' charges consumed by the resolvers above), it re-balances back up to the next
+  # wave's target counts, dealt to the just-resolved soakers in roster order.
+  - type: reassign
+    id: forsaken-charges
     t: 3.0
     name: Forsaken Assignment
-    duration: 120
-    markerDuration: 5
+    initial: plan
+    onResolve:
+      tower-odd:  { stack: 0, cone: 4, defamation: 4 }
+      tower-even: { stack: 2, cone: 3, defamation: 3 }
+    charges:
+      - kind: stack
+        effect: { name: Stack Charge, kind: debuff, duration: 120, visibility: invisible, behavior: { kind: none } }
+        marker: { name: Stack Charge Marker, kind: debuff, duration: 5, visibility: invisible, markerIcon: stack_processed.png, behavior: { kind: none } }
+      - kind: cone
+        effect: { name: Cone Charge, kind: debuff, duration: 120, visibility: invisible, behavior: { kind: none } }
+        marker: { name: Cone Charge Marker, kind: debuff, duration: 5, visibility: invisible, markerIcon: cone_processed.png, behavior: { kind: none } }
+      - kind: defamation
+        effect: { name: Defamation Charge, kind: debuff, duration: 120, visibility: invisible, behavior: { kind: none } }
+        marker: { name: Defamation Charge Marker, kind: debuff, duration: 5, visibility: invisible, markerIcon: defam_processed.png, behavior: { kind: none } }
 
   # Towers 1-2 (A side).
   - <<: *towerBase

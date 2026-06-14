@@ -481,16 +481,35 @@ const HealEventSchema = z.object({
   name: z.string().min(1),
 });
 
-const ForsakenAssignEventSchema = z.object({
-  type: z.literal("forsaken_assign"),
+// Generic charge distribution + re-balance. `charges` lists each kind's effect (+ optional above-head
+// marker). `initial: "plan"` opens by applying each player's planned kind from world.initialCharges.
+// `onResolve` keys a trigger label (e.g. a tower's label) to the per-kind target counts the re-balance
+// should reach, dealt to the just-resolved players in roster order.
+const ReassignChargeSchema = z.object({
+  kind: z.string().min(1),
+  effect: ApplyEffectSchema,
+  marker: ApplyEffectSchema.optional(),
+});
+const ReassignEventSchema = z.object({
+  type: z.literal("reassign"),
   id: EventIdSchema,
   t: z.number().nonnegative(),
   name: z.string().min(1),
-  duration: z.number().positive().default(120),
-  markerDuration: z.number().positive().default(5),
+  charges: z.array(ReassignChargeSchema).min(1),
+  initial: z.literal("plan").optional(),
+  onResolve: z.record(z.string().min(1), z.record(z.string().min(1), z.number().int().nonnegative())).optional(),
+}).superRefine((ev, ctx) => {
+  const kinds = new Set(ev.charges.map(c => c.kind));
+  for (const [label, counts] of Object.entries(ev.onResolve ?? {})) {
+    for (const kind of Object.keys(counts)) {
+      if (!kinds.has(kind)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["onResolve", label, kind], message: `onResolve references unknown charge kind "${kind}"` });
+      }
+    }
+  }
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema, ForsakenAssignEventSchema]);
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),

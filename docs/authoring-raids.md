@@ -177,7 +177,7 @@ Every event has a `type` that selects its schema. `type` defaults to `"aoe"` if 
 which is why many AOE examples skip it. Supported event types are `aoe`, `targeted`,
 `bait`, `tether_source`, `line_link`, `chain`, `group`, `tower`, `effect_resolver`,
 `forced_march`, `effect_burst`, `heal`, `effect_select`, `apply_effect`, `inverse`,
-`spread_stack`, `gaze`, and `forsaken_assign`.
+`spread_stack`, `gaze`, and `reassign`.
 
 All damaging events share the same lifecycle: the cast begins at `t`, and **resolves** at
 `t + telegraph`. Damage and effects are snapshotted at resolve time (FFXIV-style) — a
@@ -991,6 +991,42 @@ roster order, or randomly when `rng: true`. Excerpt from
 | `count`       | no       | Cap the number of targets from the matched pool. |
 | `rng`         | no       | `true` picks the `count` targets randomly (seeded); otherwise roster order. |
 | `applyEffect` | yes      | The buff/debuff to apply (see [Effects](#effects)). |
+
+### `reassign` — distribute charge debuffs, then re-balance after soaks
+
+Models a "passing charges" mechanic (e.g. FFXIV Forsaken): the opener stamps each player a planned
+charge debuff, and after each soak wave the charges are re-balanced back up to target counts onto the
+players who just soaked. `charges` maps each named `kind` to its `effect` (and optional above-head
+`marker`) spec. The opener (`initial: "plan"`) applies each player's planned kind from
+`initialCharges` — the per-player map the engine derives from `optionals.combinations.forsaken`. After
+a mechanic whose label appears in `onResolve` resolves a charge (its soakers' debuffs are consumed by
+the [tower resolvers](#effect_resolver--tower-triggered-debuff-action) first), the deficit between the
+label's target counts and the live counts is dealt onto the just-resolved soakers, in roster order.
+Excerpt from `raids/dancing-mad-ultimate/forsaken.yaml`:
+
+```yaml
+- type: reassign
+  id: forsaken-charges
+  t: 3.0
+  name: Forsaken Assignment
+  initial: plan
+  onResolve:
+    tower-odd:  { stack: 0, cone: 4, defamation: 4 }   # target counts after an odd-wave soak
+    tower-even: { stack: 2, cone: 3, defamation: 3 }   # ... and after an even-wave soak
+  charges:
+    - kind: stack
+      effect: { name: Stack Charge, kind: debuff, duration: 120, visibility: invisible, behavior: { kind: none } }
+      marker: { name: Stack Charge Marker, kind: debuff, duration: 5, visibility: invisible, markerIcon: stack_processed.png, behavior: { kind: none } }
+    # ... cone, defamation
+```
+
+| Field       | Required | Notes |
+|-------------|----------|-------|
+| `t`         | yes      | When the opener deal lands (seconds). |
+| `name`      | yes      | Mechanic name (used in the combat log). |
+| `charges`   | yes      | List of `{ kind, effect, marker? }`. `kind` keys both `onResolve` counts and `initialCharges`; `effect.name` must match the charge's `effect_resolver` `effectName`. |
+| `initial`   | no       | `"plan"` opens by applying each player's planned charge from `initialCharges`. Omit for an `onResolve`-only event. |
+| `onResolve` | no       | Map of trigger label → `{ kind: targetCount }`. When a mechanic with that label resolves a charge, re-balance up to those counts onto the just-resolved players. |
 
 ## Shapes
 

@@ -86,12 +86,13 @@ test("forsaken raid and bot companion content load", async () => {
   expect(raid.name).toBe("Forsaken");
   expect(raid.duration).toBe(118);
   expect(byEventId("forsaken-raidwide")).toMatchObject({ t: 3 });
-  expect(byEventId("forsaken-assign")).toMatchObject({ t: 3 });
+  expect(byEventId("forsaken-charges")).toMatchObject({ t: 3 });
   expect(byEventId("forsaken-end-raidwide")).toMatchObject({ t: 109 });
   expect(effectResolverById("forsaken-stack-resolve")).toMatchObject({ effectName: "Stack Charge" });
   expect(effectResolverById("forsaken-cone-resolve")).toMatchObject({ effectName: "Cone Charge" });
   expect(effectResolverById("forsaken-defamation-resolve")).toMatchObject({ effectName: "Defamation Charge" });
-  expect(world.forsakenPlan?.towerOrder.join("")).toBe("AAABBBBA");
+  expect(world.partners.h1).toBe("mt"); // pairing maps built from optionals.combinations.forsaken
+  expect(Object.keys(world.initialCharges)).toHaveLength(8);
   expect(world.botSolvers?.generic).toHaveLength(24);
   expect(world.botSolvers?.generic?.[0]?.when).toEqual({ mechanic: "bait-1" });
   expect(world.botSolvers?.generic?.[0]?.frame).toEqual(["tower-3-left", "tower-3-right"]);
