@@ -26,7 +26,7 @@ import { resolveTowers } from "./systems/towers";
 import { resolveGroups } from "./systems/groups";
 import { resolveEffectSelects } from "./systems/effectSelect";
 import { resolveApplyEffects } from "./systems/applyEffects";
-import { resolveForsakenAssigns } from "./systems/forsakenAssign";
+import { resolveReassigns } from "./systems/reassign";
 import { resolveInversions } from "./systems/inverse";
 import { resolveSpreadStacks } from "./systems/spreadStack";
 import { resolveGazes } from "./systems/gaze";
@@ -39,7 +39,7 @@ export type Collections = Pick<World,
   | "pending" | "pendingTethers" | "pendingLineLinks" | "pendingTargeted" | "pendingBaits"
   | "pendingTowers" | "pendingChains" | "pendingGroups" | "pendingEffectSelects"
   | "pendingApplyEffects" | "pendingInversions" | "pendingSpreadStacks" | "pendingGazes"
-  | "pendingForcedMarches" | "pendingEffectBursts" | "pendingHeals" | "pendingForsakenAssigns"
+  | "pendingForcedMarches" | "pendingEffectBursts" | "pendingHeals" | "reassigns"
   | "effectResolvers"
 >;
 
@@ -180,6 +180,7 @@ const aoe: MechanicModule = {
           group: e.group,
           targetMode: e.targetMode,
           role: e.role,
+          count: e.count,
           radius: e.radius,
           telegraph: e.telegraph,
           damage: e.damage,
@@ -326,19 +327,23 @@ const applyEffects: MechanicModule = {
   isResolved: w => w.pendingApplyEffects.length === 0,
 };
 
-const forsakenAssign: MechanicModule = {
+const reassign: MechanicModule = {
   fromEvent(e, c) {
-    if (e.type !== "forsaken_assign") return;
-    c.pendingForsakenAssigns.push({
+    if (e.type !== "reassign") return;
+    c.reassigns.push({
       id: e.id,
       t: e.t,
       name: e.name,
-      duration: e.duration,
-      markerDuration: e.markerDuration,
+      charges: e.charges,
+      initial: e.initial,
+      onResolve: e.onResolve,
+      initialDealt: false,
     });
   },
-  resolve: ctx => ({ pendingForsakenAssigns: resolveForsakenAssigns(ctx) }),
-  isResolved: w => w.pendingForsakenAssigns.length === 0,
+  resolve: ctx => resolveReassigns(ctx),
+  // "Resolved" = the opener has fired; later onResolve deals piggyback on tower resolution, which the
+  // towers module already gates in clear-detection.
+  isResolved: w => w.reassigns.every(r => r.initial !== "plan" || r.initialDealt),
 };
 
 const inverse: MechanicModule = {
@@ -462,7 +467,7 @@ const MODULE_FOR_TYPE = {
   group: groups,
   effect_select: effectSelect,
   apply_effect: applyEffects,
-  forsaken_assign: forsakenAssign,
+  reassign: reassign,
   inverse: inverse,
   spread_stack: spreadStack,
   gaze: gaze,
@@ -474,7 +479,7 @@ const MODULE_FOR_TYPE = {
 // legacy order; the data-only modules (heal, effect_resolver) follow.
 export const REGISTRY: readonly MechanicModule[] = [
   forcedMarch, tethers, lineLinks, chains, aoe, towers, groups,
-  effectSelect, applyEffects, forsakenAssign, inverse, spreadStack, gaze,
+  effectSelect, applyEffects, reassign, inverse, spreadStack, gaze,
   heal, effectResolver,
 ];
 

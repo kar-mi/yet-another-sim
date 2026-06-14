@@ -115,36 +115,25 @@ export type StatusEffect = {
   plantSlot?: number;
 };
 
-export type ForsakenAssignmentKind = "cone" | "stack" | "spread" | "defamation";
-export type ForsakenGroup = "A" | "B";
-export type ForsakenTowerGroup = "X" | "Y";
+// Generic "reassign" mechanic: distribute named charge debuffs across players, then re-balance to
+// target counts after a labelled mechanic resolves. `charges` maps each kind to its effect + marker
+// spec; `initial: "plan"` opens by applying world.initialCharges; `onResolve` keys a trigger label
+// (e.g. a tower's label) to the per-kind target counts the re-balance should reach, dealt to that
+// mechanic's just-resolved players in roster order.
+export type ReassignCharge = {
+  kind: string;
+  effect: EffectSpec;
+  marker?: EffectSpec;
+};
 
-export type ForsakenPairAssignment = {
+export type Reassign = {
   id: string;
-  members: [string, string];
-  assignments: [ForsakenAssignmentKind, ForsakenAssignmentKind];
-  group: ForsakenGroup;
-};
-
-export type ForsakenPlayerAssignment = {
-  playerId: string;
-  pairId: string;
-  pairIndex: number;
-  assignment: ForsakenAssignmentKind;
-  group: ForsakenGroup;
-  roleSide: "support" | "dps";
-  defaultSide: "left" | "right";
-  towerSlots: number[];
-  towerGroupBySlot: ForsakenTowerGroup[];
-};
-
-export type ForsakenPlan = {
-  patternId?: string;
-  patternIndex: number;
-  rng: boolean;
-  towerOrder: ForsakenGroup[];
-  pairs: ForsakenPairAssignment[];
-  players: Record<string, ForsakenPlayerAssignment>;
+  t: number;
+  name: string;
+  charges: ReassignCharge[];
+  initial?: "plan";
+  onResolve?: Record<string, Record<string, number>>;
+  initialDealt: boolean; // runtime: set once the opener (initial) deal has fired
 };
 
 export type Knockback = {
@@ -237,7 +226,7 @@ export type ActiveMechanic = {
   // When set, the circle's target (and center) is chosen at resolve time, not cast start.
   // The ground telegraph stays hidden until it resolves. "aggro" picks the boss's current
   // threat target (the player holding aggro).
-  targeting?: { mode: "closest" | "furthest" | "aggro"; role?: Role; origin: Vec2 };
+  targeting?: { mode: "closest" | "furthest" | "aggro"; role?: Role; origin: Vec2; count?: number };
   // Optional post-resolve visual linger override. Used by instant resolved visuals that would
   // otherwise only survive one simulation tick.
   lingerFor?: number;
@@ -277,6 +266,7 @@ export type PendingTargetedEvent = {
   group?: string;
   targetMode: "closest" | "furthest" | "aggro";
   role?: Role;
+  count?: number;
   radius: number;
   telegraph: number;
   damage: number;
@@ -339,14 +329,6 @@ export type PendingHeal = {
   id: string;
   t: number;
   name: string;
-};
-
-export type PendingForsakenAssign = {
-  id: string;
-  t: number;
-  name: string;
-  duration: number;
-  markerDuration: number;
 };
 
 export type TowerVisual = {
@@ -778,7 +760,7 @@ export type World = {
   pendingEffectBursts: PendingEffectBurst[];
   effectResolvers: Record<string, EffectResolver>;
   pendingHeals: PendingHeal[];
-  pendingForsakenAssigns: PendingForsakenAssign[];
+  reassigns: Reassign[];
   pendingEffectSelects: PendingEffectSelect[];
   pendingApplyEffects: PendingApplyEffect[];
   // Per-player plant directions (one per plant slot), assigned from optionals.combinations.plant
@@ -788,14 +770,14 @@ export type World = {
   // Optional mapping from plant application order to combo slot. This lets a short-timer debuff
   // use a later combo slot while the displayed/solver combo order remains stable.
   plantDebuffOrder?: number[];
-  forsakenPlan?: ForsakenPlan;
   botSolvers?: BotSolvers;
-  // Generic solver support, populated at world build (any mechanic can fill these; the generic
-  // solver never reads forsakenPlan directly):
+  // Generic pairing/grouping support, populated at world build (any mechanic can fill these):
   // - partners: player id -> its paired player id (for when.partnerDebuff).
   // - playerGroups: player id -> its group label (for when.soaks vs a mechanic's group).
+  // - initialCharges: player id -> the charge kind a `reassign` event's `initial: "plan"` deal applies.
   // - eventPositions: static positioned event id -> position (for explicit frame: [ids]).
   partners: Record<string, string>;
   playerGroups: Record<string, string>;
+  initialCharges: Record<string, string>;
   eventPositions: Record<string, Vec2>;
 };

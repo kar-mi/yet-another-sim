@@ -35,6 +35,10 @@ export interface TickContext {
   // Shared accumulator for instant resolved AOE visuals emitted by systems that do not own the
   // normal AOE active list.
   resolvedAoeVisuals: ActiveMechanic[];
+  // Towers that resolved this tick with a consumed charge debuff: each entry is the tower's labels +
+  // the ids of the players whose debuff a resolver consumed. The reassign system (running after
+  // towers in the same tick) reads this to re-balance charges onto those players.
+  resolvedTowers: { labels: string[]; playerIds: string[] }[];
 }
 
 export function createTickContext(world: World, intents: Intents, dt: number): TickContext {
@@ -54,6 +58,7 @@ export function createTickContext(world: World, intents: Intents, dt: number): T
     rngState: world.rngState,
     forcedMarches: [] as ActiveForcedMarch[],
     resolvedAoeVisuals: [] as ActiveMechanic[],
+    resolvedTowers: [] as { labels: string[]; playerIds: string[] }[],
     // Closures capture `ctx` so a bare reference (e.g. passed to effectsForMechanic) still advances
     // the shared rngState.
     randFloat: (): number => {

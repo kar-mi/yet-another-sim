@@ -56,41 +56,41 @@ players:
     spawn: [5.66, -5.66]
 
 optionals:
+  towerRng: true
   combinations:
-    forsaken:
+    pairings:
       rng: true
-      towerRng: true
       patterns:
         - id: baseline
           pairs:
-            - { members: [h1, mt], assignments: [stack, defamation] }
-            - { members: [h2, ot], assignments: [cone, cone] }
-            - { members: [r1, m1], assignments: [stack, cone] }
-            - { members: [r2, m2], assignments: [defamation, defamation] }
+            - { members: [h1, mt], group: A, charges: [stack, defamation] }
+            - { members: [h2, ot], group: B, charges: [cone, cone] }
+            - { members: [r1, m1], group: A, charges: [stack, cone] }
+            - { members: [r2, m2], group: B, charges: [defamation, defamation] }
         - id: alternate
           pairs:
-            - { members: [h1, mt], assignments: [cone, cone] }
-            - { members: [h2, ot], assignments: [stack, defamation] }
-            - { members: [r1, m1], assignments: [defamation, defamation] }
-            - { members: [r2, m2], assignments: [stack, cone] }
+            - { members: [h1, mt], group: B, charges: [cone, cone] }
+            - { members: [h2, ot], group: A, charges: [stack, defamation] }
+            - { members: [r1, m1], group: B, charges: [defamation, defamation] }
+            - { members: [r2, m2], group: A, charges: [stack, cone] }
         - id: pattern-c
           pairs:
-            - { members: [h1, mt], assignments: [stack, defamation] }
-            - { members: [h2, ot], assignments: [cone, cone] }
-            - { members: [r1, m1], assignments: [defamation, defamation] }
-            - { members: [r2, m2], assignments: [stack, cone] }
+            - { members: [h1, mt], group: A, charges: [stack, defamation] }
+            - { members: [h2, ot], group: B, charges: [cone, cone] }
+            - { members: [r1, m1], group: B, charges: [defamation, defamation] }
+            - { members: [r2, m2], group: A, charges: [stack, cone] }
         - id: pattern-d
           pairs:
-            - { members: [h1, mt], assignments: [cone, cone] }
-            - { members: [h2, ot], assignments: [stack, defamation] }
-            - { members: [r1, m1], assignments: [stack, cone] }
-            - { members: [r2, m2], assignments: [defamation, defamation] }
+            - { members: [h1, mt], group: B, charges: [cone, cone] }
+            - { members: [h2, ot], group: A, charges: [stack, defamation] }
+            - { members: [r1, m1], group: A, charges: [stack, cone] }
+            - { members: [r2, m2], group: B, charges: [defamation, defamation] }
 
 # Shared lethal tower defaults — every tower resolves the charge debuffs
 # of its soakers via the three resolvers below.
 _towerBase: &towerBase
   type: tower
-  telegraph: 5
+  telegraph: 10
   radius: 4
   requiredCount: 2
   failureDamage: 999999
@@ -116,16 +116,6 @@ _endingBase: &endingBase
   telegraphMode: resolve
   showCastBar: false
 
-# Clone marker on the closest player while an ending is stored.
-_closeBaitBase: &closeBaitBase
-  type: targeted
-  targetMode: closest
-  radius: 2.5
-  telegraph: 5
-  damage: 0
-  damageType: "true"
-  showCastBar: false
-  showTelegraph: true
 
 # Bait that turns the boss to the closest player and fires its linked stored ending.
 _allEndingBase: &allEndingBase
@@ -133,6 +123,20 @@ _allEndingBase: &allEndingBase
   targetMode: closest
   telegraph: 5
   showCastBar: true
+
+# Spread the clones drop on the 4 closest players as each All Ending resolves (no cast bar).
+# Each spread mirrors its All Ending's t/telegraph so the two resolve in the same tick.
+_cloneSpreadBase: &cloneSpreadBase
+  type: targeted
+  name: Clone Spread
+  targetMode: closest
+  count: 4
+  radius: 5
+  damage: 15
+  damageType: magical
+  showCastBar: false
+  showTelegraph: false
+  telegraph: 5
 
 events:
   # Lock the boss facing for the whole encounter.
@@ -176,24 +180,40 @@ events:
     showCastBar: true
     showTelegraph: false
     shape: { kind: circle, center: [0, 0], radius: 20 }
-  - type: forsaken_assign
-    id: forsaken-assign
+  # Charge distribution + per-tower re-balance. The opener stamps each player's planned charge
+  # (world.initialCharges, from optionals.combinations.pairings). After each tower wave resolves
+  # (its soakers' charges consumed by the resolvers above), it re-balances back up to the next
+  # wave's target counts, dealt to the just-resolved soakers in roster order.
+  - type: reassign
+    id: forsaken-charges
     t: 3.0
     name: Forsaken Assignment
-    duration: 120
-    markerDuration: 5
+    initial: plan
+    onResolve:
+      tower-odd:  { stack: 0, cone: 4, defamation: 4 }
+      tower-even: { stack: 2, cone: 3, defamation: 3 }
+    charges:
+      - kind: stack
+        effect: { name: Stack Charge, kind: debuff, duration: 120, visibility: invisible, behavior: { kind: none } }
+        marker: { name: Stack Charge Marker, kind: debuff, duration: 5, visibility: invisible, markerIcon: stack_processed.png, behavior: { kind: none } }
+      - kind: cone
+        effect: { name: Cone Charge, kind: debuff, duration: 120, visibility: invisible, behavior: { kind: none } }
+        marker: { name: Cone Charge Marker, kind: debuff, duration: 5, visibility: invisible, markerIcon: cone_processed.png, behavior: { kind: none } }
+      - kind: defamation
+        effect: { name: Defamation Charge, kind: debuff, duration: 120, visibility: invisible, behavior: { kind: none } }
+        marker: { name: Defamation Charge Marker, kind: debuff, duration: 5, visibility: invisible, markerIcon: defam_processed.png, behavior: { kind: none } }
 
   # Towers 1-2 (A side).
   - <<: *towerBase
     id: tower-1-left
-    t: 11.0
+    t: 6.0
     name: Forsaken Tower 1 Left (A)
     labels: [tower-odd]
     group: A
     pos: *posW
   - <<: *towerBase
     id: tower-1-right
-    t: 11.0
+    t: 6.0
     name: Forsaken Tower 1 Right (A)
     labels: [tower-odd]
     group: A
@@ -205,223 +225,213 @@ events:
 
   - <<: *towerBase
     id: tower-2-left
-    t: 22.0
+    t: 16.0
     name: Forsaken Tower 2 Left (A)
     labels: [tower-even]
     group: A
     pos: *posNW
   - <<: *towerBase
     id: tower-2-right
-    t: 22.0
+    t: 16.0
     name: Forsaken Tower 2 Right (A)
     labels: [tower-even]
     group: A
     pos: *posNE
   - type: heal
     id: heal-after-tower-2
-    t: 29
+    t: 28
     name: Tower 2 Recovery
 
-  # Ending 1 (Future / front) — stored at 27, baited at 32 alongside tower 3.
+  # Ending 1 (Future / front) — cast 18→24 (stored as the clone bait appears), baited at 31.
   - <<: *endingBase
     id: ending-store-1
-    t: 27.0
+    t: 18.0
     name: Future Ending
     directionOffset: 0
+    telegraph: 6
     showCastBar: true
-  - <<: *closeBaitBase
-    id: close-bait-1
-    t: 27.0
-    name: Clone Bait
-    labels: [bait-1]
   - <<: *allEndingBase
     id: all-ending-1
-    t: 32.0
+    t: 31.0
     name: All Ending
     link: ending-store-1
+  - <<: *cloneSpreadBase
+    id: clone-spread-1
+    t: 31.0
+    telegraph: 5
 
   - <<: *towerBase
     id: tower-3-left
-    t: 32.0
+    t: 26.0
     name: Forsaken Tower 3 Left (A)
     labels: [tower-odd]
     group: A
     pos: *posN
   - <<: *towerBase
     id: tower-3-right
-    t: 32.0
+    t: 26.0
     name: Forsaken Tower 3 Right (A)
     labels: [tower-odd]
     group: A
     pos: *posE
   - type: heal
     id: heal-after-tower-3
-    t: 39
+    t: 38
     name: Tower 3 Recovery
 
   - <<: *towerBase
     id: tower-4-left
-    t: 42.0
+    t: 36.0
     name: Forsaken Tower 4 Left (B)
     labels: [tower-even]
     group: B
     pos: *posNE
   - <<: *towerBase
     id: tower-4-right
-    t: 42.0
+    t: 36.0
     name: Forsaken Tower 4 Right (B)
     labels: [tower-even]
     group: B
     pos: *posSE
   - type: heal
     id: heal-after-tower-4
-    t: 49
+    t: 48
     name: Tower 4 Recovery
 
-  # Ending 2 (Past / rear) — longer store window (telegraph 7), baited with tower 5.
+  # Ending 2 (Past / rear) — cast 38→44 (stored as the clone bait appears), baited at 51.
   - <<: *endingBase
     id: ending-store-2
-    t: 47.0
+    t: 38.0
     name: Past Ending
     directionOffset: 3.141592653589793
-    telegraph: 7
+    telegraph: 6
     showCastBar: true
-  - <<: *closeBaitBase
-    id: close-bait-2
-    t: 47.0
-    name: Clone Bait
-    labels: [bait-2]
-    telegraph: 7
   - <<: *allEndingBase
     id: all-ending-2
-    t: 54.0
+    t: 51.0
     name: All Ending
-    telegraph: 4
     link: ending-store-2
+  - <<: *cloneSpreadBase
+    id: clone-spread-2
+    t: 51.0
 
   - <<: *towerBase
     id: tower-5-left
-    t: 54.0
+    t: 46.0
     name: Forsaken Tower 5 Left (B)
     labels: [tower-odd]
     group: B
-    telegraph: 4
     pos: *posE
   - <<: *towerBase
     id: tower-5-right
-    t: 54.0
+    t: 46.0
     name: Forsaken Tower 5 Right (B)
     labels: [tower-odd]
     group: B
-    telegraph: 4
     pos: *posS
   - type: heal
     id: heal-after-tower-5
-    t: 60
+    t: 58
     name: Tower 5 Recovery
 
   - <<: *towerBase
     id: tower-6-left
-    t: 64.0
+    t: 56.0
     name: Forsaken Tower 6 Left (B)
     labels: [tower-even]
     group: B
     pos: *posSE
   - <<: *towerBase
     id: tower-6-right
-    t: 64.0
+    t: 56.0
     name: Forsaken Tower 6 Right (B)
     labels: [tower-even]
     group: B
     pos: *posSW
   - type: heal
     id: heal-after-tower-6
-    t: 71
+    t: 68
     name: Tower 6 Recovery
 
-  # Ending 3 (Future / front) — stored at 69, baited at 74 alongside tower 7.
+  # Ending 3 (Future / front) — cast 58→64 (stored as the clone bait appears), baited at 71.
   - <<: *endingBase
     id: ending-store-3
-    t: 69.0
+    t: 60.0
     name: Future Ending
     directionOffset: 0
+    telegraph: 6
     showCastBar: true
-  - <<: *closeBaitBase
-    id: close-bait-3
-    t: 69.0
-    name: Clone Bait
-    labels: [bait-3]
   - <<: *allEndingBase
     id: all-ending-3
-    t: 74.0
+    t: 71.0
     name: All Ending
     link: ending-store-3
+  - <<: *cloneSpreadBase
+    id: clone-spread-3
+    t: 71.0
+    telegraph: 5
 
   - <<: *towerBase
     id: tower-7-left
-    t: 74.0
+    t: 66.0
     name: Forsaken Tower 7 Left (B)
     labels: [tower-odd]
     group: B
     pos: *posS
   - <<: *towerBase
     id: tower-7-right
-    t: 74.0
+    t: 66.0
     name: Forsaken Tower 7 Right (B)
     labels: [tower-odd]
     group: B
     pos: *posW
   - type: heal
     id: heal-after-tower-7
-    t: 81
+    t: 78
     name: Tower 7 Recovery
 
   - <<: *towerBase
     id: tower-8-left
-    t: 84.0
+    t: 76.0
     name: Forsaken Tower 8 Left (A)
     labels: [tower-even]
     group: A
     pos: *posSW
   - <<: *towerBase
     id: tower-8-right
-    t: 84.0
+    t: 76.0
     name: Forsaken Tower 8 Right (A)
     labels: [tower-even]
     group: A
     pos: *posNW
   - type: heal
     id: heal-after-tower-8
-    t: 91
+    t: 88
     name: Tower Recovery
 
-  # Ending 4 (Past / rear) — final stored cone, then the closing raidwide.
+  # Ending 4 (Past / rear) — cast 78→84 (stored as the clone bait appears), then the closing raidwide. 91
   - <<: *endingBase
     id: ending-store-4
-    t: 89.0
+    t: 78.0
     name: Past Ending
     directionOffset: 3.141592653589793
-    telegraph: 7
+    telegraph: 6
     showCastBar: true
-  - <<: *closeBaitBase
-    id: close-bait-4
-    t: 89.0
-    name: Clone Bait
-    labels: [bait-4]
-    telegraph: 7
   - <<: *allEndingBase
     id: all-ending-4
-    t: 96.0
+    t: 91.0
     name: All Ending
     # No tower follows ending 4, so the bait itself is labeled to hold the cluster (away from the
     # rear cleave) through resolve. Earlier baits hand off to their coincident tower instead.
     labels: [bait-4]
-    telegraph: 6
     link: ending-store-4
+  - <<: *cloneSpreadBase
+    id: clone-spread-4
+    t: 91.0
 
   - type: aoe
     id: forsaken-end-raidwide
-    t: 109.0
+    t: 106.0
     name: Forsaken Ends
     telegraph: 3
     damage: 35

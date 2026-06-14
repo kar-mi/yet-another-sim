@@ -1,4 +1,4 @@
-import type { World, Player, Boss, Arena, ZoneShape, Waymark, ForsakenAssignmentKind, ForsakenGroup, ForsakenPlan } from "@shared/types";
+import type { World, Player, Boss, Arena, ZoneShape, Waymark } from "@shared/types";
 import type { Vec2 } from "@shared/math";
 import { makeSeed, nextRandom, randomInt } from "@shared/rng";
 import type { RaidDef } from "./raidSchema";
@@ -68,22 +68,15 @@ function buildPlantPlan(
   return { plan, rngState: nextState };
 }
 
-function normalizedForsakenKind(kind: ForsakenAssignmentKind): "cone" | "stack" | "defamation" {
-  return kind === "spread" ? "defamation" : kind;
-}
-
-function classifyForsakenPair(assignments: [ForsakenAssignmentKind, ForsakenAssignmentKind]): ForsakenGroup {
-  const kinds = assignments.map(normalizedForsakenKind).sort().join("+");
-  if (kinds === "cone+stack" || kinds === "defamation+stack" || kinds === "cone+defamation") return "A";
-  return "B";
-}
-
-function rotateForsakenTowers(
+// Seeded per-run rotation of tower-wave positions around their canonical ring: each wave (towers
+// sharing a `t`, named `-left`/`-right`) is remapped to a different canonical position-pair by a
+// random start offset + direction. Off unless `towerRng`.
+function rotateTowerWaves(
   events: RaidDef["events"],
-  forsaken: NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["forsaken"],
+  towerRng: boolean | undefined,
   rngState: number,
 ): { events: RaidDef["events"]; rngState: number } {
-  if (!forsaken?.towerRng) return { events, rngState };
+  if (!towerRng) return { events, rngState };
 
   const roll1 = randomInt(rngState, 8);
   const startOffset = roll1.value;
@@ -113,63 +106,43 @@ function rotateForsakenTowers(
   return { events: result as RaidDef["events"], rngState: nextState };
 }
 
-function buildForsakenPlan(
+// Select a pairing pattern (seeded when `rng`) and derive the generic maps any mechanic can consume:
+// partners (paired player), playerGroups (each pair's declared group label), and initialCharges
+// (each member's declared charge kind — the opener deal of the `reassign` event).
+function buildPairingPlan(
   raid: RaidDef,
-  players: Player[],
   rngState: number,
-): { plan?: ForsakenPlan; rngState: number } {
-  const forsaken = raid.optionals?.combinations?.forsaken;
-  if (!forsaken) return { rngState };
+): { partners: Record<string, string>; playerGroups: Record<string, string>; initialCharges: Record<string, string>; rngState: number } {
+  const pairings = raid.optionals?.combinations?.pairings;
+  if (!pairings) return { partners: {}, playerGroups: {}, initialCharges: {}, rngState };
 
   let nextState = rngState;
   let patternIndex = 0;
-  if (forsaken.rng && forsaken.patterns.length > 1) {
-    const roll = randomInt(nextState, forsaken.patterns.length);
+  if (pairings.rng && pairings.patterns.length > 1) {
+    const roll = randomInt(nextState, pairings.patterns.length);
     nextState = roll.state;
     patternIndex = roll.value;
   }
 
-  const pattern = forsaken.patterns[patternIndex] ?? forsaken.patterns[0]!;
-  const roleById = new Map(players.map(player => [player.id, player.role]));
-  const pairs = pattern.pairs.map((pair, pairIndex) => {
-    const assignments = pair.assignments as [ForsakenAssignmentKind, ForsakenAssignmentKind];
-    return {
-      id: `pair-${pairIndex + 1}`,
-      members: pair.members,
-      assignments,
-      group: classifyForsakenPair(assignments),
-    };
-  });
-  const playersById: ForsakenPlan["players"] = {};
-  for (const [pairIndex, pair] of pairs.entries()) {
-    pair.members.forEach((playerId, memberIndex) => {
-      const roleSide = roleById.get(playerId) === "dps" ? "dps" : "support";
-      const towerGroupBySlot = forsaken.towerOrder.map(group => group === pair.group ? "X" : "Y");
-      playersById[playerId] = {
-        playerId,
-        pairId: pair.id,
-        pairIndex,
-        assignment: pair.assignments[memberIndex],
-        group: pair.group,
-        roleSide,
-        defaultSide: roleSide === "support" ? "left" : "right",
-        towerSlots: forsaken.towerOrder.map((group, i) => group === pair.group ? i + 1 : 0).filter(slot => slot > 0),
-        towerGroupBySlot,
-      };
-    });
+  const pattern = pairings.patterns[patternIndex] ?? pairings.patterns[0]!;
+  const partners: Record<string, string> = {};
+  const playerGroups: Record<string, string> = {};
+  const initialCharges: Record<string, string> = {};
+  for (const pair of pattern.pairs) {
+    const [a, b] = pair.members;
+    partners[a] = b;
+    partners[b] = a;
+    if (pair.group) {
+      playerGroups[a] = pair.group;
+      playerGroups[b] = pair.group;
+    }
+    if (pair.charges) {
+      initialCharges[a] = pair.charges[0];
+      initialCharges[b] = pair.charges[1];
+    }
   }
 
-  return {
-    plan: {
-      patternId: pattern.id,
-      patternIndex,
-      rng: forsaken.rng,
-      towerOrder: forsaken.towerOrder,
-      pairs,
-      players: playersById,
-    },
-    rngState: nextState,
-  };
+  return { partners, playerGroups, initialCharges, rngState: nextState };
 }
 
 function toZoneShape(zone: RaidDef["arena"]["zones"][number]): ZoneShape {
@@ -224,23 +197,11 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   };
 
   const { plan: plantPlan, rngState: afterPlantRngState } = buildPlantPlan(raid, seed);
-  const { plan: forsakenPlan, rngState: afterForsakenRngState } = buildForsakenPlan(raid, players, afterPlantRngState);
-  const { events: effectiveEvents, rngState } = rotateForsakenTowers(raid.events, raid.optionals?.combinations?.forsaken, afterForsakenRngState);
+  // Generic pairing/grouping maps: partners/playerGroups for the bot solver, initialCharges for the
+  // reassign opener.
+  const { partners, playerGroups, initialCharges, rngState: afterPairingRngState } = buildPairingPlan(raid, afterPlantRngState);
+  const { events: effectiveEvents, rngState } = rotateTowerWaves(raid.events, raid.optionals?.towerRng, afterPairingRngState);
   const plantDebuffOrder = raid.optionals?.combinations?.plant?.debuffOrder;
-
-  // Generic-solver partner/group maps. Forsaken is the only current producer, but these are plain
-  // fields any pairing/grouping mechanic can populate; the generic solver never reads forsakenPlan.
-  const partners: Record<string, string> = {};
-  const playerGroups: Record<string, string> = {};
-  if (forsakenPlan) {
-    for (const pair of forsakenPlan.pairs) {
-      partners[pair.members[0]] = pair.members[1];
-      partners[pair.members[1]] = pair.members[0];
-    }
-    for (const [id, assignment] of Object.entries(forsakenPlan.players)) {
-      playerGroups[id] = assignment.group;
-    }
-  }
 
   // One collection per World pending/resolver field; keys match the World field names exactly so the
   // return can `...collections` and TypeScript enforces the mapping. The mechanic registry owns how
@@ -262,7 +223,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     pendingForcedMarches: [],
     pendingEffectBursts: [],
     pendingHeals: [],
-    pendingForsakenAssigns: [],
+    reassigns: [],
     effectResolvers: {},
   };
   // Static positions of positioned events, for generic-solver explicit frames (frame: [eventIds]).
@@ -302,10 +263,10 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     ...collections,
     plantPlan,
     plantDebuffOrder,
-    forsakenPlan,
     botSolvers: toBotSolvers(raid),
     partners,
     playerGroups,
+    initialCharges,
     eventPositions,
   };
 }

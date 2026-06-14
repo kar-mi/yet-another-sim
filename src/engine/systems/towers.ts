@@ -6,14 +6,8 @@ import type { ActiveTower, PendingTower, AOEShape, Player } from "@shared/types"
 import { pointInShape } from "../shapes";
 import { applyEffect, applyKnockback } from "./helpers";
 import { triggerEffectResolver } from "./effectResolvers";
-import { resolveForsakenTowerDebuffSwaps } from "./forsakenAssign";
 import { cullResolved } from "./util";
 import { TOWER_LINGER } from "@shared/constants";
-
-function forsakenTowerNumber(id: string): number | undefined {
-  const match = /^tower-(\d+)-(?:left|right)$/.exec(id);
-  return match ? Number(match[1]) : undefined;
-}
 
 export function resolveTowers(ctx: TickContext): {
   towers: ActiveTower[];
@@ -22,7 +16,6 @@ export function resolveTowers(ctx: TickContext): {
   const { players, log, time } = ctx;
   const remainingPendingTowers: PendingTower[] = [];
   const towers: ActiveTower[] = ctx.world.towers.map(t => ({ ...t }));
-  const forsakenResolvedByTowerNumber = new Map<number, Player[]>();
   for (const pt of ctx.world.pendingTowers) {
     if (pt.t <= time) {
       towers.push({
@@ -78,11 +71,10 @@ export function resolveTowers(ctx: TickContext): {
 
         const success = validSoakers.length >= tower.requiredCount;
         if (success) {
-          const towerNumber = forsakenTowerNumber(tower.id);
-          if (towerNumber !== undefined && resolvedDebuffPlayers.length > 0) {
-            const existing = forsakenResolvedByTowerNumber.get(towerNumber) ?? [];
-            existing.push(...resolvedDebuffPlayers);
-            forsakenResolvedByTowerNumber.set(towerNumber, existing);
+          // Hand the soakers whose charge a resolver consumed to the reassign system (runs later this
+          // tick) so it can re-balance charges by this tower's label.
+          if (resolvedDebuffPlayers.length > 0) {
+            ctx.resolvedTowers.push({ labels: tower.labels ?? [], playerIds: resolvedDebuffPlayers.map(p => p.id) });
           }
           for (const p of validSoakers) {
             if (!p.alive) continue;
@@ -105,10 +97,6 @@ export function resolveTowers(ctx: TickContext): {
         tower.outcome = success ? "success" : "failure";
       }
     }
-  }
-
-  for (const [towerNumber, resolvedPlayers] of forsakenResolvedByTowerNumber) {
-    resolveForsakenTowerDebuffSwaps(ctx, towerNumber, resolvedPlayers);
   }
 
   // Keep briefly after resolve so the renderer can flash success/failure.

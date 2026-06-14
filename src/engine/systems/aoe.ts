@@ -5,16 +5,17 @@
 import type { TickContext } from "./context";
 import type {
   ActiveMechanic, PendingEvent, PendingTargetedEvent, PendingBaitEvent, PendingEffectBurst,
-  Player, Role, Boss,
+  Player, Role, Boss, AOEShape,
 } from "@shared/types";
 import { pointInShape } from "../shapes";
 import { promotePending, anchorShape } from "../timeline";
 import { AOE_RESOLVE_LINGER, TARGETED_LINGER } from "@shared/constants";
 import { atan2 } from "@shared/dmath";
 import {
-  selectTargetPlayer, inPositionalArc, applyMechanicDamage, applyEffect,
+  selectTargetPlayer, selectTargetPlayers, inPositionalArc, applyMechanicDamage, applyEffect,
   effectsForMechanic, balancedEffectOrders, applyKnockback, shapeOrigin, isEffectActiveAt,
 } from "./helpers";
+import { addResolvedAoeVisual } from "./effectResolvers";
 
 // Pick the player a bait targets at cast start: "random" draws a seeded alive (optionally
 // role-filtered) player; "closest"/"furthest" measure from the boss.
@@ -75,7 +76,7 @@ export function resolveAoe(ctx: TickContext): {
         showCastBar: pt.showCastBar,
         showTelegraph: pt.showTelegraph,
         telegraphMode: pt.telegraphMode,
-        targeting: { mode: pt.targetMode, role: pt.role, origin: { x: 0, z: 0 } },
+        targeting: { mode: pt.targetMode, role: pt.role, origin: { x: 0, z: 0 }, count: pt.count },
       });
     } else {
       remainingPendingTargeted.push(pt);
@@ -165,6 +166,25 @@ export function resolveAoe(ctx: TickContext): {
         mechanic.showCastBar = false;
         mechanic.showTelegraph = false;
         stillActive.push(mechanic);
+        continue;
+      }
+      // N-closest spread: drop a damage circle on each of the N nearest/furthest players (a player
+      // caught by several circles is hit once per circle). Resolves instantly with a flash per spot.
+      if (mechanic.targeting && mechanic.shape.kind === "circle" && mechanic.targeting.mode !== "aggro"
+        && (mechanic.targeting.count ?? 1) > 1) {
+        const radius = mechanic.shape.radius;
+        const targets = selectTargetPlayers(players, mechanic.targeting.origin, mechanic.targeting.mode, mechanic.targeting.count!, mechanic.targeting.role);
+        for (const target of targets) {
+          const circle: AOEShape = { kind: "circle", center: { x: target.pos.x, z: target.pos.z }, radius };
+          addResolvedAoeVisual(ctx, `${mechanic.id}-${target.id}-visual`, mechanic.name, circle);
+          for (const player of players) {
+            if (!player.alive || !pointInShape(circle, player.pos)) continue;
+            applyMechanicDamage(player, mechanic.damage, mechanic.damageType, time);
+            log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });
+            if (mechanic.applyEffect) applyEffect(player, mechanic.applyEffect, time, `${mechanic.id}-${player.id}-eff`, players);
+          }
+        }
+        mechanic.resolved = true;
         continue;
       }
       if (mechanic.targeting && mechanic.shape.kind === "circle") {

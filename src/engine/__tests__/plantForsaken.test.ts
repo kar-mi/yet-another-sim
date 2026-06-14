@@ -269,27 +269,27 @@ test("plant combinations assign each player a per-slot heading from their group'
   ].sort());
 });
 
-const forsakenOptionals = {
+const pairingsOptionals = {
   combinations: {
-    forsaken: {
+    pairings: {
       rng: false,
       patterns: [
         {
           id: "static",
           pairs: [
-            { members: ["h1", "mt"], assignments: ["stack", "cone"] },
-            { members: ["h2", "ot"], assignments: ["cone", "cone"] },
-            { members: ["r1", "m1"], assignments: ["stack", "defamation"] },
-            { members: ["r2", "m2"], assignments: ["defamation", "defamation"] },
+            { members: ["h1", "mt"], group: "A", charges: ["stack", "cone"] },
+            { members: ["h2", "ot"], group: "B", charges: ["cone", "cone"] },
+            { members: ["r1", "m1"], group: "A", charges: ["stack", "defamation"] },
+            { members: ["r2", "m2"], group: "B", charges: ["defamation", "defamation"] },
           ],
         },
         {
           id: "alternate",
           pairs: [
-            { members: ["h1", "mt"], assignments: ["cone", "cone"] },
-            { members: ["h2", "ot"], assignments: ["stack", "cone"] },
-            { members: ["r1", "m1"], assignments: ["defamation", "defamation"] },
-            { members: ["r2", "m2"], assignments: ["cone", "defamation"] },
+            { members: ["h1", "mt"], group: "B", charges: ["cone", "cone"] },
+            { members: ["h2", "ot"], group: "A", charges: ["stack", "cone"] },
+            { members: ["r1", "m1"], group: "B", charges: ["defamation", "defamation"] },
+            { members: ["r2", "m2"], group: "A", charges: ["cone", "defamation"] },
           ],
         },
       ],
@@ -297,36 +297,50 @@ const forsakenOptionals = {
   },
 };
 
-test("forsaken combinations build a static assignment plan when rng is false", () => {
-  const raid = loadRaid({ ...baseRaid, optionals: forsakenOptionals });
+test("pairing combinations build the generic pairing maps when rng is false", () => {
+  const raid = loadRaid({ ...baseRaid, optionals: pairingsOptionals });
   const world = createWorld(raid, 1);
 
-  expect(world.forsakenPlan?.patternId).toBe("static");
-  expect(world.forsakenPlan?.towerOrder).toEqual(["A", "A", "A", "B", "B", "B", "B", "A"]);
-  expect(world.forsakenPlan?.players.h1.assignment).toBe("stack");
-  expect(world.forsakenPlan?.players.h1.group).toBe("A");
-  expect(world.forsakenPlan?.players.h1.towerSlots).toEqual([1, 2, 3, 8]);
-  expect(world.forsakenPlan?.players.h2.group).toBe("B");
-  expect(world.forsakenPlan?.players.h2.towerSlots).toEqual([4, 5, 6, 7]);
+  // partners (paired player), playerGroups (each pair's declared group), and initialCharges (each
+  // member's declared charge kind for the reassign opener).
+  expect(world.partners.h1).toBe("mt");
+  expect(world.partners.mt).toBe("h1");
+  expect(world.initialCharges.h1).toBe("stack");
+  expect(world.initialCharges.mt).toBe("cone");
+  expect(world.playerGroups.h1).toBe("A");
+  expect(world.playerGroups.h2).toBe("B");
 });
 
-test("forsaken combinations are deterministic for the same seeded rng", () => {
+test("pairing combinations are deterministic for the same seeded rng", () => {
   const raid = loadRaid({
     ...baseRaid,
-    optionals: { combinations: { forsaken: { ...forsakenOptionals.combinations.forsaken, rng: true } } },
+    optionals: { combinations: { pairings: { ...pairingsOptionals.combinations.pairings, rng: true } } },
   });
-  const a = createWorld(raid, 1).forsakenPlan;
-  const b = createWorld(raid, 1).forsakenPlan;
+  const a = createWorld(raid, 1);
+  const b = createWorld(raid, 1);
 
-  expect(a?.patternIndex).toBe(b?.patternIndex);
-  expect(a?.players).toEqual(b?.players);
+  expect(a.initialCharges).toEqual(b.initialCharges);
+  expect(a.playerGroups).toEqual(b.playerGroups);
+  expect(a.partners).toEqual(b.partners);
 });
 
-test("forsaken_assign applies invisible assignment and short head marker effects", () => {
+test("reassign opener applies invisible charge and short head-marker effects from the plan", () => {
+  const charge = (kind: string, name: string, markerIcon: string) => ({
+    kind,
+    effect: { name, kind: "debuff", duration: 20, visibility: "invisible", behavior: { kind: "none" } },
+    marker: { name: `${name} Marker`, kind: "debuff", duration: 5, visibility: "invisible", markerIcon, behavior: { kind: "none" } },
+  });
   const raid = loadRaid({
     ...baseRaid,
-    optionals: forsakenOptionals,
-    events: [{ type: "forsaken_assign", id: "assign", t: 0, name: "Forsaken Assignment", duration: 20, markerDuration: 5 }],
+    optionals: pairingsOptionals,
+    events: [{
+      type: "reassign", id: "assign", t: 0, name: "Forsaken Assignment", initial: "plan",
+      charges: [
+        charge("stack", "Stack Charge", "stack_processed.png"),
+        charge("cone", "Cone Charge", "cone_processed.png"),
+        charge("defamation", "Defamation Charge", "defam_processed.png"),
+      ],
+    }],
   });
   const world = runTicks(createWorld(raid, 1), noMove, 1);
   const h1 = byId(world, "h1");
