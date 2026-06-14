@@ -34,10 +34,10 @@ _positions:
     _il:  &evenInnerLeftTower   [4.5, 2.6]
     _or:  &evenOuterRightTower [-6.15, 9.15]
     _ol:  &evenOuterLeftTower  [6.15, 9.15]
-    _nsm: &evenNonSoakMelee  [-3.2, -5.0]
-    _nst: &evenNonSoakTank [3.2, -5.0]
-    _nsr: &evenNonSoakRange [-10.6, -0.5]
-    _nsh: &evenNonSoakHeal [10.6, -0.5]
+    _nsm: &evenNonSoakMelee  [-3.2, -6.0]
+    _nst: &evenNonSoakTank [3.2, -6.0]
+    _nsr: &evenNonSoakRange [-10.3, .4]
+    _nsh: &evenNonSoakHeal [10.3, .4]
 
 solvers:
   generic:
