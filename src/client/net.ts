@@ -1,6 +1,7 @@
 import { type ClientMessage, type Frame, type ServerMessage } from "@shared/protocol";
-import type { Boss, Player, World } from "@shared/types";
+import type { Boss, Intent, Player, World } from "@shared/types";
 import { shortestAngleDelta } from "@shared/math";
+import { LocalPredictor } from "./predictor";
 import { tick } from "../engine/sim";
 import { computeBotIntents } from "../engine/botIntent";
 import { worldHash } from "@shared/worldHash";
@@ -36,6 +37,7 @@ export class NetClient {
   private reconnectDelay = RECONNECT_INITIAL_MS;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private worldRenderKeys: WorldRenderKeys | null = null;
+  private readonly predictor = new LocalPredictor();
 
   // Local simulation state.
   private world: World | null = null;
@@ -81,9 +83,16 @@ export class NetClient {
     return () => handlers.delete(wrapped);
   }
 
-  getRenderView(now: number): World | null {
+  getRenderView(now: number, predict?: { intent: Intent; dt: number }): World | null {
     const buf = this.snapshots;
     if (buf.length === 0) return null;
+
+    const view = this.interpolatedView(now);
+    return predict ? this.applyPrediction(view, predict.intent, predict.dt) : view;
+  }
+
+  private interpolatedView(now: number): World {
+    const buf = this.snapshots;
     if (buf.length === 1) return buf[0].world;
 
     const target = now - RENDER_DELAY_MS;
@@ -99,6 +108,22 @@ export class NetClient {
     const span = next.t - prev.t;
     const alpha = span > 0 ? Math.min(1, Math.max(0, (target - prev.t) / span)) : 1;
     return interpolateWorld(prev.world, next.world, alpha);
+  }
+
+  // Override the local player in the render view with a client-predicted position so the user's own
+  // movement is instant. Render-only: anchors to the latest authoritative world (`this.world`) and
+  // never mutates `view` (which may be a stored snapshot) — a new players array is built instead.
+  private applyPrediction(view: World, intent: Intent, dt: number): World {
+    if (!this.claimedPlayerId || !this.world) return view;
+    const authLocal = this.world.players.find(p => p.id === this.claimedPlayerId);
+    if (!authLocal) return view;
+
+    const predicted = this.predictor.predict(authLocal, this.world.time, intent, dt);
+    const players = view.players.map(p => (p.id === this.claimedPlayerId ? { ...p, pos: predicted.pos, facing: predicted.facing } : p));
+    const world = { ...view, players };
+    const renderKeys = getWorldRenderKeys(view);
+    if (renderKeys) setWorldRenderKeys(world, renderKeys);
+    return world;
   }
 
   close(): void {
@@ -166,9 +191,11 @@ export class NetClient {
       this.claimedPlayerId = message.slots.find(slot => slot.claimedByYou)?.playerId ?? null;
       this.observing = message.observingByYou;
       this.isHost = this.clientId !== null && this.clientId === message.hostClientId;
+      this.predictor.reset();
     }
     if (message.type === "playback") {
       this.isHost = this.clientId !== null && this.clientId === message.hostClientId;
+      this.predictor.reset();
     }
     if (message.type === "started") {
       this.claimedPlayerId = message.yourPlayerId;
@@ -190,6 +217,7 @@ export class NetClient {
     this.world = message.world;
     this.appliedTick = 0;
     this.simEndedSent = false;
+    this.predictor.reset();
     for (const frame of message.frames) this.stepOne(frame);
     this.snapshots.length = 0;
     this.pushSnapshot(this.world);
