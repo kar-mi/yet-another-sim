@@ -120,6 +120,30 @@ solvers:
       spot: [4, -4]
 ```
 
+## Solver holds
+
+`solvers.holds` makes bots **pause in place** for a fixed time after a mechanic resolves, before the
+generic solver moves them on to the next spot. Each entry is `{ mechanic, duration }`:
+
+- `mechanic` — id-prefix or label match, exactly like `when.mechanic` (pass an array to match any of
+  several). When **any** mechanic matching this resolves on a given tick, the hold fires.
+- `duration` — seconds every bot freezes (stops moving) after that resolve.
+
+```yaml
+solvers:
+  generic: [ ... ]
+  holds:
+    # Hold 1s after each tower resolves before re-solving for the next mechanic.
+    - { mechanic: tower-odd, duration: 1 }
+    - { mechanic: tower-even, duration: 1 }
+```
+
+The hold is global (all bots) and triggers off the resolve tick, so it works for any mechanic that
+flows through the tower or AOE active lists (`aoe`, `tower`, `targeted`, `bait`). Overlapping holds
+extend to the latest end time. Mind tightly choreographed phases: a hold that overlaps an incoming
+AOE/bait window can freeze bots out of position — keep a covering generic rule (e.g. an extended
+`endAt`) over any window where bots must stay placed.
+
 ## Rotated frames
 
 A `frame` lets one spot set serve every wave of a mechanic that rotates around the arena, so you
