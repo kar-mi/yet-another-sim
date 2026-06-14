@@ -52,7 +52,7 @@ const DEFAULTS: Settings = {
   cameraAccel: false,
   cameraAccelStrength: 1,
   uiScale: 1.125,
-  renderedPlayerHealthBars: true,
+  renderedPlayerHealthBars: false,
 };
 
 const KEY = "yas_settings";

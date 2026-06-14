@@ -72,7 +72,7 @@ export class BabylonRenderer implements Renderer {
   private controllerSensitivity = 2.0;
   private cameraAccel = false;
   private cameraAccelStrength = 1;
-  private renderedPlayerHealthBars = true;
+  private renderedPlayerHealthBars = false;
   private camAccelFactor = 1;
   private onPanDown!: (e: PointerEvent) => void;
   private onPanUp!: (e: PointerEvent) => void;
