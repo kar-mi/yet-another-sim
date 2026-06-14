@@ -78,6 +78,41 @@ function classifyForsakenPair(assignments: [ForsakenAssignmentKind, ForsakenAssi
   return "B";
 }
 
+function rotateForsakenTowers(
+  events: RaidDef["events"],
+  forsaken: NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["forsaken"],
+  rngState: number,
+): { events: RaidDef["events"]; rngState: number } {
+  if (!forsaken?.towerRng) return { events, rngState };
+
+  const roll1 = randomInt(rngState, 8);
+  const startOffset = roll1.value;
+  const roll2 = randomInt(roll1.state, 2);
+  const direction = roll2.value === 0 ? 1 : -1;
+  const nextState = roll2.state;
+
+  const towerEvents = events.filter((e): e is Extract<RaidDef["events"][number], { type: "tower" }> => e.type === "tower");
+  const sortedTimes = [...new Set(towerEvents.map(e => e.t))].sort((a, b) => a - b);
+
+  const canonicalPairs = sortedTimes.map(t => {
+    const group = towerEvents.filter(e => e.t === t);
+    return {
+      left: group.find(e => e.id.endsWith("-left"))!.pos,
+      right: group.find(e => e.id.endsWith("-right"))!.pos,
+    };
+  });
+
+  const result = events.map(e => {
+    if (e.type !== "tower") return e;
+    const waveIdx = sortedTimes.indexOf(e.t);
+    const canonIdx = ((startOffset + direction * waveIdx) % 8 + 8) % 8;
+    const side = e.id.endsWith("-left") ? "left" : "right";
+    return { ...e, pos: canonicalPairs[canonIdx]![side] };
+  });
+
+  return { events: result as RaidDef["events"], rngState: nextState };
+}
+
 function buildForsakenPlan(
   raid: RaidDef,
   players: Player[],
@@ -102,7 +137,6 @@ function buildForsakenPlan(
       id: `pair-${pairIndex + 1}`,
       members: pair.members,
       assignments,
-      endings: pair.endings ?? (["future", "past"] as const),
       group: classifyForsakenPair(assignments),
     };
   });
@@ -116,7 +150,6 @@ function buildForsakenPlan(
         pairId: pair.id,
         pairIndex,
         assignment: pair.assignments[memberIndex],
-        ending: pair.endings[memberIndex],
         group: pair.group,
         roleSide,
         defaultSide: roleSide === "support" ? "left" : "right",
@@ -191,7 +224,8 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   };
 
   const { plan: plantPlan, rngState: afterPlantRngState } = buildPlantPlan(raid, seed);
-  const { plan: forsakenPlan, rngState } = buildForsakenPlan(raid, players, afterPlantRngState);
+  const { plan: forsakenPlan, rngState: afterForsakenRngState } = buildForsakenPlan(raid, players, afterPlantRngState);
+  const { events: effectiveEvents, rngState } = rotateForsakenTowers(raid.events, raid.optionals?.combinations?.forsaken, afterForsakenRngState);
   const plantDebuffOrder = raid.optionals?.combinations?.plant?.debuffOrder;
 
   // Generic-solver partner/group maps. Forsaken is the only current producer, but these are plain
@@ -234,7 +268,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   // Static positions of positioned events, for generic-solver explicit frames (frame: [eventIds]).
   const eventPositions: Record<string, Vec2> = {};
 
-  for (const e of raid.events) {
+  for (const e of effectiveEvents) {
     bucketEvent(e, collections, eventPositions);
   }
 

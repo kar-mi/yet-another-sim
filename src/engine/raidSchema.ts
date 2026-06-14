@@ -510,12 +510,10 @@ const PlantGroupSchema = z.object({
   combos: z.array(PlantComboSchema).min(1),
 });
 const ForsakenAssignmentKindSchema = z.enum(["cone", "stack", "spread", "defamation"]);
-const ForsakenEndingSchema = z.enum(["past", "future"]);
 const ForsakenGroupSchema = z.enum(["A", "B"]);
 const ForsakenPatternPairSchema = z.object({
   members: z.tuple([z.string().min(1), z.string().min(1)]),
   assignments: z.tuple([ForsakenAssignmentKindSchema, ForsakenAssignmentKindSchema]),
-  endings: z.tuple([ForsakenEndingSchema, ForsakenEndingSchema]).optional(),
 });
 const ForsakenPatternSchema = z.object({
   id: z.string().min(1).optional(),
@@ -533,6 +531,7 @@ const OptionalsSchema = z.object({
     }).optional(),
     forsaken: z.object({
       rng: z.boolean().default(false),
+      towerRng: z.boolean().default(false),
       towerOrder: z.array(ForsakenGroupSchema).length(8).default(["A", "A", "A", "B", "B", "B", "B", "A"]),
       patterns: z.array(ForsakenPatternSchema).min(1),
     }).optional(),

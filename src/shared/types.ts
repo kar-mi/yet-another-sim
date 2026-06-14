@@ -116,7 +116,6 @@ export type StatusEffect = {
 };
 
 export type ForsakenAssignmentKind = "cone" | "stack" | "spread" | "defamation";
-export type ForsakenEnding = "past" | "future";
 export type ForsakenGroup = "A" | "B";
 export type ForsakenTowerGroup = "X" | "Y";
 
@@ -124,7 +123,6 @@ export type ForsakenPairAssignment = {
   id: string;
   members: [string, string];
   assignments: [ForsakenAssignmentKind, ForsakenAssignmentKind];
-  endings: [ForsakenEnding, ForsakenEnding];
   group: ForsakenGroup;
 };
 
@@ -133,7 +131,6 @@ export type ForsakenPlayerAssignment = {
   pairId: string;
   pairIndex: number;
   assignment: ForsakenAssignmentKind;
-  ending: ForsakenEnding;
   group: ForsakenGroup;
   roleSide: "support" | "dps";
   defaultSide: "left" | "right";
