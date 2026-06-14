@@ -21,7 +21,8 @@ import { createEffectRenderState, syncEffectChips, type EffectRenderState } from
 
 declare const __YAS_DEBUG__: boolean | undefined;
 
-const DEBUG_POSITION_ENABLED = typeof __YAS_DEBUG__ !== "undefined" && __YAS_DEBUG__;
+const DEBUG_ENABLED = typeof __YAS_DEBUG__ !== "undefined" && __YAS_DEBUG__;
+const DEBUG_POSITION_ENABLED = DEBUG_ENABLED;
 const PARTY_SLOT_ORDER = ["mt", "ot", "h1", "h2", "m1", "m2", "r1", "r2"] as const;
 const PARTY_SLOT_INDEX = new Map<string, number>(PARTY_SLOT_ORDER.map((id, index) => [id, index]));
 type PartyRow = {
@@ -202,6 +203,7 @@ export class HudOverlay {
     this.castFillEl.className = "yas-cast-fill";
     this.castTimerEl = document.createElement("div");
     this.castTimerEl.className = "yas-cast-timer";
+    if (!DEBUG_ENABLED) this.castTimerEl.style.display = "none";
     castTrack.appendChild(this.castFillEl);
     this.castBarEl.append(this.castNameEl, castTrack, this.castTimerEl);
     document.body.appendChild(this.castBarEl);
@@ -427,11 +429,13 @@ export class HudOverlay {
     if (casting) {
       const span = casting.resolveAt - casting.telegraphStart;
       const progress = span > 0 ? Math.min(1, (world.time - casting.telegraphStart) / span) : 1;
-      const remaining = Math.max(0, casting.resolveAt - world.time);
       this.castBarEl.style.display = "flex";
       this.castNameEl.textContent = casting.name;
       this.castFillEl.style.width = `${progress * 100}%`;
-      this.castTimerEl.textContent = remaining.toFixed(1) + "s";
+      if (DEBUG_ENABLED) {
+        const remaining = Math.max(0, casting.resolveAt - world.time);
+        this.castTimerEl.textContent = remaining.toFixed(1) + "s";
+      }
     } else {
       this.castBarEl.style.display = "none";
     }
