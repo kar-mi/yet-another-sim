@@ -407,7 +407,7 @@ test("only the host can end the session via simEnded", () => {
 
   session.simEnded("c1", 5);
   expect(session.status).toBe("done");
-  expect(sent.some(entry => entry.message.type === "playback" && entry.message.state === "stopped")).toBe(true);
+  expect(sent.some(entry => entry.message.type === "playback" && entry.message.state === "done")).toBe(true);
 });
 
 test("divergent world hashes for a tick resync the offending client", () => {

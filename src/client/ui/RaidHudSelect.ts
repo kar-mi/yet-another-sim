@@ -164,7 +164,8 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
     select.disabled = locked;
     if (locked) setSelectOpen(false);
     categoryBtn.disabled = locked;
-    playBtn.disabled = raidChangePending || !isHost || state === "playing";
+    // Play can't resume a finished pull (the server rejects it) — steer the host to RESTART instead.
+    playBtn.disabled = raidChangePending || !isHost || state === "playing" || state === "done";
     pauseBtn.disabled = raidChangePending || !isHost || state !== "playing";
     stopBtn.disabled = raidChangePending || !isHost || state === "stopped";
     restartBtn.disabled = raidChangePending || !isHost;

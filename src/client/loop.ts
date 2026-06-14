@@ -41,7 +41,7 @@ export function startNetLoop(renderer: Renderer, net: NetClient): () => void {
 
     const rs = getRightStick();
     renderer.applyControllerPan(rs.x, rs.y, elapsed);
-    const view = net.getRenderView(now);
+    const view = net.getRenderView(now, { intent, dt: elapsed });
     if (view) renderer.sync(view);
     renderer.render();
     rafId = requestAnimationFrame(frame);

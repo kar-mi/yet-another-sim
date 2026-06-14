@@ -633,7 +633,7 @@ export class Session {
   }
 
   private broadcastPlayback(): void {
-    const state = this.status === "running" ? "playing" : this.status === "paused" ? "paused" : "stopped";
+    const state = this.status === "running" ? "playing" : this.status === "paused" ? "paused" : this.status === "done" ? "done" : "stopped";
     this.broadcast({ type: "playback", state, raidId: this.raidId, hostClientId: this.hostClientId });
   }
 
