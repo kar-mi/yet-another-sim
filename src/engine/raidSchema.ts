@@ -38,8 +38,14 @@ const GenericSolverRuleSchema = z.object({
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["spot"], message: "rule must have at least one of spot / spots" });
   }
 });
+const SolverHoldSchema = z.object({
+  // id-prefix or label match (same matching as when.mechanic); array matches any listed mechanic
+  mechanic: z.union([EventIdSchema, z.array(EventIdSchema).min(1)]),
+  duration: z.number().positive(), // seconds bots hold position after a matching mechanic resolves
+});
 const BotSolversSchema = z.object({
   generic: z.array(GenericSolverRuleSchema).optional(),
+  holds: z.array(SolverHoldSchema).optional(),
 }).optional();
 
 const WaymarkSchema = z.object({

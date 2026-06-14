@@ -49,8 +49,16 @@ export type GenericSolverRule = {
   spot?: Vec2;                   // one spot for every matching bot
 };
 
+// When any mechanic matching `mechanic` (id-prefix or label, like GenericSolverRule.when.mechanic)
+// resolves, bots hold their current position for `duration` seconds before re-solving.
+export type SolverHold = {
+  mechanic: string | string[];
+  duration: number;
+};
+
 export type BotSolvers = {
   generic?: GenericSolverRule[];
+  holds?: SolverHold[];
 };
 
 export type DamageType = "physical" | "magical" | "true";
@@ -745,6 +753,7 @@ export type World = {
   pendingBaits: PendingBaitEvent[];
   towers: ActiveTower[];
   pendingTowers: PendingTower[];
+  botHoldUntil?: number; // bots hold position until this time (set when a tower resolves)
   chains: ActiveChain[];
   pendingChains: PendingChain[];
   groupMechanics: ActiveGroupMechanic[];
