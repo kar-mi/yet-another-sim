@@ -13,6 +13,7 @@ import { createTickContext } from "./systems/context";
 import { topThreatTarget } from "./systems/helpers";
 import { applyPlayerMovement } from "./systems/playerMovement";
 import { applyStatusEffects } from "./systems/statusEffects";
+import { holdUntilFromResolves } from "./genericSolver";
 import { REGISTRY } from "./mechanicRegistry";
 
 export function tick(world: World, intents: Intents, dt: number): World {
@@ -63,6 +64,10 @@ export function tick(world: World, intents: Intents, dt: number): World {
   next.forcedMarches = ctx.forcedMarches;
   next.active = [...next.active, ...ctx.resolvedAoeVisuals];
   next.pendingHeals = remainingPendingHeals;
+
+  // Authored bot-solver holds: when a matching mechanic resolves this tick, freeze bots briefly.
+  const hold = holdUntilFromResolves(next, ctx.previousTime);
+  if (hold !== undefined) next.botHoldUntil = Math.max(next.botHoldUntil ?? 0, hold);
 
   // 5. Derive status. "cleared" requires every mechanic family to have fully resolved.
   const anyAlive = players.some(p => p.alive);

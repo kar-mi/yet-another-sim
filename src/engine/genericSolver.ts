@@ -73,9 +73,35 @@ function prefixMatches(ruleSegments: string[], resolvedId: string): boolean {
   return ruleSegments.every((segment, i) => segment === idSegments[i]);
 }
 
+// A rule mechanic id matches a resolved id by segment-prefix OR an exact label match.
+function idOrLabelMatches(ruleId: string, resolvedId: string, labels?: string[]): boolean {
+  return prefixMatches(ruleId.split("."), resolvedId) || (labels?.includes(ruleId) ?? false);
+}
+
 // A rule mechanic id matches a live mechanic by segment-prefix on its id OR an exact label match.
 function mechanicMatches(id: string, mechanic: ResolvedMechanic): boolean {
-  return prefixMatches(id.split("."), mechanic.resolvedId) || (mechanic.labels?.includes(id) ?? false);
+  return idOrLabelMatches(id, mechanic.resolvedId, mechanic.labels);
+}
+
+// New botSolvers.holds value after this tick: when any mechanic that crossed its resolveAt this tick
+// (it still lingers in towers/active on the resolve tick) matches a hold rule, bots hold position for
+// `duration` seconds. Returns the latest hold-until time triggered this tick, or undefined for none.
+export function holdUntilFromResolves(world: World, previousTime: number): number | undefined {
+  const holds = world.botSolvers?.holds;
+  if (!holds?.length) return undefined;
+  const time = world.time;
+  const resolvedThisTick: { id: string; labels?: string[] }[] = [];
+  for (const t of world.towers) if (t.resolved && t.resolveAt > previousTime && t.resolveAt <= time) resolvedThisTick.push({ id: t.id, labels: t.labels });
+  for (const m of world.active) if (m.resolved && m.resolveAt > previousTime && m.resolveAt <= time) resolvedThisTick.push({ id: m.id, labels: m.labels });
+  if (resolvedThisTick.length === 0) return undefined;
+
+  let until: number | undefined;
+  for (const hold of holds) {
+    const ids = Array.isArray(hold.mechanic) ? hold.mechanic : [hold.mechanic];
+    const triggered = resolvedThisTick.some(r => ids.some(id => idOrLabelMatches(id, r.id, r.labels)));
+    if (triggered) until = Math.max(until ?? 0, time + hold.duration);
+  }
+  return until;
 }
 
 function hasActiveDebuff(player: Player, name: string, time: number): boolean {

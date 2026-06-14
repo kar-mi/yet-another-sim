@@ -52,7 +52,9 @@ solvers:
     - { when: { mechanic: boss-facing-lock }, startAt: 27, endAt: 31, frame: [tower-3-left, tower-3-right], spot: [0, -6] } # Future, all-ending-1 @31
     - { when: { mechanic: boss-facing-lock }, startAt: 47, endAt: 51, frame: [tower-5-left, tower-5-right], spot: [0, 6] }  # Past,   all-ending-2 @51
     - { when: { mechanic: boss-facing-lock }, startAt: 67, endAt: 71, frame: [tower-7-left, tower-7-right], spot: [0, -6] } # Future, all-ending-3 @71
-    - { when: { mechanic: boss-facing-lock }, startAt: 87, endAt: 91, frame: [tower-1-left, tower-1-right], spot: [0, 6] }  # Past,   all-ending-4 @91
+    # Ending 4 has no following tower to hand off to, so hold the cluster through the rear cone's
+    # resolve (all-ending-4 fires at 96) instead of stopping at the bait's targeting tick.
+    - { when: { mechanic: boss-facing-lock }, startAt: 87, endAt: 96, frame: [tower-1-left, tower-1-right], spot: [0, 6] }  # Past,   all-ending-4 @91, cone @96
 
     # --- Odd tower waves (one stack pair + cone + defam soak the two towers; the off-group
     #     supports the soak). Frame north = the wave's tower bisector.
@@ -86,3 +88,8 @@ solvers:
     - { when: { mechanic: tower-even, soaks: false, role: healer }, frame: matched, spot: *evenNonSoakHeal }
     - { when: { mechanic: tower-even, soaks: false, role: tank },   frame: matched, spot: *evenNonSoakTank }
     - { when: { mechanic: tower-even, soaks: false, role: dps },    frame: matched, spots: { m1: *evenNonSoakMelee, m2: *evenNonSoakMelee, r1: *evenNonSoakRange, r2: *evenNonSoakRange } }
+
+  # Hold position for 1s after each tower resolves before re-solving for the next mechanic.
+  holds:
+    - { mechanic: tower-odd, duration: 1 }
+    - { mechanic: tower-even, duration: 1 }

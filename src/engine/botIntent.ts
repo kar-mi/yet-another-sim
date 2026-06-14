@@ -25,8 +25,16 @@ function moveIntent(player: Player, target: Vec2, dt: number) {
 export function computeBotIntents(world: World, dt: number): Intents {
   const intents: Intents = {};
 
+  const held = world.botHoldUntil !== undefined && world.time < world.botHoldUntil;
+
   for (const player of world.players) {
     if (!player.alive || player.control !== "bot") continue;
+
+    // A solver hold freezes bots in place until botHoldUntil (set when a matching mechanic resolved).
+    if (held) {
+      intents[player.id] = { move: { x: 0, z: 0 } };
+      continue;
+    }
 
     const solverTarget = genericSolverWaypoint(player, world);
     if (solverTarget) {

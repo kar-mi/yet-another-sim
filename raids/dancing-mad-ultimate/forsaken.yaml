@@ -124,8 +124,9 @@ _allEndingBase: &allEndingBase
   telegraph: 5
   showCastBar: true
 
-# Spread the clones drop on the 4 closest players as each All Ending resolves (no cast bar).
-# Each spread mirrors its All Ending's t/telegraph so the two resolve in the same tick.
+# Spread the clones drop on the 4 closest players as each even tower resolves (no cast bar).
+# Each spread's t is set so its telegraph ends on its even tower's resolve tick (tower-2/4/6/8 at
+# 26/46/66/86), i.e. t = towerResolve - telegraph.
 _cloneSpreadBase: &cloneSpreadBase
   type: targeted
   name: Clone Spread
@@ -257,7 +258,7 @@ events:
     link: ending-store-1
   - <<: *cloneSpreadBase
     id: clone-spread-1
-    t: 31.0
+    t: 21.0 # resolves with tower-2 @26
     telegraph: 5
 
   - <<: *towerBase
@@ -313,7 +314,7 @@ events:
     link: ending-store-2
   - <<: *cloneSpreadBase
     id: clone-spread-2
-    t: 51.0
+    t: 41.0 # resolves with tower-4 @46
 
   - <<: *towerBase
     id: tower-5-left
@@ -368,7 +369,7 @@ events:
     link: ending-store-3
   - <<: *cloneSpreadBase
     id: clone-spread-3
-    t: 71.0
+    t: 61.0 # resolves with tower-6 @66
     telegraph: 5
 
   - <<: *towerBase
@@ -427,7 +428,7 @@ events:
     link: ending-store-4
   - <<: *cloneSpreadBase
     id: clone-spread-4
-    t: 91.0
+    t: 81.0 # resolves with tower-8 @86
 
   - type: aoe
     id: forsaken-end-raidwide

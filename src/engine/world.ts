@@ -11,13 +11,14 @@ export const ROLE_HP: Record<Player["role"], number> = { tank: 160, healer: 100,
 
 function toBotSolvers(raid: RaidDef): World["botSolvers"] {
   const generic = raid.botSolvers?.generic;
-  if (!generic) return undefined;
+  const holds = raid.botSolvers?.holds;
+  if (!generic && !holds) return undefined;
 
   const toSpots = (spots: Record<string, [number, number]>) =>
     Object.fromEntries(Object.entries(spots).map(([id, pos]) => [id, toVec2(pos)]));
 
   return {
-    generic: generic.map(rule => ({
+    generic: generic?.map(rule => ({
       when: { ...rule.when },
       startAt: rule.startAt,
       endAt: rule.endAt,
@@ -25,6 +26,7 @@ function toBotSolvers(raid: RaidDef): World["botSolvers"] {
       spots: rule.spots && toSpots(rule.spots),
       spot: rule.spot && toVec2(rule.spot),
     })),
+    holds: holds?.map(hold => ({ ...hold })),
   };
 }
 
