@@ -39,9 +39,17 @@ const MAX_SESSIONS = parsePositiveInt("MAX_SESSIONS", Bun.env.MAX_SESSIONS, 10);
 // the large outbound resync (full input log) is not governed by it.
 const MAX_WS_PAYLOAD_BYTES = 1 << 20; // 1 MiB
 
+// Only large one-shot payloads (the full-input-log resync on late join / reconnect) are worth
+// compressing. The tiny 60 Hz frame stream is pure compress/decompress latency under
+// perMessageDeflate, so anything below this is sent uncompressed (Bun's per-send compress flag).
+const WS_COMPRESS_THRESHOLD = 8192;
+
 interface SocketData {
   clientId: string;
 }
+
+// Reused across all inbound binary frames; allocating a TextDecoder per message is needless churn.
+const wsTextDecoder = new TextDecoder();
 
 function raidSegmentFromFile(file: string): string | null {
   const ext = file.endsWith(".yaml") ? ".yaml" : file.endsWith(".yml") ? ".yml" : null;
@@ -165,7 +173,9 @@ const manager = new SessionManager({
   raidsDir: RAIDS_DIR,
   send(clientId: string, message: ServerMessage | string) {
     const ws = clients.get(clientId);
-    if (ws?.readyState === WebSocket.OPEN) ws.send(typeof message === "string" ? message : JSON.stringify(message));
+    if (ws?.readyState !== WebSocket.OPEN) return;
+    const payload = typeof message === "string" ? message : JSON.stringify(message);
+    ws.send(payload, payload.length > WS_COMPRESS_THRESHOLD);
   },
   createSessionLog,
   maxSessions: MAX_SESSIONS,
@@ -247,7 +257,7 @@ const server = Bun.serve<SocketData>({
     async message(ws, msg) {
       await withServerSpan("ws.message", { clientId: ws.data.clientId }, async span => {
         metrics.wsMessagesTotal.inc();
-        const text = typeof msg === "string" ? msg : new TextDecoder().decode(msg);
+        const text = typeof msg === "string" ? msg : wsTextDecoder.decode(msg);
         let json: unknown;
         try {
           json = JSON.parse(text);

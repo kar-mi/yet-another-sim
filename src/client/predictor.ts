@@ -8,7 +8,7 @@
 import type { Intent, Player, ZoneShape } from "@shared/types";
 import { add, sub, scale, normalize, length } from "@shared/math";
 import { atan2 } from "@shared/dmath";
-import { MOVE_SPEED, SPRINT_MULTIPLIER, JUMP_SPEED, GRAVITY } from "@shared/constants";
+import { MOVE_SPEED, SPRINT_MULTIPLIER, JUMP_SPEED, GRAVITY, SPRINT_DURATION, SPRINT_COOLDOWN } from "@shared/constants";
 import { activeEffectOfKind } from "../engine/systems/helpers";
 import { isOnFloor } from "../engine/shapes";
 
@@ -21,6 +21,8 @@ export class LocalPredictor {
   private facing = 0;
   private y = 0;
   private verticalVelocity = 0;
+  private sprintActive = 0;
+  private sprintCooldown = 0;
 
   reset(): void {
     this.active = false;
@@ -44,8 +46,17 @@ export class LocalPredictor {
 
     if (!this.active) this.seed(authLocal);
 
+    // Predict sprint locally so the speed boost is instant (mirrors playerMovement.ts). Gated on the
+    // predicted cooldown so we don't speed up when the server would reject the sprint.
+    if (intent.sprint && this.sprintCooldown <= 0) {
+      this.sprintActive = SPRINT_DURATION;
+      this.sprintCooldown = SPRINT_COOLDOWN;
+    }
+    if (this.sprintCooldown > 0) this.sprintCooldown = Math.max(0, this.sprintCooldown - dt);
+    if (this.sprintActive > 0) this.sprintActive = Math.max(0, this.sprintActive - dt);
+
     // Integrate input — mirrors playerMovement.ts locomotion.
-    const speed = authLocal.sprintActive > 0 ? MOVE_SPEED * SPRINT_MULTIPLIER : MOVE_SPEED;
+    const speed = this.sprintActive > 0 ? MOVE_SPEED * SPRINT_MULTIPLIER : MOVE_SPEED;
     if (length(intent.move) > 0) {
       this.pos = add(this.pos, scale(normalize(intent.move), speed * dt));
       this.facing = intent.facing ?? atan2(intent.move.x, intent.move.z);
@@ -85,6 +96,8 @@ export class LocalPredictor {
     this.facing = authLocal.facing;
     this.y = authLocal.y;
     this.verticalVelocity = authLocal.verticalVelocity;
+    this.sprintActive = authLocal.sprintActive;
+    this.sprintCooldown = authLocal.sprintCooldown;
     this.active = true;
   }
 }
