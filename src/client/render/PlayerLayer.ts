@@ -11,9 +11,16 @@ import { glyphBillboardMaterial, imageBillboardMaterial } from "./meshes/billboa
 const PLAYER_CENTER_Y = 0.4;
 const PLAYER_MODEL_ROOT = "/static/model/";
 const DEFAULT_PLAYER_MODEL_FILE = "DefaultHermit.glb";
-const TANK_PLAYER_MODEL_FILE = "TankHermit.glb";
-const HEALER_PLAYER_MODEL_FILE = "HealHermit.glb";
-const DPS_PLAYER_MODEL_FILE = "DPSHermit.glb";
+const PLAYER_MODEL_FILES: Record<string, string> = {
+  mt: "MTHermit.glb",
+  ot: "OTHermit.glb",
+  h1: "H1Hermit.glb",
+  h2: "H2Hermit.glb",
+  m1: "M1DPSHermit.glb",
+  m2: "M2DPSHermit.glb",
+  r1: "R1DPSHermit.glb",
+  r2: "R2DPSHermit.glb",
+};
 const PLAYER_MODEL_SCALE = 1.7;
 const MARKER_Y = 2.6;
 const MARKER_SIZE = 0.65;
@@ -26,14 +33,7 @@ type MarkerState = {
 };
 
 function modelFileForPlayer(player: Player): string {
-  switch (player.role) {
-    case "tank":
-      return TANK_PLAYER_MODEL_FILE;
-    case "healer":
-      return HEALER_PLAYER_MODEL_FILE;
-    case "dps":
-      return DPS_PLAYER_MODEL_FILE;
-  }
+  return PLAYER_MODEL_FILES[player.id] ?? DEFAULT_PLAYER_MODEL_FILE;
 }
 
 
