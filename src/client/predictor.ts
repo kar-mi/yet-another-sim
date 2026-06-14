@@ -5,11 +5,12 @@
 // snapping. It never touches the authoritative world — mechanics, worldHash, and desync detection
 // stay server-tick authoritative (see "Option C" in the input-delay plan).
 
-import type { Intent, Player } from "@shared/types";
+import type { Intent, Player, ZoneShape } from "@shared/types";
 import { add, sub, scale, normalize, length } from "@shared/math";
 import { atan2 } from "@shared/dmath";
-import { MOVE_SPEED, SPRINT_MULTIPLIER } from "@shared/constants";
+import { MOVE_SPEED, SPRINT_MULTIPLIER, JUMP_SPEED, GRAVITY } from "@shared/constants";
 import { activeEffectOfKind } from "../engine/systems/helpers";
+import { isOnFloor } from "../engine/shapes";
 
 const TAU = 0.1;          // spring time-constant (s): steady-state lead while walking ≈ speed*TAU
 const SNAP_THRESHOLD = 3; // yalms: divergence past this hard-resets (teleport, forced march, respawn)
@@ -18,15 +19,17 @@ export class LocalPredictor {
   private active = false;
   private pos = { x: 0, z: 0 };
   private facing = 0;
+  private y = 0;
+  private verticalVelocity = 0;
 
   reset(): void {
     this.active = false;
   }
 
-  // Predict the local player's pos/facing from `intent` over `dt`, anchored to the latest
+  // Predict the local player's pos/facing/y from `intent` over `dt`, anchored to the latest
   // authoritative state `authLocal`, and return a new Player to render. Returns `authLocal`
   // unchanged whenever prediction is disabled (server-driven states).
-  predict(authLocal: Player, time: number, intent: Intent, dt: number): Player {
+  predict(authLocal: Player, zones: ZoneShape[], time: number, intent: Intent, dt: number): Player {
     // Server-driven states: yield to the authoritative position (no input integration). The sleep
     // check also covers forced-march traps, which freeze the captured player with a sleep effect.
     const forced =
@@ -35,17 +38,11 @@ export class LocalPredictor {
       activeEffectOfKind(authLocal, time, "sleep") !== null ||
       activeEffectOfKind(authLocal, time, "confusion") !== null;
     if (forced) {
-      this.pos = { ...authLocal.pos };
-      this.facing = authLocal.facing;
-      this.active = true;
+      this.seed(authLocal);
       return authLocal;
     }
 
-    if (!this.active) {
-      this.pos = { ...authLocal.pos };
-      this.facing = authLocal.facing;
-      this.active = true;
-    }
+    if (!this.active) this.seed(authLocal);
 
     // Integrate input — mirrors playerMovement.ts locomotion.
     const speed = authLocal.sprintActive > 0 ? MOVE_SPEED * SPRINT_MULTIPLIER : MOVE_SPEED;
@@ -56,7 +53,23 @@ export class LocalPredictor {
       this.facing = intent.facing;
     }
 
-    // Reconcile toward the latest authoritative position.
+    // Vertical physics — mirrors playerMovement.ts. Jump fires off the predicted ground state so it
+    // launches the instant the key is pressed; gravity integrates independently of the authoritative
+    // arc (each landing resets to y=0, so no drift accumulates).
+    if (intent.jump && this.y <= 0 && this.verticalVelocity === 0) this.verticalVelocity = JUMP_SPEED;
+    const grounded = isOnFloor(this.pos, zones);
+    if (!grounded || this.y > 0 || this.verticalVelocity !== 0) {
+      const prevY = this.y;
+      this.y += this.verticalVelocity * dt;
+      this.verticalVelocity -= GRAVITY * dt;
+      if (grounded && prevY >= 0 && this.y <= 0) {
+        this.y = 0;
+        this.verticalVelocity = 0;
+      }
+    }
+
+    // Reconcile horizontal toward the latest authoritative position (vertical stays purely predicted
+    // mid-arc — springing it would flatten the jump against the RTT-late authoritative y).
     if (length(sub(authLocal.pos, this.pos)) > SNAP_THRESHOLD) {
       this.pos = { ...authLocal.pos };
     } else {
@@ -64,6 +77,14 @@ export class LocalPredictor {
       this.pos = add(this.pos, scale(sub(authLocal.pos, this.pos), k));
     }
 
-    return { ...authLocal, pos: { ...this.pos }, facing: this.facing };
+    return { ...authLocal, pos: { ...this.pos }, facing: this.facing, y: this.y };
+  }
+
+  private seed(authLocal: Player): void {
+    this.pos = { ...authLocal.pos };
+    this.facing = authLocal.facing;
+    this.y = authLocal.y;
+    this.verticalVelocity = authLocal.verticalVelocity;
+    this.active = true;
   }
 }

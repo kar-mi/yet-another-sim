@@ -118,8 +118,8 @@ export class NetClient {
     const authLocal = this.world.players.find(p => p.id === this.claimedPlayerId);
     if (!authLocal) return view;
 
-    const predicted = this.predictor.predict(authLocal, this.world.time, intent, dt);
-    const players = view.players.map(p => (p.id === this.claimedPlayerId ? { ...p, pos: predicted.pos, facing: predicted.facing } : p));
+    const predicted = this.predictor.predict(authLocal, this.world.arena.zones, this.world.time, intent, dt);
+    const players = view.players.map(p => (p.id === this.claimedPlayerId ? { ...p, pos: predicted.pos, facing: predicted.facing, y: predicted.y } : p));
     const world = { ...view, players };
     const renderKeys = getWorldRenderKeys(view);
     if (renderKeys) setWorldRenderKeys(world, renderKeys);
