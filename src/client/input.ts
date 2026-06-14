@@ -1,7 +1,19 @@
 import type { Intent } from "@shared/types";
 import { normalize, shortestAngleDelta, normalizeAngle } from "@shared/math";
-import { actionForControllerSlot } from "./actions";
-import type { ActionId } from "./actions";
+import {
+  CONTROLLER_FACE_BUTTONS,
+  CONTROLLER_DPAD_BUTTONS,
+  DEFAULT_CONTROLLER_BINDINGS,
+} from "./actions";
+import type {
+  ActionId,
+  ControllerBindings,
+  ControllerCombo,
+  ControllerButtonId,
+  ControllerDpadButton,
+  ControllerFaceButton,
+  ControllerModifier,
+} from "./actions";
 import { DEFAULT_BINDINGS } from "./settings";
 import type { KeyBindings, ControllerType } from "./settings";
 
@@ -12,6 +24,7 @@ let antiKbPressed = false;
 let provokePressed = false;
 let invincibilityToggled = false;
 let keyBindings: KeyBindings = { ...DEFAULT_BINDINGS };
+let controllerBindings: ControllerBindings = { ...DEFAULT_CONTROLLER_BINDINGS };
 let prevButtons: boolean[] = [];
 let controllerDeadzone = 0.15;
 let selectedGamepadIndex: number | null = null;
@@ -46,6 +59,60 @@ function detectType(gp: Gamepad): ControllerType {
   return 'unknown';
 }
 
+function isPs5NonStandard(gp: Gamepad): boolean {
+  return detectType(gp) === 'ps5' && gp.mapping !== 'standard';
+}
+
+// Physical gamepad button index for each logical button/modifier (standard mapping).
+// PS5 non-standard reports its face buttons in physical order [□,✕,○,△]; see the
+// "PS5 controller mapping" note. Dpad (12-15) and shoulder/trigger (4-7) indices on a
+// non-standard DualSense are device-dependent and should be confirmed on hardware.
+const FACE_INDEX_STANDARD: Record<ControllerFaceButton, number> = {
+  faceBottom: 0, faceRight: 1, faceLeft: 2, faceTop: 3,
+};
+const FACE_INDEX_PS5: Record<ControllerFaceButton, number> = {
+  faceLeft: 0, faceBottom: 1, faceRight: 2, faceTop: 3,
+};
+const DPAD_INDEX: Record<ControllerDpadButton, number> = {
+  dpadUp: 12, dpadDown: 13, dpadLeft: 14, dpadRight: 15,
+};
+const MODIFIER_INDEX: Record<"LT" | "RT" | "LB" | "RB", number> = {
+  LB: 4, RB: 5, LT: 6, RT: 7,
+};
+const MODIFIER_PRIORITY = ["LT", "RT", "LB", "RB"] as const;
+const ALL_BUTTONS: readonly ControllerButtonId[] = [...CONTROLLER_FACE_BUTTONS, ...CONTROLLER_DPAD_BUTTONS];
+
+function physicalIndex(button: ControllerButtonId, gp: Gamepad): number {
+  if (button in DPAD_INDEX) return DPAD_INDEX[button as ControllerDpadButton];
+  const map = isPs5NonStandard(gp) ? FACE_INDEX_PS5 : FACE_INDEX_STANDARD;
+  return map[button as ControllerFaceButton];
+}
+
+function activeModifier(gp: Gamepad): ControllerModifier {
+  for (const m of MODIFIER_PRIORITY) {
+    if ((gp.buttons[MODIFIER_INDEX[m]]?.value ?? 0) > 0.5) return m;
+  }
+  return "none";
+}
+
+// The modifier currently held on the active gamepad (for the layer-aware hotbar).
+export function getActiveModifier(): ControllerModifier {
+  const gp = getGamepad();
+  return gp ? activeModifier(gp) : "none";
+}
+
+// The combo currently pressed on the active gamepad (for rebind capture in settings).
+// Returns the first held non-modifier button plus the held modifier, or null.
+export function readControllerCombo(): ControllerCombo | null {
+  const gp = getGamepad();
+  if (!gp) return null;
+  const modifier = activeModifier(gp);
+  for (const button of ALL_BUTTONS) {
+    if (gp.buttons[physicalIndex(button, gp)]?.pressed) return { modifier, button };
+  }
+  return null;
+}
+
 export function getControllerInfo(): { index: number; name: string; type: ControllerType } | null {
   const gp = getGamepad();
   if (!gp) return null;
@@ -67,6 +134,10 @@ export function setActiveGamepad(index: number | null): void {
 
 export function setKeyBindings(kb: KeyBindings): void {
   keyBindings = kb;
+}
+
+export function setControllerBindings(cb: ControllerBindings): void {
+  controllerBindings = cb;
 }
 
 export function setControllerDeadzone(dz: number): void {
@@ -114,11 +185,6 @@ export function triggerAction(actionId: ActionId): void {
       provokePressed = true;
       break;
   }
-}
-
-function pressAction(slot: number): void {
-  const actionId = actionForControllerSlot(slot);
-  if (actionId) triggerAction(actionId);
 }
 
 export function initInput(): () => void {
@@ -171,7 +237,7 @@ export function getIntent(cameraYaw: number, dt: number, mouse: { left: boolean;
   if (keys.has(keyBindings.cameraPanLeft)) pan -= 1;
   if (keys.has(keyBindings.cameraPanRight)) pan += 1;
 
-  // Gamepad: left stick overrides keyboard movement; face buttons drive the hotbar.
+  // Gamepad: left stick overrides keyboard movement; face/dpad buttons drive the hotbar.
   const gp = getGamepad();
   let usingStick = false;
   if (gp) {
@@ -183,19 +249,15 @@ export function getIntent(cameraYaw: number, dt: number, mouse: { left: boolean;
       usingStick = true;
     }
 
-    const rtHeld = (gp.buttons[7]?.value ?? 0) > 0.5;
-    // PS5 non-standard mapping: physical order is [□,✕,○,△] instead of [A,B,X,Y]
-    // Remap to logical slots so ✕(1)→slot0(sprint), △(3)→slot3(jump), etc.
-    const ps5Remap = detectType(gp) === 'ps5' && gp.mapping !== 'standard'
-      ? [2, 0, 1, 3] as const
-      : null;
-    for (let i = 0; i < 4; i++) {
-      const pressed = gp.buttons[i]?.pressed ?? false;
-      const wasPressed = prevButtons[i] ?? false;
-      if (pressed && !wasPressed) {
-        const slot = ps5Remap ? ps5Remap[i]! : i;
-        pressAction(rtHeld ? slot + 4 : slot);
-      }
+    // Each held modifier swaps the whole button layer; with none held only the
+    // base ("none") combos fire. Edge-detect per physical button index.
+    const active = activeModifier(gp);
+    for (const actionId of Object.keys(controllerBindings) as ActionId[]) {
+      const combo = controllerBindings[actionId];
+      if (combo.modifier !== active) continue;
+      const idx = physicalIndex(combo.button, gp);
+      const pressed = gp.buttons[idx]?.pressed ?? false;
+      if (pressed && !(prevButtons[idx] ?? false)) triggerAction(actionId);
     }
     prevButtons = Array.from(gp.buttons).map(b => b.pressed);
   }

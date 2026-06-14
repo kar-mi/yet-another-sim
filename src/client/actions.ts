@@ -7,7 +7,6 @@ export interface ActionMeta {
   icon: string;
   keyBinding: keyof KeyBindings;
   keyboardSlot?: number;
-  controllerSlot: number;
 }
 
 export const ACTIONS: Record<ActionId, ActionMeta> = {
@@ -15,28 +14,24 @@ export const ACTIONS: Record<ActionId, ActionMeta> = {
     label: "JUMP",
     icon: "↑",
     keyBinding: "jump",
-    controllerSlot: 3,
   },
   sprint: {
     label: "SPRINT",
     icon: "⚡",
     keyBinding: "sprint",
     keyboardSlot: 0,
-    controllerSlot: 7,
   },
   antiKnockback: {
     label: "ANTI-KB",
     icon: "🛡",
     keyBinding: "antiKnockback",
     keyboardSlot: 1,
-    controllerSlot: 6,
   },
   provoke: {
     label: "PROVOKE",
     icon: "🎯",
     keyBinding: "provoke",
     keyboardSlot: 2,
-    controllerSlot: 5,
   },
 };
 
@@ -56,46 +51,101 @@ export const KEY_BINDING_LABELS: Record<keyof KeyBindings, string> = {
   provoke: ACTIONS.provoke.label,
 };
 
-export type ControllerSlotPosition = "top" | "left" | "right" | "bottom";
+// ── Controller bindings ──────────────────────────────────────────────────────
+// A controller "combo" is a button (face or dpad) optionally gated by a held
+// modifier (LT/RT/LB/RB). Each modifier swaps the whole 8-button layer, so
+// none + 4 modifiers = 5 layers of 8 buttons = 40 bindable combos.
 
-export interface ControllerSlotMeta {
-  slot: number;
-  position: ControllerSlotPosition;
-  action?: ActionId;
+export type ControllerModifier = "none" | "LT" | "RT" | "LB" | "RB";
+
+export type ControllerFaceButton = "faceTop" | "faceLeft" | "faceRight" | "faceBottom";
+export type ControllerDpadButton = "dpadUp" | "dpadLeft" | "dpadRight" | "dpadDown";
+export type ControllerButtonId = ControllerFaceButton | ControllerDpadButton;
+
+export const CONTROLLER_FACE_BUTTONS: readonly ControllerFaceButton[] = [
+  "faceTop", "faceLeft", "faceRight", "faceBottom",
+];
+export const CONTROLLER_DPAD_BUTTONS: readonly ControllerDpadButton[] = [
+  "dpadUp", "dpadLeft", "dpadRight", "dpadDown",
+];
+export const CONTROLLER_MODIFIERS = ["LT", "RT", "LB", "RB"] as const;
+
+// Diamond position of each button so the hotbar can lay them out (top/left/right/bottom).
+export const CONTROLLER_BUTTON_POSITION: Record<ControllerButtonId, "top" | "left" | "right" | "bottom"> = {
+  faceTop: "top", faceLeft: "left", faceRight: "right", faceBottom: "bottom",
+  dpadUp: "top", dpadLeft: "left", dpadRight: "right", dpadDown: "bottom",
+};
+
+export interface ControllerCombo {
+  modifier: ControllerModifier;
+  button: ControllerButtonId;
 }
 
-export const CONTROLLER_FACE_SLOTS: readonly ControllerSlotMeta[] = [
-  { slot: 3, position: "top", action: "jump" },
-  { slot: 2, position: "left" },
-  { slot: 1, position: "right" },
-  { slot: 0, position: "bottom" },
-];
+export type ControllerBindings = Record<ActionId, ControllerCombo>;
 
-export const CONTROLLER_MODIFIED_SLOTS: readonly ControllerSlotMeta[] = [
-  { slot: 7, position: "top", action: "sprint" },
-  { slot: 6, position: "left", action: "antiKnockback" },
-  { slot: 5, position: "right", action: "provoke" },
-  { slot: 4, position: "bottom" },
-];
-
-export const CONTROLLER_SLOT_ACTIONS: Readonly<Record<number, ActionId | undefined>> = {
-  3: "jump",
-  5: "provoke",
-  6: "antiKnockback",
-  7: "sprint",
+export const DEFAULT_CONTROLLER_BINDINGS: ControllerBindings = {
+  jump:          { modifier: "none", button: "faceTop" },
+  sprint:        { modifier: "none", button: "faceBottom" },
+  antiKnockback: { modifier: "none", button: "dpadUp" },
+  provoke:       { modifier: "none", button: "dpadDown" },
 };
 
-export const CONTROLLER_BUTTON_LABELS: Record<ControllerType, string[]> = {
-  xbox: ["A", "B", "X", "Y", "RT+A", "RT+B", "RT+X", "RT+Y"],
-  ps5: ["✕", "○", "□", "△", "R2+✕", "R2+○", "R2+□", "R2+△"],
-  nintendo: ["B", "A", "Y", "X", "ZR+B", "ZR+A", "ZR+Y", "ZR+X"],
-  unknown: ["A", "B", "X", "Y", "RT+A", "RT+B", "RT+X", "RT+Y"],
+export interface ControllerGlyphs {
+  face: Record<ControllerFaceButton, string>;
+  dpad: Record<ControllerDpadButton, string>;
+  modifiers: Record<"LT" | "RT" | "LB" | "RB", string>;
+}
+
+const DPAD_GLYPHS: Record<ControllerDpadButton, string> = {
+  dpadUp: "↑", dpadLeft: "←", dpadRight: "→", dpadDown: "↓",
 };
 
-export function actionForControllerSlot(slot: number): ActionId | undefined {
-  return CONTROLLER_SLOT_ACTIONS[slot];
+export const CONTROLLER_GLYPHS: Record<ControllerType, ControllerGlyphs> = {
+  xbox: {
+    face: { faceTop: "Y", faceLeft: "X", faceRight: "B", faceBottom: "A" },
+    dpad: DPAD_GLYPHS,
+    modifiers: { LT: "LT", RT: "RT", LB: "LB", RB: "RB" },
+  },
+  ps5: {
+    face: { faceTop: "△", faceLeft: "□", faceRight: "○", faceBottom: "✕" },
+    dpad: DPAD_GLYPHS,
+    modifiers: { LT: "L2", RT: "R2", LB: "L1", RB: "R1" },
+  },
+  nintendo: {
+    face: { faceTop: "X", faceLeft: "Y", faceRight: "A", faceBottom: "B" },
+    dpad: DPAD_GLYPHS,
+    modifiers: { LT: "ZL", RT: "ZR", LB: "L", RB: "R" },
+  },
+  unknown: {
+    face: { faceTop: "Y", faceLeft: "X", faceRight: "B", faceBottom: "A" },
+    dpad: DPAD_GLYPHS,
+    modifiers: { LT: "LT", RT: "RT", LB: "LB", RB: "RB" },
+  },
+};
+
+export function buttonGlyph(button: ControllerButtonId, glyphs: ControllerGlyphs): string {
+  return button in glyphs.face
+    ? glyphs.face[button as ControllerFaceButton]
+    : glyphs.dpad[button as ControllerDpadButton];
+}
+
+// Composes a combo's display string, e.g. "R2+△" or "↑".
+export function comboLabel(combo: ControllerCombo, glyphs: ControllerGlyphs): string {
+  const btn = buttonGlyph(combo.button, glyphs);
+  return combo.modifier === "none" ? btn : `${glyphs.modifiers[combo.modifier]}+${btn}`;
 }
 
 export function actionForKeyboardSlot(slot: number): ActionId | undefined {
   return KEYBOARD_HOTBAR_ACTIONS.find(actionId => ACTIONS[actionId].keyboardSlot === slot);
+}
+
+// The action bound to a given combo in the current bindings, if any.
+export function actionForCombo(
+  bindings: ControllerBindings,
+  modifier: ControllerModifier,
+  button: ControllerButtonId,
+): ActionId | undefined {
+  return (Object.keys(bindings) as ActionId[]).find(
+    id => bindings[id].modifier === modifier && bindings[id].button === button,
+  );
 }

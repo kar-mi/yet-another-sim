@@ -1,5 +1,5 @@
 import { BabylonRenderer } from "./render/BabylonRenderer";
-import { initInput, setKeyBindings, setControllerDeadzone, setControlScheme } from "./input";
+import { initInput, setKeyBindings, setControllerBindings, setControllerDeadzone, setControlScheme } from "./input";
 import { startNetLoop } from "./loop";
 import { loadSettings, saveSettings } from "./settings";
 import { showLanding, showLobby } from "./ui/MainMenu";
@@ -30,6 +30,7 @@ async function main(): Promise<void> {
   const getRenderer = () => renderer;
 
   setKeyBindings(settings.keyBindings);
+  setControllerBindings(settings.controllerBindings);
   setControllerDeadzone(settings.controllerDeadzone);
   setControlScheme(settings.controlScheme);
 

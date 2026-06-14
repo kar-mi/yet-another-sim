@@ -1,3 +1,6 @@
+import type { ControllerBindings } from "./actions";
+import { DEFAULT_CONTROLLER_BINDINGS } from "./actions";
+
 export interface KeyBindings {
   moveForward: string;
   moveBack: string;
@@ -15,6 +18,7 @@ export interface Settings {
   mouseSensitivity: number;
   controlScheme: "legacy" | "standard";
   keyBindings: KeyBindings;
+  controllerBindings: ControllerBindings;
   hotbarMode: "kbm" | "controller";
   controllerSensitivity: number;
   controllerDeadzone: number;
@@ -41,6 +45,7 @@ const DEFAULTS: Settings = {
   mouseSensitivity: 1,
   controlScheme: "legacy",
   keyBindings: { ...DEFAULT_BINDINGS },
+  controllerBindings: { ...DEFAULT_CONTROLLER_BINDINGS },
   hotbarMode: "kbm",
   controllerSensitivity: 2.0,
   controllerDeadzone: 0.15,
@@ -70,9 +75,14 @@ export function loadSettings(): Settings {
       ...DEFAULTS,
       ...saved,
       keyBindings: { ...DEFAULT_BINDINGS, ...saved.keyBindings },
+      controllerBindings: { ...DEFAULT_CONTROLLER_BINDINGS, ...saved.controllerBindings },
     };
   } catch {
-    return { ...DEFAULTS, keyBindings: { ...DEFAULT_BINDINGS } };
+    return {
+      ...DEFAULTS,
+      keyBindings: { ...DEFAULT_BINDINGS },
+      controllerBindings: { ...DEFAULT_CONTROLLER_BINDINGS },
+    };
   }
 }
 

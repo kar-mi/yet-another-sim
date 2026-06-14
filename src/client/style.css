@@ -433,7 +433,15 @@ body:focus-visible {
   box-sizing: border-box;
 }
 
-.keybind-btn:hover {
+/* Action rows expose their controller combo as a clickable rebind button. */
+.keybind-controller-btn {
+  font-family: 'Share Tech Mono', monospace;
+  cursor: pointer;
+  transition: border-color 0.1s, color 0.1s;
+}
+
+.keybind-btn:hover,
+.keybind-controller-btn:hover {
   border-color: rgba(160, 140, 75, 0.45);
   color: rgba(212, 168, 67, 0.85);
 }
@@ -991,6 +999,11 @@ img.yas-debuff-icon {
   padding: 0 2px;
   align-self: center;
   pointer-events: none;
+  transition: color 0.1s;
+}
+
+.yas-ctrl-separator.is-active {
+  color: rgba(212, 168, 67, 0.9);
 }
 
 .yas-hotbar {
