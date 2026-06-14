@@ -134,6 +134,19 @@ _allEndingBase: &allEndingBase
   telegraph: 5
   showCastBar: true
 
+# Spread the clones drop on the 4 closest players as each All Ending resolves (no cast bar).
+# Each spread mirrors its All Ending's t/telegraph so the two resolve in the same tick.
+_cloneSpreadBase: &cloneSpreadBase
+  type: targeted
+  name: Clone Spread
+  targetMode: closest
+  count: 4
+  radius: 5
+  damage: 15
+  damageType: magical
+  showCastBar: false
+  showTelegraph: false
+
 events:
   # Lock the boss facing for the whole encounter.
   - type: aoe
@@ -256,6 +269,10 @@ events:
     t: 31.0
     name: All Ending
     link: ending-store-1
+  - <<: *cloneSpreadBase
+    id: clone-spread-1
+    t: 31.0
+    telegraph: 5
 
   - <<: *towerBase
     id: tower-3-left
@@ -315,6 +332,10 @@ events:
     name: All Ending
     telegraph: 3
     link: ending-store-2
+  - <<: *cloneSpreadBase
+    id: clone-spread-2
+    t: 53.0
+    telegraph: 3
 
   - <<: *towerBase
     id: tower-5-left
@@ -372,6 +393,10 @@ events:
     t: 71.0
     name: All Ending
     link: ending-store-3
+  - <<: *cloneSpreadBase
+    id: clone-spread-3
+    t: 71.0
+    telegraph: 5
 
   - <<: *towerBase
     id: tower-7-left
@@ -434,6 +459,10 @@ events:
     labels: [bait-4]
     telegraph: 6
     link: ending-store-4
+  - <<: *cloneSpreadBase
+    id: clone-spread-4
+    t: 93.0
+    telegraph: 6
 
   - type: aoe
     id: forsaken-end-raidwide

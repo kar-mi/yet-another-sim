@@ -163,6 +163,9 @@ const TargetedEventSchema = z.object({
   group: z.string().min(1).optional(),           // bot-solver group (GenericSolverRule.when.soaks)
   targetMode: z.enum(["closest", "furthest", "aggro"]),
   role: RoleSchema.optional(),
+  // When > 1, the cast hits the N nearest/furthest players, dropping a damage circle on each
+  // (a spread). Ignored for targetMode "aggro".
+  count: z.number().int().positive().optional(),
   radius: z.number().positive(),
   telegraph: z.number().positive(),
   damage: z.number().nonnegative(),

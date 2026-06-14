@@ -226,7 +226,7 @@ export type ActiveMechanic = {
   // When set, the circle's target (and center) is chosen at resolve time, not cast start.
   // The ground telegraph stays hidden until it resolves. "aggro" picks the boss's current
   // threat target (the player holding aggro).
-  targeting?: { mode: "closest" | "furthest" | "aggro"; role?: Role; origin: Vec2 };
+  targeting?: { mode: "closest" | "furthest" | "aggro"; role?: Role; origin: Vec2; count?: number };
   // Optional post-resolve visual linger override. Used by instant resolved visuals that would
   // otherwise only survive one simulation tick.
   lingerFor?: number;
@@ -266,6 +266,7 @@ export type PendingTargetedEvent = {
   group?: string;
   targetMode: "closest" | "furthest" | "aggro";
   role?: Role;
+  count?: number;
   radius: number;
   telegraph: number;
   damage: number;

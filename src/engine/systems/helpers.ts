@@ -53,6 +53,26 @@ export function selectTargetPlayer(
   return best;
 }
 
+// Select the N nearest (or furthest) alive, optionally role-filtered players to `origin`, ordered
+// by distance. Used by targeted events with `count` > 1 (e.g. a spread on the closest few).
+export function selectTargetPlayers(
+  players: Player[],
+  origin: Vec2,
+  mode: "closest" | "furthest",
+  count: number,
+  role?: Role,
+): Player[] {
+  return players
+    .filter(p => p.alive && (!role || p.role === role))
+    .map(p => {
+      const dx = p.pos.x - origin.x, dz = p.pos.z - origin.z;
+      return { p, d: Math.sqrt(dx * dx + dz * dz) };
+    })
+    .sort((a, b) => (mode === "closest" ? a.d - b.d : b.d - a.d))
+    .slice(0, count)
+    .map(c => c.p);
+}
+
 export function selectLineLinkTargets(
   players: Player[],
   origin: Vec2,

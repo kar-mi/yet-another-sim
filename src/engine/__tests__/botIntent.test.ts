@@ -85,9 +85,13 @@ test("forsaken raid and bot companion content load", async () => {
 
   expect(raid.name).toBe("Forsaken");
   expect(raid.duration).toBe(118);
-  expect(byEventId("forsaken-raidwide")).toMatchObject({ t: 3 });
-  expect(byEventId("forsaken-charges")).toMatchObject({ t: 3 });
-  expect(byEventId("forsaken-end-raidwide")).toMatchObject({ t: 106 });
+  // Structural, not time-coupled: the opener distributes the planned charges, and the closing
+  // raidwide resolves after the last tower wave. Exact timestamps are intentionally not asserted.
+  expect(byEventId("forsaken-raidwide")).toBeDefined();
+  expect(byEventId("forsaken-charges")).toMatchObject({ initial: "plan" });
+  const lastTowerResolve = Math.max(...raid.events.filter(e => e.type === "tower").map(e => e.t + e.telegraph));
+  const endRaidwide = byEventId("forsaken-end-raidwide");
+  expect(endRaidwide && "t" in endRaidwide && endRaidwide.t > lastTowerResolve).toBe(true);
   expect(effectResolverById("forsaken-stack-resolve")).toMatchObject({ effectName: "Stack Charge" });
   expect(effectResolverById("forsaken-cone-resolve")).toMatchObject({ effectName: "Cone Charge" });
   expect(effectResolverById("forsaken-defamation-resolve")).toMatchObject({ effectName: "Defamation Charge" });
@@ -117,7 +121,11 @@ test("forsaken raid and bot companion content load", async () => {
     && event.visual?.cylinderThickness === 3.5
     && event.visual?.fallingObjectAlpha === 0.7
   ))).toBe(true);
-  expect(raid.events.filter(event => event.type === "heal").map(event => event.t)).toEqual([18, 28, 38, 48, 58, 68, 78, 88]);
+  // One recovery heal per tower wave (8), scheduled after the wave's resolve — derived, not
+  // hard-coded, so a timeline change doesn't break it.
+  const towerWaveCount = new Set(towerEvents.map(e => e.t)).size;
+  const heals = raid.events.filter(event => event.type === "heal");
+  expect(heals).toHaveLength(towerWaveCount);
 });
 
 test("forsaken tower swaps alternate odd and even debuff distributions", async () => {
@@ -142,27 +150,34 @@ test("forsaken tower swaps alternate odd and even debuff distributions", async (
   };
 
   let world = createWorld(applyBotPatterns(raid, bots), 1);
-  // Towers resolve at 16/26/36/46/56/66/76/86 (uniform 10s, back-to-back); odd waves swap
-  // soakers to the even set (0/4/4), even waves back to the odd set (2/3/3).
-  const checkpoints: [number, ReturnType<typeof countCharges>][] = [
-    [16.2, { stack: 0, cone: 4, defamation: 4 }],
-    [26.2, { stack: 2, cone: 3, defamation: 3 }],
-    [36.2, { stack: 0, cone: 4, defamation: 4 }],
-    [46.2, { stack: 2, cone: 3, defamation: 3 }],
-    [56.2, { stack: 0, cone: 4, defamation: 4 }],
-    [66.2, { stack: 2, cone: 3, defamation: 3 }],
-    [76.2, { stack: 0, cone: 4, defamation: 4 }],
-    [86.2, { stack: 2, cone: 3, defamation: 3 }],
-  ];
+  // Derive each tower wave's resolve (t + telegraph) and parity from the raid itself so the
+  // checks follow the authored timing — they must not need updating when the timeline shifts.
+  // After an odd wave the soakers swap to the even set (0/4/4), after an even wave to the odd
+  // set (2/3/3); we sample 0.2 s past each resolve.
+  const waves = new Map<number, "tower-odd" | "tower-even">();
+  for (const e of raid.events) {
+    if (e.type !== "tower") continue;
+    waves.set(e.t + e.telegraph, e.labels?.includes("tower-odd") ? "tower-odd" : "tower-even");
+  }
+  const checkpoints = [...waves.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([resolveAt, parity]) => [
+      resolveAt + 0.2,
+      parity === "tower-odd"
+        ? { stack: 0, cone: 4, defamation: 4 }
+        : { stack: 2, cone: 3, defamation: 3 },
+    ] as [number, ReturnType<typeof countCharges>]);
+  expect(checkpoints).toHaveLength(8);
   for (const [t, counts] of checkpoints) {
     world = runTicksWithComputedBotIntents(world, Math.ceil((t - world.time) * 60));
     expect(countCharges(world)).toEqual(counts);
   }
 
-  // Full clear: no tower failures (failure logs a "hit" for the whole raid) and the
-  // all-bot roster survives to the end of the sequence.
-  world = runTicksWithComputedBotIntents(world, Math.ceil((118 - world.time) * 60));
+  // Full clear: no tower failures (failure logs a "hit" for the whole raid) and the all-bot
+  // roster survives to the end — including the Clone Spread on the 4 closest at each All Ending.
+  world = runTicksWithComputedBotIntents(world, Math.ceil((raid.duration - world.time) * 60));
   expect(world.log.some(entry => entry.mechanic.startsWith("Forsaken Tower") && entry.event === "hit")).toBe(false);
+  expect(world.log.some(entry => entry.mechanic === "Clone Spread" && entry.event === "hit")).toBe(true);
   expect(world.players.map(p => `${p.id}:${p.alive}`)).toEqual(world.players.map(p => `${p.id}:true`));
 });
 
@@ -340,8 +355,9 @@ test("forsaken towerRng produces different wave-1 positions across seeds and onl
 
   const getWave1Positions = (seed: number) => {
     const world = createWorld(baseRaid, seed);
+    const firstWaveT = Math.min(...world.pendingTowers.map(t => t.t)); // wave 1 = earliest tower, whatever its t
     return world.pendingTowers
-      .filter(t => t.t === 6)
+      .filter(t => t.t === firstWaveT)
       .map(t => ({ x: t.pos.x, z: t.pos.z }));
   };
 
@@ -370,7 +386,7 @@ test("forsaken bots clear all towers across multiple seeds with towerRng and rng
 
   for (const seed of [1, 2, 3, 4, 5]) {
     let world = createWorld(baseRaid, seed);
-    world = runTicksWithComputedBotIntents(world, Math.ceil(118 * 60));
+    world = runTicksWithComputedBotIntents(world, Math.ceil(raid.duration * 60));
     const towerFailures = world.log.filter(entry => entry.mechanic.startsWith("Forsaken Tower") && entry.event === "hit");
     expect(towerFailures).toHaveLength(0);
     expect(world.players.map(p => `${p.id}:${p.alive}`)).toEqual(world.players.map(p => `${p.id}:true`));

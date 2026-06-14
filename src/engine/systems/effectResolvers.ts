@@ -5,7 +5,7 @@ import type { TickContext } from "./context";
 import { applyMechanicDamage, isEffectActiveAt } from "./helpers";
 import { TARGETED_LINGER } from "@shared/constants";
 
-function addResolvedAoeVisual(ctx: TickContext, id: string, name: string, shape: AOEShape): void {
+export function addResolvedAoeVisual(ctx: TickContext, id: string, name: string, shape: AOEShape): void {
   ctx.resolvedAoeVisuals.push({
     id,
     name,

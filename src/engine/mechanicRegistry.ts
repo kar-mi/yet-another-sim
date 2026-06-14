@@ -180,6 +180,7 @@ const aoe: MechanicModule = {
           group: e.group,
           targetMode: e.targetMode,
           role: e.role,
+          count: e.count,
           radius: e.radius,
           telegraph: e.telegraph,
           damage: e.damage,
