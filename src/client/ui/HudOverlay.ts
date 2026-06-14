@@ -1,15 +1,18 @@
 import type { World, Player } from "@shared/types";
-import { triggerAction, toggleInvincibility } from "../input";
+import { triggerAction, toggleInvincibility, getActiveModifier } from "../input";
 import { SPRINT_COOLDOWN, ANTI_KB_COOLDOWN, PROVOKE_COOLDOWN } from "@shared/constants";
 import {
   ACTIONS,
-  CONTROLLER_BUTTON_LABELS,
-  CONTROLLER_FACE_SLOTS,
-  CONTROLLER_MODIFIED_SLOTS,
+  CONTROLLER_FACE_BUTTONS,
+  CONTROLLER_DPAD_BUTTONS,
+  CONTROLLER_BUTTON_POSITION,
+  CONTROLLER_GLYPHS,
   KEYBOARD_HOTBAR_SLOT_COUNT,
   actionForKeyboardSlot,
+  actionForCombo,
+  buttonGlyph,
   type ActionId,
-  type ControllerSlotMeta,
+  type ControllerButtonId,
 } from "../actions";
 import { keyLabel } from "../settings";
 import type { Settings, ControllerType } from "../settings";
@@ -44,16 +47,37 @@ function orderedPartyPlayers(players: Player[], localPlayerId: string | null): P
   });
 }
 
-// One hotbar skill (sprint/anti-kb/provoke), bundling its keyboard + controller slot elements and
-// per-slot cooldown overlays so the sync loop can treat all skills uniformly. Built from ACTIONS
-// metadata in the constructor.
+// Reads a skill's live cooldown/active state off a player snapshot.
+type SkillRead = (p: Player) => { activeSecs: number; cooldownSecs: number; cooldownMax: number };
+
+// A skill with a cooldown (sprint/anti-kb/provoke). Drives both the static keyboard hotbar
+// and the layer-aware controller hotbar.
+interface SkillSpec {
+  action: ActionId;
+  tankOnly: boolean;
+  read: SkillRead;
+}
+
+// One keyboard hotbar slot bundling its cooldown overlay so the sync loop can treat skills
+// uniformly. Built from ACTIONS metadata in the constructor.
 interface SkillSlotView {
   action: ActionId;
   slots: HTMLDivElement[];
   cdOverlays: { overlay: HTMLDivElement; text: HTMLDivElement }[];
   prevCooldown: number;
   tankOnly: boolean;
-  read: (p: Player) => { activeSecs: number; cooldownSecs: number; cooldownMax: number };
+  read: SkillRead;
+}
+
+// One controller hotbar button cell (a fixed face/dpad position). Its displayed action is
+// re-projected every frame from the active modifier layer.
+interface CtrlSlotView {
+  el: HTMLDivElement;
+  icon: HTMLSpanElement;
+  name: HTMLSpanElement;
+  cdOverlay: HTMLDivElement;
+  cdText: HTMLDivElement;
+  current?: ActionId;
 }
 
 export class HudOverlay {
@@ -65,7 +89,12 @@ export class HudOverlay {
   private mpVal: HTMLSpanElement;
   private invulnBtn: HTMLButtonElement;
   private botInvulnBtn: HTMLButtonElement;
-  private skillSlots: SkillSlotView[] = [];
+  private skillSpecs: SkillSpec[] = [];
+  private kbSkillSlots: SkillSlotView[] = [];
+  private ctrlSlots = new Map<ControllerButtonId, CtrlSlotView>();
+  private ctrlPrevCooldown = new Map<ActionId, number>();
+  private ctrlSeparatorEl!: HTMLDivElement;
+  private currentControllerType: ControllerType = "unknown";
   private sessionEl: HTMLDivElement;
   private partyEl!: HTMLDivElement;
   private partyRows = new Map<string, PartyRow>();
@@ -110,17 +139,14 @@ export class HudOverlay {
       this.debugPositionBtn.remove();
       this.debugPositionBtn = null;
     }
-    const skillSpecs: { action: ActionId; tankOnly?: boolean; read: SkillSlotView["read"] }[] = [
-      { action: "sprint", read: p => ({ activeSecs: p.sprintActive, cooldownSecs: p.sprintCooldown, cooldownMax: SPRINT_COOLDOWN }) },
-      { action: "antiKnockback", read: p => ({ activeSecs: p.antiKbActive, cooldownSecs: p.antiKbCooldown, cooldownMax: ANTI_KB_COOLDOWN }) },
+    this.skillSpecs = [
+      { action: "sprint", tankOnly: false, read: p => ({ activeSecs: p.sprintActive, cooldownSecs: p.sprintCooldown, cooldownMax: SPRINT_COOLDOWN }) },
+      { action: "antiKnockback", tankOnly: false, read: p => ({ activeSecs: p.antiKbActive, cooldownSecs: p.antiKbCooldown, cooldownMax: ANTI_KB_COOLDOWN }) },
       { action: "provoke", tankOnly: true, read: p => ({ activeSecs: 0, cooldownSecs: p.provokeCooldown, cooldownMax: PROVOKE_COOLDOWN }) },
     ];
-    this.skillSlots = skillSpecs.map(spec => {
+    this.kbSkillSlots = this.skillSpecs.map(spec => {
       const meta = ACTIONS[spec.action];
-      const slots = [
-        this.root.querySelector<HTMLDivElement>(`[data-slot='${meta.keyboardSlot}']`)!,
-        this.controllerHotbar.querySelector<HTMLDivElement>(`[data-ctrl-slot='${meta.controllerSlot}']`)!,
-      ];
+      const slots = [this.root.querySelector<HTMLDivElement>(`[data-slot='${meta.keyboardSlot}']`)!];
       return {
         action: spec.action,
         slots,
@@ -129,10 +155,22 @@ export class HudOverlay {
           text: slot.querySelector<HTMLDivElement>(".yas-cd-text")!,
         })),
         prevCooldown: 0,
-        tankOnly: spec.tankOnly ?? false,
+        tankOnly: spec.tankOnly,
         read: spec.read,
       };
     });
+
+    this.ctrlSeparatorEl = this.controllerHotbar.querySelector<HTMLDivElement>(".yas-ctrl-separator")!;
+    for (const button of [...CONTROLLER_FACE_BUTTONS, ...CONTROLLER_DPAD_BUTTONS]) {
+      const el = this.controllerHotbar.querySelector<HTMLDivElement>(`[data-ctrl-btn='${button}']`)!;
+      this.ctrlSlots.set(button, {
+        el,
+        icon: el.querySelector<HTMLSpanElement>(".yas-slot-icon")!,
+        name: el.querySelector<HTMLSpanElement>(".yas-slot-name")!,
+        cdOverlay: el.querySelector<HTMLDivElement>(".yas-cd-overlay")!,
+        cdText: el.querySelector<HTMLDivElement>(".yas-cd-text")!,
+      });
+    }
 
     this.statusEl = document.createElement("div");
     this.statusEl.id = "yas-status";
@@ -181,11 +219,11 @@ export class HudOverlay {
     ).join("");
     root.querySelector<HTMLDivElement>(".yas-controller-hotbar")!.innerHTML = `
       <div class="yas-controller-diamond">
-        ${CONTROLLER_FACE_SLOTS.map(slot => this.renderControllerSlot(slot)).join("")}
+        ${CONTROLLER_FACE_BUTTONS.map(button => this.renderControllerSlot(button)).join("")}
       </div>
-      <div class="yas-ctrl-separator">RT</div>
+      <div class="yas-ctrl-separator">—</div>
       <div class="yas-controller-diamond">
-        ${CONTROLLER_MODIFIED_SLOTS.map(slot => this.renderControllerSlot(slot)).join("")}
+        ${CONTROLLER_DPAD_BUTTONS.map(button => this.renderControllerSlot(button)).join("")}
       </div>`;
     return root;
   }
@@ -204,16 +242,16 @@ export class HudOverlay {
       </div>`;
   }
 
-  private renderControllerSlot(slot: ControllerSlotMeta): string {
-    const action = slot.action ? ACTIONS[slot.action] : null;
-    const cooldownMarkup = slot.action && slot.action !== "jump"
-      ? '<div class="yas-cd-overlay"></div><div class="yas-cd-text"></div>'
-      : "";
+  // A controller button cell. Icon/name/cooldown are filled per-frame from the active layer.
+  private renderControllerSlot(button: ControllerButtonId): string {
+    const position = CONTROLLER_BUTTON_POSITION[button];
     return `
-      <div class="yas-slot yas-ctrl-${slot.position}" data-ctrl-slot="${slot.slot}">
+      <div class="yas-slot yas-ctrl-${position}" data-ctrl-btn="${button}">
         <span class="yas-keybind"></span>
-        ${action ? `<span class="yas-slot-icon">${action.icon}</span><span class="yas-slot-name">${action.label}</span>` : ""}
-        ${cooldownMarkup}
+        <span class="yas-slot-icon"></span>
+        <span class="yas-slot-name"></span>
+        <div class="yas-cd-overlay"></div>
+        <div class="yas-cd-text"></div>
       </div>`;
   }
 
@@ -295,21 +333,21 @@ export class HudOverlay {
   }
 
   setControllerType(type: ControllerType): void {
-    const labels = CONTROLLER_BUTTON_LABELS[type];
-    this.controllerHotbar.querySelectorAll<HTMLElement>('[data-ctrl-slot]').forEach(slot => {
-      const idx = parseInt(slot.dataset.ctrlSlot ?? '0', 10);
-      const keybind = slot.querySelector<HTMLSpanElement>('.yas-keybind');
-      if (keybind && idx < labels.length) keybind.textContent = labels[idx]!;
-    });
-    const separator = this.controllerHotbar.querySelector<HTMLElement>('.yas-ctrl-separator');
-    if (separator) {
-      separator.textContent = type === 'ps5' ? 'R2' : type === 'nintendo' ? 'ZR' : 'RT';
+    this.currentControllerType = type;
+    const glyphs = CONTROLLER_GLYPHS[type];
+    for (const [button, view] of this.ctrlSlots) {
+      const keybind = view.el.querySelector<HTMLSpanElement>('.yas-keybind');
+      if (keybind) keybind.textContent = buttonGlyph(button, glyphs);
     }
+    // The separator's modifier label is refreshed each frame from the held modifier.
   }
 
   private bindEvents(): void {
-    for (const view of this.skillSlots) {
+    for (const view of this.kbSkillSlots) {
       for (const slot of view.slots) slot.addEventListener("click", () => triggerAction(view.action));
+    }
+    for (const view of this.ctrlSlots.values()) {
+      view.el.addEventListener("click", () => { if (view.current) triggerAction(view.current); });
     }
     this.invulnBtn.addEventListener("click", () => { this.invulnBtn.blur(); toggleInvincibility(); });
     this.botInvulnBtn.addEventListener("click", () => {
@@ -413,13 +451,57 @@ export class HudOverlay {
 
     // Provoke is tank-only: show its slots only for a tank local player. No active buff (instantaneous).
     const isTank = p.role === "tank";
-    for (const view of this.skillSlots) {
+    for (const view of this.kbSkillSlots) {
       if (view.tankOnly) {
         for (const slot of view.slots) slot.style.display = isTank ? "" : "none";
         if (!isTank) continue;
       }
       const { activeSecs, cooldownSecs, cooldownMax } = view.read(p);
       view.prevCooldown = this.renderSkillSlots(view.slots, view.cdOverlays, activeSecs, cooldownSecs, cooldownMax, view.prevCooldown);
+    }
+
+    if (this.currentSettings?.hotbarMode === "controller") this.syncControllerHotbar(p, isTank);
+  }
+
+  // Projects the active modifier layer onto the 8 controller button cells: each cell shows the
+  // action bound to {activeModifier, button} (icon/label + cooldown), or is cleared if unbound.
+  private syncControllerHotbar(p: Player, isTank: boolean): void {
+    const bindings = this.currentSettings.controllerBindings;
+    const active = getActiveModifier();
+    const glyphs = CONTROLLER_GLYPHS[this.currentControllerType];
+    this.ctrlSeparatorEl.textContent = active === "none" ? "—" : glyphs.modifiers[active];
+    this.ctrlSeparatorEl.classList.toggle("is-active", active !== "none");
+
+    for (const [button, view] of this.ctrlSlots) {
+      const actionId = actionForCombo(bindings, active, button);
+      const hidden = !actionId || (actionId === "provoke" && !isTank);
+      if (hidden) {
+        view.current = undefined;
+        view.icon.textContent = "";
+        view.name.textContent = "";
+        view.cdOverlay.style.display = "none";
+        view.cdText.style.display = "none";
+        view.el.classList.remove("yas-slot-sprint-running");
+        continue;
+      }
+      view.current = actionId;
+      view.icon.textContent = ACTIONS[actionId].icon;
+      view.name.textContent = ACTIONS[actionId].label;
+      const spec = this.skillSpecs.find(s => s.action === actionId);
+      if (spec) {
+        const { activeSecs, cooldownSecs, cooldownMax } = spec.read(p);
+        const prev = this.ctrlPrevCooldown.get(actionId) ?? 0;
+        const next = this.renderSkillSlots(
+          [view.el],
+          [{ overlay: view.cdOverlay, text: view.cdText }],
+          activeSecs, cooldownSecs, cooldownMax, prev,
+        );
+        this.ctrlPrevCooldown.set(actionId, next);
+      } else {
+        // No cooldown (jump): clear any leftover overlay.
+        view.cdOverlay.style.display = "none";
+        view.cdText.style.display = "none";
+      }
     }
   }
 

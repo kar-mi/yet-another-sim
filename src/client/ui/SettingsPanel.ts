@@ -1,5 +1,5 @@
-import { listControllers, getControllerInfo, setActiveGamepad, setKeyBindings, setControlScheme } from "../input";
-import { ACTIONS, CONTROLLER_BUTTON_LABELS, KEY_BINDING_LABELS } from "../actions";
+import { listControllers, getControllerInfo, setActiveGamepad, setKeyBindings, setControllerBindings, setControlScheme, readControllerCombo } from "../input";
+import { ACTIONS, CONTROLLER_GLYPHS, KEY_BINDING_LABELS, comboLabel, DEFAULT_CONTROLLER_BINDINGS } from "../actions";
 import { DEFAULT_BINDINGS, keyLabel, saveSettings } from "../settings";
 import type { ActionId } from "../actions";
 import type { ControllerType, KeyBindings, Settings } from "../settings";
@@ -60,14 +60,14 @@ export function initSettingsPanel(
       const action = btn.dataset.action as keyof KeyBindings;
       btn.textContent = keyLabel(settings.keyBindings[action]);
     });
-    const controllerLabels = CONTROLLER_BUTTON_LABELS[currentControllerType];
+    const glyphs = CONTROLLER_GLYPHS[currentControllerType];
     document.querySelectorAll<HTMLElement>(".keybind-controller").forEach(label => {
       if (label.dataset.controllerLabel) {
         label.textContent = label.dataset.controllerLabel;
         return;
       }
       const action = label.dataset.action;
-      label.textContent = isActionId(action) ? controllerLabels[ACTIONS[action].controllerSlot] ?? "" : "";
+      label.textContent = isActionId(action) ? comboLabel(settings.controllerBindings[action], glyphs) : "";
     });
   };
   syncKeybindLabels();
@@ -145,9 +145,11 @@ export function initSettingsPanel(
 
   document.getElementById("reset-keybinds")!.addEventListener("click", () => {
     settings.keyBindings = { ...DEFAULT_BINDINGS };
+    settings.controllerBindings = { ...DEFAULT_CONTROLLER_BINDINGS };
     syncKeybindLabels();
     saveSettings(settings);
     setKeyBindings(settings.keyBindings);
+    setControllerBindings(settings.controllerBindings);
     getRenderer()?.applySettings(settings);
   });
 
@@ -229,6 +231,50 @@ export function initSettingsPanel(
         window.removeEventListener("keydown", onKey, true);
       };
       window.addEventListener("keydown", onKey, true);
+    });
+  });
+
+  // Controller rebinding: capture the next pressed combo (button + held modifier).
+  document.querySelectorAll<HTMLButtonElement>(".keybind-controller-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (btn.classList.contains("keybind-listening")) return;
+      btn.classList.add("keybind-listening");
+      const prev = btn.textContent!;
+      btn.textContent = "...";
+      const action = btn.dataset.action as ActionId;
+
+      let raf = 0;
+      const finish = () => {
+        btn.classList.remove("keybind-listening");
+        cancelAnimationFrame(raf);
+        window.removeEventListener("keydown", onEsc, true);
+      };
+      const onEsc = (e: KeyboardEvent) => {
+        if (e.code !== "Escape") return;
+        e.preventDefault();
+        e.stopPropagation();
+        btn.textContent = prev;
+        finish();
+      };
+      window.addEventListener("keydown", onEsc, true);
+
+      // Wait for a clean release first, then capture the next fresh press.
+      let armed = false;
+      const poll = () => {
+        const combo = readControllerCombo();
+        if (!armed) {
+          if (!combo) armed = true;
+        } else if (combo) {
+          settings.controllerBindings[action] = combo;
+          saveSettings(settings);
+          setControllerBindings(settings.controllerBindings);
+          syncKeybindLabels();
+          finish();
+          return;
+        }
+        raf = requestAnimationFrame(poll);
+      };
+      raf = requestAnimationFrame(poll);
     });
   });
 
