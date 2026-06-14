@@ -35,7 +35,7 @@ export function imageBillboardMaterial(
   materialName: string,
   url: string,
 ): StandardMaterial {
-  const tex = new Texture(url, scene, true, false);
+  const tex = new Texture(url, scene, true, true);
   tex.hasAlpha = true;
   const mat = new StandardMaterial(materialName, scene);
   applyAlphaTest(mat, tex);
