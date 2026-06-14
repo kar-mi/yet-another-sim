@@ -18,7 +18,7 @@ const WAYMARK_COLORS: Record<WaymarkId, Color3> = {
 };
 
 const FLOOR_Y = 0.06;
-const WAYMARK_HALF_SIZE = 1.25;
+const WAYMARK_HALF_SIZE = 1.125;
 const GLYPH_SCALE = 1.15;
 const GLYPH_RADIUS = 0.055;
 const isLetter = (mark: WaymarkId) => mark >= "A" && mark <= "D";
