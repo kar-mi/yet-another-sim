@@ -116,16 +116,6 @@ _endingBase: &endingBase
   telegraphMode: resolve
   showCastBar: false
 
-# Clone marker on the closest player while an ending is stored.
-_closeBaitBase: &closeBaitBase
-  type: targeted
-  targetMode: closest
-  radius: 2.5
-  telegraph: 5
-  damage: 0
-  damageType: "true"
-  showCastBar: false
-  showTelegraph: true
 
 # Bait that turns the boss to the closest player and fires its linked stored ending.
 _allEndingBase: &allEndingBase
@@ -146,6 +136,7 @@ _cloneSpreadBase: &cloneSpreadBase
   damageType: magical
   showCastBar: false
   showTelegraph: false
+  telegraph: 5
 
 events:
   # Lock the boss facing for the whole encounter.
@@ -251,19 +242,14 @@ events:
     t: 28
     name: Tower 2 Recovery
 
-  # Ending 1 (Future / front) — cast 20→26 (stored as the clone bait appears), baited at 31.
+  # Ending 1 (Future / front) — cast 18→24 (stored as the clone bait appears), baited at 31.
   - <<: *endingBase
     id: ending-store-1
-    t: 20.0
+    t: 18.0
     name: Future Ending
     directionOffset: 0
     telegraph: 6
     showCastBar: true
-  - <<: *closeBaitBase
-    id: close-bait-1
-    t: 26.0
-    name: Clone Bait
-    labels: [bait-1]
   - <<: *allEndingBase
     id: all-ending-1
     t: 31.0
@@ -312,30 +298,22 @@ events:
     t: 48
     name: Tower 4 Recovery
 
-  # Ending 2 (Past / rear) — cast 40→46 (stored as the clone bait appears), baited at 53.
+  # Ending 2 (Past / rear) — cast 38→44 (stored as the clone bait appears), baited at 51.
   - <<: *endingBase
     id: ending-store-2
-    t: 40.0
+    t: 38.0
     name: Past Ending
     directionOffset: 3.141592653589793
     telegraph: 6
     showCastBar: true
-  - <<: *closeBaitBase
-    id: close-bait-2
-    t: 46.0
-    name: Clone Bait
-    labels: [bait-2]
-    telegraph: 7
   - <<: *allEndingBase
     id: all-ending-2
-    t: 53.0
+    t: 51.0
     name: All Ending
-    telegraph: 3
     link: ending-store-2
   - <<: *cloneSpreadBase
     id: clone-spread-2
-    t: 53.0
-    telegraph: 3
+    t: 51.0
 
   - <<: *towerBase
     id: tower-5-left
@@ -375,7 +353,7 @@ events:
     t: 68
     name: Tower 6 Recovery
 
-  # Ending 3 (Future / front) — cast 60→66 (stored as the clone bait appears), baited at 71.
+  # Ending 3 (Future / front) — cast 58→64 (stored as the clone bait appears), baited at 71.
   - <<: *endingBase
     id: ending-store-3
     t: 60.0
@@ -383,11 +361,6 @@ events:
     directionOffset: 0
     telegraph: 6
     showCastBar: true
-  - <<: *closeBaitBase
-    id: close-bait-3
-    t: 66.0
-    name: Clone Bait
-    labels: [bait-3]
   - <<: *allEndingBase
     id: all-ending-3
     t: 71.0
@@ -436,33 +409,25 @@ events:
     t: 88
     name: Tower Recovery
 
-  # Ending 4 (Past / rear) — cast 80→86 (stored as the clone bait appears), then the closing raidwide.
+  # Ending 4 (Past / rear) — cast 78→84 (stored as the clone bait appears), then the closing raidwide. 91
   - <<: *endingBase
     id: ending-store-4
-    t: 80.0
+    t: 78.0
     name: Past Ending
     directionOffset: 3.141592653589793
     telegraph: 6
     showCastBar: true
-  - <<: *closeBaitBase
-    id: close-bait-4
-    t: 86.0
-    name: Clone Bait
-    labels: [bait-4]
-    telegraph: 7
   - <<: *allEndingBase
     id: all-ending-4
-    t: 93.0
+    t: 91.0
     name: All Ending
     # No tower follows ending 4, so the bait itself is labeled to hold the cluster (away from the
     # rear cleave) through resolve. Earlier baits hand off to their coincident tower instead.
     labels: [bait-4]
-    telegraph: 6
     link: ending-store-4
   - <<: *cloneSpreadBase
     id: clone-spread-4
-    t: 93.0
-    telegraph: 6
+    t: 91.0
 
   - type: aoe
     id: forsaken-end-raidwide

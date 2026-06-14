@@ -46,10 +46,10 @@ solvers:
     #     wave's bisector (continued 45° rotation lands bait 4 on wave 1). Past (rear cone) baits
     #     toward the towers (+north) so the rear cleave fires away; Future (front cone) baits on
     #     the far side (-north) so the front cleave fires away; both then soak the tower (+north).
-    - { when: { mechanic: bait-1 }, frame: [tower-3-left, tower-3-right], spot: [0, -6] } # Future
-    - { when: { mechanic: bait-2 }, frame: [tower-5-left, tower-5-right], spot: [0, 6] }  # Past
-    - { when: { mechanic: bait-3 }, frame: [tower-7-left, tower-7-right], spot: [0, -6] } # Future
-    - { when: { mechanic: bait-4 }, frame: [tower-1-left, tower-1-right], spot: [0, 6] }  # Past
+    - { when: { mechanic: ending-store-1 }, frame: [tower-3-left, tower-3-right], spot: [0, -6] } # Future
+    - { when: { mechanic: ending-store-2 }, frame: [tower-5-left, tower-5-right], spot: [0, 6] }  # Past
+    - { when: { mechanic: ending-store-3 }, frame: [tower-7-left, tower-7-right], spot: [0, -6] } # Future
+    - { when: { mechanic: ending-store-4 }, frame: [tower-1-left, tower-1-right], spot: [0, 6] }  # Past
 
     # --- Odd tower waves (one stack pair + cone + defam soak the two towers; the off-group
     #     supports the soak). Frame north = the wave's tower bisector.
