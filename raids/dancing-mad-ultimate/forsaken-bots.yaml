@@ -46,10 +46,13 @@ solvers:
     #     wave's bisector (continued 45° rotation lands bait 4 on wave 1). Past (rear cone) baits
     #     toward the towers (+north) so the rear cleave fires away; Future (front cone) baits on
     #     the far side (-north) so the front cleave fires away; both then soak the tower (+north).
-    - { when: { mechanic: ending-store-1 }, frame: [tower-3-left, tower-3-right], spot: [0, -6] } # Future
-    - { when: { mechanic: ending-store-2 }, frame: [tower-5-left, tower-5-right], spot: [0, 6] }  # Past
-    - { when: { mechanic: ending-store-3 }, frame: [tower-7-left, tower-7-right], spot: [0, -6] } # Future
-    - { when: { mechanic: ending-store-4 }, frame: [tower-1-left, tower-1-right], spot: [0, 6] }  # Past
+    # Timing: the cluster forms in the 4s before each All Ending bait picks its target at cast start
+    # (all-ending-1/2/3/4 at t=31/51/71/91), gated by startAt/endAt. The whole-encounter
+    # boss-facing-lock is just the always-live mechanic that keeps the rule eligible.
+    - { when: { mechanic: boss-facing-lock }, startAt: 27, endAt: 31, frame: [tower-3-left, tower-3-right], spot: [0, -6] } # Future, all-ending-1 @31
+    - { when: { mechanic: boss-facing-lock }, startAt: 47, endAt: 51, frame: [tower-5-left, tower-5-right], spot: [0, 6] }  # Past,   all-ending-2 @51
+    - { when: { mechanic: boss-facing-lock }, startAt: 67, endAt: 71, frame: [tower-7-left, tower-7-right], spot: [0, -6] } # Future, all-ending-3 @71
+    - { when: { mechanic: boss-facing-lock }, startAt: 87, endAt: 91, frame: [tower-1-left, tower-1-right], spot: [0, 6] }  # Past,   all-ending-4 @91
 
     # --- Odd tower waves (one stack pair + cone + defam soak the two towers; the off-group
     #     supports the soak). Frame north = the wave's tower bisector.
