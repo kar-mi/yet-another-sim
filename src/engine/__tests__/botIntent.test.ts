@@ -327,3 +327,52 @@ test("plant arrow solver does not move human-controlled players", () => {
   expect(computeBotIntents(world, 1 / 60).m1).toBeUndefined();
 });
 
+test("forsaken towerRng produces different wave-1 positions across seeds and only uses canonical positions", async () => {
+  const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken.yaml").text()) as { players: Array<Record<string, unknown>> };
+  const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken-bots.yaml").text());
+  const raid = loadRaid({ ...raidData, players: raidData.players.map(player => ({ ...player, control: "bot" })) });
+  const bots = loadBotPatterns(botData);
+  const baseRaid = applyBotPatterns(raid, bots);
+
+  // Canonical tower positions are all radius-8 points (within 0.01 tolerance).
+  const CANONICAL_RADIUS = 8;
+
+  const getWave1Positions = (seed: number) => {
+    const world = createWorld(baseRaid, seed);
+    return world.pendingTowers
+      .filter(t => t.t === 11)
+      .map(t => ({ x: t.pos.x, z: t.pos.z }));
+  };
+
+  const pos1 = getWave1Positions(1);
+  const pos2 = getWave1Positions(2);
+
+  // Positions must differ across seeds (RNG is actually varying).
+  expect(JSON.stringify(pos1)).not.toBe(JSON.stringify(pos2));
+
+  // All tower positions across several seeds must be canonical radius-8 positions.
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+    const world = createWorld(baseRaid, seed);
+    for (const tower of world.pendingTowers) {
+      const radius = Math.hypot(tower.pos.x, tower.pos.z);
+      expect(Math.abs(radius - CANONICAL_RADIUS)).toBeLessThan(0.1);
+    }
+  }
+});
+
+test("forsaken bots clear all towers across multiple seeds with towerRng and rng enabled", async () => {
+  const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken.yaml").text()) as { players: Array<Record<string, unknown>> };
+  const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken-bots.yaml").text());
+  const raid = loadRaid({ ...raidData, players: raidData.players.map(player => ({ ...player, control: "bot" })) });
+  const bots = loadBotPatterns(botData);
+  const baseRaid = applyBotPatterns(raid, bots);
+
+  for (const seed of [1, 2, 3, 4, 5]) {
+    let world = createWorld(baseRaid, seed);
+    world = runTicksWithComputedBotIntents(world, Math.ceil(118 * 60));
+    const towerFailures = world.log.filter(entry => entry.mechanic.startsWith("Forsaken Tower") && entry.event === "hit");
+    expect(towerFailures).toHaveLength(0);
+    expect(world.players.map(p => `${p.id}:${p.alive}`)).toEqual(world.players.map(p => `${p.id}:true`));
+  }
+});
+

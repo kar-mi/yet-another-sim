@@ -58,20 +58,33 @@ players:
 optionals:
   combinations:
     forsaken:
-      rng: false
+      rng: true
+      towerRng: true
       patterns:
         - id: baseline
           pairs:
-            - { members: [h1, mt], assignments: [stack, defamation], endings: [future, past] }
-            - { members: [h2, ot], assignments: [cone, cone], endings: [past, future] }
-            - { members: [r1, m1], assignments: [stack, cone], endings: [future, past] }
-            - { members: [r2, m2], assignments: [defamation, defamation], endings: [past, future] }
+            - { members: [h1, mt], assignments: [stack, defamation] }
+            - { members: [h2, ot], assignments: [cone, cone] }
+            - { members: [r1, m1], assignments: [stack, cone] }
+            - { members: [r2, m2], assignments: [defamation, defamation] }
         - id: alternate
           pairs:
-            - { members: [h1, mt], assignments: [cone, cone], endings: [past, future] }
-            - { members: [h2, ot], assignments: [stack, defamation], endings: [future, past] }
-            - { members: [r1, m1], assignments: [defamation, defamation], endings: [past, future] }
-            - { members: [r2, m2], assignments: [stack, cone], endings: [future, past] }
+            - { members: [h1, mt], assignments: [cone, cone] }
+            - { members: [h2, ot], assignments: [stack, defamation] }
+            - { members: [r1, m1], assignments: [defamation, defamation] }
+            - { members: [r2, m2], assignments: [stack, cone] }
+        - id: pattern-c
+          pairs:
+            - { members: [h1, mt], assignments: [stack, defamation] }
+            - { members: [h2, ot], assignments: [cone, cone] }
+            - { members: [r1, m1], assignments: [defamation, defamation] }
+            - { members: [r2, m2], assignments: [stack, cone] }
+        - id: pattern-d
+          pairs:
+            - { members: [h1, mt], assignments: [cone, cone] }
+            - { members: [h2, ot], assignments: [stack, defamation] }
+            - { members: [r1, m1], assignments: [stack, cone] }
+            - { members: [r2, m2], assignments: [defamation, defamation] }
 
 # Shared lethal tower defaults — every tower resolves the charge debuffs
 # of its soakers via the three resolvers below.

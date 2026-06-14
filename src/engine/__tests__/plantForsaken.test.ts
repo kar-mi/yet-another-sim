@@ -277,19 +277,19 @@ const forsakenOptionals = {
         {
           id: "static",
           pairs: [
-            { members: ["h1", "mt"], assignments: ["stack", "cone"], endings: ["future", "past"] },
-            { members: ["h2", "ot"], assignments: ["cone", "cone"], endings: ["past", "future"] },
-            { members: ["r1", "m1"], assignments: ["stack", "defamation"], endings: ["future", "past"] },
-            { members: ["r2", "m2"], assignments: ["defamation", "defamation"], endings: ["past", "future"] },
+            { members: ["h1", "mt"], assignments: ["stack", "cone"] },
+            { members: ["h2", "ot"], assignments: ["cone", "cone"] },
+            { members: ["r1", "m1"], assignments: ["stack", "defamation"] },
+            { members: ["r2", "m2"], assignments: ["defamation", "defamation"] },
           ],
         },
         {
           id: "alternate",
           pairs: [
-            { members: ["h1", "mt"], assignments: ["cone", "cone"], endings: ["past", "future"] },
-            { members: ["h2", "ot"], assignments: ["stack", "cone"], endings: ["future", "past"] },
-            { members: ["r1", "m1"], assignments: ["defamation", "defamation"], endings: ["past", "future"] },
-            { members: ["r2", "m2"], assignments: ["cone", "defamation"], endings: ["future", "past"] },
+            { members: ["h1", "mt"], assignments: ["cone", "cone"] },
+            { members: ["h2", "ot"], assignments: ["stack", "cone"] },
+            { members: ["r1", "m1"], assignments: ["defamation", "defamation"] },
+            { members: ["r2", "m2"], assignments: ["cone", "defamation"] },
           ],
         },
       ],
