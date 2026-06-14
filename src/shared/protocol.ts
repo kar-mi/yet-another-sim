@@ -146,7 +146,7 @@ export type LobbySlot = {
 };
 
 export type LobbyStatus = "lobby" | "running" | "paused" | "stopped" | "done";
-export type PlaybackState = "playing" | "paused" | "stopped";
+export type PlaybackState = "playing" | "paused" | "stopped" | "done";
 
 // One simulated tick's worth of authoritative input in server-relayed lockstep. `intents` holds the
 // merged human intents keyed by playerId (a slot is human-controlled this tick exactly when it has

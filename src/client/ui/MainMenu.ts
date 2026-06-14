@@ -108,6 +108,7 @@ export function showLanding(): Promise<string> {
 function playbackStateForLobby(status: LobbyStatus): PlaybackState {
   if (status === "running" || status === "lobby") return "playing";
   if (status === "paused") return "paused";
+  if (status === "done") return "done";
   return "stopped";
 }
 
