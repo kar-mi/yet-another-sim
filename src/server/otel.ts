@@ -1,4 +1,4 @@
-import { SpanStatusCode, trace, type Span, type SpanAttributeValue, type SpanAttributes } from "@opentelemetry/api";
+import { INVALID_SPAN_CONTEXT, SpanStatusCode, trace, type Span, type SpanAttributeValue, type SpanAttributes } from "@opentelemetry/api";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { BasicTracerProvider, BatchSpanProcessor, TraceIdRatioBasedSampler } from "@opentelemetry/sdk-trace-base";
@@ -79,12 +79,16 @@ if (provider) {
 
 export const otelEnabled = provider !== null;
 const tracer = trace.getTracer(INSTRUMENTATION_NAME);
+// Non-recording span handed to callers when tracing is off, so the hot path skips span creation and
+// attribute marshalling entirely (this runs per inbound WS message).
+const NOOP_SPAN = trace.wrapSpanContext(INVALID_SPAN_CONTEXT);
 
 export async function withServerSpan<T>(
   name: string,
   attributes: Record<string, unknown>,
   fn: (span: Span) => Promise<T>,
 ): Promise<T> {
+  if (!otelEnabled) return fn(NOOP_SPAN);
   const span = tracer.startSpan(name, { attributes: toSpanAttributes(attributes) });
   try {
     return await fn(span);

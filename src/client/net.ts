@@ -43,6 +43,10 @@ export class NetClient {
   private world: World | null = null;
   private appliedTick = 0;       // number of input frames applied == current sim tick
   private isHost = false;
+  // True only while the pull is actively relaying frames (playing). Pause/stop/done leave the local
+  // world's status as "running", so this gates local prediction so the player can't nudge while the
+  // sim is halted. Set on frame arrival, cleared on a non-playing playback state or a fresh `started`.
+  private playing = false;
   private simEndedSent = false;  // host: simEnded already reported for this pull
 
   constructor(private readonly url: string) {}
@@ -114,7 +118,9 @@ export class NetClient {
   // movement is instant. Render-only: anchors to the latest authoritative world (`this.world`) and
   // never mutates `view` (which may be a stored snapshot) — a new players array is built instead.
   private applyPrediction(view: World, intent: Intent, dt: number): World {
-    if (!this.claimedPlayerId || !this.world) return view;
+    // Only predict while the pull is live. Paused/stopped/done leave world.status === "running" but
+    // halt the relay, so without `playing` the player could nudge the frozen character around.
+    if (!this.playing || !this.claimedPlayerId || !this.world || this.world.status !== "running") return view;
     const authLocal = this.world.players.find(p => p.id === this.claimedPlayerId);
     if (!authLocal) return view;
 
@@ -195,6 +201,7 @@ export class NetClient {
     }
     if (message.type === "playback") {
       this.isHost = this.clientId !== null && this.clientId === message.hostClientId;
+      this.playing = message.state === "playing";
       this.predictor.reset();
     }
     if (message.type === "started") {
@@ -217,6 +224,7 @@ export class NetClient {
     this.world = message.world;
     this.appliedTick = 0;
     this.simEndedSent = false;
+    this.playing = false; // re-enabled by the first frame if this pull is actually live (not a stop/late-join into a halted pull)
     this.predictor.reset();
     for (const frame of message.frames) this.stepOne(frame);
     this.snapshots.length = 0;
@@ -229,6 +237,7 @@ export class NetClient {
     if (!this.world) return;
     const offset = this.appliedTick - message.startTick;
     if (offset < 0) { this.resumeSession(); return; } // gap: missed frames, resync from scratch
+    this.playing = true; // frames are flowing → the pull is live; local prediction is allowed
     for (let i = offset; i < message.frames.length; i++) {
       this.stepOne(message.frames[i]);
       this.pushSnapshot(this.world);
