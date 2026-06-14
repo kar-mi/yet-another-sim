@@ -12,8 +12,7 @@ import { MOVE_SPEED, SPRINT_MULTIPLIER, JUMP_SPEED, GRAVITY, SPRINT_DURATION, SP
 import { activeEffectOfKind } from "../engine/systems/helpers";
 import { isOnFloor } from "../engine/shapes";
 
-const TAU = 0.1;          // spring time-constant (s): steady-state lead while walking ≈ speed*TAU
-const SNAP_THRESHOLD = 3; // yalms: divergence past this hard-resets (teleport, forced march, respawn)
+const SNAP_THRESHOLD = 3;  // yalms: divergence past this hard-resets (teleport, forced march, respawn)
 
 export class LocalPredictor {
   private active = false;
@@ -79,13 +78,14 @@ export class LocalPredictor {
       }
     }
 
-    // Reconcile horizontal toward the latest authoritative position (vertical stays purely predicted
-    // mid-arc — springing it would flatten the jump against the RTT-late authoritative y).
+    // No soft reconciliation: the predicted path mirrors the deterministic sim exactly (same intent
+    // stream + constants), so it tracks the authoritative path RTT-late with no steady error and
+    // converges on its own (when you stop, the authoritative pos coasts to the same point). The only
+    // correction is a hard snap on a large divergence the predictor can't model — teleport, forced
+    // march, respawn. Below that threshold we never touch the predicted pos, so movement is fully
+    // instant with no visual resync; any tiny residual just rides along until the next hard snap.
     if (length(sub(authLocal.pos, this.pos)) > SNAP_THRESHOLD) {
       this.pos = { ...authLocal.pos };
-    } else {
-      const k = 1 - Math.exp(-dt / TAU);
-      this.pos = add(this.pos, scale(sub(authLocal.pos, this.pos), k));
     }
 
     return { ...authLocal, pos: { ...this.pos }, facing: this.facing, y: this.y };
