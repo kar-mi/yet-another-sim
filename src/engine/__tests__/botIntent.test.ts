@@ -87,7 +87,7 @@ test("forsaken raid and bot companion content load", async () => {
   expect(raid.duration).toBe(118);
   expect(byEventId("forsaken-raidwide")).toMatchObject({ t: 3 });
   expect(byEventId("forsaken-charges")).toMatchObject({ t: 3 });
-  expect(byEventId("forsaken-end-raidwide")).toMatchObject({ t: 109 });
+  expect(byEventId("forsaken-end-raidwide")).toMatchObject({ t: 106 });
   expect(effectResolverById("forsaken-stack-resolve")).toMatchObject({ effectName: "Stack Charge" });
   expect(effectResolverById("forsaken-cone-resolve")).toMatchObject({ effectName: "Cone Charge" });
   expect(effectResolverById("forsaken-defamation-resolve")).toMatchObject({ effectName: "Defamation Charge" });
@@ -117,7 +117,7 @@ test("forsaken raid and bot companion content load", async () => {
     && event.visual?.cylinderThickness === 3.5
     && event.visual?.fallingObjectAlpha === 0.7
   ))).toBe(true);
-  expect(raid.events.filter(event => event.type === "heal").map(event => event.t)).toEqual([18, 29, 39, 49, 60, 71, 81, 91]);
+  expect(raid.events.filter(event => event.type === "heal").map(event => event.t)).toEqual([18, 28, 38, 48, 58, 68, 78, 88]);
 });
 
 test("forsaken tower swaps alternate odd and even debuff distributions", async () => {
@@ -142,17 +142,17 @@ test("forsaken tower swaps alternate odd and even debuff distributions", async (
   };
 
   let world = createWorld(applyBotPatterns(raid, bots), 1);
-  // Towers resolve at 16/27/37/47/58/69/79/89; odd waves swap soakers to the even
-  // set (0/4/4), even waves back to the odd set (2/3/3).
+  // Towers resolve at 16/26/36/46/56/66/76/86 (uniform 10s, back-to-back); odd waves swap
+  // soakers to the even set (0/4/4), even waves back to the odd set (2/3/3).
   const checkpoints: [number, ReturnType<typeof countCharges>][] = [
     [16.2, { stack: 0, cone: 4, defamation: 4 }],
-    [27.2, { stack: 2, cone: 3, defamation: 3 }],
-    [37.2, { stack: 0, cone: 4, defamation: 4 }],
-    [47.2, { stack: 2, cone: 3, defamation: 3 }],
-    [58.2, { stack: 0, cone: 4, defamation: 4 }],
-    [69.2, { stack: 2, cone: 3, defamation: 3 }],
-    [79.2, { stack: 0, cone: 4, defamation: 4 }],
-    [89.2, { stack: 2, cone: 3, defamation: 3 }],
+    [26.2, { stack: 2, cone: 3, defamation: 3 }],
+    [36.2, { stack: 0, cone: 4, defamation: 4 }],
+    [46.2, { stack: 2, cone: 3, defamation: 3 }],
+    [56.2, { stack: 0, cone: 4, defamation: 4 }],
+    [66.2, { stack: 2, cone: 3, defamation: 3 }],
+    [76.2, { stack: 0, cone: 4, defamation: 4 }],
+    [86.2, { stack: 2, cone: 3, defamation: 3 }],
   ];
   for (const [t, counts] of checkpoints) {
     world = runTicksWithComputedBotIntents(world, Math.ceil((t - world.time) * 60));
@@ -341,7 +341,7 @@ test("forsaken towerRng produces different wave-1 positions across seeds and onl
   const getWave1Positions = (seed: number) => {
     const world = createWorld(baseRaid, seed);
     return world.pendingTowers
-      .filter(t => t.t === 11)
+      .filter(t => t.t === 6)
       .map(t => ({ x: t.pos.x, z: t.pos.z }));
   };
 

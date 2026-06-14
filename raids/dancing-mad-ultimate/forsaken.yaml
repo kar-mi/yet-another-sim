@@ -90,7 +90,7 @@ optionals:
 # of its soakers via the three resolvers below.
 _towerBase: &towerBase
   type: tower
-  telegraph: 5
+  telegraph: 10
   radius: 4
   requiredCount: 2
   failureDamage: 999999
@@ -202,14 +202,14 @@ events:
   # Towers 1-2 (A side).
   - <<: *towerBase
     id: tower-1-left
-    t: 11.0
+    t: 6.0
     name: Forsaken Tower 1 Left (A)
     labels: [tower-odd]
     group: A
     pos: *posW
   - <<: *towerBase
     id: tower-1-right
-    t: 11.0
+    t: 6.0
     name: Forsaken Tower 1 Right (A)
     labels: [tower-odd]
     group: A
@@ -221,213 +221,213 @@ events:
 
   - <<: *towerBase
     id: tower-2-left
-    t: 22.0
+    t: 16.0
     name: Forsaken Tower 2 Left (A)
     labels: [tower-even]
     group: A
     pos: *posNW
   - <<: *towerBase
     id: tower-2-right
-    t: 22.0
+    t: 16.0
     name: Forsaken Tower 2 Right (A)
     labels: [tower-even]
     group: A
     pos: *posNE
   - type: heal
     id: heal-after-tower-2
-    t: 29
+    t: 28
     name: Tower 2 Recovery
 
-  # Ending 1 (Future / front) — stored at 27, baited at 32 alongside tower 3.
+  # Ending 1 (Future / front) — cast 20→26 (stored as the clone bait appears), baited at 31.
   - <<: *endingBase
     id: ending-store-1
-    t: 27.0
+    t: 20.0
     name: Future Ending
     directionOffset: 0
+    telegraph: 6
     showCastBar: true
   - <<: *closeBaitBase
     id: close-bait-1
-    t: 27.0
+    t: 26.0
     name: Clone Bait
     labels: [bait-1]
   - <<: *allEndingBase
     id: all-ending-1
-    t: 32.0
+    t: 31.0
     name: All Ending
     link: ending-store-1
 
   - <<: *towerBase
     id: tower-3-left
-    t: 32.0
+    t: 26.0
     name: Forsaken Tower 3 Left (A)
     labels: [tower-odd]
     group: A
     pos: *posN
   - <<: *towerBase
     id: tower-3-right
-    t: 32.0
+    t: 26.0
     name: Forsaken Tower 3 Right (A)
     labels: [tower-odd]
     group: A
     pos: *posE
   - type: heal
     id: heal-after-tower-3
-    t: 39
+    t: 38
     name: Tower 3 Recovery
 
   - <<: *towerBase
     id: tower-4-left
-    t: 42.0
+    t: 36.0
     name: Forsaken Tower 4 Left (B)
     labels: [tower-even]
     group: B
     pos: *posNE
   - <<: *towerBase
     id: tower-4-right
-    t: 42.0
+    t: 36.0
     name: Forsaken Tower 4 Right (B)
     labels: [tower-even]
     group: B
     pos: *posSE
   - type: heal
     id: heal-after-tower-4
-    t: 49
+    t: 48
     name: Tower 4 Recovery
 
-  # Ending 2 (Past / rear) — longer store window (telegraph 7), baited with tower 5.
+  # Ending 2 (Past / rear) — cast 40→46 (stored as the clone bait appears), baited at 53.
   - <<: *endingBase
     id: ending-store-2
-    t: 47.0
+    t: 40.0
     name: Past Ending
     directionOffset: 3.141592653589793
-    telegraph: 7
+    telegraph: 6
     showCastBar: true
   - <<: *closeBaitBase
     id: close-bait-2
-    t: 47.0
+    t: 46.0
     name: Clone Bait
     labels: [bait-2]
     telegraph: 7
   - <<: *allEndingBase
     id: all-ending-2
-    t: 54.0
+    t: 53.0
     name: All Ending
-    telegraph: 4
+    telegraph: 3
     link: ending-store-2
 
   - <<: *towerBase
     id: tower-5-left
-    t: 54.0
+    t: 46.0
     name: Forsaken Tower 5 Left (B)
     labels: [tower-odd]
     group: B
-    telegraph: 4
     pos: *posE
   - <<: *towerBase
     id: tower-5-right
-    t: 54.0
+    t: 46.0
     name: Forsaken Tower 5 Right (B)
     labels: [tower-odd]
     group: B
-    telegraph: 4
     pos: *posS
   - type: heal
     id: heal-after-tower-5
-    t: 60
+    t: 58
     name: Tower 5 Recovery
 
   - <<: *towerBase
     id: tower-6-left
-    t: 64.0
+    t: 56.0
     name: Forsaken Tower 6 Left (B)
     labels: [tower-even]
     group: B
     pos: *posSE
   - <<: *towerBase
     id: tower-6-right
-    t: 64.0
+    t: 56.0
     name: Forsaken Tower 6 Right (B)
     labels: [tower-even]
     group: B
     pos: *posSW
   - type: heal
     id: heal-after-tower-6
-    t: 71
+    t: 68
     name: Tower 6 Recovery
 
-  # Ending 3 (Future / front) — stored at 69, baited at 74 alongside tower 7.
+  # Ending 3 (Future / front) — cast 60→66 (stored as the clone bait appears), baited at 71.
   - <<: *endingBase
     id: ending-store-3
-    t: 69.0
+    t: 60.0
     name: Future Ending
     directionOffset: 0
+    telegraph: 6
     showCastBar: true
   - <<: *closeBaitBase
     id: close-bait-3
-    t: 69.0
+    t: 66.0
     name: Clone Bait
     labels: [bait-3]
   - <<: *allEndingBase
     id: all-ending-3
-    t: 74.0
+    t: 71.0
     name: All Ending
     link: ending-store-3
 
   - <<: *towerBase
     id: tower-7-left
-    t: 74.0
+    t: 66.0
     name: Forsaken Tower 7 Left (B)
     labels: [tower-odd]
     group: B
     pos: *posS
   - <<: *towerBase
     id: tower-7-right
-    t: 74.0
+    t: 66.0
     name: Forsaken Tower 7 Right (B)
     labels: [tower-odd]
     group: B
     pos: *posW
   - type: heal
     id: heal-after-tower-7
-    t: 81
+    t: 78
     name: Tower 7 Recovery
 
   - <<: *towerBase
     id: tower-8-left
-    t: 84.0
+    t: 76.0
     name: Forsaken Tower 8 Left (A)
     labels: [tower-even]
     group: A
     pos: *posSW
   - <<: *towerBase
     id: tower-8-right
-    t: 84.0
+    t: 76.0
     name: Forsaken Tower 8 Right (A)
     labels: [tower-even]
     group: A
     pos: *posNW
   - type: heal
     id: heal-after-tower-8
-    t: 91
+    t: 88
     name: Tower Recovery
 
-  # Ending 4 (Past / rear) — final stored cone, then the closing raidwide.
+  # Ending 4 (Past / rear) — cast 80→86 (stored as the clone bait appears), then the closing raidwide.
   - <<: *endingBase
     id: ending-store-4
-    t: 89.0
+    t: 80.0
     name: Past Ending
     directionOffset: 3.141592653589793
-    telegraph: 7
+    telegraph: 6
     showCastBar: true
   - <<: *closeBaitBase
     id: close-bait-4
-    t: 89.0
+    t: 86.0
     name: Clone Bait
     labels: [bait-4]
     telegraph: 7
   - <<: *allEndingBase
     id: all-ending-4
-    t: 96.0
+    t: 93.0
     name: All Ending
     # No tower follows ending 4, so the bait itself is labeled to hold the cluster (away from the
     # rear cleave) through resolve. Earlier baits hand off to their coincident tower instead.
@@ -437,7 +437,7 @@ events:
 
   - type: aoe
     id: forsaken-end-raidwide
-    t: 109.0
+    t: 106.0
     name: Forsaken Ends
     telegraph: 3
     damage: 35

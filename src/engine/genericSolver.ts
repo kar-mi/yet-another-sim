@@ -26,8 +26,11 @@ export function resolvedMechanics(world: World): ResolvedMechanic[] {
   for (const t of world.towers) {
     if (!t.resolved) out.push({ resolvedId: t.id, telegraphStart: t.telegraphStart, resolveAt: t.resolveAt, labels: t.labels, group: t.group, pos: t.pos });
   }
+  // Pending towers report their real telegraph window [t, t+telegraph] — the same window they
+  // get once active. They only become live to the solver at activation (t), so a future wave's
+  // window never bleeds back into the previous (now contiguous) wave's soak window.
   for (const t of world.pendingTowers) {
-    out.push({ resolvedId: t.id, telegraphStart: t.t - t.telegraph, resolveAt: t.t, labels: t.labels, group: t.group, pos: t.pos });
+    out.push({ resolvedId: t.id, telegraphStart: t.t, resolveAt: t.t + t.telegraph, labels: t.labels, group: t.group, pos: t.pos });
   }
 
   // Inverse "?": id + .inverted/.shown + .a/.b (the rolled orientation).
