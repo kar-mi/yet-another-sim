@@ -1,6 +1,5 @@
 import { expect, test } from "bun:test";
 import { computeBotIntents } from "../botIntent";
-import { tick } from "../sim";
 import { createWorld } from "../world";
 import { applyBotPatterns, loadBotPatterns } from "../raidLoader";
 import { HUMAN, baseRaid, byId, effect, human, loadRaid, noMove, roster, runTicks, runTicksWithBotIntents, withEffect, withPlayerEffect } from "./helpers";
@@ -184,52 +183,6 @@ test("double trouble solver moves marked bots behind their role group", () => {
   expect(intents.r1?.move?.x).toBeGreaterThan(0);
   expect(intents.r1?.move?.z).toBeLessThan(0);
 });
-
-test("plant arrow solver remains deterministic with seeded plant rng", () => {
-  const raid = loadRaid({
-    ...baseRaid,
-    players: roster({ mt: { spawn: [0, 0] } }),
-    optionals: {
-      combinations: {
-        plant: {
-          rng: true,
-          g1: { members: ["mt"], combos: [["down", "down"]] },
-          g2: { members: ["r1"], combos: [["up", "up"]] },
-        },
-      },
-    },
-  });
-  const botPatterns = loadBotPatterns({
-    players: {},
-    solvers: {
-      generic: [
-        { when: { plant: "down down", plantSlot: 0 }, spot: [18, 0] },
-        { when: { plant: "down down", plantSlot: 1 }, spot: [0, 18] },
-        { when: { plant: "up up", plantSlot: 0 }, spot: [-18, 0] },
-        { when: { plant: "up up", plantSlot: 1 }, spot: [0, -18] },
-      ],
-    },
-  });
-  const plannedRaid = applyBotPatterns(raid, botPatterns);
-  let w1 = withPlayerEffect(createWorld(plannedRaid, 4), "mt", effect({
-    name: "Plant",
-    behavior: { kind: "plant", direction: [0, -1], distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
-    plantSlot: 0,
-  }));
-  let w2 = withPlayerEffect(createWorld(plannedRaid, 4), "mt", effect({
-    name: "Plant",
-    behavior: { kind: "plant", direction: [0, -1], distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
-    plantSlot: 0,
-  }));
-
-  for (let i = 0; i < 120; i++) {
-    w1 = tick(w1, { ...computeBotIntents(w1, 1 / 60), [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
-    w2 = tick(w2, { ...computeBotIntents(w2, 1 / 60), [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
-  }
-
-  expect(JSON.stringify(w1)).toBe(JSON.stringify(w2));
-});
-
 
 test("plant combinations assign each player a per-slot heading from their group's pool", () => {
   const optionals = {

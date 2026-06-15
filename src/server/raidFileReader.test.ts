@@ -44,14 +44,14 @@ event:
 // --- readRaidObject ---
 
 describe("readRaidObject", () => {
-  test("tower-test.yaml parses and passes loadRaid", async () => {
+  test("a debug raid directory parses and passes loadRaid", async () => {
+    // Exercises readRaidObject -> loadRaid wiring without pinning the authored contents (name,
+    // event count, per-event types) of the file, which the designer owns.
     const obj = await readRaidObject(join(RAIDS_DIR, "debug/tower-test"));
     const raid = loadRaid(obj);
-    expect(raid.name).toBe("Tower Test");
-    expect(raid.events).toHaveLength(3);
-    expect(raid.events[0].type).toBe("tower");
-    expect(raid.events[1].type).toBe("tower");
-    expect(raid.events[2].type).toBe("tower");
+    expect(raid.name).toBeTruthy();
+    expect(raid.events.length).toBeGreaterThan(0);
+    expect(raid.events.every(event => typeof event.type === "string")).toBe(true);
   });
 
   test("throws when no file exists", async () => {

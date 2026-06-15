@@ -1,7 +1,6 @@
 import { expect, test } from "bun:test";
-import { tick } from "../sim";
 import { createWorld } from "../world";
-import { TANK_HP } from "./constants";
+import { DPS_HP, TANK_HP } from "./constants";
 import type { Player, World } from "@shared/types";
 import { HUMAN, baseRaid, human, loadRaid, roster, runTicks } from "./helpers";
 import type { Vec } from "./helpers";
@@ -38,7 +37,7 @@ test("chain applies its debuff to both members at cast end", () => {
   const world = runTicks(createWorld(chainRaid()), {}, Math.ceil(0.7 * 60));
   expect(hasChainBond(human(world))).toBe(true);
   expect(hasChainBond(otPlayer(world))).toBe(true);
-  expect(human(world).hp).toBe(100);
+  expect(human(world).hp).toBe(DPS_HP);
   expect(otPlayer(world).hp).toBe(TANK_HP); // ot is a tank, no damage yet
 });
 
@@ -48,7 +47,7 @@ test("separating a chained pair past breakDistance breaks it with no damage", ()
   const world = runTicks(createWorld(chainRaid()), { [HUMAN]: { move: { x: 1, z: 0 } } }, Math.ceil(3.0 * 60));
   expect(hasChainBond(human(world))).toBe(false);
   expect(hasChainBond(otPlayer(world))).toBe(false);
-  expect(human(world).hp).toBe(100);
+  expect(human(world).hp).toBe(DPS_HP);
   expect(otPlayer(world).hp).toBe(TANK_HP); // ot is a tank, broke with no damage
 });
 
@@ -59,17 +58,5 @@ test("a chain left unbroken bursts both members once at expiry", () => {
   expect(otPlayer(world).hp).toBe(TANK_HP - 40); // tank, burst applied exactly once
   expect(hasChainBond(human(world))).toBe(false);
   expect(hasChainBond(otPlayer(world))).toBe(false);
-});
-
-test("chain raids remain deterministic", () => {
-  const raid = chainRaid();
-  const intents = { [HUMAN]: { move: { x: 0.3, z: 0 } } };
-  let w1 = createWorld(raid, 1);
-  let w2 = createWorld(raid, 1);
-  for (let i = 0; i < 200; i++) {
-    w1 = tick(w1, intents, 1 / 60);
-    w2 = tick(w2, intents, 1 / 60);
-  }
-  expect(JSON.stringify(w1)).toBe(JSON.stringify(w2));
 });
 

@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { tick } from "../sim";
 import { createWorld } from "../world";
-import { TANK_HP } from "./constants";
+import { DPS_HP, TANK_HP } from "./constants";
 import { HUMAN, baseRaid, byId, effect, human, loadRaid, roster, runTicks, withPlayerEffect } from "./helpers";
 import type { Vec } from "./helpers";
 
@@ -22,7 +22,7 @@ test("player survives when outside AOE at resolve", () => {
     players: roster({ m1: { spawn: [0, 15] } }),
   });
   const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(5.1 * 60));
-  expect(human(world).hp).toBe(100);
+  expect(human(world).hp).toBe(DPS_HP);
 });
 
 
@@ -62,7 +62,7 @@ test("targeted mechanic respects the role filter when selecting furthest", () =>
   });
   const world = runTicks(createWorld(raid), {}, Math.ceil(2.1 * 60));
   expect(world.players.find(p => p.id === "m2")!.hp).toBeLessThan(100);
-  expect(world.players.find(p => p.id === "m1")!.hp).toBe(100);
+  expect(world.players.find(p => p.id === "m1")!.hp).toBe(DPS_HP);
   expect(world.players.find(p => p.id === "mt")!.hp).toBe(TANK_HP); // tank, unhit
 });
 
@@ -77,7 +77,7 @@ test("targeted mechanic with aggro mode hits the boss's current target", () => {
   expect(world.boss.currentTarget).toBe("mt");
   expect(world.players.find(p => p.id === "mt")!.hp).toBeLessThan(TANK_HP);
   expect(world.players.find(p => p.id === "ot")!.hp).toBe(TANK_HP); // furthest, spared
-  expect(human(world).hp).toBe(100); // m1 closest, spared
+  expect(human(world).hp).toBe(DPS_HP); // m1 closest, spared
 });
 
 
@@ -91,7 +91,7 @@ test("targeted mechanic picks the near/far target at cast end, not cast start", 
   // so the circle should land on m2 instead.
   const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 1 } } }, Math.ceil(1.7 * 60));
   expect(human(world).alive).toBe(true);
-  expect(human(world).hp).toBe(100);
+  expect(human(world).hp).toBe(DPS_HP);
   expect(world.players.find(p => p.id === "m2")!.hp).toBeLessThan(100);
 });
 
@@ -139,7 +139,7 @@ test("a boss-anchored cone snapshots boss facing and hits players in front", () 
   });
   const world = runTicks(createWorld(raid), {}, Math.ceil(1.1 * 60));
   expect(byId(world, "m1").hp).toBeLessThan(100); // in front (+Z), inside the cone
-  expect(byId(world, "m2").hp).toBe(100);          // behind the boss, spared
+  expect(byId(world, "m2").hp).toBe(DPS_HP);          // behind the boss, spared
 });
 
 function positionalRaid(positional: { center: number; width: number }, over = facingNorthRoster) {
@@ -157,8 +157,8 @@ test("a rear ±45° arc hits only players behind the boss", () => {
   // center = PI (rear), width = PI/2 (±45°).
   const world = runTicks(createWorld(positionalRaid({ center: Math.PI, width: Math.PI / 2 })), {}, Math.ceil(1.1 * 60));
   expect(byId(world, "m2").hp).toBe(80);  // rear -> hit
-  expect(byId(world, "m1").hp).toBe(100); // front -> spared
-  expect(byId(world, "r1").hp).toBe(100); // flank (east) -> spared
+  expect(byId(world, "m1").hp).toBe(DPS_HP); // front -> spared
+  expect(byId(world, "r1").hp).toBe(DPS_HP); // flank (east) -> spared
 });
 
 test("an intercardinal arc (front-right) hits only that diagonal", () => {
@@ -168,14 +168,14 @@ test("an intercardinal arc (front-right) hits only that diagonal", () => {
     { ...facingNorthRoster, r2: { spawn: [8, 8] as Vec } },
   )), {}, Math.ceil(1.1 * 60));
   expect(byId(world, "r2").hp).toBe(80);  // NE diagonal -> hit
-  expect(byId(world, "m2").hp).toBe(100); // rear -> spared
+  expect(byId(world, "m2").hp).toBe(DPS_HP); // rear -> spared
 });
 
 test("a half cleave (180° front arc) hits the whole front", () => {
   // center = 0 (front), width = PI (the front half).
   const world = runTicks(createWorld(positionalRaid({ center: 0, width: Math.PI })), {}, Math.ceil(1.1 * 60));
   expect(byId(world, "m1").hp).toBe(80);  // front -> hit
-  expect(byId(world, "m2").hp).toBe(100); // rear -> spared
+  expect(byId(world, "m2").hp).toBe(DPS_HP); // rear -> spared
 });
 
 test("directionOffset rotates a boss-anchored cone (rear cleave)", () => {
@@ -190,7 +190,7 @@ test("directionOffset rotates a boss-anchored cone (rear cleave)", () => {
   });
   const world = runTicks(createWorld(raid), {}, Math.ceil(1.1 * 60));
   expect(byId(world, "m2").hp).toBe(70);  // behind the boss, inside the rear cone
-  expect(byId(world, "m1").hp).toBe(100); // in front, spared
+  expect(byId(world, "m1").hp).toBe(DPS_HP); // in front, spared
 });
 
 test("lockFacing freezes the boss facing for the duration of the cast", () => {
@@ -253,8 +253,8 @@ test("a deferred stored cleave stays dormant and hidden until its linked bait ar
   expect(stored).toBeDefined();
   expect(stored!.resolved).toBe(false);
   expect(stored!.showTelegraph).toBe(false); // no ground telegraph while stored
-  expect(byId(world, "m1").hp).toBe(100);     // nothing has resolved yet
-  expect(byId(world, "m2").hp).toBe(100);
+  expect(byId(world, "m1").hp).toBe(DPS_HP);     // nothing has resolved yet
+  expect(byId(world, "m2").hp).toBe(DPS_HP);
 });
 
 test("a bait turns the boss to face its target and locks facing during the cast", () => {
@@ -287,7 +287,7 @@ test("a resolve-only stored cleave is hidden while armed and flashes at resolve"
 test("future stored cleave fires toward the bait (front); rear is spared", () => {
   const world = runTicks(createWorld(storedBaitRaid(0)), {}, Math.ceil(6.1 * 60));
   expect(byId(world, "m2").hp).toBeLessThan(100); // east (toward bait) -> hit
-  expect(byId(world, "m1").hp).toBe(100);         // west (rear) -> spared
+  expect(byId(world, "m1").hp).toBe(DPS_HP);         // west (rear) -> spared
 });
 
 test("past stored cleave fires away from the bait (rear)", () => {
@@ -297,7 +297,7 @@ test("past stored cleave fires away from the bait (rear)", () => {
 
 test("the linked stored cleave detonates on the same tick the bait resolves", () => {
   let w = runTicks(createWorld(storedBaitRaid(0)), {}, Math.ceil(5.95 * 60)); // just before resolveAt=6
-  expect(byId(w, "m2").hp).toBe(100);                                  // nothing resolved yet
+  expect(byId(w, "m2").hp).toBe(DPS_HP);                                  // nothing resolved yet
   expect(w.active.find(m => m.id === "stored")?.resolved).toBe(false); // armed but not yet detonated
   w = runTicks(w, {}, 6); // step past t=6
   expect(byId(w, "m2").hp).toBeLessThan(100); // the linked stored cleave detonates at the bait's resolve
@@ -337,7 +337,7 @@ test("bait can pick stored cleave direction from the selected target's active ef
     Math.ceil(6.1 * 60),
   );
   expect(byId(futureWorld, "m2").hp).toBeLessThan(100);
-  expect(byId(futureWorld, "m1").hp).toBe(100);
+  expect(byId(futureWorld, "m1").hp).toBe(DPS_HP);
 
   const pastWorld = runTicks(
     withPlayerEffect(createWorld(raid), "h1", effect({ name: "Forsaken Past", duration: 10 })),
@@ -345,6 +345,6 @@ test("bait can pick stored cleave direction from the selected target's active ef
     Math.ceil(6.1 * 60),
   );
   expect(byId(pastWorld, "m1").hp).toBeLessThan(100);
-  expect(byId(pastWorld, "m2").hp).toBe(100);
+  expect(byId(pastWorld, "m2").hp).toBe(DPS_HP);
 });
 

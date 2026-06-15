@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { tick } from "../sim";
 import { createWorld } from "../world";
+import { DPS_HP } from "./constants";
 import { baseRaid, loadRaid, roster, runTicks } from "./helpers";
 import type { Vec } from "./helpers";
 
@@ -24,7 +25,7 @@ test("inverse: an honest cast hits the shown shapes and spares the hidden shapes
   });
   const world = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
   expect(world.players.find(p => p.id === "m1")!.hp).toBe(60);  // shown shape is lethal
-  expect(world.players.find(p => p.id === "m2")!.hp).toBe(100); // hidden shape is safe
+  expect(world.players.find(p => p.id === "m2")!.hp).toBe(DPS_HP); // hidden shape is safe
 });
 
 test("inverse: a question-mark cast hits the hidden shapes and spares the shown shapes", () => {
@@ -34,7 +35,7 @@ test("inverse: a question-mark cast hits the hidden shapes and spares the shown 
     events: [inverseEvent({ questionMark: true })],
   });
   const world = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
-  expect(world.players.find(p => p.id === "m1")!.hp).toBe(100); // shown telegraph is a lie
+  expect(world.players.find(p => p.id === "m1")!.hp).toBe(DPS_HP); // shown telegraph is a lie
   expect(world.players.find(p => p.id === "m2")!.hp).toBe(60);  // hidden shape is lethal
 });
 
@@ -52,7 +53,7 @@ test("inverse: a combo hits players standing in any lethal shape", () => {
   const world = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
   expect(world.players.find(p => p.id === "m1")!.hp).toBe(60);  // shown circle A
   expect(world.players.find(p => p.id === "m2")!.hp).toBe(60);  // shown circle B
-  expect(world.players.find(p => p.id === "r1")!.hp).toBe(100); // hidden, safe
+  expect(world.players.find(p => p.id === "r1")!.hp).toBe(DPS_HP); // hidden, safe
 });
 
 test("inverse: applyEffect lands only on the lethal side", () => {
@@ -110,5 +111,3 @@ test("inverse variantRng rolls both orientations and makes the b shapes lethal w
   expect(variants).toEqual(new Set([true, false]));
   expect(deaths).toEqual(new Set(["m1", "m2"]));
 });
-
-// Spread/stack "?" events: a fire mechanic that flips between spread (per-player AOEs) and stack.

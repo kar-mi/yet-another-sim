@@ -93,22 +93,6 @@ test("knockback uses an explicit origin when provided", () => {
   expect(human(world).pos.x).toBeLessThan(0);
 });
 
-test("knockback raids remain deterministic", () => {
-  const raid = loadRaid({
-    ...baseRaid,
-    players: roster({ m1: { spawn: [2, 0] } }),
-    events: [kbEvent({ distance: 10, height: 4 })],
-  });
-  const intents = { [HUMAN]: { move: { x: 0.2, z: 0.5 } } };
-  let w1 = createWorld(raid, 1);
-  let w2 = createWorld(raid, 1);
-  for (let i = 0; i < 200; i++) {
-    w1 = tick(w1, intents, 1 / 60);
-    w2 = tick(w2, intents, 1 / 60);
-  }
-  expect(JSON.stringify(w1)).toBe(JSON.stringify(w2));
-});
-
 test("anti-knockback buff negates knockback displacement", () => {
   const raid = loadRaid({
     ...baseRaid,

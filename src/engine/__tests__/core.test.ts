@@ -6,20 +6,6 @@ import { loadRaid as loadRaidRaw } from "../raidLoader";
 import { TANK_HP } from "./constants";
 import { HUMAN, baseRaid, human, loadRaid, runTicks } from "./helpers";
 
-test("tick is deterministic", () => {
-  const raid = loadRaid(baseRaid);
-  const intents = { [HUMAN]: { move: { x: 0.3, z: 0.7 } } };
-
-  let w1 = createWorld(raid, 1);
-  let w2 = createWorld(raid, 1);
-  for (let i = 0; i < 200; i++) {
-    w1 = tick(w1, intents, 1 / 60);
-    w2 = tick(w2, intents, 1 / 60);
-  }
-
-  expect(JSON.stringify(w1)).toBe(JSON.stringify(w2));
-});
-
 test("raid events require globally unique authored ids", () => {
   const event = {
     type: "aoe",

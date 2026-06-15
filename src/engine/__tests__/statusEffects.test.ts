@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { tick } from "../sim";
 import { createWorld } from "../world";
-import { TANK_HP } from "./constants";
+import { DPS_HP, HEALER_HP, TANK_HP } from "./constants";
 import type { Intents } from "@shared/types";
 import { HUMAN, baseRaid, effect, human, loadRaid, roster, runTicks, withEffect } from "./helpers";
 import type { Vec } from "./helpers";
@@ -25,7 +25,7 @@ test("invincible player takes no damage and cannot die in an AOE", () => {
   let world = tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 }, toggleInvincibility: true } }, 1 / 60);
   expect(human(world).invincible).toBe(true);
   world = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(5.1 * 60));
-  expect(human(world).hp).toBe(100);
+  expect(human(world).hp).toBe(DPS_HP);
   expect(human(world).alive).toBe(true);
 });
 
@@ -326,7 +326,7 @@ test("effect_select can apply double trouble, which expires into damage and knoc
 
   expect(mt.hp).toBe(TANK_HP - 10);
   expect(ot.hp).toBe(TANK_HP - 10);
-  expect(h1.hp).toBe(100);
+  expect(h1.hp).toBe(HEALER_HP);
   expect(mt.pos.x).toBeCloseTo(0);
   expect(ot.pos.x).toBeGreaterThan(2);
 });
