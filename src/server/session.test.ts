@@ -1,46 +1,29 @@
 import { expect, test } from "bun:test";
 import { loadRaid } from "../engine/raidLoader";
+import { baseRaid, roster } from "../engine/__tests__/helpers";
 import { ClientMessageSchema, EMPTY_RAID_ID, MAX_OBSERVERS } from "@shared/protocol";
 import type { ServerMessage } from "@shared/protocol";
 import { capacitySnapshot, EMPTY_LOBBY_TIMEOUT_MS, loadSessionRaid, LOBBY_TIMEOUT_MS, Session, SessionManager, type SessionStatus } from "./session";
 
-const D = 5.66;
-type Vec = [number, number];
-type Override = { spawn?: Vec; pattern?: { t: number; pos: Vec }[] };
-
-// Canonical roster builder for test raids (matches the enforced mt/ot/h1/h2/r1/r2/m1/m2 order).
-// Control is not authored; slots determine it, so claim a slot to make a player human.
-function players(over: Record<string, Override> = {}) {
-  const base: [string, string, Vec][] = [
-    ["mt", "tank", [0, 8]], ["ot", "tank", [0, -8]],
-    ["h1", "healer", [-8, 0]], ["h2", "healer", [8, 0]],
-    ["r1", "dps", [-D, D]], ["r2", "dps", [D, D]],
-    ["m1", "dps", [-D, -D]], ["m2", "dps", [D, -D]],
-  ];
-  return base.map(([id, role, spawn]) => ({ id, role, spawn, ...(over[id] ?? {}) }));
-}
+// Session test raids reuse the shared canonical roster builder (clock spots from shared/protocol) so
+// spawns stay in sync with the engine; only the arena/duration and a couple of spawn overrides differ.
+const sessionArena = { zones: [{ kind: "circle" as const, center: [0, 0] as [number, number], radius: 30 }] };
 
 function testRaid() {
   return loadRaid({
+    ...baseRaid,
     name: "Session Test",
-    arena: { zones: [{ kind: "circle", center: [0, 0], radius: 30 }] },
+    arena: sessionArena,
     duration: 30,
-    players: players({
+    players: roster({
       mt: { spawn: [0, 0] },
       h1: { spawn: [0, 0], pattern: [{ t: 0, pos: [5, 0] }] },
     }),
-    events: [],
   });
 }
 
 function alternateRaid() {
-  return loadRaid({
-    name: "Alternate Test",
-    arena: { zones: [{ kind: "circle", center: [0, 0], radius: 30 }] },
-    duration: 30,
-    players: players(),
-    events: [],
-  });
+  return loadRaid({ ...baseRaid, name: "Alternate Test", arena: sessionArena, duration: 30, players: roster() });
 }
 
 function makeSession(options: { now?: () => number; lobbyTimeoutMs?: number } = {}) {

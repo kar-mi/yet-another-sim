@@ -4,6 +4,7 @@ import { computeBotIntents } from "../botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../raidLoader";
+import { baseRaid, roster } from "./helpers";
 import type { Player, World } from "@shared/types";
 
 // Minimal World/Player builders: the solver only reads a handful of fields, so we construct just
@@ -284,31 +285,43 @@ test("a rule whose frame cannot be computed falls through to the next rule", () 
   expect(genericSolverWaypoint(player({}), w)).toEqual({ x: 9, z: 9 });
 });
 
-test("generic solver rules load from a -bots companion and convert spots to Vec2", async () => {
-  const raidData = Bun.YAML.parse(await Bun.file("raids/debug/rng-stack.yaml").text());
-  const botData = Bun.YAML.parse(await Bun.file("raids/debug/rng-stack-bots.yaml").text());
-  const w = createWorld(applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData)), 1);
+// loadBotPatterns is the boundary that turns an authored -bots companion into runtime solver rules.
+// These two cases exercise that conversion and its end-to-end effect on a bot intent using a
+// synthetic raid, so they are not coupled to any authored raid file's contents.
 
-  expect(w.botSolvers?.generic).toHaveLength(6);
+test("loadBotPatterns converts solver spot arrays to Vec2 and preserves when conditions", () => {
+  const w = createWorld(applyBotPatterns(loadRaid(baseRaid), loadBotPatterns({
+    players: {},
+    solvers: { generic: [
+      { when: { mechanic: "stack-1.g0", role: "tank" }, spot: [-7, 7] },
+      { when: { mechanic: "stack-1.g0", role: "healer" }, spot: [-4, 4] },
+    ] },
+  })), 1);
+
+  expect(w.botSolvers?.generic).toHaveLength(2);
   expect(w.botSolvers?.generic?.[0]?.when).toEqual({ mechanic: "stack-1.g0", role: "tank" });
-  expect(w.botSolvers?.generic?.[0]?.spot).toEqual({ x: -7, z: 7 });
-  expect(w.botSolvers?.generic?.[2]?.spot).toEqual({ x: -4, z: 4 });
+  expect(w.botSolvers?.generic?.[0]?.spot).toEqual({ x: -7, z: 7 }); // array -> Vec2
+  expect(w.botSolvers?.generic?.[1]?.spot).toEqual({ x: -4, z: 4 });
 });
 
-test("generic solver moves a bot toward the rolled group's stack spot", async () => {
-  const raidData = Bun.YAML.parse(await Bun.file("raids/debug/rng-stack.yaml").text());
-  const botData = Bun.YAML.parse(await Bun.file("raids/debug/rng-stack-bots.yaml").text());
-  let w = createWorld(applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData)), 1);
-
-  // Advance until the first shared sentence (a group mechanic) is telegraphing.
-  for (let i = 0; i < 600 && w.groupMechanics.length === 0; i++) {
-    w = tick(w, computeBotIntents(w, 1 / 60), 1 / 60);
-  }
+test("generic solver moves a bot toward the rolled group's stack spot", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ ot: { spawn: [0, 0] } }),
+    events: [{ type: "group", id: "stack", t: 0, name: "Stack", rng: true, groups: [["mt"], ["h2"]], telegraph: 5, radius: 6, damage: 50, damageType: "magical" }],
+    botSolvers: { generic: [
+      { when: { mechanic: "stack.g0", role: "tank" }, spot: [-7, 7] },
+      { when: { mechanic: "stack.g1", role: "tank" }, spot: [7, -7] },
+    ] },
+  });
+  // The t=0 group mechanic promotes on the first tick; read the bot intent while it telegraphs.
+  let w = createWorld(raid, 1);
+  w = tick(w, computeBotIntents(w, 1 / 60), 1 / 60);
   expect(w.groupMechanics.length).toBeGreaterThan(0);
 
   // ot (a bot tank) heads to its role-conditioned spot: g0 -> [-7, 7], g1 -> [7, -7].
   const intent = computeBotIntents(w, 1 / 60).ot;
-  if (w.groupChoices["stack-1"] === 0) {
+  if (w.groupChoices["stack"] === 0) {
     expect(intent.move.x).toBeLessThan(0);
     expect(intent.move.z).toBeGreaterThan(0);
   } else {

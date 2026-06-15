@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test";
 import { tick } from "../sim";
 import { createWorld } from "../world";
+import { DPS_HP } from "./constants";
 import { baseRaid, loadRaid, roster, runTicks } from "./helpers";
 import type { Vec } from "./helpers";
 
@@ -23,7 +24,7 @@ test("gaze: a normal eye hits players facing it and spares those facing away", (
   });
   const world = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
   expect(world.players.find(p => p.id === "m1")!.hp).toBe(60);  // eye is in front (+Z): hit
-  expect(world.players.find(p => p.id === "m2")!.hp).toBe(100); // eye is behind: safe
+  expect(world.players.find(p => p.id === "m2")!.hp).toBe(DPS_HP); // eye is behind: safe
 });
 
 test("gaze: a reverse '?' eye hits players facing away and spares those facing it", () => {
@@ -33,7 +34,7 @@ test("gaze: a reverse '?' eye hits players facing away and spares those facing i
     events: [gazeEvent({ reverse: true })],
   });
   const world = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
-  expect(world.players.find(p => p.id === "m1")!.hp).toBe(100); // looking at it: safe
+  expect(world.players.find(p => p.id === "m1")!.hp).toBe(DPS_HP); // looking at it: safe
   expect(world.players.find(p => p.id === "m2")!.hp).toBe(60);  // facing away: hit
 });
 
@@ -45,7 +46,7 @@ test("gaze: a narrow coneHalfAngle spares players off to the side", () => {
   });
   const world = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
   expect(world.players.find(p => p.id === "m1")!.hp).toBe(60);  // eye straight ahead: hit
-  expect(world.players.find(p => p.id === "m2")!.hp).toBe(100); // eye 90 off-axis, outside cone: safe
+  expect(world.players.find(p => p.id === "m2")!.hp).toBe(DPS_HP); // eye 90 off-axis, outside cone: safe
 });
 
 test("gaze rng eventually picks both normal and reverse", () => {

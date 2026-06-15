@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { computeBotIntents } from "../botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
-import { TANK_HP } from "./constants";
+import { DPS_HP, TANK_HP } from "./constants";
 import type { World } from "@shared/types";
 import { HUMAN, baseRaid, loadRaid, roster, runTicks } from "./helpers";
 import type { Vec } from "./helpers";
@@ -54,7 +54,7 @@ test("spread_stack: honest stack splits the hit among soakers on the marked play
   expect(hp("h1")).toBe(80); // 3 soakers -> 60/3 = 20 each
   expect(hp("m1")).toBe(80);
   expect(hp("m2")).toBe(80);
-  expect(hp("r1")).toBe(100); // outside the stack circle, untouched (no spread AOEs fired)
+  expect(hp("r1")).toBe(DPS_HP); // outside the stack circle, untouched (no spread AOEs fired)
 });
 
 test("spread_stack: stack marks one player per group (two groups -> two stacks)", () => {
@@ -76,7 +76,7 @@ test("spread_stack: stack marks one player per group (two groups -> two stacks)"
   expect(hp("h1")).toBe(60); // h1 + h2 split 80 -> 40 each
   expect(hp("h2")).toBe(60);
   expect(hp("mt")).toBe(TANK_HP); // outside both circles
-  expect(hp("r1")).toBe(100);
+  expect(hp("r1")).toBe(DPS_HP);
 });
 
 test("spread_stack: a '?' flips a shown spread into a stack", () => {
@@ -94,7 +94,7 @@ test("spread_stack: a '?' flips a shown spread into a stack", () => {
   const w = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
   const hp = (id: string) => w.players.find(p => p.id === id)!.hp;
   expect(w.spreadStacks[0].inverted).toBe(true);
-  expect(hp("r1")).toBe(100); // no spread AOE on r1 -> the cast really resolved as a stack
+  expect(hp("r1")).toBe(DPS_HP); // no spread AOE on r1 -> the cast really resolved as a stack
   expect(hp("h1")).toBe(80);  // h1 + m1 soak 40 -> 20 each
   expect(hp("m1")).toBe(80);
 });
@@ -237,7 +237,3 @@ test("spread_stack solver picks stack spots by the active lightning orientation"
   expect(computeBotIntents(mk(false), 1 / 60).mt.move.x).toBeLessThan(0);    // honest -> shown stack (-x)
   expect(computeBotIntents(mk(true), 1 / 60).mt.move.x).toBeGreaterThan(0);  // "?" -> inverted stack (+x)
 });
-
-// Gaze events: a player is hit if the eye (gz.pos) is in their facing hemisphere (normal) or
-// NOT in it (reverse). Players keep their default facing of 0 (= +Z) here, so "looking at" the
-// eye is decided by each player's position relative to the eye.
