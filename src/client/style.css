@@ -154,6 +154,40 @@ body:focus-visible {
   -webkit-backdrop-filter: blur(16px);
 }
 
+/* ===== LOADING OVERLAY ===== */
+#yas-loading {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: rgba(6, 7, 18, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.yas-loading-spinner {
+  width: 38px;
+  height: 38px;
+  border: 3px solid rgba(100, 115, 175, 0.25);
+  border-top-color: rgba(212, 168, 67, 0.9);
+  border-radius: 50%;
+  animation: yas-loading-spin 0.7s linear infinite;
+}
+
+.yas-loading-label {
+  font-size: 12px;
+  letter-spacing: 5px;
+  color: rgba(212, 168, 67, 0.9);
+}
+
+@keyframes yas-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ===== INFO PANEL ===== */
 #info-panel {
   display: none;

@@ -1,6 +1,8 @@
 import { EMPTY_RAID_ID, type PlaybackState, type RaidCategory } from "@shared/protocol";
+import { RAID_CHANGE_START_DELAY_MS } from "@shared/constants";
 import type { NetClient } from "../net";
 import { loadRaidCategories } from "./MainMenu";
+import { showLoadingOverlay } from "./LoadingOverlay";
 import { el } from "./dom";
 
 /**
@@ -173,6 +175,7 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
 
   const disposePlayback = net.on("playback", message => {
     isHost = net.clientId === message.hostClientId;
+    if (message.raidId !== activeRaidId) showLoadingOverlay(RAID_CHANGE_START_DELAY_MS);
     activeRaidId = message.raidId;
     raidChangePending = false;
     currentCategory = categoryForRaidId(message.raidId);

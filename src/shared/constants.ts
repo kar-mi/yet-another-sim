@@ -24,3 +24,7 @@ export const TOWER_LINGER = 0.7; // seconds a tower stays visible after it resol
 export const CHAIN_LINGER = 0.7; // seconds a chain stays visible after it breaks/bursts (outcome flash)
 export const LINE_LINK_LINGER = 0.7; // seconds a line link/statue stays visible after resolving
 export const FORCED_MARCH_LINGER = 0.4; // keep a finished forced-march trap briefly so the client can fade it
+
+// Delay between a raid change and the relay/timeline actually starting. The client shows its loading
+// overlay for this same span so the spinner covers the whole pre-start pause (server + client share it).
+export const RAID_CHANGE_START_DELAY_MS = 600;

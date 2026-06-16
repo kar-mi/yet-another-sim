@@ -5,6 +5,7 @@ import type { RaidDef } from "../engine/raidSchema";
 import { createWorld } from "../engine/world";
 import { CLOCK_SPOTS, EMPTY_RAID_ID, MAX_OBSERVERS, ROSTER, type ClientMessage, type Frame, type LobbySlot, type LobbyStatus, type ServerMessage } from "@shared/protocol";
 import type { Intent, Intents, World } from "@shared/types";
+import { RAID_CHANGE_START_DELAY_MS } from "@shared/constants";
 import { logger } from "@shared/logger";
 import { DesyncTracker } from "./desyncTracker";
 import { FrameRelay } from "./frameRelay";
@@ -99,6 +100,10 @@ export class Session {
   private lastActivity: number;
   private readonly lobbyTimeoutMs: number;
   private readonly relay: FrameRelay;
+  private readonly autoTick: boolean;
+  // Deferred relay start scheduled on a raid change (see RAID_CHANGE_START_DELAY_MS). Cancelled by any
+  // other pull transition so a stale start can't fire late (e.g. after dispose, leaking an interval).
+  private pendingStartTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly desync: DesyncTracker;
   private readonly sessionLog: SessionLog | null;
   private botsInvincible = false;
@@ -119,9 +124,10 @@ export class Session {
     this.sessionLog = options.createSessionLog?.(options.id) ?? null;
     this.lastActivity = this.now();
     this.desync = new DesyncTracker({ sessionId: this.id, now: this.now, onDesync: clientId => this.resync(clientId) });
+    this.autoTick = options.autoTick ?? true;
     this.relay = new FrameRelay({
       now: this.now,
-      autoTick: options.autoTick ?? true,
+      autoTick: this.autoTick,
       sessionLog: this.sessionLog,
       buildFrame: () => this.buildFrame(),
       onFrames: (startTick, frames) => this.broadcast({ type: "frames", startTick, frames }),
@@ -225,10 +231,30 @@ export class Session {
     }
 
     this.status = "running";
-    this.relay.start();
+    this.startRelayAfterRaidChangeDelay();
     this.broadcastPlayback();
     this.broadcastStarted();
     logger.info("session", "raid changed", { session: this.id, raid: this.raidId });
+  }
+
+  // Begin the relay tick loop after the client's raid-change loading overlay, so the timeline doesn't
+  // advance behind it. Synchronous when autoTick is off (tests) to keep manual stepping deterministic.
+  private startRelayAfterRaidChangeDelay(): void {
+    this.clearPendingStart();
+    if (!this.autoTick) {
+      this.relay.start();
+      return;
+    }
+    this.pendingStartTimer = setTimeout(() => {
+      this.pendingStartTimer = null;
+      if (this.status === "running") this.relay.start();
+    }, RAID_CHANGE_START_DELAY_MS);
+  }
+
+  private clearPendingStart(): void {
+    if (!this.pendingStartTimer) return;
+    clearTimeout(this.pendingStartTimer);
+    this.pendingStartTimer = null;
   }
 
   play(clientId: string): void {
@@ -260,6 +286,7 @@ export class Session {
     }
     if (this.status !== "running") return;
 
+    this.clearPendingStart();
     this.relay.flush(); // deliver everything up to the pause point before halting the relay
     this.status = "paused";
     this.relay.stop();
@@ -274,6 +301,7 @@ export class Session {
     }
     if (this.status === "lobby") return;
 
+    this.clearPendingStart();
     this.status = "stopped";
     this.relay.stop();
     this.latestIntents.clear();
@@ -296,6 +324,7 @@ export class Session {
       return;
     }
 
+    this.clearPendingStart();
     this.status = "running";
     this.latestIntents.clear();
     this.world = this.freshWorld();
@@ -541,6 +570,7 @@ export class Session {
   }
 
   dispose(): void {
+    this.clearPendingStart();
     this.relay.stop();
     this.sessionLog?.close();
   }
