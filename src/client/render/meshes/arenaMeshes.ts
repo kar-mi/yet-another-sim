@@ -12,8 +12,8 @@ import { logger } from "@shared/logger";
 
 // Floor-plan enum value -> top-down arena image. "squares" uses the default crosshatch (no image).
 const FLOOR_PLAN_IMAGES: Record<Exclude<FloorPlan, "squares">, string> = {
-  "dmu-p1": "/static/arena_raid_imgs/dmu/p1-cropped.png",
-  "dmu-p2": "/static/arena_raid_imgs/dmu/p2-cropped.png",
+  "dmu-p1": "/static/arena_raid_imgs/dmu/p1-cropped.webp",
+  "dmu-p2": "/static/arena_raid_imgs/dmu/p2-cropped.webp",
 };
 
 // Warm the browser cache for every floor-plan image up front so a later raid change renders
@@ -85,6 +85,23 @@ function createFloorPlanCircle(scene: Scene, zone: Extract<ZoneShape, { kind: "c
   drumMat.alpha = 0.12; // see-through drum so the sides don't read as a solid black wall
   body.material = drumMat;
 
+  // Placeholder crosshatch top, shown until the plan image finishes downloading/decoding so the
+  // floor is never blank during that window (the images are large and load asynchronously).
+  const placeholder = CreateDisc("floor-plan-placeholder", { radius: zone.radius, tessellation: 64 }, scene);
+  placeholder.parent = body;
+  placeholder.rotation.x = -Math.PI / 2;
+  placeholder.position.set(0, thickness / 2 + 0.004, 0);
+  const placeholderMat = new StandardMaterial("floor-plan-placeholder-mat", scene);
+  placeholderMat.diffuseColor = new Color3(1, 1, 1);
+  placeholderMat.emissiveColor = new Color3(0.04, 0.04, 0.05);
+  placeholderMat.specularColor = new Color3(0, 0, 0);
+  const placeholderTex = createCrosshatchTexture(scene);
+  const span = (zone.radius * 2) / 4;
+  placeholderTex.uScale = span;
+  placeholderTex.vScale = span;
+  placeholderMat.diffuseTexture = placeholderTex;
+  placeholder.material = placeholderMat;
+
   // Disc lies in the XY plane facing +Z; rotate it flat so it faces up, just above the top face.
   // Keep it below the AOE telegraph plane (world y = 0.01, see telegraphMeshes.ts) so AOEs draw
   // cleanly on top of the plan instead of z-fighting with it.
@@ -92,9 +109,17 @@ function createFloorPlanCircle(scene: Scene, zone: Extract<ZoneShape, { kind: "c
   top.parent = body; // local-space child; disposed with the body via mesh.dispose(false, true)
   top.rotation.x = -Math.PI / 2;
   top.position.set(0, thickness / 2 + 0.005, 0);
+  top.setEnabled(false); // revealed once the texture is ready (see onLoad below)
 
   const imageMat = new StandardMaterial("floor-plan-mat", scene);
-  const tex = new Texture(imageUrl, scene);
+  // onLoad fires once the image is decoded and GPU-ready: swap the crosshatch out for the plan.
+  // The isDisposed guard covers a rapid raid switch that disposes this floor mid-download.
+  const reveal = () => {
+    if (top.isDisposed()) return;
+    top.setEnabled(true);
+    placeholder.setEnabled(false);
+  };
+  const tex = new Texture(imageUrl, scene, undefined, undefined, undefined, reveal);
   tex.anisotropicFilteringLevel = 16; // sharpen the plan when viewed at the camera's grazing angle
   imageMat.diffuseTexture = tex;
   imageMat.emissiveTexture = tex; // self-lit so the plan reads clearly under the dim scene light
