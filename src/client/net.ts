@@ -11,9 +11,14 @@ type MessageType = ServerMessage["type"];
 type Handler<T extends MessageType> = (message: Extract<ServerMessage, { type: T }>) => void;
 
 const DT = 1 / 60;
+const TICK_MS = 1000 / 60;
 const RENDER_DELAY_MS = 33;
 const SNAPSHOT_BUFFER_MAX = 32;
 const SNAPSHOT_GAP_RESET_MS = 250;
+// How fast the snapshot playout clock tracks wall-clock drift. Small so snapshots stay spaced at a
+// steady TICK_MS apart (smooth interpolation) regardless of network burstiness, while still slowly
+// following genuine clock drift between the server's tick loop and this client's render clock.
+const CLOCK_SMOOTH = 0.02;
 const RECONNECT_INITIAL_MS = 500;
 const RECONNECT_MAX_MS = 8000;
 // Report a world hash this often (in ticks) so the server can detect cross-client desync.
@@ -38,6 +43,10 @@ export class NetClient {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private worldRenderKeys: WorldRenderKeys | null = null;
   private readonly predictor = new LocalPredictor();
+  // Playout clock for the snapshot buffer: maps a tick number to a render-timeline timestamp so
+  // snapshots are spaced at a steady TICK_MS apart, independent of jittery/bursty frame arrival.
+  private snapClockBase: number | null = null;
+  private lastSnapshotWall = 0; // wall-clock arrival of the last snapshot, for gap detection
 
   // Local simulation state.
   private world: World | null = null;
@@ -171,6 +180,7 @@ export class NetClient {
   private resumeSession(): void {
     if (!this.lastJoin) return;
     this.snapshots.length = 0;
+    this.snapClockBase = null;
     const join = this.lastJoin;
     const claim = this.claimedPlayerId;
     const observing = this.observing;
@@ -228,7 +238,8 @@ export class NetClient {
     this.predictor.reset();
     for (const frame of message.frames) this.stepOne(frame);
     this.snapshots.length = 0;
-    this.pushSnapshot(this.world);
+    this.snapClockBase = null;
+    this.pushSnapshot(this.world, this.appliedTick);
   }
 
   // Apply an incremental run of input frames. `startTick` lets us drop already-applied frames (after
@@ -240,7 +251,7 @@ export class NetClient {
     this.playing = true; // frames are flowing → the pull is live; local prediction is allowed
     for (let i = offset; i < message.frames.length; i++) {
       this.stepOne(message.frames[i]);
-      this.pushSnapshot(this.world);
+      this.pushSnapshot(this.world, this.appliedTick);
       this.maybeReportHash();
     }
     this.maybeReportSimEnded();
@@ -279,13 +290,27 @@ export class NetClient {
     this.send({ type: "simEnded", tick: this.appliedTick });
   }
 
-  private pushSnapshot(world: World): void {
-    const now = performance.now();
-    const last = this.snapshots[this.snapshots.length - 1];
-    if (last && now - last.t > SNAPSHOT_GAP_RESET_MS) this.snapshots.length = 0;
+  private pushSnapshot(world: World, tick: number): void {
+    const wall = performance.now();
+    if (this.lastSnapshotWall && wall - this.lastSnapshotWall > SNAPSHOT_GAP_RESET_MS) {
+      this.snapshots.length = 0;
+      this.snapClockBase = null;
+    }
+    this.lastSnapshotWall = wall;
+
+    // Place the snapshot on the deterministic tick timeline rather than at its wall-clock arrival
+    // time: t = base + tick*TICK_MS keeps consecutive ticks exactly TICK_MS apart, so a burst of
+    // frames (or network jitter) can't collapse interpolation into instant skips. The base anchors
+    // so the newest snapshot sits at ~now, then drifts slowly to track real clock drift.
+    const desiredBase = wall - tick * TICK_MS;
+    this.snapClockBase = this.snapClockBase === null
+      ? desiredBase
+      : this.snapClockBase + (desiredBase - this.snapClockBase) * CLOCK_SMOOTH;
+    const t = this.snapClockBase + tick * TICK_MS;
+
     if (!this.worldRenderKeys) this.worldRenderKeys = computeWorldRenderKeys(world);
     setWorldRenderKeys(world, this.worldRenderKeys);
-    this.snapshots.push({ t: now, world });
+    this.snapshots.push({ t, world });
     if (this.snapshots.length > SNAPSHOT_BUFFER_MAX) this.snapshots.shift();
   }
 }
