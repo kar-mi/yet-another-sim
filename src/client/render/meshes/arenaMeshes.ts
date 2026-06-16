@@ -77,10 +77,12 @@ function createFloorPlanCircle(scene: Scene, zone: Extract<ZoneShape, { kind: "c
   body.material = blackMat;
 
   // Disc lies in the XY plane facing +Z; rotate it flat so it faces up, just above the top face.
+  // Keep it below the AOE telegraph plane (world y = 0.01, see telegraphMeshes.ts) so AOEs draw
+  // cleanly on top of the plan instead of z-fighting with it.
   const top = CreateDisc("floor-plan", { radius: zone.radius, tessellation: 64 }, scene);
   top.parent = body; // local-space child; disposed with the body via mesh.dispose(false, true)
   top.rotation.x = -Math.PI / 2;
-  top.position.set(0, thickness / 2 + 0.01, 0);
+  top.position.set(0, thickness / 2 + 0.005, 0);
 
   const imageMat = new StandardMaterial("floor-plan-mat", scene);
   const tex = new Texture(imageUrl, scene);
