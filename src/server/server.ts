@@ -228,7 +228,11 @@ const server = Bun.serve<SocketData>({
           const rel = url.pathname.slice("/static/".length);
           if (/^[A-Za-z0-9_\-./]+$/.test(rel) && !rel.includes("..")) {
             const staticFile = Bun.file(join(STATIC_DIR, rel));
-            if (await staticFile.exists()) return new Response(staticFile);
+            if (await staticFile.exists()) {
+              // Cacheable so assets warmed by preloadAssets() are reused from cache (no revalidation)
+              // on a later raid change instead of downloading mid-pull.
+              return new Response(staticFile, { headers: { "Cache-Control": "public, max-age=3600" } });
+            }
           }
           return new Response("Not found", { status: 404 });
         }

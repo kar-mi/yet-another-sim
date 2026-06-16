@@ -9,9 +9,9 @@ import type { Player } from "@shared/types";
 import { glyphBillboardMaterial, imageBillboardMaterial } from "./meshes/billboardMaterials";
 
 const PLAYER_CENTER_Y = 0.4;
-const PLAYER_MODEL_ROOT = "/static/model/";
-const DEFAULT_PLAYER_MODEL_FILE = "DefaultHermit.glb";
-const PLAYER_MODEL_FILES: Record<string, string> = {
+export const PLAYER_MODEL_ROOT = "/static/model/";
+export const DEFAULT_PLAYER_MODEL_FILE = "DefaultHermit.glb";
+export const PLAYER_MODEL_FILES: Record<string, string> = {
   mt: "MTHermit.glb",
   ot: "OTHermit.glb",
   h1: "H1Hermit.glb",
