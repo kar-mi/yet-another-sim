@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-16
+
+### Added
+
+- Observability stack: OpenTelemetry tracing and metrics, plus spectator/observer functionality.
+- Controller support improvements: configurable keybind rebinding, legacy vs. standard control schemes, and player animations.
+- Generic raid authoring via YAML, boss-specific raid definitions, and a reusable mechanics resolver (replacing Forsaken-specific code).
+- New mechanics and content: debuff tower, far/near stored bait, link IDs, and an "active" status icon.
+- Bot solver with a configurable gap option.
+- Session and message limits to protect server resources.
+- Animated floor patterns with asset preloading, static images, and additional color options.
+
+### Changed
+
+- Swapped Sentry for OpenTelemetry as the observability backend.
+- Shifted rendering focus to the client engine.
+- Refactored the server: split `session.ts`, reorganized server files, and consolidated the simulation.
+- Removed the cast bar timer, flipped the debuff image, and removed movement inertia.
+- World logging and asset loading optimizations.
+
+### Fixed
+
+- Input delay improvements and removal of state resync.
+- Client, engine, and model cleanup, plus additional environment protection.
+- Dead code cleanup.
+
 ## [0.2.0] - 2026-06-08
 
 ### Added
