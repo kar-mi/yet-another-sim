@@ -16,6 +16,14 @@ const FLOOR_PLAN_IMAGES: Record<Exclude<FloorPlan, "squares">, string> = {
   "dmu-p2": "/static/arena_raid_imgs/dmu/p2-cropped.png",
 };
 
+// Warm the browser cache for every floor-plan image up front so a later raid change renders
+// its floor from cache instead of downloading after the pull has already started.
+export function preloadFloorPlans(): void {
+  for (const url of Object.values(FLOOR_PLAN_IMAGES)) {
+    new Image().src = url;
+  }
+}
+
 export function createZoneMesh(scene: Scene, zone: ZoneShape, floorPlan: FloorPlan): Mesh | null {
   if (zone.kind === "circle" && floorPlan !== "squares") {
     return createFloorPlanCircle(scene, zone, FLOOR_PLAN_IMAGES[floorPlan]);
