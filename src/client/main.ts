@@ -6,7 +6,7 @@ import { showLanding, showLobby } from "./ui/MainMenu";
 import { initSettingsPanel } from "./ui/SettingsPanel";
 import { createRaidHudSelect } from "./ui/RaidHudSelect";
 import { connect } from "./net";
-import { preloadFloorPlans } from "./render/meshes/arenaMeshes";
+import { preloadAssets } from "./render/preloadAssets";
 import { SessionIdSchema } from "@shared/protocol";
 import { consoleSink, logger, parseLevel } from "@shared/logger";
 
@@ -22,7 +22,7 @@ async function main(): Promise<void> {
   const canvas = document.getElementById("canvas") as HTMLCanvasElement | null;
   if (!canvas) throw new Error("#canvas not found");
 
-  preloadFloorPlans();
+  preloadAssets();
 
   const sessionParam = new URLSearchParams(location.search).get("s");
   const parsedSession = sessionParam ? SessionIdSchema.safeParse(sessionParam.toLowerCase()) : null;
