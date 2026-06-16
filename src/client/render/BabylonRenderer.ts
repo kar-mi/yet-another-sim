@@ -95,6 +95,7 @@ export class BabylonRenderer implements Renderer {
     this.camera.movement.input.setInteraction("pointer", { button: 0 }, "rotate");
     this.camera.movement.input.setInteraction("pointer", { button: 2 }, "rotate");
     this.camera.attachControl(false);
+    this.camera.inertia = 0; // no easing glide after the mouse stops (default 0.9 feels like drag)
     this.camera.lowerRadiusLimit = 10;
     this.camera.upperRadiusLimit = 30;
     this.camera.upperBetaLimit = Math.PI / 2 - 0.05;
@@ -234,7 +235,8 @@ export class BabylonRenderer implements Renderer {
   }
 
   applySettings(s: Settings): void {
-    const sens = 2000 / s.mouseSensitivity;
+    // Slider value scales 3x: a setting of "1" matches what "3" used to feel like.
+    const sens = 2000 / (s.mouseSensitivity * 3);
     this.controllerSensitivity = s.controllerSensitivity;
     this.cameraAccel = s.cameraAccel;
     this.cameraAccelStrength = s.cameraAccelStrength;
