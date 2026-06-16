@@ -3,6 +3,7 @@
 
 name: Forsaken
 arena:
+  floorPlan: dmu-p2
   zones:
     - kind: circle
       center: [0, 0]

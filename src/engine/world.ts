@@ -156,7 +156,7 @@ function toZoneShape(zone: RaidDef["arena"]["zones"][number]): ZoneShape {
 }
 
 export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
-  const arena: Arena = { zones: raid.arena.zones.map(toZoneShape) };
+  const arena: Arena = { zones: raid.arena.zones.map(toZoneShape), floorPlan: raid.arena.floorPlan };
   const waymarks: Waymark[] = raid.waymarks?.map(w => ({ mark: w.mark, pos: toVec2(w.pos) })) ?? [];
 
   const players: Player[] = raid.players.map(p => ({

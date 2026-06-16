@@ -11,7 +11,9 @@ export type ZoneShape =
   | { kind: "rect"; center: Vec2; width: number; height: number }
   | { kind: "polygon"; vertices: Vec2[] };
 
-export type Arena = { zones: ZoneShape[] };
+export type FloorPlan = "squares" | "dmu-p1" | "dmu-p2";
+
+export type Arena = { zones: ZoneShape[]; floorPlan: FloorPlan };
 
 export type WaymarkId = "A" | "B" | "C" | "D" | "1" | "2" | "3" | "4";
 export type Waymark = { mark: WaymarkId; pos: Vec2 };

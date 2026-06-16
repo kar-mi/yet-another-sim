@@ -49,7 +49,7 @@ function createEmptyRaid(): RaidDef {
   const players: RaidPlayerDef[] = ROSTER.map(({ id, role }) => ({ id, role, spawn: CLOCK_SPOTS[id] }));
   return {
     name: "(empty)",
-    arena: { zones: [{ kind: "circle", center: [0, 0], radius: 20 }] },
+    arena: { zones: [{ kind: "circle", center: [0, 0], radius: 20 }], floorPlan: "squares" },
     duration: 30,
     boss: { pos: [0, 0], radius: 3, ring: { scale: 2, color: "#e62120" } },
     players,
