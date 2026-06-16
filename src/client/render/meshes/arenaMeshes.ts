@@ -70,11 +70,12 @@ function createFloorPlanCircle(scene: Scene, zone: Extract<ZoneShape, { kind: "c
   }, scene);
   body.position.set(zone.center.x, -thickness / 2, zone.center.z);
 
-  const blackMat = new StandardMaterial("floor-black-mat", scene);
-  blackMat.diffuseColor = new Color3(0, 0, 0);
-  blackMat.emissiveColor = new Color3(0, 0, 0);
-  blackMat.specularColor = new Color3(0, 0, 0);
-  body.material = blackMat;
+  const drumMat = new StandardMaterial("floor-drum-mat", scene);
+  drumMat.diffuseColor = new Color3(0, 0, 0);
+  drumMat.emissiveColor = new Color3(0, 0, 0);
+  drumMat.specularColor = new Color3(0, 0, 0);
+  drumMat.alpha = 0.12; // see-through drum so the sides don't read as a solid black wall
+  body.material = drumMat;
 
   // Disc lies in the XY plane facing +Z; rotate it flat so it faces up, just above the top face.
   // Keep it below the AOE telegraph plane (world y = 0.01, see telegraphMeshes.ts) so AOEs draw
@@ -86,8 +87,10 @@ function createFloorPlanCircle(scene: Scene, zone: Extract<ZoneShape, { kind: "c
 
   const imageMat = new StandardMaterial("floor-plan-mat", scene);
   const tex = new Texture(imageUrl, scene);
+  tex.anisotropicFilteringLevel = 16; // sharpen the plan when viewed at the camera's grazing angle
   imageMat.diffuseTexture = tex;
   imageMat.emissiveTexture = tex; // self-lit so the plan reads clearly under the dim scene light
+  imageMat.emissiveColor = new Color3(2, 2, 2); // brighten the plan above the dim base lighting
   imageMat.specularColor = new Color3(0, 0, 0);
   imageMat.backFaceCulling = false; // disc is single-sided; show it whichever way it ends up facing
   top.material = imageMat;
