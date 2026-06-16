@@ -9,7 +9,7 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Scene } from "@babylonjs/core/scene";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Renderer } from "./Renderer";
-import type { World, ZoneShape } from "@shared/types";
+import type { World, ZoneShape, FloorPlan } from "@shared/types";
 import type { Settings, ControllerType } from "../settings";
 import { BossLayer } from "./BossLayer";
 import { BossRingLayer } from "./BossRingLayer";
@@ -133,7 +133,7 @@ export class BabylonRenderer implements Renderer {
     new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
 
     const renderKeys = getWorldRenderKeys(world) ?? computeWorldRenderKeys(world);
-    this.buildArena(world.arena.zones, renderKeys.arena);
+    this.buildArena(world.arena.zones, world.arena.floorPlan, renderKeys.arena);
     this.waymarks = new WaymarkLayer(this.scene);
     this.waymarks.sync(world.waymarks, renderKeys.waymarks);
 
@@ -186,11 +186,11 @@ export class BabylonRenderer implements Renderer {
     window.addEventListener("resize", this.onResize);
   }
 
-  private buildArena(zones: ZoneShape[], key: string): void {
+  private buildArena(zones: ZoneShape[], floorPlan: FloorPlan, key: string): void {
     for (const mesh of this.floorMeshes) mesh.dispose(false, true);
     this.floorMeshes = [];
     for (const zone of zones) {
-      const mesh = createZoneMesh(this.scene, zone);
+      const mesh = createZoneMesh(this.scene, zone, floorPlan);
       if (mesh) this.floorMeshes.push(mesh);
     }
     this.arenaKey = key;
@@ -198,7 +198,7 @@ export class BabylonRenderer implements Renderer {
 
   sync(world: World): void {
     const renderKeys = getWorldRenderKeys(world) ?? computeWorldRenderKeys(world);
-    if (renderKeys.arena !== this.arenaKey) this.buildArena(world.arena.zones, renderKeys.arena);
+    if (renderKeys.arena !== this.arenaKey) this.buildArena(world.arena.zones, world.arena.floorPlan, renderKeys.arena);
     this.waymarks.sync(world.waymarks, renderKeys.waymarks);
 
     this.players.sync(world.players, world.time);

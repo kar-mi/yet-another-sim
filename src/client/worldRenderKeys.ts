@@ -11,7 +11,7 @@ type KeyedWorld = World & { [WORLD_RENDER_KEYS]?: WorldRenderKeys };
 
 export function computeWorldRenderKeys(world: World): WorldRenderKeys {
   return {
-    arena: JSON.stringify(world.arena.zones),
+    arena: JSON.stringify(world.arena),
     waymarks: JSON.stringify(world.waymarks),
   };
 }

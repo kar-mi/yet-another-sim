@@ -53,6 +53,8 @@ const WaymarkSchema = z.object({
   pos: Vec2Schema,
 });
 
+const FloorPlanSchema = z.enum(["squares", "dmu-p1", "dmu-p2"]).default("squares");
+
 const ZoneShapeSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("circle"), center: Vec2Schema, radius: z.number().positive() }),
   z.object({ kind: z.literal("rect"), center: Vec2Schema, width: z.number().positive(), height: z.number().positive() }),
@@ -579,7 +581,7 @@ const BossSchema = z.object({
 
 export const RaidSchema = z.object({
   name: z.string().min(1),
-  arena: z.object({ zones: z.array(ZoneShapeSchema).min(1) }),
+  arena: z.object({ zones: z.array(ZoneShapeSchema).min(1), floorPlan: FloorPlanSchema }),
   duration: z.number().positive(),
   boss: BossSchema,
   botPatterns: RaidIdSchema.optional(),
