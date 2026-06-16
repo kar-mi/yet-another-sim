@@ -56,8 +56,7 @@ export class BossLayer {
       anchor.position.y = modelTop;
       this.modelTopY = modelTop;
 
-      const idleGroup = result.animationGroups.find(group => group.name.toLowerCase().includes("idle"));
-      (idleGroup ?? result.animationGroups[0])?.start(true);
+      for (const group of result.animationGroups) group.dispose();
 
       this.modelRoots = roots;
     } catch (err) {
