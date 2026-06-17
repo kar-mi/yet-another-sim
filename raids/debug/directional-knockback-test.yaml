@@ -48,7 +48,6 @@ _headwind: &headwind
     requiredFacing: toward
     distance: 10
     doubledDistance: 22
-  icon: headwind.png
 
 _tailwind: &tailwind
   name: Tailwind
@@ -59,7 +58,6 @@ _tailwind: &tailwind
     requiredFacing: away
     distance: 10
     doubledDistance: 22
-  icon: tailwind.png
 
 _shockwave: &shockwave
   name: Shockwave
