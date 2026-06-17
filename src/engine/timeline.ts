@@ -1,6 +1,11 @@
 import type { ActiveMechanic, AOEShape, Boss, PendingEvent } from "@shared/types";
 import { sin, cos } from "@shared/dmath";
 
+function bossForEvent(event: PendingEvent, bosses: Boss[]): Boss {
+  const b = event.bossId ? bosses.find(b => b.id === event.bossId) : undefined;
+  return b ?? bosses[0]!;
+}
+
 // Snapshot a boss-anchored cone/rect against the boss (FFXIV-style): origin from boss.pos,
 // direction from boss.facing (0 = +Z, matching the sim convention). Used both at cast start
 // (promotePending) and when a bait arms a deferred stored cleave from the boss's locked facing.
@@ -29,18 +34,20 @@ function resolveAnchoredShape(event: PendingEvent, boss: Boss): AOEShape {
 export function promotePending(
   pending: PendingEvent[],
   time: number,
-  boss: Boss
+  bosses: Boss[],
 ): { promoted: ActiveMechanic[]; remaining: PendingEvent[] } {
   const promoted: ActiveMechanic[] = [];
   const remaining: PendingEvent[] = [];
 
   for (const event of pending) {
     if (event.t <= time) {
+      const boss = bossForEvent(event, bosses);
       promoted.push({
         id: event.id,
         name: event.name,
         labels: event.labels,
         group: event.group,
+        bossId: event.bossId,
         // Deferred (stored) cleaves don't snapshot geometry now; a linked bait recomputes it from the
         // boss's locked facing at arm time, so keep the raw shape as a hidden placeholder until then.
         shape: event.deferred ? event.shape : resolveAnchoredShape(event, boss),

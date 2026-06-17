@@ -7,6 +7,11 @@ import type {
   ActiveMechanic, PendingEvent, PendingTargetedEvent, PendingBaitEvent, PendingEffectBurst,
   Player, Role, Boss, AOEShape,
 } from "@shared/types";
+
+function bossFor(bosses: Boss[], bossId?: string): Boss {
+  const b = bossId ? bosses.find(b => b.id === bossId) : undefined;
+  return b ?? bosses[0]!;
+}
 import { pointInShape } from "../shapes";
 import { promotePending, anchorShape } from "../timeline";
 import { AOE_RESOLVE_LINGER, TARGETED_LINGER } from "@shared/constants";
@@ -50,10 +55,10 @@ export function resolveAoe(ctx: TickContext): {
   pendingBaits: PendingBaitEvent[];
   pendingEffectBursts: PendingEffectBurst[];
 } {
-  const { players, boss, log, time, dt, randInt } = ctx;
+  const { players, bosses, boss, log, time, dt, randInt } = ctx;
 
   // 3. Promote pending events whose t <= time (boss snapshots facing-anchored shapes)
-  const { promoted, remaining: pending } = promotePending(ctx.world.pending, time, boss);
+  const { promoted, remaining: pending } = promotePending(ctx.world.pending, time, bosses);
   const active: ActiveMechanic[] = [...ctx.world.active.map(m => ({ ...m })), ...promoted];
 
   // 3b. Promote targeted events into casts. The near/far target (and circle center) is
@@ -66,6 +71,7 @@ export function resolveAoe(ctx: TickContext): {
         name: pt.name,
         labels: pt.labels,
         group: pt.group,
+        bossId: pt.bossId,
         shape: { kind: "circle", center: { x: 0, z: 0 }, radius: pt.radius },
         telegraphStart: pt.t,
         resolveAt: pt.t + pt.telegraph,
@@ -117,9 +123,10 @@ export function resolveAoe(ctx: TickContext): {
   const remainingPendingBaits: PendingBaitEvent[] = [];
   for (const pb of ctx.world.pendingBaits) {
     if (pb.t > time) { remainingPendingBaits.push(pb); continue; }
-    const target = selectBaitTarget(players, boss, pb.targetMode, pb.role, randInt);
+    const baitBoss = bossFor(bosses, pb.bossId);
+    const target = selectBaitTarget(players, baitBoss, pb.targetMode, pb.role, randInt);
     if (!target) continue; // no valid target: fizzle (the linked stored cleave stays dormant)
-    boss.facing = atan2(target.pos.x - boss.pos.x, target.pos.z - boss.pos.z);
+    baitBoss.facing = atan2(target.pos.x - baitBoss.pos.x, target.pos.z - baitBoss.pos.z);
     // The bait deals no damage of its own: it is a turn + lock + cast-bar "controller". A zero-radius,
     // zero-damage mechanic holds the boss facing and drives the cast bar without its own telegraph.
     active.push({
@@ -127,7 +134,8 @@ export function resolveAoe(ctx: TickContext): {
       name: pb.name,
       labels: pb.labels,
       group: pb.group,
-      shape: { kind: "circle", center: { x: boss.pos.x, z: boss.pos.z }, radius: 0 },
+      bossId: pb.bossId,
+      shape: { kind: "circle", center: { x: baitBoss.pos.x, z: baitBoss.pos.z }, radius: 0 },
       telegraphStart: pb.t,
       resolveAt: pb.t + pb.telegraph,
       damage: 0,
@@ -143,7 +151,7 @@ export function resolveAoe(ctx: TickContext): {
     const stored = active.find(m => m.id === pb.link && m.deferred);
     if (stored) {
       const directionOffset = baitDirectionOffset(target, pb.directionOffsetByEffect, time) ?? stored.directionOffset;
-      stored.shape = anchorShape(boss, stored.shape, {
+      stored.shape = anchorShape(baitBoss, stored.shape, {
         anchor: stored.anchor,
         directionFrom: stored.directionFrom,
         directionOffset,
@@ -188,18 +196,20 @@ export function resolveAoe(ctx: TickContext): {
         continue;
       }
       if (mechanic.targeting && mechanic.shape.kind === "circle") {
+        const mBoss = bossFor(bosses, mechanic.bossId);
         const target = mechanic.targeting.mode === "aggro"
-          ? players.find(p => p.alive && p.id === boss.currentTarget) ?? null
+          ? players.find(p => p.alive && p.id === mBoss.currentTarget) ?? null
           : selectTargetPlayer(players, mechanic.targeting.origin, mechanic.targeting.mode, mechanic.targeting.role);
         if (!target) { mechanic.resolved = true; continue; } // no valid target: fizzle, no telegraph flash
         mechanic.shape = { kind: "circle", center: { x: target.pos.x, z: target.pos.z }, radius: mechanic.shape.radius };
       }
+      const mechBoss = bossFor(bosses, mechanic.bossId);
       const balancedOrders = mechanic.applyEffects?.order === "shuffleBalanced"
         ? balancedEffectOrders(
           mechanic.applyEffects.effects,
           players.filter(player =>
             player.alive
-            && (!mechanic.positional || inPositionalArc(boss, player.pos, mechanic.positional))
+            && (!mechanic.positional || inPositionalArc(mechBoss, player.pos, mechanic.positional))
             && pointInShape(mechanic.shape, player.pos)).length,
           randInt,
         )
@@ -207,7 +217,7 @@ export function resolveAoe(ctx: TickContext): {
       let balancedOrderIndex = 0;
       for (const player of players) {
         if (!player.alive) continue;
-        const inArc = !mechanic.positional || inPositionalArc(boss, player.pos, mechanic.positional);
+        const inArc = !mechanic.positional || inPositionalArc(mechBoss, player.pos, mechanic.positional);
         if (pointInShape(mechanic.shape, player.pos) && inArc) {
           applyMechanicDamage(player, mechanic.damage, mechanic.damageType, time);
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });

@@ -9,7 +9,7 @@ import { logger } from "@shared/logger";
 import type { Boss } from "@shared/types";
 
 export const BOSS_MODEL_ROOT = "/static/model/";
-export const BOSS_MODEL_FILE = "skeith.glb";
+export const BOSS_MODEL_FILE = "skeith.glb"; // default model; kept for preloadAssets
 const BOSS_MODEL_SCALE = 0.08;
 const BOSS_MODEL_RAISE = 0.2;
 const BOSS_MODEL_YAW_OFFSET = Math.PI;
@@ -27,12 +27,12 @@ export class BossLayer {
   init(boss: Boss): void {
     const mesh = new Mesh(`boss-${boss.id}`, this.scene);
     this.mesh = mesh;
-    void this.loadModel(mesh);
+    void this.loadModel(mesh, `${boss.model}.glb`);
   }
 
-  private async loadModel(anchor: Mesh): Promise<void> {
+  private async loadModel(anchor: Mesh, file: string): Promise<void> {
     try {
-      const result = await SceneLoader.ImportMeshAsync("", BOSS_MODEL_ROOT, BOSS_MODEL_FILE, this.scene);
+      const result = await SceneLoader.ImportMeshAsync("", BOSS_MODEL_ROOT, file, this.scene);
       if (anchor.isDisposed()) {
         for (const mesh of result.meshes) mesh.dispose();
         for (const group of result.animationGroups) group.dispose();
@@ -60,7 +60,7 @@ export class BossLayer {
 
       this.modelRoots = roots;
     } catch (err) {
-      logger.warn("render", "failed to load boss model", { file: BOSS_MODEL_FILE, err });
+      logger.warn("render", "failed to load boss model", { file, err });
     }
   }
 

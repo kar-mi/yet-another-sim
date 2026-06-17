@@ -15,7 +15,7 @@ import {
 } from "@shared/constants";
 
 export function applyPlayerMovement(ctx: TickContext): void {
-  const { players, boss, log, time, dt, intents, actedByPlayer } = ctx;
+  const { players, bosses, log, time, dt, intents, actedByPlayer } = ctx;
   for (const player of players) {
     if (!player.alive) continue;
     // Sleep disables all input for its duration; confusion overrides movement (handled below).
@@ -40,11 +40,13 @@ export function applyPlayerMovement(ctx: TickContext): void {
       player.antiKbCooldown = ANTI_KB_COOLDOWN;
     }
 
-    // Provoke: tank-only threat grab. Sets the tank above the current max so the boss
-    // retargets them in this tick's targeting pass (section 1b, below the loop).
+    // Provoke: tank-only threat grab. Bumps this tank above the current max on every boss's
+    // threat table so all bosses retarget them in this tick's targeting pass.
     if (intent?.provoke && player.role === "tank" && player.provokeCooldown <= 0) {
-      const maxThreat = Math.max(0, ...Object.values(boss.threat));
-      boss.threat[player.id] = maxThreat + PROVOKE_LEAD;
+      for (const b of bosses) {
+        const maxThreat = Math.max(0, ...Object.values(b.threat));
+        b.threat[player.id] = maxThreat + PROVOKE_LEAD;
+      }
       player.provokeCooldown = PROVOKE_COOLDOWN;
     }
     if (player.provokeCooldown > 0) player.provokeCooldown = Math.max(0, player.provokeCooldown - dt);

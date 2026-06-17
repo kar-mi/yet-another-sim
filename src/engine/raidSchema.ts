@@ -160,6 +160,7 @@ const AOEEventSchema = z.object({
   showCastBar: z.boolean().optional(),
   showTelegraph: z.boolean().optional(),
   telegraphMode: TelegraphModeSchema.optional(),
+  bossId: z.string().min(1).optional(),
 });
 
 const TargetedEventSchema = z.object({
@@ -182,6 +183,7 @@ const TargetedEventSchema = z.object({
   showCastBar: z.boolean().optional(),
   showTelegraph: z.boolean().optional(),
   telegraphMode: TelegraphModeSchema.optional(),
+  bossId: z.string().min(1).optional(),
 });
 
 // A baited cast (targeting only — deals no damage itself): at cast START a player is selected
@@ -203,6 +205,7 @@ const BaitEventSchema = z.object({
   // cleave's directionOffset for this bait. Used by Forsaken Past/Future Ending.
   directionOffsetByEffect: z.record(z.string().min(1), z.number()).optional(),
   showCastBar: z.boolean().optional(),
+  bossId: z.string().min(1).optional(),
 });
 
 const TetherSourceEventSchema = z.object({
@@ -570,6 +573,11 @@ const OptionalsSchema = z.object({
   }).optional(),
 }).optional();
 
+// Exhaustive list of glb stems available under /static/model/. Add new boss models here.
+export const BOSS_MODEL_NAMES = ["skeith"] as const;
+export type BossModelName = (typeof BOSS_MODEL_NAMES)[number];
+const BossModelSchema = z.enum(BOSS_MODEL_NAMES).default("skeith");
+
 const BossSchema = z.object({
   pos: Vec2Schema.default([0, 0]),
   radius: z.number().positive().default(3),
@@ -577,19 +585,61 @@ const BossSchema = z.object({
     scale: z.number().positive().default(2),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#e62120"),
   }).default({ scale: 2, color: "#e62120" }),
-}).default({ pos: [0, 0], radius: 3, ring: { scale: 2, color: "#e62120" } });
+  model: BossModelSchema,
+}).default({ pos: [0, 0], radius: 3, ring: { scale: 2, color: "#e62120" }, model: "skeith" });
+
+// Boss entry in a multi-boss `bosses:` list. Same fields as BossSchema plus a required id slug
+// and an optional aggro seed (player id whose threat is pre-seeded to the top so this boss
+// faces a specific tank from the start).
+const BossWithIdSchema = z.object({
+  id: RaidIdSchema,
+  pos: Vec2Schema.default([0, 0]),
+  radius: z.number().positive().default(3),
+  ring: z.object({
+    scale: z.number().positive().default(2),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#e62120"),
+  }).default({ scale: 2, color: "#e62120" }),
+  model: BossModelSchema,
+  aggro: z.string().min(1).optional(),
+});
 
 export const RaidSchema = z.object({
   name: z.string().min(1),
   arena: z.object({ zones: z.array(ZoneShapeSchema).min(1), floorPlan: FloorPlanSchema }),
   duration: z.number().positive(),
   boss: BossSchema,
+  // Multi-boss: when present, takes precedence over `boss`. Each entry requires a unique id slug.
+  bosses: z.array(BossWithIdSchema).min(1).optional(),
   botPatterns: RaidIdSchema.optional(),
   players: z.array(PlayerDefSchema).length(ROSTER.length),
   events: z.array(EventSchema),
   waymarks: z.array(WaymarkSchema).optional(),
   optionals: OptionalsSchema,
   botSolvers: BotSolversSchema,
+}).superRefine((raid, ctx) => {
+  // Validate that boss ids in the bosses list are unique.
+  if (raid.bosses) {
+    const seenBossIds = new Set<string>();
+    raid.bosses.forEach((boss, i) => {
+      if (seenBossIds.has(boss.id)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["bosses", i, "id"], message: `duplicate boss id "${boss.id}"` });
+      }
+      seenBossIds.add(boss.id);
+    });
+  }
+  // Compute the effective set of boss ids for bossId validation.
+  const bossIds = raid.bosses ? new Set(raid.bosses.map(b => b.id)) : new Set(["boss"]);
+  // Validate that every event bossId references a declared boss.
+  raid.events.forEach((event, i) => {
+    const bossId = (event as { bossId?: string }).bossId;
+    if (bossId !== undefined && !bossIds.has(bossId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["events", i, "bossId"],
+        message: `event bossId "${bossId}" does not match any declared boss id (${[...bossIds].join(", ")})`,
+      });
+    }
+  });
 }).superRefine((raid, ctx) => {
   const eventIds = new Map<string, { type: string; index: number }>();
   raid.events.forEach((event, i) => {
@@ -837,7 +887,11 @@ export const RaidSchema = z.object({
       });
     });
   }
-});
+}).transform(data => ({
+  ...data,
+  // Normalize to always have `bosses`. Single-boss raids produce [{ id: "boss", ...boss }].
+  bosses: data.bosses ?? [{ id: "boss", ...data.boss }],
+}));
 
 export const BotPatternsSchema = z.object({
   players: z.record(z.string().min(1), z.array(WaypointSchema)),
