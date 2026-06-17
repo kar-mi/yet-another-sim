@@ -6,7 +6,7 @@ import type { Boss } from "@shared/types";
 
 const RING_Y = 0.04;         // just above the floor (slightly higher than BossRingLayer at 0.03)
 const RING_THICKNESS = 0.07; // tube diameter
-const COLOR = new Color3(0, 0.9, 1); // cyan
+const COLOR = new Color3(1, 0.9, 0); // yellow
 
 export class TargetRingLayer {
   private mesh?: ReturnType<typeof CreateTorus>;
@@ -27,7 +27,6 @@ export class TargetRingLayer {
       thickness: RING_THICKNESS,
       tessellation: 48,
     }, this.scene);
-    this.mesh.rotation.x = Math.PI / 2; // lay flat on the XZ plane
     this.mesh.isPickable = false;
 
     this.material = new StandardMaterial("target-ring-mat", this.scene);

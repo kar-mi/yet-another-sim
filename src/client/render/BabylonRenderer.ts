@@ -9,7 +9,7 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Scene } from "@babylonjs/core/scene";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Renderer } from "./Renderer";
-import type { World, ZoneShape, FloorPlan } from "@shared/types";
+import type { Boss, World, ZoneShape, FloorPlan } from "@shared/types";
 import type { PlaybackState } from "@shared/protocol";
 import type { Settings, ControllerType } from "../settings";
 import { BossLayer } from "./BossLayer";
@@ -54,6 +54,7 @@ export class BabylonRenderer implements Renderer {
   private bossLayers = new Map<string, BossLayer>();
   private bossRingLayers = new Map<string, BossRingLayer>();
   private targetRingLayers = new Map<string, TargetRingLayer>();
+  private bossesKey = "";
   private healthBars!: HealthBarLayer;
   private telegraphs!: TelegraphLayer;
   private tethers!: TetherLayer;
@@ -158,24 +159,7 @@ export class BabylonRenderer implements Renderer {
         });
       }
     }
-    for (const boss of world.bosses) {
-      const bossLayer = new BossLayer(this.scene);
-      bossLayer.init(boss);
-      this.bossLayers.set(boss.id, bossLayer);
-      const bossRingLayer = new BossRingLayer(this.scene);
-      bossRingLayer.sync(boss);
-      this.bossRingLayers.set(boss.id, bossRingLayer);
-      const targetRingLayer = new TargetRingLayer(this.scene);
-      this.targetRingLayers.set(boss.id, targetRingLayer);
-      const bossMesh = bossLayer.getMesh();
-      if (bossMesh) {
-        this.healthBars.link(bossBarId(boss.id), bossMesh, {
-          trackWidthPx: 220,
-          offsetYPx: -70,
-          color: "#df3333",
-        });
-      }
-    }
+    this.rebuildBossLayers(world.bosses);
     this.telegraphs = new TelegraphLayer(this.scene);
     this.tethers = new TetherLayer(this.scene);
     this.lineLinks = new LineLinkLayer(this.scene);
@@ -202,6 +186,39 @@ export class BabylonRenderer implements Renderer {
     window.addEventListener("resize", this.onResize);
   }
 
+  private rebuildBossLayers(bosses: Boss[]): void {
+    // Dispose old layers and their health bars before creating new ones.
+    for (const [id, layer] of this.bossLayers) {
+      layer.dispose();
+      this.healthBars.unlink(bossBarId(id));
+    }
+    this.bossLayers.clear();
+    for (const layer of this.bossRingLayers.values()) layer.dispose();
+    this.bossRingLayers.clear();
+    for (const layer of this.targetRingLayers.values()) layer.dispose();
+    this.targetRingLayers.clear();
+
+    for (const boss of bosses) {
+      const bossLayer = new BossLayer(this.scene);
+      bossLayer.init(boss);
+      this.bossLayers.set(boss.id, bossLayer);
+      const bossRingLayer = new BossRingLayer(this.scene);
+      bossRingLayer.sync(boss);
+      this.bossRingLayers.set(boss.id, bossRingLayer);
+      const targetRingLayer = new TargetRingLayer(this.scene);
+      this.targetRingLayers.set(boss.id, targetRingLayer);
+      const bossMesh = bossLayer.getMesh();
+      if (bossMesh) {
+        this.healthBars.link(bossBarId(boss.id), bossMesh, {
+          trackWidthPx: 220,
+          offsetYPx: -70,
+          color: "#df3333",
+        });
+      }
+    }
+    this.bossesKey = bosses.map(b => b.id).join(",");
+  }
+
   private buildArena(zones: ZoneShape[], floorPlan: FloorPlan, key: string): void {
     for (const mesh of this.floorMeshes) mesh.dispose(false, true);
     this.floorMeshes = [];
@@ -220,6 +237,9 @@ export class BabylonRenderer implements Renderer {
     const renderKeys = getWorldRenderKeys(world) ?? computeWorldRenderKeys(world);
     if (renderKeys.arena !== this.arenaKey) this.buildArena(world.arena.zones, world.arena.floorPlan, renderKeys.arena);
     this.waymarks.sync(world.waymarks, renderKeys.waymarks);
+
+    const bossesKey = world.bosses.map(b => b.id).join(",");
+    if (bossesKey !== this.bossesKey) this.rebuildBossLayers(world.bosses);
 
     this.players.sync(world.players, world.time);
     const local = world.players.find(p => p.id === this.localPlayerId);
@@ -317,6 +337,7 @@ export class BabylonRenderer implements Renderer {
     if (document.pointerLockElement === this.canvas) document.exitPointerLock();
     window.removeEventListener("resize", this.onResize);
     this.hud.dispose();
+    for (const layer of this.bossLayers.values()) layer.dispose();
     for (const bossRing of this.bossRingLayers.values()) bossRing.dispose();
     for (const targetRing of this.targetRingLayers.values()) targetRing.dispose();
     this.lineLinks.dispose();
