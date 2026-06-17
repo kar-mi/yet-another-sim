@@ -385,7 +385,7 @@ test("snapshot anchor: late join after host snapshot sends world + tail only", (
   for (let i = 0; i < 5; i++) session.step(false);
 
   // Host submits a snapshot at tick 3
-  session.handle("c1", { type: "snapshot", tick: 3, world: { sentinel: true } });
+  session.handle("c1", { type: "snapshot", tick: 3, world: { arena: {}, players: [], sentinel: true } });
 
   session.join("c2");
   session.claimSlot("c2", "ot");
@@ -406,7 +406,7 @@ test("snapshot anchor: desync resync uses snapshot + tail", () => {
   session.start("c1");
   for (let i = 0; i < 5; i++) session.step(false);
 
-  session.handle("c1", { type: "snapshot", tick: 3, world: { sentinel: true } });
+  session.handle("c1", { type: "snapshot", tick: 3, world: { arena: {}, players: [], sentinel: true } });
 
   // Trigger a resync for c2 via mismatched hash
   session.reportWorldHash("c1", 1, 111);
@@ -429,7 +429,7 @@ test("snapshot anchor: non-host snapshot is rejected", () => {
   for (let i = 0; i < 3; i++) session.step(false);
 
   // c2 is not the host — snapshot must be ignored
-  session.handle("c2", { type: "snapshot", tick: 2, world: { sentinel: true } });
+  session.handle("c2", { type: "snapshot", tick: 2, world: { arena: {}, players: [], sentinel: true } });
 
   session.join("c3");
   session.claimSlot("c3", "ot");
@@ -447,7 +447,7 @@ test("snapshot anchor: resetPull clears the snapshot", () => {
   session.start("c1");
   for (let i = 0; i < 5; i++) session.step(false);
 
-  session.handle("c1", { type: "snapshot", tick: 3, world: { sentinel: true } });
+  session.handle("c1", { type: "snapshot", tick: 3, world: { arena: {}, players: [], sentinel: true } });
 
   // Restart resets the pull — snapshot must be cleared
   session.restart("c1");
@@ -467,8 +467,8 @@ test("snapshot anchor: monotonic — older snapshot does not replace newer", () 
   session.start("c1");
   for (let i = 0; i < 5; i++) session.step(false);
 
-  session.handle("c1", { type: "snapshot", tick: 4, world: { snap: "new" } });
-  session.handle("c1", { type: "snapshot", tick: 2, world: { snap: "old" } }); // older — must be ignored
+  session.handle("c1", { type: "snapshot", tick: 4, world: { arena: {}, players: [], snap: "new" } });
+  session.handle("c1", { type: "snapshot", tick: 2, world: { arena: {}, players: [], snap: "old" } }); // older — must be ignored
 
   session.join("c2");
   session.claimSlot("c2", "ot");
@@ -477,6 +477,25 @@ test("snapshot anchor: monotonic — older snapshot does not replace newer", () 
   const msg = started?.message as Extract<ServerMessage, { type: "started" }> | undefined;
   expect(msg?.baseTick).toBe(4);
   expect((msg?.world as any)?.snap).toBe("new");
+});
+
+test("snapshot anchor: malformed world is rejected (falls back to full log)", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+  for (let i = 0; i < 5; i++) session.step(false);
+
+  // Missing arena/players — must not be stored, so a later join falls back to full-log anchoring.
+  session.handle("c1", { type: "snapshot", tick: 3, world: { bogus: true } });
+
+  session.join("c2");
+  session.claimSlot("c2", "ot");
+
+  const started = sent.find(e => e.clientId === "c2" && e.message.type === "started");
+  const msg = started?.message as Extract<ServerMessage, { type: "started" }> | undefined;
+  expect(msg?.baseTick).toBe(0);
+  expect(msg?.frames).toHaveLength(5);
 });
 
 test("only the host can end the session via simEnded", () => {

@@ -282,7 +282,9 @@ export class NetClient {
 
   private maybeReportSnapshot(): void {
     if (!this.isHost || !this.world || this.appliedTick === 0 || this.appliedTick % SNAPSHOT_INTERVAL !== 0) return;
-    // Symbol keys are excluded from object spread and JSON.stringify, so no render-key stripping needed.
+    // Explicitly drop the render-keys symbol: object spread copies enumerable symbol keys (pushSnapshot
+    // sets it on this.world just before this runs), and although JSON.stringify would drop it on send,
+    // strip it here so `world` is clean.
     const { [WORLD_RENDER_KEYS]: _drop, ...world } = this.world as any;
     this.send({ type: "snapshot", tick: this.appliedTick, world });
   }

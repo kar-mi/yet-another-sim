@@ -524,6 +524,10 @@ export class Session {
     if (this.status !== "running") return;
     if (tick > this.inputLog.length) return;
     if (this.latestSnapshot && tick <= this.latestSnapshot.tick) return;
+    // Shallow shape guard: the world is stored opaquely (the host is trusted), but a malformed
+    // snapshot would poison every later join/resync (the client crashes rehydrating it). Reject it
+    // so startedMessage falls back to full-log anchoring.
+    if (!world || typeof world !== "object" || !("arena" in world) || !("players" in world)) return;
     this.latestSnapshot = { tick, world };
   }
 
