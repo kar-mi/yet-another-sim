@@ -42,6 +42,7 @@ function mergePendingIntent(previous: Intent | undefined, next: Intent): Intent 
     sprint: previous?.sprint || next.sprint || undefined,
     antiKnockback: previous?.antiKnockback || next.antiKnockback || undefined,
     provoke: previous?.provoke || next.provoke || undefined,
+    cycleTarget: previous?.cycleTarget || next.cycleTarget || undefined,
     toggleInvincibility: previous?.toggleInvincibility || next.toggleInvincibility || undefined,
   };
 }

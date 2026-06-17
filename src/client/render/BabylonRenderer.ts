@@ -14,6 +14,7 @@ import type { PlaybackState } from "@shared/protocol";
 import type { Settings, ControllerType } from "../settings";
 import { BossLayer } from "./BossLayer";
 import { BossRingLayer } from "./BossRingLayer";
+import { TargetRingLayer } from "./TargetRingLayer";
 import { HealthBarLayer } from "./HealthBarLayer";
 import { createZoneMesh } from "./meshes/arenaMeshes";
 import { HudOverlay } from "../ui/HudOverlay";
@@ -52,6 +53,7 @@ export class BabylonRenderer implements Renderer {
   private players!: PlayerLayer;
   private bossLayers = new Map<string, BossLayer>();
   private bossRingLayers = new Map<string, BossRingLayer>();
+  private targetRingLayers = new Map<string, TargetRingLayer>();
   private healthBars!: HealthBarLayer;
   private telegraphs!: TelegraphLayer;
   private tethers!: TetherLayer;
@@ -163,6 +165,8 @@ export class BabylonRenderer implements Renderer {
       const bossRingLayer = new BossRingLayer(this.scene);
       bossRingLayer.sync(boss);
       this.bossRingLayers.set(boss.id, bossRingLayer);
+      const targetRingLayer = new TargetRingLayer(this.scene);
+      this.targetRingLayers.set(boss.id, targetRingLayer);
       const bossMesh = bossLayer.getMesh();
       if (bossMesh) {
         this.healthBars.link(bossBarId(boss.id), bossMesh, {
@@ -218,12 +222,12 @@ export class BabylonRenderer implements Renderer {
     this.waymarks.sync(world.waymarks, renderKeys.waymarks);
 
     this.players.sync(world.players, world.time);
+    const local = world.players.find(p => p.id === this.localPlayerId);
     for (const boss of world.bosses) {
       this.bossLayers.get(boss.id)?.sync(boss);
       this.bossRingLayers.get(boss.id)?.sync(boss);
+      this.targetRingLayers.get(boss.id)?.sync(boss, local?.targetBossId === boss.id);
     }
-
-    const local = world.players.find(p => p.id === this.localPlayerId);
     const focus = local?.alive
       ? local
       : (world.players.find(p => p.id === this.spectateTargetId && p.alive)
@@ -314,6 +318,7 @@ export class BabylonRenderer implements Renderer {
     window.removeEventListener("resize", this.onResize);
     this.hud.dispose();
     for (const bossRing of this.bossRingLayers.values()) bossRing.dispose();
+    for (const targetRing of this.targetRingLayers.values()) targetRing.dispose();
     this.lineLinks.dispose();
     this.chains.dispose();
     this.towers.dispose();

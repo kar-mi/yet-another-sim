@@ -1,6 +1,6 @@
 import type { ControllerType, KeyBindings } from "./settings";
 
-export type ActionId = "jump" | "sprint" | "antiKnockback" | "provoke";
+export type ActionId = "jump" | "sprint" | "antiKnockback" | "provoke" | "swapTarget";
 
 export interface ActionMeta {
   label: string;
@@ -33,6 +33,11 @@ export const ACTIONS: Record<ActionId, ActionMeta> = {
     keyBinding: "provoke",
     keyboardSlot: 2,
   },
+  swapTarget: {
+    label: "TARGET",
+    icon: "⇄",
+    keyBinding: "swapTarget",
+  },
 };
 
 export const KEYBOARD_HOTBAR_SLOT_COUNT = 10;
@@ -49,6 +54,7 @@ export const KEY_BINDING_LABELS: Record<keyof KeyBindings, string> = {
   sprint: ACTIONS.sprint.label,
   antiKnockback: ACTIONS.antiKnockback.label,
   provoke: ACTIONS.provoke.label,
+  swapTarget: ACTIONS.swapTarget.label,
 };
 
 // ── Controller bindings ──────────────────────────────────────────────────────
@@ -88,6 +94,7 @@ export const DEFAULT_CONTROLLER_BINDINGS: ControllerBindings = {
   sprint:        { modifier: "none", button: "faceBottom" },
   antiKnockback: { modifier: "none", button: "dpadUp" },
   provoke:       { modifier: "none", button: "dpadDown" },
+  swapTarget:    { modifier: "none", button: "faceRight" },
 };
 
 export interface ControllerGlyphs {
