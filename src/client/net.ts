@@ -381,11 +381,14 @@ function interpolateBoss(prev: Boss, next: Boss, t: number): Boss {
 
 function interpolateWorld(prev: World, next: World, t: number): World {
   const prevById = new Map(prev.players.map(p => [p.id, p]));
+  const prevBossById = new Map(prev.bosses.map(b => [b.id, b]));
+  const bosses = next.bosses.map(b => interpolateBoss(prevBossById.get(b.id) ?? b, b, t));
   const world = {
     ...next,
     time: lerp(prev.time, next.time, t),
     players: next.players.map(playerB => interpolatePlayer(prevById.get(playerB.id), playerB, t)),
-    boss: interpolateBoss(prev.boss, next.boss, t),
+    bosses,
+    boss: bosses[0]!,
   };
   const renderKeys = getWorldRenderKeys(next) ?? getWorldRenderKeys(prev);
   if (renderKeys) setWorldRenderKeys(world, renderKeys);

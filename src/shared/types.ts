@@ -207,6 +207,7 @@ export type ActiveMechanic = {
   // Optional bot-solver labels/group carried from the authored event (see GenericSolverRule).
   labels?: string[];
   group?: string;
+  bossId?: string;
   shape: AOEShape;
   telegraphStart: number;
   resolveAt: number;
@@ -248,6 +249,7 @@ export type PendingEvent = {
   name: string;
   labels?: string[];
   group?: string;
+  bossId?: string;
   shape: AOEShape;
   telegraph: number;
   damage: number;
@@ -274,6 +276,7 @@ export type PendingTargetedEvent = {
   name: string;
   labels?: string[];
   group?: string;
+  bossId?: string;
   targetMode: "closest" | "furthest" | "aggro";
   role?: Role;
   count?: number;
@@ -297,6 +300,7 @@ export type PendingBaitEvent = {
   name: string;
   labels?: string[];
   group?: string;
+  bossId?: string;
   targetMode: "random" | "closest" | "furthest";
   role?: Role;
   telegraph: number;
@@ -743,6 +747,7 @@ export type World = {
   waymarks: Waymark[];
   players: Player[];
   boss: Boss;
+  bosses: Boss[];
   active: ActiveMechanic[];
   pending: PendingEvent[];
   log: LogEntry[];

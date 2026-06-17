@@ -1,0 +1,172 @@
+# Multi-Boss Test — two (and one extra) independently-tracked bosses.
+# Proves: per-boss facing, per-boss aggro seed, bossId-anchored cones, bossId tankbusters.
+
+name: Multi-Boss Test
+arena:
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 20
+duration: 60
+
+bosses:
+  - id: chaos
+    pos: [-10, 0]
+    aggro: mt
+  - id: exdeath
+    pos: [10, 0]
+    aggro: ot
+  - id: kefka
+    pos: [0, 12]
+
+players:
+  - id: mt
+    role: tank
+    spawn: [-12, 12]
+  - id: ot
+    role: tank
+    spawn: [12, 12]
+  - id: h1
+    role: healer
+    spawn: [-8, 8]
+  - id: h2
+    role: healer
+    spawn: [8, 8]
+  - id: r1
+    role: dps
+    spawn: [-5, 5]
+  - id: r2
+    role: dps
+    spawn: [5, 5]
+  - id: m1
+    role: dps
+    spawn: [-5, -5]
+  - id: m2
+    role: dps
+    spawn: [5, -5]
+
+events:
+  # Boss-anchored cones from chaos and exdeath at the same time — each fires from its own position
+  # and aims along its own facing, visually proving independent facing.
+  - id: chaos-cone-1
+    type: aoe
+    t: 5
+    name: Chaos Cleave
+    telegraph: 3
+    damage: 80
+    damageType: magical
+    shape:
+      kind: cone
+      angleDeg: 90
+      length: 18
+    anchor: boss
+    directionFrom: bossFacing
+    showCastBar: true
+    bossId: chaos
+
+  - id: exdeath-cone-1
+    type: aoe
+    t: 5
+    name: Exdeath Cleave
+    telegraph: 3
+    damage: 80
+    damageType: magical
+    shape:
+      kind: cone
+      angleDeg: 90
+      length: 18
+    anchor: boss
+    directionFrom: bossFacing
+    showCastBar: true
+    bossId: exdeath
+
+  # Per-boss aggro tankbusters — chaos targets mt (its aggro seed), exdeath targets ot.
+  - id: chaos-buster-1
+    type: targeted
+    t: 12
+    name: Chaos Tankbuster
+    targetMode: aggro
+    radius: 4
+    telegraph: 3
+    damage: 50
+    damageType: physical
+    showCastBar: true
+    bossId: chaos
+
+  - id: exdeath-buster-1
+    type: targeted
+    t: 12
+    name: Exdeath Tankbuster
+    targetMode: aggro
+    radius: 4
+    telegraph: 3
+    damage: 50
+    damageType: physical
+    showCastBar: true
+    bossId: exdeath
+
+  # Third boss (kefka) proves N > 2.
+  - id: kefka-cone-1
+    type: aoe
+    t: 8
+    name: Kefka Cleave
+    telegraph: 3
+    damage: 60
+    damageType: magical
+    shape:
+      kind: cone
+      angleDeg: 120
+      length: 15
+    anchor: boss
+    directionFrom: bossFacing
+    showCastBar: true
+    bossId: kefka
+
+  # Second wave of cones
+  - id: chaos-cone-2
+    type: aoe
+    t: 22
+    name: Chaos Cleave
+    telegraph: 3
+    damage: 80
+    damageType: magical
+    shape:
+      kind: cone
+      angleDeg: 90
+      length: 18
+    anchor: boss
+    directionFrom: bossFacing
+    showCastBar: true
+    bossId: chaos
+
+  - id: exdeath-cone-2
+    type: aoe
+    t: 22
+    name: Exdeath Cleave
+    telegraph: 3
+    damage: 80
+    damageType: magical
+    shape:
+      kind: cone
+      angleDeg: 90
+      length: 18
+    anchor: boss
+    directionFrom: bossFacing
+    showCastBar: true
+    bossId: exdeath
+
+  - id: kefka-cone-2
+    type: aoe
+    t: 25
+    name: Kefka Cleave
+    telegraph: 3
+    damage: 60
+    damageType: magical
+    shape:
+      kind: cone
+      angleDeg: 120
+      length: 15
+    anchor: boss
+    directionFrom: bossFacing
+    showCastBar: true
+    bossId: kefka

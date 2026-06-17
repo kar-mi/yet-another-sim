@@ -2,7 +2,7 @@ import type { World, Player, Boss, Arena, ZoneShape, Waymark } from "@shared/typ
 import type { Vec2 } from "@shared/math";
 import { makeSeed, nextRandom, randomInt } from "@shared/rng";
 import type { RaidDef } from "./raidSchema";
-import { INITIAL_TANK_THREAT } from "@shared/constants";
+import { INITIAL_TANK_THREAT, PROVOKE_LEAD } from "@shared/constants";
 import { topThreatTarget } from "./systems/helpers";
 import { toVec2 } from "./eventTransforms";
 import { bucketEvent, type Collections } from "./mechanicRegistry";
@@ -184,19 +184,28 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     effects: [],
   }));
 
-  const threat: Record<string, number> = {};
-  for (const p of players) {
-    if (p.alive) threat[p.id] = p.role === "tank" ? INITIAL_TANK_THREAT : 0;
-  }
-  const boss: Boss = {
-    id: "boss",
-    pos: toVec2(raid.boss.pos),
-    hp: 1000, maxHp: 1000,
-    radius: raid.boss.radius,
-    facing: 0, threat, currentTarget: topThreatTarget(players, threat),
-    ringScale: raid.boss.ring.scale,
-    ringColor: raid.boss.ring.color,
-  };
+  // Build a boss for each entry in the normalized bosses list. Each boss gets its own threat table.
+  const bosses: Boss[] = raid.bosses.map(bossDef => {
+    const threat: Record<string, number> = {};
+    for (const p of players) {
+      if (p.alive) threat[p.id] = p.role === "tank" ? INITIAL_TANK_THREAT : 0;
+    }
+    // Optional per-boss aggro seed: bump a specific player's threat so this boss faces them first.
+    if (bossDef.aggro) {
+      const maxThreat = Math.max(0, ...Object.values(threat));
+      threat[bossDef.aggro] = maxThreat + PROVOKE_LEAD;
+    }
+    return {
+      id: bossDef.id,
+      pos: toVec2(bossDef.pos),
+      hp: 1000, maxHp: 1000,
+      radius: bossDef.radius,
+      facing: 0, threat, currentTarget: topThreatTarget(players, threat),
+      ringScale: bossDef.ring.scale,
+      ringColor: bossDef.ring.color,
+    };
+  });
+  const boss = bosses[0]!;
 
   const { plan: plantPlan, rngState: afterPlantRngState } = buildPlantPlan(raid, seed);
   // Generic pairing/grouping maps: partners/playerGroups for the bot solver, initialCharges for the
@@ -249,6 +258,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     waymarks,
     players,
     boss,
+    bosses,
     log: [],
     duration: raid.duration,
     // Active-mechanic runtime lists; always empty at world creation (resolvers populate them).

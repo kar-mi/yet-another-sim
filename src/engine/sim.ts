@@ -18,7 +18,7 @@ import { REGISTRY } from "./mechanicRegistry";
 
 export function tick(world: World, intents: Intents, dt: number): World {
   const ctx = createTickContext(world, intents, dt);
-  const { players, boss, time } = ctx;
+  const { players, bosses, time } = ctx;
 
   // 1. Player movement, cooldowns, confusion/knockback carry, vertical physics.
   applyPlayerMovement(ctx);
@@ -34,21 +34,24 @@ export function tick(world: World, intents: Intents, dt: number): World {
   }
   const remainingPendingHeals: PendingHeal[] = world.pendingHeals.filter(heal => heal.t > time);
 
-  // 1b. Boss targeting + facing: pick the top-threat alive player and turn to face them.
+  // 1b. Boss targeting + facing: for each boss, pick the top-threat alive player and turn to face them.
   // Per-tick snap (no turn-rate clamp); visual smoothing is done client-side in net.ts.
-  // A lockFacing cast freezes the boss's facing for its duration so it matches its telegraph.
-  boss.currentTarget = topThreatTarget(players, boss.threat);
-  const facingLocked = world.active.some(m =>
-    m.lockFacing && !m.resolved && m.telegraphStart <= time && m.resolveAt > time);
-  if (boss.currentTarget && !facingLocked) {
-    const target = players.find(p => p.id === boss.currentTarget)!;
-    boss.facing = atan2(target.pos.x - boss.pos.x, target.pos.z - boss.pos.z);
+  // A lockFacing cast freezes a boss's facing for its duration so it matches its telegraph.
+  for (const boss of bosses) {
+    boss.currentTarget = topThreatTarget(players, boss.threat);
+    const facingLocked = world.active.some(m =>
+      m.lockFacing && !m.resolved && m.telegraphStart <= time && m.resolveAt > time
+      && (m.bossId ?? bosses[0]!.id) === boss.id);
+    if (boss.currentTarget && !facingLocked) {
+      const target = players.find(p => p.id === boss.currentTarget)!;
+      boss.facing = atan2(target.pos.x - boss.pos.x, target.pos.z - boss.pos.z);
+    }
   }
 
   // 2-3. Per-mechanic systems run in the fixed RNG-critical REGISTRY order (do not reorder). Each
   // module's resolve returns the World slice(s) it owns, merged into the next snapshot. Resolvers
   // read from ctx.world (the incoming snapshot), so building `next` incrementally is safe.
-  const next: World = { ...world, time, players, boss };
+  const next: World = { ...world, time, players, boss: bosses[0]!, bosses };
   for (const mechanic of REGISTRY) {
     if (mechanic.resolve) Object.assign(next, mechanic.resolve(ctx));
   }

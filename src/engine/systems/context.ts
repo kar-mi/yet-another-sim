@@ -18,7 +18,8 @@ export interface TickContext {
   readonly previousTime: number; // world.time
 
   players: Player[];            // cloned, mutated in place by the systems
-  boss: Boss;                   // cloned (threat deep-cloned)
+  bosses: Boss[];               // cloned array; boss === bosses[0] (same reference)
+  boss: Boss;                   // alias for bosses[0] (threat deep-cloned)
   log: LogEntry[];
   groupChoices: Record<string, number>; // group/link event id -> chosen index (shared for linking)
   actedByPlayer: Map<string, boolean>;   // set by movement, read by status-effect dot conditions
@@ -42,6 +43,8 @@ export interface TickContext {
 }
 
 export function createTickContext(world: World, intents: Intents, dt: number): TickContext {
+  // Clone each boss with its own deep-cloned threat table. boss === bosses[0] by reference.
+  const bosses = world.bosses.map(b => ({ ...b, threat: { ...b.threat } }));
   const ctx = {
     world,
     intents,
@@ -49,9 +52,8 @@ export function createTickContext(world: World, intents: Intents, dt: number): T
     time: world.time + dt,
     previousTime: world.time,
     players: world.players.map(p => ({ ...p })),
-    // tick never mutates the incoming world: clone the boss (threat is the one nested mutable
-    // object we write) so the returned snapshot is fresh. See world.ts/net.ts.
-    boss: { ...world.boss, threat: { ...world.boss.threat } },
+    bosses,
+    boss: bosses[0]!,
     log: world.log.slice(),
     groupChoices: { ...world.groupChoices },
     actedByPlayer: new Map<string, boolean>(),
