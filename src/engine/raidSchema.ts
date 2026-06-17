@@ -142,7 +142,7 @@ const ApplyEffectSchema = z.object({
   duration: z.number().positive(),
   behavior: EffectBehaviorSchema,
   visibility: z.enum(["visible", "invisible"]).optional(),
-  icon: z.string().min(1).optional(),   // HUD icon filename, served from /static/effects/
+  icon: z.string().min(1).optional(),   // HUD icon filename, served from /static/debuffs/
   marker: z.string().min(1).max(8).optional(), // short above-head marker shown while active
   markerIcon: z.string().min(1).optional(), // above-head marker image filename, served from /static/head_markers/
 });
@@ -251,7 +251,7 @@ const TetherSourceEventSchema = z.object({
   buffName: z.string().min(1),
   behavior: EffectBehaviorSchema.default({ kind: "none" }),
   effectDuration: z.number().positive().default(15),
-  icon: z.string().min(1).optional(),   // HUD icon filename for the tether buff, served from /static/effects/
+  icon: z.string().min(1).optional(),   // HUD icon filename for the tether buff, served from /static/debuffs/
 });
 
 const LineLinkTargetSchema = z.object({

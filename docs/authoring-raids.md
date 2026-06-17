@@ -406,7 +406,7 @@ intercepted). Excerpt from `raids/debug/tether-test.yaml`:
 | `buffName`       | yes      | Name of the granted effect. |
 | `behavior`       | no       | Effect behavior (see [Effects](#effects)). Defaults to `{ kind: none }`. |
 | `effectDuration` | no       | Duration of the granted effect in seconds (> 0). Defaults to `15`. |
-| `icon`           | no       | HUD icon filename for the granted effect, served from `static/effects/`. |
+| `icon`           | no       | HUD icon filename for the granted effect, served from `static/debuffs/`. |
 
 ### `line_link` — fixed visual links from an object to selected players
 
@@ -1068,7 +1068,7 @@ applyEffect:
 | `kind`     | yes      | `"buff"` or `"debuff"`. |
 | `duration` | yes      | Seconds the effect lasts (> 0). |
 | `visibility` | no    | `"visible"` (default) shows in the HUD; `"invisible"` stores the effect without a HUD chip. |
-| `icon`     | no       | HUD icon filename served from `static/effects/` (e.g. `"magic-vuln.png"`). Falls back to a generic glyph chosen from the behavior when omitted. |
+| `icon`     | no       | HUD icon filename served from `static/debuffs/` (e.g. `"magic-vuln.png"`). Falls back to a generic glyph chosen from the behavior when omitted. |
 | `marker`   | no       | Short text rendered above the player while the effect is active. Works even when `visibility` is `"invisible"`. |
 | `behavior` | yes      | One of the behaviors below. |
 

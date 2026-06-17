@@ -1,0 +1,104 @@
+# Entropy / Dynamic Fluid demo — exercises the G4 doubleTrouble mechanic.
+#
+# Entropy carriers: circle self-pop (r 6) + donut follow-up (inner 3, outer 8) on closest 2.
+# Dynamic Fluid carriers: donut self-pop (inner 3, outer 8) + circle follow-up (r 6) on closest 2.
+#
+# Resolution at t ≈ 23: each carrier pops in place, then their two closest
+# neighbours get hit by the opposite shape. Stand spread to avoid chaining.
+
+name: Entropy / Dynamic Fluid Test
+
+arena:
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 20
+
+duration: 35
+
+players:
+  - { id: mt, role: tank,   spawn: [0,    10]  }
+  - { id: ot, role: tank,   spawn: [0,   -10]  }
+  - { id: h1, role: healer, spawn: [-10,   0]  }
+  - { id: h2, role: healer, spawn: [ 10,   0]  }
+  - { id: r1, role: dps,    spawn: [-7,    7]  }
+  - { id: r2, role: dps,    spawn: [ 7,    7]  }
+  - { id: m1, role: dps,    spawn: [-7,   -7]  }
+  - { id: m2, role: dps,    spawn: [ 7,   -7]  }
+
+# Shared debuff behaviors.
+_entropy: &entropy
+  name: Entropy
+  kind: debuff
+  duration: 18
+  icon: entropy.png
+  behavior:
+    kind: doubleTrouble
+    selfShape: circle
+    radius: 6
+    damage: 80
+    damageType: magical
+    knockbackDistance: 6
+    followUp:
+      mode: closest
+      count: 2
+      shape: donut
+      radius: 8
+      inner: 3
+      damage: 120
+      damageType: magical
+
+_dynamicFluid: &dynamicFluid
+  name: Dynamic Fluid
+  kind: debuff
+  duration: 18
+  icon: dynamic_fluid.png
+  behavior:
+    kind: doubleTrouble
+    selfShape: donut
+    selfInner: 3
+    radius: 8
+    damage: 120
+    damageType: magical
+    knockbackDistance: 6
+    followUp:
+      mode: closest
+      count: 2
+      shape: circle
+      radius: 6
+      damage: 80
+      damageType: magical
+
+events:
+  # Opening raidwide to prime HP.
+  - id: raidwide
+    t: 2
+    name: Raidwide
+    telegraph: 2
+    damage: 10
+    damageType: magical
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: [0, 0], radius: 38 }
+
+  # Entropy → tanks + melee DPS.
+  - type: apply_effect
+    id: entropy
+    t: 5
+    name: Entropy
+    players: [mt, ot, m1, m2]
+    applyEffect: *entropy
+
+  # Dynamic Fluid → healers + ranged DPS.
+  - type: apply_effect
+    id: dynamic-fluid
+    t: 5
+    name: Dynamic Fluid
+    players: [h1, h2, r1, r2]
+    applyEffect: *dynamicFluid
+
+waymarks:
+  - { mark: A, pos: [0,  16] }
+  - { mark: B, pos: [16,  0] }
+  - { mark: C, pos: [0, -16] }
+  - { mark: D, pos: [-16, 0] }

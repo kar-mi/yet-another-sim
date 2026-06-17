@@ -15,6 +15,8 @@ const DEBUFF_ICONS = [
   "bind.png",
   "confuse.png",
   "double-trouble.png",
+  "dynamic_fluid.png",
+  "entropy.png",
   "sleep.png",
   "stun.png",
   "teleportent_down.png",

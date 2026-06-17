@@ -107,7 +107,7 @@ function buildEffectChip(
   let iconEl: HTMLElement;
   if (effect.icon) {
     const img = document.createElement("img");
-    img.src = `/static/effects/${effect.icon}`;
+    img.src = `/static/debuffs/${effect.icon}`;
     img.alt = effect.name;
     iconEl = img;
   } else if (icon.src) {
