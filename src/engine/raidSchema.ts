@@ -87,6 +87,18 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     damage: z.number().nonnegative(),
     damageType: z.enum(["physical", "magical", "true"]),
     knockbackDistance: z.number().positive().default(6),
+    selfShape: z.enum(["circle", "donut"]).default("circle"),
+    selfInner: z.number().positive().optional(),
+    followUp: z.object({
+      mode: z.enum(["closest", "furthest"]).default("closest"),
+      count: z.number().int().positive().default(2),
+      shape: z.enum(["circle", "donut"]).default("circle"),
+      radius: z.number().positive(),
+      inner: z.number().positive().optional(),
+      damage: z.number().nonnegative(),
+      damageType: z.enum(["physical", "magical", "true"]),
+      knockbackDistance: z.number().positive().optional(),
+    }).optional(),
   }),
   z.object({
     kind: z.literal("plant"),
@@ -108,7 +120,21 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     distance: z.number().nonnegative(),
     doubledDistance: z.number().nonnegative(),
   }),
-]);
+]).superRefine((b, ctx) => {
+  if (b.kind !== "doubleTrouble") return;
+  if (b.selfShape === "donut" && b.selfInner === undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["selfInner"], message: "selfInner is required when selfShape is \"donut\"" });
+  }
+  if (b.selfShape === "donut" && b.selfInner !== undefined && b.selfInner >= b.radius) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["selfInner"], message: "selfInner must be less than radius" });
+  }
+  if (b.followUp?.shape === "donut" && b.followUp.inner === undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["followUp", "inner"], message: "followUp.inner is required when followUp.shape is \"donut\"" });
+  }
+  if (b.followUp?.shape === "donut" && b.followUp.inner !== undefined && b.followUp.inner >= b.followUp.radius) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["followUp", "inner"], message: "followUp.inner must be less than followUp.radius" });
+  }
+});
 
 const ApplyEffectSchema = z.object({
   name: z.string().min(1),

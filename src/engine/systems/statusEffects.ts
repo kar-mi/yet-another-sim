@@ -3,9 +3,34 @@
 // expired effects. Plant traps are appended to ctx.forcedMarches (built in phase 1c) for next tick.
 
 import type { TickContext } from "./context";
-import type { AOEShape } from "@shared/types";
+import type { AOEShape, DamageType } from "@shared/types";
 import { pointInShape } from "../shapes";
-import { effectActiveDt, applyMechanicDamage, applyKnockback, isEffectActiveAt } from "./helpers";
+import { effectActiveDt, applyMechanicDamage, applyKnockback, isEffectActiveAt, selectTargetPlayers } from "./helpers";
+import { addResolvedAoeVisual } from "./effectResolvers";
+
+// Damages everyone inside `shape`, applies knockback from `origin` when `kbDistance` is set.
+// `skipKbForId`: player id exempt from knockback (the carrier for the self-pop).
+function applyShapeHit(
+  players: TickContext["players"],
+  log: TickContext["log"],
+  time: number,
+  shape: AOEShape,
+  origin: { x: number; z: number },
+  damage: number,
+  damageType: DamageType,
+  kbDistance: number | undefined,
+  skipKbForId: string | undefined,
+  name: string,
+): void {
+  for (const target of players) {
+    if (!target.alive || !pointInShape(shape, target.pos)) continue;
+    applyMechanicDamage(target, damage, damageType, time);
+    if (kbDistance !== undefined && (skipKbForId === undefined || target.id !== skipKbForId) && target.antiKbActive <= 0) {
+      applyKnockback(target, { distance: kbDistance, height: 0, origin }, origin, time);
+    }
+    log.push({ t: time, mechanic: name, playerId: target.id, event: "hit" });
+  }
+}
 
 export function applyStatusEffects(ctx: TickContext): void {
   const { players, log, time, previousTime, actedByPlayer, forcedMarches } = ctx;
@@ -37,14 +62,21 @@ export function applyStatusEffects(ctx: TickContext): void {
           const expiry = effect.appliedAt + effect.duration;
           if (expiry <= previousTime || expiry > time) continue;
           const b = effect.behavior;
-          const circle: AOEShape = { kind: "circle", center: player.pos, radius: b.radius };
-          for (const target of players) {
-            if (!target.alive || !pointInShape(circle, target.pos)) continue;
-            applyMechanicDamage(target, b.damage, b.damageType, time);
-            if (target.id !== player.id && target.antiKbActive <= 0) {
-              applyKnockback(target, { distance: b.knockbackDistance, height: 0, origin: player.pos }, player.pos, time);
+          const selfShape: AOEShape = (b.selfShape ?? "circle") === "donut"
+            ? { kind: "donut", center: player.pos, inner: b.selfInner!, outer: b.radius }
+            : { kind: "circle", center: player.pos, radius: b.radius };
+          applyShapeHit(players, log, time, selfShape, player.pos, b.damage, b.damageType, b.knockbackDistance, player.id, effect.name);
+          if (b.followUp) {
+            const fu = b.followUp;
+            const others = players.filter(p => p.alive && p.id !== player.id);
+            const fuTargets = selectTargetPlayers(others, player.pos, fu.mode, fu.count);
+            for (const fuTarget of fuTargets) {
+              const fuShape: AOEShape = fu.shape === "donut"
+                ? { kind: "donut", center: fuTarget.pos, inner: fu.inner!, outer: fu.radius }
+                : { kind: "circle", center: fuTarget.pos, radius: fu.radius };
+              applyShapeHit(players, log, time, fuShape, fuTarget.pos, fu.damage, fu.damageType, fu.knockbackDistance, undefined, effect.name);
+              addResolvedAoeVisual(ctx, `${effect.id}-fu-${fuTarget.id}`, effect.name, fuShape);
             }
-            log.push({ t: time, mechanic: effect.name, playerId: target.id, event: "hit" });
           }
           continue;
         }
