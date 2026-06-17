@@ -467,11 +467,16 @@ body:focus-visible {
   box-sizing: border-box;
 }
 
-/* Action rows expose their controller combo as a clickable rebind button. */
+/* Action rows expose their controller combo as a clickable rebind button. Unlike the fixed
+   movement mappings, these get the solid, brighter treatment of the keyboard rebind buttons so
+   it's clear they can be changed. */
 .keybind-controller-btn {
   font-family: 'Share Tech Mono', monospace;
   cursor: pointer;
-  transition: border-color 0.1s, color 0.1s;
+  background: rgba(10, 12, 28, 0.9);
+  border: 1px solid rgba(85, 95, 145, 0.3);
+  color: rgba(212, 220, 245, 0.85);
+  transition: border-color 0.1s, color 0.1s, box-shadow 0.1s;
 }
 
 .keybind-btn:hover,
