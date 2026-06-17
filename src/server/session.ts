@@ -107,6 +107,7 @@ export class Session {
   private readonly desync: DesyncTracker;
   private readonly sessionLog: SessionLog | null;
   private botsInvincible = false;
+  private latestSnapshot: { tick: number; world: unknown } | null = null;
 
   // Authoritative input log: one merged-intent Frame per simulated tick since the pull started.
   // Owned by the relay; exposed for late-join / resync (`started` sends it in full to be replayed).
@@ -189,6 +190,9 @@ export class Session {
         return;
       case "worldHash":
         this.reportWorldHash(clientId, message.tick, message.hash);
+        return;
+      case "snapshot":
+        this.acceptSnapshot(clientId, message.tick, message.world);
         return;
     }
   }
@@ -506,6 +510,7 @@ export class Session {
   // Reset per-pull state whenever a fresh tick-0 world is built (start/restart/stop/setRaid) so the
   // input log, batching, and desync window start clean.
   private resetPull(): void {
+    this.latestSnapshot = null;
     this.relay.reset(this.world.duration);
     this.desync.reset();
     // On a real pull start (start/restart set status="running" before this; the constructor's
@@ -514,8 +519,26 @@ export class Session {
     if (this.status === "running") this.sessionLog?.header(this.raidId, this.world);
   }
 
+  private acceptSnapshot(clientId: string, tick: number, world: unknown): void {
+    if (clientId !== this.hostClientId) return;
+    if (this.status !== "running") return;
+    if (tick > this.inputLog.length) return;
+    if (this.latestSnapshot && tick <= this.latestSnapshot.tick) return;
+    // Shallow shape guard: the world is stored opaquely (the host is trusted), but a malformed
+    // snapshot would poison every later join/resync (the client crashes rehydrating it). Reject it
+    // so startedMessage falls back to full-log anchoring.
+    if (!world || typeof world !== "object" || !("arena" in world) || !("players" in world)) return;
+    this.latestSnapshot = { tick, world };
+  }
+
   private startedMessage(playerId: string | null): ServerMessage {
-    return { type: "started", world: this.world, yourPlayerId: playerId, tick: this.inputLog.length, frames: this.inputLog };
+    const snap = this.latestSnapshot;
+    if (snap) {
+      return { type: "started", world: snap.world as World, baseTick: snap.tick,
+               yourPlayerId: playerId, tick: this.inputLog.length, frames: this.inputLog.slice(snap.tick) };
+    }
+    return { type: "started", world: this.world, baseTick: 0,
+             yourPlayerId: playerId, tick: this.inputLog.length, frames: this.inputLog };
   }
 
   // The host's local sim reached a terminal state (wiped/cleared). Stop relaying and mark the pull

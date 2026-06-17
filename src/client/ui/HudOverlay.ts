@@ -47,6 +47,19 @@ function partySortIndex(player: Player): number {
   return PARTY_SLOT_INDEX.get(player.id) ?? PARTY_SLOT_ORDER.length;
 }
 
+// Skip a DOM write when the value is unchanged. Reading an inline style / textContent is cheap and
+// doesn't force layout, but writing one can, so dirty-checking avoids per-frame style/layout churn
+// across the local bars, all 8 party rows, and the hotbar cooldown sweeps.
+function setWidth(el: HTMLElement, value: string): void {
+  if (el.style.width !== value) el.style.width = value;
+}
+function setText(el: HTMLElement, value: string): void {
+  if (el.textContent !== value) el.textContent = value;
+}
+function setBackground(el: HTMLElement, value: string): void {
+  if (el.style.background !== value) el.style.background = value;
+}
+
 function orderedPartyPlayers(players: Player[], localPlayerId: string | null): Player[] {
   return [...players].sort((a, b) => {
     if (a.id === localPlayerId) return -1;
@@ -472,8 +485,8 @@ export class HudOverlay {
       if (row.camBtn) row.camBtn.disabled = localAlive || !player.alive;
       const hpPct = clamp01(player.hp / player.maxHp) * 100;
       const mpPct = clamp01(player.mp / player.maxMp) * 100;
-      row.hpFill.style.width = `${hpPct}%`;
-      row.mpFill.style.width = `${mpPct}%`;
+      setWidth(row.hpFill, `${hpPct}%`);
+      setWidth(row.mpFill, `${mpPct}%`);
       row.rowEl.classList.toggle("yas-dead", !player.alive);
       row.statusDot.classList.toggle("is-joined", player.control === "human");
       row.statusDot.classList.toggle("is-bot", player.control === "bot");
@@ -509,13 +522,13 @@ export class HudOverlay {
     syncEffectChips(this.debuffTrackerEl, this.debuffTrackerState, p, world.time, "yas-debuff", "debuff");
 
     const hpPct = clamp01(p.hp / p.maxHp) * 100;
-    this.hpFill.style.width = `${hpPct}%`;
-    this.hpVal.textContent = `${Math.round(p.hp)} / ${p.maxHp}`;
+    setWidth(this.hpFill, `${hpPct}%`);
+    setText(this.hpVal, `${Math.round(p.hp)} / ${p.maxHp}`);
     this.invulnBtn.classList.toggle("is-active", p.invincible);
 
     const mpPct = clamp01(p.mp / p.maxMp) * 100;
-    this.mpFill.style.width = `${mpPct}%`;
-    this.mpVal.textContent = `${Math.round(p.mp)} / ${p.maxMp}`;
+    setWidth(this.mpFill, `${mpPct}%`);
+    setText(this.mpVal, `${Math.round(p.mp)} / ${p.maxMp}`);
 
     // Provoke is tank-only: show its slots only for a tank local player. No active buff (instantaneous).
     const isTank = p.role === "tank";
@@ -596,13 +609,16 @@ export class HudOverlay {
   ): number {
     const onCooldown = cooldownSecs > 0;
     if (onCooldown) {
-      const elapsed = (1 - cooldownSecs / cooldownMax) * 360;
+      // Quantize the sweep to whole degrees so the (long) conic-gradient string only changes ~360
+      // times over a cooldown instead of every frame; setBackground/setText then skip the no-ops.
+      const elapsed = Math.round((1 - cooldownSecs / cooldownMax) * 360);
       const bg = `conic-gradient(from -90deg, transparent ${elapsed}deg, rgba(0,0,8,0.82) ${elapsed}deg)`;
+      const label = Math.ceil(cooldownSecs).toString();
       for (const { overlay, text } of cdOverlays) {
         overlay.style.display = "block";
-        overlay.style.background = bg;
+        setBackground(overlay, bg);
         text.style.display = "flex";
-        text.textContent = Math.ceil(cooldownSecs).toString();
+        setText(text, label);
       }
     } else {
       for (const { overlay, text } of cdOverlays) {

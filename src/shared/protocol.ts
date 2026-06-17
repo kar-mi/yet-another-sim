@@ -133,6 +133,14 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     tick: z.number().int().nonnegative(),
     hash: z.number().int(),
   }).strict(),
+  // Lockstep: host-only periodic world snapshot for late-join anchoring. The server stores and
+  // relays this opaquely — it never interprets it. Trust note: the host is already canonical via
+  // DesyncTracker; accepting its world snapshot adds no new trust surface.
+  z.object({
+    type: z.literal("snapshot"),
+    tick: z.number().int().nonnegative(),
+    world: z.unknown(),
+  }).strict(),
 ]);
 
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
@@ -168,10 +176,11 @@ export type ServerMessage =
       maxObservers: number;
       observingByYou: boolean;
     }
-  // The pull's initial (tick-0) world plus the input log up to `tick`. On a fresh start `tick` is 0
-  // and `frames` is empty; for a late join / resync `tick` is the current tick and `frames` is the
-  // full log from tick 0 so the client fast-forwards locally.
-  | { type: "started"; world: World; yourPlayerId: string | null; tick: number; frames: Frame[] }
+  // The pull's world at `baseTick` plus the input log tail from baseTick to `tick`. On a fresh start
+  // baseTick is 0 and frames is empty. For a late join / resync anchored to a host snapshot,
+  // baseTick is the snapshot tick and frames is only the tail — the client adopts the world and
+  // replays just the tail instead of the full log.
+  | { type: "started"; world: World; baseTick: number; yourPlayerId: string | null; tick: number; frames: Frame[] }
   | { type: "playback"; state: PlaybackState; raidId: string; hostClientId: string }
   // Incremental input frames to step locally. `startTick` is the tick index of the first frame.
   | { type: "frames"; startTick: number; frames: Frame[] }
