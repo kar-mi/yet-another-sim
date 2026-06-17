@@ -32,46 +32,42 @@ export function computeBotIntents(world: World, dt: number): Intents {
   for (const player of world.players) {
     if (!player.alive || player.control !== "bot") continue;
 
+    let intent: { move: Vec2; facing?: number } | undefined;
+
     // A solver hold freezes bots in place until botHoldUntil (set when a matching mechanic resolved).
     if (held) {
-      intents[player.id] = { move: { x: 0, z: 0 } };
-      continue;
+      intent = { move: { x: 0, z: 0 } };
+    } else {
+      const solverTarget = genericSolverWaypoint(player, world);
+      if (solverTarget) {
+        intent = moveIntent(player, solverTarget, dt);
+      } else if (player.pattern?.length) {
+        const waypoint = activeWaypoint(player.pattern, world.time, player.botWaypointResumeAfter);
+        if (waypoint) intent = moveIntent(player, waypoint.pos, dt);
+      }
     }
 
-    const solverTarget = genericSolverWaypoint(player, world);
-    if (solverTarget) {
-      intents[player.id] = moveIntent(player, solverTarget, dt);
-      continue;
-    }
-
-    if (!player.pattern?.length) continue;
-
-    const waypoint = activeWaypoint(player.pattern, world.time, player.botWaypointResumeAfter);
-    if (!waypoint) continue;
-
-    intents[player.id] = moveIntent(player, waypoint.pos, dt);
-  }
-
-  for (const player of world.players) {
-    if (!player.alive || player.control !== "bot") continue;
     const dirKb = player.effects.find(
       e => e.behavior.kind === "directionalKnockback" && isEffectActiveAt(e, world.time)
     );
-    if (!dirKb) continue;
-    const b = dirKb.behavior as Extract<EffectBehavior, { kind: "directionalKnockback" }>;
-    const kbMechanic = world.active.find(m => m.knockback);
-    if (!kbMechanic) continue;
-    const kbOrigin = kbMechanic.knockback!.origin ?? shapeOrigin(kbMechanic.shape);
-    const awayVec = sub(player.pos, kbOrigin);
-    const awayDir = length(awayVec) > 0 ? normalize(awayVec) : { x: 0, z: 1 };
-    const faceDir = b.requiredFacing === "away" ? awayDir : { x: -awayDir.x, z: -awayDir.z };
-    const facing = atan2(faceDir.x, faceDir.z);
-    const intent = intents[player.id];
-    if (intent) {
-      intent.facing = facing;
-    } else {
-      intents[player.id] = { move: { x: 0, z: 0 }, facing };
+    if (dirKb) {
+      const b = dirKb.behavior as Extract<EffectBehavior, { kind: "directionalKnockback" }>;
+      const kbMechanic = world.active.find(m => m.knockback);
+      if (kbMechanic) {
+        const kbOrigin = kbMechanic.knockback!.origin ?? shapeOrigin(kbMechanic.shape);
+        const awayVec = sub(player.pos, kbOrigin);
+        const awayDir = length(awayVec) > 0 ? normalize(awayVec) : { x: 0, z: 1 };
+        const faceDir = b.requiredFacing === "away" ? awayDir : { x: -awayDir.x, z: -awayDir.z };
+        const facing = atan2(faceDir.x, faceDir.z);
+        if (intent) {
+          intent.facing = facing;
+        } else {
+          intent = { move: { x: 0, z: 0 }, facing };
+        }
+      }
     }
+
+    if (intent) intents[player.id] = intent;
   }
 
   return intents;
