@@ -28,9 +28,9 @@ test("limit_cut assigns numbers 1–8 each exactly once", () => {
   // Tick past t=0.05 so the event fires.
   const w = runTicks(createWorld(raid, 1), noMove, 10);
   const markers = w.players
-    .flatMap(p => p.effects.filter(e => e.name === "Limit Cut" && e.marker !== undefined))
-    .map(e => e.marker!);
-  expect(markers.sort()).toEqual(["1", "2", "3", "4", "5", "6", "7", "8"]);
+    .flatMap(p => p.effects.filter(e => e.name === "Limit Cut" && e.markerIcon !== undefined))
+    .map(e => e.markerIcon!);
+  expect(markers.sort()).toEqual(["limit1_head.png", "limit2_head.png", "limit3_head.png", "limit4_head.png", "limit5_head.png", "limit6_head.png", "limit7_head.png", "limit8_head.png"]);
 });
 
 test("limit_cut drains pendingLimitCuts after t fires", () => {
@@ -43,8 +43,8 @@ test("limit_cut assignment is deterministic for a fixed seed", () => {
   const raid = limitCutRaid(0.05);
   const w1 = runTicks(createWorld(raid, 42), noMove, 10);
   const w2 = runTicks(createWorld(raid, 42), noMove, 10);
-  const markers1 = w1.players.map(p => p.effects.find(e => e.name === "Limit Cut")?.marker ?? null);
-  const markers2 = w2.players.map(p => p.effects.find(e => e.name === "Limit Cut")?.marker ?? null);
+  const markers1 = w1.players.map(p => p.effects.find(e => e.name === "Limit Cut")?.markerIcon ?? null);
+  const markers2 = w2.players.map(p => p.effects.find(e => e.name === "Limit Cut")?.markerIcon ?? null);
   expect(markers1).toEqual(markers2);
 });
 
@@ -52,7 +52,7 @@ test("limit_cut assignment differs across seeds (probabilistically)", () => {
   const raid = limitCutRaid(0.05);
   const order = (seed: number) =>
     runTicks(createWorld(raid, seed), noMove, 10)
-      .players.map(p => p.effects.find(e => e.name === "Limit Cut")?.marker ?? null);
+      .players.map(p => p.effects.find(e => e.name === "Limit Cut")?.markerIcon ?? null);
   // With 8! = 40320 orderings, two random seeds producing the same order is ~1/40320.
   // Test with several seeds to be confident; allow 1 match but not all.
   const results = [1, 2, 3, 4, 5].map(order);

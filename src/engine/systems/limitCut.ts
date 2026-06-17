@@ -21,7 +21,7 @@ export function resolveLimitCuts(ctx: TickContext): PendingLimitCut[] {
     }
     for (let i = 0; i < shuffled.length; i++) {
       const target = shuffled[i];
-      applyEffect(target, { ...plc.effect, marker: String(i + 1) }, time, `${plc.id}-${target.id}-lc`, players);
+      applyEffect(target, { ...plc.effect, markerIcon: `limit${i + 1}_head.png` }, time, `${plc.id}-${target.id}-lc`, players);
       log.push({ t: time, mechanic: plc.name, playerId: target.id, event: "hit" });
     }
   }

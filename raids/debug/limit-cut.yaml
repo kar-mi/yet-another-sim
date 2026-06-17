@@ -67,8 +67,12 @@ events:
       visibility: invisible
       behavior: { kind: none }
 
-  # Dashes fire in numerical order, 1 = NNE (22.5° from north), counting clockwise.
-  # Each rect crosses the full arena from the opposite edge to the numbered inter-inter-cardinal.
+  # Dashes fire in numerical order. Spots are inter-inter-cardinals at radius 18 (NNE counting CW).
+  # Each dash is a rect from the previous position to the next spot.
+  # Spots: NNE=(6.89,16.63) ENE=(16.63,6.89) ESE=(16.63,-6.89) SSE=(6.89,-16.63)
+  #        SSW=(-6.89,-16.63) WSW=(-16.63,-6.89) WNW=(-16.63,6.89) NNW=(-6.89,16.63)
+
+  # Dash 1: boss (0,0) → NNE
   - type: aoe
     id: lc-dash-1
     t: 5.5
@@ -79,11 +83,12 @@ events:
     showTelegraph: true
     shape:
       kind: rect
-      origin: [-8.04, -19.40]
+      origin: [0, 0]
       direction: [0.383, 0.924]
       width: 4
-      length: 42
+      length: 18
 
+  # Dash 2: NNE → ENE
   - type: aoe
     id: lc-dash-2
     t: 7.0
@@ -94,11 +99,12 @@ events:
     showTelegraph: true
     shape:
       kind: rect
-      origin: [-19.40, -8.04]
-      direction: [0.924, 0.383]
+      origin: [6.89, 16.63]
+      direction: [0.707, -0.707]
       width: 4
-      length: 42
+      length: 13.78
 
+  # Dash 3: ENE → ESE
   - type: aoe
     id: lc-dash-3
     t: 8.5
@@ -109,11 +115,12 @@ events:
     showTelegraph: true
     shape:
       kind: rect
-      origin: [-19.40, 8.04]
-      direction: [0.924, -0.383]
+      origin: [16.63, 6.89]
+      direction: [0, -1]
       width: 4
-      length: 42
+      length: 13.78
 
+  # Dash 4: ESE → SSE
   - type: aoe
     id: lc-dash-4
     t: 10.0
@@ -124,11 +131,12 @@ events:
     showTelegraph: true
     shape:
       kind: rect
-      origin: [-8.04, 19.40]
-      direction: [0.383, -0.924]
+      origin: [16.63, -6.89]
+      direction: [-0.707, -0.707]
       width: 4
-      length: 42
+      length: 13.78
 
+  # Dash 5: SSE → SSW
   - type: aoe
     id: lc-dash-5
     t: 11.5
@@ -139,11 +147,12 @@ events:
     showTelegraph: true
     shape:
       kind: rect
-      origin: [8.04, 19.40]
-      direction: [-0.383, -0.924]
+      origin: [6.89, -16.63]
+      direction: [-1, 0]
       width: 4
-      length: 42
+      length: 13.78
 
+  # Dash 6: SSW → WSW
   - type: aoe
     id: lc-dash-6
     t: 13.0
@@ -154,11 +163,12 @@ events:
     showTelegraph: true
     shape:
       kind: rect
-      origin: [19.40, 8.04]
-      direction: [-0.924, -0.383]
+      origin: [-6.89, -16.63]
+      direction: [-0.707, 0.707]
       width: 4
-      length: 42
+      length: 13.78
 
+  # Dash 7: WSW → WNW
   - type: aoe
     id: lc-dash-7
     t: 14.5
@@ -169,11 +179,12 @@ events:
     showTelegraph: true
     shape:
       kind: rect
-      origin: [19.40, -8.04]
-      direction: [-0.924, 0.383]
+      origin: [-16.63, -6.89]
+      direction: [0, 1]
       width: 4
-      length: 42
+      length: 13.78
 
+  # Dash 8: WNW → NNW
   - type: aoe
     id: lc-dash-8
     t: 16.0
@@ -184,10 +195,10 @@ events:
     showTelegraph: true
     shape:
       kind: rect
-      origin: [8.04, -19.40]
-      direction: [-0.383, 0.924]
+      origin: [-16.63, 6.89]
+      direction: [0.707, 0.707]
       width: 4
-      length: 42
+      length: 13.78
 
   # 2-hit tankbuster after the dashes
   - type: targeted
