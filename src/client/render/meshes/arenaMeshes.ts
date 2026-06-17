@@ -56,6 +56,7 @@ export function createZoneMesh(scene: Scene, zone: ZoneShape, floorPlan: FloorPl
       return null;
   }
   mesh.material = mat;
+  mat.freeze(); // static floor: never animates, so skip per-frame shader re-evaluation
   return mesh;
 }
 
@@ -76,6 +77,7 @@ function createFloorPlanCircle(scene: Scene, zone: Extract<ZoneShape, { kind: "c
   drumMat.specularColor = new Color3(0, 0, 0);
   drumMat.alpha = 0.12; // see-through drum so the sides don't read as a solid black wall
   body.material = drumMat;
+  drumMat.freeze(); // static
 
   // Placeholder crosshatch top, shown until the plan image finishes downloading/decoding so the
   // floor is never blank during that window (the images are large and load asynchronously).
@@ -93,6 +95,7 @@ function createFloorPlanCircle(scene: Scene, zone: Extract<ZoneShape, { kind: "c
   placeholderTex.vScale = span;
   placeholderMat.diffuseTexture = placeholderTex;
   placeholder.material = placeholderMat;
+  placeholderMat.freeze(); // static crosshatch placeholder
 
   // Disc lies in the XY plane facing +Z; rotate it flat so it faces up, just above the top face.
   // Keep it below the AOE telegraph plane (world y = 0.01, see telegraphMeshes.ts) so AOEs draw
@@ -110,6 +113,7 @@ function createFloorPlanCircle(scene: Scene, zone: Extract<ZoneShape, { kind: "c
     if (top.isDisposed()) return;
     top.setEnabled(true);
     placeholder.setEnabled(false);
+    imageMat.freeze(); // texture is loaded + assigned; lock the now-static shader
   };
   const tex = new Texture(imageUrl, scene, undefined, undefined, undefined, reveal);
   tex.anisotropicFilteringLevel = 16; // sharpen the plan when viewed at the camera's grazing angle

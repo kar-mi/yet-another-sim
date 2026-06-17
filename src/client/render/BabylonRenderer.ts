@@ -30,6 +30,7 @@ import { ForcedMarchLayer } from "./ForcedMarchLayer";
 import { WaymarkLayer } from "./WaymarkLayer";
 import { setControlScheme } from "../input";
 import { computeWorldRenderKeys, getWorldRenderKeys } from "../worldRenderKeys";
+import { prewarmShaders } from "./shaderPrewarm";
 
 // Sub-path imports drop some Babylon engine side-effect registrations.
 // Use explicit calls because referenced calls survive tree-shaking.
@@ -87,9 +88,12 @@ export class BabylonRenderer implements Renderer {
 
   init(world: World, sessionId: string, localPlayerId: string | null = null): void {
     this.localPlayerId = localPlayerId;
-    this.engine = new Engine(this.canvas, true);
+    this.engine = new Engine(this.canvas, true, { powerPreference: "high-performance", doNotHandleContextLost: true });
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.05, 0.05, 0.1, 1);
+    // Camera uses pointers for rotation, not mesh picking, and every layer sets isPickable=false,
+    // so per-pointermove picking is pure overhead.
+    this.scene.skipPointerMovePicking = true;
 
     this.camera = new ArcRotateCamera("cam", -Math.PI / 2, Math.PI / 3, 30, Vector3.Zero(), this.scene);
     this.camera.movement.input.setInteraction("pointer", { button: 0 }, "rotate");
@@ -181,6 +185,9 @@ export class BabylonRenderer implements Renderer {
       this.onDebugPosition,
       this.onBotsInvincibleChange,
     );
+
+    // Compile the mid-fight material shaders now (during load) so the first AOE/marker doesn't hitch.
+    prewarmShaders(this.scene);
 
     this.onResize = () => this.engine.resize();
     window.addEventListener("resize", this.onResize);

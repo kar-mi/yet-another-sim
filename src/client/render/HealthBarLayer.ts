@@ -1,10 +1,7 @@
 import { AdvancedDynamicTexture } from "@babylonjs/gui/2D/advancedDynamicTexture";
 import { Control } from "@babylonjs/gui/2D/controls/control";
 import { Rectangle } from "@babylonjs/gui/2D/controls/rectangle";
-import { Color3 } from "@babylonjs/core/Maths/math.color";
-import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
-import { Mesh } from "@babylonjs/core/Meshes/mesh";
+import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Scene } from "@babylonjs/core/scene";
 import { clamp01 } from "@shared/math";
 
@@ -16,51 +13,33 @@ type HealthBarOptions = {
 };
 
 type HealthBar = {
-  target: Mesh;
-  plane: Mesh;
-  texture: AdvancedDynamicTexture;
+  track: Rectangle;
   fill: Rectangle;
-  offsetYWorld: number;
-  offsetForwardWorld: number;
+  lastPct: number;
 };
 
+// One shared fullscreen GUI projects every health bar via linkWithMesh, instead of a per-mesh
+// AdvancedDynamicTexture + billboard plane + material (which also forced a computeWorldMatrix +
+// getBoundingInfo per bar every frame). The GUI re-projects linked controls each frame on its own,
+// so `set` only touches the fill width + visibility. Trade-off: the bars draw as a 2D overlay (no
+// 3D occlusion), which is fine for the top-down arena (negligible occluding geometry).
 export class HealthBarLayer {
+  private readonly ui: AdvancedDynamicTexture;
   private bars = new Map<string, HealthBar>();
 
-  constructor(private scene: Scene) {}
+  constructor(scene: Scene) {
+    this.ui = AdvancedDynamicTexture.CreateFullscreenUI("hpUI", true, scene);
+  }
 
   link(id: string, mesh: Mesh, options: HealthBarOptions): void {
-    const widthWorld = options.trackWidthPx / 36;
-    const heightWorld = widthWorld / 8;
-    const plane = CreatePlane(`hp-plane-${id}`, { width: widthWorld, height: heightWorld }, this.scene);
-    plane.billboardMode = Mesh.BILLBOARDMODE_ALL;
-    plane.isPickable = false;
-
-    const texture = AdvancedDynamicTexture.CreateForMesh(
-      plane,
-      options.trackWidthPx,
-      16,
-      false,
-      false,
-      undefined,
-      (target, uniqueId, guiTexture) => {
-        const mat = new StandardMaterial(`hp-plane-mat-${id}-${uniqueId}`, this.scene);
-        mat.backFaceCulling = false;
-        mat.diffuseColor = Color3.Black();
-        mat.specularColor = Color3.Black();
-        mat.emissiveTexture = guiTexture;
-        mat.opacityTexture = guiTexture;
-        target.material = mat;
-      },
-    );
-
     const track = new Rectangle(`hp-track-${id}`);
-    track.width = "100%";
-    track.height = "100%";
+    track.widthInPixels = options.trackWidthPx;
+    track.heightInPixels = Math.max(6, Math.round(options.trackWidthPx / 8));
     track.thickness = 2;
     track.color = "rgba(255, 255, 255, 0.55)";
     track.background = "rgba(0, 0, 0, 0.65)";
     track.isHitTestVisible = false;
+    track.isVisible = false;
 
     const fill = new Rectangle(`hp-fill-${id}`);
     fill.width = "100%";
@@ -71,42 +50,29 @@ export class HealthBarLayer {
     fill.isHitTestVisible = false;
 
     track.addControl(fill);
-    texture.addControl(track);
-    this.bars.set(id, {
-      target: mesh,
-      plane,
-      texture,
-      fill,
-      offsetYWorld: Math.abs(options.offsetYPx) / 100,
-      offsetForwardWorld: options.offsetForwardWorld ?? 0,
-    });
+    this.ui.addControl(track);
+    // linkWithMesh must follow addControl. Negative Y lifts the bar above the mesh origin (GUI Y is
+    // screen-down); the configured offsets are already negative.
+    track.linkWithMesh(mesh);
+    track.linkOffsetYInPixels = options.offsetYPx;
+
+    this.bars.set(id, { track, fill, lastPct: -1 });
   }
 
   set(id: string, pct: number, visible: boolean): void {
     const bar = this.bars.get(id);
     if (!bar) return;
+    bar.track.isVisible = visible;
+    if (!visible) return;
     const clamped = clamp01(Number.isFinite(pct) ? pct : 0);
-    bar.fill.width = `${clamped * 100}%`;
-    bar.plane.isVisible = visible;
-    this.syncPlane(bar);
-  }
-
-  private syncPlane(bar: HealthBar): void {
-    if (!bar.plane.isVisible || bar.target.isDisposed()) return;
-    bar.target.computeWorldMatrix(true);
-    const bounds = bar.target.getBoundingInfo().boundingBox;
-    const min = bounds.minimumWorld;
-    const max = bounds.maximumWorld;
-    const forwardX = Math.sin(bar.target.rotation.y) * bar.offsetForwardWorld;
-    const forwardZ = Math.cos(bar.target.rotation.y) * bar.offsetForwardWorld;
-    bar.plane.position.set((min.x + max.x) / 2 + forwardX, max.y + bar.offsetYWorld, (min.z + max.z) / 2 + forwardZ);
+    if (clamped !== bar.lastPct) {
+      bar.fill.width = `${clamped * 100}%`;
+      bar.lastPct = clamped;
+    }
   }
 
   dispose(): void {
-    for (const bar of this.bars.values()) {
-      bar.texture.dispose();
-      bar.plane.dispose();
-    }
+    this.ui.dispose();
     this.bars.clear();
   }
 }
