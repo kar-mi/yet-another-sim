@@ -176,7 +176,19 @@ export function applyKnockback(player: Player, knockback: Knockback, origin: Vec
   player.botWaypointResumeAfter = time;
   const away = sub(player.pos, origin);
   const dir = length(away) > 0 ? normalize(away) : { x: 1, z: 0 }; // player on origin: arbitrary dir
-  const { distance, height } = knockback;
+  let { distance, height } = knockback;
+
+  const dirKbIdx = player.effects.findIndex(
+    e => e.behavior.kind === "directionalKnockback" && isEffectActiveAt(e, time)
+  );
+  if (dirKbIdx >= 0) {
+    const b = player.effects[dirKbIdx].behavior as Extract<EffectBehavior, { kind: "directionalKnockback" }>;
+    const facingDir = { x: sin(player.facing), z: cos(player.facing) };
+    const isFacingAway = dot(facingDir, dir) > 0;
+    const correct = b.requiredFacing === "away" ? isFacingAway : !isFacingAway;
+    distance = correct ? b.distance : b.doubledDistance;
+    player.effects.splice(dirKbIdx, 1);
+  }
   if (height > 0) {
     // Projectile arc: rise to peak `height`, travel `distance` horizontally over the flight.
     const vUp = Math.sqrt(2 * GRAVITY * height);

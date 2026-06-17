@@ -102,6 +102,12 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     duration: z.number().positive().default(10),     // seconds the armed trap lasts before expiring untriggered
     tpDelay: z.number().nonnegative().default(0.7),  // windup seconds frozen at A before the instant teleport to B
   }),
+  z.object({
+    kind: z.literal("directionalKnockback"),
+    requiredFacing: z.enum(["away", "toward"]),
+    distance: z.number().nonnegative(),
+    doubledDistance: z.number().nonnegative(),
+  }),
 ]);
 
 const ApplyEffectSchema = z.object({
