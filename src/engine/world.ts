@@ -203,6 +203,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       facing: 0, threat, currentTarget: topThreatTarget(players, threat),
       ringScale: bossDef.ring.scale,
       ringColor: bossDef.ring.color,
+      model: bossDef.model,
     };
   });
   const boss = bosses[0]!;

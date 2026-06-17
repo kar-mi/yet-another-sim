@@ -580,7 +580,8 @@ const BossSchema = z.object({
     scale: z.number().positive().default(2),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#e62120"),
   }).default({ scale: 2, color: "#e62120" }),
-}).default({ pos: [0, 0], radius: 3, ring: { scale: 2, color: "#e62120" } });
+  model: z.string().min(1).default("skeith"),
+}).default({ pos: [0, 0], radius: 3, ring: { scale: 2, color: "#e62120" }, model: "skeith" });
 
 // Boss entry in a multi-boss `bosses:` list. Same fields as BossSchema plus a required id slug
 // and an optional aggro seed (player id whose threat is pre-seeded to the top so this boss
@@ -593,6 +594,7 @@ const BossWithIdSchema = z.object({
     scale: z.number().positive().default(2),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#e62120"),
   }).default({ scale: 2, color: "#e62120" }),
+  model: z.string().min(1).default("skeith"),
   aggro: z.string().min(1).optional(),
 });
 

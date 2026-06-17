@@ -188,6 +188,7 @@ export type Boss = {
   threat: Record<string, number>;  // playerId -> threat value
   ringScale: number;               // floor-ring visual scale (BossRingLayer)
   ringColor: string;               // floor-ring hex color
+  model: string;                   // glb filename stem under /static/model/ (without extension)
 };
 
 export type AOEShape =

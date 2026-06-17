@@ -48,7 +48,7 @@ function mergePendingIntent(previous: Intent | undefined, next: Intent): Intent 
 
 function createEmptyRaid(): RaidDef {
   const players: RaidPlayerDef[] = ROSTER.map(({ id, role }) => ({ id, role, spawn: CLOCK_SPOTS[id] }));
-  const boss = { pos: [0, 0] as [number, number], radius: 3, ring: { scale: 2, color: "#e62120" } };
+  const boss = { pos: [0, 0] as [number, number], radius: 3, ring: { scale: 2, color: "#e62120" }, model: "skeith" };
   return {
     name: "(empty)",
     arena: { zones: [{ kind: "circle", center: [0, 0] as [number, number], radius: 20 }], floorPlan: "squares" },
