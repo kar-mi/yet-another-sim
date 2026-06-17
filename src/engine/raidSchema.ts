@@ -145,6 +145,7 @@ const ApplyEffectSchema = z.object({
   icon: z.string().min(1).optional(),   // HUD icon filename, served from /static/debuffs/
   marker: z.string().min(1).max(8).optional(), // short above-head marker shown while active
   markerIcon: z.string().min(1).optional(), // above-head marker image filename, served from /static/head_markers/
+  markerIconScale: z.number().positive().optional(), // per-icon size multiplier (default 4)
 });
 
 const ApplyEffectsSchema = z.object({

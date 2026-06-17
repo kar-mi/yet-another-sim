@@ -99,6 +99,7 @@ export type EffectSpec = {
   marker?: string;
   // Optional above-head marker image: a bare filename served from /static/head_markers/.
   markerIcon?: string;
+  markerIconScale?: number; // per-icon size multiplier (default 4)
 };
 
 export type EffectBundle = {
@@ -120,6 +121,7 @@ export type StatusEffect = {
   marker?: string;
   // Optional above-head marker image: a bare filename served from /static/head_markers/.
   markerIcon?: string;
+  markerIconScale?: number; // per-icon size multiplier (default 4)
   // Set when a confusion debuff lands: the player it forces this player to walk toward.
   lockedTargetId?: string;
   // Plant slot index from the assigned combo. Used by bot solvers to place each arrow separately.
