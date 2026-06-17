@@ -1,0 +1,126 @@
+# Headwind / Tailwind — directionalKnockback debuff test.
+# Correct facing = distance 10; wrong facing = distance 22 (flies past arena edge).
+#
+# Round 1: tanks+healers get Headwind (face toward boss), DPS get Tailwind (face away).
+# Round 2: everyone gets Headwind.
+# Round 3: everyone gets Tailwind.
+
+name: Directional Knockback Test
+arena:
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 20
+duration: 55
+
+players:
+  - id: mt
+    role: tank
+    spawn: [0, 10]
+  - id: ot
+    role: tank
+    spawn: [0, -10]
+  - id: h1
+    role: healer
+    spawn: [-10, 0]
+  - id: h2
+    role: healer
+    spawn: [10, 0]
+  - id: r1
+    role: dps
+    spawn: [-7, 7]
+  - id: r2
+    role: dps
+    spawn: [7, 7]
+  - id: m1
+    role: dps
+    spawn: [-7, -7]
+  - id: m2
+    role: dps
+    spawn: [7, -7]
+
+_headwind: &headwind
+  name: Headwind
+  kind: debuff
+  duration: 9
+  behavior:
+    kind: directionalKnockback
+    requiredFacing: toward
+    distance: 10
+    doubledDistance: 22
+  icon: headwind.png
+
+_tailwind: &tailwind
+  name: Tailwind
+  kind: debuff
+  duration: 9
+  behavior:
+    kind: directionalKnockback
+    requiredFacing: away
+    distance: 10
+    doubledDistance: 22
+  icon: tailwind.png
+
+_shockwave: &shockwave
+  name: Shockwave
+  telegraph: 5
+  damage: 20
+  damageType: physical
+  showCastBar: true
+  shape: { kind: circle, center: [0, 0], radius: 20 }
+  knockback: { distance: 10 }
+
+events:
+  # Round 1: mixed — tanks+healers face in (Headwind), DPS face out (Tailwind)
+  - type: apply_effect
+    id: headwind-tank-1
+    t: 3
+    name: Apply Headwind
+    role: tank
+    applyEffect: *headwind
+
+  - type: apply_effect
+    id: headwind-healer-1
+    t: 3
+    name: Apply Headwind
+    role: healer
+    applyEffect: *headwind
+
+  - type: apply_effect
+    id: tailwind-dps-1
+    t: 3
+    name: Apply Tailwind
+    role: dps
+    applyEffect: *tailwind
+
+  - id: shockwave-1
+    t: 3
+    <<: *shockwave
+
+  # Round 2: everyone Headwind (face toward the center)
+  - type: apply_effect
+    id: headwind-all-2
+    t: 21
+    name: Apply Headwind
+    applyEffect: *headwind
+
+  - id: shockwave-2
+    t: 21
+    <<: *shockwave
+
+  # Round 3: everyone Tailwind (face away from the center)
+  - type: apply_effect
+    id: tailwind-all-3
+    t: 38
+    name: Apply Tailwind
+    applyEffect: *tailwind
+
+  - id: shockwave-3
+    t: 38
+    <<: *shockwave
+
+waymarks:
+  - { mark: A, pos: [0, 16] }
+  - { mark: B, pos: [16, 0] }
+  - { mark: C, pos: [0, -16] }
+  - { mark: D, pos: [-16, 0] }
