@@ -406,7 +406,7 @@ intercepted). Excerpt from `raids/debug/tether-test.yaml`:
 | `buffName`       | yes      | Name of the granted effect. |
 | `behavior`       | no       | Effect behavior (see [Effects](#effects)). Defaults to `{ kind: none }`. |
 | `effectDuration` | no       | Duration of the granted effect in seconds (> 0). Defaults to `15`. |
-| `icon`           | no       | HUD icon filename for the granted effect, served from `static/effects/`. |
+| `icon`           | no       | HUD icon filename for the granted effect, served from `static/debuffs/`. |
 
 ### `line_link` — fixed visual links from an object to selected players
 
@@ -1068,7 +1068,7 @@ applyEffect:
 | `kind`     | yes      | `"buff"` or `"debuff"`. |
 | `duration` | yes      | Seconds the effect lasts (> 0). |
 | `visibility` | no    | `"visible"` (default) shows in the HUD; `"invisible"` stores the effect without a HUD chip. |
-| `icon`     | no       | HUD icon filename served from `static/effects/` (e.g. `"magic-vuln.png"`). Falls back to a generic glyph chosen from the behavior when omitted. |
+| `icon`     | no       | HUD icon filename served from `static/debuffs/` (e.g. `"magic-vuln.png"`). Falls back to a generic glyph chosen from the behavior when omitted. |
 | `marker`   | no       | Short text rendered above the player while the effect is active. Works even when `visibility` is `"invisible"`. |
 | `behavior` | yes      | One of the behaviors below. |
 
@@ -1112,7 +1112,46 @@ behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay
 - **dot** — deals `dps` damage per second (≥ 0) while active. `condition` gates when a tick deals damage: `"always"` (default) every tick, `"moving"` only while the player acts/moves (formerly `pyretic`), `"idle"` only while the player stays still (formerly `freeze`).
 - **confusion** — overrides movement: the player is forced to walk toward whichever other living player was closest **when the debuff landed** (the target is locked at that moment). When they get within `radius` units, that **target** takes `damage` of `damageType` (friendly fire — the confused player takes none) and the debuff ends. Pair with a long `duration` so it lasts until contact.
 - **sleep** — disables all input (movement and actions) for the full `duration`. Not broken by taking damage.
-- **doubleTrouble** — when the debuff expires, players within `radius` of the carrier take `damage`; everyone hit except the carrier is knocked back `knockbackDistance` from the carrier.
+- **doubleTrouble** — when the debuff expires, fires two AOEs in order:
+  1. **Self-pop** — a shape centered on the carrier hits all players inside for `damage`; everyone hit except the carrier is knocked back `knockbackDistance`. `selfShape` controls the shape: `"circle"` (default — radius `radius`) or `"donut"` (inner radius `selfInner`, outer radius `radius`; `selfInner` is required and must be less than `radius`).
+  2. **Follow-up** (optional) — if `followUp` is set, an AOE is dropped on each of the `count` closest (or furthest, if `mode: "furthest"`) living non-carrier players. `shape`, `radius`, `damage`, `damageType` describe each follow-up circle or donut (`inner` required and < `radius` for donuts). `knockbackDistance` is optional; when omitted no knockback is applied to follow-up hits. A player caught by both the self-pop and a follow-up shape is hit once per shape.
+
+  Entropy/Dynamic Fluid example:
+  ```yaml
+  # Entropy: circle on self, donut on closest 2
+  behavior:
+    kind: doubleTrouble
+    selfShape: circle
+    radius: 6
+    damage: 80
+    damageType: magical
+    knockbackDistance: 6
+    followUp:
+      mode: closest
+      count: 2
+      shape: donut
+      radius: 8
+      inner: 3
+      damage: 120
+      damageType: magical
+
+  # Dynamic Fluid: donut on self, circle on closest 2
+  behavior:
+    kind: doubleTrouble
+    selfShape: donut
+    radius: 8
+    selfInner: 3
+    damage: 120
+    damageType: magical
+    knockbackDistance: 6
+    followUp:
+      mode: closest
+      count: 2
+      shape: circle
+      radius: 6
+      damage: 80
+      damageType: magical
+  ```
 - **plant** — Tele-Trouncing "plant": the HUD shows an arrow along `direction` (`[x, z]`). When the debuff **expires** it places a teleport trap (a `forced_march`) at the player's position. The trap is **inert for `armDelay` seconds** (so the placer can step off), then triggers on contact — the first player to enter its `radius` is frozen for `tpDelay` seconds (the windup), then **instantly teleported** `distance` units along `direction` (measured from their own spot, so it lands purely along the heading). An untriggered trap expires `duration` seconds after it arms. The placed arrow renders via the forced-march layer; nothing is drawn under the player during the debuff. `direction` is a non-zero `[x, z]` vector **or** the string `"option"` (defer to the combination plan — it resolves to a placeholder the plan overrides per player; see [Optional combinations](#optional-combinations)). `radius` defaults `3`, `armDelay` `3`, `duration` `10`, `tpDelay` `0.7`.
 
 ## Optional combinations
