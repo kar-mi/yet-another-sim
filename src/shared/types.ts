@@ -547,6 +547,16 @@ export type PendingEffectSelect = {
   applyEffect: EffectSpec;
 };
 
+// Assigns each player a unique numbered marker (1–8) by seeded Fisher-Yates shuffle.
+export type PendingLimitCut = {
+  id: string;
+  t: number;
+  name: string;
+  effect: EffectSpec;
+  players?: string[];
+  role?: Role;
+};
+
 // A standalone "drop this effect on players now" event. Targeting: `players` ids if given, else
 // `role` filter, else everyone alive; `count` caps how many (random when `rng`, else roster order).
 export type PendingApplyEffect = {
@@ -781,6 +791,7 @@ export type World = {
   reassigns: Reassign[];
   pendingEffectSelects: PendingEffectSelect[];
   pendingApplyEffects: PendingApplyEffect[];
+  pendingLimitCuts: PendingLimitCut[];
   // Per-player plant directions (one per plant slot), assigned from optionals.combinations.plant
   // at world creation. Empty when the raid has no plant combinations. Stamped onto each plant
   // debuff as it lands so the HUD arrow + trap use the player's assigned heading.
