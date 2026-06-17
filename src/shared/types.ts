@@ -84,7 +84,8 @@ export type EffectBehavior =
   // seconds so the placer can step off, then triggers on contact: the entrant is frozen for
   // `tpDelay` seconds, then instantly teleported `distance` along `direction`. An untriggered trap
   // expires `duration` seconds after it arms.
-  | { kind: "plant"; direction: [number, number]; distance: number; radius: number; armDelay: number; duration: number; tpDelay: number };
+  | { kind: "plant"; direction: [number, number]; distance: number; radius: number; armDelay: number; duration: number; tpDelay: number }
+  | { kind: "directionalKnockback"; requiredFacing: "away" | "toward"; distance: number; doubledDistance: number };
 
 export type EffectSpec = {
   name: string;
