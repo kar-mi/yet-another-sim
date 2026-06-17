@@ -5,7 +5,7 @@ import { LocalPredictor } from "./predictor";
 import { tick } from "../engine/sim";
 import { computeBotIntents } from "../engine/botIntent";
 import { worldHash } from "@shared/worldHash";
-import { computeWorldRenderKeys, getWorldRenderKeys, setWorldRenderKeys, type WorldRenderKeys } from "./worldRenderKeys";
+import { WORLD_RENDER_KEYS, computeWorldRenderKeys, getWorldRenderKeys, setWorldRenderKeys, type WorldRenderKeys } from "./worldRenderKeys";
 
 type MessageType = ServerMessage["type"];
 type Handler<T extends MessageType> = (message: Extract<ServerMessage, { type: T }>) => void;
@@ -23,6 +23,8 @@ const RECONNECT_INITIAL_MS = 500;
 const RECONNECT_MAX_MS = 8000;
 // Report a world hash this often (in ticks) so the server can detect cross-client desync.
 const HASH_INTERVAL = 300;
+// Host sends a world snapshot this often; replay tail on late join is bounded by this interval.
+const SNAPSHOT_INTERVAL = 600;
 
 type Snapshot = { t: number; world: World };
 
@@ -227,12 +229,12 @@ export class NetClient {
     for (const handler of handlers) handler(message);
   }
 
-  // Adopt the pull's initial world and fast-forward by replaying the supplied input log so a fresh
+  // Adopt the pull's world at baseTick and fast-forward by replaying only the tail frames so a fresh
   // start lands at tick 0 and a late join / resync lands exactly where the rest of the room is.
   private applyStarted(message: Extract<ServerMessage, { type: "started" }>): void {
     this.worldRenderKeys = computeWorldRenderKeys(message.world);
     this.world = message.world;
-    this.appliedTick = 0;
+    this.appliedTick = message.baseTick;
     this.simEndedSent = false;
     this.playing = false; // re-enabled by the first frame if this pull is actually live (not a stop/late-join into a halted pull)
     this.predictor.reset();
@@ -253,6 +255,7 @@ export class NetClient {
       this.stepOne(message.frames[i]);
       this.pushSnapshot(this.world, this.appliedTick);
       this.maybeReportHash();
+      this.maybeReportSnapshot();
     }
     this.maybeReportSimEnded();
   }
@@ -275,6 +278,13 @@ export class NetClient {
     // the server keeps relaying frames until the host's simEnded round-trips. Otherwise the next
     // batch's startTick would outrun a frozen appliedTick and trigger a spurious full rejoin.
     this.appliedTick++;
+  }
+
+  private maybeReportSnapshot(): void {
+    if (!this.isHost || !this.world || this.appliedTick === 0 || this.appliedTick % SNAPSHOT_INTERVAL !== 0) return;
+    // Symbol keys are excluded from object spread and JSON.stringify, so no render-key stripping needed.
+    const { [WORLD_RENDER_KEYS]: _drop, ...world } = this.world as any;
+    this.send({ type: "snapshot", tick: this.appliedTick, world });
   }
 
   // Report on fixed tick boundaries (not a per-client delta) so every client hashes the SAME ticks.

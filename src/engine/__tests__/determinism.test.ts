@@ -48,6 +48,13 @@ test("mid-run JSON round-trip leaves the simulation unchanged (state lives in Wo
   expect(replay(raid, 800)).toEqual(replay(raid));
 });
 
+// Lever A correctness guarantee: a joiner that adopts a snapshot at tick SNAPSHOT_INTERVAL (600) and
+// replays only the tail must produce the same worldHash sequence as a full replay from tick 0.
+test("snapshot-anchored join matches full replay (Lever A determinism guarantee)", async () => {
+  const raid = await gravenRaid();
+  expect(replay(raid, 600)).toEqual(replay(raid));
+});
+
 // `tick` is a pure function of (seed, inputs), so two worlds built from the same seed and driven by
 // identical per-tick intents must stay byte-identical. The graven replay above covers a full
 // bot-driven fight; this table adds the seeded/human-driven paths it does not exercise (human input,
