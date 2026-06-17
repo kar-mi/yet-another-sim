@@ -16,6 +16,7 @@ import {
 } from "../actions";
 import { keyLabel } from "../settings";
 import type { Settings, ControllerType } from "../settings";
+import type { PlaybackState } from "@shared/protocol";
 import { clamp01 } from "@shared/math";
 import { createEffectRenderState, syncEffectChips, type EffectRenderState } from "./effectChips";
 
@@ -34,6 +35,13 @@ type PartyRow = {
   effectState: EffectRenderState;
   camBtn?: HTMLButtonElement;
 };
+
+function formatTime(seconds: number): string {
+  const total = Math.max(0, Math.floor(seconds));
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
 
 function partySortIndex(player: Player): number {
   return PARTY_SLOT_INDEX.get(player.id) ?? PARTY_SLOT_ORDER.length;
@@ -97,6 +105,11 @@ export class HudOverlay {
   private ctrlSeparatorEl!: HTMLDivElement;
   private currentControllerType: ControllerType = "unknown";
   private sessionEl: HTMLDivElement;
+  private timerEl: HTMLDivElement;
+  private timerValEl: HTMLSpanElement;
+  private timerStatusEl: HTMLSpanElement;
+  private playbackState: PlaybackState = "playing";
+  private lastWorldStatus: World["status"] = "running";
   private partyEl!: HTMLDivElement;
   private partyRows = new Map<string, PartyRow>();
   private castBarEl!: HTMLDivElement;
@@ -187,6 +200,22 @@ export class HudOverlay {
     sessionVal.textContent = sessionId;
     this.sessionEl.append(sessionLabel, sessionVal);
     document.body.appendChild(this.sessionEl);
+
+    // Pull timer, sitting beside the raid selector. Driven by world.time, which advances only while
+    // the pull is playing — so it resets on restart and freezes on pause / raid end automatically.
+    this.timerEl = document.createElement("div");
+    this.timerEl.id = "yas-timer";
+    const timerLabel = document.createElement("span");
+    timerLabel.className = "yas-session-label";
+    timerLabel.textContent = "TIMER";
+    this.timerValEl = document.createElement("span");
+    this.timerValEl.className = "yas-timer-val";
+    this.timerValEl.textContent = "00:00";
+    this.timerStatusEl = document.createElement("span");
+    this.timerStatusEl.className = "yas-timer-status";
+    this.timerStatusEl.textContent = "RUNNING";
+    this.timerEl.append(timerLabel, this.timerValEl, this.timerStatusEl);
+    document.body.appendChild(this.timerEl);
 
     this.partyEl = document.createElement("div");
     this.partyEl.id = "yas-party";
@@ -320,6 +349,38 @@ export class HudOverlay {
     }
   }
 
+  // Playback state (playing/paused/stopped/done) is a separate channel from world.status, fed in via
+  // the net "playback" message. The timer word reflects it while the pull is live; a finished pull
+  // (cleared/wiped) takes precedence.
+  setPlaybackState(state: PlaybackState): void {
+    this.playbackState = state;
+    this.renderTimerStatus(this.lastWorldStatus);
+  }
+
+  private renderTimerStatus(worldStatus: World["status"]): void {
+    this.lastWorldStatus = worldStatus;
+    let word: string;
+    let modifier: string;
+    if (worldStatus === "cleared") {
+      word = "CLEARED";
+      modifier = "cleared";
+    } else if (worldStatus === "wiped") {
+      word = "WIPED";
+      modifier = "wiped";
+    } else if (this.playbackState === "paused") {
+      word = "PAUSED";
+      modifier = "paused";
+    } else if (this.playbackState === "stopped") {
+      word = "STOPPED";
+      modifier = "stopped";
+    } else {
+      word = "RUNNING";
+      modifier = "running";
+    }
+    this.timerStatusEl.textContent = word;
+    this.timerStatusEl.className = `yas-timer-status yas-timer-${modifier}`;
+  }
+
   applySettings(settings: Settings): void {
     this.currentSettings = { ...settings };
     this.modeToggleBtn.textContent = settings.hotbarMode === "controller" ? "⌨" : "🎮";
@@ -385,6 +446,9 @@ export class HudOverlay {
     this.latestPlayer = p ?? null;
     const botPlayers = world.players.filter(player => player.control === "bot");
     this.botInvulnBtn.classList.toggle("is-active", botPlayers.length > 0 && botPlayers.every(player => player.invincible));
+
+    this.timerValEl.textContent = formatTime(world.time);
+    this.renderTimerStatus(world.status);
 
     if (world.status === "cleared") {
       this.statusEl.textContent = "CLEARED";
@@ -568,6 +632,7 @@ export class HudOverlay {
     this.root.remove();
     this.statusEl.remove();
     this.sessionEl.remove();
+    this.timerEl.remove();
     this.partyEl.remove();
     this.castBarEl.remove();
   }

@@ -71,6 +71,7 @@ async function main(): Promise<void> {
     });
     renderer.init(session.world, sessionId, session.yourPlayerId);
     renderer.applySettings(settings);
+    renderer.setPlaybackState(session.playbackState);
     syncKeybindLabels();
     updateController();
 

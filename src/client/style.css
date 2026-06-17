@@ -37,7 +37,7 @@ body:focus-visible {
 /* ===== UI SCALE (accessibility) ===== */
 /* Zoom each overlay container by --ui-scale; leaves the 3D #canvas untouched. */
 #yas-hud, #yas-party, #yas-cast-bar, #yas-status, #yas-session-id,
-#yas-raid-select, #settings-panel, #home-btn, #settings-btn, #info-btn, #info-panel, #yas-menu, #yas-raid-modal {
+#yas-raid-select, #yas-timer, #settings-panel, #home-btn, #settings-btn, #info-btn, #info-panel, #yas-menu, #yas-raid-modal {
   zoom: var(--ui-scale, 1);
 }
 
@@ -557,7 +557,7 @@ body:focus-visible {
 }
 
 /* ===== Non-selectable overlays ===== */
-#yas-party, #yas-hud, #yas-status, #yas-session-id, #yas-menu, #yas-raid-select, #yas-raid-modal, #settings-panel, #info-panel, #yas-cast-bar {
+#yas-party, #yas-hud, #yas-status, #yas-session-id, #yas-menu, #yas-raid-select, #yas-timer, #yas-raid-modal, #settings-panel, #info-panel, #yas-cast-bar {
   user-select: none;
 }
 
@@ -1405,6 +1405,50 @@ img.yas-debuff-icon {
   transform: translateX(-50%);
 }
 
+/* ===== PULL TIMER ===== */
+#yas-timer {
+  position: fixed;
+  top: 54px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 7px 16px;
+  background: rgba(6, 7, 18, 0.88);
+  border: 1px solid rgba(100, 115, 175, 0.25);
+  border-radius: 4px;
+  pointer-events: none;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.yas-timer-val {
+  font-size: 18px;
+  letter-spacing: 1.5px;
+  color: rgba(212, 168, 67, 0.95);
+  font-variant-numeric: tabular-nums;
+}
+
+.yas-timer-status {
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  color: rgba(175, 185, 215, 0.45);
+}
+
+.yas-timer-status.yas-timer-cleared {
+  color: rgba(120, 220, 150, 0.9);
+}
+
+.yas-timer-status.yas-timer-wiped {
+  color: rgba(225, 95, 95, 0.9);
+}
+
+.yas-timer-status.yas-timer-paused,
+.yas-timer-status.yas-timer-stopped {
+  color: rgba(212, 168, 67, 0.75);
+}
+
 .yas-raid-dropdown {
   position: relative;
 }
@@ -1598,7 +1642,7 @@ img.yas-debuff-icon {
 /* ===== SESSION ID BADGE ===== */
 #yas-session-id {
   position: fixed;
-  top: 54px;
+  top: 120px;
   right: 12px;
   z-index: 10;
   display: flex;

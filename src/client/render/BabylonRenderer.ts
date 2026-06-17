@@ -10,6 +10,7 @@ import { Scene } from "@babylonjs/core/scene";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Renderer } from "./Renderer";
 import type { World, ZoneShape, FloorPlan } from "@shared/types";
+import type { PlaybackState } from "@shared/protocol";
 import type { Settings, ControllerType } from "../settings";
 import { BossLayer } from "./BossLayer";
 import { BossRingLayer } from "./BossRingLayer";
@@ -194,6 +195,10 @@ export class BabylonRenderer implements Renderer {
       if (mesh) this.floorMeshes.push(mesh);
     }
     this.arenaKey = key;
+  }
+
+  setPlaybackState(state: PlaybackState): void {
+    this.hud.setPlaybackState(state);
   }
 
   sync(world: World): void {
