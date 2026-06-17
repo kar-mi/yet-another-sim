@@ -41,7 +41,6 @@ RegisterEnginesExtensionsEngineDynamicTexture();
 RegisterEngineUniformBuffer();
 
 const playerBarId = (id: string) => `player:${id}`;
-const bossBarId = (id: string) => `boss:${id}`;
 
 // Rate at which controller-camera acceleration ramps toward its target multiplier (~reaches it in <1s).
 const CAMERA_ACCEL_RAMP = 3;
@@ -187,11 +186,7 @@ export class BabylonRenderer implements Renderer {
   }
 
   private rebuildBossLayers(bosses: Boss[]): void {
-    // Dispose old layers and their health bars before creating new ones.
-    for (const [id, layer] of this.bossLayers) {
-      layer.dispose();
-      this.healthBars.unlink(bossBarId(id));
-    }
+    for (const layer of this.bossLayers.values()) layer.dispose();
     this.bossLayers.clear();
     for (const layer of this.bossRingLayers.values()) layer.dispose();
     this.bossRingLayers.clear();
@@ -207,14 +202,6 @@ export class BabylonRenderer implements Renderer {
       this.bossRingLayers.set(boss.id, bossRingLayer);
       const targetRingLayer = new TargetRingLayer(this.scene);
       this.targetRingLayers.set(boss.id, targetRingLayer);
-      const bossMesh = bossLayer.getMesh();
-      if (bossMesh) {
-        this.healthBars.link(bossBarId(boss.id), bossMesh, {
-          trackWidthPx: 220,
-          offsetYPx: -70,
-          color: "#df3333",
-        });
-      }
     }
     this.bossesKey = bosses.map(b => b.id).join(",");
   }
@@ -256,9 +243,6 @@ export class BabylonRenderer implements Renderer {
 
     for (const player of world.players) {
       this.healthBars.set(playerBarId(player.id), player.hp / player.maxHp, player.alive && this.renderedPlayerHealthBars);
-    }
-    for (const boss of world.bosses) {
-      this.healthBars.set(bossBarId(boss.id), boss.hp / boss.maxHp, boss.hp > 0);
     }
 
     this.telegraphs.sync(world.active, world.time);

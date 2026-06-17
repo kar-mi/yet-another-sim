@@ -71,15 +71,6 @@ export class HealthBarLayer {
     }
   }
 
-  unlink(id: string): void {
-    const bar = this.bars.get(id);
-    if (!bar) return;
-    bar.track.linkWithMesh(null as unknown as Mesh);
-    this.ui.removeControl(bar.track);
-    bar.track.dispose();
-    this.bars.delete(id);
-  }
-
   dispose(): void {
     this.ui.dispose();
     this.bars.clear();
