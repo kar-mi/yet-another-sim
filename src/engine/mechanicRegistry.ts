@@ -30,6 +30,7 @@ import { resolveReassigns } from "./systems/reassign";
 import { resolveInversions } from "./systems/inverse";
 import { resolveSpreadStacks } from "./systems/spreadStack";
 import { resolveGazes } from "./systems/gaze";
+import { resolveLimitCuts } from "./systems/limitCut";
 
 type RaidEvent = RaidDef["events"][number];
 export type EventType = RaidEvent["type"];
@@ -38,7 +39,7 @@ export type EventType = RaidEvent["type"];
 export type Collections = Pick<World,
   | "pending" | "pendingTethers" | "pendingLineLinks" | "pendingTargeted" | "pendingBaits"
   | "pendingTowers" | "pendingChains" | "pendingGroups" | "pendingEffectSelects"
-  | "pendingApplyEffects" | "pendingInversions" | "pendingSpreadStacks" | "pendingGazes"
+  | "pendingApplyEffects" | "pendingLimitCuts" | "pendingInversions" | "pendingSpreadStacks" | "pendingGazes"
   | "pendingForcedMarches" | "pendingEffectBursts" | "pendingHeals" | "reassigns"
   | "effectResolvers"
 >;
@@ -330,6 +331,22 @@ const applyEffects: MechanicModule = {
   isResolved: w => w.pendingApplyEffects.length === 0,
 };
 
+const limitCut: MechanicModule = {
+  fromEvent(e, c) {
+    if (e.type !== "limit_cut") return;
+    c.pendingLimitCuts.push({
+      id: e.id,
+      t: e.t,
+      name: e.name,
+      effect: e.effect,
+      players: e.players,
+      role: e.role,
+    });
+  },
+  resolve: ctx => ({ pendingLimitCuts: resolveLimitCuts(ctx) }),
+  isResolved: w => w.pendingLimitCuts.length === 0,
+};
+
 const reassign: MechanicModule = {
   fromEvent(e, c) {
     if (e.type !== "reassign") return;
@@ -470,6 +487,7 @@ const MODULE_FOR_TYPE = {
   group: groups,
   effect_select: effectSelect,
   apply_effect: applyEffects,
+  limit_cut: limitCut,
   reassign: reassign,
   inverse: inverse,
   spread_stack: spreadStack,
@@ -482,7 +500,7 @@ const MODULE_FOR_TYPE = {
 // legacy order; the data-only modules (heal, effect_resolver) follow.
 export const REGISTRY: readonly MechanicModule[] = [
   forcedMarch, tethers, lineLinks, chains, aoe, towers, groups,
-  effectSelect, applyEffects, reassign, inverse, spreadStack, gaze,
+  effectSelect, applyEffects, reassign, inverse, spreadStack, gaze, limitCut,
   heal, effectResolver,
 ];
 

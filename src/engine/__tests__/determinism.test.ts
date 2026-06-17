@@ -112,6 +112,21 @@ const determinismCases: { name: string; make: (seed: number) => World; drive: (w
     ticks: 120,
   },
   {
+    name: "limit_cut number assignment",
+    make: seed => createWorld(buildRaid({
+      ...baseRaid,
+      players: roster(),
+      events: [{
+        type: "limit_cut",
+        t: 0.1,
+        name: "Limit Cut",
+        effect: { name: "Limit Cut", kind: "debuff", duration: 5, visibility: "invisible", behavior: { kind: "none" } },
+      }],
+    }), seed),
+    drive: () => ({ [HUMAN]: { move: { x: 0, z: 0 } } }),
+    ticks: 60,
+  },
+  {
     name: "knockback slide under human input",
     make: seed => createWorld(buildRaid({
       ...baseRaid,

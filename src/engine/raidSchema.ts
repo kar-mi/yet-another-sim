@@ -145,6 +145,7 @@ const ApplyEffectSchema = z.object({
   icon: z.string().min(1).optional(),   // HUD icon filename, served from /static/debuffs/
   marker: z.string().min(1).max(8).optional(), // short above-head marker shown while active
   markerIcon: z.string().min(1).optional(), // above-head marker image filename, served from /static/head_markers/
+  markerIconScale: z.number().positive().optional(), // per-icon size multiplier (default 4)
 });
 
 const ApplyEffectsSchema = z.object({
@@ -555,7 +556,19 @@ const ReassignEventSchema = z.object({
   }
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema]);
+// Assigns each player a unique numbered marker (1–8) via a seeded Fisher-Yates shuffle.
+// The `effect` template is cloned per player with marker overridden to String(i+1).
+const LimitCutEventSchema = z.object({
+  type: z.literal("limit_cut"),
+  id: EventIdSchema,
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  effect: ApplyEffectSchema,
+  players: z.array(z.string().min(1)).min(1).optional(),
+  role: RoleSchema.optional(),
+});
+
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),

@@ -121,7 +121,7 @@ export class PlayerLayer {
       const markerIcon = effect.markerIcon;
       const plane = CreatePlane(
         `player-marker-${player.id}-${effect.id}`,
-        { size: markerIcon ? MARKER_SIZE * MARKER_ICON_SCALE : MARKER_SIZE },
+        { size: markerIcon ? MARKER_SIZE * (effect.markerIconScale ?? MARKER_ICON_SCALE) : MARKER_SIZE },
         this.scene,
       );
       plane.parent = anchor;

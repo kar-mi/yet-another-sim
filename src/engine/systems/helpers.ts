@@ -219,6 +219,7 @@ export function applyEffect(player: Player, spec: EffectSpec, time: number, id: 
     icon: spec.icon,
     marker: spec.marker,
     markerIcon: spec.markerIcon,
+    markerIconScale: spec.markerIconScale,
     lockedTargetId,
     plantSlot,
   }];

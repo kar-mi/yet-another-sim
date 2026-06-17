@@ -1,0 +1,227 @@
+# Limit Cut — 8-player numbered dashes + 2-hit tankbuster.
+# Players receive numbers 1–8 at cast start; dashes fire through the 8 inter-inter-cardinal
+# spots in numerical order. Positioning is player skill; bots hold clock spots.
+
+name: Limit Cut
+arena:
+  floorPlan: dmu-p1
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 20
+duration: 24
+
+boss:
+  pos: [0, 0]
+  radius: 3
+  ring:
+    scale: 2
+    color: "#e62120"
+
+players:
+  - id: mt
+    role: tank
+    spawn: [0, 8]
+  - id: ot
+    role: tank
+    spawn: [0, -8]
+  - id: h1
+    role: healer
+    spawn: [-8, 0]
+  - id: h2
+    role: healer
+    spawn: [8, 0]
+  - id: r1
+    role: dps
+    spawn: [-5.66, 5.66]
+  - id: r2
+    role: dps
+    spawn: [5.66, 5.66]
+  - id: m1
+    role: dps
+    spawn: [-5.66, -5.66]
+  - id: m2
+    role: dps
+    spawn: [5.66, -5.66]
+
+waymarks:
+  - { mark: A, pos: [0, 18] }
+  - { mark: B, pos: [18, 0] }
+  - { mark: C, pos: [0, -18] }
+  - { mark: D, pos: [-18, 0] }
+  - { mark: "1", pos: [12.73, 12.73] }
+  - { mark: "2", pos: [12.73, -12.73] }
+  - { mark: "3", pos: [-12.73, -12.73] }
+  - { mark: "4", pos: [-12.73, 12.73] }
+
+events:
+  # Assign numbers 1–8 to all players; markers visible for 5 s.
+  - type: limit_cut
+    id: lc
+    t: 3
+    name: Limit Cut
+    effect:
+      name: Limit Cut
+      kind: debuff
+      duration: 5
+      visibility: invisible
+      behavior: { kind: none }
+      markerIconScale: 2.5
+
+  # Dashes fire in numerical order. Spots are inter-inter-cardinals at radius 18 (NNE counting CW).
+  # Each dash is a rect from the previous position to the next spot.
+  # Spots: NNE=(6.89,16.63) ENE=(16.63,6.89) ESE=(16.63,-6.89) SSE=(6.89,-16.63)
+  #        SSW=(-6.89,-16.63) WSW=(-16.63,-6.89) WNW=(-16.63,6.89) NNW=(-6.89,16.63)
+
+  # Dash 1: boss (0,0) → NNE
+  - type: aoe
+    id: lc-dash-1
+    t: 5.5
+    name: "Limit Cut #1"
+    telegraph: 1.5
+    damage: 60
+    damageType: magical
+    showTelegraph: true
+    shape:
+      kind: rect
+      origin: [0, 0]
+      direction: [0.383, 0.924]
+      width: 4
+      length: 18
+
+  # Dash 2: NNE → ENE
+  - type: aoe
+    id: lc-dash-2
+    t: 7.0
+    name: "Limit Cut #2"
+    telegraph: 1.5
+    damage: 60
+    damageType: magical
+    showTelegraph: true
+    shape:
+      kind: rect
+      origin: [6.89, 16.63]
+      direction: [0.707, -0.707]
+      width: 4
+      length: 13.78
+
+  # Dash 3: ENE → ESE
+  - type: aoe
+    id: lc-dash-3
+    t: 8.5
+    name: "Limit Cut #3"
+    telegraph: 1.5
+    damage: 60
+    damageType: magical
+    showTelegraph: true
+    shape:
+      kind: rect
+      origin: [16.63, 6.89]
+      direction: [0, -1]
+      width: 4
+      length: 13.78
+
+  # Dash 4: ESE → SSE
+  - type: aoe
+    id: lc-dash-4
+    t: 10.0
+    name: "Limit Cut #4"
+    telegraph: 1.5
+    damage: 60
+    damageType: magical
+    showTelegraph: true
+    shape:
+      kind: rect
+      origin: [16.63, -6.89]
+      direction: [-0.707, -0.707]
+      width: 4
+      length: 13.78
+
+  # Dash 5: SSE → SSW
+  - type: aoe
+    id: lc-dash-5
+    t: 11.5
+    name: "Limit Cut #5"
+    telegraph: 1.5
+    damage: 60
+    damageType: magical
+    showTelegraph: true
+    shape:
+      kind: rect
+      origin: [6.89, -16.63]
+      direction: [-1, 0]
+      width: 4
+      length: 13.78
+
+  # Dash 6: SSW → WSW
+  - type: aoe
+    id: lc-dash-6
+    t: 13.0
+    name: "Limit Cut #6"
+    telegraph: 1.5
+    damage: 60
+    damageType: magical
+    showTelegraph: true
+    shape:
+      kind: rect
+      origin: [-6.89, -16.63]
+      direction: [-0.707, 0.707]
+      width: 4
+      length: 13.78
+
+  # Dash 7: WSW → WNW
+  - type: aoe
+    id: lc-dash-7
+    t: 14.5
+    name: "Limit Cut #7"
+    telegraph: 1.5
+    damage: 60
+    damageType: magical
+    showTelegraph: true
+    shape:
+      kind: rect
+      origin: [-16.63, -6.89]
+      direction: [0, 1]
+      width: 4
+      length: 13.78
+
+  # Dash 8: WNW → NNW
+  - type: aoe
+    id: lc-dash-8
+    t: 16.0
+    name: "Limit Cut #8"
+    telegraph: 1.5
+    damage: 60
+    damageType: magical
+    showTelegraph: true
+    shape:
+      kind: rect
+      origin: [-16.63, 6.89]
+      direction: [0.707, 0.707]
+      width: 4
+      length: 13.78
+
+  # 2-hit tankbuster after the dashes
+  - type: targeted
+    id: lc-tb-1
+    t: 19
+    name: "Limit Cut TB 1"
+    targetMode: closest
+    role: tank
+    telegraph: 1
+    radius: 4
+    damage: 120
+    damageType: physical
+    showCastBar: true
+
+  - type: targeted
+    id: lc-tb-2
+    t: 21
+    name: "Limit Cut TB 2"
+    targetMode: closest
+    role: tank
+    telegraph: 1
+    radius: 4
+    damage: 120
+    damageType: physical
+    showCastBar: true
