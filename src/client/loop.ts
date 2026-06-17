@@ -27,7 +27,10 @@ export function startNetLoop(renderer: Renderer, net: NetClient): () => void {
   const disposeJoined = net.on("joined", resetIntentCache);
   const disposeLobby = net.on("lobby", resetIntentCache);
   const disposeStarted = net.on("started", resetIntentCache);
-  const disposePlayback = net.on("playback", resetIntentCache);
+  const disposePlayback = net.on("playback", message => {
+    resetIntentCache();
+    renderer.setPlaybackState(message.state);
+  });
 
   function frame(now: number): void {
     const elapsed = Math.min((now - lastTime) / 1000, 0.1);
