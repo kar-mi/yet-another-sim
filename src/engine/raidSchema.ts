@@ -573,6 +573,11 @@ const OptionalsSchema = z.object({
   }).optional(),
 }).optional();
 
+// Exhaustive list of glb stems available under /static/model/. Add new boss models here.
+export const BOSS_MODEL_NAMES = ["skeith"] as const;
+export type BossModelName = (typeof BOSS_MODEL_NAMES)[number];
+const BossModelSchema = z.enum(BOSS_MODEL_NAMES).default("skeith");
+
 const BossSchema = z.object({
   pos: Vec2Schema.default([0, 0]),
   radius: z.number().positive().default(3),
@@ -580,7 +585,7 @@ const BossSchema = z.object({
     scale: z.number().positive().default(2),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#e62120"),
   }).default({ scale: 2, color: "#e62120" }),
-  model: z.string().min(1).default("skeith"),
+  model: BossModelSchema,
 }).default({ pos: [0, 0], radius: 3, ring: { scale: 2, color: "#e62120" }, model: "skeith" });
 
 // Boss entry in a multi-boss `bosses:` list. Same fields as BossSchema plus a required id slug
@@ -594,7 +599,7 @@ const BossWithIdSchema = z.object({
     scale: z.number().positive().default(2),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#e62120"),
   }).default({ scale: 2, color: "#e62120" }),
-  model: z.string().min(1).default("skeith"),
+  model: BossModelSchema,
   aggro: z.string().min(1).optional(),
 });
 

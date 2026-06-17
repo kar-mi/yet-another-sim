@@ -9,7 +9,7 @@ import { logger } from "@shared/logger";
 import type { Boss } from "@shared/types";
 
 export const BOSS_MODEL_ROOT = "/static/model/";
-export const BOSS_MODEL_FILE = "skeith.glb"; // default; per-boss model overrides this
+export const BOSS_MODEL_FILE = "skeith.glb"; // default model; kept for preloadAssets
 const BOSS_MODEL_SCALE = 0.08;
 const BOSS_MODEL_RAISE = 0.2;
 const BOSS_MODEL_YAW_OFFSET = Math.PI;
