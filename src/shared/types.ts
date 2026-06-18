@@ -236,6 +236,8 @@ export type ActiveMechanic = {
   positional?: PositionalArc;
   // While unresolved and casting, the boss holds its facing instead of tracking its target.
   lockFacing?: boolean;
+  // While unresolved and casting, the boss does not move toward its target.
+  bossStationary?: boolean;
   // Stored-cleave (deferred) support: a `deferred` mechanic shows its own cast bar, then sits dormant
   // (no telegraph, unresolved) until a linked `bait` arms it. `armed` flips it back to a normal
   // resolving cone/rect; the anchor fields let its geometry be recomputed from the boss's locked
@@ -281,6 +283,7 @@ export type PendingEvent = {
   directionFrom?: "bossFacing";
   directionOffset?: number;
   lockFacing?: boolean;
+  bossStationary?: boolean;
   // When true, this cleave is stored: it does not resolve at its own cast end; a linked bait arms it.
   deferred?: boolean;
   requireFullHp?: boolean;

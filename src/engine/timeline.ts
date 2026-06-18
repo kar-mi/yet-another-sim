@@ -62,6 +62,7 @@ export function promotePending(
         // A deferred cleave must NOT lock facing (the boss has to stay free to turn to the bait) and
         // stays hidden + unarmed until its linked bait arms it.
         lockFacing: event.deferred ? false : event.lockFacing,
+        bossStationary: event.bossStationary,
         deferred: event.deferred,
         armed: false,
         requireFullHp: event.requireFullHp,

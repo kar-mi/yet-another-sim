@@ -41,17 +41,21 @@ export function tick(world: World, intents: Intents, dt: number): World {
   // A lockFacing cast freezes a boss's facing for its duration so it matches its telegraph.
   for (const boss of bosses) {
     boss.currentTarget = topThreatTarget(players, boss.threat);
-    const facingLocked = world.active.some(m =>
-      m.lockFacing && !m.resolved && m.telegraphStart <= time && m.resolveAt > time
-      && (m.bossId ?? bosses[0]!.id) === boss.id);
+    const activeCast = (m: { bossId?: string; resolved: boolean; telegraphStart: number; resolveAt: number }) =>
+      !m.resolved && m.telegraphStart <= time && m.resolveAt > time
+      && (m.bossId ?? bosses[0]!.id) === boss.id;
+    const facingLocked = world.active.some(m => m.lockFacing && activeCast(m));
+    const movementLocked = world.active.some(m => m.bossStationary && activeCast(m));
     if (boss.currentTarget && !facingLocked) {
       const target = players.find(p => p.id === boss.currentTarget)!;
       const toTarget = sub(target.pos, boss.pos);
       boss.facing = atan2(toTarget.x, toTarget.z);
-      const dist = length(toTarget);
-      const stopRange = boss.radius * boss.ringScale;
-      if (dist > stopRange) {
-        boss.pos = add(boss.pos, scale(normalize(toTarget), Math.min(BOSS_MOVE_SPEED * dt, dist - stopRange)));
+      if (!movementLocked) {
+        const dist = length(toTarget);
+        const stopRange = boss.radius * boss.ringScale;
+        if (dist > stopRange) {
+          boss.pos = add(boss.pos, scale(normalize(toTarget), Math.min(BOSS_MOVE_SPEED * dt, dist - stopRange)));
+        }
       }
     }
   }

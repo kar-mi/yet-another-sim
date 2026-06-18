@@ -168,6 +168,7 @@ const aoe: MechanicModule = {
           directionFrom: e.directionFrom,
           directionOffset: e.directionOffset,
           lockFacing: e.lockFacing,
+          bossStationary: e.bossStationary,
           deferred: e.deferred,
           requireFullHp: e.requireFullHp,
           showCastBar: e.showCastBar ?? false,

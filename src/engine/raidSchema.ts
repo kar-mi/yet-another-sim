@@ -203,6 +203,8 @@ const AOEEventSchema = z.object({
   // The boss freezes its facing for the duration of the cast (telegraph), then resumes.
   // Defaults to true; set false to let the boss keep tracking its target mid-cast.
   lockFacing: z.boolean().default(true),
+  // The boss does not move toward its target during the cast. Defaults to true.
+  bossStationary: z.boolean().default(true),
   // Store this cleave: do NOT resolve at its own cast end. A linked `bait` (see BaitEventSchema.link)
   // arms and detonates it, computing the cone/rect geometry from the boss's locked facing at that time.
   deferred: z.boolean().default(false),
