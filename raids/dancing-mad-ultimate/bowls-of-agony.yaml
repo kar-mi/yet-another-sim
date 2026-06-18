@@ -6,6 +6,7 @@ arena:
       center: [0, 0]
       radius: 20
 duration: 106
+botPatterns: bowls-of-agony-bots
 
 bosses:
   - id: chaos
