@@ -204,6 +204,7 @@ export type Boss = {
   ringColor: string;               // floor-ring hex color
   model: string;                   // glb filename stem under /static/model/ (without extension)
   modelScale: number;              // multiplier applied on top of the base model scale
+  targetable: boolean;
 };
 
 export type AOEShape =

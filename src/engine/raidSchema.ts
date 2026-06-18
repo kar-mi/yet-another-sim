@@ -681,6 +681,7 @@ const BossWithIdSchema = z.object({
   }).optional(),
   model: BossModelSchema.optional(),
   aggro: z.string().min(1).optional(),
+  targetable: z.boolean().default(true),
 }).strict();
 
 type BossIdentityOverrides = {
@@ -988,14 +989,16 @@ export const RaidSchema = z.object({
     });
   }
 }).transform(data => {
-  const bosses = data.bosses?.map(({ id, pos, aggro, ...overrides }) => ({
+  const bosses = data.bosses?.map(({ id, pos, aggro, targetable, ...overrides }) => ({
     id,
     pos,
+    targetable,
     ...resolveBossIdentity(overrides, isBossRegistryId(id) ? id : DEFAULT_BOSS_ID),
     ...(aggro !== undefined ? { aggro } : {}),
   })) ?? [{
     id: "boss",
     pos: data.boss.pos,
+    targetable: true,
     ...resolveBossIdentity(data.boss, data.boss.id ?? DEFAULT_BOSS_ID),
   }];
 

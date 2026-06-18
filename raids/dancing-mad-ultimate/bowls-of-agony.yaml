@@ -16,6 +16,7 @@ bosses:
     aggro: ot
   - id: kefka
     pos: [0, 18]
+    targetable: false
 
 crystals:
   spawnAt: 24

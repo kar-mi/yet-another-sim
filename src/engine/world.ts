@@ -189,27 +189,31 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   // Build a boss for each entry in the normalized bosses list. Each boss gets its own threat table.
   const bosses: Boss[] = raid.bosses.map(bossDef => {
     const threat: Record<string, number> = {};
-    for (const p of players) {
-      if (p.alive) threat[p.id] = p.role === "tank" ? INITIAL_TANK_THREAT : 0;
-    }
-    // Optional per-boss aggro seed: bump a specific player's threat so this boss faces them first.
-    if (bossDef.aggro) {
-      const maxThreat = Math.max(0, ...Object.values(threat));
-      threat[bossDef.aggro] = maxThreat + PROVOKE_LEAD;
+    // Non-targetable bosses hold no threat/aggro — skip seeding entirely.
+    if (bossDef.targetable !== false) {
+      for (const p of players) {
+        if (p.alive) threat[p.id] = p.role === "tank" ? INITIAL_TANK_THREAT : 0;
+      }
+      // Optional per-boss aggro seed: bump a specific player's threat so this boss faces them first.
+      if (bossDef.aggro) {
+        const maxThreat = Math.max(0, ...Object.values(threat));
+        threat[bossDef.aggro] = maxThreat + PROVOKE_LEAD;
+      }
     }
     return {
       id: bossDef.id,
       pos: toVec2(bossDef.pos),
       hp: 1000, maxHp: 1000,
       radius: bossDef.radius,
-      facing: 0, threat, currentTarget: topThreatTarget(players, threat),
+      facing: 0, threat, currentTarget: bossDef.targetable !== false ? topThreatTarget(players, threat) : null,
       ringScale: bossDef.ring.scale,
       ringColor: bossDef.ring.color,
       model: bossDef.model,
       modelScale: bossDef.modelScale,
+      targetable: bossDef.targetable,
     };
   });
-  const boss = bosses[0]!;
+  const boss = bosses.find(b => b.targetable !== false) ?? bosses[0]!;
   for (const p of players) p.targetBossId = boss.id;
 
   const { plan: plantPlan, rngState: afterPlantRngState } = buildPlantPlan(raid, seed);
