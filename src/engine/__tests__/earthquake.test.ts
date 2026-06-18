@@ -99,6 +99,7 @@ test("primordialCrust expiry does not fire before expiry tick", () => {
 // --- Accretion ---
 
 test("accretion is removed when healed to full HP", () => {
+  // Start carrier below full HP so the cleanse-on-full pass doesn't fire before the heal.
   const accretionEffect = effect({
     id: "accretion-1",
     name: "Accretion",
@@ -106,13 +107,20 @@ test("accretion is removed when healed to full HP", () => {
     duration: 30,
     behavior: { kind: "accretion" as const, expiryDamage: 999999, expiryDamageType: "true" as const },
   });
-  // The heal event fires at t=1, setting hp to maxHp. statusEffects should then drop accretion.
   const raid = loadRaid({
     ...baseRaid,
     events: [{ type: "heal", t: 1, name: "Earthen Favor" }],
   });
-  const world = withEffect(createWorld(raid), accretionEffect);
-  const after = runTicks(world, noMove, Math.ceil(2 * 60));
+  const worldBase = withEffect(createWorld(raid), accretionEffect);
+  const world = {
+    ...worldBase,
+    players: worldBase.players.map(p => p.id === HUMAN ? { ...p, hp: 1 } : p),
+  };
+  // Just before the heal: accretion still present.
+  const before = runTicks(world, noMove, Math.ceil(0.9 * 60));
+  expect(human(before).effects.some(e => e.behavior.kind === "accretion")).toBe(true);
+  // After the heal: hp restored to max → accretion cleansed.
+  const after = runTicks(world, noMove, Math.ceil(1.1 * 60));
   expect(human(after).alive).toBe(true);
   expect(human(after).effects.some(e => e.behavior.kind === "accretion")).toBe(false);
 });

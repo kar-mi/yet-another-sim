@@ -1187,6 +1187,8 @@ behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay
 
 - **accretion** — "heal to full" cleanse mechanic. The debuff is removed whenever the carrier's HP reaches their maximum HP (i.e. after a `heal` event fires). If the debuff expires while still on the carrier (uncleansed), it deals `expiryDamage` of `expiryDamageType` — which kills at any HP. `expiryDamageType` defaults to `"true"`.
 
+  > **Authoring note:** The cleanse fires on any tick where the carrier is at full HP, not only on the exact tick of a `heal` event. Apply Accretion only **after** reducing the carrier's HP (e.g. via a `set_hp` event), otherwise the debuff self-cleanses on the very next tick.
+
   ```yaml
   behavior:
     kind: accretion
