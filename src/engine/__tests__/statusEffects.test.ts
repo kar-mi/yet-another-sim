@@ -3,7 +3,7 @@ import { tick } from "../sim";
 import { createWorld } from "../world";
 import { DPS_HP, HEALER_HP, TANK_HP } from "./constants";
 import type { Intents } from "@shared/types";
-import { HUMAN, baseRaid, effect, human, loadRaid, roster, runTicks, withEffect } from "./helpers";
+import { HUMAN, baseRaid, byId, effect, human, loadRaid, roster, runTicks, withEffect } from "./helpers";
 import type { Vec } from "./helpers";
 
 test("toggleInvincibility intent flips the flag", () => {
@@ -331,3 +331,45 @@ test("effect_select can apply double trouble, which expires into damage and knoc
   expect(ot.pos.x).toBeGreaterThan(2);
 });
 
+// --- Assignment ---
+
+test("assignment debuff deals expiryDamage on expiry tick, nothing before", () => {
+  const assignEffect = effect({
+    id: "assign-1",
+    name: "First in Line",
+    appliedAt: 0,
+    duration: 1,
+    behavior: { kind: "assignment" as const, expiryDamage: 30, expiryDamageType: "true" as const },
+  });
+  const world = withEffect(createWorld(loadRaid(baseRaid)), assignEffect);
+  // Before expiry: no damage.
+  const before = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.5 * 60));
+  expect(human(before).hp).toBe(DPS_HP);
+  // After expiry: expiryDamage applied.
+  const after = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(2 * 60));
+  expect(human(after).hp).toBe(DPS_HP - 30);
+});
+
+test("apply_effect with explicit players lands assignment on exactly those players", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{
+      type: "apply_effect", t: 0, name: "First in Line", players: ["mt", "ot"],
+      applyEffect: {
+        name: "First in Line", kind: "debuff", duration: 5,
+        behavior: { kind: "assignment", expiryDamage: 10, expiryDamageType: "true" },
+        icon: "first_in_line.png", marker: "1",
+      },
+    }],
+  });
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 2);
+  const withMark = world.players.filter(p => p.effects.some(e => e.name === "First in Line"));
+  expect(withMark).toHaveLength(2);
+  expect(withMark.map(p => p.id).sort()).toEqual(["mt", "ot"]);
+});
+
+test("assignment-test demo raid loads without error", async () => {
+  const text = await Bun.file(`${import.meta.dir}/../../../raids/debug/assignment-test.yaml`).text();
+  const yaml = Bun.YAML.parse(text);
+  expect(() => loadRaid(yaml)).not.toThrow();
+});

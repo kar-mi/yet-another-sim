@@ -130,6 +130,11 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     expiryDamage: z.number().nonnegative(),
     expiryDamageType: z.enum(["physical", "magical", "true"]).default("true"),
   }),
+  z.object({
+    kind: z.literal("assignment"),
+    expiryDamage: z.number().nonnegative(),
+    expiryDamageType: z.enum(["physical", "magical", "true"]).default("true"),
+  }),
 ]).superRefine((b, ctx) => {
   if (b.kind !== "doubleTrouble") return;
   if (b.selfShape === "donut" && b.selfInner === undefined) {
