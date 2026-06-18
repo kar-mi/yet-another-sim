@@ -7,6 +7,12 @@ const WaypointSchema = z.object({ t: z.number().nonnegative(), pos: Vec2Schema }
 const EventIdSchema = z.string().min(1);
 const RoleSchema = z.enum(["tank", "healer", "dps"]);
 const DebuffMatchSchema = z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]);
+const GenericSolverFrameSchema = z.union([
+  z.literal("matched"),
+  z.array(EventIdSchema).min(1),
+  z.object({ crystal: z.enum(["wind", "fire", "water"]) }),
+]);
+
 const GenericSolverRuleSchema = z.object({
   when: z.object({
     // segment-prefix match on a resolved mechanic id OR an exact match on one of its labels;
@@ -21,9 +27,9 @@ const GenericSolverRuleSchema = z.object({
   }),
   startAt: z.number().nonnegative().optional(),
   endAt: z.number().nonnegative().optional(),
-  // Rotated spot frame: "matched" (north = bisector of the live matched mechanics) or an explicit
-  // list of positioned event ids (north from their static positions).
-  frame: z.union([z.literal("matched"), z.array(EventIdSchema).min(1)]).optional(),
+  // Rotated spot frame: "matched" (north = bisector of the live matched mechanics), an explicit
+  // list of positioned event ids, or a resolved elemental crystal position.
+  frame: GenericSolverFrameSchema.optional(),
   spots: z.record(z.string().min(1), Vec2Schema).optional(),
   spot: Vec2Schema.optional(),
 }).superRefine((rule, ctx) => {
@@ -53,6 +59,12 @@ const WaymarkSchema = z.object({
   mark: z.enum(["A", "B", "C", "D", "1", "2", "3", "4"]),
   pos: Vec2Schema,
 });
+
+const CrystalsSchema = z.object({
+  spawnAt: z.number().nonnegative().optional(),
+  spots: z.array(Vec2Schema).length(4),
+  rng: z.boolean().default(true),
+}).optional();
 
 const FloorPlanSchema = z.enum(["squares", "dmu-p1", "dmu-p2"]).default("squares");
 
@@ -87,7 +99,7 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     radius: z.number().positive().default(3),
     damage: z.number().nonnegative(),
     damageType: z.enum(["physical", "magical", "true"]),
-    knockbackDistance: z.number().positive().default(6),
+    knockbackDistance: z.number().nonnegative().default(6),
     selfShape: z.enum(["circle", "donut"]).default("circle"),
     selfInner: z.number().positive().optional(),
     followUp: z.object({
@@ -197,6 +209,8 @@ const AOEEventSchema = z.object({
   // The boss freezes its facing for the duration of the cast (telegraph), then resumes.
   // Defaults to true; set false to let the boss keep tracking its target mid-cast.
   lockFacing: z.boolean().default(true),
+  // The boss does not move toward its target during the cast. Defaults to true.
+  bossStationary: z.boolean().default(true),
   // Store this cleave: do NOT resolve at its own cast end. A linked `bait` (see BaitEventSchema.link)
   // arms and detonates it, computing the cone/rect geometry from the boss's locked facing at that time.
   deferred: z.boolean().default(false),
@@ -675,6 +689,7 @@ const BossWithIdSchema = z.object({
   }).optional(),
   model: BossModelSchema.optional(),
   aggro: z.string().min(1).optional(),
+  targetable: z.boolean().default(true),
 }).strict();
 
 type BossIdentityOverrides = {
@@ -707,6 +722,7 @@ export const RaidSchema = z.object({
   players: z.array(PlayerDefSchema).length(ROSTER.length),
   events: z.array(EventSchema),
   waymarks: z.array(WaymarkSchema).optional(),
+  crystals: CrystalsSchema,
   optionals: OptionalsSchema,
   botSolvers: BotSolversSchema,
 }).superRefine((raid, ctx) => {
@@ -981,14 +997,16 @@ export const RaidSchema = z.object({
     });
   }
 }).transform(data => {
-  const bosses = data.bosses?.map(({ id, pos, aggro, ...overrides }) => ({
+  const bosses = data.bosses?.map(({ id, pos, aggro, targetable, ...overrides }) => ({
     id,
     pos,
+    targetable,
     ...resolveBossIdentity(overrides, isBossRegistryId(id) ? id : DEFAULT_BOSS_ID),
     ...(aggro !== undefined ? { aggro } : {}),
   })) ?? [{
     id: "boss",
     pos: data.boss.pos,
+    targetable: true,
     ...resolveBossIdentity(data.boss, data.boss.id ?? DEFAULT_BOSS_ID),
   }];
 

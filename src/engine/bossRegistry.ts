@@ -10,7 +10,7 @@ export type BossPreset = {
 export const BOSS_REGISTRY = {
   kefka: { model: "kefka", modelScale: 30, radius: 3, ring: { scale: 2, color: "#e62120" } },
   chaos: { model: "chaos", modelScale: 20, radius: 3, ring: { scale: 2, color: "#e62120" } },
-  exdeath: { model: "exdeath", modelScale: 20, radius: 3, ring: { scale: 2, color: "#e62120" } },
+  exdeath: { model: "exdeath", modelScale: 20, radius: 2.5, ring: { scale: 2, color: "#e62120" } },
   skeith: { model: "skeith", modelScale: 1, radius: 3, ring: { scale: 2, color: "#e62120" } },
 } as const satisfies Record<string, BossPreset>;
 

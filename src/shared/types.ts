@@ -18,6 +18,9 @@ export type Arena = { zones: ZoneShape[]; floorPlan: FloorPlan };
 export type WaymarkId = "A" | "B" | "C" | "D" | "1" | "2" | "3" | "4";
 export type Waymark = { mark: WaymarkId; pos: Vec2 };
 
+export type CrystalElement = "wind" | "fire" | "water";
+export type Crystal = { id: string; element: CrystalElement; pos: Vec2; spawnAt: number };
+
 export type Waypoint = { t: number; pos: Vec2 };
 
 // One ordered, data-driven bot-solver rule (see docs/authoring-bot-patterns.md "Generic solver").
@@ -44,9 +47,10 @@ export type GenericSolverRule = {
   endAt?: number;
   // Optional rotated frame for spot coordinates. "matched": north = normalize(Σ positions) of the
   // live matched mechanics (e.g. a tower pair's bisector). string[]: north from those events' static
-  // positions. A frame coord [x, z] maps to world x·right + z·north (right = {x: north.z, z: -north.x}),
-  // origin = arena center. A rule whose frame can't be computed yields no spot (falls through).
-  frame?: "matched" | string[];
+  // positions. { crystal }: north from the arena center to that resolved crystal. A frame coord
+  // [x, z] maps to world x·right + z·north (right = {x: north.z, z: -north.x}), origin = arena center.
+  // A rule whose frame can't be computed yields no spot (falls through).
+  frame?: "matched" | string[] | { crystal: CrystalElement };
   spots?: Record<string, Vec2>; // per-player spot; wins over spot
   spot?: Vec2;                   // one spot for every matching bot
 };
@@ -201,6 +205,7 @@ export type Boss = {
   ringColor: string;               // floor-ring hex color
   model: string;                   // glb filename stem under /static/model/ (without extension)
   modelScale: number;              // multiplier applied on top of the base model scale
+  targetable: boolean;
 };
 
 export type AOEShape =
@@ -232,6 +237,8 @@ export type ActiveMechanic = {
   positional?: PositionalArc;
   // While unresolved and casting, the boss holds its facing instead of tracking its target.
   lockFacing?: boolean;
+  // While unresolved and casting, the boss does not move toward its target.
+  bossStationary?: boolean;
   // Stored-cleave (deferred) support: a `deferred` mechanic shows its own cast bar, then sits dormant
   // (no telegraph, unresolved) until a linked `bait` arms it. `armed` flips it back to a normal
   // resolving cone/rect; the anchor fields let its geometry be recomputed from the boss's locked
@@ -277,6 +284,7 @@ export type PendingEvent = {
   directionFrom?: "bossFacing";
   directionOffset?: number;
   lockFacing?: boolean;
+  bossStationary?: boolean;
   // When true, this cleave is stored: it does not resolve at its own cast end; a linked bait arms it.
   deferred?: boolean;
   requireFullHp?: boolean;
@@ -780,6 +788,7 @@ export type World = {
   hasMechanics: boolean;
   arena: Arena;
   waymarks: Waymark[];
+  crystals: Crystal[];
   players: Player[];
   boss: Boss;
   bosses: Boss[];

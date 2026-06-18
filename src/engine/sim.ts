@@ -9,12 +9,14 @@
 
 import type { World, Intents, PendingHeal } from "@shared/types";
 import { atan2 } from "@shared/dmath";
+import { sub, normalize, scale, add, length } from "@shared/math";
 import { createTickContext } from "./systems/context";
 import { topThreatTarget } from "./systems/helpers";
 import { applyPlayerMovement } from "./systems/playerMovement";
 import { applyStatusEffects } from "./systems/statusEffects";
 import { holdUntilFromResolves } from "./genericSolver";
 import { REGISTRY } from "./mechanicRegistry";
+import { BOSS_MOVE_SPEED } from "@shared/constants";
 
 export function tick(world: World, intents: Intents, dt: number): World {
   const ctx = createTickContext(world, intents, dt);
@@ -38,13 +40,27 @@ export function tick(world: World, intents: Intents, dt: number): World {
   // Per-tick snap (no turn-rate clamp); visual smoothing is done client-side in net.ts.
   // A lockFacing cast freezes a boss's facing for its duration so it matches its telegraph.
   for (const boss of bosses) {
+    if (boss.targetable === false) {
+      boss.currentTarget = null;
+      continue;
+    }
     boss.currentTarget = topThreatTarget(players, boss.threat);
-    const facingLocked = world.active.some(m =>
-      m.lockFacing && !m.resolved && m.telegraphStart <= time && m.resolveAt > time
-      && (m.bossId ?? bosses[0]!.id) === boss.id);
+    const activeCast = (m: { bossId?: string; resolved: boolean; telegraphStart: number; resolveAt: number }) =>
+      !m.resolved && m.telegraphStart <= time && m.resolveAt > time
+      && (m.bossId ?? bosses[0]!.id) === boss.id;
+    const facingLocked = world.active.some(m => m.lockFacing && activeCast(m));
+    const movementLocked = world.active.some(m => m.bossStationary && activeCast(m));
     if (boss.currentTarget && !facingLocked) {
       const target = players.find(p => p.id === boss.currentTarget)!;
-      boss.facing = atan2(target.pos.x - boss.pos.x, target.pos.z - boss.pos.z);
+      const toTarget = sub(target.pos, boss.pos);
+      boss.facing = atan2(toTarget.x, toTarget.z);
+      if (!movementLocked) {
+        const dist = length(toTarget);
+        const stopRange = boss.radius * boss.ringScale;
+        if (dist > stopRange) {
+          boss.pos = add(boss.pos, scale(normalize(toTarget), Math.min(BOSS_MOVE_SPEED * dt, dist - stopRange)));
+        }
+      }
     }
   }
 

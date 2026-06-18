@@ -84,7 +84,8 @@ A rule has:
 - `startAt` / `endAt` — optional absolute time clamps on the activation window.
 - `frame` — optional rotated coordinate frame for the spot(s). `"matched"` sets north to the bisector
   of the live matched mechanics' positions (e.g. a wave's two towers — requires `when.mechanic`); a
-  list of event ids sets north from those events' **static** positions. A frame coord `[x, z]` maps to
+  list of event ids sets north from those events' **static** positions; `{ crystal: wind }` (or
+  `fire` / `water`) sets north from the resolved elemental crystal. A frame coord `[x, z]` maps to
   world `x · right + z · north`, with `right = { x: north.z, z: -north.x }` and the arena centre as
   origin. One spot set then serves every wave of a rotating mechanic. A rule whose frame can't be
   computed yields no spot (falls through). See [Rotated frames](#rotated-frames) for the geometry.
@@ -151,8 +152,8 @@ don't author the same formation eight times at eight angles. A spot like `[5.126
 a world position — it's a coordinate in a local frame whose:
 
 - **origin** is the arena centre `(0, 0)`,
-- **+z axis ("north")** is the direction the solver computes (the bisector for `frame: matched`, or the
-  summed static positions for a list of event ids),
+- **+z axis ("north")** is the direction the solver computes (the bisector for `frame: matched`, the
+  summed static positions for a list of event ids, or the selected crystal's position),
 - **+x axis ("right")** is north rotated 90° clockwise: `right = { x: north.z, z: -north.x }`.
 
 The world position is `spot.x · right + spot.z · north`. Intuitively, **`z` pushes the bot along the

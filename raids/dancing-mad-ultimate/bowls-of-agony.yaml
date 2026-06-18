@@ -1,0 +1,433 @@
+name: Bowls of Agony
+arena:
+  floorPlan: dmu-p1
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 20
+duration: 106
+botPatterns: bowls-of-agony-bots
+
+bosses:
+  - id: chaos
+    pos: [-8, 0]
+    aggro: mt
+  - id: exdeath
+    pos: [8, 0]
+    aggro: ot
+  - id: kefka
+    pos: [0, 18]
+    targetable: false
+
+crystals:
+  spawnAt: 24
+  spots: [[-9, 9], [9, 9], [9, -9], [-9, -9]]
+  rng: true
+
+players:
+  - { id: mt, role: tank,   spawn: [-4,  8] }
+  - { id: ot, role: tank,   spawn: [ 4,  8] }
+  - { id: h1, role: healer, spawn: [-8,  2] }
+  - { id: h2, role: healer, spawn: [ 8,  2] }
+  - { id: r1, role: dps,    spawn: [-8, -4] }
+  - { id: r2, role: dps,    spawn: [ 8, -4] }
+  - { id: m1, role: dps,    spawn: [-4, -8] }
+  - { id: m2, role: dps,    spawn: [ 4, -8] }
+
+_heroEpic: &heroEpic
+  name: Epic Hero
+  kind: debuff
+  duration: 31
+  icon: alpha.png
+  behavior: { kind: assignment, expiryDamage: 0, expiryDamageType: "true" }
+
+_heroFated: &heroFated
+  name: Fated Hero
+  kind: debuff
+  duration: 31
+  icon: beta.png
+  behavior: { kind: assignment, expiryDamage: 0, expiryDamageType: "true" }
+
+_headwind: &headwind
+  name: Headwind
+  kind: debuff
+  duration: 70
+  icon: headwind.png
+  behavior: { kind: directionalKnockback, requiredFacing: away, distance: 8, doubledDistance: 18 }
+
+_tailwind: &tailwind
+  name: Tailwind
+  kind: debuff
+  duration: 70
+  icon: tailwind.png
+  behavior: { kind: directionalKnockback, requiredFacing: toward, distance: 8, doubledDistance: 18 }
+
+_entropyShort: &entropyShort
+  name: Entropy
+  kind: debuff
+  duration: 18
+  icon: entropy.png
+  behavior:
+    kind: burstSpread
+    selfShape: circle
+    radius: 5
+    damage: 8
+    damageType: magical
+    knockbackDistance: 0
+    followUp:
+      mode: closest
+      count: 2
+      shape: donut
+      radius: 8
+      inner: 3
+      damage: 12
+      damageType: magical
+
+_dynamicFluidLong: &dynamicFluidLong
+  name: Dynamic Fluid
+  kind: debuff
+  duration: 45
+  icon: dynamic_fluid.png
+  behavior:
+    kind: burstSpread
+    selfShape: donut
+    selfInner: 3
+    radius: 8
+    damage: 12
+    damageType: magical
+    knockbackDistance: 0
+    followUp:
+      mode: closest
+      count: 2
+      shape: circle
+      radius: 5
+      damage: 8
+      damageType: magical
+
+events:
+  - type: aoe
+    id: decisive-battle
+    t: 2
+    name: Decisive Battle
+    telegraph: 3
+    damage: 0
+    damageType: magical
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: [0, 0], radius: 20 }
+
+  - type: apply_effect
+    id: epic-hero
+    t: 5
+    name: Epic Hero
+    players: [mt, h1, m1, m2]
+    applyEffect: *heroEpic
+  - type: apply_effect
+    id: fated-hero
+    t: 5
+    name: Fated Hero
+    players: [ot, h2, r1, r2]
+    applyEffect: *heroFated
+
+  - type: aoe
+    id: bowls-of-agony-cast
+    t: 19
+    name: Bowls of Agony
+    telegraph: 5
+    damage: 0
+    damageType: magical
+    showCastBar: true
+    showTelegraph: false
+    bossId: kefka
+    shape: { kind: circle, center: [0, 0], radius: 20 }
+
+  - type: apply_effect
+    id: headwind-assign
+    t: 24
+    name: Headwind
+    players: [mt, h1, m1, m2]
+    applyEffect: *headwind
+  - type: apply_effect
+    id: tailwind-assign
+    t: 24
+    name: Tailwind
+    players: [ot, h2, r1, r2]
+    applyEffect: *tailwind
+  - type: apply_effect
+    id: entropy-short
+    t: 24
+    name: Entropy
+    players: [h1, m1]
+    applyEffect: *entropyShort
+  - type: apply_effect
+    id: dynamic-fluid-long
+    t: 24
+    name: Dynamic Fluid
+    players: [h2, r1]
+    applyEffect: *dynamicFluidLong
+
+  - type: aoe
+    id: thunder-iii-get-out
+    t: 36
+    name: Thunder III
+    telegraph: 7
+    damage: 30
+    damageType: magical
+    showCastBar: true
+    bossId: exdeath
+    anchor: boss
+    shape: { kind: circle, center: [0, 0], radius: 9 }
+
+  - type: targeted
+    id: thunder-iii-tb-1
+    t: 48
+    name: Thunder III
+    targetMode: aggro
+    role: tank
+    radius: 4
+    telegraph: 2
+    damage: 55
+    damageType: magical
+    showCastBar: true
+    bossId: exdeath
+  - type: targeted
+    id: thunder-iii-tb-2
+    t: 50
+    name: Thunder III
+    targetMode: aggro
+    role: tank
+    radius: 4
+    telegraph: 2
+    damage: 55
+    damageType: magical
+    showCastBar: true
+    bossId: exdeath
+
+  - type: heal
+    id: recovery-after-thunder
+    t: 53
+    name: Recovery
+
+  - type: aoe
+    id: trance-cast
+    t: 58
+    name: Trance
+    telegraph: 2
+    damage: 0
+    damageType: magical
+    showCastBar: true
+    showTelegraph: false
+    bossId: chaos
+    shape: { kind: circle, center: [-8, 0], radius: 20 }
+  - type: aoe
+    id: latitude-implosion-left
+    t: 60
+    name: Latitude Implosion
+    telegraph: 6
+    damage: 60
+    damageType: magical
+    anchor: boss
+    directionFrom: bossFacing
+    directionOffset: -1.5707963267948966
+    lockFacing: true
+    showCastBar: true
+    showTelegraph: false
+    bossId: chaos
+    shape: { kind: cone, angleDeg: 70, length: 24 }
+  - type: aoe
+    id: latitude-implosion-right
+    t: 60
+    name: Latitude Implosion
+    telegraph: 6
+    damage: 60
+    damageType: magical
+    anchor: boss
+    directionFrom: bossFacing
+    directionOffset: 1.5707963267948966
+    lockFacing: true
+    showCastBar: false
+    showTelegraph: false
+    bossId: chaos
+    shape: { kind: cone, angleDeg: 70, length: 24 }
+  - type: aoe
+    id: longitude-implosion-front
+    t: 66
+    name: Longitude Implosion
+    telegraph: 2
+    damage: 60
+    damageType: magical
+    anchor: boss
+    directionFrom: bossFacing
+    directionOffset: 0
+    lockFacing: true
+    showCastBar: true
+    showTelegraph: false
+    bossId: chaos
+    shape: { kind: cone, angleDeg: 70, length: 24 }
+
+  - type: heal
+    id: recovery-between-implosions
+    t: 67
+    name: Recovery
+
+  - type: aoe
+    id: longitude-implosion-back
+    t: 66
+    name: Longitude Implosion
+    telegraph: 2
+    damage: 60
+    damageType: magical
+    anchor: boss
+    directionFrom: bossFacing
+    directionOffset: 3.141592653589793
+    lockFacing: true
+    showCastBar: false
+    showTelegraph: false
+    bossId: chaos
+    shape: { kind: cone, angleDeg: 70, length: 24 }
+
+  - type: heal
+    id: recovery-after-implosion
+    t: 70
+    name: Recovery
+
+  - type: aoe
+    id: ultima-blaster-1
+    t: 76
+    name: Ultima Blaster
+    telegraph: 1.5
+    damage: 6
+    damageType: magical
+    showCastBar: true
+    showTelegraph: false
+    bossId: kefka
+    shape: { kind: circle, center: [0, 0], radius: 20 }
+  - type: aoe
+    id: ultima-blaster-2
+    t: 78
+    name: Ultima Blaster
+    telegraph: 1.5
+    damage: 6
+    damageType: magical
+    showCastBar: false
+    showTelegraph: false
+    bossId: kefka
+    shape: { kind: circle, center: [0, 0], radius: 20 }
+  - type: aoe
+    id: ultima-blaster-3
+    t: 80
+    name: Ultima Blaster
+    telegraph: 1.5
+    damage: 6
+    damageType: magical
+    showCastBar: false
+    showTelegraph: false
+    bossId: kefka
+    shape: { kind: circle, center: [0, 0], radius: 20 }
+  - type: aoe
+    id: ultima-blaster-4
+    t: 82
+    name: Ultima Blaster
+    telegraph: 1.5
+    damage: 6
+    damageType: magical
+    showCastBar: false
+    showTelegraph: false
+    bossId: kefka
+    shape: { kind: circle, center: [0, 0], radius: 20 }
+  - type: aoe
+    id: ultima-blaster-5
+    t: 84
+    name: Ultima Blaster
+    telegraph: 1.5
+    damage: 6
+    damageType: magical
+    showCastBar: false
+    showTelegraph: false
+    bossId: kefka
+    shape: { kind: circle, center: [0, 0], radius: 20 }
+  - type: aoe
+    id: ultima-blaster-6
+    t: 86
+    name: Ultima Blaster
+    telegraph: 1.5
+    damage: 6
+    damageType: magical
+    showCastBar: false
+    showTelegraph: false
+    bossId: kefka
+    shape: { kind: circle, center: [0, 0], radius: 20 }
+
+  - type: heal
+    id: recovery-before-vacuum
+    t: 87
+    name: Recovery
+
+  - type: aoe
+    id: ultima-blaster-7
+    t: 88
+    name: Ultima Blaster
+    telegraph: 1.5
+    damage: 6
+    damageType: magical
+    showCastBar: false
+    showTelegraph: false
+    bossId: kefka
+    shape: { kind: circle, center: [0, 0], radius: 20 }
+
+  - type: targeted
+    id: umbra-smash
+    t: 81
+    name: Umbra Smash
+    targetMode: furthest
+    radius: 5
+    telegraph: 7
+    damage: 25
+    damageType: physical
+    showCastBar: true
+    bossId: chaos
+  - type: aoe
+    id: vacuum-wave
+    t: 81
+    name: Vacuum Wave
+    telegraph: 7
+    damage: 20
+    damageType: magical
+    showCastBar: true
+    bossId: exdeath
+    shape: { kind: circle, center: [8, 0], radius: 20 }
+    knockback: { distance: 8, origin: [8, 0] }
+
+  - type: group
+    id: bowls-stack
+    t: 90
+    name: Bowls of Agony Stack
+    groups: [[mt, ot, h1, h2, r1, r2, m1, m2]]
+    telegraph: 3
+    radius: 5
+    requiredCount: 4
+    damage: 80
+    damageType: magical
+    showCastBar: true
+
+  - type: limit_cut
+    id: bowls-limit-cut
+    t: 91
+    name: Limit Cut
+    effect:
+      name: Limit Cut
+      kind: debuff
+      duration: 9
+      visibility: invisible
+      behavior: { kind: none }
+      markerIconScale: 2.5
+
+waymarks:
+  - { mark: A, pos: [0, 16] }
+  - { mark: B, pos: [16, 0] }
+  - { mark: C, pos: [0, -16] }
+  - { mark: D, pos: [-16, 0] }
+  - { mark: "1", pos: [-11.31, 11.31] }
+  - { mark: "2", pos: [11.31, 11.31] }
+  - { mark: "3", pos: [11.31, -11.31] }
+  - { mark: "4", pos: [-11.31, -11.31] }

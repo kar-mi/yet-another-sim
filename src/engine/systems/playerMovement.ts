@@ -40,9 +40,9 @@ export function applyPlayerMovement(ctx: TickContext): void {
       player.antiKbCooldown = ANTI_KB_COOLDOWN;
     }
 
-    // cycleTarget: advance to the next alive boss in the bosses list (all roles).
+    // cycleTarget: advance to the next alive, targetable boss in the bosses list (all roles).
     if (intent?.cycleTarget) {
-      const aliveBosses = bosses.filter(b => b.hp > 0);
+      const aliveBosses = bosses.filter(b => b.hp > 0 && b.targetable !== false);
       if (aliveBosses.length > 0) {
         const cur = aliveBosses.findIndex(b => b.id === player.targetBossId);
         player.targetBossId = aliveBosses[(cur + 1) % aliveBosses.length]!.id;
@@ -51,7 +51,7 @@ export function applyPlayerMovement(ctx: TickContext): void {
 
     // Provoke: tank-only threat grab. Bumps this tank above the current max on the targeted boss.
     if (intent?.provoke && player.role === "tank" && player.provokeCooldown <= 0) {
-      const target = bosses.find(b => b.id === player.targetBossId && b.hp > 0) ?? bosses[0];
+      const target = bosses.find(b => b.id === player.targetBossId && b.hp > 0 && b.targetable !== false) ?? bosses.find(b => b.targetable !== false);
       if (target) {
         const maxThreat = Math.max(0, ...Object.values(target.threat));
         target.threat[player.id] = maxThreat + PROVOKE_LEAD;

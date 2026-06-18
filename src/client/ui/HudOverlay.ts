@@ -1,4 +1,4 @@
-import type { World, Player } from "@shared/types";
+import type { World, Player, Boss } from "@shared/types";
 import { triggerAction, toggleInvincibility, getActiveModifier } from "../input";
 import { SPRINT_COOLDOWN, ANTI_KB_COOLDOWN, PROVOKE_COOLDOWN } from "@shared/constants";
 import {
@@ -60,6 +60,38 @@ function setBackground(el: HTMLElement, value: string): void {
   if (el.style.background !== value) el.style.background = value;
 }
 
+type CastCandidate = { name: string; telegraphStart: number; resolveAt: number; bossId: string };
+
+function buildCastCandidates(world: World): CastCandidate[] {
+  const defaultBossId = world.bosses[0]?.id ?? "";
+  const candidates: CastCandidate[] = [];
+  for (const m of world.active) {
+    if (!m.resolved && m.showCastBar)
+      candidates.push({ name: m.name, telegraphStart: m.telegraphStart, resolveAt: m.resolveAt, bossId: m.bossId ?? defaultBossId });
+  }
+  for (const m of world.chains) {
+    if (!m.resolved && m.showCastBar)
+      candidates.push({ name: m.name, telegraphStart: m.telegraphStart, resolveAt: m.resolveAt, bossId: defaultBossId });
+  }
+  for (const m of world.groupMechanics) {
+    if (!m.resolved && m.showCastBar)
+      candidates.push({ name: m.name, telegraphStart: m.telegraphStart, resolveAt: m.resolveAt, bossId: defaultBossId });
+  }
+  for (const m of world.gazes) {
+    if (!m.resolved && m.showCastBar)
+      candidates.push({ name: m.name, telegraphStart: m.telegraphStart, resolveAt: m.resolveAt, bossId: defaultBossId });
+  }
+  for (const m of world.spreadStacks) {
+    if (!m.resolved && m.showCastBar)
+      candidates.push({ name: m.name, telegraphStart: m.telegraphStart, resolveAt: m.resolveAt, bossId: defaultBossId });
+  }
+  return candidates;
+}
+
+function castForBoss(bossId: string, candidates: CastCandidate[]): CastCandidate | null {
+  return candidates.find(c => c.bossId === bossId) ?? null;
+}
+
 function orderedPartyPlayers(players: Player[], localPlayerId: string | null): Player[] {
   return [...players].sort((a, b) => {
     if (a.id === localPlayerId) return -1;
@@ -90,6 +122,12 @@ interface SkillSlotView {
   tankOnly: boolean;
   read: SkillRead;
 }
+
+type BossCastRow = {
+  rowEl: HTMLDivElement;
+  fillEl: HTMLDivElement;
+  mechEl: HTMLSpanElement;
+};
 
 // One controller hotbar button cell (a fixed face/dpad position). Its displayed action is
 // re-projected every frame from the active modifier layer.
@@ -138,6 +176,9 @@ export class HudOverlay {
   private debuffTrackerState = createEffectRenderState();
   private kbmHotbar!: HTMLDivElement;
   private controllerHotbar!: HTMLDivElement;
+  private bossCastPanelEl!: HTMLDivElement;
+  private bossCastRows = new Map<string, BossCastRow>();
+  private bossCastKey = "";
 
   constructor(
     sessionId: string,
@@ -159,6 +200,7 @@ export class HudOverlay {
     this.debuffTrackerEl = this.root.querySelector<HTMLDivElement>(".yas-debuff-tracker")!;
     this.kbmHotbar = this.root.querySelector<HTMLDivElement>(".yas-hotbar")!;
     this.controllerHotbar = this.root.querySelector<HTMLDivElement>(".yas-controller-hotbar")!;
+    this.bossCastPanelEl = this.root.querySelector<HTMLDivElement>(".yas-boss-cast-panel")!;
     this.slotKeybinds = Array.from(this.kbmHotbar.querySelectorAll<HTMLSpanElement>(".yas-keybind"));
     this.modeToggleBtn = this.root.querySelector<HTMLButtonElement>(".yas-hotbar-toggle")!;
     this.debugPositionBtn = this.root.querySelector<HTMLButtonElement>(".yas-hotbar-debug")!;
@@ -362,6 +404,31 @@ export class HudOverlay {
     }
   }
 
+  private ensureBossCastRows(bosses: Boss[]): void {
+    const key = bosses.map(b => b.id).join(",");
+    if (this.bossCastKey === key) return;
+    this.bossCastKey = key;
+    this.bossCastPanelEl.innerHTML = "";
+    for (const boss of bosses) {
+      if (this.bossCastRows.has(boss.id)) continue;
+      const rowEl = document.createElement("div");
+      rowEl.className = "yas-boss-cast-row";
+      const nameEl = document.createElement("span");
+      nameEl.className = "yas-boss-cast-label";
+      nameEl.textContent = boss.id.toUpperCase();
+      const trackEl = document.createElement("div");
+      trackEl.className = "yas-boss-cast-track";
+      const fillEl = document.createElement("div");
+      fillEl.className = "yas-boss-cast-fill";
+      const mechEl = document.createElement("span");
+      mechEl.className = "yas-boss-cast-mech";
+      trackEl.append(fillEl, mechEl);
+      rowEl.append(nameEl, trackEl);
+      this.bossCastPanelEl.appendChild(rowEl);
+      this.bossCastRows.set(boss.id, { rowEl, fillEl, mechEl });
+    }
+  }
+
   // Playback state (playing/paused/stopped/done) is a separate channel from world.status, fed in via
   // the net "playback" message. The timer word reflects it while the pull is live; a finished pull
   // (cleared/wiped) takes precedence.
@@ -494,15 +561,9 @@ export class HudOverlay {
       syncEffectChips(row.effectsEl, row.effectState, player, world.time, "party-effect");
     }
 
-    const castingChain = world.chains.find(c => !c.resolved && c.showCastBar);
-    const castingGroup = world.groupMechanics.find(g => !g.resolved && g.showCastBar);
-    const castingGaze = world.gazes.find(g => !g.resolved && g.showCastBar);
-    const castingSpreadStack = world.spreadStacks.find(s => !s.resolved && s.showCastBar);
-    const casting = world.active.find(m => !m.resolved && m.showCastBar)
-      ?? (castingChain && { name: castingChain.name, telegraphStart: castingChain.telegraphStart, resolveAt: castingChain.resolveAt })
-      ?? (castingGroup && { name: castingGroup.name, telegraphStart: castingGroup.telegraphStart, resolveAt: castingGroup.resolveAt })
-      ?? (castingGaze && { name: castingGaze.name, telegraphStart: castingGaze.telegraphStart, resolveAt: castingGaze.resolveAt })
-      ?? (castingSpreadStack && { name: castingSpreadStack.name, telegraphStart: castingSpreadStack.telegraphStart, resolveAt: castingSpreadStack.resolveAt });
+    const candidates = buildCastCandidates(world);
+    const targetBossId = p?.targetBossId ?? world.bosses[0]?.id;
+    const casting = targetBossId ? castForBoss(targetBossId, candidates) : null;
     if (casting) {
       const span = casting.resolveAt - casting.telegraphStart;
       const progress = span > 0 ? Math.min(1, (world.time - casting.telegraphStart) / span) : 1;
@@ -515,6 +576,22 @@ export class HudOverlay {
       }
     } else {
       this.castBarEl.style.display = "none";
+    }
+
+    this.ensureBossCastRows(world.bosses);
+    for (const boss of world.bosses) {
+      const row = this.bossCastRows.get(boss.id);
+      if (!row) continue;
+      const cast = castForBoss(boss.id, candidates);
+      if (cast) {
+        const span = cast.resolveAt - cast.telegraphStart;
+        const progress = span > 0 ? Math.min(1, (world.time - cast.telegraphStart) / span) : 1;
+        setWidth(row.fillEl, `${progress * 100}%`);
+        setText(row.mechEl, cast.name);
+      } else {
+        setWidth(row.fillEl, "0%");
+        setText(row.mechEl, "");
+      }
     }
 
     if (!p) return;

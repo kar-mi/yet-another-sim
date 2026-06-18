@@ -1,0 +1,148 @@
+# Bot patterns for Bowls of Agony — survival, not perfect strategy.
+# Bots spread at t:24 to dodge Entropy/Dynamic Fluid pops and Thunder III get-out,
+# then use diagonal safe zones for both Implosions, stack for Vacuum Wave + group stack.
+
+players:
+  mt:
+    - { t: 0,  pos: [-12, 0] }
+  ot:
+    - { t: 0,  pos: [10, 0] }
+  h1:
+    - { t: 0,  pos: [-6, 8] }
+  h2:
+    - { t: 0,  pos: [6, 8] }
+  r1:
+    - { t: 0,  pos: [-6, -8] }
+  r2:
+    - { t: 0,  pos: [6, -8] }
+  m1:
+    - { t: 0,  pos: [-4, -6] }
+  m2:
+    - { t: 0,  pos: [4, -6] }
+
+solvers:
+  generic:
+    # Bowls cast + debuff spread: MT drags Chaos toward the seeded Wind crystal intercard.
+    # OT stands just west of center, pulling Exdeath to the middle before Thunder III snapshots.
+    - when: { mechanic: bowls-of-agony-cast }
+      spots:
+        ot: [-5, 0]
+
+    - when: { mechanic: bowls-of-agony-cast }
+      frame: { crystal: wind }
+      spots:
+        mt: [-2, 18]
+
+    - when: { debuff: Headwind }
+      startAt: 24
+      endAt: 36
+      frame: { crystal: wind }
+      spots:
+        mt: [-2, 18]
+        h1: [-10, 10]
+        m1: [8, -14]
+        m2: [-4, -14]
+
+    - when: { debuff: Tailwind }
+      startAt: 24
+      endAt: 36
+      spots:
+        ot: [-5, 0]
+
+    - when: { debuff: Tailwind }
+      startAt: 24
+      endAt: 36
+      frame: { crystal: wind }
+      spots:
+        h2: [4, 14]
+        r1: [-14, -2]
+        r2: [12, -8]
+
+    # First Thunder III + short debuff pops: move outside Exdeath's centered circle while spread.
+    - when: { mechanic: thunder-iii-get-out }
+      frame: { crystal: wind }
+      spots:
+        mt: [-2, 18]
+        ot: [-12, -6]
+        h1: [-10, 10]
+        h2: [4, 14]
+        r1: [-14, -2]
+        r2: [12, -8]
+        m1: [8, -14]
+        m2: [-4, -14]
+
+    # Hold the post-Thunder spread, then preposition for Chaos's outward-facing implosions instead
+    # of falling back to opener waypoints and dragging both bosses away.
+    - when: { debuff: Headwind }
+      startAt: 43
+      endAt: 60
+      frame: { crystal: wind }
+      spots:
+        mt: [-2, 18]
+        h1: [-5, 18]
+        m1: [2, 3]
+        m2: [-11, 8]
+
+    - when: { debuff: Tailwind }
+      startAt: 43
+      endAt: 60
+      frame: { crystal: wind }
+      spots:
+        ot: [7, 16]
+        h2: [1, 5]
+        r1: [-9, 6]
+        r2: [1, 5]
+
+    # Latitude Implosion (t:60–66): Chaos faces outward toward MT at the Wind intercard.
+    # Diagonal offsets from that facing are safe from both left/right and front/back cones.
+    - when: { mechanic: latitude-implosion-left }
+      frame: { crystal: wind }
+      spots:
+        mt: [-2, 18]
+        ot: [7, 16]
+        h1: [-5, 18]
+        h2: [1, 5]
+        r1: [-9, 6]
+        r2: [1, 5]
+        m1: [2, 3]
+        m2: [-11, 8]
+
+    # Longitude Implosion (t:66–68): hold the same diagonal pattern.
+    - when: { mechanic: longitude-implosion-front }
+      frame: { crystal: wind }
+      spots:
+        mt: [-2, 18]
+        ot: [7, 16]
+        h1: [-5, 18]
+        h2: [1, 5]
+        r1: [-9, 6]
+        r2: [1, 5]
+        m1: [2, 3]
+        m2: [-11, 8]
+
+    # Vacuum Wave + Umbra Smash (t:81–88): one bot baits furthest; the rest stack for knockback.
+    - when: { mechanic: [vacuum-wave, umbra-smash] }
+      frame: { crystal: wind }
+      spots:
+        mt: [0, 6]
+        ot: [0, 6]
+        h1: [0, 6]
+        h2: [0, 6]
+        r1: [0, 6]
+        r2: [0, -10]
+        m1: [0, 6]
+        m2: [0, 6]
+
+    # Vacuum Wave (t:81–88): stack west of exdeath; KB pushes group further west, stays in arena.
+    # Headwind/Tailwind facing is auto-set by botIntent.ts — no authoring needed.
+    - when: { mechanic: vacuum-wave }
+      frame: { crystal: wind }
+      spot: [0, 6]
+
+    # Bowls stack (t:90–93): converge so requiredCount:4 is met; 80 dmg split 8 ways.
+    - when: { mechanic: bowls-stack }
+      frame: { crystal: wind }
+      spot: [0, 6]
+
+  holds:
+    - { mechanic: bowls-stack, duration: 1 }

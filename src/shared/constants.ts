@@ -3,6 +3,7 @@
 // renderer can flash its outcome.
 
 export const MOVE_SPEED = 6;
+export const BOSS_MOVE_SPEED = 3; // units/s; slightly slower than players
 export const SPRINT_MULTIPLIER = 1.3;
 export const JUMP_SPEED = 9;
 export const GRAVITY = 24;
