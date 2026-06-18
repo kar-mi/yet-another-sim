@@ -314,7 +314,7 @@ test("effect_select can apply double trouble, which expires into damage and knoc
       type: "effect_select", t: 0, name: "Double Trouble", groups: [["mt"]],
       applyEffect: {
         name: "Double Trouble", kind: "debuff", duration: 0.1,
-        behavior: { kind: "doubleTrouble", radius: 3, damage: 10, damageType: "magical", knockbackDistance: 6 },
+        behavior: { kind: "burstSpread", radius: 3, damage: 10, damageType: "magical", knockbackDistance: 6 },
       },
     }],
   });

@@ -1008,7 +1008,7 @@ Excerpt from `raids/dancing-mad-ultimate/graven-image-3.yaml`:
     name: Double Trouble
     kind: debuff
     duration: 24
-    behavior: { kind: doubleTrouble, radius: 5, damage: 10, damageType: magical, knockbackDistance: 14 }
+    behavior: { kind: burstSpread, radius: 5, damage: 10, damageType: magical, knockbackDistance: 14 }
 ```
 
 ### `apply_effect` — drop a buff/debuff straight onto players
@@ -1156,7 +1156,7 @@ behavior: { kind: vuln, damageType: physical, multiplier: 1.5 }
 behavior: { kind: dot, dps: 8, condition: moving }
 behavior: { kind: confusion, damage: 50, damageType: "true", radius: 1.5 }
 behavior: { kind: sleep }
-behavior: { kind: doubleTrouble, radius: 5, damage: 10, damageType: magical, knockbackDistance: 14 }
+behavior: { kind: burstSpread, radius: 5, damage: 10, damageType: magical, knockbackDistance: 14 }
 behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay: 3, duration: 20, tpDelay: 1.25 }
 ```
 
@@ -1165,7 +1165,7 @@ behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay
 - **dot** — deals `dps` damage per second (≥ 0) while active. `condition` gates when a tick deals damage: `"always"` (default) every tick, `"moving"` only while the player acts/moves (formerly `pyretic`), `"idle"` only while the player stays still (formerly `freeze`).
 - **confusion** — overrides movement: the player is forced to walk toward whichever other living player was closest **when the debuff landed** (the target is locked at that moment). When they get within `radius` units, that **target** takes `damage` of `damageType` (friendly fire — the confused player takes none) and the debuff ends. Pair with a long `duration` so it lasts until contact.
 - **sleep** — disables all input (movement and actions) for the full `duration`. Not broken by taking damage.
-- **doubleTrouble** — when the debuff expires, fires two AOEs in order:
+- **burstSpread** — when the debuff expires, fires two AOEs in order:
   1. **Self-pop** — a shape centered on the carrier hits all players inside for `damage`; everyone hit except the carrier is knocked back `knockbackDistance`. `selfShape` controls the shape: `"circle"` (default — radius `radius`) or `"donut"` (inner radius `selfInner`, outer radius `radius`; `selfInner` is required and must be less than `radius`).
   2. **Follow-up** (optional) — if `followUp` is set, an AOE is dropped on each of the `count` closest (or furthest, if `mode: "furthest"`) living non-carrier players. `shape`, `radius`, `damage`, `damageType` describe each follow-up circle or donut (`inner` required and < `radius` for donuts). `knockbackDistance` is optional; when omitted no knockback is applied to follow-up hits. A player caught by both the self-pop and a follow-up shape is hit once per shape.
 
@@ -1173,7 +1173,7 @@ behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay
   ```yaml
   # Entropy: circle on self, donut on closest 2
   behavior:
-    kind: doubleTrouble
+    kind: burstSpread
     selfShape: circle
     radius: 6
     damage: 80
@@ -1190,7 +1190,7 @@ behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay
 
   # Dynamic Fluid: donut on self, circle on closest 2
   behavior:
-    kind: doubleTrouble
+    kind: burstSpread
     selfShape: donut
     radius: 8
     selfInner: 3

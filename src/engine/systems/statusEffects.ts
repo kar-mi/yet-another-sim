@@ -1,5 +1,5 @@
 // Phase 4: continuous status effects and effect expiry. Tick dots (respecting move/idle
-// conditions), fire the doubleTrouble burst and plant (Tele-Trouncing) trap on expiry, then drop
+// conditions), fire burstSpread and plant (Tele-Trouncing) expiry effects, then drop
 // expired effects. Plant traps are appended to ctx.forcedMarches (built in phase 1c) for next tick.
 
 import type { TickContext } from "./context";
@@ -63,7 +63,7 @@ export function applyStatusEffects(ctx: TickContext): void {
     // PrimordialCrust / Accretion: uncleansed expiry deals a lethal burst to the carrier.
     if (player.alive) {
       for (const effect of player.effects) {
-        if (effect.behavior.kind === "doubleTrouble") {
+        if (effect.behavior.kind === "burstSpread") {
           const expiry = effect.appliedAt + effect.duration;
           if (expiry <= previousTime || expiry > time) continue;
           const b = effect.behavior;

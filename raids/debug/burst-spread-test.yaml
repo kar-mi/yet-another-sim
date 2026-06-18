@@ -1,4 +1,4 @@
-# Entropy / Dynamic Fluid demo — exercises the G4 doubleTrouble mechanic.
+# Entropy / Dynamic Fluid demo — exercises the burstSpread mechanic.
 #
 # Entropy carriers: circle self-pop (r 6) + donut follow-up (inner 3, outer 8) on closest 2.
 # Dynamic Fluid carriers: donut self-pop (inner 3, outer 8) + circle follow-up (r 6) on closest 2.
@@ -33,7 +33,7 @@ _entropy: &entropy
   duration: 18
   icon: entropy.png
   behavior:
-    kind: doubleTrouble
+    kind: burstSpread
     selfShape: circle
     radius: 6
     damage: 80
@@ -54,7 +54,7 @@ _dynamicFluid: &dynamicFluid
   duration: 18
   icon: dynamic_fluid.png
   behavior:
-    kind: doubleTrouble
+    kind: burstSpread
     selfShape: donut
     selfInner: 3
     radius: 8

@@ -167,13 +167,13 @@ test("double trouble solver moves marked bots behind their role group", () => {
       { when: { debuff: "Double Trouble", role: "dps" }, startAt: 20, spot: [7, -7] },
     ] },
   });
-  const doubleTrouble = effect({
+  const burstSpread = effect({
     name: "Double Trouble",
     duration: 24,
-    behavior: { kind: "doubleTrouble", radius: 3, damage: 70, damageType: "magical", knockbackDistance: 6 },
+    behavior: { kind: "burstSpread", radius: 3, damage: 70, damageType: "magical", knockbackDistance: 6 },
   });
-  let world = withPlayerEffect(createWorld(raid), "mt", doubleTrouble);
-  world = withPlayerEffect(world, "r1", { ...doubleTrouble, id: "effect-2" });
+  let world = withPlayerEffect(createWorld(raid), "mt", burstSpread);
+  world = withPlayerEffect(world, "r1", { ...burstSpread, id: "effect-2" });
   expect(computeBotIntents(world, 1 / 60).mt).toBeUndefined();
 
   world = { ...world, time: 20 };

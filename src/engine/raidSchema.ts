@@ -82,7 +82,7 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("confusion"), damage: z.number().nonnegative(), damageType: z.enum(["physical", "magical", "true"]), radius: z.number().positive() }),
   z.object({ kind: z.literal("sleep") }),
   z.object({
-    kind: z.literal("doubleTrouble"),
+    kind: z.literal("burstSpread"),
     radius: z.number().positive().default(3),
     damage: z.number().nonnegative(),
     damageType: z.enum(["physical", "magical", "true"]),
@@ -136,7 +136,7 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     expiryDamageType: z.enum(["physical", "magical", "true"]).default("true"),
   }),
 ]).superRefine((b, ctx) => {
-  if (b.kind !== "doubleTrouble") return;
+  if (b.kind !== "burstSpread") return;
   if (b.selfShape === "donut" && b.selfInner === undefined) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["selfInner"], message: "selfInner is required when selfShape is \"donut\"" });
   }

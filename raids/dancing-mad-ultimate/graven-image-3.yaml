@@ -155,7 +155,8 @@ events:
       name: Double Trouble
       kind: debuff
       duration: 24
-      behavior: { kind: doubleTrouble, radius: 5, damage: 10, damageType: magical, knockbackDistance: 14 }
+      icon: double-trouble.png
+      behavior: { kind: burstSpread, radius: 5, damage: 10, damageType: magical, knockbackDistance: 14 }
   - type: effect_select
     id: double-trouble-support
     t: 0
@@ -165,7 +166,8 @@ events:
       name: Double Trouble
       kind: debuff
       duration: 24
-      behavior: { kind: doubleTrouble, radius: 5, damage: 10, damageType: magical, knockbackDistance: 14 }
+      icon: double-trouble.png
+      behavior: { kind: burstSpread, radius: 5, damage: 10, damageType: magical, knockbackDistance: 14 }
 
   # Sleepers burst if still asleep when this fires.
   - type: effect_burst
