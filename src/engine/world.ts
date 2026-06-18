@@ -205,6 +205,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       ringScale: bossDef.ring.scale,
       ringColor: bossDef.ring.color,
       model: bossDef.model,
+      modelScale: bossDef.modelScale,
     };
   });
   const boss = bosses[0]!;

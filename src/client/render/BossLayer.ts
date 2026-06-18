@@ -9,7 +9,7 @@ import { logger } from "@shared/logger";
 import type { Boss } from "@shared/types";
 
 export const BOSS_MODEL_ROOT = "/static/model/";
-export const BOSS_MODEL_FILE = "skeith.glb"; // default model; kept for preloadAssets
+export const BOSS_MODEL_FILE = "kefka.glb"; // default model; kept for preloadAssets
 const BOSS_MODEL_SCALE = 0.08;
 const BOSS_MODEL_RAISE = 0.2;
 const BOSS_MODEL_YAW_OFFSET = Math.PI;
@@ -18,6 +18,7 @@ export class BossLayer {
   private mesh: Mesh | null = null;
   private modelRoots: AbstractMesh[] | null = null;
   private modelTopY = 0;
+  private modelScale = 1;
   private readonly scene: Scene;
 
   constructor(scene: Scene) {
@@ -27,6 +28,7 @@ export class BossLayer {
   init(boss: Boss): void {
     const mesh = new Mesh(`boss-${boss.id}`, this.scene);
     this.mesh = mesh;
+    this.modelScale = boss.modelScale;
     void this.loadModel(mesh, `${boss.model}.glb`);
   }
 
@@ -43,7 +45,7 @@ export class BossLayer {
       const roots = result.meshes.filter(mesh => !mesh.parent);
       for (const root of roots) {
         root.parent = anchor;
-        root.scaling.scaleInPlace(BOSS_MODEL_SCALE);
+        root.scaling.scaleInPlace(BOSS_MODEL_SCALE * this.modelScale);
         root.rotate(Vector3.Up(), BOSS_MODEL_YAW_OFFSET, Space.LOCAL);
       }
       const bounds = roots.map(root => root.getHierarchyBoundingVectors(true));

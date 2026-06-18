@@ -639,9 +639,9 @@ const OptionalsSchema = z.object({
 }).optional();
 
 // Exhaustive list of glb stems available under /static/model/. Add new boss models here.
-export const BOSS_MODEL_NAMES = ["skeith"] as const;
+export const BOSS_MODEL_NAMES = ["skeith", "kefka"] as const;
 export type BossModelName = (typeof BOSS_MODEL_NAMES)[number];
-const BossModelSchema = z.enum(BOSS_MODEL_NAMES).default("skeith");
+const BossModelSchema = z.enum(BOSS_MODEL_NAMES).default("kefka");
 
 const BossSchema = z.object({
   pos: Vec2Schema.default([0, 0]),
@@ -651,7 +651,8 @@ const BossSchema = z.object({
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#e62120"),
   }).default({ scale: 2, color: "#e62120" }),
   model: BossModelSchema,
-}).default({ pos: [0, 0], radius: 3, ring: { scale: 2, color: "#e62120" }, model: "skeith" });
+  modelScale: z.number().positive().default(1),
+}).default({ pos: [0, 0], radius: 3, ring: { scale: 2, color: "#e62120" }, model: "kefka", modelScale: 1 });
 
 // Boss entry in a multi-boss `bosses:` list. Same fields as BossSchema plus a required id slug
 // and an optional aggro seed (player id whose threat is pre-seeded to the top so this boss
@@ -665,6 +666,7 @@ const BossWithIdSchema = z.object({
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#e62120"),
   }).default({ scale: 2, color: "#e62120" }),
   model: BossModelSchema,
+  modelScale: z.number().positive().default(1),
   aggro: z.string().min(1).optional(),
 });
 
