@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { tick } from "../sim";
 import { createWorld } from "../world";
-import { DPS_HP, TANK_HP } from "./constants";
+import { DPS_HP, HEALER_HP, TANK_HP } from "./constants";
 import { HUMAN, baseRaid, byId, effect, human, loadRaid, roster, runTicks, withPlayerEffect } from "./helpers";
 import type { Vec } from "./helpers";
 
@@ -346,5 +346,82 @@ test("bait can pick stored cleave direction from the selected target's active ef
   );
   expect(byId(pastWorld, "m1").hp).toBeLessThan(100);
   expect(byId(pastWorld, "m2").hp).toBe(DPS_HP);
+});
+
+// --- requireFullHp (White Hole) ---
+
+const whiteHoleAoe = {
+  t: 3,
+  name: "White Hole",
+  telegraph: 2,
+  damage: 9999,
+  damageType: "true" as const,
+  requireFullHp: true,
+  shape: { kind: "circle" as const, center: [0, 0] as [number, number], radius: 0.1 },
+};
+
+test("requireFullHp: below-full player dies, full-HP player is spared", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [
+      { type: "set_hp", t: 1, name: "Damage", amount: 50, players: ["m1"] },
+      whiteHoleAoe,
+    ],
+    players: roster({ m1: { spawn: [0, 0] }, m2: { spawn: [0, 5] } }),
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(5.1 * 60));
+  expect(byId(world, "m1").alive).toBe(false);
+  for (const p of world.players) {
+    if (p.id !== "m1") {
+      expect(p.alive).toBe(true);
+      expect(p.hp).toBe(p.maxHp);
+    }
+  }
+});
+
+test("requireFullHp: position is irrelevant — distant below-full player still dies", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [
+      { type: "set_hp", t: 1, name: "Damage", amount: 50, players: ["m1"] },
+      whiteHoleAoe,
+    ],
+    // m1 is far from shape center (0,0) — should still be hit by the raidwide
+    players: roster({ m1: { spawn: [0, 50] } }),
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(5.1 * 60));
+  expect(byId(world, "m1").alive).toBe(false);
+});
+
+test("requireFullHp: tank uses own maxHp threshold", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    // mt left at 100 (< TANK_HP=160) is hit; ot at full 160 is spared
+    events: [
+      { type: "set_hp", t: 1, name: "Damage", amount: 100, players: ["mt"] },
+      whiteHoleAoe,
+    ],
+    players: roster(),
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(5.1 * 60));
+  expect(byId(world, "mt").alive).toBe(false);
+  expect(byId(world, "ot").alive).toBe(true);
+  expect(byId(world, "ot").hp).toBe(TANK_HP);
+});
+
+test("requireFullHp: invincible below-full player survives", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [
+      { type: "set_hp", t: 1, name: "Damage", amount: 50, players: ["m1"] },
+      whiteHoleAoe,
+    ],
+    players: roster({ m1: { spawn: [0, 0] } }),
+  });
+  // Toggle invincibility on m1 before the mechanic resolves.
+  let world = tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 }, toggleInvincibility: true } }, 1 / 60);
+  expect(human(world).invincible).toBe(true);
+  world = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(5.1 * 60));
+  expect(human(world).alive).toBe(true);
 });
 

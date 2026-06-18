@@ -1,0 +1,68 @@
+# White Hole mechanic test — requireFullHp raidwide.
+#
+# Sequence:
+# 1. set_hp drops m1 to 50 (below full); everyone else stays at maxHp.
+# 2. White Hole (t=10, telegraph=5) resolves at t=15.
+#    m1 is below full → dies. All others are at full HP → spared.
+# 3. A heal (t=5) tops everyone EXCEPT m1 (set_hp runs at t=2, heal at t=5 tops m1 too —
+#    so to leave m1 un-healed, set_hp is placed after the heal at t=8).
+
+name: White Hole Test
+arena:
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 20
+duration: 20
+
+players:
+  - id: mt
+    role: tank
+    spawn: [0, 8]
+  - id: ot
+    role: tank
+    spawn: [0, -8]
+  - id: h1
+    role: healer
+    spawn: [-8, 0]
+  - id: h2
+    role: healer
+    spawn: [8, 0]
+  - id: r1
+    role: dps
+    spawn: [-5.66, 5.66]
+  - id: r2
+    role: dps
+    spawn: [5.66, 5.66]
+  - id: m1
+    role: dps
+    spawn: [-5.66, -5.66]
+  - id: m2
+    role: dps
+    spawn: [5.66, -5.66]
+
+events:
+  # 1. Heal everyone to full first.
+  - type: heal
+    id: heal-1
+    t: 5
+    name: Benediction
+
+  # 2. Drop m1 to 50 after the heal — leaves m1 un-topped.
+  - type: set_hp
+    id: set-hp-m1
+    t: 8
+    name: Seismic Crush
+    players: [m1]
+    amount: 50
+
+  # 3. White Hole: raidwide, lethal to anyone below maxHp.
+  - id: white-hole
+    t: 10
+    name: White Hole
+    telegraph: 5
+    damage: 9999
+    damageType: "true"
+    requireFullHp: true
+    showCastBar: true
+    shape: { kind: circle, center: [0, 0], radius: 0.1 }

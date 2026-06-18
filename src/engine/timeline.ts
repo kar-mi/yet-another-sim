@@ -64,6 +64,7 @@ export function promotePending(
         lockFacing: event.deferred ? false : event.lockFacing,
         deferred: event.deferred,
         armed: false,
+        requireFullHp: event.requireFullHp,
         anchor: event.anchor,
         directionFrom: event.directionFrom,
         directionOffset: event.directionOffset,

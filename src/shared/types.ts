@@ -235,6 +235,7 @@ export type ActiveMechanic = {
   // facing at arm time (see promotePending + resolveAoe).
   deferred?: boolean;
   armed?: boolean;
+  requireFullHp?: boolean;
   anchor?: "boss";
   directionFrom?: "bossFacing";
   directionOffset?: number;
@@ -275,6 +276,7 @@ export type PendingEvent = {
   lockFacing?: boolean;
   // When true, this cleave is stored: it does not resolve at its own cast end; a linked bait arms it.
   deferred?: boolean;
+  requireFullHp?: boolean;
   showCastBar: boolean;
   showTelegraph: boolean;
   telegraphMode: TelegraphMode;
