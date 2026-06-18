@@ -10,7 +10,7 @@ botPatterns: bowls-of-agony-bots
 
 bosses:
   - id: chaos
-    pos: [-8, 0]
+    pos: [0, 0]
     aggro: mt
   - id: exdeath
     pos: [8, 0]
@@ -25,7 +25,7 @@ crystals:
   rng: true
 
 players:
-  - { id: mt, role: tank,   spawn: [-4,  8] }
+  - { id: mt, role: tank,   spawn: [0,  6] }
   - { id: ot, role: tank,   spawn: [ 4,  8] }
   - { id: h1, role: healer, spawn: [-8,  2] }
   - { id: h2, role: healer, spawn: [ 8,  2] }
@@ -77,6 +77,7 @@ _entropyShort: &entropyShort
     followUp:
       mode: closest
       count: 2
+      originCrystal: fire
       shape: donut
       radius: 8
       inner: 3
@@ -99,6 +100,7 @@ _dynamicFluidLong: &dynamicFluidLong
     followUp:
       mode: closest
       count: 2
+      originCrystal: water
       shape: circle
       radius: 5
       damage: 8
@@ -381,7 +383,7 @@ events:
     name: Umbra Smash
     targetMode: furthest
     radius: 5
-    telegraph: 7
+    telegraph: 4
     damage: 25
     damageType: physical
     showCastBar: true

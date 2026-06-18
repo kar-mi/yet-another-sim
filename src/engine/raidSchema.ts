@@ -105,6 +105,7 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     followUp: z.object({
       mode: z.enum(["closest", "furthest"]).default("closest"),
       count: z.number().int().positive().default(2),
+      originCrystal: z.enum(["wind", "fire", "water"]).optional(),
       shape: z.enum(["circle", "donut"]).default("circle"),
       radius: z.number().positive(),
       inner: z.number().positive().optional(),

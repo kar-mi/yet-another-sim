@@ -104,9 +104,18 @@ test("bowls of agony bots drag bosses around the wind crystal and survive", asyn
   const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/bowls-of-agony.yaml").text());
   const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/bowls-of-agony-bots.yaml").text());
   const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
+  const entropy = raid.events.find(event => event.id === "entropy-short");
+  const dynamicFluid = raid.events.find(event => event.id === "dynamic-fluid-long");
+  const umbra = raid.events.find(event => event.id === "umbra-smash");
+  const vacuum = raid.events.find(event => event.id === "vacuum-wave");
+  expect(entropy?.type === "apply_effect" && entropy.applyEffect.behavior.kind === "burstSpread" && entropy.applyEffect.behavior.followUp?.originCrystal).toBe("fire");
+  expect(dynamicFluid?.type === "apply_effect" && dynamicFluid.applyEffect.behavior.kind === "burstSpread" && dynamicFluid.applyEffect.behavior.followUp?.originCrystal).toBe("water");
+  expect(umbra?.type === "targeted" && vacuum?.type === "aoe" && umbra.t + umbra.telegraph < vacuum.t + vacuum.telegraph).toBe(true);
 
   for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
     let world = createWorld(raid, seed);
+    expect(world.bosses.find(boss => boss.id === "chaos")?.pos).toEqual({ x: 0, z: 0 });
+    expect(world.players.find(player => player.id === "mt")?.pos).toEqual({ x: 0, z: 6 });
     const wind = world.crystals.find(crystal => crystal.element === "wind")!;
     const windLen = Math.hypot(wind.pos.x, wind.pos.z);
 

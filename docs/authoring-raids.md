@@ -1184,7 +1184,7 @@ behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay
 - **sleep** — disables all input (movement and actions) for the full `duration`. Not broken by taking damage.
 - **burstSpread** — when the debuff expires, fires two AOEs in order:
   1. **Self-pop** — a shape centered on the carrier hits all players inside for `damage`; everyone hit except the carrier is knocked back `knockbackDistance` (`0` means no knockback). `selfShape` controls the shape: `"circle"` (default — radius `radius`) or `"donut"` (inner radius `selfInner`, outer radius `radius`; `selfInner` is required and must be less than `radius`).
-  2. **Follow-up** (optional) — if `followUp` is set, an AOE is dropped on each of the `count` closest (or furthest, if `mode: "furthest"`) living non-carrier players. `shape`, `radius`, `damage`, `damageType` describe each follow-up circle or donut (`inner` required and < `radius` for donuts). `knockbackDistance` is optional; when omitted no knockback is applied to follow-up hits. A player caught by both the self-pop and a follow-up shape is hit once per shape.
+  2. **Follow-up** (optional) — if `followUp` is set, an AOE is dropped on each of the `count` closest (or furthest, if `mode: "furthest"`) living non-carrier players. By default distance is measured from the carrier; set `originCrystal: fire`, `water`, or `wind` to measure from that resolved elemental crystal instead. `shape`, `radius`, `damage`, `damageType` describe each follow-up circle or donut (`inner` required and < `radius` for donuts). `knockbackDistance` is optional; when omitted no knockback is applied to follow-up hits. A player caught by both the self-pop and a follow-up shape is hit once per shape.
 
   Entropy/Dynamic Fluid example:
   ```yaml
@@ -1199,6 +1199,7 @@ behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay
     followUp:
       mode: closest
       count: 2
+      originCrystal: fire
       shape: donut
       radius: 8
       inner: 3
@@ -1217,6 +1218,7 @@ behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay
     followUp:
       mode: closest
       count: 2
+      originCrystal: water
       shape: circle
       radius: 6
       damage: 80
