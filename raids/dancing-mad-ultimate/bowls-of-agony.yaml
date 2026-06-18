@@ -21,7 +21,7 @@ bosses:
 
 crystals:
   spawnAt: 24
-  spots: [[-14, 14], [14, 14], [14, -14], [-14, -14]]
+  spots: [[-9, 9], [9, 9], [9, -9], [-9, -9]]
   rng: true
 
 players:

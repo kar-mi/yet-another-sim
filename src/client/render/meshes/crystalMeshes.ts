@@ -13,9 +13,9 @@ const CRYSTAL_COLORS: Record<CrystalElement, Color3> = {
 };
 
 export function createCrystalMesh(scene: Scene, crystal: Crystal): Mesh {
-  const mesh = CreatePolyhedron(`crystal-${crystal.element}`, { type: 1, size: 2.2 }, scene);
-  mesh.position = new Vector3(crystal.pos.x, 1.35, crystal.pos.z);
-  mesh.scaling.y = 1.45;
+  const mesh = CreatePolyhedron(`crystal-${crystal.element}`, { type: 1, size: 1.1 }, scene);
+  mesh.position = new Vector3(crystal.pos.x, 1.3, crystal.pos.z);
+  mesh.scaling.y = 1;
   mesh.rotation.y = Math.PI / 4;
   mesh.isPickable = false;
 
