@@ -1465,7 +1465,7 @@ img.yas-debuff-icon {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  width: 230px;
+  width: 190px;
   background: rgba(10, 12, 28, 0.9);
   border: 1px solid rgba(85, 95, 145, 0.3);
   border-radius: 3px;
@@ -1695,7 +1695,8 @@ img.yas-debuff-icon {
 .yas-playback-controls {
   display: flex;
   gap: 4px;
-  transform: translateX(18px);
+  width: 190px;
+  justify-content: space-between;
 }
 
 .yas-playback-controls button {
