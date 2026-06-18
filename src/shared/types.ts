@@ -89,7 +89,9 @@ export type EffectBehavior =
   // Would-be-lethal hit leaves carrier at 1 HP and cleanses the debuff. Uncleansed expiry is lethal.
   | { kind: "primordialCrust"; expiryDamage: number; expiryDamageType: DamageType }
   // Cleansed by healing carrier to full HP. Uncleansed expiry is lethal.
-  | { kind: "accretion"; expiryDamage: number; expiryDamageType: DamageType };
+  | { kind: "accretion"; expiryDamage: number; expiryDamageType: DamageType }
+  // Generic assignment/priority marker (e.g. First/Second/Third in Line, Alpha/Beta). Pure HUD marker; deals expiryDamage on expiry. No cleanse path.
+  | { kind: "assignment"; expiryDamage: number; expiryDamageType: DamageType };
 
 export type EffectSpec = {
   name: string;

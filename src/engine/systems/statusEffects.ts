@@ -106,10 +106,10 @@ export function applyStatusEffects(ctx: TickContext): void {
           });
           continue;
         }
-        if (effect.behavior.kind === "primordialCrust" || effect.behavior.kind === "accretion") {
+        if (effect.behavior.kind === "primordialCrust" || effect.behavior.kind === "accretion" || effect.behavior.kind === "assignment") {
           const expiry = effect.appliedAt + effect.duration;
           if (expiry <= previousTime || expiry > time) continue;
-          const b = effect.behavior as Extract<EffectBehavior, { kind: "primordialCrust" } | { kind: "accretion" }>;
+          const b = effect.behavior as Extract<EffectBehavior, { kind: "primordialCrust" } | { kind: "accretion" } | { kind: "assignment" }>;
           applyMechanicDamage(player, b.expiryDamage, b.expiryDamageType, time);
           if (!player.alive) log.push({ t: time, mechanic: effect.name, playerId: player.id, event: "hit" });
         }

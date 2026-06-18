@@ -1227,6 +1227,15 @@ behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay
     expiryDamageType: "true"
   ```
 
+- **assignment** — Generic priority/group marker (e.g. First/Second/Third in Line, Alpha, Beta). Pure HUD marker with no built-in resolution logic. When the debuff expires it deals `expiryDamage` of `expiryDamageType` to the carrier (placeholder until a raid wires up its own mechanic). There is no cleanse path — it always expires. Authors must set `icon` (filename from `/static/debuffs/`) and optionally `marker` for the short HUD label. `expiryDamageType` defaults to `"true"`.
+
+  ```yaml
+  behavior:
+    kind: assignment
+    expiryDamage: 20
+    expiryDamageType: "true"
+  ```
+
 - **plant** — Tele-Trouncing "plant": the HUD shows an arrow along `direction` (`[x, z]`). When the debuff **expires** it places a teleport trap (a `forced_march`) at the player's position. The trap is **inert for `armDelay` seconds** (so the placer can step off), then triggers on contact — the first player to enter its `radius` is frozen for `tpDelay` seconds (the windup), then **instantly teleported** `distance` units along `direction` (measured from their own spot, so it lands purely along the heading). An untriggered trap expires `duration` seconds after it arms. The placed arrow renders via the forced-march layer; nothing is drawn under the player during the debuff. `direction` is a non-zero `[x, z]` vector **or** the string `"option"` (defer to the combination plan — it resolves to a placeholder the plan overrides per player; see [Optional combinations](#optional-combinations)). `radius` defaults `3`, `armDelay` `3`, `duration` `10`, `tpDelay` `0.7`.
 
 ## Optional combinations
