@@ -175,10 +175,14 @@ test("tick: bossId-anchored cone snapshots the named boss's position, not the pr
   });
   const world = runTicks(createWorld(raid), {}, Math.ceil(1.01 * 60));
   const promoted = world.active.find(m => m.id === "secondary-cone");
+  const secondary = world.bosses.find(b => b.id === "secondary")!;
+  const primary = world.bosses.find(b => b.id === "primary")!;
   expect(promoted).toBeDefined();
   if (promoted && promoted.shape.kind === "cone") {
-    // Origin should be near secondary boss's position [10, 0], not primary [0, 0].
-    expect(promoted.shape.origin.x).toBeCloseTo(10, 0);
+    // Origin should be the secondary boss's live position, not the primary boss's position.
+    expect(promoted.shape.origin.x).toBeCloseTo(secondary.pos.x);
+    expect(promoted.shape.origin.z).toBeCloseTo(secondary.pos.z);
+    expect(Math.hypot(promoted.shape.origin.x - primary.pos.x, promoted.shape.origin.z - primary.pos.z)).toBeGreaterThan(1);
   }
 });
 

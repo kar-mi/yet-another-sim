@@ -14,9 +14,16 @@ export function anchorShape(
   shape: AOEShape,
   opts: { anchor?: "boss"; directionFrom?: "bossFacing"; directionOffset?: number },
 ): AOEShape {
-  if ((!opts.anchor && !opts.directionFrom) || (shape.kind !== "cone" && shape.kind !== "rect")) {
+  if (!opts.anchor && !opts.directionFrom) {
     return shape;
   }
+  if (shape.kind === "circle") {
+    return opts.anchor === "boss" ? { ...shape, center: { x: boss.pos.x, z: boss.pos.z } } : shape;
+  }
+  if (shape.kind === "donut") {
+    return opts.anchor === "boss" ? { ...shape, center: { x: boss.pos.x, z: boss.pos.z } } : shape;
+  }
+  if (shape.kind !== "cone" && shape.kind !== "rect") return shape;
   const facing = boss.facing + (opts.directionOffset ?? 0);
   return {
     ...shape,

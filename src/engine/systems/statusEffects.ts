@@ -25,7 +25,7 @@ function applyShapeHit(
   for (const target of players) {
     if (!target.alive || !pointInShape(shape, target.pos)) continue;
     applyMechanicDamage(target, damage, damageType, time);
-    if (kbDistance !== undefined && (skipKbForId === undefined || target.id !== skipKbForId) && target.antiKbActive <= 0) {
+    if (kbDistance !== undefined && kbDistance > 0 && (skipKbForId === undefined || target.id !== skipKbForId) && target.antiKbActive <= 0) {
       applyKnockback(target, { distance: kbDistance, height: 0, origin }, origin, time);
     }
     log.push({ t: time, mechanic: name, playerId: target.id, event: "hit" });

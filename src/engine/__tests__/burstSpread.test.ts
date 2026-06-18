@@ -46,6 +46,17 @@ test("burstSpread back-compat: old-style schema (no selfShape/followUp) still wo
   expect(mt.pos.x).toBeCloseTo(0);     // carrier not knocked back
 });
 
+test("burstSpread knockbackDistance: 0 deals damage without knockback", () => {
+  const raid = dtRaid({
+    spawnOverrides: { mt: [0, 0], ot: [2, 0] },
+    behavior: { radius: 3, damage: 20, damageType: "magical", knockbackDistance: 0 },
+  });
+  const world = runTicks(createWorld(raid), noMove, 45);
+
+  expect(byId(world, "ot").hp).toBe(TANK_HP - 20);
+  expect(byId(world, "ot").pos.x).toBeCloseTo(2);
+});
+
 test("burstSpread selfShape donut: damages in ring, spares in hole", () => {
   // mt carrier at [0,0], donut inner=2 outer=5
   // ot at [3,0] → distance 3, in ring → hit

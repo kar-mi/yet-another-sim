@@ -270,6 +270,33 @@ test("frame: [eventIds] rotates using static event positions", () => {
   expect(spot.z).toBeCloseTo(-3.5355, 3);
 });
 
+test("frame: { crystal } rotates using the resolved crystal position", () => {
+  const w = world({
+    time: 2,
+    active: [{ id: "bait", telegraphStart: 0, resolveAt: 5, resolved: false }],
+    crystals: [{ id: "crystal-wind", element: "wind", pos: { x: 9, z: 9 }, spawnAt: 0 }],
+    botSolvers: { generic: [{ when: { mechanic: "bait" }, frame: { crystal: "wind" }, spot: { x: 0, z: 5 } }] },
+  });
+  const spot = genericSolverWaypoint(player({}), w)!;
+  expect(spot.x).toBeCloseTo(3.5355, 3);
+  expect(spot.z).toBeCloseTo(3.5355, 3);
+});
+
+test("a crystal frame with no matching crystal falls through to the next rule", () => {
+  const w = world({
+    time: 2,
+    active: [{ id: "bait", telegraphStart: 0, resolveAt: 5, resolved: false }],
+    crystals: [{ id: "crystal-fire", element: "fire", pos: { x: 9, z: 9 }, spawnAt: 0 }],
+    botSolvers: {
+      generic: [
+        { when: { mechanic: "bait" }, frame: { crystal: "wind" }, spot: { x: 1, z: 1 } },
+        { when: { mechanic: "bait" }, spot: { x: 9, z: 9 } },
+      ],
+    },
+  });
+  expect(genericSolverWaypoint(player({}), w)).toEqual({ x: 9, z: 9 });
+});
+
 test("a rule whose frame cannot be computed falls through to the next rule", () => {
   const w = world({
     time: 2,
@@ -293,13 +320,14 @@ test("loadBotPatterns converts solver spot arrays to Vec2 and preserves when con
   const w = createWorld(applyBotPatterns(loadRaid(baseRaid), loadBotPatterns({
     players: {},
     solvers: { generic: [
-      { when: { mechanic: "stack-1.g0", role: "tank" }, spot: [-7, 7] },
+      { when: { mechanic: "stack-1.g0", role: "tank" }, frame: { crystal: "wind" }, spot: [-7, 7] },
       { when: { mechanic: "stack-1.g0", role: "healer" }, spot: [-4, 4] },
     ] },
   })), 1);
 
   expect(w.botSolvers?.generic).toHaveLength(2);
   expect(w.botSolvers?.generic?.[0]?.when).toEqual({ mechanic: "stack-1.g0", role: "tank" });
+  expect(w.botSolvers?.generic?.[0]?.frame).toEqual({ crystal: "wind" });
   expect(w.botSolvers?.generic?.[0]?.spot).toEqual({ x: -7, z: 7 }); // array -> Vec2
   expect(w.botSolvers?.generic?.[1]?.spot).toEqual({ x: -4, z: 4 });
 });

@@ -7,6 +7,12 @@ const WaypointSchema = z.object({ t: z.number().nonnegative(), pos: Vec2Schema }
 const EventIdSchema = z.string().min(1);
 const RoleSchema = z.enum(["tank", "healer", "dps"]);
 const DebuffMatchSchema = z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]);
+const GenericSolverFrameSchema = z.union([
+  z.literal("matched"),
+  z.array(EventIdSchema).min(1),
+  z.object({ crystal: z.enum(["wind", "fire", "water"]) }),
+]);
+
 const GenericSolverRuleSchema = z.object({
   when: z.object({
     // segment-prefix match on a resolved mechanic id OR an exact match on one of its labels;
@@ -21,9 +27,9 @@ const GenericSolverRuleSchema = z.object({
   }),
   startAt: z.number().nonnegative().optional(),
   endAt: z.number().nonnegative().optional(),
-  // Rotated spot frame: "matched" (north = bisector of the live matched mechanics) or an explicit
-  // list of positioned event ids (north from their static positions).
-  frame: z.union([z.literal("matched"), z.array(EventIdSchema).min(1)]).optional(),
+  // Rotated spot frame: "matched" (north = bisector of the live matched mechanics), an explicit
+  // list of positioned event ids, or a resolved elemental crystal position.
+  frame: GenericSolverFrameSchema.optional(),
   spots: z.record(z.string().min(1), Vec2Schema).optional(),
   spot: Vec2Schema.optional(),
 }).superRefine((rule, ctx) => {
@@ -93,7 +99,7 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     radius: z.number().positive().default(3),
     damage: z.number().nonnegative(),
     damageType: z.enum(["physical", "magical", "true"]),
-    knockbackDistance: z.number().positive().default(6),
+    knockbackDistance: z.number().nonnegative().default(6),
     selfShape: z.enum(["circle", "donut"]).default("circle"),
     selfInner: z.number().positive().optional(),
     followUp: z.object({

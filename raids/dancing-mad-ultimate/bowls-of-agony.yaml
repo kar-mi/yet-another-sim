@@ -73,7 +73,7 @@ _entropyShort: &entropyShort
     radius: 5
     damage: 8
     damageType: magical
-    knockbackDistance: 1
+    knockbackDistance: 0
     followUp:
       mode: closest
       count: 2
@@ -95,7 +95,7 @@ _dynamicFluidLong: &dynamicFluidLong
     radius: 8
     damage: 12
     damageType: magical
-    knockbackDistance: 1
+    knockbackDistance: 0
     followUp:
       mode: closest
       count: 2
@@ -174,7 +174,8 @@ events:
     damageType: magical
     showCastBar: true
     bossId: exdeath
-    shape: { kind: circle, center: [8, 0], radius: 9 }
+    anchor: boss
+    shape: { kind: circle, center: [0, 0], radius: 9 }
 
   - type: targeted
     id: thunder-iii-tb-1
@@ -200,6 +201,11 @@ events:
     damageType: magical
     showCastBar: true
     bossId: exdeath
+
+  - type: heal
+    id: recovery-after-thunder
+    t: 53
+    name: Recovery
 
   - type: aoe
     id: trance-cast
@@ -254,6 +260,12 @@ events:
     showCastBar: true
     bossId: chaos
     shape: { kind: cone, angleDeg: 70, length: 24 }
+
+  - type: heal
+    id: recovery-between-implosions
+    t: 67
+    name: Recovery
+
   - type: aoe
     id: longitude-implosion-back
     t: 66
@@ -268,6 +280,11 @@ events:
     showCastBar: false
     bossId: chaos
     shape: { kind: cone, angleDeg: 70, length: 24 }
+
+  - type: heal
+    id: recovery-after-implosion
+    t: 70
+    name: Recovery
 
   - type: aoe
     id: ultima-blaster-1
@@ -335,6 +352,12 @@ events:
     showTelegraph: false
     bossId: kefka
     shape: { kind: circle, center: [0, 0], radius: 20 }
+
+  - type: heal
+    id: recovery-before-vacuum
+    t: 87
+    name: Recovery
+
   - type: aoe
     id: ultima-blaster-7
     t: 88

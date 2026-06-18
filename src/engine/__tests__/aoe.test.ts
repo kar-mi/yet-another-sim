@@ -142,6 +142,29 @@ test("a boss-anchored cone snapshots boss facing and hits players in front", () 
   expect(byId(world, "m2").hp).toBe(DPS_HP);          // behind the boss, spared
 });
 
+test("boss-anchored circle and donut snapshot the boss position", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    boss: { pos: [5, 0] },
+    players: roster({ mt: { spawn: [5, 1] }, m1: { spawn: [5, 0] }, m2: { spawn: [7, 0] }, r1: { spawn: [0, 0] } }),
+    events: [
+      {
+        t: 0, name: "Circle", telegraph: 1, damage: 10, damageType: "physical" as const,
+        anchor: "boss", shape: { kind: "circle", center: [0, 0], radius: 1 },
+      },
+      {
+        t: 2, name: "Donut", telegraph: 1, damage: 10, damageType: "physical" as const,
+        anchor: "boss", shape: { kind: "donut", center: [0, 0], inner: 1, outer: 3 },
+      },
+    ],
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(3.1 * 60));
+
+  expect(byId(world, "m1").hp).toBe(DPS_HP - 10); // circle centered on boss
+  expect(byId(world, "m2").hp).toBe(DPS_HP - 10); // donut centered on boss
+  expect(byId(world, "r1").hp).toBe(DPS_HP);      // would be hit if either stayed centered at [0,0]
+});
+
 function positionalRaid(positional: { center: number; width: number }, over = facingNorthRoster) {
   return loadRaid({
     ...baseRaid,
@@ -259,8 +282,9 @@ test("a deferred stored cleave stays dormant and hidden until its linked bait ar
 
 test("a bait turns the boss to face its target and locks facing during the cast", () => {
   const world = runTicks(createWorld(storedBaitRaid(0)), {}, Math.ceil(5 * 60)); // mid bait cast (4..6)
+  const h1 = byId(world, "h1");
   expect(world.boss.currentTarget).toBe("mt");             // mt still holds aggro (north)
-  expect(world.boss.facing).toBeCloseTo(Math.atan2(4, 0)); // but facing is locked toward h1 (east)
+  expect(world.boss.facing).toBeCloseTo(Math.atan2(h1.pos.x - world.boss.pos.x, h1.pos.z - world.boss.pos.z));
 });
 
 test("a resolve-only stored cleave is hidden while armed and flashes at resolve", () => {
