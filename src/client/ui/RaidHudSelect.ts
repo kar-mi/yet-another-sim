@@ -6,7 +6,7 @@ import { showLoadingOverlay } from "./LoadingOverlay";
 import { el } from "./dom";
 
 /**
- * In-sim HUD: raid category modal + raid-plan dropdown + playback controls.
+ * In-sim HUD: raid picker modal + playback controls.
  * Returns a disposer that tears down listeners and DOM.
  */
 export async function createRaidHudSelect(net: NetClient, initialRaidId: string, initialIsHost: boolean, initialPlaybackState: PlaybackState = "playing"): Promise<() => void> {
@@ -28,122 +28,160 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
 
   const wrapper = el("div", { id: "yas-raid-select" });
 
-  const categoryBtn = el("button", {
-    type: "button",
-    id: "yas-raid-category-btn",
-    textContent: "☰",
-    ariaLabel: "Choose raid category",
-  });
-
   const label = el("span", { className: "yas-session-label", textContent: "RAID" });
 
-  const selectDropdown = el("div", { className: "yas-raid-dropdown" });
-  const select = el("button", {
+  const raidName = el("span", { className: "yas-raid-open-name" });
+  const raidBtn = el("button", {
     type: "button",
-    className: "yas-raid-dropdown-toggle",
-    ariaLabel: "Raid plan",
+    className: "yas-raid-open",
     disabled: !isHost,
-    attrs: { "aria-haspopup": "listbox", "aria-expanded": "false" },
-  });
-  const selectOptions = el("div", {
-    className: "yas-raid-dropdown-options",
-    attrs: { role: "listbox" },
-  });
-  selectOptions.style.display = "none";
+    attrs: { "aria-haspopup": "dialog", "aria-expanded": "false" },
+  }, [
+    raidName,
+    el("span", { className: "yas-raid-open-glyph", textContent: "▾" }),
+  ]);
   let activeRaidId = initialRaidId;
   let selectedRaidId = initialRaidId;
   let raidChangePending = false;
+  let resumePlaybackAfterModal = false;
+  let searchTerm = "";
   let syncPlayback: (state: PlaybackState) => void = () => {};
-  const setSelectOpen = (open: boolean) => {
-    if (open && select.disabled) return;
-    selectOptions.style.display = open ? "flex" : "none";
-    select.setAttribute("aria-expanded", String(open));
+
+  const raidLabelForId = (raidId: string): string => {
+    const category = categoryForRaidId(raidId);
+    return category.raids.find(raid => raid.id === raidId)?.name ?? category.raids[0]?.name ?? "";
   };
-  const updateSelectedRaidLabel = (category: RaidCategory) => {
-    const selectedRaid = category.raids.find(raid => raid.id === selectedRaidId);
-    select.textContent = selectedRaid?.name ?? category.raids[0]?.name ?? "";
+  const updateButtonLabel = () => {
+    raidName.textContent = raidLabelForId(selectedRaidId);
   };
-  const updateOptionSelection = () => {
-    selectOptions.querySelectorAll<HTMLButtonElement>(".yas-raid-dropdown-option").forEach(option => {
-      option.setAttribute("aria-selected", String(option.value === selectedRaidId));
-    });
+
+  const modal = el("div", { id: "yas-raid-modal" });
+  modal.style.display = "none";
+  const searchInput = el("input", {
+    className: "yas-raid-search",
+    type: "search",
+    placeholder: "Search raids...",
+    ariaLabel: "Search raids",
+  });
+  const catList = el("div", { className: "yas-raid-cat-list" });
+  const raidList = el("div", { className: "yas-raid-raid-list", attrs: { role: "listbox" } });
+  const modalPanel = el("div", { className: "yas-raid-modal-panel" }, [
+    el("div", { className: "yas-raid-modal-header" }, [
+      el("div", { className: "yas-menu-subtitle", textContent: "SELECT RAID" }),
+      searchInput,
+    ]),
+    el("div", { className: "yas-raid-modal-body" }, [
+      catList,
+      raidList,
+    ]),
+  ]);
+  modal.appendChild(modalPanel);
+
+  const renderCategories = () => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    catList.replaceChildren();
+    for (const category of categories) {
+      const hasMatch = normalizedSearch === ""
+        || category.name.toLowerCase().includes(normalizedSearch)
+        || category.raids.some(raid => raid.name.toLowerCase().includes(normalizedSearch));
+      const row = el("button", { type: "button", className: "yas-raid-cat-option" }, [
+        el("div", { className: "yas-raid-cat-name", textContent: category.name }),
+        el("div", { className: "yas-raid-cat-desc", textContent: category.description }),
+      ]);
+      row.classList.toggle("is-active", normalizedSearch === "" && category.id === currentCategory.id);
+      row.classList.toggle("is-dim", normalizedSearch !== "" && !hasMatch);
+      row.addEventListener("click", () => {
+        searchTerm = "";
+        searchInput.value = "";
+        currentCategory = category;
+        renderCategories();
+        renderRaids();
+      });
+      catList.appendChild(row);
+    }
   };
+
+  const renderRaids = () => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const matches = normalizedSearch === ""
+      ? currentCategory.raids.map(raid => ({ category: currentCategory, raid }))
+      : categories.flatMap(category => category.raids
+        .filter(raid => raid.name.toLowerCase().includes(normalizedSearch) || category.name.toLowerCase().includes(normalizedSearch))
+        .map(raid => ({ category, raid })));
+    raidList.replaceChildren();
+    if (matches.length === 0) {
+      raidList.appendChild(el("div", { className: "yas-raid-empty", textContent: "No raids match" }));
+      return;
+    }
+    for (const { category, raid } of matches) {
+      const row = el("button", {
+        type: "button",
+        className: "yas-raid-raid-option",
+        attrs: { role: "option", "aria-selected": String(raid.id === activeRaidId) },
+      }, [
+        el("span", { className: "yas-raid-raid-name", textContent: raid.name }),
+        el("span", { className: "yas-raid-raid-cat", textContent: category.name }),
+      ]);
+      row.classList.toggle("is-active", raid.id === activeRaidId);
+      row.addEventListener("click", () => {
+        requestRaidChange(raid.id);
+      });
+      raidList.appendChild(row);
+    }
+  };
+
+  const openModal = () => {
+    if (raidBtn.disabled) return;
+    resumePlaybackAfterModal = lastState === "playing";
+    if (resumePlaybackAfterModal) net.send({ type: "pause" });
+    searchTerm = "";
+    searchInput.value = "";
+    currentCategory = categoryForRaidId(activeRaidId);
+    renderCategories();
+    renderRaids();
+    modal.style.display = "flex";
+    raidBtn.setAttribute("aria-expanded", "true");
+    searchInput.focus();
+  };
+  const closeModal = (resumePlayback = true) => {
+    const wasOpen = modal.style.display !== "none";
+    modal.style.display = "none";
+    raidBtn.setAttribute("aria-expanded", "false");
+    if (!wasOpen || !resumePlayback || !resumePlaybackAfterModal || raidChangePending) return;
+    resumePlaybackAfterModal = false;
+    net.send({ type: "play" });
+  };
+
   const requestRaidChange = (raidId: string) => {
     if (!raidId) return;
     selectedRaidId = raidId;
-    updateSelectedRaidLabel(currentCategory);
-    updateOptionSelection();
-    setSelectOpen(false);
-    select.blur();
-    if (raidId === activeRaidId) return;
+    updateButtonLabel();
+    raidBtn.blur();
+    if (raidId === activeRaidId) {
+      closeModal();
+      return;
+    }
     raidChangePending = true;
+    closeModal(false);
     syncPlayback(lastState);
     net.send({ type: "setRaid", raidId });
   };
-  const populateSelect = (category: RaidCategory, selectedId: string) => {
-    selectedRaidId = selectedId;
-    selectOptions.replaceChildren();
-    updateSelectedRaidLabel(category);
-    for (const raid of category.raids) {
-      const option = el("button", {
-        type: "button",
-        className: "yas-raid-dropdown-option",
-        value: raid.id,
-        textContent: raid.name,
-        attrs: { role: "option", "aria-selected": String(raid.id === selectedRaidId) },
-      });
-      option.addEventListener("click", () => {
-        requestRaidChange(raid.id);
-      });
-      selectOptions.appendChild(option);
-    }
-  };
-  populateSelect(currentCategory, initialRaidId);
-  select.addEventListener("click", () => {
-    setSelectOpen(selectOptions.style.display === "none");
-  });
-  selectDropdown.append(select, selectOptions);
 
-  // Modal listing categories; picking one re-scopes the dropdown (does not change the active raid).
-  const modal = el("div", { id: "yas-raid-modal" });
-  modal.style.display = "none";
-  const modalPanel = el("div", { className: "yas-raid-modal-panel" }, [
-    el("div", { className: "yas-menu-subtitle", textContent: "CHOOSE CATEGORY" }),
-  ]);
-  const closeModal = () => { modal.style.display = "none"; };
-  for (const category of categories) {
-    const row = el("button", { type: "button", className: "yas-raid-cat-option" }, [
-      el("div", { className: "yas-raid-cat-name", textContent: category.name }),
-      el("div", { className: "yas-raid-cat-desc", textContent: category.description }),
-    ]);
-    row.addEventListener("click", () => {
-      currentCategory = category;
-      const raidId = category.raids[0]?.id ?? "";
-      populateSelect(category, raidId);
-      requestRaidChange(raidId);
-      closeModal();
-    });
-    modalPanel.appendChild(row);
-  }
-  modal.appendChild(modalPanel);
+  updateButtonLabel();
+  searchInput.addEventListener("input", () => {
+    searchTerm = searchInput.value;
+    renderCategories();
+    renderRaids();
+  });
+  raidBtn.addEventListener("click", openModal);
   modal.addEventListener("click", event => { if (event.target === modal) closeModal(); });
   const onKeydown = (event: KeyboardEvent) => {
     if (event.key === "Escape") {
       closeModal();
-      setSelectOpen(false);
     }
   };
-  const onDocumentClick = (event: MouseEvent) => {
-    if (!selectDropdown.contains(event.target as Node)) setSelectOpen(false);
-  };
   document.addEventListener("keydown", onKeydown);
-  document.addEventListener("click", onDocumentClick);
   document.body.appendChild(modal);
-
-  categoryBtn.addEventListener("click", () => {
-    categoryBtn.blur();
-    modal.style.display = "flex";
-  });
 
   const controls = el("div", { className: "yas-playback-controls" });
   const makePlaybackBtn = (labelText: string, onClick: () => void) => {
@@ -162,10 +200,9 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
 
   syncPlayback = (state: PlaybackState) => {
     lastState = state;
-    const locked = raidChangePending || !isHost || state === "playing";
-    select.disabled = locked;
-    if (locked) setSelectOpen(false);
-    categoryBtn.disabled = locked;
+    const locked = raidChangePending || !isHost;
+    raidBtn.disabled = locked;
+    if (locked) closeModal(false);
     // Play can't resume a finished pull (the server rejects it) — steer the host to RESTART instead.
     playBtn.disabled = raidChangePending || !isHost || state === "playing" || state === "done";
     pauseBtn.disabled = raidChangePending || !isHost || state !== "playing";
@@ -176,29 +213,43 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
   const disposePlayback = net.on("playback", message => {
     isHost = net.clientId === message.hostClientId;
     if (message.raidId !== activeRaidId) showLoadingOverlay(RAID_CHANGE_START_DELAY_MS);
+    const wasRaidChangePending = raidChangePending;
     activeRaidId = message.raidId;
     raidChangePending = false;
+    if (wasRaidChangePending || message.state === "playing") resumePlaybackAfterModal = false;
     currentCategory = categoryForRaidId(message.raidId);
-    populateSelect(currentCategory, message.raidId);
+    selectedRaidId = message.raidId;
+    updateButtonLabel();
+    if (modal.style.display !== "none") {
+      renderCategories();
+      renderRaids();
+    }
     syncPlayback(message.state);
   });
   const disposeError = net.on("error", () => {
+    const shouldResume = resumePlaybackAfterModal;
     raidChangePending = false;
+    resumePlaybackAfterModal = false;
     currentCategory = categoryForRaidId(activeRaidId);
-    populateSelect(currentCategory, activeRaidId);
+    selectedRaidId = activeRaidId;
+    updateButtonLabel();
+    if (modal.style.display !== "none") {
+      renderCategories();
+      renderRaids();
+    }
     syncPlayback(lastState);
+    if (shouldResume) net.send({ type: "play" });
   });
   syncPlayback(initialPlaybackState);
 
   const selectRow = el("div", { className: "yas-raid-select-row" });
-  selectRow.append(categoryBtn, selectDropdown);
+  selectRow.append(raidBtn);
   wrapper.append(label, selectRow, controls);
   document.body.appendChild(wrapper);
   return () => {
     disposePlayback();
     disposeError();
     document.removeEventListener("keydown", onKeydown);
-    document.removeEventListener("click", onDocumentClick);
     modal.remove();
     wrapper.remove();
   };
