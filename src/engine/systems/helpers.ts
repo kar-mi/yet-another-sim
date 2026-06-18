@@ -109,7 +109,15 @@ export function applyMechanicDamage(player: Player, damage: number, damageType: 
   }
   if (!player.invincible) {
     player.hp = Math.max(0, player.hp - dealt);
-    if (player.hp <= 0) player.alive = false;
+    if (player.hp <= 0) {
+      const crust = player.effects.find(e => isEffectActiveAt(e, time) && e.behavior.kind === "primordialCrust");
+      if (crust) {
+        player.hp = 1;
+        player.effects = player.effects.filter(e => e !== crust);
+      } else {
+        player.alive = false;
+      }
+    }
   }
 }
 

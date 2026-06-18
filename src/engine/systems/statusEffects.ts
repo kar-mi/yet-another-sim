@@ -3,7 +3,7 @@
 // expired effects. Plant traps are appended to ctx.forcedMarches (built in phase 1c) for next tick.
 
 import type { TickContext } from "./context";
-import type { AOEShape, DamageType } from "@shared/types";
+import type { AOEShape, DamageType, EffectBehavior } from "@shared/types";
 import { pointInShape } from "../shapes";
 import { effectActiveDt, applyMechanicDamage, applyKnockback, isEffectActiveAt, selectTargetPlayers } from "./helpers";
 import { addResolvedAoeVisual } from "./effectResolvers";
@@ -54,8 +54,13 @@ export function applyStatusEffects(ctx: TickContext): void {
         }
       }
     }
+    // Accretion: cleansed by being healed to full HP (heal fires before status effects in sim.ts).
+    if (player.alive && player.hp >= player.maxHp) {
+      player.effects = player.effects.filter(e => !(isEffectActiveAt(e, time) && e.behavior.kind === "accretion"));
+    }
     // Plant (Tele-Trouncing): when its debuff expires, place a teleport trap (forced march) at the
     // player's spot. It stays inert for `armDelay` (so the placer can step off) before triggering.
+    // PrimordialCrust / Accretion: uncleansed expiry deals a lethal burst to the carrier.
     if (player.alive) {
       for (const effect of player.effects) {
         if (effect.behavior.kind === "doubleTrouble") {
@@ -80,25 +85,34 @@ export function applyStatusEffects(ctx: TickContext): void {
           }
           continue;
         }
-        if (effect.behavior.kind !== "plant") continue;
-        const expiry = effect.appliedAt + effect.duration;
-        if (expiry <= previousTime || expiry > time) continue; // only the tick it expires on
-        const b = effect.behavior;
-        forcedMarches.push({
-          id: `plant-${player.id}-${effect.id}`,
-          name: effect.name,
-          pos: { x: player.pos.x, z: player.pos.z },
-          radius: b.radius,
-          direction: { x: b.direction[0], z: b.direction[1] },
-          distance: b.distance,
-          preDelay: b.tpDelay,  // frozen at A during the windup, then an instant teleport to B
-          postDelay: 0.3,
-          relativeMove: true,
-          armedAt: time + b.armDelay,
-          expireAt: time + b.armDelay + b.duration,
-          triggered: false,
-          teleported: false,
-        });
+        if (effect.behavior.kind === "plant") {
+          const expiry = effect.appliedAt + effect.duration;
+          if (expiry <= previousTime || expiry > time) continue; // only the tick it expires on
+          const b = effect.behavior;
+          forcedMarches.push({
+            id: `plant-${player.id}-${effect.id}`,
+            name: effect.name,
+            pos: { x: player.pos.x, z: player.pos.z },
+            radius: b.radius,
+            direction: { x: b.direction[0], z: b.direction[1] },
+            distance: b.distance,
+            preDelay: b.tpDelay,  // frozen at A during the windup, then an instant teleport to B
+            postDelay: 0.3,
+            relativeMove: true,
+            armedAt: time + b.armDelay,
+            expireAt: time + b.armDelay + b.duration,
+            triggered: false,
+            teleported: false,
+          });
+          continue;
+        }
+        if (effect.behavior.kind === "primordialCrust" || effect.behavior.kind === "accretion") {
+          const expiry = effect.appliedAt + effect.duration;
+          if (expiry <= previousTime || expiry > time) continue;
+          const b = effect.behavior as Extract<EffectBehavior, { kind: "primordialCrust" } | { kind: "accretion" }>;
+          applyMechanicDamage(player, b.expiryDamage, b.expiryDamageType, time);
+          if (!player.alive) log.push({ t: time, mechanic: effect.name, playerId: player.id, event: "hit" });
+        }
       }
     }
     player.effects = player.effects.filter(effect => isEffectActiveAt(effect, time));

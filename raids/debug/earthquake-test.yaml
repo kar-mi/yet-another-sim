@@ -1,0 +1,103 @@
+# Earthquake mechanic test — set_hp, Primordial Crust, and Accretion.
+#
+# Sequence:
+# 1. set_hp drops everyone to 1.
+# 2. apply_effect gives tanks Primordial Crust and healers Accretion.
+# 3. A heal event (t=8) brings everyone to full — cleanses Accretion on healers.
+# 4. A lethal AOE (t=10) at the tank positions cleanses Crust on surviving tanks (leaves them at 1).
+# 5. Accretion expiry burst (t=14): DPS/remaining Accretion carriers die if the debuff wasn't cleared.
+# 6. Crust expiry burst (t=18): uncleansed Crust carriers die.
+
+name: Earthquake Test
+arena:
+  zones:
+    - kind: circle
+      center: [0, 0]
+      radius: 20
+duration: 30
+
+players:
+  - id: mt
+    role: tank
+    spawn: [0, 8]
+  - id: ot
+    role: tank
+    spawn: [0, -8]
+  - id: h1
+    role: healer
+    spawn: [-8, 0]
+  - id: h2
+    role: healer
+    spawn: [8, 0]
+  - id: r1
+    role: dps
+    spawn: [-5.66, 5.66]
+  - id: r2
+    role: dps
+    spawn: [5.66, 5.66]
+  - id: m1
+    role: dps
+    spawn: [-5.66, -5.66]
+  - id: m2
+    role: dps
+    spawn: [5.66, -5.66]
+
+events:
+  # 1. Drop all HP to 1.
+  - type: set_hp
+    id: set-hp-1
+    t: 2
+    name: Seismic Crush
+    amount: 1
+
+  # 2a. Primordial Crust on tanks — cleansed by surviving a lethal hit.
+  - type: apply_effect
+    id: apply-crust
+    t: 3
+    name: Apply Primordial Crust
+    role: tank
+    applyEffect:
+      name: Primordial Crust
+      kind: debuff
+      duration: 15
+      icon: primoridial_crust.png
+      behavior:
+        kind: primordialCrust
+        expiryDamage: 999999
+        expiryDamageType: "true"
+
+  # 2b. Accretion on healers — cleansed by being healed to full.
+  - type: apply_effect
+    id: apply-accretion
+    t: 3
+    name: Apply Accretion
+    role: healer
+    applyEffect:
+      name: Accretion
+      kind: debuff
+      duration: 11
+      behavior:
+        kind: accretion
+        expiryDamage: 999999
+        expiryDamageType: "true"
+
+  # 3. Full-raid heal — cleanses Accretion on the healers (hp → maxHp before expiry).
+  - type: heal
+    id: heal-1
+    t: 8
+    name: Earthen Favor
+
+  # 4. Lethal AOE on the tank positions — cleanses Primordial Crust (leaves them at 1 HP).
+  - id: crust-cleanse-aoe
+    t: 10
+    name: Aftershock
+    telegraph: 1
+    damage: 999999
+    damageType: "true"
+    shape: { kind: circle, center: [0, 0], radius: 20 }
+
+  # 5. Accretion expiry at t=14 — any uncleansed carrier takes the lethal burst.
+  # (The debuff was applied at t=3 with duration 11, so it expires at t=14.)
+
+  # 6. Crust expiry at t=18 — any uncleansed carrier takes the lethal burst.
+  # (The debuff was applied at t=3 with duration 15, so it expires at t=18.)

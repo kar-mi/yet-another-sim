@@ -120,6 +120,16 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     distance: z.number().nonnegative(),
     doubledDistance: z.number().nonnegative(),
   }),
+  z.object({
+    kind: z.literal("primordialCrust"),
+    expiryDamage: z.number().nonnegative(),
+    expiryDamageType: z.enum(["physical", "magical", "true"]).default("true"),
+  }),
+  z.object({
+    kind: z.literal("accretion"),
+    expiryDamage: z.number().nonnegative(),
+    expiryDamageType: z.enum(["physical", "magical", "true"]).default("true"),
+  }),
 ]).superRefine((b, ctx) => {
   if (b.kind !== "doubleTrouble") return;
   if (b.selfShape === "donut" && b.selfInner === undefined) {
@@ -528,6 +538,16 @@ const HealEventSchema = z.object({
   name: z.string().min(1),
 });
 
+const SetHpEventSchema = z.object({
+  type: z.literal("set_hp"),
+  id: EventIdSchema,
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  amount: z.number().positive(),
+  role: RoleSchema.optional(),
+  players: z.array(z.string().min(1)).min(1).optional(),
+});
+
 // Generic charge distribution + re-balance. `charges` lists each kind's effect (+ optional above-head
 // marker). `initial: "plan"` opens by applying each player's planned kind from world.initialCharges.
 // `onResolve` keys a trigger label (e.g. a tower's label) to the per-kind target counts the re-balance
@@ -568,7 +588,7 @@ const LimitCutEventSchema = z.object({
   role: RoleSchema.optional(),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema]);
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),

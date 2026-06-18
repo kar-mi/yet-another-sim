@@ -31,6 +31,7 @@ import { resolveInversions } from "./systems/inverse";
 import { resolveSpreadStacks } from "./systems/spreadStack";
 import { resolveGazes } from "./systems/gaze";
 import { resolveLimitCuts } from "./systems/limitCut";
+import { resolveSetHps } from "./systems/setHp";
 
 type RaidEvent = RaidDef["events"][number];
 export type EventType = RaidEvent["type"];
@@ -40,7 +41,7 @@ export type Collections = Pick<World,
   | "pending" | "pendingTethers" | "pendingLineLinks" | "pendingTargeted" | "pendingBaits"
   | "pendingTowers" | "pendingChains" | "pendingGroups" | "pendingEffectSelects"
   | "pendingApplyEffects" | "pendingLimitCuts" | "pendingInversions" | "pendingSpreadStacks" | "pendingGazes"
-  | "pendingForcedMarches" | "pendingEffectBursts" | "pendingHeals" | "reassigns"
+  | "pendingForcedMarches" | "pendingEffectBursts" | "pendingHeals" | "pendingSetHps" | "reassigns"
   | "effectResolvers"
 >;
 
@@ -447,6 +448,15 @@ const gaze: MechanicModule = {
   isResolved: w => w.pendingGazes.length === 0 && w.gazes.every(g => g.resolved),
 };
 
+const setHp: MechanicModule = {
+  fromEvent(e, c) {
+    if (e.type !== "set_hp") return;
+    c.pendingSetHps.push({ id: e.id, t: e.t, name: e.name, amount: e.amount, role: e.role, players: e.players });
+  },
+  resolve: ctx => ({ pendingSetHps: resolveSetHps(ctx) }),
+  isResolved: w => w.pendingSetHps.length === 0,
+};
+
 // Full-raid heals resolve inline in tick (before targeting, so revived HP is targetable this tick),
 // so this module has no `resolve` — only bucketing + clear-detection.
 const heal: MechanicModule = {
@@ -492,6 +502,7 @@ const MODULE_FOR_TYPE = {
   inverse: inverse,
   spread_stack: spreadStack,
   gaze: gaze,
+  set_hp: setHp,
   heal: heal,
   effect_resolver: effectResolver,
 } satisfies Record<EventType, MechanicModule>;
@@ -501,7 +512,7 @@ const MODULE_FOR_TYPE = {
 export const REGISTRY: readonly MechanicModule[] = [
   forcedMarch, tethers, lineLinks, chains, aoe, towers, groups,
   effectSelect, applyEffects, reassign, inverse, spreadStack, gaze, limitCut,
-  heal, effectResolver,
+  setHp, heal, effectResolver,
 ];
 
 // Invariant: every owning module participates in the REGISTRY loop (so its resolve/isResolved run).

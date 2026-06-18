@@ -85,7 +85,11 @@ export type EffectBehavior =
   // `tpDelay` seconds, then instantly teleported `distance` along `direction`. An untriggered trap
   // expires `duration` seconds after it arms.
   | { kind: "plant"; direction: [number, number]; distance: number; radius: number; armDelay: number; duration: number; tpDelay: number }
-  | { kind: "directionalKnockback"; requiredFacing: "away" | "toward"; distance: number; doubledDistance: number };
+  | { kind: "directionalKnockback"; requiredFacing: "away" | "toward"; distance: number; doubledDistance: number }
+  // Would-be-lethal hit leaves carrier at 1 HP and cleanses the debuff. Uncleansed expiry is lethal.
+  | { kind: "primordialCrust"; expiryDamage: number; expiryDamageType: DamageType }
+  // Cleansed by healing carrier to full HP. Uncleansed expiry is lethal.
+  | { kind: "accretion"; expiryDamage: number; expiryDamageType: DamageType };
 
 export type EffectSpec = {
   name: string;
@@ -348,6 +352,15 @@ export type PendingHeal = {
   id: string;
   t: number;
   name: string;
+};
+
+export type PendingSetHp = {
+  id: string;
+  t: number;
+  name: string;
+  amount: number;
+  role?: Role;
+  players?: string[];
 };
 
 export type TowerVisual = {
@@ -792,6 +805,7 @@ export type World = {
   pendingEffectBursts: PendingEffectBurst[];
   effectResolvers: Record<string, EffectResolver>;
   pendingHeals: PendingHeal[];
+  pendingSetHps: PendingSetHp[];
   reassigns: Reassign[];
   pendingEffectSelects: PendingEffectSelect[];
   pendingApplyEffects: PendingApplyEffect[];
