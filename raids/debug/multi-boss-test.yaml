@@ -11,12 +11,16 @@ duration: 60
 
 bosses:
   - id: chaos
+    model: chaos
+    modelScale: 30
     pos: [-10, 0]
     aggro: mt
   - id: exdeath
+    modelScale: 30
     pos: [10, 0]
     aggro: ot
   - id: kefka
+    modelScale: 30
     pos: [0, 12]
 
 players:
