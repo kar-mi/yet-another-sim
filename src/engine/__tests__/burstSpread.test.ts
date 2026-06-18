@@ -21,7 +21,7 @@ function dtRaid(overrides: {
       players: [carrier],
       applyEffect: {
         name: "DT", kind: "debuff", duration: 0.1,
-        behavior: { kind: "doubleTrouble", ...behavior },
+        behavior: { kind: "burstSpread", ...behavior },
       },
     }],
   });
@@ -29,7 +29,7 @@ function dtRaid(overrides: {
 
 // ------ tests ------
 
-test("doubleTrouble back-compat: old-style schema (no selfShape/followUp) still works", () => {
+test("burstSpread back-compat: old-style schema (no selfShape/followUp) still works", () => {
   const raid = dtRaid({
     spawnOverrides: { mt: [0, 0], ot: [2, 0], h1: [10, 0] },
     behavior: { radius: 3, damage: 20, damageType: "magical", knockbackDistance: 6 },
@@ -46,7 +46,7 @@ test("doubleTrouble back-compat: old-style schema (no selfShape/followUp) still 
   expect(mt.pos.x).toBeCloseTo(0);     // carrier not knocked back
 });
 
-test("doubleTrouble selfShape donut: damages in ring, spares in hole", () => {
+test("burstSpread selfShape donut: damages in ring, spares in hole", () => {
   // mt carrier at [0,0], donut inner=2 outer=5
   // ot at [3,0] → distance 3, in ring → hit
   // h1 at [1,0] → distance 1 < inner 2, in hole → miss
@@ -63,19 +63,19 @@ test("doubleTrouble selfShape donut: damages in ring, spares in hole", () => {
   expect(byId(world, "mt").hp).toBe(TANK_HP);         // carrier at center (inside hole, no damage)
 });
 
-test("doubleTrouble schema guard: selfShape donut without selfInner fails", () => {
+test("burstSpread schema guard: selfShape donut without selfInner fails", () => {
   expect(() => dtRaid({
     behavior: { selfShape: "donut", radius: 5, damage: 10, damageType: "magical", knockbackDistance: 6 },
   })).toThrow();
 });
 
-test("doubleTrouble schema guard: selfInner >= radius fails", () => {
+test("burstSpread schema guard: selfInner >= radius fails", () => {
   expect(() => dtRaid({
     behavior: { selfShape: "donut", selfInner: 5, radius: 5, damage: 10, damageType: "magical", knockbackDistance: 6 },
   })).toThrow();
 });
 
-test("doubleTrouble schema guard: followUp donut without inner fails", () => {
+test("burstSpread schema guard: followUp donut without inner fails", () => {
   expect(() => dtRaid({
     behavior: {
       radius: 3, damage: 10, damageType: "magical", knockbackDistance: 6,
@@ -84,7 +84,7 @@ test("doubleTrouble schema guard: followUp donut without inner fails", () => {
   })).toThrow();
 });
 
-test("doubleTrouble schema guard: followUp inner >= followUp radius fails", () => {
+test("burstSpread schema guard: followUp inner >= followUp radius fails", () => {
   expect(() => dtRaid({
     behavior: {
       radius: 3, damage: 10, damageType: "magical", knockbackDistance: 6,
@@ -93,7 +93,7 @@ test("doubleTrouble schema guard: followUp inner >= followUp radius fails", () =
   })).toThrow();
 });
 
-test("doubleTrouble followUp targeting: hits 2 closest non-carriers, excludes carrier", () => {
+test("burstSpread followUp targeting: hits 2 closest non-carriers, excludes carrier", () => {
   // mt (carrier) at [0,0]; ot at [1,0] (closest); h1 at [3,0] (2nd); h2/r1/others far
   // followUp: count=2, circle radius=0.5 (tiny — only hits the centered player)
   const raid = dtRaid({
@@ -113,7 +113,7 @@ test("doubleTrouble followUp targeting: hits 2 closest non-carriers, excludes ca
   expect(byId(world, "r1").hp).toBe(DPS_HP);          // not targeted
 });
 
-test("doubleTrouble followUp shape (Entropy): circle self-pop + donut follow-up", () => {
+test("burstSpread followUp shape (Entropy): circle self-pop + donut follow-up", () => {
   // Entropy: carrier mt at [0,0], selfShape circle r=2, followUp donut inner=1 outer=4
   // ot at [5,0] → follow-up target; player in ot's donut ring: h1 at [6,0] (dist 1 from ot, in ring)
   // h2 at [5.3,0] (dist 0.3 from ot, inside inner=1 → spared)
@@ -130,7 +130,7 @@ test("doubleTrouble followUp shape (Entropy): circle self-pop + donut follow-up"
   expect(byId(world, "h2").hp).toBe(HEALER_HP);       // inside the hole (dist 0.3 < inner 0.5) → spared
 });
 
-test("doubleTrouble followUp shape (Dynamic Fluid): donut self-pop + circle follow-up", () => {
+test("burstSpread followUp shape (Dynamic Fluid): donut self-pop + circle follow-up", () => {
   // Dynamic Fluid: carrier mt at [0,0], selfShape donut inner=2 outer=5
   // ot at [7,0] → follow-up target; h1 at [7.5,0] (inside follow-up circle r=1)
   const raid = dtRaid({
@@ -147,7 +147,7 @@ test("doubleTrouble followUp shape (Dynamic Fluid): donut self-pop + circle foll
   expect(byId(world, "mt").hp).toBe(TANK_HP);         // mt at [0,0]: outside donut outer 5 → no self-pop; not a follow-up center
 });
 
-test("doubleTrouble followUp knockback: pushes from follow-up center when set, omitted = no KB", () => {
+test("burstSpread followUp knockback: pushes from follow-up center when set, omitted = no KB", () => {
   // mt (carrier) at [0,0], ot (follow-up center) at [5,0]
   // h1 at [5.3,0] → 0.3 from ot, inside follow-up circle r=1 → knocked back from [5,0]
   const raidWithKb = dtRaid({
@@ -171,7 +171,7 @@ test("doubleTrouble followUp knockback: pushes from follow-up center when set, o
   expect(byId(worldNoKb, "h1").pos.x).toBeCloseTo(5.3, 1); // no KB, stays put
 });
 
-test("doubleTrouble followUp visual: one resolved AOE visual per follow-up target", () => {
+test("burstSpread followUp visual: one resolved AOE visual per follow-up target", () => {
   // Carrier mt, followUp count=2, targets ot and h1
   const raid = dtRaid({
     spawnOverrides: { mt: [0, 0], ot: [2, 0], h1: [4, 0], h2: [20, 0] },
@@ -189,7 +189,7 @@ test("doubleTrouble followUp visual: one resolved AOE visual per follow-up targe
   expect(fuVisuals.some(m => m.id.includes("-fu-h1"))).toBe(true);
 });
 
-test("doubleTrouble determinism: same positions produce identical HP and log entries", () => {
+test("burstSpread determinism: same positions produce identical HP and log entries", () => {
   const makeRaid = () => dtRaid({
     spawnOverrides: { mt: [0, 0], ot: [2, 0], h1: [4, 0] },
     behavior: {

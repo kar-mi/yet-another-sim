@@ -78,7 +78,8 @@ export type EffectBehavior =
   | { kind: "confusion"; damage: number; damageType: DamageType; radius: number }
   // Disables all input for the effect's duration (not broken by damage).
   | { kind: "sleep" }
-  | { kind: "doubleTrouble"; radius: number; damage: number; damageType: DamageType; knockbackDistance: number; selfShape?: "circle" | "donut"; selfInner?: number; followUp?: { mode: "closest" | "furthest"; count: number; shape: "circle" | "donut"; radius: number; inner?: number; damage: number; damageType: DamageType; knockbackDistance?: number } }
+  // On expiry, bursts at the carrier, then can spread follow-up AOEs to nearby/far players.
+  | { kind: "burstSpread"; radius: number; damage: number; damageType: DamageType; knockbackDistance: number; selfShape?: "circle" | "donut"; selfInner?: number; followUp?: { mode: "closest" | "furthest"; count: number; shape: "circle" | "donut"; radius: number; inner?: number; damage: number; damageType: DamageType; knockbackDistance?: number } }
   // Tele-Trouncing "plant": the HUD shows an arrow along `direction` ([x, z]). When the debuff
   // expires it places a teleport trap (forced march) at the player's spot — inert for `armDelay`
   // seconds so the placer can step off, then triggers on contact: the entrant is frozen for

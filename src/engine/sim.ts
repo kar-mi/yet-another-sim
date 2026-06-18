@@ -56,7 +56,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
     if (mechanic.resolve) Object.assign(next, mechanic.resolve(ctx));
   }
 
-  // 4. Continuous status effects, doubleTrouble/plant expiry, effect culling. May append plant traps
+  // 4. Continuous status effects, burstSpread/plant expiry, effect culling. May append plant traps
   // to ctx.forcedMarches, so the active forcedMarches are read from ctx after this runs.
   applyStatusEffects(ctx);
 
