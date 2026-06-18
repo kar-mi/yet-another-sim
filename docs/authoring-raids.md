@@ -927,6 +927,28 @@ Excerpt from `raids/dancing-mad-ultimate/graven-image-3.yaml`:
   showCastBar: false
 ```
 
+### `set_hp` — set players' HP to an absolute value
+
+Sets each targeted living player's HP to `amount` (clamped to their `maxHp`). Used to set up
+healer puzzles (e.g. "everyone to 1 HP before applying cleanse debuffs"). Dead players are
+unaffected. Targeting mirrors `apply_effect`: all alive by default, narrowed by `role` or `players`.
+
+```yaml
+- type: set_hp
+  id: seismic-crush
+  t: 2
+  name: Seismic Crush
+  amount: 1
+```
+
+| Field     | Required | Notes |
+|-----------|----------|-------|
+| `t`       | yes      | When HP is set (seconds). |
+| `name`    | yes      | Mechanic name (used in the combat log). |
+| `amount`  | yes      | Target HP (> 0). Clamped to `maxHp` if it exceeds it. |
+| `role`    | no       | Restrict to one role (`tank`/`healer`/`dps`). Ignored if `players` is set. |
+| `players` | no       | Explicit list of player ids to target. |
+
 ### `heal` — restore all living players
 
 Restores every living player to their own maximum HP immediately at `t`. Dead players stay dead.
@@ -1152,6 +1174,28 @@ behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay
       damage: 80
       damageType: magical
   ```
+- **primordialCrust** — "survive a lethal hit" cleanse mechanic. When a hit would reduce the carrier's HP to 0 or below, the hit instead leaves them at **1 HP** and the debuff is removed (cleansed). If the debuff expires while still on the carrier (uncleansed), it deals `expiryDamage` of `expiryDamageType` — which kills at any HP. `expiryDamageType` defaults to `"true"`.
+
+  > **Note:** The cleanse only fires for discrete mechanic hits routed through `applyMechanicDamage` (AOEs, targeted events, etc.). Continuous DoT ticks in `statusEffects` do not trigger the cleanse — this matches FFXIV's mechanic and is intentional.
+
+  ```yaml
+  behavior:
+    kind: primordialCrust
+    expiryDamage: 999999
+    expiryDamageType: "true"
+  ```
+
+- **accretion** — "heal to full" cleanse mechanic. The debuff is removed whenever the carrier's HP reaches their maximum HP (i.e. after a `heal` event fires). If the debuff expires while still on the carrier (uncleansed), it deals `expiryDamage` of `expiryDamageType` — which kills at any HP. `expiryDamageType` defaults to `"true"`.
+
+  > **Authoring note:** The cleanse fires on any tick where the carrier is at full HP, not only on the exact tick of a `heal` event. Apply Accretion only **after** reducing the carrier's HP (e.g. via a `set_hp` event), otherwise the debuff self-cleanses on the very next tick.
+
+  ```yaml
+  behavior:
+    kind: accretion
+    expiryDamage: 999999
+    expiryDamageType: "true"
+  ```
+
 - **plant** — Tele-Trouncing "plant": the HUD shows an arrow along `direction` (`[x, z]`). When the debuff **expires** it places a teleport trap (a `forced_march`) at the player's position. The trap is **inert for `armDelay` seconds** (so the placer can step off), then triggers on contact — the first player to enter its `radius` is frozen for `tpDelay` seconds (the windup), then **instantly teleported** `distance` units along `direction` (measured from their own spot, so it lands purely along the heading). An untriggered trap expires `duration` seconds after it arms. The placed arrow renders via the forced-march layer; nothing is drawn under the player during the debuff. `direction` is a non-zero `[x, z]` vector **or** the string `"option"` (defer to the combination plan — it resolves to a placeholder the plan overrides per player; see [Optional combinations](#optional-combinations)). `radius` defaults `3`, `armDelay` `3`, `duration` `10`, `tpDelay` `0.7`.
 
 ## Optional combinations

@@ -34,6 +34,8 @@ function effectIcon(effect: Player["effects"][number]): { glyph?: string; src?: 
     case "doubleTrouble": return { src: "/static/debuffs/double-trouble.png" };
     case "directionalKnockback":
       return { src: `/static/debuffs/${effect.behavior.requiredFacing === "toward" ? "headwind" : "tailwind"}.png` };
+    case "primordialCrust": return { src: "/static/debuffs/primoridial_crust.png" };
+    case "accretion": return { src: "/static/debuffs/accretion.png" };
     case "vuln": return { glyph: "▼" };
     case "dot": {
       const c = effect.behavior.condition;

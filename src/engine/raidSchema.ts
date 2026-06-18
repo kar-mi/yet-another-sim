@@ -120,6 +120,16 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     distance: z.number().nonnegative(),
     doubledDistance: z.number().nonnegative(),
   }),
+  z.object({
+    kind: z.literal("primordialCrust"),
+    expiryDamage: z.number().nonnegative(),
+    expiryDamageType: z.enum(["physical", "magical", "true"]).default("true"),
+  }),
+  z.object({
+    kind: z.literal("accretion"),
+    expiryDamage: z.number().nonnegative(),
+    expiryDamageType: z.enum(["physical", "magical", "true"]).default("true"),
+  }),
 ]).superRefine((b, ctx) => {
   if (b.kind !== "doubleTrouble") return;
   if (b.selfShape === "donut" && b.selfInner === undefined) {
@@ -528,6 +538,16 @@ const HealEventSchema = z.object({
   name: z.string().min(1),
 });
 
+const SetHpEventSchema = z.object({
+  type: z.literal("set_hp"),
+  id: EventIdSchema,
+  t: z.number().nonnegative(),
+  name: z.string().min(1),
+  amount: z.number().positive(),
+  role: RoleSchema.optional(),
+  players: z.array(z.string().min(1)).min(1).optional(),
+});
+
 // Generic charge distribution + re-balance. `charges` lists each kind's effect (+ optional above-head
 // marker). `initial: "plan"` opens by applying each player's planned kind from world.initialCharges.
 // `onResolve` keys a trigger label (e.g. a tower's label) to the per-kind target counts the re-balance
@@ -568,7 +588,7 @@ const LimitCutEventSchema = z.object({
   role: RoleSchema.optional(),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema]);
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema]);
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
@@ -619,9 +639,9 @@ const OptionalsSchema = z.object({
 }).optional();
 
 // Exhaustive list of glb stems available under /static/model/. Add new boss models here.
-export const BOSS_MODEL_NAMES = ["skeith"] as const;
+export const BOSS_MODEL_NAMES = ["skeith", "kefka"] as const;
 export type BossModelName = (typeof BOSS_MODEL_NAMES)[number];
-const BossModelSchema = z.enum(BOSS_MODEL_NAMES).default("skeith");
+const BossModelSchema = z.enum(BOSS_MODEL_NAMES).default("kefka");
 
 const BossSchema = z.object({
   pos: Vec2Schema.default([0, 0]),
@@ -631,7 +651,8 @@ const BossSchema = z.object({
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#e62120"),
   }).default({ scale: 2, color: "#e62120" }),
   model: BossModelSchema,
-}).default({ pos: [0, 0], radius: 3, ring: { scale: 2, color: "#e62120" }, model: "skeith" });
+  modelScale: z.number().positive().default(1),
+}).default({ pos: [0, 0], radius: 3, ring: { scale: 2, color: "#e62120" }, model: "kefka", modelScale: 1 });
 
 // Boss entry in a multi-boss `bosses:` list. Same fields as BossSchema plus a required id slug
 // and an optional aggro seed (player id whose threat is pre-seeded to the top so this boss
@@ -645,6 +666,7 @@ const BossWithIdSchema = z.object({
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#e62120"),
   }).default({ scale: 2, color: "#e62120" }),
   model: BossModelSchema,
+  modelScale: z.number().positive().default(1),
   aggro: z.string().min(1).optional(),
 });
 
