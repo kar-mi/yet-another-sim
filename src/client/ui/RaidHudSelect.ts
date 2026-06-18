@@ -37,13 +37,13 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
     disabled: !isHost,
     attrs: { "aria-haspopup": "dialog", "aria-expanded": "false" },
   }, [
-    el("span", { className: "yas-raid-open-caption", textContent: "CURRENT" }),
     raidName,
     el("span", { className: "yas-raid-open-glyph", textContent: "▾" }),
   ]);
   let activeRaidId = initialRaidId;
   let selectedRaidId = initialRaidId;
   let raidChangePending = false;
+  let resumePlaybackAfterModal = false;
   let searchTerm = "";
   let syncPlayback: (state: PlaybackState) => void = () => {};
 
@@ -125,7 +125,6 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
       row.classList.toggle("is-active", raid.id === activeRaidId);
       row.addEventListener("click", () => {
         requestRaidChange(raid.id);
-        closeModal();
       });
       raidList.appendChild(row);
     }
@@ -133,6 +132,8 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
 
   const openModal = () => {
     if (raidBtn.disabled) return;
+    resumePlaybackAfterModal = lastState === "playing";
+    if (resumePlaybackAfterModal) net.send({ type: "pause" });
     searchTerm = "";
     searchInput.value = "";
     currentCategory = categoryForRaidId(activeRaidId);
@@ -142,19 +143,26 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
     raidBtn.setAttribute("aria-expanded", "true");
     searchInput.focus();
   };
-  const closeModal = () => {
+  const closeModal = (resumePlayback = true) => {
+    const wasOpen = modal.style.display !== "none";
     modal.style.display = "none";
     raidBtn.setAttribute("aria-expanded", "false");
+    if (!wasOpen || !resumePlayback || !resumePlaybackAfterModal || raidChangePending) return;
+    resumePlaybackAfterModal = false;
+    net.send({ type: "play" });
   };
 
   const requestRaidChange = (raidId: string) => {
     if (!raidId) return;
     selectedRaidId = raidId;
     updateButtonLabel();
-    closeModal();
     raidBtn.blur();
-    if (raidId === activeRaidId) return;
+    if (raidId === activeRaidId) {
+      closeModal();
+      return;
+    }
     raidChangePending = true;
+    closeModal(false);
     syncPlayback(lastState);
     net.send({ type: "setRaid", raidId });
   };
@@ -192,9 +200,9 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
 
   syncPlayback = (state: PlaybackState) => {
     lastState = state;
-    const locked = raidChangePending || !isHost || state === "playing";
+    const locked = raidChangePending || !isHost;
     raidBtn.disabled = locked;
-    if (locked) closeModal();
+    if (locked) closeModal(false);
     // Play can't resume a finished pull (the server rejects it) — steer the host to RESTART instead.
     playBtn.disabled = raidChangePending || !isHost || state === "playing" || state === "done";
     pauseBtn.disabled = raidChangePending || !isHost || state !== "playing";
@@ -205,8 +213,10 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
   const disposePlayback = net.on("playback", message => {
     isHost = net.clientId === message.hostClientId;
     if (message.raidId !== activeRaidId) showLoadingOverlay(RAID_CHANGE_START_DELAY_MS);
+    const wasRaidChangePending = raidChangePending;
     activeRaidId = message.raidId;
     raidChangePending = false;
+    if (wasRaidChangePending || message.state === "playing") resumePlaybackAfterModal = false;
     currentCategory = categoryForRaidId(message.raidId);
     selectedRaidId = message.raidId;
     updateButtonLabel();
@@ -217,7 +227,9 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
     syncPlayback(message.state);
   });
   const disposeError = net.on("error", () => {
+    const shouldResume = resumePlaybackAfterModal;
     raidChangePending = false;
+    resumePlaybackAfterModal = false;
     currentCategory = categoryForRaidId(activeRaidId);
     selectedRaidId = activeRaidId;
     updateButtonLabel();
@@ -226,6 +238,7 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
       renderRaids();
     }
     syncPlayback(lastState);
+    if (shouldResume) net.send({ type: "play" });
   });
   syncPlayback(initialPlaybackState);
 
