@@ -194,6 +194,8 @@ const AOEEventSchema = z.object({
   // Store this cleave: do NOT resolve at its own cast end. A linked `bait` (see BaitEventSchema.link)
   // arms and detonates it, computing the cone/rect geometry from the boss's locked facing at that time.
   deferred: z.boolean().default(false),
+  // Raidwide HP check: ignore position and deal damage to every alive player below full HP; spare players at full HP.
+  requireFullHp: z.boolean().default(false),
   // Directional gate: only hit players whose bearing from the boss is within this arc.
   // `center` (radians, clockwise from boss facing; 0 = front) and full `width` (radians).
   positional: z.object({

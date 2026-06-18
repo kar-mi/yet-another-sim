@@ -169,6 +169,7 @@ const aoe: MechanicModule = {
           directionOffset: e.directionOffset,
           lockFacing: e.lockFacing,
           deferred: e.deferred,
+          requireFullHp: e.requireFullHp,
           showCastBar: e.showCastBar ?? false,
           showTelegraph: e.showTelegraph ?? true,
           telegraphMode: e.telegraphMode ?? "cast",

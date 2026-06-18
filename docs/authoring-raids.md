@@ -307,6 +307,37 @@ Because both values are free radians, you can express any wedge: a rear `±45°`
 (`center: π, width: π/2`), an intercardinal hit (`center: π/4`), or a half-room cleave in front
 of the boss (`center: 0, width: π`). It combines naturally with a boss-anchored `cone`/`rect`.
 
+#### Full-HP check (raidwide)
+
+When `requireFullHp: true` is set on an `aoe`, the shape and position are **ignored**: every
+alive player whose `hp < maxHp` at resolve time is hit; players at full HP take nothing.
+`maxHp` is per-player (tanks 160, healers/dps 100), so the threshold is always relative to
+each player's own maximum.
+
+This is the **G10 White Hole** pattern — use it with high `true` damage to punish un-topped
+players. For a raidwide, give the shape a nominal tiny circle (it is unused but required by
+the schema):
+
+```yaml
+- id: white-hole
+  t: 10
+  name: White Hole
+  telegraph: 5
+  damage: 9999
+  damageType: "true"
+  requireFullHp: true
+  showCastBar: true
+  shape: { kind: circle, center: [0, 0], radius: 0.1 }
+```
+
+**Heal ordering:** a `heal` event that fires on the same tick as the White Hole resolves
+first (the heal pipeline runs before the AOE resolver), so scheduling both on the same tick is
+safe — all players are topped before the HP check runs. See also: [Heal / Accretion](#heal--accretion).
+
+| Field          | Required | Notes |
+|----------------|----------|-------|
+| `requireFullHp`| no       | `true` turns the AOE into a raidwide HP check. Shape is unused. Defaults to `false`. |
+
 ### `targeted` — near/far baited circle
 
 A circle that snaps onto a player chosen **at resolve time** (not cast start), so players
