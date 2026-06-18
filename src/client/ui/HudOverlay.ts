@@ -178,6 +178,7 @@ export class HudOverlay {
   private controllerHotbar!: HTMLDivElement;
   private bossCastPanelEl!: HTMLDivElement;
   private bossCastRows = new Map<string, BossCastRow>();
+  private bossCastKey = "";
 
   constructor(
     sessionId: string,
@@ -404,7 +405,10 @@ export class HudOverlay {
   }
 
   private ensureBossCastRows(bosses: Boss[]): void {
-    if (this.bossCastRows.size === bosses.length) return;
+    const key = bosses.map(b => b.id).join(",");
+    if (this.bossCastKey === key) return;
+    this.bossCastKey = key;
+    this.bossCastPanelEl.innerHTML = "";
     for (const boss of bosses) {
       if (this.bossCastRows.has(boss.id)) continue;
       const rowEl = document.createElement("div");
