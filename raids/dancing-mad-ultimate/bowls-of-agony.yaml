@@ -178,7 +178,7 @@ events:
     showCastBar: true
     bossId: exdeath
     anchor: boss
-    shape: { kind: circle, center: [0, 0], radius: 9 }
+    shape: { kind: circle, center: [0, 0], radius: 12 }
 
   - type: targeted
     id: thunder-iii-tb-1

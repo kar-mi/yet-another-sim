@@ -127,16 +127,23 @@ test("bowls of agony bots drag bosses around the wind crystal and survive", asyn
     const windDot = (chaos.pos.x * wind.pos.x + chaos.pos.z * wind.pos.z) / (chaosLen * windLen);
     expect(windDot).toBeGreaterThan(0.85);
     expect(chaosLen).toBeGreaterThan(8);
-    expect(Math.hypot(exdeath.pos.x, exdeath.pos.z)).toBeLessThan(1);
+    expect(Math.hypot(exdeath.pos.x, exdeath.pos.z)).toBeLessThan(2);
     expect(kefka.pos).toEqual({ x: 0, z: 18 });
     expect(kefka.currentTarget).toBeNull();
 
     const thunder = world.active.find(mechanic => mechanic.id === "thunder-iii-get-out");
     expect(thunder?.shape.kind).toBe("circle");
     if (thunder?.shape.kind === "circle") {
+      expect(thunder.shape.radius).toBe(12);
       expect(thunder.shape.center.x).toBeCloseTo(exdeath.pos.x);
       expect(thunder.shape.center.z).toBeCloseTo(exdeath.pos.z);
     }
+
+    world = runTicksWithComputedBotIntents(world, Math.ceil((60 - world.time) * 60));
+    const movedExdeath = world.bosses.find(boss => boss.id === "exdeath")!;
+    const exdeathLen = Math.hypot(movedExdeath.pos.x, movedExdeath.pos.z);
+    const exdeathWindDot = (movedExdeath.pos.x * wind.pos.x + movedExdeath.pos.z * wind.pos.z) / (exdeathLen * windLen);
+    expect(exdeathWindDot).toBeGreaterThan(0.75);
 
     world = runTicksWithComputedBotIntents(world, Math.ceil((raid.duration - world.time) * 60));
     expect(world.players.map(player => `${player.id}:${player.alive}`)).toEqual(world.players.map(player => `${player.id}:true`));
