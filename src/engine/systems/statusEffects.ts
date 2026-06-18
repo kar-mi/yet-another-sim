@@ -74,7 +74,10 @@ export function applyStatusEffects(ctx: TickContext): void {
           if (b.followUp) {
             const fu = b.followUp;
             const others = players.filter(p => p.alive && p.id !== player.id);
-            const fuTargets = selectTargetPlayers(others, player.pos, fu.mode, fu.count);
+            const origin = fu.originCrystal !== undefined
+              ? ctx.world.crystals.find(crystal => crystal.element === fu.originCrystal)?.pos ?? player.pos
+              : player.pos;
+            const fuTargets = selectTargetPlayers(others, origin, fu.mode, fu.count);
             for (const fuTarget of fuTargets) {
               const fuShape: AOEShape = fu.shape === "donut"
                 ? { kind: "donut", center: fuTarget.pos, inner: fu.inner!, outer: fu.radius }

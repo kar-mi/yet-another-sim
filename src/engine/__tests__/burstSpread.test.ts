@@ -124,6 +124,29 @@ test("burstSpread followUp targeting: hits 2 closest non-carriers, excludes carr
   expect(byId(world, "r1").hp).toBe(DPS_HP);          // not targeted
 });
 
+test("burstSpread followUp originCrystal targets by crystal distance", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0] }, ot: { spawn: [1, 0] }, h1: { spawn: [10, 0] }, h2: { spawn: [14, 0] } }),
+    crystals: { rng: false, spots: [[0, 10], [10, 0], [0, -10], [-10, 0]] },
+    events: [{
+      type: "apply_effect", t: 0, name: "DT", players: ["mt"],
+      applyEffect: {
+        name: "DT", kind: "debuff", duration: 0.1,
+        behavior: {
+          kind: "burstSpread",
+          radius: 0.1, damage: 1, damageType: "magical", knockbackDistance: 0,
+          followUp: { mode: "closest", count: 1, originCrystal: "fire", shape: "circle", radius: 0.5, damage: 50, damageType: "magical" },
+        },
+      },
+    }],
+  });
+  const world = runTicks(createWorld(raid), noMove, 45);
+
+  expect(byId(world, "ot").hp).toBe(TANK_HP);          // closest to carrier, but not fire
+  expect(byId(world, "h1").hp).toBe(HEALER_HP - 50);   // closest to fire crystal
+});
+
 test("burstSpread followUp shape (Entropy): circle self-pop + donut follow-up", () => {
   // Entropy: carrier mt at [0,0], selfShape circle r=2, followUp donut inner=1 outer=4
   // ot at [5,0] → follow-up target; player in ot's donut ring: h1 at [6,0] (dist 1 from ot, in ring)
