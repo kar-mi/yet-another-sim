@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ROSTER, RaidIdSchema } from "@shared/protocol";
+import { BOSS_REGISTRY, BOSS_REGISTRY_IDS, DEFAULT_BOSS_ID, isBossRegistryId, type BossRegistryId } from "./bossRegistry";
 
 const Vec2Schema = z.tuple([z.number(), z.number()]);
 const WaypointSchema = z.object({ t: z.number().nonnegative(), pos: Vec2Schema });
@@ -648,18 +649,18 @@ const OptionalsSchema = z.object({
 // Exhaustive list of glb stems available under /static/model/. Add new boss models here.
 export const BOSS_MODEL_NAMES = ["skeith", "kefka", "chaos", "exdeath"] as const;
 export type BossModelName = (typeof BOSS_MODEL_NAMES)[number];
-const BossModelSchema = z.enum(BOSS_MODEL_NAMES).default("kefka");
+const BossModelSchema = z.enum(BOSS_MODEL_NAMES);
 
 const BossSchema = z.object({
+  id: z.enum(BOSS_REGISTRY_IDS).optional(),
   pos: Vec2Schema.default([0, 0]),
-  radius: z.number().positive().default(3),
+  radius: z.number().positive().optional(),
   ring: z.object({
-    scale: z.number().positive().default(2),
-    color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#e62120"),
-  }).default({ scale: 2, color: "#e62120" }),
-  model: BossModelSchema,
-  modelScale: z.number().positive().default(1),
-}).default({ pos: [0, 0], radius: 3, ring: { scale: 2, color: "#e62120" }, model: "kefka", modelScale: 1 });
+    scale: z.number().positive().optional(),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  }).optional(),
+  model: BossModelSchema.optional(),
+}).strict().default({ pos: [0, 0] });
 
 // Boss entry in a multi-boss `bosses:` list. Same fields as BossSchema plus a required id slug
 // and an optional aggro seed (player id whose threat is pre-seeded to the top so this boss
@@ -667,15 +668,33 @@ const BossSchema = z.object({
 const BossWithIdSchema = z.object({
   id: RaidIdSchema,
   pos: Vec2Schema.default([0, 0]),
-  radius: z.number().positive().default(3),
+  radius: z.number().positive().optional(),
   ring: z.object({
-    scale: z.number().positive().default(2),
-    color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#e62120"),
-  }).default({ scale: 2, color: "#e62120" }),
-  model: BossModelSchema,
-  modelScale: z.number().positive().default(1),
+    scale: z.number().positive().optional(),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  }).optional(),
+  model: BossModelSchema.optional(),
   aggro: z.string().min(1).optional(),
-});
+}).strict();
+
+type BossIdentityOverrides = {
+  model?: BossModelName;
+  radius?: number;
+  ring?: { scale?: number; color?: string };
+};
+
+function resolveBossIdentity(overrides: BossIdentityOverrides, registryId: BossRegistryId) {
+  const preset = BOSS_REGISTRY[registryId];
+  return {
+    model: overrides.model ?? preset.model,
+    modelScale: preset.modelScale,
+    radius: overrides.radius ?? preset.radius,
+    ring: {
+      scale: overrides.ring?.scale ?? preset.ring.scale,
+      color: overrides.ring?.color ?? preset.ring.color,
+    },
+  };
+}
 
 export const RaidSchema = z.object({
   name: z.string().min(1),
@@ -961,11 +980,23 @@ export const RaidSchema = z.object({
       });
     });
   }
-}).transform(data => ({
-  ...data,
-  // Normalize to always have `bosses`. Single-boss raids produce [{ id: "boss", ...boss }].
-  bosses: data.bosses ?? [{ id: "boss", ...data.boss }],
-}));
+}).transform(data => {
+  const bosses = data.bosses?.map(({ id, pos, aggro, ...overrides }) => ({
+    id,
+    pos,
+    ...resolveBossIdentity(overrides, isBossRegistryId(id) ? id : DEFAULT_BOSS_ID),
+    ...(aggro !== undefined ? { aggro } : {}),
+  })) ?? [{
+    id: "boss",
+    pos: data.boss.pos,
+    ...resolveBossIdentity(data.boss, data.boss.id ?? DEFAULT_BOSS_ID),
+  }];
+
+  return {
+    ...data,
+    bosses,
+  };
+});
 
 export const BotPatternsSchema = z.object({
   players: z.record(z.string().min(1), z.array(WaypointSchema)),

@@ -62,19 +62,36 @@ events:
 
 ## Boss
 
-The optional `boss:` block controls the boss's mechanical properties and floor-ring visuals. Every field has a default so you only need to specify what differs from Kefka.
+The optional `boss:` block controls the boss preset, spawn position, mechanical hitbox, and
+floor-ring visuals. Omit it to use the default `kefka` preset. For a single boss, choose a
+preset with `boss.id`. For multi-boss raids, each `bosses:` entry uses its slug as the preset
+when it matches a registry id; unknown slugs fall back to `kefka`.
 
-| Field        | Default    | Notes |
-|--------------|------------|-------|
-| `pos`        | `[0, 0]`   | Boss spawn position `[x, z]`. |
-| `radius`     | `3`        | Mechanical hitbox radius (also scales the floor ring). |
-| `ring.scale` | `2`        | Floor-ring radius = `radius * ring.scale`. Larger values make the ring bigger without changing the hitbox. |
-| `ring.color` | `#e62120`  | Hex color for the floor ring (e.g. `#3aa0ff` for blue). |
+| Registry id | Model   | Model scale |
+|-------------|---------|-------------|
+| `kefka`     | Kefka   | `30` |
+| `chaos`     | Chaos   | `20` |
+| `exdeath`   | Exdeath | `20` |
+| `skeith`    | Skeith  | `1` |
 
-Example — larger blue ring:
+| Field        | Default        | Notes |
+|--------------|----------------|-------|
+| `id`         | `kefka`        | Single-boss registry id. Valid values are listed above. |
+| `pos`        | `[0, 0]`       | Boss spawn position `[x, z]`. |
+| `model`      | preset value   | Optional model override. |
+| `radius`     | preset value   | Mechanical hitbox radius (also scales the floor ring). |
+| `ring.scale` | preset value   | Floor-ring radius = `radius * ring.scale`. Larger values make the ring bigger without changing the hitbox. |
+| `ring.color` | preset value   | Hex color for the floor ring (e.g. `#3aa0ff` for blue). |
+
+The preset's **model scale is fixed** and cannot be overridden — it's the per-model display
+correction the registry exists to own. The `model`, `radius`, and `ring` overrides also apply
+to each entry in a multi-boss `bosses:` list.
+
+Example — Chaos with a larger blue ring:
 
 ```yaml
 boss:
+  id: chaos
   radius: 5
   ring:
     scale: 3

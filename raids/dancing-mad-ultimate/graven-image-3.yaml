@@ -10,8 +10,6 @@ arena:
       radius: 20
 duration: 55
 boss:
-  model: "kefka"
-  modelScale: 30
   pos: [0, 0]
   radius: 3
   ring:
