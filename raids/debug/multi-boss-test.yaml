@@ -17,8 +17,6 @@ bosses:
     pos: [10, 0]
     aggro: ot
   - id: kefka
-    model: kefka
-    modelScale: 30
     pos: [0, 12]
 
 players:

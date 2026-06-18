@@ -69,7 +69,7 @@ when it matches a registry id; unknown slugs fall back to `kefka`.
 
 | Registry id | Model   | Model scale |
 |-------------|---------|-------------|
-| `kefka`     | Kefka   | `1` |
+| `kefka`     | Kefka   | `30` |
 | `chaos`     | Chaos   | `20` |
 | `exdeath`   | Exdeath | `20` |
 | `skeith`    | Skeith  | `1` |
@@ -79,7 +79,6 @@ when it matches a registry id; unknown slugs fall back to `kefka`.
 | `id`         | `kefka`        | Single-boss registry id. Valid values are listed above. |
 | `pos`        | `[0, 0]`       | Boss spawn position `[x, z]`. |
 | `model`      | preset value   | Optional model override. |
-| `modelScale` | preset value   | Optional render-scale override. |
 | `radius`     | preset value   | Mechanical hitbox radius (also scales the floor ring). |
 | `ring.scale` | preset value   | Floor-ring radius = `radius * ring.scale`. Larger values make the ring bigger without changing the hitbox. |
 | `ring.color` | preset value   | Hex color for the floor ring (e.g. `#3aa0ff` for blue). |

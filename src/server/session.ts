@@ -1,6 +1,7 @@
 import { dirname, join } from "path";
 import { readRaidObject } from "./raidFileReader";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../engine/raidLoader";
+import { BOSS_REGISTRY, DEFAULT_BOSS_ID } from "../engine/bossRegistry";
 import type { RaidDef } from "../engine/raidSchema";
 import { createWorld } from "../engine/world";
 import { CLOCK_SPOTS, EMPTY_RAID_ID, MAX_OBSERVERS, ROSTER, type ClientMessage, type Frame, type LobbySlot, type LobbyStatus, type ServerMessage } from "@shared/protocol";
@@ -49,7 +50,8 @@ function mergePendingIntent(previous: Intent | undefined, next: Intent): Intent 
 
 function createEmptyRaid(): RaidDef {
   const players: RaidPlayerDef[] = ROSTER.map(({ id, role }) => ({ id, role, spawn: CLOCK_SPOTS[id] }));
-  const boss = { pos: [0, 0] as [number, number], radius: 3, ring: { scale: 2, color: "#e62120" }, model: "kefka" as const, modelScale: 30 };
+  const preset = BOSS_REGISTRY[DEFAULT_BOSS_ID];
+  const boss = { pos: [0, 0] as [number, number], ...preset };
   return {
     name: "(empty)",
     arena: { zones: [{ kind: "circle", center: [0, 0] as [number, number], radius: 20 }], floorPlan: "squares" },

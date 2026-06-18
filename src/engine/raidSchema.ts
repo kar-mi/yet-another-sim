@@ -660,8 +660,7 @@ const BossSchema = z.object({
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   }).optional(),
   model: BossModelSchema.optional(),
-  modelScale: z.number().positive().optional(),
-}).default({ pos: [0, 0] });
+}).strict().default({ pos: [0, 0] });
 
 // Boss entry in a multi-boss `bosses:` list. Same fields as BossSchema plus a required id slug
 // and an optional aggro seed (player id whose threat is pre-seeded to the top so this boss
@@ -675,13 +674,11 @@ const BossWithIdSchema = z.object({
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   }).optional(),
   model: BossModelSchema.optional(),
-  modelScale: z.number().positive().optional(),
   aggro: z.string().min(1).optional(),
-});
+}).strict();
 
 type BossIdentityOverrides = {
   model?: BossModelName;
-  modelScale?: number;
   radius?: number;
   ring?: { scale?: number; color?: string };
 };
@@ -690,7 +687,7 @@ function resolveBossIdentity(overrides: BossIdentityOverrides, registryId: BossR
   const preset = BOSS_REGISTRY[registryId];
   return {
     model: overrides.model ?? preset.model,
-    modelScale: overrides.modelScale ?? preset.modelScale,
+    modelScale: preset.modelScale,
     radius: overrides.radius ?? preset.radius,
     ring: {
       scale: overrides.ring?.scale ?? preset.ring.scale,
