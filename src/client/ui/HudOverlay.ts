@@ -578,11 +578,6 @@ export class HudOverlay {
     for (const boss of world.bosses) {
       const row = this.bossCastRows.get(boss.id);
       if (!row) continue;
-      if (boss.id === targetBossId) {
-        row.rowEl.style.display = "none";
-        continue;
-      }
-      row.rowEl.style.display = "";
       const cast = castForBoss(boss.id, candidates);
       if (cast) {
         const span = cast.resolveAt - cast.telegraphStart;
