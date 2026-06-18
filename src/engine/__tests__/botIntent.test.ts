@@ -108,9 +108,11 @@ test("bowls of agony bots drag bosses around the wind crystal and survive", asyn
   const dynamicFluid = raid.events.find(event => event.id === "dynamic-fluid-long");
   const umbra = raid.events.find(event => event.id === "umbra-smash");
   const vacuum = raid.events.find(event => event.id === "vacuum-wave");
+  const longitude = raid.events.find(event => event.id === "longitude-implosion-front");
   expect(entropy?.type === "apply_effect" && entropy.applyEffect.behavior.kind === "burstSpread" && entropy.applyEffect.behavior.followUp?.originCrystal).toBe("fire");
   expect(dynamicFluid?.type === "apply_effect" && dynamicFluid.applyEffect.behavior.kind === "burstSpread" && dynamicFluid.applyEffect.behavior.followUp?.originCrystal).toBe("water");
   expect(umbra?.type === "targeted" && vacuum?.type === "aoe" && umbra.t + umbra.telegraph < vacuum.t + vacuum.telegraph).toBe(true);
+  expect(longitude?.type === "aoe" && longitude.t === 60 && longitude.telegraph === 8 && longitude.showCastBar === false && longitude.lockFacing === true).toBe(true);
 
   for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
     let world = createWorld(raid, seed);
@@ -119,7 +121,11 @@ test("bowls of agony bots drag bosses around the wind crystal and survive", asyn
     const wind = world.crystals.find(crystal => crystal.element === "wind")!;
     const windLen = Math.hypot(wind.pos.x, wind.pos.z);
 
-    world = runTicksWithComputedBotIntents(world, Math.ceil(36.1 * 60));
+    world = runTicksWithComputedBotIntents(world, Math.ceil(23.9 * 60));
+    expect(world.players.find(player => player.id === "mt")?.pos).toEqual({ x: 0, z: 6 });
+    expect(world.bosses.find(boss => boss.id === "chaos")?.pos).toEqual({ x: 0, z: 0 });
+
+    world = runTicksWithComputedBotIntents(world, Math.ceil((36.1 - world.time) * 60));
     const chaos = world.bosses.find(boss => boss.id === "chaos")!;
     const exdeath = world.bosses.find(boss => boss.id === "exdeath")!;
     const kefka = world.bosses.find(boss => boss.id === "kefka")!;
@@ -127,7 +133,7 @@ test("bowls of agony bots drag bosses around the wind crystal and survive", asyn
     const windDot = (chaos.pos.x * wind.pos.x + chaos.pos.z * wind.pos.z) / (chaosLen * windLen);
     expect(windDot).toBeGreaterThan(0.85);
     expect(chaosLen).toBeGreaterThan(8);
-    expect(Math.hypot(exdeath.pos.x, exdeath.pos.z)).toBeLessThan(2);
+    expect(Math.hypot(exdeath.pos.x, exdeath.pos.z)).toBeLessThan(8);
     expect(kefka.pos).toEqual({ x: 0, z: 18 });
     expect(kefka.currentTarget).toBeNull();
 

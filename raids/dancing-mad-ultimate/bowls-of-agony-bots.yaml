@@ -6,7 +6,7 @@ players:
   mt:
     - { t: 0,  pos: [0, 6] }
   ot:
-    - { t: 0,  pos: [-6, 0] }
+    - { t: 0,  pos: [4, 8] }
   h1:
     - { t: 0,  pos: [-6, 8] }
   h2:
@@ -22,18 +22,13 @@ players:
 
 solvers:
   generic:
-    # Bowls cast: MT drags Chaos toward the seeded Wind crystal intercard.
-    # OT stays between the bosses, holding Exdeath near middle for Thunder III.
-    - when: { mechanic: bowls-of-agony-cast }
+    # After crystals spawn, OT holds in the Wind frame between Chaos and Exdeath.
+    - when: { debuff: Fated Hero }
+      startAt: 24
+      endAt: 36
       frame: { crystal: wind }
       spots:
-        mt: [0, 18]
-
-    - when: { debuff: Fated Hero }
-      startAt: 5
-      endAt: 36
-      spots:
-        ot: [-6, 0]
+        ot: [0, 6]
 
     - when: { debuff: Headwind }
       startAt: 24
@@ -45,10 +40,11 @@ solvers:
         m1: [-6, 16]
         m2: [-6, 16]
 
-    # Once Thunder III snapshots Exdeath, OT can step out before returning for tankbusters.
+    # Once Thunder III snapshots Exdeath, OT moves farther along the same Wind-frame line.
     - when: { mechanic: thunder-iii-get-out }
+      frame: { crystal: wind }
       spots:
-        ot: [-12, -6]
+        ot: [0, 12]
 
     - when: { debuff: Tailwind }
       startAt: 24
@@ -79,8 +75,9 @@ solvers:
     - when: { debuff: Tailwind }
       startAt: 43
       endAt: 53
+      frame: { crystal: wind }
       spots:
-        ot: [12, 0]
+        ot: [0, 6]
 
     - when: { debuff: Tailwind }
       startAt: 43
@@ -124,53 +121,19 @@ solvers:
         r1: [-4, 14]
         r2: [4, 14]
 
-    # Latitude Implosion (t:60–66): Chaos faces outward toward MT at the Wind intercard.
-    # Stay on the front/back axis first; slide lateral only after Longitude snapshots.
-    - when: { mechanic: latitude-implosion-left }
+    # Latitude/Longitude is one six-second cast sequence into two hits. Move at cast start to
+    # the diagonal intercard gaps between the side and front/back cone pairs.
+    - when: { mechanic: [latitude-implosion-left, longitude-implosion-front] }
       frame: { crystal: wind }
       spots:
         mt: [0, 18]
-        ot: [0, 16]
-        h1: [0, 18]
-        h2: [0, 8]
-        r1: [0, 4]
-        r2: [0, -4]
-        m1: [0, 4]
-        m2: [0, 8]
-
-    # Longitude Implosion (t:66–68): after the cast snapshots, move slightly lateral.
-    - when: { mechanic: longitude-implosion-front }
-      frame: { crystal: wind }
-      spots:
-        mt: [12, 16]
-        ot: [12, 12]
-        h1: [-12, 12]
-        h2: [12, 8]
-        r1: [12, 4]
-        r2: [12, 6]
-        m1: [-12, 4]
-        m2: [12, 6]
-
-    # Long Dynamic Fluid resolves after Longitude; hold the water-side bait spread.
-    - when: { debuff: Headwind }
-      startAt: 68
-      endAt: 70
-      frame: { crystal: wind }
-      spots:
-        mt: [12, 16]
-        h1: [-12, 12]
-        m1: [-12, 4]
-        m2: [12, 6]
-
-    - when: { debuff: Tailwind }
-      startAt: 68
-      endAt: 70
-      frame: { crystal: wind }
-      spots:
-        ot: [12, 12]
-        h2: [12, 8]
-        r1: [12, 4]
-        r2: [12, 6]
+        ot: [6, 18]
+        h1: [-6, 18]
+        h2: [6, 6]
+        r1: [-6, 6]
+        r2: [6, 6]
+        m1: [-6, 6]
+        m2: [6, 18]
 
     # Vacuum Wave + Umbra Smash (t:81–88): one bot baits furthest; the rest stack for knockback.
     - when: { mechanic: [vacuum-wave, umbra-smash] }
