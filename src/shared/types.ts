@@ -18,6 +18,9 @@ export type Arena = { zones: ZoneShape[]; floorPlan: FloorPlan };
 export type WaymarkId = "A" | "B" | "C" | "D" | "1" | "2" | "3" | "4";
 export type Waymark = { mark: WaymarkId; pos: Vec2 };
 
+export type CrystalElement = "wind" | "fire" | "water";
+export type Crystal = { id: string; element: CrystalElement; pos: Vec2; spawnAt: number };
+
 export type Waypoint = { t: number; pos: Vec2 };
 
 // One ordered, data-driven bot-solver rule (see docs/authoring-bot-patterns.md "Generic solver").
@@ -780,6 +783,7 @@ export type World = {
   hasMechanics: boolean;
   arena: Arena;
   waymarks: Waymark[];
+  crystals: Crystal[];
   players: Player[];
   boss: Boss;
   bosses: Boss[];

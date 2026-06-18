@@ -54,6 +54,12 @@ const WaymarkSchema = z.object({
   pos: Vec2Schema,
 });
 
+const CrystalsSchema = z.object({
+  spawnAt: z.number().nonnegative().optional(),
+  spots: z.array(Vec2Schema).length(4),
+  rng: z.boolean().default(true),
+}).optional();
+
 const FloorPlanSchema = z.enum(["squares", "dmu-p1", "dmu-p2"]).default("squares");
 
 const ZoneShapeSchema = z.discriminatedUnion("kind", [
@@ -707,6 +713,7 @@ export const RaidSchema = z.object({
   players: z.array(PlayerDefSchema).length(ROSTER.length),
   events: z.array(EventSchema),
   waymarks: z.array(WaymarkSchema).optional(),
+  crystals: CrystalsSchema,
   optionals: OptionalsSchema,
   botSolvers: BotSolversSchema,
 }).superRefine((raid, ctx) => {

@@ -30,6 +30,7 @@ import { SpreadStackLayer } from "./SpreadStackLayer";
 import { GazeLayer } from "./GazeLayer";
 import { ForcedMarchLayer } from "./ForcedMarchLayer";
 import { WaymarkLayer } from "./WaymarkLayer";
+import { CrystalLayer } from "./CrystalLayer";
 import { setControlScheme } from "../input";
 import { computeWorldRenderKeys, getWorldRenderKeys } from "../worldRenderKeys";
 import { prewarmShaders } from "./shaderPrewarm";
@@ -66,6 +67,7 @@ export class BabylonRenderer implements Renderer {
   private gaze!: GazeLayer;
   private forcedMarches!: ForcedMarchLayer;
   private waymarks!: WaymarkLayer;
+  private crystals!: CrystalLayer;
   private hud!: HudOverlay;
   private floorMeshes: Mesh[] = [];
   private arenaKey = "";
@@ -143,6 +145,8 @@ export class BabylonRenderer implements Renderer {
     this.buildArena(world.arena.zones, world.arena.floorPlan, renderKeys.arena);
     this.waymarks = new WaymarkLayer(this.scene);
     this.waymarks.sync(world.waymarks, renderKeys.waymarks);
+    this.crystals = new CrystalLayer(this.scene);
+    this.crystals.sync(world.crystals, world.time, renderKeys.crystals);
 
     this.players = new PlayerLayer(this.scene);
     this.players.init(world.players);
@@ -224,6 +228,7 @@ export class BabylonRenderer implements Renderer {
     const renderKeys = getWorldRenderKeys(world) ?? computeWorldRenderKeys(world);
     if (renderKeys.arena !== this.arenaKey) this.buildArena(world.arena.zones, world.arena.floorPlan, renderKeys.arena);
     this.waymarks.sync(world.waymarks, renderKeys.waymarks);
+    this.crystals.sync(world.crystals, world.time, renderKeys.crystals);
 
     const bossesKey = world.bosses.map(b => b.id).join(",");
     if (bossesKey !== this.bossesKey) this.rebuildBossLayers(world.bosses);
@@ -333,6 +338,7 @@ export class BabylonRenderer implements Renderer {
     this.gaze.dispose();
     this.forcedMarches.dispose();
     this.waymarks.dispose();
+    this.crystals.dispose();
     this.healthBars.dispose();
     this.engine.dispose();
   }

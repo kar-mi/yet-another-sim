@@ -6,6 +6,7 @@ import { INITIAL_TANK_THREAT, PROVOKE_LEAD } from "@shared/constants";
 import { topThreatTarget } from "./systems/helpers";
 import { toVec2 } from "./eventTransforms";
 import { bucketEvent, type Collections } from "./mechanicRegistry";
+import { placeCrystals } from "./crystals";
 
 export const ROLE_HP: Record<Player["role"], number> = { tank: 160, healer: 100, dps: 100 };
 
@@ -215,7 +216,8 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   // Generic pairing/grouping maps: partners/playerGroups for the bot solver, initialCharges for the
   // reassign opener.
   const { partners, playerGroups, initialCharges, rngState: afterPairingRngState } = buildPairingPlan(raid, afterPlantRngState);
-  const { events: effectiveEvents, rngState } = rotateTowerWaves(raid.events, raid.optionals?.towerRng, afterPairingRngState);
+  const { crystals, rngState: afterCrystalRngState } = placeCrystals(raid.crystals, afterPairingRngState);
+  const { events: effectiveEvents, rngState } = rotateTowerWaves(raid.events, raid.optionals?.towerRng, afterCrystalRngState);
   const plantDebuffOrder = raid.optionals?.combinations?.plant?.debuffOrder;
 
   // One collection per World pending/resolver field; keys match the World field names exactly so the
@@ -262,6 +264,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     hasMechanics,
     arena,
     waymarks,
+    crystals,
     players,
     boss,
     bosses,
