@@ -113,11 +113,14 @@ test("bowls of agony bots drag bosses around the wind crystal and survive", asyn
     world = runTicksWithComputedBotIntents(world, Math.ceil(36.1 * 60));
     const chaos = world.bosses.find(boss => boss.id === "chaos")!;
     const exdeath = world.bosses.find(boss => boss.id === "exdeath")!;
+    const kefka = world.bosses.find(boss => boss.id === "kefka")!;
     const chaosLen = Math.hypot(chaos.pos.x, chaos.pos.z);
     const windDot = (chaos.pos.x * wind.pos.x + chaos.pos.z * wind.pos.z) / (chaosLen * windLen);
     expect(windDot).toBeGreaterThan(0.85);
     expect(chaosLen).toBeGreaterThan(8);
     expect(Math.hypot(exdeath.pos.x, exdeath.pos.z)).toBeLessThan(1);
+    expect(kefka.pos).toEqual({ x: 0, z: 18 });
+    expect(kefka.currentTarget).toBeNull();
 
     const thunder = world.active.find(mechanic => mechanic.id === "thunder-iii-get-out");
     expect(thunder?.shape.kind).toBe("circle");

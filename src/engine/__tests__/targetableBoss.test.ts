@@ -45,6 +45,32 @@ test("createWorld: non-targetable boss has empty threat and null currentTarget",
   expect(kefka.currentTarget).toBeNull();
 });
 
+test("tick: non-targetable boss stays targetless and stationary while casting", () => {
+  const raid = loadRaidRaw({
+    ...baseRaid,
+    bosses: [
+      { id: "chaos", pos: [0, 0] },
+      { id: "kefka", pos: [0, 18], targetable: false },
+    ],
+    events: [{
+      type: "aoe",
+      id: "kefka-cast",
+      t: 0,
+      name: "Kefka Cast",
+      telegraph: 5,
+      damage: 0,
+      damageType: "magical",
+      bossId: "kefka",
+      shape: { kind: "circle", center: [0, 0], radius: 20 },
+    }],
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(2 * 60));
+  const kefka = world.bosses.find(b => b.id === "kefka")!;
+
+  expect(kefka.currentTarget).toBeNull();
+  expect(kefka.pos).toEqual({ x: 0, z: 18 });
+});
+
 test("createWorld: players default targetBossId to first targetable boss", () => {
   const raid = loadRaidRaw({
     ...baseRaid,

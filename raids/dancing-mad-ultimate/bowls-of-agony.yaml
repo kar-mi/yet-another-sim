@@ -138,6 +138,7 @@ events:
     damageType: magical
     showCastBar: true
     showTelegraph: false
+    bossId: kefka
     shape: { kind: circle, center: [0, 0], radius: 20 }
 
   - type: apply_effect
@@ -230,6 +231,7 @@ events:
     directionOffset: -1.5707963267948966
     lockFacing: true
     showCastBar: true
+    showTelegraph: false
     bossId: chaos
     shape: { kind: cone, angleDeg: 70, length: 24 }
   - type: aoe
@@ -244,6 +246,7 @@ events:
     directionOffset: 1.5707963267948966
     lockFacing: true
     showCastBar: false
+    showTelegraph: false
     bossId: chaos
     shape: { kind: cone, angleDeg: 70, length: 24 }
   - type: aoe
@@ -258,6 +261,7 @@ events:
     directionOffset: 0
     lockFacing: true
     showCastBar: true
+    showTelegraph: false
     bossId: chaos
     shape: { kind: cone, angleDeg: 70, length: 24 }
 
@@ -278,6 +282,7 @@ events:
     directionOffset: 3.141592653589793
     lockFacing: true
     showCastBar: false
+    showTelegraph: false
     bossId: chaos
     shape: { kind: cone, angleDeg: 70, length: 24 }
 

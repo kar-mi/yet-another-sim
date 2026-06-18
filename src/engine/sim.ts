@@ -40,6 +40,10 @@ export function tick(world: World, intents: Intents, dt: number): World {
   // Per-tick snap (no turn-rate clamp); visual smoothing is done client-side in net.ts.
   // A lockFacing cast freezes a boss's facing for its duration so it matches its telegraph.
   for (const boss of bosses) {
+    if (boss.targetable === false) {
+      boss.currentTarget = null;
+      continue;
+    }
     boss.currentTarget = topThreatTarget(players, boss.threat);
     const activeCast = (m: { bossId?: string; resolved: boolean; telegraphStart: number; resolveAt: number }) =>
       !m.resolved && m.telegraphStart <= time && m.resolveAt > time
