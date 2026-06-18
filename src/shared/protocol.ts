@@ -64,6 +64,7 @@ export const IntentSchema = z.object({
   sprint: z.boolean().optional(),
   antiKnockback: z.boolean().optional(),
   provoke: z.boolean().optional(),
+  cycleTarget: z.boolean().optional(),
   toggleInvincibility: z.boolean().optional(),
 }).strict() satisfies z.ZodType<Intent>;
 

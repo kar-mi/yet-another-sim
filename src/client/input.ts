@@ -22,6 +22,7 @@ let jumpPressed = false;
 let sprintPressed = false;
 let antiKbPressed = false;
 let provokePressed = false;
+let swapTargetPressed = false;
 let invincibilityToggled = false;
 let keyBindings: KeyBindings = { ...DEFAULT_BINDINGS };
 let controllerBindings: ControllerBindings = { ...DEFAULT_CONTROLLER_BINDINGS };
@@ -184,6 +185,9 @@ export function triggerAction(actionId: ActionId): void {
     case "provoke":
       provokePressed = true;
       break;
+    case "swapTarget":
+      swapTargetPressed = true;
+      break;
   }
 }
 
@@ -202,6 +206,10 @@ export function initInput(): () => void {
     }
     if (e.code === keyBindings.provoke && !e.repeat) {
       provokePressed = true;
+    }
+    if (e.code === keyBindings.swapTarget && !e.repeat) {
+      swapTargetPressed = true;
+      e.preventDefault(); // prevent Tab from moving browser focus
     }
   };
   const onKeyUp = (e: KeyboardEvent) => keys.delete(e.code);
@@ -222,6 +230,8 @@ export function getIntent(cameraYaw: number, dt: number, mouse: { left: boolean;
   antiKbPressed = false;
   const provoke = provokePressed;
   provokePressed = false;
+  const cycleTarget = swapTargetPressed || undefined;
+  swapTargetPressed = false;
   const toggleInvincibility = invincibilityToggled || undefined;
   invincibilityToggled = false;
 
@@ -317,5 +327,5 @@ export function getIntent(cameraYaw: number, dt: number, mouse: { left: boolean;
     }
   }
 
-  return { move, facing, jump, sprint, antiKnockback, provoke, toggleInvincibility };
+  return { move, facing, jump, sprint, antiKnockback, provoke, cycleTarget, toggleInvincibility };
 }

@@ -9,11 +9,12 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Scene } from "@babylonjs/core/scene";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Renderer } from "./Renderer";
-import type { World, ZoneShape, FloorPlan } from "@shared/types";
+import type { Boss, World, ZoneShape, FloorPlan } from "@shared/types";
 import type { PlaybackState } from "@shared/protocol";
 import type { Settings, ControllerType } from "../settings";
 import { BossLayer } from "./BossLayer";
 import { BossRingLayer } from "./BossRingLayer";
+import { TargetRingLayer } from "./TargetRingLayer";
 import { HealthBarLayer } from "./HealthBarLayer";
 import { createZoneMesh } from "./meshes/arenaMeshes";
 import { HudOverlay } from "../ui/HudOverlay";
@@ -40,7 +41,6 @@ RegisterEnginesExtensionsEngineDynamicTexture();
 RegisterEngineUniformBuffer();
 
 const playerBarId = (id: string) => `player:${id}`;
-const bossBarId = (id: string) => `boss:${id}`;
 
 // Rate at which controller-camera acceleration ramps toward its target multiplier (~reaches it in <1s).
 const CAMERA_ACCEL_RAMP = 3;
@@ -52,6 +52,8 @@ export class BabylonRenderer implements Renderer {
   private players!: PlayerLayer;
   private bossLayers = new Map<string, BossLayer>();
   private bossRingLayers = new Map<string, BossRingLayer>();
+  private targetRingLayers = new Map<string, TargetRingLayer>();
+  private bossesKey = "";
   private healthBars!: HealthBarLayer;
   private telegraphs!: TelegraphLayer;
   private tethers!: TetherLayer;
@@ -156,22 +158,7 @@ export class BabylonRenderer implements Renderer {
         });
       }
     }
-    for (const boss of world.bosses) {
-      const bossLayer = new BossLayer(this.scene);
-      bossLayer.init(boss);
-      this.bossLayers.set(boss.id, bossLayer);
-      const bossRingLayer = new BossRingLayer(this.scene);
-      bossRingLayer.sync(boss);
-      this.bossRingLayers.set(boss.id, bossRingLayer);
-      const bossMesh = bossLayer.getMesh();
-      if (bossMesh) {
-        this.healthBars.link(bossBarId(boss.id), bossMesh, {
-          trackWidthPx: 220,
-          offsetYPx: -70,
-          color: "#df3333",
-        });
-      }
-    }
+    this.rebuildBossLayers(world.bosses);
     this.telegraphs = new TelegraphLayer(this.scene);
     this.tethers = new TetherLayer(this.scene);
     this.lineLinks = new LineLinkLayer(this.scene);
@@ -198,6 +185,27 @@ export class BabylonRenderer implements Renderer {
     window.addEventListener("resize", this.onResize);
   }
 
+  private rebuildBossLayers(bosses: Boss[]): void {
+    for (const layer of this.bossLayers.values()) layer.dispose();
+    this.bossLayers.clear();
+    for (const layer of this.bossRingLayers.values()) layer.dispose();
+    this.bossRingLayers.clear();
+    for (const layer of this.targetRingLayers.values()) layer.dispose();
+    this.targetRingLayers.clear();
+
+    for (const boss of bosses) {
+      const bossLayer = new BossLayer(this.scene);
+      bossLayer.init(boss);
+      this.bossLayers.set(boss.id, bossLayer);
+      const bossRingLayer = new BossRingLayer(this.scene);
+      bossRingLayer.sync(boss);
+      this.bossRingLayers.set(boss.id, bossRingLayer);
+      const targetRingLayer = new TargetRingLayer(this.scene);
+      this.targetRingLayers.set(boss.id, targetRingLayer);
+    }
+    this.bossesKey = bosses.map(b => b.id).join(",");
+  }
+
   private buildArena(zones: ZoneShape[], floorPlan: FloorPlan, key: string): void {
     for (const mesh of this.floorMeshes) mesh.dispose(false, true);
     this.floorMeshes = [];
@@ -217,13 +225,16 @@ export class BabylonRenderer implements Renderer {
     if (renderKeys.arena !== this.arenaKey) this.buildArena(world.arena.zones, world.arena.floorPlan, renderKeys.arena);
     this.waymarks.sync(world.waymarks, renderKeys.waymarks);
 
+    const bossesKey = world.bosses.map(b => b.id).join(",");
+    if (bossesKey !== this.bossesKey) this.rebuildBossLayers(world.bosses);
+
     this.players.sync(world.players, world.time);
+    const local = world.players.find(p => p.id === this.localPlayerId);
     for (const boss of world.bosses) {
       this.bossLayers.get(boss.id)?.sync(boss);
       this.bossRingLayers.get(boss.id)?.sync(boss);
+      this.targetRingLayers.get(boss.id)?.sync(boss, local?.targetBossId === boss.id);
     }
-
-    const local = world.players.find(p => p.id === this.localPlayerId);
     const focus = local?.alive
       ? local
       : (world.players.find(p => p.id === this.spectateTargetId && p.alive)
@@ -232,9 +243,6 @@ export class BabylonRenderer implements Renderer {
 
     for (const player of world.players) {
       this.healthBars.set(playerBarId(player.id), player.hp / player.maxHp, player.alive && this.renderedPlayerHealthBars);
-    }
-    for (const boss of world.bosses) {
-      this.healthBars.set(bossBarId(boss.id), boss.hp / boss.maxHp, boss.hp > 0);
     }
 
     this.telegraphs.sync(world.active, world.time);
@@ -313,7 +321,9 @@ export class BabylonRenderer implements Renderer {
     if (document.pointerLockElement === this.canvas) document.exitPointerLock();
     window.removeEventListener("resize", this.onResize);
     this.hud.dispose();
+    for (const layer of this.bossLayers.values()) layer.dispose();
     for (const bossRing of this.bossRingLayers.values()) bossRing.dispose();
+    for (const targetRing of this.targetRingLayers.values()) targetRing.dispose();
     this.lineLinks.dispose();
     this.chains.dispose();
     this.towers.dispose();

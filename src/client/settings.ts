@@ -12,6 +12,7 @@ export interface KeyBindings {
   sprint: string;
   antiKnockback: string;
   provoke: string;
+  swapTarget: string;
 }
 
 export interface Settings {
@@ -39,6 +40,7 @@ export const DEFAULT_BINDINGS: KeyBindings = {
   sprint: "Digit1",
   antiKnockback: "Digit2",
   provoke: "Digit3",
+  swapTarget: "Tab",
 };
 
 const DEFAULTS: Settings = {

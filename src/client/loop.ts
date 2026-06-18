@@ -9,6 +9,7 @@ function hasOneShotIntent(intent: Intent): boolean {
     || intent.sprint
     || intent.antiKnockback
     || intent.provoke
+    || intent.cycleTarget
     || intent.toggleInvincibility
   );
 }

@@ -76,4 +76,13 @@ export class BossLayer {
   getMesh(): Mesh | null {
     return this.mesh;
   }
+
+  dispose(): void {
+    if (this.modelRoots) {
+      for (const root of this.modelRoots) root.dispose();
+      this.modelRoots = null;
+    }
+    this.mesh?.dispose();
+    this.mesh = null;
+  }
 }

@@ -179,6 +179,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     antiKbActive: 0,
     antiKbCooldown: 0,
     provokeCooldown: 0,
+    targetBossId: "",   // filled in below once bosses are built
     invincible: false,
     alive: true,
     effects: [],
@@ -207,6 +208,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     };
   });
   const boss = bosses[0]!;
+  for (const p of players) p.targetBossId = boss.id;
 
   const { plan: plantPlan, rngState: afterPlantRngState } = buildPlantPlan(raid, seed);
   // Generic pairing/grouping maps: partners/playerGroups for the bot solver, initialCharges for the
