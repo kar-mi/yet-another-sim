@@ -83,6 +83,10 @@ when it matches a registry id; unknown slugs fall back to `kefka`.
 | `ring.scale` | preset value   | Floor-ring radius = `radius * ring.scale`. Larger values make the ring bigger without changing the hitbox. |
 | `ring.color` | preset value   | Hex color for the floor ring (e.g. `#3aa0ff` for blue). |
 
+The preset's **model scale is fixed** and cannot be overridden — it's the per-model display
+correction the registry exists to own. The `model`, `radius`, and `ring` overrides also apply
+to each entry in a multi-boss `bosses:` list.
+
 Example — Chaos with a larger blue ring:
 
 ```yaml
