@@ -804,7 +804,10 @@ export class SessionManager {
       this.sessions.delete(sessionId);
 
       for (const [clientId, clientSessionId] of this.clientSessions) {
-        if (clientSessionId === sessionId) this.clientSessions.delete(clientId);
+        if (clientSessionId === sessionId) {
+          this.send(clientId, { type: "sessionExpired" });
+          this.clientSessions.delete(clientId);
+        }
       }
     }
   }

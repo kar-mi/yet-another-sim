@@ -222,6 +222,13 @@ export class NetClient {
       this.applyStarted(message);
     } else if (message.type === "frames") {
       this.applyFrames(message);
+    } else if (message.type === "sessionExpired") {
+      this.lastJoin = null;
+      this.claimedPlayerId = null;
+      this.observing = false;
+      this.isHost = false;
+      this.playing = false;
+      this.predictor.reset();
     }
 
     const handlers = this.handlers.get(message.type as MessageType);

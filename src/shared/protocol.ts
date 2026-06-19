@@ -183,6 +183,7 @@ export type ServerMessage =
   // replays just the tail instead of the full log.
   | { type: "started"; world: World; baseTick: number; yourPlayerId: string | null; tick: number; frames: Frame[] }
   | { type: "playback"; state: PlaybackState; raidId: string; hostClientId: string }
+  | { type: "sessionExpired" }
   // Incremental input frames to step locally. `startTick` is the tick index of the first frame.
   | { type: "frames"; startTick: number; frames: Frame[] }
   | { type: "error"; message: string };

@@ -54,12 +54,26 @@ async function main(): Promise<void> {
 
   // Resolve the session id only after the settings handlers are wired, so the ⚙ panel
   // also works on the landing page (base URL with no ?s= param).
-  const sessionId = parsedSession?.success ? parsedSession.data : await showLanding();
+  let sessionId = parsedSession?.success ? parsedSession.data : await showLanding();
 
   // Each iteration is one sim session: pick a class in the lobby, play, click Home to come back.
   for (;;) {
     homeBtn.style.display = "none";
-    const session = await showLobby(net, sessionId);
+    const lobbyResult = await showLobby(net, sessionId);
+    if (lobbyResult.kind === "expired") {
+      sessionId = await showLanding({ notice: "Session expired" });
+      continue;
+    }
+    const session = lobbyResult;
+
+    let expired = false;
+    let resolveSessionEnd!: () => void;
+    const sessionEnd = new Promise<void>(resolve => { resolveSessionEnd = resolve; });
+    resolveHome = resolveSessionEnd;
+    const offExpire = net.on("sessionExpired", () => {
+      expired = true;
+      resolveSessionEnd();
+    });
 
     renderer = new BabylonRenderer(canvas, nextSettings => {
       Object.assign(settings, nextSettings);
@@ -88,13 +102,18 @@ async function main(): Promise<void> {
     };
 
     homeBtn.style.display = "block";
-    await new Promise<void>(resolve => { resolveHome = resolve; });
+    await sessionEnd;
     resolveHome = null;
+    offExpire();
 
     homeBtn.style.display = "none";
     currentTeardown();
     currentTeardown = () => {};
     renderer = null;
+    if (expired) {
+      sessionId = await showLanding({ notice: "Session expired" });
+      continue;
+    }
     if (session.yourPlayerId) {
       net.send({ type: "releaseSlot", playerId: session.yourPlayerId });
     } else {
