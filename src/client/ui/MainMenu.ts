@@ -68,7 +68,7 @@ export async function loadRaidCategories(): Promise<RaidCategory[]> {
   return categories;
 }
 
-export function showLanding(): Promise<string> {
+export function showLanding(options?: { notice?: string }): Promise<string> {
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
     overlay.id = "yas-menu";
@@ -99,8 +99,9 @@ export function showLanding(): Promise<string> {
       createElement("div", "yas-menu-title", "YET ANOTHER SIM"),
       createElement("div", "yas-menu-subtitle", "CREATE SESSION"),
       createElement("div", "yas-landing-note", "A UUID session link will be created. Copy the page URL to invite others."),
-      createBtn,
     );
+    if (options?.notice) panel.appendChild(createElement("div", "yas-menu-error", options.notice));
+    panel.appendChild(createBtn);
     createBtn.focus();
   });
 }
@@ -112,7 +113,11 @@ function playbackStateForLobby(status: LobbyStatus): PlaybackState {
   return "stopped";
 }
 
-export async function showLobby(net: NetClient, sessionId: string): Promise<{ world: World; yourPlayerId: string | null; sessionId: string; raidId: string; isHost: boolean; playbackState: PlaybackState }> {
+type LobbyResult =
+  | { kind: "started"; world: World; yourPlayerId: string | null; sessionId: string; raidId: string; isHost: boolean; playbackState: PlaybackState }
+  | { kind: "expired" };
+
+export async function showLobby(net: NetClient, sessionId: string): Promise<LobbyResult> {
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
     overlay.id = "yas-menu";
@@ -244,7 +249,11 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<{ wo
         const isHost = net.clientId !== null && net.clientId === lastLobby?.hostClientId;
         const playbackState = playbackStateForLobby(lastLobby?.status ?? "lobby");
         cleanup();
-        resolve({ world: message.world, yourPlayerId: message.yourPlayerId, sessionId, raidId, isHost, playbackState });
+        resolve({ kind: "started", world: message.world, yourPlayerId: message.yourPlayerId, sessionId, raidId, isHost, playbackState });
+      }),
+      net.on("sessionExpired", () => {
+        cleanup();
+        resolve({ kind: "expired" });
       }),
       net.on("error", message => showError(message.message)),
     ];

@@ -710,6 +710,24 @@ test("running session never expires by idle timeout", () => {
   expect(session.isExpired()).toBe(false);
 });
 
+test("pruning an expired session notifies its connected clients", async () => {
+  let now = 0;
+  const sent: Array<{ clientId: string; message: ServerMessage }> = [];
+  const manager = new SessionManager({
+    raidsDir: "",
+    now: () => now,
+    lobbyTimeoutMs: 1000,
+    send: (clientId, message) => sent.push({ clientId, message: typeof message === "string" ? JSON.parse(message) as ServerMessage : message }),
+  });
+
+  await manager.handle("c1", { type: "join", sessionId: "room", raidId: EMPTY_RAID_ID });
+  now = 1000;
+  manager.pruneExpired();
+
+  expect(manager.sessions.has("room")).toBe(false);
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "sessionExpired")).toBe(true);
+});
+
 test("client message schema rejects malformed intent packets", () => {
   const parsed = ClientMessageSchema.safeParse({
     type: "intent",
