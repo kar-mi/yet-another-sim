@@ -26,6 +26,7 @@ export interface Settings {
   cameraAccel: boolean;
   cameraAccelStrength: number;
   uiScale: number;
+  uiFont: "pixel" | "readable";
   renderedPlayerHealthBars: boolean;
 }
 
@@ -54,6 +55,7 @@ const DEFAULTS: Settings = {
   cameraAccel: false,
   cameraAccelStrength: 1,
   uiScale: 1.125,
+  uiFont: "pixel",
   renderedPlayerHealthBars: false,
 };
 
