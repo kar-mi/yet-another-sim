@@ -27,11 +27,16 @@ export function initSettingsPanel(
   const renderedPlayerHpToggle = document.getElementById("rendered-player-hp-toggle") as HTMLInputElement;
   const schemeBtns = document.querySelectorAll<HTMLInputElement>('input[name="controlScheme"]');
   const uiScaleBtns = document.querySelectorAll<HTMLInputElement>('input[name="uiScale"]');
+  const uiFontSelect = document.getElementById("ui-font-select") as HTMLSelectElement;
   const settingsPanel = document.getElementById("settings-panel")!;
   let currentControllerType: ControllerType = "unknown";
 
   const applyUiScale = (scale: number) => {
     document.documentElement.style.setProperty("--ui-scale", String(scale));
+  };
+
+  const applyUiFont = (font: Settings["uiFont"]) => {
+    document.documentElement.style.setProperty("--px-font", font === "readable" ? "var(--font-readable)" : "var(--font-pixel)");
   };
 
   const isActionId = (action: string | undefined): action is ActionId => {
@@ -48,7 +53,9 @@ export function initSettingsPanel(
   renderedPlayerHpToggle.checked = settings.renderedPlayerHealthBars;
   schemeBtns.forEach(btn => { btn.checked = btn.value === settings.controlScheme; });
   uiScaleBtns.forEach(btn => { btn.checked = parseFloat(btn.value) === settings.uiScale; });
+  uiFontSelect.value = settings.uiFont;
   applyUiScale(settings.uiScale);
+  applyUiFont(settings.uiFont);
 
   const syncKeybindLabels = () => {
     document.querySelectorAll<HTMLElement>(".keybind-row").forEach(row => {
@@ -130,6 +137,12 @@ export function initSettingsPanel(
         applyUiScale(settings.uiScale);
       }
     });
+  });
+
+  uiFontSelect.addEventListener("change", () => {
+    settings.uiFont = uiFontSelect.value as Settings["uiFont"];
+    saveSettings(settings);
+    applyUiFont(settings.uiFont);
   });
 
   schemeBtns.forEach(btn => {

@@ -1,3 +1,30 @@
+/* ===== DESIGN TOKENS (Modern 2.5D pixel — amber on slate) ===== */
+:root {
+  --px-bg-0:     #0e1118;  /* deepest, overlay backdrops */
+  --px-bg-1:     #1b1f2b;  /* slate panel fill */
+  --px-bg-2:     #252b3a;  /* raised button / input fill */
+  --px-sunken:   #0b0e15;  /* inset bar tracks */
+  --px-edge:     #3a4256;  /* steel border */
+  --px-edge-hi:  rgba(255, 255, 255, 0.07); /* top bevel highlight */
+  --px-accent:   #ffc24d;  /* amber accent — active states + key data */
+  --px-accent-dim: #b8862f; /* darker amber for fills */
+  --px-glow:     rgba(255, 194, 77, 0.35); /* accent glow */
+  --px-ink:      #2a1d05;  /* dark text on filled-amber buttons */
+  --px-text:     #e8edf7;  /* primary text */
+  --px-text-dim: #8b96ad;  /* labels / secondary text */
+  --px-shadow:   #05070c;  /* hard drop shadow */
+  --px-hp:       #5ad16a;  /* health green */
+  --px-mp:       #4aa3ff;  /* MP blue */
+  --px-danger:   #ff5d5d;  /* debuff / wipe red */
+
+  /* Font options — JS swaps --px-font between these via the Display tab dropdown. */
+  --font-pixel:    'Silkscreen', monospace;
+  --font-readable: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --px-font: var(--font-pixel);
+}
+
+/* Raised-panel bevel: light from above (inset top highlight) + hard drop shadow below = 2.5D. */
+
 /* ===== BASE ===== */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -9,9 +36,16 @@ html, body {
 body {
   background: #0a0a0f;
   overflow: hidden;
-  font-family: 'Share Tech Mono', monospace;
+  font-family: var(--px-font);
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  image-rendering: pixelated;
+}
+
+/* Form controls don't inherit font-family from body, so set it globally to keep the pixel
+   font everywhere (buttons/inputs/selects) without relying on per-rule declarations. */
+button, input, select, textarea {
+  font-family: var(--px-font);
 }
 
 #canvas {
@@ -41,52 +75,34 @@ body:focus-visible {
   zoom: var(--ui-scale, 1);
 }
 
-/* ===== HOME BUTTON ===== */
-#home-btn {
-  display: none;
+/* ===== TOP BUTTONS (home / settings / info) ===== */
+#home-btn,
+#settings-btn,
+#info-btn {
   position: fixed;
   top: 12px;
-  right: 92px;
-  z-index: 10;
-  background: rgba(6, 7, 18, 0.88);
-  border: 1px solid rgba(100, 115, 175, 0.25);
-  color: rgba(195, 205, 225, 0.7);
-  font-size: 16px;
-  width: 34px;
-  height: 34px;
-  border-radius: 4px;
-  cursor: pointer;
-  line-height: 1;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
-}
-
-#home-btn:hover {
-  border-color: rgba(160, 140, 75, 0.5);
-  color: rgba(212, 168, 67, 0.9);
-  box-shadow: inset 0 0 12px rgba(160, 140, 75, 0.08);
-}
-
-/* ===== SETTINGS BUTTON ===== */
-#settings-btn {
-  position: fixed;
-  top: 12px;
-  right: 12px;
   z-index: 210;
-  background: rgba(6, 7, 18, 0.88);
-  border: 1px solid rgba(100, 115, 175, 0.25);
-  color: rgba(195, 205, 225, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  color: var(--px-text-dim);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+  font-family: var(--px-font);
   font-size: 16px;
   width: 34px;
   height: 34px;
-  border-radius: 4px;
+  border-radius: 5px;
   cursor: pointer;
   line-height: 1;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
 }
+
+#home-btn   { display: none; right: 92px; z-index: 10; }
+#info-btn   { right: 52px; }
+#settings-btn { right: 12px; }
 
 #settings-btn::before,
 #settings-btn::after {
@@ -94,46 +110,18 @@ body:focus-visible {
   position: absolute;
   width: 5px;
   height: 5px;
-  border-color: rgba(145, 125, 70, 0.3);
+  border-color: var(--px-edge);
   border-style: solid;
 }
-#settings-btn::before { top: 2px; left: 2px; border-width: 1px 0 0 1px; }
-#settings-btn::after  { bottom: 2px; right: 2px; border-width: 0 1px 1px 0; }
+#settings-btn::before { top: 3px; left: 3px; border-width: 2px 0 0 2px; }
+#settings-btn::after  { bottom: 3px; right: 3px; border-width: 0 2px 2px 0; }
 
-#settings-btn:hover {
-  border-color: rgba(160, 140, 75, 0.5);
-  color: rgba(212, 168, 67, 0.9);
-  box-shadow: inset 0 0 12px rgba(160, 140, 75, 0.08);
-}
-
-/* ===== INFO BUTTON ===== */
-#info-btn {
-  position: fixed;
-  top: 12px;
-  right: 52px;
-  z-index: 210;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(6, 7, 18, 0.88);
-  border: 1px solid rgba(100, 115, 175, 0.25);
-  color: rgba(195, 205, 225, 0.7);
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 16px;
-  width: 34px;
-  height: 34px;
-  border-radius: 4px;
-  cursor: pointer;
-  line-height: 1;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
-}
-
+#home-btn:hover,
+#settings-btn:hover,
 #info-btn:hover {
-  border-color: rgba(160, 140, 75, 0.5);
-  color: rgba(212, 168, 67, 0.9);
-  box-shadow: inset 0 0 12px rgba(160, 140, 75, 0.08);
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow), 0 0 8px var(--px-glow);
 }
 
 /* ===== SETTINGS PANEL ===== */
@@ -144,14 +132,13 @@ body:focus-visible {
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 220;
-  background: rgba(6, 7, 18, 0.96);
-  border: 1px solid rgba(100, 115, 175, 0.25);
-  border-radius: 5px;
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  border-radius: 6px;
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 5px 0 var(--px-shadow), 0 12px 28px rgba(0, 0, 0, 0.55);
   padding: 24px 28px;
-  color: rgba(215, 220, 240, 0.88);
+  color: var(--px-text);
   min-width: 320px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
 }
 
 /* ===== LOADING OVERLAY ===== */
@@ -164,16 +151,14 @@ body:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 18px;
-  background: rgba(6, 7, 18, 0.82);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(14, 17, 24, 0.9);
 }
 
 .yas-loading-spinner {
   width: 38px;
   height: 38px;
-  border: 3px solid rgba(100, 115, 175, 0.25);
-  border-top-color: rgba(212, 168, 67, 0.9);
+  border: 4px solid var(--px-edge);
+  border-top-color: var(--px-accent);
   border-radius: 50%;
   animation: yas-loading-spin 0.7s linear infinite;
 }
@@ -181,7 +166,8 @@ body:focus-visible {
 .yas-loading-label {
   font-size: 12px;
   letter-spacing: 5px;
-  color: rgba(212, 168, 67, 0.9);
+  color: var(--px-accent);
+  text-shadow: 1px 1px 0 var(--px-shadow);
 }
 
 @keyframes yas-loading-spin {
@@ -196,66 +182,68 @@ body:focus-visible {
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 220;
-  background: rgba(6, 7, 18, 0.96);
-  border: 1px solid rgba(100, 115, 175, 0.25);
-  border-radius: 5px;
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  border-radius: 6px;
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 5px 0 var(--px-shadow), 0 12px 28px rgba(0, 0, 0, 0.55);
   padding: 24px 28px;
-  color: rgba(215, 220, 240, 0.88);
+  color: var(--px-text);
   min-width: 320px;
   text-align: center;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
 }
 
 .info-title {
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 4px;
-  color: rgba(212, 168, 67, 0.9);
+  color: var(--px-accent);
+  text-shadow: 1px 1px 0 var(--px-shadow);
   margin-bottom: 10px;
 }
 
 .info-tagline {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 1px;
-  color: rgba(175, 185, 215, 0.6);
+  color: var(--px-text-dim);
+  text-shadow: 1px 1px 0 var(--px-shadow);
   margin-bottom: 18px;
 }
 
 .info-version {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 2px;
-  color: rgba(175, 185, 215, 0.45);
+  color: var(--px-text-dim);
   margin-bottom: 14px;
 }
 
 .info-version span {
-  color: rgba(212, 168, 67, 0.85);
+  color: var(--px-accent);
 }
 
 .info-link {
   display: inline-block;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 1px;
-  color: rgba(195, 205, 225, 0.7);
+  color: var(--px-text);
   text-decoration: none;
-  border-bottom: 1px solid rgba(100, 115, 175, 0.3);
+  border-bottom: 1px solid var(--px-edge);
   padding-bottom: 2px;
   margin-bottom: 22px;
   transition: color 0.12s, border-color 0.12s;
 }
 
 .info-link:hover {
-  color: rgba(212, 168, 67, 0.9);
-  border-bottom-color: rgba(160, 140, 75, 0.5);
+  color: var(--px-accent);
+  border-bottom-color: var(--px-accent);
 }
 
 #settings-panel h2 {
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 3px;
-  color: rgba(195, 205, 225, 0.5);
+  color: var(--px-text-dim);
+  text-shadow: 1px 1px 0 var(--px-shadow);
   margin-bottom: 22px;
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(100, 115, 175, 0.15);
+  border-bottom: 1px solid var(--px-edge);
 }
 
 .settings-field {
@@ -263,30 +251,31 @@ body:focus-visible {
 }
 
 .settings-group-header {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 2px;
-  color: rgba(212, 168, 67, 0.8);
+  color: var(--px-accent);
+  text-shadow: 1px 1px 0 var(--px-shadow);
   margin: 4px 0 12px;
   padding-bottom: 6px;
-  border-bottom: 1px solid rgba(100, 115, 175, 0.15);
+  border-bottom: 1px solid var(--px-edge);
 }
 
 .settings-label {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 1px;
-  color: rgba(175, 185, 215, 0.55);
+  color: var(--px-text-dim);
   margin-bottom: 8px;
 }
 
 .settings-value {
-  color: rgba(212, 168, 67, 0.9);
+  color: var(--px-accent);
 }
 
 #sensitivity-slider,
 #ctrl-sens-slider,
 #cam-accel-strength {
   width: 100%;
-  accent-color: rgba(212, 168, 67, 0.85);
+  accent-color: var(--px-accent);
   cursor: pointer;
 }
 
@@ -301,66 +290,71 @@ body:focus-visible {
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.5px;
-  color: rgba(195, 205, 225, 0.65);
+  color: var(--px-text);
   padding: 6px 12px;
-  background: rgba(10, 12, 28, 0.8);
-  border: 1px solid rgba(85, 95, 145, 0.22);
-  border-radius: 3px;
-  transition: border-color 0.1s, color 0.1s;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  box-shadow: inset 0 1px 0 var(--px-edge-hi);
+  transition: border-color 0.1s, color 0.1s, box-shadow 0.1s;
   user-select: none;
 }
 
 .settings-radio-option:has(input:checked) {
-  border-color: rgba(212, 168, 67, 0.55);
-  color: rgba(212, 168, 67, 0.9);
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+  box-shadow: inset 3px 0 0 var(--px-accent), 0 0 7px var(--px-glow);
 }
 
 .settings-radio-option input[type="radio"] {
-  accent-color: rgba(212, 168, 67, 0.85);
+  accent-color: var(--px-accent);
 }
 
 .settings-check {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 1px;
-  color: rgba(175, 185, 215, 0.55);
+  color: var(--px-text-dim);
   cursor: pointer;
   user-select: none;
 }
 
 .settings-check input[type="checkbox"] {
-  accent-color: rgba(212, 168, 67, 0.85);
+  accent-color: var(--px-accent);
   cursor: pointer;
 }
 
 .settings-footer {
   margin-top: 22px;
   padding-top: 14px;
-  border-top: 1px solid rgba(100, 115, 175, 0.12);
+  border-top: 1px solid var(--px-edge);
   display: flex;
   justify-content: flex-end;
 }
 
 #settings-close, #info-close {
-  background: rgba(10, 12, 28, 0.9);
-  border: 1px solid rgba(85, 95, 145, 0.25);
-  color: rgba(175, 185, 215, 0.65);
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  color: var(--px-text);
+  text-shadow: 1px 1px 0 var(--px-shadow);
   padding: 6px 18px;
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
+  font-family: var(--px-font);
+  font-size: 11px;
   letter-spacing: 1px;
-  transition: border-color 0.1s, color 0.1s;
+  transition: border-color 0.1s, color 0.1s, box-shadow 0.1s;
 }
 
 #settings-close:hover, #info-close:hover {
-  border-color: rgba(160, 140, 75, 0.45);
-  color: rgba(212, 168, 67, 0.85);
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow), 0 0 8px var(--px-glow);
 }
 
 /* ===== SETTINGS TABS ===== */
@@ -368,7 +362,7 @@ body:focus-visible {
   display: flex;
   gap: 2px;
   margin-bottom: 20px;
-  border-bottom: 1px solid rgba(100, 115, 175, 0.15);
+  border-bottom: 1px solid var(--px-edge);
   padding-bottom: 0;
 }
 
@@ -376,9 +370,9 @@ body:focus-visible {
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  color: rgba(175, 185, 215, 0.45);
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
+  color: var(--px-text-dim);
+  font-family: var(--px-font);
+  font-size: 11px;
   letter-spacing: 2px;
   padding: 6px 14px 8px;
   cursor: pointer;
@@ -387,12 +381,13 @@ body:focus-visible {
 }
 
 .settings-tab:hover {
-  color: rgba(195, 205, 225, 0.75);
+  color: var(--px-text);
 }
 
 .settings-tab.active {
-  color: rgba(212, 168, 67, 0.9);
-  border-bottom-color: rgba(212, 168, 67, 0.65);
+  color: var(--px-accent);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+  border-bottom-color: var(--px-accent);
 }
 
 /* ===== KEYBIND ROWS ===== */
@@ -406,13 +401,13 @@ body:focus-visible {
 
 .keybind-header {
   padding: 0 0 6px;
-  border-bottom: 1px solid rgba(100, 115, 175, 0.12);
+  border-bottom: 1px solid var(--px-edge);
 }
 
 .keybind-header span {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 1px;
-  color: rgba(175, 185, 215, 0.42);
+  color: var(--px-text-dim);
   text-align: center;
 }
 
@@ -422,7 +417,7 @@ body:focus-visible {
 
 .keybind-row {
   padding: 6px 0;
-  border-bottom: 1px solid rgba(100, 115, 175, 0.08);
+  border-bottom: 1px solid rgba(58, 66, 86, 0.5);
 }
 
 .keybind-row:nth-last-child(2) {
@@ -430,20 +425,22 @@ body:focus-visible {
 }
 
 .keybind-label {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 1px;
-  color: rgba(175, 185, 215, 0.55);
+  color: var(--px-text-dim);
 }
 
 .keybind-btn {
-  background: rgba(10, 12, 28, 0.9);
-  border: 1px solid rgba(85, 95, 145, 0.3);
-  color: rgba(212, 220, 245, 0.85);
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow);
+  color: var(--px-text);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+  font-family: var(--px-font);
+  font-size: 11px;
   letter-spacing: 1px;
   padding: 4px 14px;
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
   min-width: 60px;
   text-align: center;
@@ -457,62 +454,68 @@ body:focus-visible {
   justify-content: center;
   min-height: 24px;
   padding: 4px 8px;
-  border: 1px solid rgba(85, 95, 145, 0.18);
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.035);
-  color: rgba(175, 185, 215, 0.62);
-  font-size: 10px;
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  background: rgba(37, 43, 58, 0.55);
+  color: var(--px-text-dim);
+  font-size: 11px;
   letter-spacing: 1px;
   text-align: center;
   box-sizing: border-box;
 }
 
 /* Action rows expose their controller combo as a clickable rebind button. Unlike the fixed
-   movement mappings, these get the solid, brighter treatment of the keyboard rebind buttons so
+   movement mappings, these get the solid, raised treatment of the keyboard rebind buttons so
    it's clear they can be changed. */
 .keybind-controller-btn {
-  font-family: 'Share Tech Mono', monospace;
+  font-family: var(--px-font);
   cursor: pointer;
-  background: rgba(10, 12, 28, 0.9);
-  border: 1px solid rgba(85, 95, 145, 0.3);
-  color: rgba(212, 220, 245, 0.85);
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow);
+  color: var(--px-text);
+  text-shadow: 1px 1px 0 var(--px-shadow);
   transition: border-color 0.1s, color 0.1s, box-shadow 0.1s;
 }
 
 .keybind-btn:hover,
 .keybind-controller-btn:hover {
-  border-color: rgba(160, 140, 75, 0.45);
-  color: rgba(212, 168, 67, 0.85);
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow), 0 0 8px var(--px-glow);
 }
 
 @keyframes keybind-pulse {
-  0%, 100% { border-color: rgba(212, 168, 67, 0.5); box-shadow: 0 0 6px rgba(212, 168, 67, 0.2); }
-  50%       { border-color: rgba(212, 168, 67, 0.9); box-shadow: 0 0 12px rgba(212, 168, 67, 0.45); }
+  0%, 100% { border-color: var(--px-accent); box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 0 6px var(--px-glow); }
+  50%      { border-color: var(--px-edge);   box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 0 12px var(--px-glow); }
 }
 
 .keybind-listening {
   animation: keybind-pulse 0.7s ease infinite;
-  color: rgba(212, 168, 67, 0.9) !important;
+  color: var(--px-accent) !important;
 }
 
 #reset-keybinds {
   width: 100%;
   margin-top: 14px;
-  background: rgba(10, 12, 28, 0.9);
-  border: 1px solid rgba(85, 95, 145, 0.25);
-  color: rgba(175, 185, 215, 0.65);
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  color: var(--px-text);
+  text-shadow: 1px 1px 0 var(--px-shadow);
   padding: 6px 12px;
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
+  font-family: var(--px-font);
+  font-size: 11px;
   letter-spacing: 1px;
-  transition: border-color 0.1s, color 0.1s;
+  transition: border-color 0.1s, color 0.1s, box-shadow 0.1s;
 }
 
 #reset-keybinds:hover {
-  border-color: rgba(160, 140, 75, 0.45);
-  color: rgba(212, 168, 67, 0.85);
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow), 0 0 8px var(--px-glow);
 }
 
 /* ===== Controller settings ===== */
@@ -526,22 +529,23 @@ body:focus-visible {
 .controller-badge {
   display: inline-block;
   padding: 3px 10px;
-  border-radius: 3px;
+  border-radius: 4px;
   font-size: 11px;
   letter-spacing: 2px;
   font-weight: bold;
   width: fit-content;
+  text-shadow: 1px 1px 0 var(--px-shadow);
 }
 
-.controller-badge--xbox     { background: rgba(212, 168, 67, 0.18);  color: rgba(212, 168, 67, 0.9);   border: 1px solid rgba(212, 168, 67, 0.35); }
-.controller-badge--ps5      { background: rgba(0, 112, 209, 0.18);   color: rgba(100, 180, 255, 0.9);  border: 1px solid rgba(0, 112, 209, 0.35); }
-.controller-badge--nintendo { background: rgba(200, 40, 40, 0.18);   color: rgba(255, 120, 120, 0.9);  border: 1px solid rgba(200, 40, 40, 0.35); }
-.controller-badge--unknown  { background: rgba(120, 120, 140, 0.18); color: rgba(180, 180, 200, 0.9);  border: 1px solid rgba(120, 120, 140, 0.35); }
-.controller-badge--none     { background: rgba(60, 60, 80, 0.15);    color: rgba(140, 140, 160, 0.7);  border: 1px solid rgba(80, 80, 100, 0.3); }
+.controller-badge--xbox     { background: rgba(90, 209, 106, 0.22); color: #8bf096;  border: 2px solid rgba(90, 209, 106, 0.55); }
+.controller-badge--ps5      { background: rgba(74, 163, 255, 0.22); color: #9cd0ff;  border: 2px solid rgba(74, 163, 255, 0.55); }
+.controller-badge--nintendo { background: rgba(255, 93, 93, 0.22);  color: #ff9b99;  border: 2px solid rgba(255, 93, 93, 0.55); }
+.controller-badge--unknown  { background: rgba(139, 150, 173, 0.2); color: #c3cbdc;  border: 2px solid rgba(139, 150, 173, 0.45); }
+.controller-badge--none     { background: rgba(37, 43, 58, 0.6);    color: var(--px-text-dim);  border: 2px solid var(--px-edge); }
 
 .controller-name {
-  font-size: 9px;
-  color: rgba(180, 180, 200, 0.5);
+  font-size: 10px;
+  color: var(--px-text-dim);
   letter-spacing: 0.5px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -551,12 +555,12 @@ body:focus-visible {
 
 .controller-select {
   width: 280px;
-  background: rgba(10, 12, 28, 0.9);
-  border: 1px solid rgba(85, 95, 145, 0.3);
-  border-radius: 3px;
-  color: rgba(212, 168, 67, 0.9);
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  color: var(--px-accent);
+  font-family: var(--px-font);
+  font-size: 11px;
   letter-spacing: 0.5px;
   padding: 6px 8px;
 }
@@ -579,11 +583,13 @@ body:focus-visible {
 
 .party-member {
   position: relative;
-  background: rgba(0, 0, 16, 0.72);
-  border: 1px solid rgba(180, 160, 90, 0.35);
-  padding: 4px 6px;
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  border-radius: 5px;
+  padding: 5px 7px;
   width: 160px;
-  font-family: monospace;
+  font-family: var(--px-font);
 }
 
 .party-member.yas-dead { opacity: 0.45; }
@@ -591,33 +597,34 @@ body:focus-visible {
 .party-cam-btn {
   position: absolute;
   top: 50%;
-  left: -28px;
+  left: -30px;
   transform: translateY(-50%);
   width: 24px;
   height: 24px;
   padding: 0;
-  line-height: 22px;
+  line-height: 20px;
   font-size: 12px;
   text-align: center;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(180, 160, 90, 0.4);
-  color: #c8b87a;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow);
+  color: var(--px-text-dim);
   cursor: pointer;
-  border-radius: 2px;
+  border-radius: 4px;
 }
 
-.party-cam-btn:hover { background: rgba(255, 255, 255, 0.18); }
+.party-cam-btn:hover { border-color: var(--px-accent); color: var(--px-accent); }
 
 .party-cam-btn:disabled {
   opacity: 0.3;
   cursor: default;
-  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--px-edge);
 }
 
 .party-cam-btn.party-cam-active {
-  border-color: #c8b87a;
-  background: rgba(200, 184, 122, 0.35);
-  box-shadow: 0 0 4px rgba(200, 184, 122, 0.6);
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 0 8px var(--px-glow);
 }
 
 .party-name-row {
@@ -628,8 +635,9 @@ body:focus-visible {
 }
 
 .party-name {
-  font-size: 10px;
-  color: #c8b87a;
+  font-size: 11px;
+  color: var(--px-text);
+  text-shadow: 1px 1px 0 var(--px-shadow);
   letter-spacing: 0;
 }
 
@@ -638,38 +646,38 @@ body:focus-visible {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  box-shadow: 0 0 4px currentColor;
 }
 
 .party-status-dot.is-joined {
-  color: #35d05c;
-  background: #35d05c;
+  color: var(--px-hp);
+  background: var(--px-hp);
 }
 
 .party-status-dot.is-bot {
-  color: #df3333;
-  background: #df3333;
+  color: var(--px-danger);
+  background: var(--px-danger);
 }
 
 .party-hp-track,
 .party-mp-track {
   position: relative;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.08);
+  height: 7px;
+  background: var(--px-sunken);
+  border: 1px solid var(--px-edge);
   margin-bottom: 2px;
 }
 
 .party-hp-fill {
   position: absolute;
   top: 0; left: 0; bottom: 0;
-  background: #35d05c;
+  background: var(--px-hp);
   transition: width 0.1s linear;
 }
 
 .party-mp-fill {
   position: absolute;
   top: 0; left: 0; bottom: 0;
-  background: #3a9ff5;
+  background: var(--px-mp);
   transition: width 0.1s linear;
 }
 
@@ -710,15 +718,15 @@ img.party-effect-icon {
 }
 
 .party-effect-buff {
-  background: rgba(30, 180, 60, 0.25);
-  color: #4de87a;
-  border: 1px solid rgba(60, 220, 80, 0.4);
+  background: rgba(90, 209, 106, 0.25);
+  color: #8bf096;
+  border: 1px solid rgba(90, 209, 106, 0.55);
 }
 
 .party-effect-debuff {
-  background: rgba(200, 30, 30, 0.25);
-  color: #f06060;
-  border: 1px solid rgba(220, 60, 60, 0.4);
+  background: rgba(255, 93, 93, 0.25);
+  color: #ff9b99;
+  border: 1px solid rgba(255, 93, 93, 0.55);
 }
 
 /* ===== Cast Bar ===== */
@@ -737,21 +745,22 @@ img.party-effect-icon {
 }
 
 .yas-cast-name {
-  color: #fff;
+  color: var(--px-text);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  text-shadow: 1px 1px 0 var(--px-shadow);
 }
 
 .yas-cast-track {
   position: relative;
   width: 100%;
-  height: 14px;
-  background: rgba(0, 0, 0, 0.6);
+  height: 15px;
+  background: var(--px-sunken);
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi);
   overflow: hidden;
 }
 
@@ -759,22 +768,23 @@ img.party-effect-icon {
   position: absolute;
   top: 0; left: 0; bottom: 0;
   width: 0%;
-  background: linear-gradient(90deg, #e07800, #df3333);
-  border-radius: 4px;
+  background: linear-gradient(90deg, #f5a623, var(--px-danger));
   transition: width 0.05s linear;
 }
 
 .yas-cast-timer {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--px-text);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
+  text-shadow: 1px 1px 0 var(--px-shadow);
 }
 
 /* ===== Mini Boss Cast Panel ===== */
 .yas-boss-cast-panel {
   padding: 6px 9px;
-  background: rgba(6, 7, 18, 0.28);
-  border: 1px solid rgba(100, 115, 175, 0.2);
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
   border-radius: 5px;
   display: flex;
   flex-direction: column;
@@ -791,7 +801,7 @@ img.party-effect-icon {
 .yas-boss-cast-label {
   font-size: 11px;
   letter-spacing: 0.06em;
-  color: rgba(195, 205, 225, 0.6);
+  color: var(--px-text-dim);
   width: 65px;
   text-align: right;
   flex-shrink: 0;
@@ -801,9 +811,10 @@ img.party-effect-icon {
   position: relative;
   width: 150px;
   height: 15px;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--px-sunken);
   border-radius: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi);
   overflow: hidden;
 }
 
@@ -811,8 +822,7 @@ img.party-effect-icon {
   position: absolute;
   top: 0; left: 0; bottom: 0;
   width: 0%;
-  background: linear-gradient(90deg, #e07800, #df3333);
-  border-radius: 3px;
+  background: linear-gradient(90deg, #f5a623, var(--px-danger));
   transition: width 0.05s linear;
 }
 
@@ -824,8 +834,8 @@ img.party-effect-icon {
   justify-content: center;
   font-size: 10px;
   letter-spacing: 0.05em;
-  color: rgba(235, 238, 255, 0.7);
-  text-shadow: 0 0 4px rgba(0,0,0,0.9);
+  color: var(--px-text);
+  text-shadow: 1px 1px 0 var(--px-shadow);
   pointer-events: none;
   overflow: hidden;
   white-space: nowrap;
@@ -845,7 +855,7 @@ img.party-effect-icon {
   padding-bottom: 14px;
   z-index: 50;
   pointer-events: none;
-  font-family: 'Share Tech Mono', monospace;
+  font-family: var(--px-font);
 }
 
 .yas-resource-cluster {
@@ -859,11 +869,10 @@ img.party-effect-icon {
   flex-direction: column;
   gap: 5px;
   padding: 8px 14px;
-  background: rgba(6, 7, 18, 0.88);
-  border: 1px solid rgba(100, 115, 175, 0.2);
-  border-radius: 5px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  border-radius: 6px;
 }
 
 .yas-bar-row {
@@ -872,6 +881,8 @@ img.party-effect-icon {
   gap: 8px;
 }
 
+/* HUD utility toggle buttons (invuln + bot invuln) share the raised pixel-button look; the
+   active state lights up teal so it matches the rest of the HUD instead of a stray semantic color. */
 .yas-invuln-btn,
 .yas-bot-invuln-btn {
   pointer-events: all;
@@ -880,14 +891,16 @@ img.party-effect-icon {
   height: 26px;
   padding: 0;
   font-size: 15px;
-  line-height: 24px;
+  line-height: 22px;
   text-align: center;
   cursor: pointer;
-  color: #d7ffe1;
-  background: rgba(31, 122, 59, 0.36);
-  border: 1px solid rgba(70, 210, 110, 0.72);
-  border-radius: 3px;
-  box-shadow: 0 0 6px rgba(70, 210, 110, 0.28);
+  color: var(--px-text-dim);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
 }
 
 .yas-bot-invuln-btn {
@@ -897,16 +910,13 @@ img.party-effect-icon {
 .yas-invuln-btn:hover,
 .yas-invuln-btn:focus,
 .yas-invuln-btn:focus-visible,
-.yas-invuln-btn:active,
 .yas-bot-invuln-btn:hover,
 .yas-bot-invuln-btn:focus,
-.yas-bot-invuln-btn:focus-visible,
-.yas-bot-invuln-btn:active {
-  color: #d7ffe1;
+.yas-bot-invuln-btn:focus-visible {
   outline: none;
-  border-color: rgba(70, 210, 110, 0.72);
-  background: rgba(31, 122, 59, 0.36);
-  box-shadow: 0 0 6px rgba(70, 210, 110, 0.28);
+  color: var(--px-accent);
+  border-color: var(--px-accent);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow), 0 0 8px var(--px-glow);
 }
 
 .yas-invuln-btn.is-active,
@@ -919,17 +929,17 @@ img.party-effect-icon {
 .yas-bot-invuln-btn.is-active:focus,
 .yas-bot-invuln-btn.is-active:focus-visible,
 .yas-bot-invuln-btn.is-active:active {
-  color: #ffe2e2;
   outline: none;
-  border-color: rgba(235, 65, 65, 0.9);
-  background: rgba(190, 32, 38, 0.52);
-  box-shadow: 0 0 6px rgba(235, 65, 65, 0.42);
+  color: var(--px-ink);
+  border-color: var(--px-accent);
+  background: var(--px-accent);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3), 0 0 10px var(--px-glow);
 }
 
 .yas-bar-label {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 1.5px;
-  color: rgba(195, 205, 225, 0.5);
+  color: var(--px-text-dim);
   width: 22px;
   text-align: right;
   flex-shrink: 0;
@@ -939,34 +949,34 @@ img.party-effect-icon {
   position: relative;
   width: 300px;
   height: 18px;
-  background: rgba(12, 12, 25, 0.95);
+  background: var(--px-sunken);
   border-radius: 3px;
-  border: 1px solid rgba(70, 80, 120, 0.3);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi);
   overflow: hidden;
-  box-shadow: inset 0 1px 4px rgba(0,0,0,0.6);
 }
 
 .yas-bar-fill {
   position: absolute;
   top: 0; left: 0; bottom: 0;
-  border-radius: 2px;
   transition: width 0.1s linear;
 }
 
+/* 1px top sheen on the fill for the lit, beveled bar read. */
 .yas-bar-fill::after {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 1px;
-  background: rgba(255,255,255,0.14);
+  height: 2px;
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .yas-hp-fill {
-  background: linear-gradient(90deg, #7b1113 0%, #c0202b 50%, #e53935 100%);
+  background: var(--px-hp);
 }
 
 .yas-mp-fill {
-  background: linear-gradient(90deg, #0d1855 0%, #1565c0 50%, #3a9ff5 100%);
+  background: var(--px-mp);
 }
 
 .yas-bar-val {
@@ -976,8 +986,8 @@ img.party-effect-icon {
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  color: rgba(235, 238, 255, 0.88);
-  text-shadow: 0 0 6px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,1);
+  color: var(--px-text);
+  text-shadow: 1px 1px 0 var(--px-shadow);
   user-select: none;
   pointer-events: none;
 }
@@ -991,9 +1001,10 @@ img.party-effect-icon {
 
 .yas-hotbar-panel {
   padding: 5px 7px;
-  background: rgba(6, 7, 18, 0.28);
-  border: 1px solid rgba(100, 115, 175, 0.2);
-  border-radius: 5px;
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  border-radius: 6px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1009,9 +1020,10 @@ img.party-effect-icon {
   gap: 5px;
   overflow: hidden;
   flex-shrink: 0;
-  background: rgba(6, 7, 18, 0.28);
-  border: 1px solid rgba(175, 70, 70, 0.2);
-  border-radius: 5px;
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  border-radius: 6px;
 }
 
 .yas-debuff {
@@ -1022,11 +1034,11 @@ img.party-effect-icon {
   align-items: center;
   justify-content: center;
   gap: 3px;
-  background: rgba(45, 8, 14, 0.92);
-  border: 1px solid rgba(220, 60, 60, 0.52);
+  background: #2a1620;
+  border: 2px solid var(--px-danger);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 0 8px rgba(255, 93, 93, 0.2);
   border-radius: 4px;
-  box-shadow: inset 0 0 14px rgba(220, 60, 60, 0.12), 0 0 8px rgba(0, 0, 0, 0.28);
-  color: #f36a6a;
+  color: #ff9b99;
   user-select: none;
   flex-shrink: 0;
 }
@@ -1048,7 +1060,8 @@ img.yas-debuff-icon {
   font-size: 11px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  color: rgba(255, 218, 218, 0.86);
+  color: var(--px-text);
+  text-shadow: 1px 1px 0 var(--px-shadow);
 }
 
 .yas-hotbar-debug,
@@ -1056,13 +1069,14 @@ img.yas-debuff-icon {
   width: 36px;
   height: 52px;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(100, 115, 175, 0.3);
-  color: rgba(235, 238, 255, 0.55);
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow);
+  color: var(--px-text-dim);
   font-size: 18px;
   cursor: pointer;
   border-radius: 4px;
-  transition: background 0.15s, color 0.15s;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
   padding: 0;
 }
 
@@ -1072,8 +1086,9 @@ img.yas-debuff-icon {
 
 .yas-hotbar-debug:hover,
 .yas-hotbar-toggle:hover {
-  background: rgba(255, 255, 255, 0.14);
-  color: rgba(235, 238, 255, 0.9);
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow), 0 0 8px var(--px-glow);
 }
 
 .yas-controller-hotbar {
@@ -1096,7 +1111,7 @@ img.yas-debuff-icon {
 .yas-ctrl-separator {
   font-size: 10px;
   letter-spacing: 0.5px;
-  color: rgba(175, 180, 210, 0.38);
+  color: var(--px-text-dim);
   padding: 0 2px;
   align-self: center;
   pointer-events: none;
@@ -1104,7 +1119,7 @@ img.yas-debuff-icon {
 }
 
 .yas-ctrl-separator.is-active {
-  color: rgba(212, 168, 67, 0.9);
+  color: var(--px-accent);
 }
 
 .yas-hotbar {
@@ -1116,9 +1131,10 @@ img.yas-debuff-icon {
   position: relative;
   width: 52px;
   height: 52px;
-  background: rgba(10, 12, 26, 0.92);
-  border: 1px solid rgba(85, 95, 145, 0.25);
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
   border-radius: 4px;
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow);
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -1137,39 +1153,39 @@ img.yas-debuff-icon {
   position: absolute;
   width: 7px;
   height: 7px;
-  border-color: rgba(145, 125, 70, 0.32);
+  border-color: var(--px-edge);
   border-style: solid;
   pointer-events: none;
   z-index: 3;
   transition: border-color 0.1s;
 }
-.yas-slot::before { top: 2px; left: 2px; border-width: 1px 0 0 1px; }
-.yas-slot::after  { bottom: 2px; right: 2px; border-width: 0 1px 1px 0; }
+.yas-slot::before { top: 2px; left: 2px; border-width: 2px 0 0 2px; }
+.yas-slot::after  { bottom: 2px; right: 2px; border-width: 0 2px 2px 0; }
 
 .yas-slot:hover {
-  border-color: rgba(160, 140, 75, 0.4);
-  box-shadow: inset 0 0 12px rgba(160, 140, 75, 0.07);
+  border-color: var(--px-accent);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow), 0 0 8px var(--px-glow);
 }
 .yas-slot:hover::before,
 .yas-slot:hover::after {
-  border-color: rgba(212, 168, 67, 0.6);
+  border-color: var(--px-accent);
 }
 
 .yas-slot-flash {
-  border-color: rgba(212, 168, 67, 0.92) !important;
-  box-shadow: inset 0 0 18px rgba(212, 168, 67, 0.22), 0 0 10px rgba(212, 168, 67, 0.35) !important;
+  border-color: var(--px-accent) !important;
+  box-shadow: inset 0 0 0 2px var(--px-accent), 0 0 12px var(--px-glow) !important;
 }
 
 .yas-slot-sprint-running {
-  border-color: rgba(212, 168, 67, 0.5);
-  box-shadow: inset 0 0 12px rgba(212, 168, 67, 0.12);
+  border-color: var(--px-accent);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow), 0 0 6px var(--px-glow);
 }
 
 .yas-keybind {
   position: absolute;
   top: 4px; left: 5px;
   font-size: 9px;
-  color: rgba(175, 180, 210, 0.45);
+  color: var(--px-text-dim);
   line-height: 1;
   z-index: 4;
   pointer-events: none;
@@ -1184,7 +1200,7 @@ img.yas-debuff-icon {
 .yas-slot-name {
   font-size: 7.5px;
   letter-spacing: 0.3px;
-  color: rgba(200, 188, 155, 0.7);
+  color: var(--px-text);
   line-height: 1;
   z-index: 1;
 }
@@ -1201,10 +1217,10 @@ img.yas-debuff-icon {
 .yas-cd-text {
   position: absolute;
   inset: 0;
-  font-family: 'Share Tech Mono', monospace;
+  font-family: var(--px-font);
   font-size: 15px;
-  color: rgba(230, 225, 210, 0.95);
-  text-shadow: 0 0 10px rgba(0,0,0,1);
+  color: var(--px-text);
+  text-shadow: 1px 1px 0 var(--px-shadow);
   display: none;
   align-items: center;
   justify-content: center;
@@ -1213,8 +1229,8 @@ img.yas-debuff-icon {
 }
 
 @keyframes yas-ready-pulse {
-  0%, 100% { box-shadow: inset 0 0 10px rgba(212,168,67,0.12), 0 0 5px rgba(212,168,67,0.2); border-color: rgba(212,168,67,0.5); }
-  50%       { box-shadow: inset 0 0 20px rgba(212,168,67,0.28), 0 0 12px rgba(212,168,67,0.45); border-color: rgba(212,168,67,0.85); }
+  0%, 100% { box-shadow: inset 0 0 0 2px var(--px-accent), 0 0 6px var(--px-glow); border-color: var(--px-edge); }
+  50%      { box-shadow: inset 0 0 0 2px var(--px-edge),   0 0 12px var(--px-glow); border-color: var(--px-accent); }
 }
 .yas-slot-ready {
   animation: yas-ready-pulse 0.55s ease 2 forwards;
@@ -1229,9 +1245,7 @@ img.yas-debuff-icon {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(4, 5, 14, 0.97);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(10, 12, 18, 0.97);
 }
 
 .yas-menu-panel {
@@ -1240,14 +1254,14 @@ img.yas-debuff-icon {
   align-items: center;
   gap: 0;
   padding: 42px 52px 38px;
-  background: rgba(6, 7, 18, 0.98);
-  border: 1px solid rgba(100, 115, 175, 0.22);
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 5px 0 var(--px-shadow), 0 14px 32px rgba(0, 0, 0, 0.55);
   border-radius: 6px;
   min-width: 380px;
   max-height: calc(100vh - 48px);
   overflow-y: auto;
-  box-shadow: 0 0 60px rgba(80, 100, 200, 0.08);
-  scrollbar-color: rgba(85, 95, 145, 0.72) rgba(10, 12, 28, 0.96);
+  scrollbar-color: var(--px-edge) var(--px-bg-0);
   scrollbar-width: thin;
 }
 
@@ -1256,32 +1270,32 @@ img.yas-debuff-icon {
 }
 
 .yas-menu-panel::-webkit-scrollbar-track {
-  background: rgba(10, 12, 28, 0.96);
+  background: var(--px-bg-0);
   border-radius: 3px;
 }
 
 .yas-menu-panel::-webkit-scrollbar-thumb {
-  background: rgba(85, 95, 145, 0.72);
-  border: 1px solid rgba(10, 12, 28, 0.96);
+  background: var(--px-edge);
+  border: 1px solid var(--px-bg-0);
   border-radius: 3px;
 }
 
 .yas-menu-panel::-webkit-scrollbar-thumb:hover {
-  background: rgba(212, 168, 67, 0.55);
+  background: var(--px-accent);
 }
 
 .yas-menu-title {
-  font-size: 22px;
+  font-size: 26px;
   letter-spacing: 6px;
-  color: rgba(212, 168, 67, 0.92);
-  text-shadow: 0 0 20px rgba(212, 168, 67, 0.25);
+  color: var(--px-accent);
+  text-shadow: 2px 2px 0 var(--px-shadow);
   margin-bottom: 6px;
 }
 
 .yas-menu-subtitle {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 3px;
-  color: rgba(175, 185, 215, 0.38);
+  color: var(--px-text-dim);
   margin-bottom: 32px;
 }
 
@@ -1298,25 +1312,26 @@ img.yas-debuff-icon {
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 1px;
-  color: rgba(195, 205, 225, 0.6);
+  color: var(--px-text);
   padding: 10px 16px;
-  background: rgba(10, 12, 28, 0.8);
-  border: 1px solid rgba(85, 95, 145, 0.2);
-  border-radius: 3px;
-  transition: border-color 0.12s, color 0.12s;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  box-shadow: inset 0 1px 0 var(--px-edge-hi);
+  transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
   user-select: none;
 }
 
 .yas-menu-raid-option:has(input:checked) {
-  border-color: rgba(212, 168, 67, 0.5);
-  color: rgba(212, 168, 67, 0.92);
-  background: rgba(212, 168, 67, 0.04);
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+  box-shadow: inset 3px 0 0 var(--px-accent), 0 0 8px var(--px-glow);
 }
 
 .yas-menu-raid-option input[type="radio"] {
-  accent-color: rgba(212, 168, 67, 0.85);
+  accent-color: var(--px-accent);
   flex-shrink: 0;
 }
 
@@ -1328,73 +1343,77 @@ img.yas-debuff-icon {
   margin-bottom: 28px;
   width: 100%;
   padding: 10px 0;
-  border-top: 1px solid rgba(100, 115, 175, 0.1);
-  border-bottom: 1px solid rgba(100, 115, 175, 0.1);
+  border-top: 1px solid var(--px-edge);
+  border-bottom: 1px solid var(--px-edge);
 }
 
 .yas-landing-note {
   max-width: 320px;
   margin-bottom: 24px;
-  color: rgba(175, 185, 215, 0.48);
-  font-size: 10px;
+  color: var(--px-text-dim);
+  font-size: 11px;
   letter-spacing: 0.5px;
   line-height: 1.5;
   text-align: center;
 }
 
 .yas-menu-session-label {
-  font-size: 8px;
+  font-size: 9px;
   letter-spacing: 2.5px;
-  color: rgba(175, 185, 215, 0.3);
+  color: var(--px-text-dim);
 }
 
 .yas-menu-session-id {
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.5px;
-  color: rgba(175, 185, 215, 0.45);
+  color: var(--px-text-dim);
   overflow-wrap: anywhere;
   text-align: center;
 }
 
 .yas-menu-note {
   margin-top: 2px;
-  color: rgba(175, 185, 215, 0.3);
-  font-size: 8px;
+  color: var(--px-text-dim);
+  font-size: 9px;
   letter-spacing: 1px;
 }
 
 .yas-menu-error {
   margin-top: 14px;
   max-width: 320px;
-  color: rgba(255, 120, 120, 0.86);
-  font-size: 10px;
+  color: #ff9b99;
+  font-size: 11px;
   letter-spacing: 0.6px;
   text-align: center;
 }
 
 .yas-menu-start {
-  background: rgba(10, 12, 28, 0.9);
-  border: 1px solid rgba(212, 168, 67, 0.35);
-  color: rgba(212, 168, 67, 0.85);
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 11px;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-accent);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow), 0 0 10px var(--px-glow);
+  color: var(--px-accent);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+  font-family: var(--px-font);
+  font-size: 12px;
   letter-spacing: 3px;
   padding: 10px 40px;
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
-  transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
+  transition: border-color 0.12s, color 0.12s, background 0.12s, box-shadow 0.12s;
 }
 
 .yas-menu-start:disabled {
   cursor: default;
   opacity: 0.42;
-  box-shadow: none;
+  border-color: var(--px-edge);
+  color: var(--px-text-dim);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
 }
 
 .yas-menu-start:not(:disabled):hover {
-  border-color: rgba(212, 168, 67, 0.75);
-  color: rgba(212, 168, 67, 1);
-  box-shadow: 0 0 16px rgba(212, 168, 67, 0.12);
+  color: var(--px-ink);
+  background: var(--px-accent);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3), 0 0 14px var(--px-glow);
 }
 
 .yas-lobby-slots {
@@ -1412,9 +1431,10 @@ img.yas-debuff-icon {
   gap: 10px;
   width: 100%;
   padding: 8px 10px;
-  background: rgba(10, 12, 28, 0.82);
-  border: 1px solid rgba(85, 95, 145, 0.2);
-  border-radius: 3px;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  box-shadow: inset 0 1px 0 var(--px-edge-hi);
 }
 
 .yas-lobby-slot-meta {
@@ -1425,26 +1445,27 @@ img.yas-debuff-icon {
 }
 
 .yas-lobby-slot-id {
-  color: rgba(212, 168, 67, 0.86);
-  font-size: 11px;
+  color: var(--px-accent);
+  font-size: 12px;
   letter-spacing: 1px;
 }
 
 .yas-lobby-slot-role,
 .yas-lobby-slot-status {
-  color: rgba(175, 185, 215, 0.5);
-  font-size: 9px;
+  color: var(--px-text-dim);
+  font-size: 10px;
   letter-spacing: 1px;
 }
 
 .yas-lobby-slot-action {
-  background: rgba(6, 7, 18, 0.9);
-  border: 1px solid rgba(85, 95, 145, 0.26);
-  border-radius: 3px;
-  color: rgba(195, 205, 225, 0.72);
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow);
+  border-radius: 4px;
+  color: var(--px-text);
   cursor: pointer;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 9px;
+  font-family: var(--px-font);
+  font-size: 10px;
   letter-spacing: 1px;
   padding: 6px 8px;
   transition: border-color 0.12s, color 0.12s;
@@ -1456,8 +1477,8 @@ img.yas-debuff-icon {
 }
 
 .yas-lobby-slot-action:not(:disabled):hover {
-  border-color: rgba(212, 168, 67, 0.55);
-  color: rgba(212, 168, 67, 0.9);
+  border-color: var(--px-accent);
+  color: var(--px-accent);
 }
 
 #yas-raid-select {
@@ -1483,37 +1504,39 @@ img.yas-debuff-icon {
   align-items: center;
   gap: 2px;
   padding: 7px 16px;
-  background: rgba(6, 7, 18, 0.88);
-  border: 1px solid rgba(100, 115, 175, 0.25);
-  border-radius: 4px;
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  border-radius: 5px;
   pointer-events: none;
-  font-family: 'Share Tech Mono', monospace;
+  font-family: var(--px-font);
 }
 
 .yas-timer-val {
   font-size: 18px;
   letter-spacing: 1.5px;
-  color: rgba(212, 168, 67, 0.95);
+  color: var(--px-accent);
+  text-shadow: 1px 1px 0 var(--px-shadow);
   font-variant-numeric: tabular-nums;
 }
 
 .yas-timer-status {
   font-size: 8px;
   letter-spacing: 1.5px;
-  color: rgba(175, 185, 215, 0.45);
+  color: var(--px-text-dim);
 }
 
 .yas-timer-status.yas-timer-cleared {
-  color: rgba(120, 220, 150, 0.9);
+  color: var(--px-hp);
 }
 
 .yas-timer-status.yas-timer-wiped {
-  color: rgba(225, 95, 95, 0.9);
+  color: var(--px-danger);
 }
 
 .yas-timer-status.yas-timer-paused,
 .yas-timer-status.yas-timer-stopped {
-  color: rgba(212, 168, 67, 0.75);
+  color: var(--px-accent);
 }
 
 .yas-raid-select-row {
@@ -1528,30 +1551,29 @@ img.yas-debuff-icon {
   align-items: center;
   gap: 8px;
   width: 190px;
-  background: rgba(10, 12, 28, 0.9);
-  border: 1px solid rgba(85, 95, 145, 0.3);
-  border-radius: 3px;
-  color: rgba(212, 168, 67, 0.9);
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow);
+  border-radius: 4px;
+  color: var(--px-accent);
   cursor: pointer;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
+  font-family: var(--px-font);
+  font-size: 11px;
   letter-spacing: 0.5px;
   padding: 6px 8px;
   text-align: left;
-  transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
+  transition: border-color 0.12s, color 0.12s;
 }
 
 .yas-raid-open:disabled {
   cursor: default;
-  color: rgba(175, 185, 215, 0.35);
+  color: var(--px-text-dim);
   opacity: 0.62;
-  box-shadow: none;
 }
 
 .yas-raid-open:not(:disabled):hover {
-  border-color: rgba(212, 168, 67, 0.55);
-  color: rgba(212, 168, 67, 0.95);
-  box-shadow: inset 0 0 12px rgba(160, 140, 75, 0.08);
+  border-color: var(--px-accent);
+  color: var(--px-text);
 }
 
 .yas-raid-open-name {
@@ -1561,7 +1583,7 @@ img.yas-debuff-icon {
 }
 
 .yas-raid-open-glyph {
-  color: rgba(195, 205, 225, 0.62);
+  color: var(--px-text-dim);
 }
 
 /* ===== RAID SELECTOR MODAL ===== */
@@ -1572,9 +1594,7 @@ img.yas-debuff-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(4, 5, 14, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(10, 12, 18, 0.9);
 }
 
 .yas-raid-modal-panel {
@@ -1582,12 +1602,12 @@ img.yas-debuff-icon {
   flex-direction: column;
   gap: 18px;
   padding: 30px 34px 28px;
-  background: rgba(6, 7, 18, 0.98);
-  border: 1px solid rgba(100, 115, 175, 0.22);
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 5px 0 var(--px-shadow), 0 14px 32px rgba(0, 0, 0, 0.55);
   border-radius: 6px;
   width: min(780px, calc(100vw - 48px));
   max-height: calc(100vh - 48px);
-  box-shadow: 0 0 60px rgba(80, 100, 200, 0.08);
 }
 
 .yas-raid-modal-header {
@@ -1602,24 +1622,25 @@ img.yas-debuff-icon {
 
 .yas-raid-search {
   width: 100%;
-  background: rgba(10, 12, 28, 0.9);
-  border: 1px solid rgba(85, 95, 145, 0.3);
-  border-radius: 3px;
-  color: rgba(212, 168, 67, 0.9);
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 11px;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+  color: var(--px-accent);
+  font-family: var(--px-font);
+  font-size: 12px;
   letter-spacing: 0.5px;
   padding: 8px 10px;
   outline: none;
 }
 
 .yas-raid-search::placeholder {
-  color: rgba(175, 185, 215, 0.35);
+  color: var(--px-text-dim);
 }
 
 .yas-raid-search:focus {
-  border-color: rgba(212, 168, 67, 0.65);
-  box-shadow: 0 0 14px rgba(212, 168, 67, 0.08);
+  border-color: var(--px-accent);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 8px var(--px-glow);
 }
 
 .yas-raid-modal-body {
@@ -1644,10 +1665,10 @@ img.yas-debuff-icon {
   min-width: 0;
   overflow-y: auto;
   padding: 4px;
-  background: rgba(10, 12, 28, 0.42);
-  border: 1px solid rgba(85, 95, 145, 0.16);
-  border-radius: 3px;
-  scrollbar-color: rgba(85, 95, 145, 0.72) rgba(10, 12, 28, 0.96);
+  background: var(--px-sunken);
+  border: 1px solid var(--px-edge);
+  border-radius: 4px;
+  scrollbar-color: var(--px-edge) var(--px-bg-0);
   scrollbar-width: thin;
 }
 
@@ -1656,18 +1677,18 @@ img.yas-debuff-icon {
 }
 
 .yas-raid-raid-list::-webkit-scrollbar-track {
-  background: rgba(10, 12, 28, 0.96);
+  background: var(--px-bg-0);
   border-radius: 3px;
 }
 
 .yas-raid-raid-list::-webkit-scrollbar-thumb {
-  background: rgba(85, 95, 145, 0.72);
-  border: 1px solid rgba(10, 12, 28, 0.96);
+  background: var(--px-edge);
+  border: 1px solid var(--px-bg-0);
   border-radius: 3px;
 }
 
 .yas-raid-raid-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(212, 168, 67, 0.55);
+  background: var(--px-accent);
 }
 
 .yas-raid-cat-option {
@@ -1677,19 +1698,20 @@ img.yas-debuff-icon {
   text-align: left;
   cursor: pointer;
   padding: 12px 16px;
-  background: rgba(10, 12, 28, 0.8);
-  border: 1px solid rgba(85, 95, 145, 0.2);
-  border-radius: 3px;
-  transition: border-color 0.12s, color 0.12s;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  box-shadow: inset 0 1px 0 var(--px-edge-hi);
+  transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
 }
 
 .yas-raid-cat-option:hover {
-  border-color: rgba(212, 168, 67, 0.5);
+  border-color: var(--px-accent);
 }
 
 .yas-raid-cat-option.is-active {
-  border-color: rgba(212, 168, 67, 0.5);
-  background: rgba(212, 168, 67, 0.04);
+  border-color: var(--px-accent);
+  box-shadow: inset 3px 0 0 var(--px-accent), 0 0 8px var(--px-glow);
 }
 
 .yas-raid-cat-option.is-dim {
@@ -1697,15 +1719,15 @@ img.yas-debuff-icon {
 }
 
 .yas-raid-cat-name {
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 1px;
-  color: rgba(212, 168, 67, 0.92);
+  color: var(--px-accent);
 }
 
 .yas-raid-cat-desc {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.5px;
-  color: rgba(175, 185, 215, 0.5);
+  color: var(--px-text-dim);
 }
 
 .yas-raid-raid-option {
@@ -1713,27 +1735,28 @@ img.yas-debuff-icon {
   flex-direction: column;
   gap: 3px;
   width: 100%;
-  background: rgba(10, 12, 28, 0.9);
-  border: 1px solid rgba(85, 95, 145, 0.2);
-  border-radius: 3px;
-  color: rgba(195, 205, 225, 0.85);
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  box-shadow: inset 0 1px 0 var(--px-edge-hi);
+  color: var(--px-text);
   cursor: pointer;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
+  font-family: var(--px-font);
+  font-size: 11px;
   letter-spacing: 0.5px;
   padding: 8px 10px;
   text-align: left;
-  transition: border-color 0.12s, color 0.12s, background 0.12s;
+  transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
 }
 
 .yas-raid-raid-option:hover {
-  border-color: rgba(212, 168, 67, 0.5);
+  border-color: var(--px-accent);
 }
 
 .yas-raid-raid-option.is-active {
-  border-color: rgba(212, 168, 67, 0.5);
-  color: rgba(212, 168, 67, 0.92);
-  background: rgba(212, 168, 67, 0.04);
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+  box-shadow: inset 3px 0 0 var(--px-accent), 0 0 8px var(--px-glow);
 }
 
 .yas-raid-raid-name {
@@ -1744,9 +1767,9 @@ img.yas-debuff-icon {
 
 .yas-raid-raid-cat,
 .yas-raid-empty {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.5px;
-  color: rgba(175, 185, 215, 0.5);
+  color: var(--px-text-dim);
 }
 
 .yas-raid-empty {
@@ -1762,12 +1785,13 @@ img.yas-debuff-icon {
 }
 
 .yas-playback-controls button {
-  background: rgba(10, 12, 28, 0.9);
-  border: 1px solid rgba(85, 95, 145, 0.3);
-  border-radius: 3px;
-  color: rgba(195, 205, 225, 0.72);
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow);
+  border-radius: 4px;
+  color: var(--px-text);
   cursor: pointer;
-  font-family: 'Share Tech Mono', monospace;
+  font-family: var(--px-font);
   font-size: 8px;
   letter-spacing: 0.8px;
   padding: 5px 7px;
@@ -1779,8 +1803,8 @@ img.yas-debuff-icon {
 }
 
 .yas-playback-controls button:not(:disabled):hover {
-  border-color: rgba(212, 168, 67, 0.55);
-  color: rgba(212, 168, 67, 0.9);
+  border-color: var(--px-accent);
+  color: var(--px-accent);
 }
 
 /* ===== SESSION ID BADGE ===== */
@@ -1799,15 +1823,17 @@ img.yas-debuff-icon {
 .yas-session-label {
   font-size: 7px;
   letter-spacing: 2px;
-  color: rgba(175, 185, 215, 0.25);
-  font-family: 'Share Tech Mono', monospace;
+  color: var(--px-text-dim);
+  opacity: 0.6;
+  font-family: var(--px-font);
 }
 
 .yas-session-val {
   font-size: 8px;
   letter-spacing: 0.3px;
-  color: rgba(175, 185, 215, 0.3);
-  font-family: 'Share Tech Mono', monospace;
+  color: var(--px-text-dim);
+  opacity: 0.6;
+  font-family: var(--px-font);
 }
 
 /* ===== STATUS OVERLAY ===== */
@@ -1819,12 +1845,12 @@ img.yas-debuff-icon {
   justify-content: center;
   pointer-events: none;
   z-index: 100;
-  font-family: 'Share Tech Mono', monospace;
+  font-family: var(--px-font);
   font-size: 48px;
   letter-spacing: 8px;
   opacity: 0;
   transition: opacity 0.35s;
 }
 #yas-status.yas-visible { opacity: 1; }
-#yas-status.yas-cleared { color: #7fff7f; text-shadow: 0 0 30px rgba(100,255,100,0.5); }
-#yas-status.yas-wiped   { color: #ff6060; text-shadow: 0 0 30px rgba(255,80,80,0.5); }
+#yas-status.yas-cleared { color: var(--px-hp); text-shadow: 3px 3px 0 var(--px-shadow); }
+#yas-status.yas-wiped   { color: var(--px-danger); text-shadow: 3px 3px 0 var(--px-shadow); }
