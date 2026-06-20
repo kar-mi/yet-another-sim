@@ -59,8 +59,8 @@ solvers:
 
     #ot and mt bait tb #need to fix timing
     - when: { static: true } # 
-      startAt: 24
-      endAt: 43
+      startAt: 36
+      endAt: 47
       frame: { crystal: wind }
       spots:
         ot: { r: 0, z: 4.5 }
@@ -94,10 +94,10 @@ solvers:
       spots:
         mt: { r: 0, z: 18 }
         ot: { r: 0, z: 18 }
-        h1: { r: -5, z: 18 }
-        m1: { r: 2, z: 3 }
-        m2: { r: -11, z: 8 }
-        h2: { r: 1, z: 5 }
+        h1: { r: 6, z: 16 }
+        m1: { r: -6, z: 16 }
+        m2: { r: -6, z: 16 }
+        h2: { r: 6, z: 16 }
 
     - when: { static: true } # TODO: gate on fluid-long debuff when that mechanic exists, 
       startAt: 53
@@ -105,7 +105,7 @@ solvers:
       frame: { crystal: water }
       spots:
         r1: { r: -4, z: 14 } #adjust this, so that its in line with the south intercard of the boss if boss was at wind
-        r2: { r: 4, z: 14 }
+        r2: { r: 4, z: 10 }
 
     # Latitude/Longitude is one six-second cast sequence into two hits.
     # Move at cast start of cast to the intercard gap of boss, relative to current spots for the next mech
