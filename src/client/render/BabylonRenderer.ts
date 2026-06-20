@@ -1,5 +1,4 @@
-import { RegisterEnginesExtensionsEngineDynamicTexture } from "@babylonjs/core/Engines/Extensions/engine.dynamicTexture.pure";
-import { RegisterEngineUniformBuffer } from "@babylonjs/core/Engines/Extensions/engine.uniformBuffer.pure";
+import { RegisterFullEngineExtensions } from "@babylonjs/core/Engines/engineRegistration.pure";
 import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
 import type { ArcRotateCameraPointersInput } from "@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput";
 import { Engine } from "@babylonjs/core/Engines/engine";
@@ -35,11 +34,15 @@ import { setControlScheme } from "../input";
 import { computeWorldRenderKeys, getWorldRenderKeys } from "../worldRenderKeys";
 import { prewarmShaders } from "./shaderPrewarm";
 
-// Sub-path imports drop some Babylon engine side-effect registrations.
-// Use explicit calls because referenced calls survive tree-shaking.
-RegisterEnginesExtensionsEngineDynamicTexture();
-// StandardMaterial's WebGL2 UBO path depends on this; without it the scene renders dim/blank.
-RegisterEngineUniformBuffer();
+// Sub-path Babylon imports pull in only the classes we reference, not the engine's side-effect
+// extension registrations (alpha blending, texture loading, dynamic textures, uniform buffers,
+// render targets, ...). Bun's bundler honors @babylonjs/core's `sideEffects` allow-list and strips
+// every extension not explicitly referenced. How aggressively this happens varies by Bun version, so
+// some builds (notably Windows `bun run start`, vs the Docker image) silently lost registrations:
+// player/floor models never rendered and transparent materials like waymarks drew opaque. Register
+// the full WebGL2 extension set explicitly — the calls are idempotent and survive tree-shaking, so
+// the scene renders identically across every environment.
+RegisterFullEngineExtensions();
 
 const playerBarId = (id: string) => `player:${id}`;
 

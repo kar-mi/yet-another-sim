@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "scripts": {
     "dev": "bun src/server/server.ts",
-    "build": "rm -rf .bundle && bun build ./index.html --outdir .bundle --sourcemap=none --env=disable",
+    "build": "rm -rf .bundle && bun build ./index.html --outdir .bundle --sourcemap=none --env=disable --ignore-dce-annotations",
     "start": "bun src/server/server.ts",
     "typecheck": "bunx tsc --noEmit",
     "test": "bun test"
