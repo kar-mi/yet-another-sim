@@ -80,18 +80,21 @@ A rule has:
   - `plant` — the bot's assigned plant combo key (e.g. `"right right"`, from `optionals.combinations.plant`);
     active while the bot carries a plant debuff. Add `plantSlot` (0 = short, 1 = long) to target one slot;
     omit it to match either. One `(combo, slot) → spot` rule per placement, e.g.
-    `- { when: { plant: right right, plantSlot: 0 }, spot: [0, 12] }`.
+    `- { when: { plant: right right, plantSlot: 0 }, spot: { x: 0, z: 12 } }`.
 - `startAt` / `endAt` — optional absolute time clamps on the activation window.
 - `frame` — optional rotated coordinate frame for the spot(s). `"matched"` sets north to the bisector
   of the live matched mechanics' positions (e.g. a wave's two towers — requires `when.mechanic`); a
   list of event ids sets north from those events' **static** positions; `{ crystal: wind }` (or
-  `fire` / `water`) sets north from the resolved elemental crystal. A frame coord `[x, z]` maps to
-  world `x · right + z · north`, with `right = { x: north.z, z: -north.x }` and the arena centre as
+  `fire` / `water`) sets north from the resolved elemental crystal. `{ boss: { from: facing } }`
+  uses the primary boss's facing, while `{ boss: { from: position, id: add } }` points from arena
+  centre toward a named boss (`id` defaults to the primary boss). A frame coordinate `{ r, z }` maps
+  to world `r · right + z · north`, with `right = { x: north.z, z: -north.x }` and the arena centre as
   origin. One spot set then serves every wave of a rotating mechanic. A rule whose frame can't be
   computed yields no spot (falls through). See [Rotated frames](#rotated-frames) for the geometry.
-- `spots` (`playerId -> [x, z]`) and/or `spot` (`[x, z]` for every matching bot); `spots[id]` wins.
+- `spots` and/or `spot`; `spots[id]` wins. Unframed rules use absolute world positions `{ x, z }`.
+  Framed rules require relative positions `{ r, z }`, where `r` is the frame's right/lateral axis.
   A rule must specify at least one. If a rule matches but supplies no spot for this bot, the search
-  falls through to later rules.
+  falls through to later rules. Tuple syntax is not accepted for solver spots.
 
 Any positioned event can carry `labels` (a string list, matched by `when.mechanic`) and a `group`
 string (compared by `when.soaks`) — currently on `aoe`, `tower`, `targeted`, and `bait` events.
@@ -113,12 +116,12 @@ solvers:
   generic:
     # Role-conditioned rule first so it overrides the general rule for tanks.
     - when: { mechanic: stack-1.g0, role: tank }
-      spot: [-7, 7]
+      spot: { x: -7, z: 7 }
     # General rule: every bot stacks on the rolled group's point.
     - when: { mechanic: stack-1.g0 }
-      spot: [-4, 4]
+      spot: { x: -4, z: 4 }
     - when: { mechanic: stack-1.g1 }
-      spot: [4, -4]
+      spot: { x: 4, z: -4 }
 ```
 
 ## Solver holds
@@ -148,30 +151,30 @@ AOE/bait window can freeze bots out of position — keep a covering generic rule
 ## Rotated frames
 
 A `frame` lets one spot set serve every wave of a mechanic that rotates around the arena, so you
-don't author the same formation eight times at eight angles. A spot like `[5.1265, 5.1265]` is **not**
+don't author the same formation eight times at eight angles. A spot like `{ r: 5.1265, z: 5.1265 }` is **not**
 a world position — it's a coordinate in a local frame whose:
 
 - **origin** is the arena centre `(0, 0)`,
 - **+z axis ("north")** is the direction the solver computes (the bisector for `frame: matched`, the
-  summed static positions for a list of event ids, or the selected crystal's position),
+  summed static positions for event ids, the selected crystal's position, or a boss's facing/position),
 - **+x axis ("right")** is north rotated 90° clockwise: `right = { x: north.z, z: -north.x }`.
 
-The world position is `spot.x · right + spot.z · north`. Intuitively, **`z` pushes the bot along the
-frame's north (toward the matched mechanics), `x` slides it sideways** (positive `x` = clockwise / to
+The world position is `spot.r · right + spot.z · north`. Intuitively, **`z` pushes the bot along the
+frame's north (toward the matched mechanics), `r` slides it sideways** (positive `r` = clockwise / to
 the right when facing north). Both are in yalms from centre.
 
 ### Worked example
 
 In Forsaken each `tower-odd` wave is the previous one rotated 45°. The healer rule is
-`{ when: { mechanic: tower-odd, soaks: true, debuff: Stack Charge, role: healer }, frame: matched, spot: [5.1265, 5.1265] }`.
+`{ when: { mechanic: tower-odd, soaks: true, debuff: Stack Charge, role: healer }, frame: matched, spot: { r: 5.1265, z: 5.1265 } }`.
 On wave 1 the two matched towers are at `[0, 8]` (W) and `[8, 0]` (N):
 
 - north = normalize(`[0,8]` + `[8,0]`) = normalize(`[8,8]`) = `(0.707, 0.707)` (northeast).
 - right = `(north.z, -north.x)` = `(0.707, -0.707)` (southeast).
 - world = `5.1265 · right + 5.1265 · north` = `(7.25, 0)` — right on the N tower.
 
-On wave 3 the towers have rotated 45°, north rotates with them, and the same `[5.1265, 5.1265]` lands
-on that wave's right tower. Two convenient identities fall out of the 45° geometry: a spot of `[a, a]`
+On wave 3 the towers have rotated 45°, north rotates with them, and the same `{ r: 5.1265, z: 5.1265 }` lands
+on that wave's right tower. Two convenient identities fall out of the 45° geometry: a spot of `{ r: a, z: a }`
 lands at world `(a·√2, 0)` and `[-a, a]` lands at `(0, a·√2)` — the `±` pairs you see across the
 stack / cone / defamation rules.
 
@@ -182,10 +185,11 @@ not literal world compass directions:
 
 - **North/south** is the second coordinate (`z`): raise `z` to move toward the matched mechanics
   (frame north), lower it to move away (frame south).
-- **East/west** is the first coordinate (`x`): raise `x` to slide clockwise/right, lower it for
+- **East/west** is the lateral coordinate (`r`): raise `r` to slide clockwise/right, lower it for
   counter-clockwise/left.
 
-For example, to nudge `spot: [8.6265, 5.1265]` two yalms along the frame, leave `x` alone and change
-`z`: `[8.6265, 7.1265]` moves it north (toward the towers), `[8.6265, 3.1265]` moves it south (away).
+For example, to nudge `spot: { r: 8.6265, z: 5.1265 }` two yalms along the frame, leave `r` alone and
+change `z`: `{ r: 8.6265, z: 7.1265 }` moves it north (toward the towers), while
+`{ r: 8.6265, z: 3.1265 }` moves it south (away).
 If you instead need literal world-south on every wave regardless of rotation, drop the `frame` and
 author a plain world `spot`.
