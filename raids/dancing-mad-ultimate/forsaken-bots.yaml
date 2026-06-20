@@ -22,22 +22,22 @@ players:
 
 _positions:
   _odd:
-    _ls: &oddLeftStack [4.56, 4.92]
-    _rs: &oddRightStack [-4.62, 3.52]
-    _cone: &oddCone [6.89, 6.89]
-    _defam: &odddefam [-7.97, 7.97]
-    _nst: &oddNonSoakTank [2.06, 2.62]
-    _nsh: &oddNonSoakHeal [9.41, 8.34]
-    _nsd: &oddNonSoakDPS [-1.87, 2.72]
+    _ls: &oddLeftStack { r: 4.56, z: 4.92 }
+    _rs: &oddRightStack { r: -4.62, z: 3.52 }
+    _cone: &oddCone { r: 6.89, z: 6.89 }
+    _defam: &odddefam { r: -7.97, z: 7.97 }
+    _nst: &oddNonSoakTank { r: 2.06, z: 2.62 }
+    _nsh: &oddNonSoakHeal { r: 9.41, z: 8.34 }
+    _nsd: &oddNonSoakDPS { r: -1.87, z: 2.72 }
   _even:
-    _ir:  &evenInnerRightTower  [-4.5, 2.6]
-    _il:  &evenInnerLeftTower   [4.5, 2.6]
-    _or:  &evenOuterRightTower [-6.15, 9.15]
-    _ol:  &evenOuterLeftTower  [6.15, 9.15]
-    _nsm: &evenNonSoakMelee  [-3.2, -6.0]
-    _nst: &evenNonSoakTank [3.2, -6.0]
-    _nsr: &evenNonSoakRange [-10.3, .4]
-    _nsh: &evenNonSoakHeal [10.3, .4]
+    _ir:  &evenInnerRightTower  { r: -4.5, z: 2.6 }
+    _il:  &evenInnerLeftTower   { r: 4.5, z: 2.6 }
+    _or:  &evenOuterRightTower { r: -6.15, z: 9.15 }
+    _ol:  &evenOuterLeftTower  { r: 6.15, z: 9.15 }
+    _nsm: &evenNonSoakMelee  { r: -3.2, z: -6.0 }
+    _nst: &evenNonSoakTank { r: 3.2, z: -6.0 }
+    _nsr: &evenNonSoakRange { r: -10.3, z: .4 }
+    _nsh: &evenNonSoakHeal { r: 10.3, z: .4 }
 
 solvers:
   generic:
@@ -49,12 +49,12 @@ solvers:
     # Timing: the cluster forms in the 4s before each All Ending bait picks its target at cast start
     # (all-ending-1/2/3/4 at t=28/48/68/88), gated by startAt/endAt. The whole-encounter
     # boss-facing-lock is just the always-live mechanic that keeps the rule eligible.
-    - { when: { mechanic: boss-facing-lock }, startAt: 24, endAt: 28, frame: [tower-3-left, tower-3-right], spot: [0, -6] } # Future, all-ending-1 @31
-    - { when: { mechanic: boss-facing-lock }, startAt: 44, endAt: 49, frame: [tower-5-left, tower-5-right], spot: [0, 6] }  # Past,   all-ending-2 @51
-    - { when: { mechanic: boss-facing-lock }, startAt: 64, endAt: 68, frame: [tower-7-left, tower-7-right], spot: [0, -6] } # Future, all-ending-3 @71
+    - { when: { mechanic: boss-facing-lock }, startAt: 24, endAt: 28, frame: [tower-3-left, tower-3-right], spot: { r: 0, z: -6 } } # Future, all-ending-1 @31
+    - { when: { mechanic: boss-facing-lock }, startAt: 44, endAt: 49, frame: [tower-5-left, tower-5-right], spot: { r: 0, z: 6 } }  # Past,   all-ending-2 @51
+    - { when: { mechanic: boss-facing-lock }, startAt: 64, endAt: 68, frame: [tower-7-left, tower-7-right], spot: { r: 0, z: -6 } } # Future, all-ending-3 @71
     # Ending 4 has no following tower to hand off to, so hold the cluster through the rear cone's
     # resolve (all-ending-4 fires at 96) instead of stopping at the bait's targeting tick.
-    - { when: { mechanic: boss-facing-lock }, startAt: 84, endAt: 93, frame: [tower-1-left, tower-1-right], spot: [0, 6] }  # Past,   all-ending-4 @91, cone @96
+    - { when: { mechanic: boss-facing-lock }, startAt: 84, endAt: 93, frame: [tower-1-left, tower-1-right], spot: { r: 0, z: 6 } }  # Past,   all-ending-4 @91, cone @96
 
     # --- Odd tower waves (one stack pair + cone + defam soak the two towers; the off-group
     #     supports the soak). Frame north = the wave's tower bisector.

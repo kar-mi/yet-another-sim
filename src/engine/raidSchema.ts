@@ -7,10 +7,17 @@ const WaypointSchema = z.object({ t: z.number().nonnegative(), pos: Vec2Schema }
 const EventIdSchema = z.string().min(1);
 const RoleSchema = z.enum(["tank", "healer", "dps"]);
 const DebuffMatchSchema = z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]);
+const AbsoluteSpotSchema = z.object({ x: z.number(), z: z.number() }).strict();
+const RelativeSpotSchema = z.object({ r: z.number(), z: z.number() }).strict();
+const SolverSpotSchema = z.union([AbsoluteSpotSchema, RelativeSpotSchema]);
 const GenericSolverFrameSchema = z.union([
   z.literal("matched"),
   z.array(EventIdSchema).min(1),
   z.object({ crystal: z.enum(["wind", "fire", "water"]) }),
+  z.object({ boss: z.object({
+    id: z.string().min(1).optional(),
+    from: z.enum(["facing", "position"]),
+  }) }),
 ]);
 
 const GenericSolverRuleSchema = z.object({
@@ -30,8 +37,8 @@ const GenericSolverRuleSchema = z.object({
   // Rotated spot frame: "matched" (north = bisector of the live matched mechanics), an explicit
   // list of positioned event ids, or a resolved elemental crystal position.
   frame: GenericSolverFrameSchema.optional(),
-  spots: z.record(z.string().min(1), Vec2Schema).optional(),
-  spot: Vec2Schema.optional(),
+  spots: z.record(z.string().min(1), SolverSpotSchema).optional(),
+  spot: SolverSpotSchema.optional(),
 }).superRefine((rule, ctx) => {
   const hasCondition = rule.when.mechanic !== undefined || rule.when.debuff !== undefined
     || rule.when.partnerDebuff !== undefined || rule.when.plant !== undefined;
@@ -43,6 +50,18 @@ const GenericSolverRuleSchema = z.object({
   }
   if (rule.spots === undefined && rule.spot === undefined) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["spot"], message: "rule must have at least one of spot / spots" });
+  }
+  const spots = [rule.spot, ...Object.values(rule.spots ?? {})]
+    .filter((spot): spot is NonNullable<typeof spot> => spot !== undefined);
+  const expectedKey = rule.frame === undefined ? "x" : "r";
+  if (spots.some(spot => !(expectedKey in spot))) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["spot"],
+      message: rule.frame === undefined
+        ? "unframed rule requires absolute { x, z } spots"
+        : "frame requires relative { r, z } spots",
+    });
   }
 });
 const SolverHoldSchema = z.object({
@@ -747,6 +766,18 @@ export const RaidSchema = z.object({
         code: z.ZodIssueCode.custom,
         path: ["events", i, "bossId"],
         message: `event bossId "${bossId}" does not match any declared boss id (${[...bossIds].join(", ")})`,
+      });
+    }
+  });
+  raid.botSolvers?.generic?.forEach((rule, i) => {
+    const bossId = typeof rule.frame === "object" && !Array.isArray(rule.frame) && "boss" in rule.frame
+      ? rule.frame.boss.id
+      : undefined;
+    if (bossId !== undefined && !bossIds.has(bossId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["botSolvers", "generic", i, "frame", "boss", "id"],
+        message: `solver frame boss id "${bossId}" does not match any declared boss id (${[...bossIds].join(", ")})`,
       });
     }
   });

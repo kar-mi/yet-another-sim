@@ -13,18 +13,18 @@ solvers:
   generic:
     # Role-conditioned example: tanks bait a step further out on the first sentence.
     - when: { mechanic: stack-1.g0, role: tank }
-      spot: [-7, 7]
+      spot: { x: -7, z: 7 }
     - when: { mechanic: stack-1.g1, role: tank }
-      spot: [7, -7]
+      spot: { x: 7, z: -7 }
 
     # First sentence — stack on whichever healer's group was rolled.
     - when: { mechanic: stack-1.g0 }
-      spot: [-4, 4]
+      spot: { x: -4, z: 4 }
     - when: { mechanic: stack-1.g1 }
-      spot: [4, -4]
+      spot: { x: 4, z: -4 }
 
     # Linked repeat — lands on the opposite group; same per-group stack points.
     - when: { mechanic: stack-2.g0 }
-      spot: [-4, 4]
+      spot: { x: -4, z: 4 }
     - when: { mechanic: stack-2.g1 }
-      spot: [4, -4]
+      spot: { x: 4, z: -4 }

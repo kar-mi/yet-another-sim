@@ -1,5 +1,5 @@
 import type { World, Player, Boss, Arena, ZoneShape, Waymark } from "@shared/types";
-import type { Vec2 } from "@shared/math";
+import { vec2, type Vec2 } from "@shared/math";
 import { makeSeed, nextRandom, randomInt } from "@shared/rng";
 import type { RaidDef } from "./raidSchema";
 import { INITIAL_TANK_THREAT, PROVOKE_LEAD } from "@shared/constants";
@@ -15,8 +15,10 @@ function toBotSolvers(raid: RaidDef): World["botSolvers"] {
   const holds = raid.botSolvers?.holds;
   if (!generic && !holds) return undefined;
 
-  const toSpots = (spots: Record<string, [number, number]>) =>
-    Object.fromEntries(Object.entries(spots).map(([id, pos]) => [id, toVec2(pos)]));
+  const toSpot = (spot: { x: number; z: number } | { r: number; z: number }): Vec2 =>
+    "x" in spot ? vec2(spot.x, spot.z) : vec2(spot.r, spot.z);
+  const toSpots = (spots: Record<string, { x: number; z: number } | { r: number; z: number }>) =>
+    Object.fromEntries(Object.entries(spots).map(([id, spot]) => [id, toSpot(spot)]));
 
   return {
     generic: generic?.map(rule => ({
@@ -25,7 +27,7 @@ function toBotSolvers(raid: RaidDef): World["botSolvers"] {
       endAt: rule.endAt,
       frame: rule.frame,
       spots: rule.spots && toSpots(rule.spots),
-      spot: rule.spot && toVec2(rule.spot),
+      spot: rule.spot && toSpot(rule.spot),
     })),
     holds: holds?.map(hold => ({ ...hold })),
   };

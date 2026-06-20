@@ -201,9 +201,17 @@ function frameNorth(frame: NonNullable<GenericSolverRule["frame"]>, matched: Res
       const pos = world.eventPositions?.[id];
       if (pos) sum = add(sum, pos);
     }
-  } else {
+  } else if ("crystal" in frame) {
     const crystal = world.crystals?.find(c => c.element === frame.crystal);
     if (crystal) sum = add(sum, crystal.pos);
+  } else {
+    const boss = frame.boss.id
+      ? world.bosses?.find(candidate => candidate.id === frame.boss.id)
+      : world.boss;
+    if (!boss) return undefined;
+    sum = frame.boss.from === "facing"
+      ? { x: Math.sin(boss.facing), z: Math.cos(boss.facing) }
+      : boss.pos;
   }
   if (sum.x === 0 && sum.z === 0) return undefined;
   return normalize(sum);

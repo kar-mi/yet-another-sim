@@ -28,38 +28,38 @@ solvers:
       endAt: 36
       frame: { crystal: wind }
       spots:
-        ot: [0, 6]
+        ot: { r: 0, z: 6 }
 
     - when: { debuff: Headwind }
       startAt: 24
       endAt: 43
       frame: { crystal: wind }
       spots:
-        mt: [0, 18]
-        h1: [6, 16]
-        m1: [-6, 16]
-        m2: [-6, 16]
+        mt: { r: 0, z: 18 }
+        h1: { r: 6, z: 16 }
+        m1: { r: -6, z: 16 }
+        m2: { r: -6, z: 16 }
 
     # Once Thunder III snapshots Exdeath, OT moves farther along the same Wind-frame line.
     - when: { mechanic: thunder-iii-get-out }
       frame: { crystal: wind }
       spots:
-        ot: [0, 12]
+        ot: { r: 0, z: 12 }
 
     - when: { debuff: Tailwind }
       startAt: 24
       endAt: 43
       frame: { crystal: wind }
       spots:
-        h2: [6, 16]
+        h2: { r: 6, z: 16 }
 
     - when: { debuff: Tailwind }
       startAt: 24
       endAt: 43
       frame: { crystal: fire }
       spots:
-        r1: [-5, 14]
-        r2: [5, 14]
+        r1: { r: -5, z: 14 }
+        r2: { r: 5, z: 14 }
 
     # Hold the Wind and short-crystal groups through both Thunder III tankbusters.
     - when: { debuff: Headwind }
@@ -67,32 +67,32 @@ solvers:
       endAt: 53
       frame: { crystal: wind }
       spots:
-        mt: [0, 18]
-        h1: [6, 16]
-        m1: [-6, 16]
-        m2: [-6, 16]
+        mt: { r: 0, z: 18 }
+        h1: { r: 6, z: 16 }
+        m1: { r: -6, z: 16 }
+        m2: { r: -6, z: 16 }
 
     - when: { debuff: Tailwind }
       startAt: 43
       endAt: 53
       frame: { crystal: wind }
       spots:
-        ot: [0, 6]
+        ot: { r: 0, z: 6 }
 
     - when: { debuff: Tailwind }
       startAt: 43
       endAt: 53
       frame: { crystal: wind }
       spots:
-        h2: [6, 16]
+        h2: { r: 6, z: 16 }
 
     - when: { debuff: Tailwind }
       startAt: 43
       endAt: 53
       frame: { crystal: fire }
       spots:
-        r1: [-5, 14]
-        r2: [5, 14]
+        r1: { r: -5, z: 14 }
+        r2: { r: 5, z: 14 }
 
     # Post-tankbuster: preposition for Chaos's outward-facing implosions and drag Exdeath to Wind.
     - when: { debuff: Headwind }
@@ -100,64 +100,64 @@ solvers:
       endAt: 60
       frame: { crystal: wind }
       spots:
-        mt: [0, 18]
-        h1: [-5, 18]
-        m1: [2, 3]
-        m2: [-11, 8]
+        mt: { r: 0, z: 18 }
+        h1: { r: -5, z: 18 }
+        m1: { r: 2, z: 3 }
+        m2: { r: -11, z: 8 }
 
     - when: { debuff: Tailwind }
       startAt: 53
       endAt: 60
       frame: { crystal: wind }
       spots:
-        ot: [7, 16]
-        h2: [1, 5]
+        ot: { r: 7, z: 16 }
+        h2: { r: 1, z: 5 }
 
     - when: { debuff: Tailwind }
       startAt: 53
       endAt: 60
       frame: { crystal: water }
       spots:
-        r1: [-4, 14]
-        r2: [4, 14]
+        r1: { r: -4, z: 14 }
+        r2: { r: 4, z: 14 }
 
     # Latitude/Longitude is one six-second cast sequence into two hits. Move at cast start to
     # the diagonal intercard gaps between the side and front/back cone pairs.
     - when: { mechanic: [latitude-implosion-left, longitude-implosion-front] }
       frame: { crystal: wind }
       spots:
-        mt: [0, 18]
-        ot: [6, 18]
-        h1: [-6, 18]
-        h2: [6, 6]
-        r1: [-6, 6]
-        r2: [6, 6]
-        m1: [-6, 6]
-        m2: [6, 18]
+        mt: { r: 0, z: 18 }
+        ot: { r: 6, z: 18 }
+        h1: { r: -6, z: 18 }
+        h2: { r: 6, z: 6 }
+        r1: { r: -6, z: 6 }
+        r2: { r: 6, z: 6 }
+        m1: { r: -6, z: 6 }
+        m2: { r: 6, z: 18 }
 
     # Vacuum Wave + Umbra Smash (t:81–88): one bot baits furthest; the rest stack for knockback.
     - when: { mechanic: [vacuum-wave, umbra-smash] }
       frame: { crystal: wind }
       spots:
-        mt: [0, 6]
-        ot: [0, 6]
-        h1: [0, 6]
-        h2: [0, 6]
-        r1: [0, 6]
-        r2: [0, -10]
-        m1: [0, 6]
-        m2: [0, 6]
+        mt: { r: 0, z: 6 }
+        ot: { r: 0, z: 6 }
+        h1: { r: 0, z: 6 }
+        h2: { r: 0, z: 6 }
+        r1: { r: 0, z: 6 }
+        r2: { r: 0, z: -10 }
+        m1: { r: 0, z: 6 }
+        m2: { r: 0, z: 6 }
 
     # Vacuum Wave (t:81–88): stack west of exdeath; KB pushes group further west, stays in arena.
     # Headwind/Tailwind facing is auto-set by botIntent.ts — no authoring needed.
     - when: { mechanic: vacuum-wave }
       frame: { crystal: wind }
-      spot: [0, 6]
+      spot: { r: 0, z: 6 }
 
     # Bowls stack (t:90–93): converge so requiredCount:4 is met; 80 dmg split 8 ways.
     - when: { mechanic: bowls-stack }
       frame: { crystal: wind }
-      spot: [0, 6]
+      spot: { r: 0, z: 6 }
 
   holds:
     - { mechanic: bowls-stack, duration: 1 }
