@@ -13,7 +13,7 @@ test("bot patterns can be loaded from a companion definition", () => {
   });
   const botPatterns = loadBotPatterns({
     players: {
-      mt: [{ t: 0, pos: [8, 0] }],
+      mt: [{ time: 0, pos: { x: 8, z: 0 } }],
     },
   });
   const world = createWorld(applyBotPatterns(raid, botPatterns));
@@ -27,8 +27,8 @@ test("bot patterns can carry generic plant solver rules", () => {
     players: {},
     solvers: {
       generic: [
-        { when: { plant: "down down", plantSlot: 0 }, spot: [18, 0] },
-        { when: { plant: "down down", plantSlot: 1 }, spot: [0, 18] },
+        { when: { plant: "down down", plantSlot: 0 }, spot: { x: 18, z: 0 } },
+        { when: { plant: "down down", plantSlot: 1 }, spot: { x: 0, z: 18 } },
       ],
     },
   });
@@ -44,7 +44,7 @@ test("bot patterns can carry generic rules with soaks/partnerDebuff/frame", () =
     players: {},
     solvers: {
       generic: [
-        { when: { mechanic: "tower-odd", soaks: true, debuff: ["Stack Charge"], partnerDebuff: "Cone Charge" }, frame: "matched", spot: [8, 0] },
+        { when: { mechanic: "tower-odd", soaks: true, debuff: ["Stack Charge"], partnerDebuff: "Cone Charge" }, frame: "matched", spot: { r: 8, z: 0 } },
       ],
     },
   });
@@ -219,7 +219,7 @@ test("generic solver moves bots during a labeled tower window using a rotated fr
     ...baseRaid,
     players: roster({ mt: { spawn: [0, 0] }, m1: { spawn: [0, 15] } }),
     events: [tower("wave-left", [0, 5]), tower("wave-right", [5, 0])],
-    botSolvers: { generic: [{ when: { mechanic: "wave" }, frame: "matched", spot: [0, 5] }] },
+    botSolvers: { generic: [{ when: { mechanic: "wave" }, frame: "matched", spot: { r: 0, z: 5 } }] },
   });
 
   let world = createWorld(raid);
@@ -268,8 +268,8 @@ test("plant arrow solver moves bots toward the placement for their assigned comb
   const botPatterns = loadBotPatterns({
     players: {},
     solvers: { generic: [
-      { when: { plant: "down down", plantSlot: 0 }, spot: [18, 0] },
-      { when: { plant: "down down", plantSlot: 1 }, spot: [0, 18] },
+      { when: { plant: "down down", plantSlot: 0 }, spot: { x: 18, z: 0 } },
+      { when: { plant: "down down", plantSlot: 1 }, spot: { x: 0, z: 18 } },
     ] },
   });
   const world = withPlayerEffect(createWorld(applyBotPatterns(raid, botPatterns)), "mt", effect({
@@ -300,8 +300,8 @@ test("plant arrow solver uses the active plant slot for two-position combos", ()
   const botPatterns = loadBotPatterns({
     players: {},
     solvers: { generic: [
-      { when: { plant: "right right", plantSlot: 0 }, spot: [18, 0] },
-      { when: { plant: "right right", plantSlot: 1 }, spot: [0, 18] },
+      { when: { plant: "right right", plantSlot: 0 }, spot: { x: 18, z: 0 } },
+      { when: { plant: "right right", plantSlot: 1 }, spot: { x: 0, z: 18 } },
     ] },
   });
   const world = withPlayerEffect(createWorld(applyBotPatterns(raid, botPatterns)), "mt", effect({
@@ -331,7 +331,7 @@ test("plant arrow solver falls back to authored bot waypoints when no placement 
   });
   const botPatterns = loadBotPatterns({
     players: {},
-    solvers: { generic: [{ when: { plant: "down down" }, spot: [18, 0] }] },
+    solvers: { generic: [{ when: { plant: "down down" }, spot: { x: 18, z: 0 } }] },
   });
   const world = withPlayerEffect(createWorld(applyBotPatterns(raid, botPatterns)), "mt", effect({
     name: "Plant",
@@ -360,7 +360,7 @@ test("plant arrow solver does not move human-controlled players", () => {
   });
   const botPatterns = loadBotPatterns({
     players: {},
-    solvers: { generic: [{ when: { plant: "down down" }, spot: [18, 0] }] },
+    solvers: { generic: [{ when: { plant: "down down" }, spot: { x: 18, z: 0 } }] },
   });
   const world = withControl(withEffect(createWorld(applyBotPatterns(raid, botPatterns)), effect({
     name: "Plant",

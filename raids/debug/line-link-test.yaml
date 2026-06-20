@@ -5,42 +5,42 @@ name: Line Link Test
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 30
 duration: 35
 
 players:
   - id: mt
     role: tank
-    spawn: [0, 8]
+    spawn: { x: 0, z: 8 }
   - id: ot
     role: tank
-    spawn: [0, -8]
+    spawn: { x: 0, z: -8 }
   - id: h1
     role: healer
-    spawn: [-8, 0]
+    spawn: { x: -8, z: 0 }
   - id: h2
     role: healer
-    spawn: [8, 0]
+    spawn: { x: 8, z: 0 }
   - id: r1
     role: dps
-    spawn: [-5.66, 5.66]
+    spawn: { x: -5.66, z: 5.66 }
   - id: r2
     role: dps
-    spawn: [5.66, 5.66]
+    spawn: { x: 5.66, z: 5.66 }
   - id: m1
     role: dps
-    spawn: [-5.66, -5.66]
+    spawn: { x: -5.66, z: -5.66 }
   - id: m2
     role: dps
-    spawn: [5.66, -5.66]
+    spawn: { x: 5.66, z: -5.66 }
 
 events:
   - type: line_link
     id: north-statue
-    t: 4
+    time: 4
     name: North Statue
-    pos: [0, 34]
+    pos: { x: 0, z: 34 }
     linkDuration: 3
     resolveAfter: 10
     target: { roles: [dps], count: 4, mode: closest }

@@ -3,36 +3,36 @@ arena:
   floorPlan: dmu-p1
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 20
 duration: 106
 botPatterns: bowls-of-agony-bots
 
 bosses:
   - id: chaos
-    pos: [0, 0]
+    pos: { x: 0, z: 0 }
     aggro: mt
   - id: exdeath
-    pos: [8, 0]
+    pos: { x: 8, z: 0 }
     aggro: ot
   - id: kefka
-    pos: [0, 18]
+    pos: { x: 0, z: 18 }
     targetable: false
 
 crystals:
   spawnAt: 24
-  spots: [[-9, 9], [9, 9], [9, -9], [-9, -9]]
+  spots: [{ x: -9, z: 9 }, { x: 9, z: 9 }, { x: 9, z: -9 }, { x: -9, z: -9 }]
   rng: true
 
 players:
-  - { id: mt, role: tank,   spawn: [0,  6] }
-  - { id: ot, role: tank,   spawn: [ 4,  8] }
-  - { id: h1, role: healer, spawn: [-8,  2] }
-  - { id: h2, role: healer, spawn: [ 8,  2] }
-  - { id: r1, role: dps,    spawn: [-8, -4] }
-  - { id: r2, role: dps,    spawn: [ 8, -4] }
-  - { id: m1, role: dps,    spawn: [-4, -8] }
-  - { id: m2, role: dps,    spawn: [ 4, -8] }
+  - { id: mt, role: tank,   spawn: { x: 0, z: 6 } }
+  - { id: ot, role: tank,   spawn: { x: 4, z: 8 } }
+  - { id: h1, role: healer, spawn: { x: -8, z: 2 } }
+  - { id: h2, role: healer, spawn: { x: 8, z: 2 } }
+  - { id: r1, role: dps,    spawn: { x: -8, z: -4 } }
+  - { id: r2, role: dps,    spawn: { x: 8, z: -4 } }
+  - { id: m1, role: dps,    spawn: { x: -4, z: -8 } }
+  - { id: m2, role: dps,    spawn: { x: 4, z: -8 } }
 
 _heroEpic: &heroEpic
   name: Epic Hero
@@ -109,31 +109,31 @@ _dynamicFluidLong: &dynamicFluidLong
 events:
   - type: aoe
     id: decisive-battle
-    t: 2
+    time: 2
     name: Decisive Battle
     telegraph: 3
     damage: 0
     damageType: magical
     showCastBar: true
     showTelegraph: false
-    shape: { kind: circle, center: [0, 0], radius: 20 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
 
   - type: apply_effect
     id: epic-hero
-    t: 5
+    time: 5
     name: Epic Hero
     players: [mt, h1, m1, m2]
     applyEffect: *heroEpic
   - type: apply_effect
     id: fated-hero
-    t: 5
+    time: 5
     name: Fated Hero
     players: [ot, h2, r1, r2]
     applyEffect: *heroFated
 
   - type: aoe
     id: bowls-of-agony-cast
-    t: 19
+    time: 19
     name: Bowls of Agony
     telegraph: 5
     damage: 0
@@ -141,36 +141,36 @@ events:
     showCastBar: true
     showTelegraph: false
     bossId: kefka
-    shape: { kind: circle, center: [0, 0], radius: 20 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
 
   - type: apply_effect
     id: headwind-assign
-    t: 24
+    time: 24
     name: Headwind
     players: [mt, h1, m1, m2]
     applyEffect: *headwind
   - type: apply_effect
     id: tailwind-assign
-    t: 24
+    time: 24
     name: Tailwind
     players: [ot, h2, r1, r2]
     applyEffect: *tailwind
   - type: apply_effect
     id: entropy-short
-    t: 24
+    time: 24
     name: Entropy
     players: [h1, m1]
     applyEffect: *entropyShort
   - type: apply_effect
     id: dynamic-fluid-long
-    t: 24
+    time: 24
     name: Dynamic Fluid
     players: [h2, r1]
     applyEffect: *dynamicFluidLong
 
   - type: aoe
     id: thunder-iii-get-out
-    t: 36
+    time: 36
     name: Thunder III
     telegraph: 7
     damage: 30
@@ -178,11 +178,11 @@ events:
     showCastBar: true
     bossId: exdeath
     anchor: boss
-    shape: { kind: circle, center: [0, 0], radius: 12 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 12 }
 
   - type: targeted
     id: thunder-iii-tb-1
-    t: 48
+    time: 48
     name: Thunder III
     targetMode: aggro
     role: tank
@@ -194,7 +194,7 @@ events:
     bossId: exdeath
   - type: targeted
     id: thunder-iii-tb-2
-    t: 50
+    time: 50
     name: Thunder III
     targetMode: aggro
     role: tank
@@ -207,12 +207,12 @@ events:
 
   - type: heal
     id: recovery-after-thunder
-    t: 53
+    time: 53
     name: Recovery
 
   - type: aoe
     id: trance-cast
-    t: 60
+    time: 60
     name: Trance
     telegraph: 4
     damage: 0
@@ -220,10 +220,10 @@ events:
     showCastBar: true
     showTelegraph: false
     bossId: chaos
-    shape: { kind: circle, center: [-8, 0], radius: 20 }
+    shape: { kind: circle, center: { x: -8, z: 0 }, radius: 20 }
   - type: aoe
     id: latitude-implosion-left
-    t: 60
+    time: 60
     name: Latitude Implosion
     telegraph: 6
     damage: 60
@@ -238,7 +238,7 @@ events:
     shape: { kind: cone, angleDeg: 70, length: 24 }
   - type: aoe
     id: latitude-implosion-right
-    t: 60
+    time: 60
     name: Latitude Implosion
     telegraph: 6
     damage: 60
@@ -253,7 +253,7 @@ events:
     shape: { kind: cone, angleDeg: 70, length: 24 }
   - type: aoe
     id: longitude-implosion-front
-    t: 60
+    time: 60
     name: Longitude Implosion
     telegraph: 8
     damage: 60
@@ -269,12 +269,12 @@ events:
 
   - type: heal
     id: recovery-between-implosions
-    t: 67
+    time: 67
     name: Recovery
 
   - type: aoe
     id: longitude-implosion-back
-    t: 60
+    time: 60
     name: Longitude Implosion
     telegraph: 8
     damage: 60
@@ -290,12 +290,12 @@ events:
 
   - type: heal
     id: recovery-after-implosion
-    t: 70
+    time: 70
     name: Recovery
 
   - type: aoe
     id: ultima-blaster-1
-    t: 76
+    time: 76
     name: Ultima Blaster
     telegraph: 1.5
     damage: 6
@@ -303,10 +303,10 @@ events:
     showCastBar: true
     showTelegraph: false
     bossId: kefka
-    shape: { kind: circle, center: [0, 0], radius: 20 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
   - type: aoe
     id: ultima-blaster-2
-    t: 78
+    time: 78
     name: Ultima Blaster
     telegraph: 1.5
     damage: 6
@@ -314,10 +314,10 @@ events:
     showCastBar: false
     showTelegraph: false
     bossId: kefka
-    shape: { kind: circle, center: [0, 0], radius: 20 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
   - type: aoe
     id: ultima-blaster-3
-    t: 80
+    time: 80
     name: Ultima Blaster
     telegraph: 1.5
     damage: 6
@@ -325,10 +325,10 @@ events:
     showCastBar: false
     showTelegraph: false
     bossId: kefka
-    shape: { kind: circle, center: [0, 0], radius: 20 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
   - type: aoe
     id: ultima-blaster-4
-    t: 82
+    time: 82
     name: Ultima Blaster
     telegraph: 1.5
     damage: 6
@@ -336,10 +336,10 @@ events:
     showCastBar: false
     showTelegraph: false
     bossId: kefka
-    shape: { kind: circle, center: [0, 0], radius: 20 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
   - type: aoe
     id: ultima-blaster-5
-    t: 84
+    time: 84
     name: Ultima Blaster
     telegraph: 1.5
     damage: 6
@@ -347,10 +347,10 @@ events:
     showCastBar: false
     showTelegraph: false
     bossId: kefka
-    shape: { kind: circle, center: [0, 0], radius: 20 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
   - type: aoe
     id: ultima-blaster-6
-    t: 86
+    time: 86
     name: Ultima Blaster
     telegraph: 1.5
     damage: 6
@@ -358,16 +358,16 @@ events:
     showCastBar: false
     showTelegraph: false
     bossId: kefka
-    shape: { kind: circle, center: [0, 0], radius: 20 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
 
   - type: heal
     id: recovery-before-vacuum
-    t: 87
+    time: 87
     name: Recovery
 
   - type: aoe
     id: ultima-blaster-7
-    t: 88
+    time: 88
     name: Ultima Blaster
     telegraph: 1.5
     damage: 6
@@ -375,11 +375,11 @@ events:
     showCastBar: false
     showTelegraph: false
     bossId: kefka
-    shape: { kind: circle, center: [0, 0], radius: 20 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
 
   - type: targeted
     id: umbra-smash
-    t: 81
+    time: 81
     name: Umbra Smash
     targetMode: furthest
     radius: 5
@@ -390,19 +390,19 @@ events:
     bossId: chaos
   - type: aoe
     id: vacuum-wave
-    t: 81
+    time: 81
     name: Vacuum Wave
     telegraph: 7
     damage: 20
     damageType: magical
     showCastBar: true
     bossId: exdeath
-    shape: { kind: circle, center: [8, 0], radius: 20 }
-    knockback: { distance: 8, origin: [8, 0] }
+    shape: { kind: circle, center: { x: 8, z: 0 }, radius: 20 }
+    knockback: { distance: 8, origin: { x: 8, z: 0 } }
 
   - type: group
     id: bowls-stack
-    t: 90
+    time: 90
     name: Bowls of Agony Stack
     groups: [[mt, ot, h1, h2, r1, r2, m1, m2]]
     telegraph: 3
@@ -414,7 +414,7 @@ events:
 
   - type: limit_cut
     id: bowls-limit-cut
-    t: 91
+    time: 91
     name: Limit Cut
     effect:
       name: Limit Cut
@@ -425,11 +425,11 @@ events:
       markerIconScale: 2.5
 
 waymarks:
-  - { mark: A, pos: [0, 16] }
-  - { mark: B, pos: [16, 0] }
-  - { mark: C, pos: [0, -16] }
-  - { mark: D, pos: [-16, 0] }
-  - { mark: "1", pos: [-11.31, 11.31] }
-  - { mark: "2", pos: [11.31, 11.31] }
-  - { mark: "3", pos: [11.31, -11.31] }
-  - { mark: "4", pos: [-11.31, -11.31] }
+  - { mark: A, pos: { x: 0, z: 16 } }
+  - { mark: B, pos: { x: 16, z: 0 } }
+  - { mark: C, pos: { x: 0, z: -16 } }
+  - { mark: D, pos: { x: -16, z: 0 } }
+  - { mark: "1", pos: { x: -11.31, z: 11.31 } }
+  - { mark: "2", pos: { x: 11.31, z: 11.31 } }
+  - { mark: "3", pos: { x: 11.31, z: -11.31 } }
+  - { mark: "4", pos: { x: -11.31, z: -11.31 } }

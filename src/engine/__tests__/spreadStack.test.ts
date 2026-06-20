@@ -127,8 +127,8 @@ test("spread_stack shown:random eventually displays both spread and stack", () =
 
 test("spread_stack solver sends bots to the spot for the actual mode", () => {
   const botSolvers = { generic: [
-    { when: { mechanic: "fire.spread" }, spots: { mt: [-10, 0] as Vec } },
-    { when: { mechanic: "fire.stack" }, spots: { mt: [10, 0] as Vec } },
+    { when: { mechanic: "fire.spread" }, spots: { mt: { x: -10, z: 0 } } },
+    { when: { mechanic: "fire.stack" }, spots: { mt: { x: 10, z: 0 } } },
   ] };
   const mkWorld = (over: Record<string, unknown>) => {
     const raid = loadRaid({
@@ -147,8 +147,8 @@ test("spread_stack solver sends bots to the spot for the actual mode", () => {
 
 test("spread_stack solver picks spread spots by the active lightning orientation", () => {
   const botSolvers = { generic: [
-    { when: { mechanic: ["fire.spread", "lightning.shown.a"] }, spots: { mt: [-10, 0] as Vec } },
-    { when: { mechanic: ["fire.spread", "lightning.inverted.a"] }, spots: { mt: [10, 0] as Vec } },
+    { when: { mechanic: ["fire.spread", "lightning.shown.a"] }, spots: { mt: { x: -10, z: 0 } } },
+    { when: { mechanic: ["fire.spread", "lightning.inverted.a"] }, spots: { mt: { x: 10, z: 0 } } },
   ] };
   const mk = (lightningInverted: boolean) => {
     const raid = loadRaid({
@@ -173,8 +173,8 @@ test("spread_stack solver picks spread spots by the active lightning orientation
 
 test("spread_stack solver picks variant-b spots when the lightning rolls orientation b", () => {
   const botSolvers = { generic: [
-    { when: { mechanic: ["fire.spread", "lightning.shown.a"] }, spots: { mt: [-10, 0] as Vec } },  // variant a (x axis)
-    { when: { mechanic: ["fire.spread", "lightning.shown.b"] }, spots: { mt: [0, -10] as Vec } },   // variant b (z axis)
+    { when: { mechanic: ["fire.spread", "lightning.shown.a"] }, spots: { mt: { x: -10, z: 0 } } },  // variant a (x axis)
+    { when: { mechanic: ["fire.spread", "lightning.shown.b"] }, spots: { mt: { x: 0, z: -10 } } },   // variant b (z axis)
   ] };
   const mk = () => {
     const raid = loadRaid({
@@ -214,8 +214,8 @@ test("spread_stack solver picks variant-b spots when the lightning rolls orienta
 
 test("spread_stack solver picks stack spots by the active lightning orientation", () => {
   const botSolvers = { generic: [
-    { when: { mechanic: ["fire.stack", "lightning.shown.a"] }, spots: { mt: [-10, 0] as Vec } },
-    { when: { mechanic: ["fire.stack", "lightning.inverted.a"] }, spots: { mt: [10, 0] as Vec } },
+    { when: { mechanic: ["fire.stack", "lightning.shown.a"] }, spots: { mt: { x: -10, z: 0 } } },
+    { when: { mechanic: ["fire.stack", "lightning.inverted.a"] }, spots: { mt: { x: 10, z: 0 } } },
   ] };
   const mk = (lightningInverted: boolean) => {
     const raid = loadRaid({

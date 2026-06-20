@@ -5,43 +5,43 @@ name: Inverse Test
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 20
 duration: 30
 
 players:
   - id: mt
     role: tank
-    spawn: [0, 0]
+    spawn: { x: 0, z: 0 }
   - id: ot
     role: tank
-    spawn: [8, 8]
+    spawn: { x: 8, z: 8 }
   - id: h1
     role: healer
-    spawn: [-8, 8]
+    spawn: { x: -8, z: 8 }
   - id: h2
     role: healer
-    spawn: [8, -8]
+    spawn: { x: 8, z: -8 }
   - id: r1
     role: dps
-    spawn: [-8, -8]
+    spawn: { x: -8, z: -8 }
   - id: r2
     role: dps
-    spawn: [12, 0]
+    spawn: { x: 12, z: 0 }
   - id: m1
     role: dps
-    spawn: [-12, 0]
+    spawn: { x: -12, z: 0 }
   - id: m2
     role: dps
-    spawn: [0, 12]
+    spawn: { x: 0, z: 12 }
 
 # Shared cross geometry — NW/SE shown, NE/SW hidden.
 _crossShown: &crossShown
-  - { kind: cone, origin: [0, 0], direction: [-1, 1], angleDeg: 80, length: 22 }
-  - { kind: cone, origin: [0, 0], direction: [1, -1], angleDeg: 80, length: 22 }
+  - { kind: cone, origin: { x: 0, z: 0 }, direction: { x: -1, z: 1 }, angleDeg: 80, length: 22 }
+  - { kind: cone, origin: { x: 0, z: 0 }, direction: { x: 1, z: -1 }, angleDeg: 80, length: 22 }
 _crossHidden: &crossHidden
-  - { kind: cone, origin: [0, 0], direction: [1, 1], angleDeg: 80, length: 22 }
-  - { kind: cone, origin: [0, 0], direction: [-1, -1], angleDeg: 80, length: 22 }
+  - { kind: cone, origin: { x: 0, z: 0 }, direction: { x: 1, z: 1 }, angleDeg: 80, length: 22 }
+  - { kind: cone, origin: { x: 0, z: 0 }, direction: { x: -1, z: -1 }, angleDeg: 80, length: 22 }
 
 # Shared cross event defaults.
 _crossBase: &crossBase
@@ -58,7 +58,7 @@ events:
   # Lock the boss facing for the whole encounter.
   - type: aoe
     id: stillness
-    t: 0
+    time: 0
     name: Stillness
     telegraph: 15
     damage: 0
@@ -66,19 +66,19 @@ events:
     lockFacing: true
     showCastBar: false
     showTelegraph: false
-    shape: { kind: circle, center: [0, 0], radius: 0.1 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
 
   # Honest — shown shapes are the real hit.
   - <<: *crossBase
     id: honest-cross
-    t: 3
+    time: 3
     name: Honest Cross
     ringColor: "#3b82f6"
 
   # Question mark — always inverted to the hidden shapes.
   - <<: *crossBase
     id: question-cross
-    t: 11
+    time: 11
     name: Question Cross
     questionMark: true
     ringColor: "#ef4444"
@@ -86,7 +86,7 @@ events:
   # Coin flip — seeded rng decides inversion; punishes with magic vuln.
   - <<: *crossBase
     id: coin-flip-cross
-    t: 19
+    time: 19
     name: Coin Flip Cross
     telegraph: 5
     damage: 50
@@ -99,7 +99,7 @@ events:
       behavior: { kind: vuln, damageType: magical, multiplier: 1.5 }
 
 waymarks:
-  - { mark: A, pos: [0, 16] }
-  - { mark: B, pos: [16, 0] }
-  - { mark: C, pos: [0, -16] }
-  - { mark: D, pos: [-16, 0] }
+  - { mark: A, pos: { x: 0, z: 16 } }
+  - { mark: B, pos: { x: 16, z: 0 } }
+  - { mark: C, pos: { x: 0, z: -16 } }
+  - { mark: D, pos: { x: -16, z: 0 } }

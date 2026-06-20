@@ -5,35 +5,35 @@ name: Gaze Test
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 20
 duration: 30
 
 players:
   - id: mt
     role: tank
-    spawn: [0, 0]
+    spawn: { x: 0, z: 0 }
   - id: ot
     role: tank
-    spawn: [8, 8]
+    spawn: { x: 8, z: 8 }
   - id: h1
     role: healer
-    spawn: [-8, 8]
+    spawn: { x: -8, z: 8 }
   - id: h2
     role: healer
-    spawn: [8, -8]
+    spawn: { x: 8, z: -8 }
   - id: r1
     role: dps
-    spawn: [-8, -8]
+    spawn: { x: -8, z: -8 }
   - id: r2
     role: dps
-    spawn: [12, 0]
+    spawn: { x: 12, z: 0 }
   - id: m1
     role: dps
-    spawn: [-12, 0]
+    spawn: { x: -12, z: 0 }
   - id: m2
     role: dps
-    spawn: [0, 12]
+    spawn: { x: 0, z: 12 }
 
 # Shared eye defaults — north eye board.
 _gazeBase: &gazeBase
@@ -42,19 +42,19 @@ _gazeBase: &gazeBase
   damage: 40
   damageType: magical
   showCastBar: true
-  pos: [0, 19]
+  pos: { x: 0, z: 19 }
 
 events:
   # Normal gaze — hit if facing the eye.
   - <<: *gazeBase
     id: evil-eye
-    t: 3
+    time: 3
     name: Evil Eye
 
   # Reverse gaze — hit if NOT facing the eye.
   - <<: *gazeBase
     id: hypnotic-eye
-    t: 11
+    time: 11
     name: Hypnotic Eye
     reverse: true
 
@@ -62,7 +62,7 @@ events:
   # knockback and a magic vulnerability.
   - <<: *gazeBase
     id: minds-eye
-    t: 19
+    time: 19
     name: Mind's Eye
     telegraph: 5
     damage: 50
@@ -75,7 +75,7 @@ events:
       behavior: { kind: vuln, damageType: magical, multiplier: 1.5 }
 
 waymarks:
-  - { mark: A, pos: [0, 16] }
-  - { mark: B, pos: [16, 0] }
-  - { mark: C, pos: [0, -16] }
-  - { mark: D, pos: [-16, 0] }
+  - { mark: A, pos: { x: 0, z: 16 } }
+  - { mark: B, pos: { x: 16, z: 0 } }
+  - { mark: C, pos: { x: 0, z: -16 } }
+  - { mark: D, pos: { x: -16, z: 0 } }

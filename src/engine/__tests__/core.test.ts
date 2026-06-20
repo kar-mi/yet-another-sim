@@ -22,6 +22,25 @@ test("raid events require globally unique authored ids", () => {
   expect(() => loadRaidRaw({ ...baseRaid, events: [event, { ...event, t: 1 }] })).toThrow(/duplicate event id/);
 });
 
+test("authored positions use { x, z } and mechanic timing uses time", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{
+      type: "aoe",
+      id: "new-authoring-format",
+      time: 3,
+      name: "New Format",
+      telegraph: 2,
+      damage: 0,
+      damageType: "true",
+      shape: { kind: "circle", center: { x: 4, z: -2 }, radius: 1 },
+    }],
+  });
+  const event = raid.events[0];
+  expect(event.type === "aoe" && event.t).toBe(3);
+  expect(event.type === "aoe" && event.shape.kind === "circle" && event.shape.center).toEqual([4, -2]);
+});
+
 test("heal event restores living players to max HP", () => {
   const raid = loadRaid({
     ...baseRaid,

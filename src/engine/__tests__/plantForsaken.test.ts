@@ -162,9 +162,9 @@ test("double trouble solver moves marked bots behind their role group", () => {
     ...baseRaid,
     players: roster({ mt: { spawn: [0, 0] }, r1: { spawn: [0, 0] } }),
     botSolvers: { generic: [
-      { when: { debuff: "Double Trouble", role: "tank" }, startAt: 20, spot: [-7, 7] },
-      { when: { debuff: "Double Trouble", role: "healer" }, startAt: 20, spot: [-7, 7] },
-      { when: { debuff: "Double Trouble", role: "dps" }, startAt: 20, spot: [7, -7] },
+      { when: { debuff: "Double Trouble", role: "tank" }, startAt: 20, spot: { x: -7, z: 7 } },
+      { when: { debuff: "Double Trouble", role: "healer" }, startAt: 20, spot: { x: -7, z: 7 } },
+      { when: { debuff: "Double Trouble", role: "dps" }, startAt: 20, spot: { x: 7, z: -7 } },
     ] },
   });
   const burstSpread = effect({

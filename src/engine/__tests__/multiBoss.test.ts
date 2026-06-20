@@ -78,6 +78,32 @@ test("schema: event bossId referencing a valid boss is accepted", () => {
   })).not.toThrow();
 });
 
+test("schema: rejects a solver frame that references an undeclared boss", () => {
+  expect(() => loadRaidRaw({
+    ...baseRaid,
+    bosses: [{ id: "chaos", pos: [-10, 0] }],
+    events: [],
+    botSolvers: { generic: [{
+      when: { debuff: "Headwind" },
+      frame: { boss: { id: "exdeath", from: "facing" } },
+      spot: { r: 0, z: 5 },
+    }] },
+  })).toThrow(/solver frame boss id/);
+});
+
+test("schema: accepts a solver frame that references a declared boss", () => {
+  expect(() => loadRaidRaw({
+    ...baseRaid,
+    bosses: [{ id: "chaos", pos: [-10, 0] }, { id: "exdeath", pos: [10, 0] }],
+    events: [],
+    botSolvers: { generic: [{
+      when: { debuff: "Headwind" },
+      frame: { boss: { id: "exdeath", from: "position" } },
+      spot: { r: 0, z: 5 },
+    }] },
+  })).not.toThrow();
+});
+
 // ─── World creation ───────────────────────────────────────────────────────────
 
 test("createWorld: single-boss raid produces boss === bosses[0]", () => {

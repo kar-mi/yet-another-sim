@@ -2,41 +2,41 @@ name: Assignment Test
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 20
 duration: 35
 
 players:
   - id: mt
     role: tank
-    spawn: [0, 7]
+    spawn: { x: 0, z: 7 }
   - id: ot
     role: tank
-    spawn: [7, 0]
+    spawn: { x: 7, z: 0 }
   - id: h1
     role: healer
-    spawn: [0, -7]
+    spawn: { x: 0, z: -7 }
   - id: h2
     role: healer
-    spawn: [-7, 0]
+    spawn: { x: -7, z: 0 }
   - id: r1
     role: dps
-    spawn: [0, 14]
+    spawn: { x: 0, z: 14 }
   - id: r2
     role: dps
-    spawn: [14, 0]
+    spawn: { x: 14, z: 0 }
   - id: m1
     role: dps
-    spawn: [0, -14]
+    spawn: { x: 0, z: -14 }
   - id: m2
     role: dps
-    spawn: [-14, 0]
+    spawn: { x: -14, z: 0 }
 
 events:
   # First / Second / Third in Line — priority debuffs on three explicit players.
   - type: apply_effect
     id: assign-first
-    t: 5
+    time: 5
     name: First in Line
     players: [mt]
     applyEffect:
@@ -48,7 +48,7 @@ events:
 
   - type: apply_effect
     id: assign-second
-    t: 5
+    time: 5
     name: Second in Line
     players: [ot]
     applyEffect:
@@ -60,7 +60,7 @@ events:
 
   - type: apply_effect
     id: assign-third
-    t: 5
+    time: 5
     name: Third in Line
     players: [h1]
     applyEffect:
@@ -73,7 +73,7 @@ events:
   # Alpha / Beta — group split across all eight players.
   - type: apply_effect
     id: assign-alpha
-    t: 5
+    time: 5
     name: Alpha
     players: [mt, ot, r1, r2]
     applyEffect:
@@ -85,7 +85,7 @@ events:
 
   - type: apply_effect
     id: assign-beta
-    t: 5
+    time: 5
     name: Beta
     players: [h1, h2, m1, m2]
     applyEffect:

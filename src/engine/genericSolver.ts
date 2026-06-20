@@ -1,5 +1,6 @@
 import type { Vec2 } from "@shared/math";
 import { add, normalize } from "@shared/math";
+import { cos, sin } from "@shared/dmath";
 import type { GenericSolverRule, Player, World } from "@shared/types";
 
 // A live unresolved mechanic the generic solver can match against. `labels`/`group`/`pos` are carried
@@ -190,8 +191,8 @@ function ruleMatches(rule: GenericSolverRule, player: Player, world: World, mech
 
 // Compute the frame's north vector: "matched" sums the positions of the live matched mechanics
 // (a tower pair's bisector); a list sums those events' static positions; { crystal } uses the
-// resolved crystal direction from arena center. Returns undefined when no positioned event
-// contributes (the rule then yields no spot for this bot).
+// resolved crystal direction; { boss } uses its facing or position. Returns undefined when no
+// usable vector exists (the rule then yields no spot for this bot).
 function frameNorth(frame: NonNullable<GenericSolverRule["frame"]>, matched: ResolvedMechanic[], world: World): Vec2 | undefined {
   let sum: Vec2 = { x: 0, z: 0 };
   if (frame === "matched") {
@@ -201,15 +202,23 @@ function frameNorth(frame: NonNullable<GenericSolverRule["frame"]>, matched: Res
       const pos = world.eventPositions?.[id];
       if (pos) sum = add(sum, pos);
     }
-  } else {
+  } else if ("crystal" in frame) {
     const crystal = world.crystals?.find(c => c.element === frame.crystal);
     if (crystal) sum = add(sum, crystal.pos);
+  } else {
+    const boss = frame.boss.id
+      ? world.bosses?.find(candidate => candidate.id === frame.boss.id)
+      : world.boss;
+    if (!boss) return undefined;
+    sum = frame.boss.from === "facing"
+      ? { x: sin(boss.facing), z: cos(boss.facing) }
+      : boss.pos;
   }
   if (sum.x === 0 && sum.z === 0) return undefined;
   return normalize(sum);
 }
 
-// Map a frame coordinate [x, z] to world space: x along right (north rotated -90°), z along north.
+// Map a runtime frame coordinate to world space: x stores authored r (right/lateral), z is north.
 function frameToWorld(spot: Vec2, north: Vec2): Vec2 {
   const right: Vec2 = { x: north.z, z: -north.x };
   return {

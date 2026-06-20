@@ -5,35 +5,35 @@ name: Spread / Stack Test
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 20
 duration: 36
 
 players:
   - id: mt
     role: tank
-    spawn: [0, 8]
+    spawn: { x: 0, z: 8 }
   - id: ot
     role: tank
-    spawn: [0, -8]
+    spawn: { x: 0, z: -8 }
   - id: h1
     role: healer
-    spawn: [-8, 0]
+    spawn: { x: -8, z: 0 }
   - id: h2
     role: healer
-    spawn: [8, 0]
+    spawn: { x: 8, z: 0 }
   - id: r1
     role: dps
-    spawn: [-5.66, 5.66]
+    spawn: { x: -5.66, z: 5.66 }
   - id: r2
     role: dps
-    spawn: [5.66, 5.66]
+    spawn: { x: 5.66, z: 5.66 }
   - id: m1
     role: dps
-    spawn: [-5.66, -5.66]
+    spawn: { x: -5.66, z: -5.66 }
   - id: m2
     role: dps
-    spawn: [5.66, -5.66]
+    spawn: { x: 5.66, z: -5.66 }
 
 # Shared spread/stack defaults.
 _flipBase: &flipBase
@@ -54,7 +54,7 @@ events:
   # Lock the boss facing for the whole encounter.
   - type: aoe
     id: stillness
-    t: 0
+    time: 0
     name: Stillness
     telegraph: 36
     damage: 0
@@ -62,30 +62,30 @@ events:
     lockFacing: true
     showCastBar: false
     showTelegraph: false
-    shape: { kind: circle, center: [0, 0], radius: 0.1 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
 
   # Honest casts — what is shown is what resolves.
   - <<: *flipBase
     id: honest-spread
-    t: 3
+    time: 3
     name: Honest Spread
     shown: spread
   - <<: *flipBase
     id: honest-stack
-    t: 10
+    time: 10
     name: Honest Stack
     shown: stack
 
   # "?" lies — the shown mechanic flips on resolve.
   - <<: *flipBase
     id: lie-spread-is-stack
-    t: 17
+    time: 17
     name: "Lie: shows Spread, is Stack"
     shown: spread
     questionMark: true
   - <<: *flipBase
     id: lie-stack-is-spread
-    t: 24
+    time: 24
     name: "Lie: shows Stack, is Spread"
     shown: stack
     questionMark: true
@@ -93,7 +93,7 @@ events:
   # Coin flip — random shown mechanic plus a "?" flip chance.
   - <<: *flipBase
     id: coin-flip
-    t: 31
+    time: 31
     name: Coin Flip (random shown + ?)
     shown: random
     rng: true
@@ -101,12 +101,12 @@ events:
 botSolvers:
   generic:
     - when: { mechanic: honest-spread.spread }
-      spots: { mt: [-6, 6], ot: [6, 6], h1: [0, -18], h2: [18, 0], r1: [0, 18], r2: [-18, 0], m1: [-6, 6], m2: [-6, -6] }
+      spots: { mt: { x: -6, z: 6 }, ot: { x: 6, z: 6 }, h1: { x: 0, z: -18 }, h2: { x: 18, z: 0 }, r1: { x: 0, z: 18 }, r2: { x: -18, z: 0 }, m1: { x: -6, z: 6 }, m2: { x: -6, z: -6 } }
     - when: { mechanic: honest-spread.stack }
-      spots: { mt: [6, -6], ot: [6, -6], h1: [6, -6], h2: [6, -6], r1: [-6, 6], r2: [-6, 6], m1: [-6, 6], m2: [-6, 6] }
+      spots: { mt: { x: 6, z: -6 }, ot: { x: 6, z: -6 }, h1: { x: 6, z: -6 }, h2: { x: 6, z: -6 }, r1: { x: -6, z: 6 }, r2: { x: -6, z: 6 }, m1: { x: -6, z: 6 }, m2: { x: -6, z: 6 } }
 
 waymarks:
-  - { mark: A, pos: [0, 16] }
-  - { mark: B, pos: [16, 0] }
-  - { mark: C, pos: [0, -16] }
-  - { mark: D, pos: [-16, 0] }
+  - { mark: A, pos: { x: 0, z: 16 } }
+  - { mark: B, pos: { x: 16, z: 0 } }
+  - { mark: C, pos: { x: 0, z: -16 } }
+  - { mark: D, pos: { x: -16, z: 0 } }

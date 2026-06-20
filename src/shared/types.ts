@@ -47,10 +47,12 @@ export type GenericSolverRule = {
   endAt?: number;
   // Optional rotated frame for spot coordinates. "matched": north = normalize(Σ positions) of the
   // live matched mechanics (e.g. a tower pair's bisector). string[]: north from those events' static
-  // positions. { crystal }: north from the arena center to that resolved crystal. A frame coord
-  // [x, z] maps to world x·right + z·north (right = {x: north.z, z: -north.x}), origin = arena center.
+  // positions. { crystal }: north from the arena center to that resolved crystal. { boss }: north
+  // from the selected boss's facing or its position relative to arena center. A frame coordinate
+  // Authored framed spots use {r, z}; runtime stores r in Vec2.x for the frame transform.
   // A rule whose frame can't be computed yields no spot (falls through).
-  frame?: "matched" | string[] | { crystal: CrystalElement };
+  frame?: "matched" | string[] | { crystal: CrystalElement }
+    | { boss: { id?: string; from: "facing" | "position" } };
   spots?: Record<string, Vec2>; // per-player spot; wins over spot
   spot?: Vec2;                   // one spot for every matching bot
 };
