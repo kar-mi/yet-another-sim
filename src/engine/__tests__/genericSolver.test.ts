@@ -282,6 +282,53 @@ test("frame: { crystal } rotates using the resolved crystal position", () => {
   expect(spot.z).toBeCloseTo(3.5355, 3);
 });
 
+test("frame: { boss: { from: facing } } rotates using the primary boss facing", () => {
+  const w = world({
+    time: 2,
+    active: [{ id: "bait", telegraphStart: 0, resolveAt: 5, resolved: false }],
+    boss: { id: "primary", pos: { x: 0, z: 0 }, facing: Math.PI / 2 },
+    botSolvers: { generic: [{
+      when: { mechanic: "bait" },
+      frame: { boss: { from: "facing" } },
+      spot: { x: 0, z: 5 },
+    }] },
+  });
+  const spot = genericSolverWaypoint(player({}), w)!;
+  expect(spot.x).toBeCloseTo(5);
+  expect(spot.z).toBeCloseTo(0);
+});
+
+test("frame: { boss: { from: position } } can select a named boss", () => {
+  const w = world({
+    time: 2,
+    active: [{ id: "bait", telegraphStart: 0, resolveAt: 5, resolved: false }],
+    boss: { id: "primary", pos: { x: 0, z: 4 }, facing: 0 },
+    bosses: [
+      { id: "primary", pos: { x: 0, z: 4 }, facing: 0 },
+      { id: "add", pos: { x: -3, z: 0 }, facing: 0 },
+    ],
+    botSolvers: { generic: [{
+      when: { mechanic: "bait" },
+      frame: { boss: { id: "add", from: "position" } },
+      spot: { x: 0, z: 5 },
+    }] },
+  });
+  expect(genericSolverWaypoint(player({}), w)).toEqual({ x: -5, z: 0 });
+});
+
+test("a boss-position frame at arena center falls through to the next rule", () => {
+  const w = world({
+    time: 2,
+    active: [{ id: "bait", telegraphStart: 0, resolveAt: 5, resolved: false }],
+    boss: { id: "primary", pos: { x: 0, z: 0 }, facing: 0 },
+    botSolvers: { generic: [
+      { when: { mechanic: "bait" }, frame: { boss: { from: "position" } }, spot: { x: 1, z: 1 } },
+      { when: { mechanic: "bait" }, spot: { x: 9, z: 9 } },
+    ] },
+  });
+  expect(genericSolverWaypoint(player({}), w)).toEqual({ x: 9, z: 9 });
+});
+
 test("a crystal frame with no matching crystal falls through to the next rule", () => {
   const w = world({
     time: 2,
@@ -316,19 +363,19 @@ test("a rule whose frame cannot be computed falls through to the next rule", () 
 // These two cases exercise that conversion and its end-to-end effect on a bot intent using a
 // synthetic raid, so they are not coupled to any authored raid file's contents.
 
-test("loadBotPatterns converts solver spot arrays to Vec2 and preserves when conditions", () => {
+test("loadBotPatterns converts authored solver spot objects to Vec2 and preserves when conditions", () => {
   const w = createWorld(applyBotPatterns(loadRaid(baseRaid), loadBotPatterns({
     players: {},
     solvers: { generic: [
-      { when: { mechanic: "stack-1.g0", role: "tank" }, frame: { crystal: "wind" }, spot: [-7, 7] },
-      { when: { mechanic: "stack-1.g0", role: "healer" }, spot: [-4, 4] },
+      { when: { mechanic: "stack-1.g0", role: "tank" }, frame: { crystal: "wind" }, spot: { r: -7, z: 7 } },
+      { when: { mechanic: "stack-1.g0", role: "healer" }, spot: { x: -4, z: 4 } },
     ] },
   })), 1);
 
   expect(w.botSolvers?.generic).toHaveLength(2);
   expect(w.botSolvers?.generic?.[0]?.when).toEqual({ mechanic: "stack-1.g0", role: "tank" });
   expect(w.botSolvers?.generic?.[0]?.frame).toEqual({ crystal: "wind" });
-  expect(w.botSolvers?.generic?.[0]?.spot).toEqual({ x: -7, z: 7 }); // array -> Vec2
+  expect(w.botSolvers?.generic?.[0]?.spot).toEqual({ x: -7, z: 7 }); // relative r -> runtime x
   expect(w.botSolvers?.generic?.[1]?.spot).toEqual({ x: -4, z: 4 });
 });
 
@@ -338,8 +385,8 @@ test("generic solver moves a bot toward the rolled group's stack spot", () => {
     players: roster({ ot: { spawn: [0, 0] } }),
     events: [{ type: "group", id: "stack", t: 0, name: "Stack", rng: true, groups: [["mt"], ["h2"]], telegraph: 5, radius: 6, damage: 50, damageType: "magical" }],
     botSolvers: { generic: [
-      { when: { mechanic: "stack.g0", role: "tank" }, spot: [-7, 7] },
-      { when: { mechanic: "stack.g1", role: "tank" }, spot: [7, -7] },
+      { when: { mechanic: "stack.g0", role: "tank" }, spot: { x: -7, z: 7 } },
+      { when: { mechanic: "stack.g1", role: "tank" }, spot: { x: 7, z: -7 } },
     ] },
   });
   // The t=0 group mechanic promotes on the first tick; read the bot intent while it telegraphs.
@@ -347,7 +394,7 @@ test("generic solver moves a bot toward the rolled group's stack spot", () => {
   w = tick(w, computeBotIntents(w, 1 / 60), 1 / 60);
   expect(w.groupMechanics.length).toBeGreaterThan(0);
 
-  // ot (a bot tank) heads to its role-conditioned spot: g0 -> [-7, 7], g1 -> [7, -7].
+  // ot (a bot tank) heads to its role-conditioned spot: g0 -> { x: -7, z: 7 }, g1 -> { x: 7, z: -7 }.
   const intent = computeBotIntents(w, 1 / 60).ot;
   if (w.groupChoices["stack"] === 0) {
     expect(intent.move.x).toBeLessThan(0);
