@@ -13,7 +13,7 @@ test("bot patterns can be loaded from a companion definition", () => {
   });
   const botPatterns = loadBotPatterns({
     players: {
-      mt: [{ t: 0, pos: [8, 0] }],
+      mt: [{ time: 0, pos: { x: 8, z: 0 } }],
     },
   });
   const world = createWorld(applyBotPatterns(raid, botPatterns));

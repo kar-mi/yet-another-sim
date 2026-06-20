@@ -25,16 +25,16 @@ Excerpt from `raids/debug/sample-raid-bots.yaml`:
 ```yaml
 players:
   mt:
-    - { t: 5, pos: [-12, -8] }
-    - { t: 13, pos: [-12, 8] }
-    - { t: 20, pos: [-3, 0] }
+    - { time: 5, pos: { x: -12, z: -8 } }
+    - { time: 13, pos: { x: -12, z: 8 } }
+    - { time: 20, pos: { x: -3, z: 0 } }
   h1:
-    - { t: 5, pos: [12, -8] }
-    - { t: 13, pos: [12, 8] }
-    - { t: 20, pos: [3, 0] }
+    - { time: 5, pos: { x: 12, z: -8 } }
+    - { time: 13, pos: { x: 12, z: 8 } }
+    - { time: 20, pos: { x: 3, z: 0 } }
 ```
 
-Each waypoint is `{ t: <seconds>, pos: [x, z] }`. Only listed players get patterns;
+Each waypoint is `{ time: <seconds>, pos: { x, z } }`. Only listed players get patterns;
 others stay at their spawn (or are driven by a human).
 After forced march, plant teleport, or knockback moves a bot, waypoints at or before that forced
 movement time are ignored. Add a later waypoint when the bot should resume authored movement.
