@@ -66,18 +66,12 @@ solvers:
         r1: { r: -5, z: 14 }
         r2: { r: 5, z: 14 }
 
-    # Hold the Wind and short-crystal groups through both Thunder III tankbusters.
+    # range start to move during Thunder III tankbusters.
     - when: { static: true }
       startAt: 43
       endAt: 53
       frame: { crystal: wind }
       spots:
-        mt: { r: 0, z: 18 }
-        h1: { r: 6, z: 16 }
-        m1: { r: -6, z: 16 }
-        m2: { r: -6, z: 16 }
-        ot: { r: 0, z: 6 }
-        h2: { r: 6, z: 16 }
         r1: { r: 0, z: -14 }
         r2: { r: 0, z: -14 }
 
@@ -88,33 +82,28 @@ solvers:
       frame: { crystal: wind }
       spots:
         mt: { r: 0, z: 18 }
+        ot: { r: 0, z: 18 }
         h1: { r: -5, z: 18 }
         m1: { r: 2, z: 3 }
         m2: { r: -11, z: 8 }
-        ot: { r: 7, z: 16 }
         h2: { r: 1, z: 5 }
 
-    - when: { static: true } # TODO: gate on fluid-long debuff when that mechanic exists
+    - when: { static: true } # TODO: gate on fluid-long debuff when that mechanic exists, 
       startAt: 53
       endAt: 60
       frame: { crystal: water }
       spots:
-        r1: { r: -4, z: 14 }
+        r1: { r: -4, z: 14 } #adjust this, so that its in line with the south intercard of the boss if boss was at wind
         r2: { r: 4, z: 14 }
 
-    # Latitude/Longitude is one six-second cast sequence into two hits. Move at cast start to
-    # the diagonal intercard gaps between the side and front/back cone pairs.
-    - when: { mechanic: [latitude-implosion-left, longitude-implosion-front] }
-      frame: { crystal: wind }
-      spots:
-        mt: { r: 0, z: 18 }
-        ot: { r: 6, z: 18 }
-        h1: { r: -6, z: 18 }
-        h2: { r: 6, z: 6 }
-        r1: { r: -6, z: 6 }
-        r2: { r: 6, z: 6 }
-        m1: { r: -6, z: 6 }
-        m2: { r: 6, z: 18 }
+    # Latitude/Longitude is one six-second cast sequence into two hits.
+    # Move at cast start of cast to the intercard gap of boss, relative to current spots for the next mech
+    # should be a 2 part move, as the initial spot will be inline of intercard of chaos (does not need to be near the boss)
+      # 1. move to initial safe spot
+      # 2. move to a little bit to new spot
+    # - when: { mechanic: [latitude-implosion-left, longitude-implosion-front] }
+    #   frame: {} #fix to boss
+    #   spots:
 
     # Vacuum Wave + Umbra Smash (t:81–88): one bot baits furthest; the rest stack for knockback.
     - when: { mechanic: [vacuum-wave, umbra-smash] }
