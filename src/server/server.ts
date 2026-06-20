@@ -11,7 +11,7 @@ import {
   type ServerMessage,
 } from "@shared/protocol";
 import { SessionManager, capacitySnapshot } from "./session";
-import { logger, createSessionLog, debugEnabled } from "./logger";
+import { logger, createSessionLog, isDevelopment } from "./logger";
 import { metrics } from "./metrics";
 import { startMetricsServer } from "./metricsServer";
 
@@ -155,7 +155,7 @@ const buildResult = await Bun.build({
   entrypoints: [join(ROOT, "index.html")],
   outdir: BUNDLE_DIR,
   target: "browser",
-  sourcemap: debugEnabled ? "inline" : "none",
+  sourcemap: isDevelopment ? "inline" : "none",
   env: "disable",
   // Babylon registers engine extensions, scene-loader plugins (glTF), and material shaders via
   // side-effect modules that @babylonjs/core marks as tree-shakeable (sideEffects allow-list +
@@ -166,7 +166,7 @@ const buildResult = await Bun.build({
   // grows ~2%. This is the single switch that prevents per-feature registration whack-a-mole.
   ignoreDCEAnnotations: true,
   define: {
-    __YAS_DEBUG__: JSON.stringify(debugEnabled),
+    __YAS_DEBUG__: JSON.stringify(isDevelopment),
   },
 });
 
