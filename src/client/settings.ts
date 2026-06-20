@@ -54,7 +54,7 @@ const DEFAULTS: Settings = {
   controllerDeadzone: 0.15,
   cameraAccel: false,
   cameraAccelStrength: 1,
-  uiScale: 1.125,
+  uiScale: 1.25,
   uiFont: "pixel",
   renderedPlayerHealthBars: false,
 };
