@@ -379,6 +379,22 @@ test("loadBotPatterns converts authored solver spot objects to Vec2 and preserve
   expect(w.botSolvers?.generic?.[1]?.spot).toEqual({ x: -4, z: 4 });
 });
 
+test("solver spot schema enforces relative framed and absolute unframed shapes", () => {
+  expect(() => loadBotPatterns({
+    players: {},
+    solvers: { generic: [{
+      when: { debuff: "Headwind" },
+      frame: { crystal: "wind" },
+      spot: { x: 0, z: 5 },
+    }] },
+  })).toThrow(/frame requires relative/);
+
+  expect(() => loadBotPatterns({
+    players: {},
+    solvers: { generic: [{ when: { debuff: "Headwind" }, spot: { r: 0, z: 5 } }] },
+  })).toThrow(/unframed rule requires absolute/);
+});
+
 test("generic solver moves a bot toward the rolled group's stack spot", () => {
   const raid = loadRaid({
     ...baseRaid,

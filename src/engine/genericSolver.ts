@@ -191,8 +191,8 @@ function ruleMatches(rule: GenericSolverRule, player: Player, world: World, mech
 
 // Compute the frame's north vector: "matched" sums the positions of the live matched mechanics
 // (a tower pair's bisector); a list sums those events' static positions; { crystal } uses the
-// resolved crystal direction from arena center. Returns undefined when no positioned event
-// contributes (the rule then yields no spot for this bot).
+// resolved crystal direction; { boss } uses its facing or position. Returns undefined when no
+// usable vector exists (the rule then yields no spot for this bot).
 function frameNorth(frame: NonNullable<GenericSolverRule["frame"]>, matched: ResolvedMechanic[], world: World): Vec2 | undefined {
   let sum: Vec2 = { x: 0, z: 0 };
   if (frame === "matched") {
@@ -218,7 +218,7 @@ function frameNorth(frame: NonNullable<GenericSolverRule["frame"]>, matched: Res
   return normalize(sum);
 }
 
-// Map a frame coordinate [x, z] to world space: x along right (north rotated -90°), z along north.
+// Map a runtime frame coordinate to world space: x stores authored r (right/lateral), z is north.
 function frameToWorld(spot: Vec2, north: Vec2): Vec2 {
   const right: Vec2 = { x: north.z, z: -north.x };
   return {
