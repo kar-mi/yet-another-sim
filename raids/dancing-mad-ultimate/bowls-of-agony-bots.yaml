@@ -23,14 +23,14 @@ players:
 solvers:
   generic:
     # After crystals spawn, OT holds in the Wind frame between Chaos and Exdeath.
-    - when: { debuff: Fated Hero }
+    - when: { static: true }
       startAt: 24
       endAt: 36
       frame: { crystal: wind }
       spots:
         ot: { r: 0, z: 6 }
 
-    - when: { debuff: Headwind }
+    - when: { static: true }
       startAt: 24
       endAt: 43
       frame: { crystal: wind }
@@ -46,14 +46,14 @@ solvers:
       spots:
         ot: { r: 0, z: 12 }
 
-    - when: { debuff: Tailwind }
+    - when: { static: true }
       startAt: 24
       endAt: 43
       frame: { crystal: wind }
       spots:
         h2: { r: 6, z: 16 }
 
-    - when: { debuff: Tailwind }
+    - when: { static: true } # TODO: gate on entropy-short debuff when that mechanic exists
       startAt: 24
       endAt: 43
       frame: { crystal: fire }
@@ -62,7 +62,7 @@ solvers:
         r2: { r: 5, z: 14 }
 
     # Hold the Wind and short-crystal groups through both Thunder III tankbusters.
-    - when: { debuff: Headwind }
+    - when: { static: true }
       startAt: 43
       endAt: 53
       frame: { crystal: wind }
@@ -72,30 +72,30 @@ solvers:
         m1: { r: -6, z: 16 }
         m2: { r: -6, z: 16 }
 
-    - when: { debuff: Tailwind }
+    - when: { static: true }
       startAt: 43
       endAt: 53
       frame: { crystal: wind }
       spots:
         ot: { r: 0, z: 6 }
 
-    - when: { debuff: Tailwind }
+    - when: { static: true }
       startAt: 43
       endAt: 53
       frame: { crystal: wind }
       spots:
         h2: { r: 6, z: 16 }
 
-    - when: { debuff: Tailwind }
+    - when: { static: true }
       startAt: 43
       endAt: 53
-      frame: { crystal: fire }
+      frame: { crystal: wind }
       spots:
-        r1: { r: -5, z: 14 }
-        r2: { r: 5, z: 14 }
+        r1: { r: 0, z: -14 }
+        r2: { r: 0, z: -14 }
 
     # Post-tankbuster: preposition for Chaos's outward-facing implosions and drag Exdeath to Wind.
-    - when: { debuff: Headwind }
+    - when: { static: true }
       startAt: 53
       endAt: 60
       frame: { crystal: wind }
@@ -105,7 +105,7 @@ solvers:
         m1: { r: 2, z: 3 }
         m2: { r: -11, z: 8 }
 
-    - when: { debuff: Tailwind }
+    - when: { static: true }
       startAt: 53
       endAt: 60
       frame: { crystal: wind }
@@ -113,7 +113,7 @@ solvers:
         ot: { r: 7, z: 16 }
         h2: { r: 1, z: 5 }
 
-    - when: { debuff: Tailwind }
+    - when: { static: true } # TODO: gate on fluid-long debuff when that mechanic exists
       startAt: 53
       endAt: 60
       frame: { crystal: water }
@@ -149,7 +149,7 @@ solvers:
         m2: { r: 0, z: 6 }
 
     # Vacuum Wave (t:81–88): stack west of exdeath; KB pushes group further west, stays in arena.
-    # Headwind/Tailwind facing is auto-set by botIntent.ts — no authoring needed.
+    # Headwind/Tailwind facing is not auto set, this needs to be fixed
     - when: { mechanic: vacuum-wave }
       frame: { crystal: wind }
       spot: { r: 0, z: 6 }
