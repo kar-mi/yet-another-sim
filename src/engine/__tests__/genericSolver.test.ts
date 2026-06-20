@@ -123,6 +123,23 @@ test("first matching rule wins", () => {
   expect(genericSolverWaypoint(player({}), w)).toEqual({ x: 1, z: 1 });
 });
 
+test("static true provides an always-active fallback after specific rules", () => {
+  const w = world({
+    time: 2,
+    active: [{ id: "aoe-1", telegraphStart: 0, resolveAt: 5, resolved: false }],
+    botSolvers: {
+      generic: [
+        { when: { mechanic: "aoe-1" }, spot: { x: 1, z: 1 } },
+        { when: { static: true }, spot: { x: 9, z: 9 } },
+      ],
+    },
+  });
+
+  expect(genericSolverWaypoint(player({}), w)).toEqual({ x: 1, z: 1 });
+  w.time = 6;
+  expect(genericSolverWaypoint(player({}), w)).toEqual({ x: 9, z: 9 });
+});
+
 test("role condition gates the rule", () => {
   const w = world({
     time: 2,
@@ -417,6 +434,19 @@ test("solver spot schema enforces relative framed and absolute unframed shapes",
     players: {},
     solvers: { generic: [{ when: { debuff: "Headwind" }, spot: { r: 0, z: 5 } }] },
   })).toThrow(/unframed rule requires absolute/);
+});
+
+test("solver schema requires an explicit static flag for an always-active rule", () => {
+  const staticRule = loadBotPatterns({
+    players: {},
+    solvers: { generic: [{ when: { static: true }, spot: { x: 2, z: 3 } }] },
+  });
+  expect(staticRule.solvers?.generic?.[0]?.when).toEqual({ static: true });
+
+  expect(() => loadBotPatterns({
+    players: {},
+    solvers: { generic: [{ when: {}, spot: { x: 2, z: 3 } }] },
+  })).toThrow(/when\.static: true/);
 });
 
 test("generic solver moves a bot toward the rolled group's stack spot", () => {

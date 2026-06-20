@@ -60,8 +60,11 @@ When no rule matches, the bot falls back to its authored waypoints.
 
 A rule has:
 
-- `when` — all conditions are ANDed; a rule must specify at least one of `mechanic` / `debuff` /
-  `partnerDebuff` / `plant`:
+- `when` — all conditions are ANDed; a rule must specify `static: true` or at least one of
+  `mechanic` / `debuff` / `partnerDebuff` / `plant`:
+  - `static: true` — always active, subject to `startAt` / `endAt` and any other conditions. Put a
+    static rule last to provide default positions when no mechanic-specific rule matches. An empty
+    `when: {}` is rejected so an accidentally incomplete rule cannot become a catch-all.
   - `mechanic` — segment-prefix match on a resolved id (see the suffix table below) **or** an exact
     match against one of the mechanic's authored `labels`. Split both on `.`; the rule matches if its
     segments are a prefix of the resolved id's, so `lightning-1` matches `lightning-1.inverted.b`, and
@@ -95,6 +98,20 @@ A rule has:
   Framed rules require relative positions `{ r, z }`, where `r` is the frame's right/lateral axis.
   A rule must specify at least one. If a rule matches but supplies no spot for this bot, the search
   falls through to later rules. Tuple syntax is not accepted for solver spots.
+
+A static fallback can keep every bot moving to a default formation between mechanics. Because the
+first matching rule wins, place it after all more-specific rules:
+
+```yaml
+solvers:
+  generic:
+    - when: { mechanic: tower-wave }
+      spot: { x: 0, z: 0 }
+    - when: { static: true }
+      spots:
+        mt: { x: 0, z: 8 }
+        ot: { x: 4, z: 8 }
+```
 
 Any positioned event can carry `labels` (a string list, matched by `when.mechanic`) and a `group`
 string (compared by `when.soaks`) — currently on `aoe`, `tower`, `targeted`, and `bait` events.

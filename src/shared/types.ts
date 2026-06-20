@@ -29,6 +29,7 @@ export type Waypoint = { t: number; pos: Vec2 };
 // to spots[its id] ?? spot. Conditions in `when` are ANDed.
 export type GenericSolverRule = {
   when: {
+    static?: true; // explicit always-active rule; normally used as the final fallback
     // segment-prefix match on a resolved mechanic id (e.g. "lightning-1" matches "lightning-1.inverted.b")
     // OR an exact match against one of the resolved mechanic's labels. An array requires every listed
     // mechanic to be active at once (e.g. a spread_stack mode AND a concurrent inverse orientation).
