@@ -21,14 +21,14 @@ botPatterns: forsaken-bots
 # Convention: pos is [northward, westward] — first component +N/-S, second +W/-E.
 # Intercardinals use 8./√2 ≈ 5.65 per axis so they sit the same 8 from center.
 _towerPos:
-  N:  &posN  [8, 0]
-  S:  &posS  [-8, 0]
-  W:  &posW  [0, 8]
-  E:  &posE  [0, -8]
-  NW: &posNW [5.65, 5.65]
-  NE: &posNE [5.65, -5.65]
-  SW: &posSW [-5.65, 5.65]
-  SE: &posSE [-5.65, -5.65]
+  N:  &posN  { x: 8, z: 0 }
+  S:  &posS  { x: -8, z: 0 }
+  W:  &posW  { x: 0, z: 8 }
+  E:  &posE  { x: 0, z: -8 }
+  NW: &posNW { x: 5.65, z: 5.65 }
+  NE: &posNE { x: 5.65, z: -5.65 }
+  SW: &posSW { x: -5.65, z: 5.65 }
+  SE: &posSE { x: -5.65, z: -5.65 }
 
 players:
   - id: mt

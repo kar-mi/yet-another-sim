@@ -2,10 +2,16 @@ import { z } from "zod";
 import { ROSTER, RaidIdSchema } from "@shared/protocol";
 import { BOSS_REGISTRY, BOSS_REGISTRY_IDS, DEFAULT_BOSS_ID, isBossRegistryId, type BossRegistryId } from "./bossRegistry";
 
-const Vec2Schema = z.object({ x: z.number(), z: z.number() }).strict()
-  .transform(({ x, z }) => [x, z] as [number, number]);
-const WaypointSchema = z.object({ time: z.number().nonnegative(), pos: Vec2Schema })
-  .transform(({ time, pos }) => ({ t: time, pos }));
+const Vec2Schema = z.preprocess(
+  value => Array.isArray(value) && value.length === 2 ? { x: value[0], z: value[1] } : value,
+  z.object({ x: z.number(), z: z.number() }).strict(),
+).transform(({ x, z }) => [x, z] as [number, number]);
+const WaypointSchema = z.preprocess(
+  value => typeof value === "object" && value !== null && "t" in value && !("time" in value)
+    ? { ...value, time: value.t }
+    : value,
+  z.object({ time: z.number().nonnegative(), pos: Vec2Schema }),
+).transform(({ time, pos }) => ({ t: time, pos }));
 const EventIdSchema = z.string().min(1);
 const RoleSchema = z.enum(["tank", "healer", "dps"]);
 const DebuffMatchSchema = z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]);
@@ -98,8 +104,8 @@ const ZoneShapeSchema = z.discriminatedUnion("kind", [
 const AOEShapeSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("circle"), center: Vec2Schema, radius: z.number().positive() }),
   z.object({ kind: z.literal("donut"), center: Vec2Schema, inner: z.number().nonnegative(), outer: z.number().positive() }),
-  z.object({ kind: z.literal("cone"), origin: Vec2Schema.default({ x: 0, z: 0 }), direction: Vec2Schema.default({ x: 0, z: 1 }), angleDeg: z.number().positive(), length: z.number().positive() }),
-  z.object({ kind: z.literal("rect"), origin: Vec2Schema.default({ x: 0, z: 0 }), direction: Vec2Schema.default({ x: 0, z: 1 }), width: z.number().positive(), length: z.number().positive() }),
+  z.object({ kind: z.literal("cone"), origin: Vec2Schema.default([0, 0]), direction: Vec2Schema.default([0, 1]), angleDeg: z.number().positive(), length: z.number().positive() }),
+  z.object({ kind: z.literal("rect"), origin: Vec2Schema.default([0, 0]), direction: Vec2Schema.default([0, 1]), width: z.number().positive(), length: z.number().positive() }),
 ]).superRefine((shape, ctx) => {
   if (shape.kind === "donut" && shape.inner >= shape.outer) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "donut inner must be less than outer" });
@@ -632,8 +638,13 @@ const LimitCutEventSchema = z.object({
   role: RoleSchema.optional(),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema])
-  .transform(event => {
+export const EventSchema = z.preprocess(
+  value => typeof value === "object" && value !== null && "t" in value && !("time" in value)
+    ? { ...value, time: value.t }
+    : value,
+  z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema]),
+).transform(event => {
+    if (!("time" in event)) return event;
     const { time, ...rest } = event;
     return { ...rest, t: time };
   });
@@ -693,21 +704,21 @@ const BossModelSchema = z.enum(BOSS_MODEL_NAMES);
 
 const BossSchema = z.object({
   id: z.enum(BOSS_REGISTRY_IDS).optional(),
-  pos: Vec2Schema.default({ x: 0, z: 0 }),
+  pos: Vec2Schema.default([0, 0]),
   radius: z.number().positive().optional(),
   ring: z.object({
     scale: z.number().positive().optional(),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   }).optional(),
   model: BossModelSchema.optional(),
-}).strict().default({ pos: { x: 0, z: 0 } });
+}).strict().default({ pos: [0, 0] });
 
 // Boss entry in a multi-boss `bosses:` list. Same fields as BossSchema plus a required id slug
 // and an optional aggro seed (player id whose threat is pre-seeded to the top so this boss
 // faces a specific tank from the start).
 const BossWithIdSchema = z.object({
   id: RaidIdSchema,
-  pos: Vec2Schema.default({ x: 0, z: 0 }),
+  pos: Vec2Schema.default([0, 0]),
   radius: z.number().positive().optional(),
   ring: z.object({
     scale: z.number().positive().optional(),
