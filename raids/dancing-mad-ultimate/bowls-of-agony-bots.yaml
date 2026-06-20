@@ -6,7 +6,7 @@ players:
   mt:
     - { time: 0,  pos: { x: 0, z: 6 } }
   ot:
-    - { time: 0,  pos: { x: 4, z: 8 } }
+    - { time: 0,  pos: { x: 5, z: 0 } }
   h1:
     - { time: 0,  pos: { x: -6, z: 8 } }
   h2:
@@ -22,20 +22,30 @@ players:
 
 solvers:
   generic:
+
+    #ot moves exdeath to middle after decisive battle
+    - when: { static: true }
+      startAt: 6
+      endAt: 9
+      spots:
+        ot: { x: -4.5, z: 0 }
+
+
     # After crystals spawn, OT holds in the Wind frame between Chaos and Exdeath.
     - when: { static: true }
       startAt: 24
       endAt: 36
       frame: { crystal: wind }
       spots:
-        ot: { r: 0, z: 6 }
+        ot: { r: 0, z: 4.5 }
 
     # Once Thunder III snapshots Exdeath, OT moves farther along the same Wind-frame line.
     - when: { mechanic: thunder-iii-get-out }
       frame: { crystal: wind }
       spots:
-        ot: { r: 0, z: 12 }
+        ot: { r: 0, z: 14 }
 
+    # short debuff static spots
     - when: { static: true }
       startAt: 24
       endAt: 43
@@ -47,6 +57,7 @@ solvers:
         m2: { r: -6, z: 16 }
         h2: { r: 6, z: 16 }
 
+    #range go to crystal based on which debuff is the short one
     - when: { static: true } # TODO: gate on entropy-short debuff when that mechanic exists
       startAt: 24
       endAt: 43
