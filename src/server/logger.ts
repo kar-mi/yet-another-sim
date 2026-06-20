@@ -50,8 +50,14 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, shutdown);
 }
 
+// LOG_LEVEL governs logging verbosity only.
 export const logLevel = parseLevel(Bun.env.LOG_LEVEL, "warn");
-export const debugEnabled = logLevel === "debug";
+
+// ENVIRONMENT governs dev-only behavior independent of log verbosity: inline
+// build sourcemaps and the client __YAS_DEBUG__ HUD. Defaults to production so a
+// bare deploy never ships dev artifacts; set ENVIRONMENT=development to enable.
+export const environment = Bun.env.ENVIRONMENT || "production";
+export const isDevelopment = environment === "development";
 
 logger.configure({
   level: logLevel,

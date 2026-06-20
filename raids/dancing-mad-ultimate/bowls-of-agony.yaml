@@ -219,8 +219,9 @@ events:
     damageType: magical
     showCastBar: true
     showTelegraph: false
-    bossId: chaos
+    bossId: kefka
     shape: { kind: circle, center: { x: -8, z: 0 }, radius: 20 }
+
   - type: aoe
     id: latitude-implosion-left
     time: 60
@@ -251,6 +252,7 @@ events:
     showTelegraph: false
     bossId: chaos
     shape: { kind: cone, angleDeg: 70, length: 24 }
+
   - type: aoe
     id: longitude-implosion-front
     time: 60
@@ -266,12 +268,6 @@ events:
     showTelegraph: false
     bossId: chaos
     shape: { kind: cone, angleDeg: 70, length: 24 }
-
-  - type: heal
-    id: recovery-between-implosions
-    time: 67
-    name: Recovery
-
   - type: aoe
     id: longitude-implosion-back
     time: 60
@@ -289,7 +285,7 @@ events:
     shape: { kind: cone, angleDeg: 70, length: 24 }
 
   - type: heal
-    id: recovery-after-implosion
+    id: recovery-after-fluid-debuff
     time: 70
     name: Recovery
 

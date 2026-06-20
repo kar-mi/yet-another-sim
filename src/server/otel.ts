@@ -59,7 +59,7 @@ const provider = endpoint && isEnabled(Bun.env.OTEL_ENABLED)
   ? new BasicTracerProvider({
       resource: resourceFromAttributes({
         "service.name": Bun.env.OTEL_SERVICE_NAME || SERVICE_NAME,
-        "deployment.environment": Bun.env.OTEL_ENVIRONMENT || Bun.env.NODE_ENV || "development",
+        "deployment.environment": Bun.env.OTEL_ENVIRONMENT || Bun.env.ENVIRONMENT || Bun.env.NODE_ENV || "development",
       }),
       sampler: new TraceIdRatioBasedSampler(parseSampleRate(Bun.env.OTEL_TRACES_SAMPLE_RATE)),
       spanProcessors: [

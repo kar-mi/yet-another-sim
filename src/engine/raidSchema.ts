@@ -30,6 +30,7 @@ const GenericSolverFrameSchema = z.union([
 
 const GenericSolverRuleSchema = z.object({
   when: z.object({
+    static: z.literal(true).optional(), // explicit always-active fallback
     // segment-prefix match on a resolved mechanic id OR an exact match on one of its labels;
     // an array requires all listed mechanics at once
     mechanic: z.union([EventIdSchema, z.array(EventIdSchema).min(1)]).optional(),
@@ -48,10 +49,10 @@ const GenericSolverRuleSchema = z.object({
   spots: z.record(z.string().min(1), SolverSpotSchema).optional(),
   spot: SolverSpotSchema.optional(),
 }).superRefine((rule, ctx) => {
-  const hasCondition = rule.when.mechanic !== undefined || rule.when.debuff !== undefined
+  const hasCondition = rule.when.static === true || rule.when.mechanic !== undefined || rule.when.debuff !== undefined
     || rule.when.partnerDebuff !== undefined || rule.when.plant !== undefined;
   if (!hasCondition) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["when"], message: "rule must have at least one of when.mechanic / when.debuff / when.partnerDebuff / when.plant" });
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["when"], message: "rule must have when.static: true or at least one of when.mechanic / when.debuff / when.partnerDebuff / when.plant" });
   }
   if ((rule.when.soaks !== undefined || rule.frame === "matched") && rule.when.mechanic === undefined) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["when"], message: "when.soaks and frame: \"matched\" require when.mechanic" });

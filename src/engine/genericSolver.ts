@@ -155,6 +155,9 @@ function ruleMatches(rule: GenericSolverRule, player: Player, world: World, mech
   if (rule.startAt !== undefined && time < rule.startAt) return null;
   if (rule.endAt !== undefined && time > rule.endAt) return null;
 
+  // `static: true` adds no filter, making the rule always active subject to the optional clamps
+  // and any other conditions. The schema requires the explicit flag instead of allowing an
+  // accidental empty-object catch-all.
   const { mechanic, role, debuff, partnerDebuff, soaks, plant, plantSlot } = rule.when;
   if (role !== undefined && player.role !== role) return null;
   if (debuff !== undefined && !hasAllDebuffs(player, debuff, time)) return null;
