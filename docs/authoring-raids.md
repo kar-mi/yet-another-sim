@@ -28,7 +28,7 @@ name: Tower Test
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 20
 duration: 26
 
@@ -42,9 +42,9 @@ _towerBase: &towerBase
 events:
   - <<: *towerBase
     id: single-tower
-    t: 3
+    time: 3
     name: Single Tower
-    pos: [0, 12]
+    pos: { x: 0, z: 12 }
     requiredCount: 1
     failureDamageType: magical
 ```
@@ -77,7 +77,7 @@ when it matches a registry id; unknown slugs fall back to `kefka`.
 | Field        | Default        | Notes |
 |--------------|----------------|-------|
 | `id`         | `kefka`        | Single-boss registry id. Valid values are listed above. |
-| `pos`        | `[0, 0]`       | Boss spawn position `[x, z]`. |
+| `pos`        | `{ x: 0, z: 0 }`       | Boss spawn position `{ x, z }`. |
 | `model`      | preset value   | Optional model override. |
 | `radius`     | preset value   | Mechanical hitbox radius (also scales the floor ring). |
 | `ring.scale` | preset value   | Floor-ring radius = `radius * ring.scale`. Larger values make the ring bigger without changing the hitbox. |
@@ -100,7 +100,7 @@ boss:
 
 ## Coordinate system
 
-- The arena is a 2D plane. Positions are `[x, z]` arrays.
+- The arena is a 2D plane. Positions are `{ x, z }` arrays.
 - `+z` is north (12 o'clock), `+x` is east (3 o'clock); directions go clockwise.
 - `y` is the vertical axis (jumping) and is never authored — only `x`/`z` are.
 - Players start with 100 HP. Falling off the floor (outside every arena zone) is fatal.
@@ -114,17 +114,17 @@ zones to build non-circular arenas. Excerpt from `raids/debug/arena-zones-test.y
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 12
     - kind: rect
-      center: [18, 0]
+      center: { x: 18, z: 0 }
       width: 8
       height: 20
     - kind: polygon
       vertices:
-        - [-24, -8]
-        - [-14, -8]
-        - [-19, 8]
+        - { x: -24, z: -8 }
+        - { x: -14, z: -8 }
+        - { x: -19, z: 8 }
 ```
 
 - `circle`: `radius` > 0.
@@ -140,16 +140,16 @@ collision and never affect damage, targeting, or simulation. Excerpt from
 
 ```yaml
 waymarks:
-  - { mark: A, pos: [0, 16] }
-  - { mark: B, pos: [16, 0] }
-  - { mark: "1", pos: [10, 10] }
-  - { mark: "2", pos: [10, -10] }
+  - { mark: A, pos: { x: 0, z: 16 } }
+  - { mark: B, pos: { x: 16, z: 0 } }
+  - { mark: "1", pos: { x: 10, z: 10 } }
+  - { mark: "2", pos: { x: 10, z: -10 } }
 ```
 
 | Field  | Required | Notes |
 |--------|----------|-------|
 | `mark` | yes      | One of `A`, `B`, `C`, `D`, `1`, `2`, `3`, `4`. Each may appear at most once. |
-| `pos`  | yes      | `[x, z]` floor position. |
+| `pos`  | yes      | `{ x, z }` floor position. |
 
 - **Letters (A–D)** render as **circles**, **numbers (1–4)** as **squares**, lying flat
   on the floor, with the character floating translucently above each shape.
@@ -178,14 +178,14 @@ Each player entry. Excerpt from `raids/debug/sample-raid.yaml`:
 players:
   - id: mt
     role: tank
-    spawn: [-12, 12]
+    spawn: { x: -12, z: 12 }
 ```
 
 | Field     | Required | Notes |
 |-----------|----------|-------|
 | `id`      | yes      | Must match the roster id for its index. |
 | `role`    | yes      | Must match the roster role for its index. |
-| `spawn`   | yes      | Starting `[x, z]`. |
+| `spawn`   | yes      | Starting `{ x, z }`. |
 | `pattern` | no       | Inline movement waypoints (see below). Usually supplied via a `-bots` file instead. |
 
 ## Events (the timeline)
@@ -206,7 +206,7 @@ leaving the area before then.
 | Field           | Required | Notes |
 |-----------------|----------|-------|
 | `id`            | yes      | Stable mechanic id, unique across the raid file. Links and bot solvers use this value. |
-| `t`             | yes      | Cast start time in seconds (≥ 0). |
+| `time`             | yes      | Cast start time in seconds (≥ 0). |
 | `name`          | yes      | Mechanic name (shown on the cast bar). |
 | `telegraph`     | yes      | Cast duration in seconds (> 0). |
 | `damage`        | yes      | Damage applied on hit (≥ 0; use `0` for effect-only mechanics). |
@@ -223,13 +223,13 @@ Excerpt from `raids/debug/sample-raid.yaml`:
 
 ```yaml
 - id: fireball
-  t: 4
+  time: 4
   name: Fireball
   telegraph: 3
   damage: 60
   damageType: magical
   showCastBar: true
-  shape: { kind: circle, center: [0, 0], radius: 9 }
+  shape: { kind: circle, center: { x: 0, z: 0 }, radius: 9 }
 ```
 
 The `shape` is required. See [Shapes](#shapes).
@@ -244,13 +244,13 @@ the full distance. Excerpt from `raids/debug/knockback-test.yaml`:
 
 ```yaml
 - id: skyward-launch
-  t: 15
+  time: 15
   name: Skyward Launch
   telegraph: 3
   damage: 0
   damageType: physical
   showCastBar: true
-  shape: { kind: circle, center: [0, 0], radius: 30 }
+  shape: { kind: circle, center: { x: 0, z: 0 }, radius: 30 }
   knockback: { distance: 10, height: 9 }
 ```
 
@@ -258,7 +258,7 @@ the full distance. Excerpt from `raids/debug/knockback-test.yaml`:
 |------------|----------|-------|
 | `distance` | yes      | Horizontal push distance in units (> 0). |
 | `height`   | no       | Peak arc height (≥ 0). `0` (default) is a flat ground **knockback**; `> 0` makes it a **knockup** that launches the player in an arc and lands them `distance` away. |
-| `origin`   | no       | `[x, z]` point to push away from. Defaults to the shape's center (`circle`/`donut`) or `origin` (`cone`/`rect`). |
+| `origin`   | no       | `{ x, z }` point to push away from. Defaults to the shape's center (`circle`/`donut`) or `origin` (`cone`/`rect`). |
 
 Knockback respects the arena: a player shoved off the floor falls and dies via the normal
 death-floor logic — the basis for "knock into the void" mechanics.
@@ -289,7 +289,7 @@ a front 90° cleave is `angleDeg: 90` with no offset; a rear cleave adds `direct
 ```yaml
 - <<: *cleaveBase
   id: front-cleave-90
-  t: 3
+  time: 3
   name: Front Cleave (90)
   shape: { kind: cone, angleDeg: 90, length: 25 }
 ```
@@ -308,13 +308,13 @@ spared. Omit it for a normal (omnidirectional) hit. Excerpt from
 
 ```yaml
 - id: tail-swipe
-  t: 4
+  time: 4
   name: Tail Swipe
   telegraph: 4
   damage: 50
   damageType: physical
   showCastBar: true
-  shape: { kind: circle, center: [0, 0], radius: 20 }
+  shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
   positional:
     center: 3.14159
     width: 1.5708
@@ -337,14 +337,14 @@ the schema):
 
 ```yaml
 - id: white-hole
-  t: 10
+  time: 10
   name: White Hole
   telegraph: 5
   damage: 9999
   damageType: "true"
   requireFullHp: true
   showCastBar: true
-  shape: { kind: circle, center: [0, 0], radius: 0.1 }
+  shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
 ```
 
 **Heal ordering:** a `heal` event that fires on the same tick as the White Hole resolves
@@ -364,7 +364,7 @@ Excerpt from `raids/debug/near-far-bait.yaml`:
 ```yaml
 - type: targeted
   id: healer-snipe-furthest
-  t: 16
+  time: 16
   name: Healer Snipe (Furthest)
   targetMode: furthest
   role: healer
@@ -394,7 +394,7 @@ becomes "toward" / "away from" the baited player. Excerpt from
 ```yaml
 - type: aoe
   id: future-ending
-  t: 4
+  time: 4
   name: Future Ending
   deferred: true
   anchor: boss
@@ -408,7 +408,7 @@ becomes "toward" / "away from" the baited player. Excerpt from
 
 - type: bait
   id: all-things-ending-1
-  t: 10
+  time: 10
   name: All Things Ending
   targetMode: closest
   telegraph: 4
@@ -436,9 +436,9 @@ intercepted). Excerpt from `raids/debug/tether-test.yaml`:
 ```yaml
 - type: tether_source
   id: void-chain
-  t: 5
+  time: 5
   name: Void Chain
-  pos: [0, -14]
+  pos: { x: 0, z: -14 }
   finalizeAfter: 7
   tetherKind: debuff
   buffName: Doom
@@ -446,9 +446,9 @@ intercepted). Excerpt from `raids/debug/tether-test.yaml`:
 
 | Field            | Required | Notes |
 |------------------|----------|-------|
-| `t`              | yes      | When the tether spawns. |
+| `time`              | yes      | When the tether spawns. |
 | `name`           | yes      | Mechanic name. |
-| `pos`            | yes      | `[x, z]` anchor position. |
+| `pos`            | yes      | `{ x, z }` anchor position. |
 | `finalizeAfter`  | yes      | Seconds until the tether locks in (> 0). |
 | `tetherKind`     | yes      | `"buff"` or `"debuff"`. |
 | `buffName`       | yes      | Name of the granted effect. |
@@ -467,9 +467,9 @@ Unlike `tether_source`, these lines do not retarget or get intercepted. Excerpt 
 ```yaml
 - type: line_link
   id: north-statue
-  t: 4
+  time: 4
   name: North Statue
-  pos: [0, 34]
+  pos: { x: 0, z: 34 }
   linkDuration: 3
   resolveAfter: 10
   target: { roles: [dps], count: 4, mode: closest }
@@ -487,9 +487,9 @@ Unlike `tether_source`, these lines do not retarget or get intercepted. Excerpt 
 |-------|----------|-------|
 | `type` | yes | `"line_link"`. |
 | `id` | yes | Stable mechanic id, unique across the raid file. Used by another line link's `link` field. |
-| `t` | yes | When the link spawns. |
+| `time` | yes | When the link spawns. |
 | `name` | yes | Mechanic name. |
-| `pos` | yes | `[x, z]` source position. For a north statue, place this outside the arena at positive `z`. |
+| `pos` | yes | `{ x, z }` source position. For a north statue, place this outside the arena at positive `z`. |
 | `resolveAfter` | yes | Seconds until the link resolves (> 0). |
 | `linkDuration` | no | Seconds the visual lines remain before disappearing. Defaults to `resolveAfter`. |
 | `target` | no | `mode` (`"closest"`/`"furthest"`), `roles`, `playerIds`, and/or `count`. If both `roles` and `playerIds` are set, both filters must match. Defaults to closest alive player. |
@@ -517,7 +517,7 @@ burst of `breakDamage` (vulnerabilities apply per the pair's `damageType`). Exce
 ```yaml
 - type: chain
   id: binding-chains
-  t: 4
+  time: 4
   name: Binding Chains
   pairs: [[mt, h1], [ot, h2]]
   telegraph: 4
@@ -532,7 +532,7 @@ burst of `breakDamage` (vulnerabilities apply per the pair's `damageType`). Exce
 | Field | Required | Notes |
 |-------|----------|-------|
 | `type` | yes | `"chain"`. |
-| `t` | yes | Cast start time (seconds). |
+| `time` | yes | Cast start time (seconds). |
 | `name` | yes | Mechanic name (used in the log and cast bar). |
 | `pairs` | yes | Array of `[idA, idB]` player-id pairs (≥ 1). Each pair becomes its own chain. Ids must exist in the roster. |
 | `telegraph` | yes | Cast duration in seconds (> 0) — head icon + cast bar. |
@@ -566,7 +566,7 @@ Excerpt from `raids/debug/rng-stack.yaml`:
 ```yaml
 - type: group
   id: stack-1
-  t: 4
+  time: 4
   name: Shared Sentence
   rng: true
   groups: [[h1], [h2]]
@@ -581,7 +581,7 @@ Excerpt from `raids/debug/rng-stack.yaml`:
 | Field | Required | Notes |
 |-------|----------|-------|
 | `type` | yes | `"group"`. |
-| `t` | yes | Cast start time (seconds). The group + marked member are chosen now. |
+| `time` | yes | Cast start time (seconds). The group + marked member are chosen now. |
 | `name` | yes | Mechanic name (used in the log and cast bar). |
 | `groups` | yes | Array of groups; each group is a list (≥ 1) of player ids. One member of the chosen group is marked. Ids must exist in the roster. |
 | `telegraph` | yes | Cast duration in seconds (> 0) — marker + circle + cast bar; damage applies at the end. |
@@ -623,7 +623,7 @@ fake** (inverted). Excerpt from `raids/debug/inverse-test.yaml`:
 ```yaml
 - type: inverse
   id: coin-flip-cross
-  t: 19
+  time: 19
   name: Coin Flip Cross
   telegraph: 5
   damage: 50
@@ -633,17 +633,17 @@ fake** (inverted). Excerpt from `raids/debug/inverse-test.yaml`:
   ringColor: "#a855f7"
   ringHeight: 3.2
   shownShapes:
-    - { kind: cone, origin: [0, 0], direction: [-1, 1], angleDeg: 80, length: 22 }
-    - { kind: cone, origin: [0, 0], direction: [1, -1], angleDeg: 80, length: 22 }
+    - { kind: cone, origin: { x: 0, z: 0 }, direction: { x: -1, z: 1 }, angleDeg: 80, length: 22 }
+    - { kind: cone, origin: { x: 0, z: 0 }, direction: { x: 1, z: -1 }, angleDeg: 80, length: 22 }
   hiddenShapes:
-    - { kind: cone, origin: [0, 0], direction: [1, 1], angleDeg: 80, length: 22 }
-    - { kind: cone, origin: [0, 0], direction: [-1, -1], angleDeg: 80, length: 22 }
+    - { kind: cone, origin: { x: 0, z: 0 }, direction: { x: 1, z: 1 }, angleDeg: 80, length: 22 }
+    - { kind: cone, origin: { x: 0, z: 0 }, direction: { x: -1, z: -1 }, angleDeg: 80, length: 22 }
 ```
 
 | Field | Required | Notes |
 |-------|----------|-------|
 | `type` | yes | `"inverse"`. |
-| `t` | yes | Cast start time (seconds). The inversion is rolled now. |
+| `time` | yes | Cast start time (seconds). The inversion is rolled now. |
 | `name` | yes | Mechanic name (used in the log and cast bar). |
 | `telegraph` | yes | Cast duration in seconds (> 0); damage applies at `t + telegraph`. |
 | `damage` | yes | Damage (≥ 0) dealt to each player in a lethal shape. |
@@ -696,7 +696,7 @@ Excerpt from `raids/debug/spread-stack-test.yaml`:
 ```yaml
 - type: spread_stack
   id: coin-flip
-  t: 31
+  time: 31
   name: Coin Flip (random shown + ?)
   telegraph: 4
   shown: random
@@ -717,7 +717,7 @@ Excerpt from `raids/debug/spread-stack-test.yaml`:
 |-------|----------|-------|
 | `type` | yes | `"spread_stack"`. |
 | `id` | yes | Stable mechanic id, unique across the raid file. Generic-solver rules match it as `<id>.spread` / `<id>.stack`. |
-| `t` | yes | Cast start time (seconds). The flip + marked member are rolled now. |
+| `time` | yes | Cast start time (seconds). The flip + marked member are rolled now. |
 | `name` | yes | Mechanic name (used in the log and cast bar). |
 | `telegraph` | yes | Cast duration in seconds (> 0); resolves at `t + telegraph`. |
 | `shown` | yes | Marker drawn during the cast: `"spread"`, `"stack"`, or `"random"` (seeded pick each pull). |
@@ -758,24 +758,24 @@ plain eye, or an eye with a yellow "?". Excerpt from `raids/debug/gaze-test.yaml
 ```yaml
 - type: gaze
   id: evil-eye
-  t: 3
+  time: 3
   name: Evil Eye
   telegraph: 4
   damage: 40
   damageType: magical
   showCastBar: true
-  pos: [0, 19]
+  pos: { x: 0, z: 19 }
 ```
 
 | Field | Required | Notes |
 |-------|----------|-------|
 | `type` | yes | `"gaze"`. |
-| `t` | yes | Cast start time (seconds). The reverse state is rolled now. |
+| `time` | yes | Cast start time (seconds). The reverse state is rolled now. |
 | `name` | yes | Mechanic name (used in the log and cast bar). |
 | `telegraph` | yes | Cast duration in seconds (> 0); damage applies at `t + telegraph`. |
 | `damage` | yes | Damage (≥ 0) dealt to each hit player. |
 | `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
-| `pos` | yes | `[x, z]` of the eye board (the thing you face toward/away from). |
+| `pos` | yes | `{ x, z }` of the eye board (the thing you face toward/away from). |
 | `reverse` | no | `true` = "?" eye (face it); `false` = normal eye (look away). Default `false`. |
 | `rng` | no | Randomise `reverse` each run (seeded, 50/50). Default `false`. |
 | `coneHalfAngle` | no | Half-angle (radians) counted as "looking at" it. Default `π/2` (front 180°). |
@@ -804,10 +804,10 @@ resolves. At resolve time (`t + telegraph`) the engine counts the **valid soaker
 | Field | Required | Notes |
 |-------|----------|-------|
 | `type` | yes | `"tower"`. |
-| `t` | yes | Telegraph start time (seconds). |
+| `time` | yes | Telegraph start time (seconds). |
 | `name` | yes | Mechanic name (used in the log). |
 | `telegraph` | yes | Seconds from `t` until it resolves. |
-| `pos` | yes | `[x, z]` center of the tower circle. |
+| `pos` | yes | `{ x, z }` center of the tower circle. |
 | `radius` | yes | Circle radius (> 0). |
 | `requiredCount` | no | Valid soakers needed to clear it. Default 1. |
 | `requiredRoles` | no | Array of `"tank"`/`"healer"`/`"dps"`; only these count as soakers. |
@@ -837,10 +837,10 @@ Excerpt from `raids/debug/tower-test.yaml`:
 ```yaml
 - type: tower
   id: support-tower
-  t: 17
+  time: 17
   name: Support Tower
   telegraph: 5
-  pos: [-12, 0]
+  pos: { x: -12, z: 0 }
   radius: 3
   requiredRoles: [tank, healer]
   wrongRoleLethal: true
@@ -914,22 +914,22 @@ Excerpt from `raids/debug/cc-test.yaml`:
 | Field | Required | Notes |
 |-------|----------|-------|
 | `type` | yes | `"forced_march"`. |
-| `t` | yes | Time the trap arms (seconds, ≥ 0). |
+| `time` | yes | Time the trap arms (seconds, ≥ 0). |
 | `name` | yes | Display name (used in the log). |
-| `pos` | yes | Center of the trigger zone `[x, z]`. |
+| `pos` | yes | Center of the trigger zone `{ x, z }`. |
 | `radius` | yes | Trigger zone radius (> 0). |
-| `direction` | yes | Teleport heading, a non-zero `[x, z]` vector (magnitude ignored). |
+| `direction` | yes | Teleport heading, a non-zero `{ x, z }` vector (magnitude ignored). |
 | `distance` | yes | How far the entrant is flung along `direction` (> 0). Beware flinging players off the arena. |
 | `duration` | yes | How long the trap stays armed before expiring (> 0). |
 
 ```yaml
 - type: forced_march
   id: march-n
-  t: 4.5
+  time: 4.5
   name: March N
-  pos: [0, 14]
+  pos: { x: 0, z: 14 }
   radius: 1.2
-  direction: [0, 1]
+  direction: { x: 0, z: 1 }
   distance: 8
   duration: 25
   preDelay: 0.3
@@ -947,7 +947,7 @@ burst is independent of the named effect — it deals its own `damage`, unrelate
 | Field | Required | Notes |
 |-------|----------|-------|
 | `type` | yes | `"effect_burst"`. |
-| `t` | yes | Cast start (seconds). Carriers + circle centers are snapshotted now. |
+| `time` | yes | Cast start (seconds). Carriers + circle centers are snapshotted now. |
 | `name` | yes | Mechanic name (cast bar / log). |
 | `telegraph` | yes | Cast duration (> 0); circles resolve at `t + telegraph`. |
 | `effectName` | yes | Burst around each player carrying an active effect with this exact name. |
@@ -965,7 +965,7 @@ Excerpt from `raids/dancing-mad-ultimate/graven-image-3.yaml`:
 ```yaml
 - type: effect_burst
   id: sleeper-burst
-  t: 30
+  time: 30
   name: Sleeper Burst
   telegraph: 0.5
   effectName: Sleep
@@ -984,14 +984,14 @@ unaffected. Targeting mirrors `apply_effect`: all alive by default, narrowed by 
 ```yaml
 - type: set_hp
   id: seismic-crush
-  t: 2
+  time: 2
   name: Seismic Crush
   amount: 1
 ```
 
 | Field     | Required | Notes |
 |-----------|----------|-------|
-| `t`       | yes      | When HP is set (seconds). |
+| `time`       | yes      | When HP is set (seconds). |
 | `name`    | yes      | Mechanic name (used in the combat log). |
 | `amount`  | yes      | Target HP (> 0). Clamped to `maxHp` if it exceeds it. |
 | `role`    | no       | Restrict to one role (`tank`/`healer`/`dps`). Ignored if `players` is set. |
@@ -1005,7 +1005,7 @@ Excerpt from `raids/dancing-mad-ultimate/graven-image-3.yaml`:
 ```yaml
 - type: heal
   id: raidwide-heal
-  t: 35
+  time: 35
   name: Raidwide Heal
 ```
 
@@ -1018,7 +1018,7 @@ Excerpt from `raids/dancing-mad-ultimate/graven-image-3.yaml`:
 ```yaml
 - type: effect_select
   id: double-trouble-support
-  t: 0
+  time: 0
   name: Double Trouble (Support)
   groups: [[mt, ot, h1, h2]]
   applyEffect:
@@ -1041,7 +1041,7 @@ roster order, or randomly when `rng: true`. Excerpt from
 ```yaml
 - type: apply_effect
   id: spread-charge
-  t: 1
+  time: 1
   name: Spread Charge
   applyEffect:
     kind: debuff
@@ -1054,7 +1054,7 @@ roster order, or randomly when `rng: true`. Excerpt from
 
 | Field         | Required | Notes |
 |---------------|----------|-------|
-| `t`           | yes      | When the effect lands (seconds). |
+| `time`           | yes      | When the effect lands (seconds). |
 | `name`        | yes      | Mechanic name (used in the combat log). |
 | `role`        | no       | Restrict to one role (`tank`/`healer`/`dps`). Ignored if `players` is set. |
 | `players`     | no       | Explicit list of player ids to target. |
@@ -1077,7 +1077,7 @@ Excerpt from `raids/dancing-mad-ultimate/forsaken.yaml`:
 ```yaml
 - type: reassign
   id: forsaken-charges
-  t: 3.0
+  time: 3.0
   name: Forsaken Assignment
   initial: plan
   onResolve:
@@ -1092,7 +1092,7 @@ Excerpt from `raids/dancing-mad-ultimate/forsaken.yaml`:
 
 | Field       | Required | Notes |
 |-------------|----------|-------|
-| `t`         | yes      | When the opener deal lands (seconds). |
+| `time`         | yes      | When the opener deal lands (seconds). |
 | `name`      | yes      | Mechanic name (used in the combat log). |
 | `charges`   | yes      | List of `{ kind, effect, marker? }`. `kind` keys both `onResolve` counts and `initialCharges`; `effect.name` must match the charge's `effect_resolver` `effectName`. |
 | `initial`   | no       | `"plan"` opens by applying each player's planned charge from `initialCharges`. Omit for an `onResolve`-only event. |
@@ -1104,18 +1104,18 @@ Used by `aoe` events (`shape`) — a point is hit if it falls inside the shape a
 Shape fragments from `raids/debug/sample-raid.yaml`:
 
 ```yaml
-shape: { kind: circle, center: [0, 0], radius: 9 }
-shape: { kind: donut, center: [0, 0], inner: 7, outer: 30 }
-shape: { kind: cone, origin: [0, 0], direction: [0, 1], angleDeg: 90, length: 22 }
-shape: { kind: rect, origin: [0, 0], direction: [1, 0], width: 6, length: 40 }
+shape: { kind: circle, center: { x: 0, z: 0 }, radius: 9 }
+shape: { kind: donut, center: { x: 0, z: 0 }, inner: 7, outer: 30 }
+shape: { kind: cone, origin: { x: 0, z: 0 }, direction: { x: 0, z: 1 }, angleDeg: 90, length: 22 }
+shape: { kind: rect, origin: { x: 0, z: 0 }, direction: { x: 1, z: 0 }, width: 6, length: 40 }
 ```
 
 - **circle** — `radius` > 0. A full-arena circle (radius = arena radius) is an unavoidable raid-wide hit.
 - **donut** — safe in the middle: hits between `inner` and `outer`. Requires `inner` < `outer` (`inner` ≥ 0, `outer` > 0).
-- **cone** — fans out from `origin` toward `direction` (a non-zero `[x, z]` vector; magnitude doesn't matter, only heading). `angleDeg` is the full opening angle; `length` is the reach.
+- **cone** — fans out from `origin` toward `direction` (a non-zero `{ x, z }` vector; magnitude doesn't matter, only heading). `angleDeg` is the full opening angle; `length` is the reach.
 - **rect** — a line/lane from `origin` extending along `direction` for `length`, `width` wide (centered on the line).
 
-For `cone`/`rect`, `origin` and `direction` are optional (default `[0,0]` / `[0,1]`) and can be
+For `cone`/`rect`, `origin` and `direction` are optional (default `{ x: 0, z: 0 }` / `{ x: 0, z: 1 }`) and can be
 left out when the event uses [`anchor`/`directionFrom`](#boss-anchored-cleaves-anchor--directionfrom) to
 bind them to the boss.
 
@@ -1255,7 +1255,7 @@ behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay
     expiryDamageType: "true"
   ```
 
-- **plant** — Tele-Trouncing "plant": the HUD shows an arrow along `direction` (`[x, z]`). When the debuff **expires** it places a teleport trap (a `forced_march`) at the player's position. The trap is **inert for `armDelay` seconds** (so the placer can step off), then triggers on contact — the first player to enter its `radius` is frozen for `tpDelay` seconds (the windup), then **instantly teleported** `distance` units along `direction` (measured from their own spot, so it lands purely along the heading). An untriggered trap expires `duration` seconds after it arms. The placed arrow renders via the forced-march layer; nothing is drawn under the player during the debuff. `direction` is a non-zero `[x, z]` vector **or** the string `"option"` (defer to the combination plan — it resolves to a placeholder the plan overrides per player; see [Optional combinations](#optional-combinations)). `radius` defaults `3`, `armDelay` `3`, `duration` `10`, `tpDelay` `0.7`.
+- **plant** — Tele-Trouncing "plant": the HUD shows an arrow along `direction` (`{ x, z }`). When the debuff **expires** it places a teleport trap (a `forced_march`) at the player's position. The trap is **inert for `armDelay` seconds** (so the placer can step off), then triggers on contact — the first player to enter its `radius` is frozen for `tpDelay` seconds (the windup), then **instantly teleported** `distance` units along `direction` (measured from their own spot, so it lands purely along the heading). An untriggered trap expires `duration` seconds after it arms. The placed arrow renders via the forced-march layer; nothing is drawn under the player during the debuff. `direction` is a non-zero `{ x, z }` vector **or** the string `"option"` (defer to the combination plan — it resolves to a placeholder the plan overrides per player; see [Optional combinations](#optional-combinations)). `radius` defaults `3`, `armDelay` `3`, `duration` `10`, `tpDelay` `0.7`.
 
 ## Optional combinations
 
@@ -1286,8 +1286,8 @@ optionals:
           - [left, up]
 ```
 
-- Directions are cardinal **constants**: `up` = `[0, 1]` (north), `down` = `[0, -1]`, `left` =
-  `[-1, 0]`, `right` = `[1, 0]` (east). Much more readable than raw `[x, z]` vectors.
+- Directions are cardinal **constants**: `up` = `{ x: 0, z: 1 }` (north), `down` = `{ x: 0, z: -1 }`, `left` =
+  `{ x: -1, z: 0 }`, `right` = `{ x: 1, z: 0 }` (east). Much more readable than raw `{ x, z }` vectors.
 - A **combo** is one direction per plant slot. By default, plant debuffs use slots in landing order
   (so `["up", "right"]` = first plant heads north, second plant heads east).
 - `debuffOrder` optionally maps plant debuff application order to combo slot. For example, `[1, 0]`
@@ -1352,49 +1352,49 @@ name: Demo Encounter
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 30
 duration: 45
 
 players:
   - id: mt
     role: tank
-    spawn: [0, 8]
+    spawn: { x: 0, z: 8 }
   - id: ot
     role: tank
-    spawn: [0, -8]
+    spawn: { x: 0, z: -8 }
   - id: h1
     role: healer
-    spawn: [-8, 0]
+    spawn: { x: -8, z: 0 }
   - id: h2
     role: healer
-    spawn: [8, 0]
+    spawn: { x: 8, z: 0 }
   - id: r1
     role: dps
-    spawn: [-5.66, 5.66]
+    spawn: { x: -5.66, z: 5.66 }
   - id: r2
     role: dps
-    spawn: [5.66, 5.66]
+    spawn: { x: 5.66, z: 5.66 }
   - id: m1
     role: dps
-    spawn: [-5.66, -5.66]
+    spawn: { x: -5.66, z: -5.66 }
   - id: m2
     role: dps
-    spawn: [5.66, -5.66]
+    spawn: { x: 5.66, z: -5.66 }
 
 events:
   - id: raidwide
-    t: 3
+    time: 3
     name: Raidwide
     telegraph: 3
     damage: 30
     damageType: magical
     showCastBar: true
-    shape: { kind: circle, center: [0, 0], radius: 30 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 30 }
 
   - type: targeted
     id: tank-buster
-    t: 10
+    time: 10
     name: Tank Buster
     targetMode: closest
     role: tank
@@ -1405,12 +1405,12 @@ events:
     showCastBar: true
 
   - id: shockwave
-    t: 18
+    time: 18
     name: Shockwave
     telegraph: 4
     damage: 100
     damageType: magical
-    shape: { kind: donut, center: [0, 0], inner: 7, outer: 28 }
+    shape: { kind: donut, center: { x: 0, z: 0 }, inner: 7, outer: 28 }
 ```
 
 ## Validating

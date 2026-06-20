@@ -36,8 +36,9 @@ test("authored positions use { x, z } and mechanic timing uses time", () => {
       shape: { kind: "circle", center: { x: 4, z: -2 }, radius: 1 },
     }],
   });
-  expect(raid.events[0].t).toBe(3);
-  expect(raid.events[0].type === "aoe" && raid.events[0].shape.center).toEqual([4, -2]);
+  const event = raid.events[0];
+  expect(event.type === "aoe" && event.t).toBe(3);
+  expect(event.type === "aoe" && event.shape.kind === "circle" && event.shape.center).toEqual([4, -2]);
 });
 
 test("heal event restores living players to max HP", () => {
