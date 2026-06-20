@@ -30,16 +30,6 @@ solvers:
       spots:
         ot: { r: 0, z: 6 }
 
-    - when: { static: true }
-      startAt: 24
-      endAt: 43
-      frame: { crystal: wind }
-      spots:
-        mt: { r: 0, z: 18 }
-        h1: { r: 6, z: 16 }
-        m1: { r: -6, z: 16 }
-        m2: { r: -6, z: 16 }
-
     # Once Thunder III snapshots Exdeath, OT moves farther along the same Wind-frame line.
     - when: { mechanic: thunder-iii-get-out }
       frame: { crystal: wind }
@@ -51,6 +41,10 @@ solvers:
       endAt: 43
       frame: { crystal: wind }
       spots:
+        mt: { r: 0, z: 18 }
+        h1: { r: 6, z: 16 }
+        m1: { r: -6, z: 16 }
+        m2: { r: -6, z: 16 }
         h2: { r: 6, z: 16 }
 
     - when: { static: true } # TODO: gate on entropy-short debuff when that mechanic exists
@@ -71,26 +65,8 @@ solvers:
         h1: { r: 6, z: 16 }
         m1: { r: -6, z: 16 }
         m2: { r: -6, z: 16 }
-
-    - when: { static: true }
-      startAt: 43
-      endAt: 53
-      frame: { crystal: wind }
-      spots:
         ot: { r: 0, z: 6 }
-
-    - when: { static: true }
-      startAt: 43
-      endAt: 53
-      frame: { crystal: wind }
-      spots:
         h2: { r: 6, z: 16 }
-
-    - when: { static: true }
-      startAt: 43
-      endAt: 53
-      frame: { crystal: wind }
-      spots:
         r1: { r: 0, z: -14 }
         r2: { r: 0, z: -14 }
 
@@ -104,12 +80,6 @@ solvers:
         h1: { r: -5, z: 18 }
         m1: { r: 2, z: 3 }
         m2: { r: -11, z: 8 }
-
-    - when: { static: true }
-      startAt: 53
-      endAt: 60
-      frame: { crystal: wind }
-      spots:
         ot: { r: 7, z: 16 }
         h2: { r: 1, z: 5 }
 
