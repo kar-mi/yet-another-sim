@@ -106,7 +106,7 @@ botSolvers:
       spots: { mt: { x: 6, z: -6 }, ot: { x: 6, z: -6 }, h1: { x: 6, z: -6 }, h2: { x: 6, z: -6 }, r1: { x: -6, z: 6 }, r2: { x: -6, z: 6 }, m1: { x: -6, z: 6 }, m2: { x: -6, z: 6 } }
 
 waymarks:
-  - { mark: A, pos: { x: 0, z: 16 } }
-  - { mark: B, pos: { x: 16, z: 0 } }
-  - { mark: C, pos: { x: 0, z: -16 } }
-  - { mark: D, pos: { x: -16, z: 0 } }
+  - { mark: A, pos: [0, 16] }
+  - { mark: B, pos: [16, 0] }
+  - { mark: C, pos: [0, -16] }
+  - { mark: D, pos: [-16, 0] }

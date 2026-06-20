@@ -1,5 +1,6 @@
 import type { Vec2 } from "@shared/math";
 import { add, normalize } from "@shared/math";
+import { cos, sin } from "@shared/dmath";
 import type { GenericSolverRule, Player, World } from "@shared/types";
 
 // A live unresolved mechanic the generic solver can match against. `labels`/`group`/`pos` are carried
@@ -210,7 +211,7 @@ function frameNorth(frame: NonNullable<GenericSolverRule["frame"]>, matched: Res
       : world.boss;
     if (!boss) return undefined;
     sum = frame.boss.from === "facing"
-      ? { x: Math.sin(boss.facing), z: Math.cos(boss.facing) }
+      ? { x: sin(boss.facing), z: cos(boss.facing) }
       : boss.pos;
   }
   if (sum.x === 0 && sum.z === 0) return undefined;
