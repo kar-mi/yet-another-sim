@@ -254,6 +254,12 @@ const AOEEventSchema = z.object({
   showCastBar: z.boolean().optional(),
   showTelegraph: z.boolean().optional(),
   telegraphMode: TelegraphModeSchema.optional(),
+  // Render-only: during the final `lead` seconds before resolve, flash the AoE footprint
+  // in `color` (hex; defaults to light blue). Drawn even when showTelegraph is false.
+  flashBeforeResolve: z.object({
+    lead: z.number().positive(),
+    color: z.string().optional(),
+  }).optional(),
   bossId: z.string().min(1).optional(),
 });
 

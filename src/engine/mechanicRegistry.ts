@@ -174,6 +174,7 @@ const aoe: MechanicModule = {
           showCastBar: e.showCastBar ?? false,
           showTelegraph: e.showTelegraph ?? true,
           telegraphMode: e.telegraphMode ?? "cast",
+          flashBeforeResolve: e.flashBeforeResolve,
         });
         break;
       case "targeted":

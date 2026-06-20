@@ -6,7 +6,7 @@ players:
   mt:
     - { time: 0,  pos: { x: 0, z: 6 } }
   ot:
-    - { time: 0,  pos: { x: 4, z: 8 } }
+    - { time: 0,  pos: { x: 5, z: 0 } }
   h1:
     - { time: 0,  pos: { x: -6, z: 8 } }
   h2:
@@ -22,118 +22,99 @@ players:
 
 solvers:
   generic:
+
+    #ot moves exdeath to middle after decisive battle
+    - when: { static: true }
+      startAt: 6
+      endAt: 9
+      spots:
+        ot: { x: -4.5, z: 0 }
+
+
     # After crystals spawn, OT holds in the Wind frame between Chaos and Exdeath.
-    - when: { debuff: Fated Hero }
+    - when: { static: true }
       startAt: 24
       endAt: 36
       frame: { crystal: wind }
       spots:
-        ot: { r: 0, z: 6 }
-
-    - when: { debuff: Headwind }
-      startAt: 24
-      endAt: 43
-      frame: { crystal: wind }
-      spots:
-        mt: { r: 0, z: 18 }
-        h1: { r: 6, z: 16 }
-        m1: { r: -6, z: 16 }
-        m2: { r: -6, z: 16 }
+        ot: { r: 0, z: 4.5 }
 
     # Once Thunder III snapshots Exdeath, OT moves farther along the same Wind-frame line.
     - when: { mechanic: thunder-iii-get-out }
       frame: { crystal: wind }
       spots:
-        ot: { r: 0, z: 12 }
+        ot: { r: 0, z: 14 }
 
-    - when: { debuff: Tailwind }
+    # short debuff static spots
+    - when: { static: true }
       startAt: 24
       endAt: 43
-      frame: { crystal: wind }
-      spots:
-        h2: { r: 6, z: 16 }
-
-    - when: { debuff: Tailwind }
-      startAt: 24
-      endAt: 43
-      frame: { crystal: fire }
-      spots:
-        r1: { r: -5, z: 14 }
-        r2: { r: 5, z: 14 }
-
-    # Hold the Wind and short-crystal groups through both Thunder III tankbusters.
-    - when: { debuff: Headwind }
-      startAt: 43
-      endAt: 53
       frame: { crystal: wind }
       spots:
         mt: { r: 0, z: 18 }
         h1: { r: 6, z: 16 }
         m1: { r: -6, z: 16 }
         m2: { r: -6, z: 16 }
-
-    - when: { debuff: Tailwind }
-      startAt: 43
-      endAt: 53
-      frame: { crystal: wind }
-      spots:
-        ot: { r: 0, z: 6 }
-
-    - when: { debuff: Tailwind }
-      startAt: 43
-      endAt: 53
-      frame: { crystal: wind }
-      spots:
         h2: { r: 6, z: 16 }
 
-    - when: { debuff: Tailwind }
-      startAt: 43
-      endAt: 53
+    #ot and mt bait tb #need to fix timing
+    - when: { static: true } # 
+      startAt: 24
+      endAt: 43
+      frame: { crystal: wind }
+      spots:
+        ot: { r: 0, z: 4.5 }
+        mt: { r: 0, z: 4.5 }
+
+
+        #range go to crystal based on which debuff is the short one
+    - when: { static: true } # TODO: gate on entropy-short debuff when that mechanic exists
+      startAt: 24
+      endAt: 43
       frame: { crystal: fire }
       spots:
         r1: { r: -5, z: 14 }
         r2: { r: 5, z: 14 }
 
+
+    # range start to move during Thunder III tankbusters.
+    - when: { static: true }
+      startAt: 43
+      endAt: 53
+      frame: { crystal: wind }
+      spots:
+        r1: { r: 0, z: -14 }
+        r2: { r: 0, z: -14 }
+
     # Post-tankbuster: preposition for Chaos's outward-facing implosions and drag Exdeath to Wind.
-    - when: { debuff: Headwind }
+    - when: { static: true }
       startAt: 53
       endAt: 60
       frame: { crystal: wind }
       spots:
         mt: { r: 0, z: 18 }
+        ot: { r: 0, z: 18 }
         h1: { r: -5, z: 18 }
         m1: { r: 2, z: 3 }
         m2: { r: -11, z: 8 }
-
-    - when: { debuff: Tailwind }
-      startAt: 53
-      endAt: 60
-      frame: { crystal: wind }
-      spots:
-        ot: { r: 7, z: 16 }
         h2: { r: 1, z: 5 }
 
-    - when: { debuff: Tailwind }
+    - when: { static: true } # TODO: gate on fluid-long debuff when that mechanic exists, 
       startAt: 53
       endAt: 60
       frame: { crystal: water }
       spots:
-        r1: { r: -4, z: 14 }
+        r1: { r: -4, z: 14 } #adjust this, so that its in line with the south intercard of the boss if boss was at wind
         r2: { r: 4, z: 14 }
 
-    # Latitude/Longitude is one six-second cast sequence into two hits. Move at cast start to
-    # the diagonal intercard gaps between the side and front/back cone pairs.
-    - when: { mechanic: [latitude-implosion-left, longitude-implosion-front] }
-      frame: { crystal: wind }
-      spots:
-        mt: { r: 0, z: 18 }
-        ot: { r: 6, z: 18 }
-        h1: { r: -6, z: 18 }
-        h2: { r: 6, z: 6 }
-        r1: { r: -6, z: 6 }
-        r2: { r: 6, z: 6 }
-        m1: { r: -6, z: 6 }
-        m2: { r: 6, z: 18 }
+    # Latitude/Longitude is one six-second cast sequence into two hits.
+    # Move at cast start of cast to the intercard gap of boss, relative to current spots for the next mech
+    # should be a 2 part move, as the initial spot will be inline of intercard of chaos (does not need to be near the boss)
+      # 1. move to initial safe spot
+      # 2. move to a little bit to new spot
+    # - when: { mechanic: [latitude-implosion-left, longitude-implosion-front] }
+    #   frame: {} #fix to boss
+    #   spots:
 
     # Vacuum Wave + Umbra Smash (t:81–88): one bot baits furthest; the rest stack for knockback.
     - when: { mechanic: [vacuum-wave, umbra-smash] }
@@ -149,7 +130,7 @@ solvers:
         m2: { r: 0, z: 6 }
 
     # Vacuum Wave (t:81–88): stack west of exdeath; KB pushes group further west, stays in arena.
-    # Headwind/Tailwind facing is auto-set by botIntent.ts — no authoring needed.
+    # Headwind/Tailwind facing is not auto set, this needs to be fixed
     - when: { mechanic: vacuum-wave }
       frame: { crystal: wind }
       spot: { r: 0, z: 6 }
