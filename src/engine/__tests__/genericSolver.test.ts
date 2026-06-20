@@ -156,6 +156,30 @@ test("startAt/endAt clamp the activation window", () => {
   expect(genericSolverWaypoint(player({}), make(31))).toBeUndefined();
 });
 
+test("a bot holds its solver position after the rule window ends", () => {
+  const bot = player({
+    alive: true,
+    control: "bot",
+    pos: { x: 0, z: 0 },
+    pattern: [{ t: 0, pos: { x: 0, z: 0 } }],
+  });
+  const w = world({
+    time: 5,
+    players: [bot],
+    active: [{ id: "aoe-1", telegraphStart: 0, resolveAt: 100, resolved: false }],
+    botSolvers: {
+      generic: [{ when: { mechanic: "aoe-1" }, endAt: 10, spot: { x: 10, z: 0 } }],
+    },
+  });
+
+  expect(computeBotIntents(w, 1 / 60).p1?.move.x).toBeGreaterThan(0);
+  expect(bot.botWaypointResumeAfter).toBe(5);
+
+  w.time = 11;
+  bot.pos = { x: 10, z: 0 };
+  expect(computeBotIntents(w, 1 / 60).p1).toBeUndefined();
+});
+
 test("spots[id] wins over the shared spot, and a missing entry falls through", () => {
   const w = world({
     time: 2,

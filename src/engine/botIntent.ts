@@ -40,6 +40,7 @@ export function computeBotIntents(world: World, dt: number): Intents {
     } else {
       const solverTarget = genericSolverWaypoint(player, world);
       if (solverTarget) {
+        player.botWaypointResumeAfter = world.time;
         intent = moveIntent(player, solverTarget, dt);
       } else if (player.pattern?.length) {
         const waypoint = activeWaypoint(player.pattern, world.time, player.botWaypointResumeAfter);
