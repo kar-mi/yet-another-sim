@@ -107,14 +107,40 @@ solvers:
         r1: { r: -4, z: 14 } #adjust this, so that its in line with the south intercard of the boss if boss was at wind
         r2: { r: 4, z: 10 }
 
-    # Latitude/Longitude is one six-second cast sequence into two hits.
-    # Move at cast start of cast to the intercard gap of boss, relative to current spots for the next mech
-    # should be a 2 part move, as the initial spot will be inline of intercard of chaos (does not need to be near the boss)
-      # 1. move to initial safe spot
-      # 2. move to a little bit to new spot
-    # - when: { mechanic: [latitude-implosion-left, longitude-implosion-front] }
-    #   frame: {} #fix to boss
-    #   spots:
+    # Latitude/Longitude is one six-second cast (starts t:60) resolving as two staggered hits:
+    # Latitude (left/right = E/W cones) at t:66, then Longitude (front/back = N/S cones) at t:68.
+    # The cones reach length 44 (whole arena), so distance can't save you -- everyone sits ON an
+    # intercardinal of Chaos and steps ~2 degrees across whichever cone edge is firing (89->91).
+    # Solved in the Chaos-facing frame (north = locked facing): angle 0 = front (toward MT), 90 =
+    # right, measured clockwise. Chaos sits ~z:11.9 along its own facing, so a spot at boss-relative
+    # angle A and radius R is { r: R*sin(A), z: 11.9 + R*cos(A) }.
+    #   mt/ot/h1/h2 -> NE intercard (45): latitude 44, longitude 46.
+    #   m1/m2       -> NW intercard (315): latitude 316, longitude 314.
+    #   r1/r2       -> nearest back intercard, far out: SW(225) 224/226 and SE(135) 136/134.
+    # Latitude (E/W) fires first -> sit off the E/W cone (44/316/224/136); Longitude (N/S) -> the
+    # other side (46/314/226/134). The 2-degree straddle is a tiny move that fits the 2s gap.
+    - when: { mechanic: [latitude-implosion-left, latitude-implosion-right] }
+      frame: { boss: { id: chaos, from: facing } }
+      spots:
+        mt: { r: 4.2, z: 16.2 }
+        ot: { r: 4.9, z: 16.9 }
+        h1: { r: 5.6, z: 17.7 }
+        h2: { r: 6.3, z: 18.4 }
+        m1: { r: -4.9, z: 16.9 }
+        m2: { r: -5.6, z: 17.7 }
+        r1: { r: -11.1, z: 0.4 }
+        r2: { r: 11.1, z: 0.4 }
+    - when: { mechanic: [longitude-implosion-front, longitude-implosion-back] }
+      frame: { boss: { id: chaos, from: facing } }
+      spots:
+        mt: { r: 4.3, z: 16.1 }
+        ot: { r: 5.0, z: 16.8 }
+        h1: { r: 5.8, z: 17.5 }
+        h2: { r: 6.5, z: 18.3 }
+        m1: { r: -5.0, z: 16.8 }
+        m2: { r: -5.8, z: 17.5 }
+        r1: { r: -11.5, z: 0.8 }
+        r2: { r: 11.5, z: 0.8 }
 
     # Vacuum Wave + Umbra Smash (t:81–88): one bot baits furthest; the rest stack for knockback.
     - when: { mechanic: [vacuum-wave, umbra-smash] }

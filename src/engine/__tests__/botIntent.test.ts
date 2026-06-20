@@ -112,7 +112,7 @@ test("bowls of agony bots drag bosses around the wind crystal and survive", asyn
   expect(entropy?.type === "apply_effect" && entropy.applyEffect.behavior.kind === "burstSpread" && entropy.applyEffect.behavior.followUp?.originCrystal).toBe("fire");
   expect(dynamicFluid?.type === "apply_effect" && dynamicFluid.applyEffect.behavior.kind === "burstSpread" && dynamicFluid.applyEffect.behavior.followUp?.originCrystal).toBe("water");
   expect(umbra?.type === "targeted" && vacuum?.type === "aoe" && umbra.t + umbra.telegraph < vacuum.t + vacuum.telegraph).toBe(true);
-  expect(longitude?.type === "aoe" && longitude.t === 60 && longitude.telegraph === 8 && longitude.showCastBar === false && longitude.lockFacing === true).toBe(true);
+  expect(longitude?.type === "aoe" && longitude.t === 60 && longitude.telegraph === 8 && longitude.showCastBar === true && longitude.lockFacing === true).toBe(true);
 
   for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
     let world = createWorld(raid, seed);
@@ -153,6 +153,10 @@ test("bowls of agony bots drag bosses around the wind crystal and survive", asyn
 
     world = runTicksWithComputedBotIntents(world, Math.ceil((raid.duration - world.time) * 60));
     expect(world.players.map(player => `${player.id}:${player.alive}`)).toEqual(world.players.map(player => `${player.id}:true`));
+    // The Latitude/Longitude implosions are a boss-relative 2-part dodge; nobody should eat a cone.
+    const implosionHit = world.log.some(entry =>
+      (entry.mechanic === "Latitude Implosion" || entry.mechanic === "Longitude Implosion") && entry.event === "hit");
+    expect(implosionHit).toBe(false);
   }
 });
 
