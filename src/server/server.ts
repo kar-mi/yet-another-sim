@@ -157,6 +157,14 @@ const buildResult = await Bun.build({
   target: "browser",
   sourcemap: debugEnabled ? "inline" : "none",
   env: "disable",
+  // Babylon registers engine extensions, scene-loader plugins (glTF), and material shaders via
+  // side-effect modules that @babylonjs/core marks as tree-shakeable (sideEffects allow-list +
+  // __PURE__ annotations). Bun's DCE strips the ones it can't see referenced, and how much it
+  // strips varies by Bun version — so a build can silently lose rendering (no player models,
+  // opaque "transparent" materials) in one environment but not another. Ignoring those annotations
+  // keeps every side-effect registration without disabling real dead-code elimination; the bundle
+  // grows ~2%. This is the single switch that prevents per-feature registration whack-a-mole.
+  ignoreDCEAnnotations: true,
   define: {
     __YAS_DEBUG__: JSON.stringify(debugEnabled),
   },
