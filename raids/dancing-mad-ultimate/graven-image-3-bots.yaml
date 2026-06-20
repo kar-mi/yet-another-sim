@@ -4,44 +4,20 @@
 players:
   mt:
     - { time: 0, pos: { x: 0, z: -4 } }
-    - { time: 14, pos: { x: -5, z: 5 } }
-    - { time: 25, pos: { x: 0, z: 8 } }
   ot:
     - { time: 0, pos: { x: 0, z: -4 } }
-    - { time: 14, pos: { x: -5, z: 5 } }
-    - { time: 25, pos: { x: -8, z: 0 } }
   h1:
     - { time: 0, pos: { x: 0, z: -4 } }
-    - { time: 14, pos: { x: -5, z: 5 } }
-    - { time: 25, pos: { x: -3, z: -6.5 } }
-    - { time: 28, pos: { x: -3, z: -15 } }
-    - { time: 29, pos: { x: 0, z: -15 } }
   h2:
     - { time: 0, pos: { x: 0, z: -4 } }
-    - { time: 14, pos: { x: -5, z: 5 } }
-    - { time: 25, pos: { x: 6.5, z: 3 } }
-    - { time: 28, pos: { x: 15, z: 3 } }
-    - { time: 29, pos: { x: 15, z: 0 } }
   r1:
     - { time: 0, pos: { x: 0, z: -4 } }
-    - { time: 14, pos: { x: 5, z: -5 } }
-    - { time: 25, pos: { x: -3, z: 6.5 } }
-    - { time: 28, pos: { x: -3, z: 15 } }
-    - { time: 29, pos: { x: 0, z: 15 } }
   r2:
     - { time: 0, pos: { x: 0, z: -4 } }
-    - { time: 14, pos: { x: 5, z: -5 } }
-    - { time: 25, pos: { x: -6.5, z: 3 } }
-    - { time: 28, pos: { x: -15, z: 3 } }
-    - { time: 29, pos: { x: -15, z: 0 } }
   m1:
     - { time: 0, pos: { x: 0, z: -4 } }
-    - { time: 14, pos: { x: 5, z: -5 } }
-    - { time: 25, pos: { x: 0, z: -8 } }
   m2:
     - { time: 0, pos: { x: 0, z: -4 } }
-    - { time: 14, pos: { x: 5, z: -5 } }
-    - { time: 25, pos: { x: 8, z: 0 } }
 
 solvers:
   # Generic, data-driven rules in priority order: plant arrows, then Mystery Magic 3 fire/lightning,
@@ -105,3 +81,18 @@ solvers:
     - when: { debuff: Double Trouble, role: dps }
       startAt: 20
       spot: { x: 7, z: -8 }
+
+    # Timeline fallbacks. Keep newest first: a static rule remains active after startAt, and a bot
+    # omitted from a partial phase falls through to its most recent complete formation.
+    - when: { static: true }
+      startAt: 29
+      spots: { h1: { x: 0, z: -15 }, h2: { x: 15, z: 0 }, r1: { x: 0, z: 15 }, r2: { x: -15, z: 0 } }
+    - when: { static: true }
+      startAt: 28
+      spots: { h1: { x: -3, z: -15 }, h2: { x: 15, z: 3 }, r1: { x: -3, z: 15 }, r2: { x: -15, z: 3 } }
+    - when: { static: true }
+      startAt: 25
+      spots: { mt: { x: 0, z: 8 }, ot: { x: -8, z: 0 }, h1: { x: -3, z: -6.5 }, h2: { x: 6.5, z: 3 }, r1: { x: -3, z: 6.5 }, r2: { x: -6.5, z: 3 }, m1: { x: 0, z: -8 }, m2: { x: 8, z: 0 } }
+    - when: { static: true }
+      startAt: 14
+      spots: { mt: { x: -5, z: 5 }, ot: { x: -5, z: 5 }, h1: { x: -5, z: 5 }, h2: { x: -5, z: 5 }, r1: { x: 5, z: -5 }, r2: { x: 5, z: -5 }, m1: { x: 5, z: -5 }, m2: { x: 5, z: -5 } }
