@@ -73,6 +73,11 @@ export type BotSolvers = {
 export type DamageType = "physical" | "magical" | "true";
 export type TelegraphMode = "cast" | "resolve";
 
+// Render-only: during the final `lead` seconds before resolve, flash the AoE footprint
+// in `color` (hex; defaults to light blue) as a just-in-time tell. Drawn even when
+// showTelegraph is false. Does not affect simulation timing or damage.
+export type FlashBeforeResolve = { lead: number; color?: string };
+
 export type EffectBehavior =
   | { kind: "none" }
   | { kind: "vuln"; damageType: "physical" | "magical"; multiplier: number }
@@ -265,6 +270,8 @@ export type ActiveMechanic = {
   // Optional post-resolve visual linger override. Used by instant resolved visuals that would
   // otherwise only survive one simulation tick.
   lingerFor?: number;
+  // Render-only: flash the footprint in this color for the final `lead` seconds before the hit.
+  flashBeforeResolve?: FlashBeforeResolve;
 };
 
 export type PendingEvent = {
@@ -294,6 +301,7 @@ export type PendingEvent = {
   showCastBar: boolean;
   showTelegraph: boolean;
   telegraphMode: TelegraphMode;
+  flashBeforeResolve?: FlashBeforeResolve;
 };
 
 export type PendingTargetedEvent = {

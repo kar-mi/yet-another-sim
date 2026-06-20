@@ -80,6 +80,7 @@ export function promotePending(
         showCastBar: event.showCastBar,
         showTelegraph: event.deferred ? false : event.showTelegraph,
         telegraphMode: event.telegraphMode,
+        flashBeforeResolve: event.flashBeforeResolve,
       });
     } else {
       remaining.push(event);
