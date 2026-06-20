@@ -5,35 +5,35 @@ name: Near & Far Bait
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 25
 duration: 32
 
 players:
   - id: mt
     role: tank
-    spawn: [0, 8]
+    spawn: { x: 0, z: 8 }
   - id: ot
     role: tank
-    spawn: [0, -8]
+    spawn: { x: 0, z: -8 }
   - id: h1
     role: healer
-    spawn: [-8, 0]
+    spawn: { x: -8, z: 0 }
   - id: h2
     role: healer
-    spawn: [8, 0]
+    spawn: { x: 8, z: 0 }
   - id: r1
     role: dps
-    spawn: [-5.66, 5.66]
+    spawn: { x: -5.66, z: 5.66 }
   - id: r2
     role: dps
-    spawn: [5.66, 5.66]
+    spawn: { x: 5.66, z: 5.66 }
   - id: m1
     role: dps
-    spawn: [-5.66, -5.66]
+    spawn: { x: -5.66, z: -5.66 }
   - id: m2
     role: dps
-    spawn: [5.66, -5.66]
+    spawn: { x: 5.66, z: -5.66 }
 
 # Shared targeted-bait defaults.
 _baitBase: &baitBase
@@ -44,7 +44,7 @@ _baitBase: &baitBase
 events:
   - <<: *baitBase
     id: near-bait
-    t: 4
+    time: 4
     name: Near Bait
     targetMode: closest
     radius: 5
@@ -53,7 +53,7 @@ events:
 
   - <<: *baitBase
     id: far-bait
-    t: 10
+    time: 10
     name: Far Bait
     targetMode: furthest
     radius: 5
@@ -63,7 +63,7 @@ events:
   # Role-filtered: snipes the furthest healer and applies a heavy vuln.
   - <<: *baitBase
     id: healer-snipe-furthest
-    t: 16
+    time: 16
     name: Healer Snipe (Furthest)
     targetMode: furthest
     role: healer
@@ -78,7 +78,7 @@ events:
 
   - <<: *baitBase
     id: tank-buster-closest-tank
-    t: 23
+    time: 23
     name: Tank Buster (Closest Tank)
     targetMode: closest
     role: tank

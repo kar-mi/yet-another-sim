@@ -5,7 +5,7 @@ name: RNG Stack Test
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 30
 duration: 30
 botPatterns: rng-stack-bots
@@ -13,28 +13,28 @@ botPatterns: rng-stack-bots
 players:
   - id: mt
     role: tank
-    spawn: [0, 4]
+    spawn: { x: 0, z: 4 }
   - id: ot
     role: tank
-    spawn: [0, -4]
+    spawn: { x: 0, z: -4 }
   - id: h1
     role: healer
-    spawn: [-4, 4]
+    spawn: { x: -4, z: 4 }
   - id: h2
     role: healer
-    spawn: [4, -4]
+    spawn: { x: 4, z: -4 }
   - id: r1
     role: dps
-    spawn: [-5.66, 5.66]
+    spawn: { x: -5.66, z: 5.66 }
   - id: r2
     role: dps
-    spawn: [5.66, 5.66]
+    spawn: { x: 5.66, z: 5.66 }
   - id: m1
     role: dps
-    spawn: [-5.66, -5.66]
+    spawn: { x: -5.66, z: -5.66 }
   - id: m2
     role: dps
-    spawn: [5.66, -5.66]
+    spawn: { x: 5.66, z: -5.66 }
 
 # Shared stack defaults.
 _stackBase: &stackBase
@@ -51,7 +51,7 @@ events:
   # First stack — rng picks which group is marked.
   - <<: *stackBase
     id: stack-1
-    t: 4
+    time: 4
     name: Shared Sentence
     rng: true
 
@@ -59,5 +59,5 @@ events:
   - <<: *stackBase
     id: stack-2
     link: stack-1
-    t: 12
+    time: 12
     name: Shared Sentence (Repeat)

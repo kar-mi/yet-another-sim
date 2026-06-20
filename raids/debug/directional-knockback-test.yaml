@@ -9,35 +9,35 @@ name: Directional Knockback Test
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 20
 duration: 55
 
 players:
   - id: mt
     role: tank
-    spawn: [0, 10]
+    spawn: { x: 0, z: 10 }
   - id: ot
     role: tank
-    spawn: [0, -10]
+    spawn: { x: 0, z: -10 }
   - id: h1
     role: healer
-    spawn: [-10, 0]
+    spawn: { x: -10, z: 0 }
   - id: h2
     role: healer
-    spawn: [10, 0]
+    spawn: { x: 10, z: 0 }
   - id: r1
     role: dps
-    spawn: [-7, 7]
+    spawn: { x: -7, z: 7 }
   - id: r2
     role: dps
-    spawn: [7, 7]
+    spawn: { x: 7, z: 7 }
   - id: m1
     role: dps
-    spawn: [-7, -7]
+    spawn: { x: -7, z: -7 }
   - id: m2
     role: dps
-    spawn: [7, -7]
+    spawn: { x: 7, z: -7 }
 
 _headwind: &headwind
   name: Headwind
@@ -65,60 +65,60 @@ _shockwave: &shockwave
   damage: 20
   damageType: physical
   showCastBar: true
-  shape: { kind: circle, center: [0, 0], radius: 20 }
+  shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
   knockback: { distance: 10 }
 
 events:
   # Round 1: mixed — tanks+healers face in (Headwind), DPS face out (Tailwind)
   - type: apply_effect
     id: headwind-tank-1
-    t: 3
+    time: 3
     name: Apply Headwind
     role: tank
     applyEffect: *headwind
 
   - type: apply_effect
     id: headwind-healer-1
-    t: 3
+    time: 3
     name: Apply Headwind
     role: healer
     applyEffect: *headwind
 
   - type: apply_effect
     id: tailwind-dps-1
-    t: 3
+    time: 3
     name: Apply Tailwind
     role: dps
     applyEffect: *tailwind
 
   - id: shockwave-1
-    t: 3
+    time: 3
     <<: *shockwave
 
   # Round 2: everyone Headwind (face toward the center)
   - type: apply_effect
     id: headwind-all-2
-    t: 21
+    time: 21
     name: Apply Headwind
     applyEffect: *headwind
 
   - id: shockwave-2
-    t: 21
+    time: 21
     <<: *shockwave
 
   # Round 3: everyone Tailwind (face away from the center)
   - type: apply_effect
     id: tailwind-all-3
-    t: 38
+    time: 38
     name: Apply Tailwind
     applyEffect: *tailwind
 
   - id: shockwave-3
-    t: 38
+    time: 38
     <<: *shockwave
 
 waymarks:
-  - { mark: A, pos: [0, 16] }
-  - { mark: B, pos: [16, 0] }
-  - { mark: C, pos: [0, -16] }
-  - { mark: D, pos: [-16, 0] }
+  - { mark: A, pos: { x: 0, z: 16 } }
+  - { mark: B, pos: { x: 16, z: 0 } }
+  - { mark: C, pos: { x: 0, z: -16 } }
+  - { mark: D, pos: { x: -16, z: 0 } }

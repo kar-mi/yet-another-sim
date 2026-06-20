@@ -5,35 +5,35 @@ name: Positional Test
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 25
 duration: 30
 
 players:
   - id: mt
     role: tank
-    spawn: [0, 18]
+    spawn: { x: 0, z: 18 }
   - id: ot
     role: tank
-    spawn: [0, -18]
+    spawn: { x: 0, z: -18 }
   - id: h1
     role: healer
-    spawn: [-18, 0]
+    spawn: { x: -18, z: 0 }
   - id: h2
     role: healer
-    spawn: [18, 0]
+    spawn: { x: 18, z: 0 }
   - id: r1
     role: dps
-    spawn: [12, 12]
+    spawn: { x: 12, z: 12 }
   - id: r2
     role: dps
-    spawn: [-12, 12]
+    spawn: { x: -12, z: 12 }
   - id: m1
     role: dps
-    spawn: [-12, -12]
+    spawn: { x: -12, z: -12 }
   - id: m2
     role: dps
-    spawn: [12, -12]
+    spawn: { x: 12, z: -12 }
 
 # Shared cleave defaults — anchored to the boss, aimed by its facing.
 _cleaveBase: &cleaveBase
@@ -47,14 +47,14 @@ _cleaveBase: &cleaveBase
 events:
   - <<: *cleaveBase
     id: front-cleave-90
-    t: 3
+    time: 3
     name: Front Cleave (90)
     shape: { kind: cone, angleDeg: 90, length: 25 }
 
   # Offset -π/2 — cleaves the boss's left half.
   - <<: *cleaveBase
     id: left-half-cleave
-    t: 12
+    time: 12
     name: Left Half Cleave
     directionOffset: -1.5708
     shape: { kind: cone, angleDeg: 180, length: 25 }
@@ -62,13 +62,13 @@ events:
   # Offset π — rear cleave.
   - <<: *cleaveBase
     id: rear-cleave-90
-    t: 21
+    time: 21
     name: Rear Cleave (90)
     directionOffset: 3.14159
     shape: { kind: cone, angleDeg: 90, length: 25 }
 
 waymarks:
-  - { mark: A, pos: [0, 20] }
-  - { mark: B, pos: [20, 0] }
-  - { mark: C, pos: [0, -20] }
-  - { mark: D, pos: [-20, 0] }
+  - { mark: A, pos: { x: 0, z: 20 } }
+  - { mark: B, pos: { x: 20, z: 0 } }
+  - { mark: C, pos: { x: 0, z: -20 } }
+  - { mark: D, pos: { x: -20, z: 0 } }

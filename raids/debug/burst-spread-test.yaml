@@ -11,20 +11,20 @@ name: Entropy / Dynamic Fluid Test
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 20
 
 duration: 35
 
 players:
-  - { id: mt, role: tank,   spawn: [0,    10]  }
-  - { id: ot, role: tank,   spawn: [0,   -10]  }
-  - { id: h1, role: healer, spawn: [-10,   0]  }
-  - { id: h2, role: healer, spawn: [ 10,   0]  }
-  - { id: r1, role: dps,    spawn: [-7,    7]  }
-  - { id: r2, role: dps,    spawn: [ 7,    7]  }
-  - { id: m1, role: dps,    spawn: [-7,   -7]  }
-  - { id: m2, role: dps,    spawn: [ 7,   -7]  }
+  - { id: mt, role: tank,   spawn: { x: 0, z: 10 }  }
+  - { id: ot, role: tank,   spawn: { x: 0, z: -10 }  }
+  - { id: h1, role: healer, spawn: { x: -10, z: 0 }  }
+  - { id: h2, role: healer, spawn: { x: 10, z: 0 }  }
+  - { id: r1, role: dps,    spawn: { x: -7, z: 7 }  }
+  - { id: r2, role: dps,    spawn: { x: 7, z: 7 }  }
+  - { id: m1, role: dps,    spawn: { x: -7, z: -7 }  }
+  - { id: m2, role: dps,    spawn: { x: 7, z: -7 }  }
 
 # Shared debuff behaviors.
 _entropy: &entropy
@@ -72,19 +72,19 @@ _dynamicFluid: &dynamicFluid
 events:
   # Opening raidwide to prime HP.
   - id: raidwide
-    t: 2
+    time: 2
     name: Raidwide
     telegraph: 2
     damage: 10
     damageType: magical
     showCastBar: true
     showTelegraph: false
-    shape: { kind: circle, center: [0, 0], radius: 38 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 38 }
 
   # Entropy → tanks + melee DPS.
   - type: apply_effect
     id: entropy
-    t: 5
+    time: 5
     name: Entropy
     players: [mt, ot, m1, m2]
     applyEffect: *entropy
@@ -92,13 +92,13 @@ events:
   # Dynamic Fluid → healers + ranged DPS.
   - type: apply_effect
     id: dynamic-fluid
-    t: 5
+    time: 5
     name: Dynamic Fluid
     players: [h1, h2, r1, r2]
     applyEffect: *dynamicFluid
 
 waymarks:
-  - { mark: A, pos: [0,  16] }
-  - { mark: B, pos: [16,  0] }
-  - { mark: C, pos: [0, -16] }
-  - { mark: D, pos: [-16, 0] }
+  - { mark: A, pos: { x: 0, z: 16 } }
+  - { mark: B, pos: { x: 16, z: 0 } }
+  - { mark: C, pos: { x: 0, z: -16 } }
+  - { mark: D, pos: { x: -16, z: 0 } }

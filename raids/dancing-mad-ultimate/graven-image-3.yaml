@@ -6,11 +6,11 @@ arena:
   floorPlan: dmu-p1
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 20
 duration: 55
 boss:
-  pos: [0, 0]
+  pos: { x: 0, z: 0 }
   radius: 3
   ring:
     scale: 2
@@ -20,28 +20,28 @@ botPatterns: graven-image-3-bots
 players:
   - id: mt
     role: tank
-    spawn: [0, 8]
+    spawn: { x: 0, z: 8 }
   - id: ot
     role: tank
-    spawn: [0, -8]
+    spawn: { x: 0, z: -8 }
   - id: h1
     role: healer
-    spawn: [-8, 0]
+    spawn: { x: -8, z: 0 }
   - id: h2
     role: healer
-    spawn: [8, 0]
+    spawn: { x: 8, z: 0 }
   - id: r1
     role: dps
-    spawn: [-5.66, 5.66]
+    spawn: { x: -5.66, z: 5.66 }
   - id: r2
     role: dps
-    spawn: [5.66, 5.66]
+    spawn: { x: 5.66, z: 5.66 }
   - id: m1
     role: dps
-    spawn: [-5.66, -5.66]
+    spawn: { x: -5.66, z: -5.66 }
   - id: m2
     role: dps
-    spawn: [5.66, -5.66]
+    spawn: { x: 5.66, z: -5.66 }
 
 optionals:
   combinations:
@@ -67,7 +67,7 @@ events:
   # Lock the boss facing for the whole encounter.
   - type: aoe
     id: keep-boss-still
-    t: 0
+    time: 0
     name: keep_boss_still
     telegraph: 67
     damage: 0
@@ -75,11 +75,11 @@ events:
     lockFacing: true
     showCastBar: false
     showTelegraph: false
-    shape: { kind: circle, center: [0, 0], radius: 0.1 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
 
   # Teletrouncing — hands out short/long plant-arrow debuffs.
   - id: teletrouncing
-    t: 3
+    time: 3
     name: Teletrouncing
     telegraph: 5
     damage: 0
@@ -97,24 +97,24 @@ events:
           kind: debuff
           duration: 10
           behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay: 3, duration: 20, tpDelay: 1.25 }
-    shape: { kind: circle, center: [0, 0], radius: 20 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
 
   - id: graven-image
-    t: 17
+    time: 17
     name: Graven Image
     telegraph: 3
     damage: 0
     damageType: "true"
     showCastBar: true
     showTelegraph: false
-    shape: { kind: circle, center: [0, 0], radius: 0.1 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
 
   # Statues — rng decides which role group each statue links to.
   - type: line_link
     id: sleep-statue
-    t: 22
+    time: 22
     name: Left Statue (Sleep)
-    pos: [-8, 24]
+    pos: { x: -8, z: 24 }
     linkDuration: 6
     resolveAfter: 8
     rng: true
@@ -128,9 +128,9 @@ events:
     visual: { kind: statue, width: 3, height: 6, depth: 1 }
   - type: line_link
     id: confuse-statue
-    t: 22
+    time: 22
     name: Right Statue (Confuse)
-    pos: [8, 24]
+    pos: { x: 8, z: 24 }
     linkDuration: 6
     resolveAfter: 8
     link: sleep-statue
@@ -146,7 +146,7 @@ events:
   # Double Trouble — one random member per group carries the debuff.
   - type: effect_select
     id: double-trouble-dps
-    t: 0
+    time: 0
     name: Double Trouble (DPS)
     groups: [[r1, r2, m1, m2]]
     applyEffect:
@@ -157,7 +157,7 @@ events:
       behavior: { kind: burstSpread, radius: 5, damage: 10, damageType: magical, knockbackDistance: 14 }
   - type: effect_select
     id: double-trouble-support
-    t: 0
+    time: 0
     name: Double Trouble (Support)
     groups: [[mt, ot, h1, h2]]
     applyEffect:
@@ -170,7 +170,7 @@ events:
   # Sleepers burst if still asleep when this fires.
   - type: effect_burst
     id: sleeper-burst
-    t: 30
+    time: 30
     name: Sleeper Burst
     telegraph: 0.5
     effectName: Sleep
@@ -181,13 +181,13 @@ events:
 
   - type: heal
     id: raidwide-heal
-    t: 35
+    time: 35
     name: Raidwide Heal
 
   # Mystery Magic 3 — rng lightning rects (A/B variants) + fire flip.
   - type: inverse
     id: lightning-1
-    t: 43
+    time: 43
     name: Mystery Magic 3 (Lightning)
     telegraph: 5
     damage: 60
@@ -199,20 +199,20 @@ events:
     ringHeight: 3.2
     telegraphAlpha: 0.1
     shownShapes:
-      - { kind: rect, origin: [-17.929725, -10.174735], direction: [0.724049, 0.689749], width: 10, length: 40 }
-      - { kind: rect, origin: [-4.134745, -24.655715], direction: [0.724049, 0.689749], width: 10, length: 40 }
+      - { kind: rect, origin: { x: -17.929725, z: -10.174735 }, direction: { x: 0.724049, z: 0.689749 }, width: 10, length: 40 }
+      - { kind: rect, origin: { x: -4.134745, z: -24.655715 }, direction: { x: 0.724049, z: 0.689749 }, width: 10, length: 40 }
     hiddenShapes:
-      - { kind: rect, origin: [-24.827215, -2.934245], direction: [0.724049, 0.689749], width: 10, length: 40 }
-      - { kind: rect, origin: [-11.032235, -17.415225], direction: [0.724049, 0.689749], width: 10, length: 40 }
+      - { kind: rect, origin: { x: -24.827215, z: -2.934245 }, direction: { x: 0.724049, z: 0.689749 }, width: 10, length: 40 }
+      - { kind: rect, origin: { x: -11.032235, z: -17.415225 }, direction: { x: 0.724049, z: 0.689749 }, width: 10, length: 40 }
     shownShapesB:
-      - { kind: rect, origin: [17.929725, -10.174735], direction: [-0.724049, 0.689749], width: 10, length: 40 }
-      - { kind: rect, origin: [4.134745, -24.655715], direction: [-0.724049, 0.689749], width: 10, length: 40 }
+      - { kind: rect, origin: { x: 17.929725, z: -10.174735 }, direction: { x: -0.724049, z: 0.689749 }, width: 10, length: 40 }
+      - { kind: rect, origin: { x: 4.134745, z: -24.655715 }, direction: { x: -0.724049, z: 0.689749 }, width: 10, length: 40 }
     hiddenShapesB:
-      - { kind: rect, origin: [24.827215, -2.934245], direction: [-0.724049, 0.689749], width: 10, length: 40 }
-      - { kind: rect, origin: [11.032235, -17.415225], direction: [-0.724049, 0.689749], width: 10, length: 40 }
+      - { kind: rect, origin: { x: 24.827215, z: -2.934245 }, direction: { x: -0.724049, z: 0.689749 }, width: 10, length: 40 }
+      - { kind: rect, origin: { x: 11.032235, z: -17.415225 }, direction: { x: -0.724049, z: 0.689749 }, width: 10, length: 40 }
   - type: spread_stack
     id: fire-1
-    t: 43
+    time: 43
     name: Mystery Magic 3 (Fire)
     telegraph: 5
     shown: random
@@ -229,11 +229,11 @@ events:
     showCastBar: true
 
 waymarks:
-  - { mark: A, pos: [0, 12] }
-  - { mark: B, pos: [12, 0] }
-  - { mark: C, pos: [0, -12] }
-  - { mark: D, pos: [-12, 0] }
-  - { mark: "1", pos: [-6, 6] }
-  - { mark: "2", pos: [6, 6] }
-  - { mark: "3", pos: [6, -6] }
-  - { mark: "4", pos: [-6, -6] }
+  - { mark: A, pos: { x: 0, z: 12 } }
+  - { mark: B, pos: { x: 12, z: 0 } }
+  - { mark: C, pos: { x: 0, z: -12 } }
+  - { mark: D, pos: { x: -12, z: 0 } }
+  - { mark: "1", pos: { x: -6, z: 6 } }
+  - { mark: "2", pos: { x: 6, z: 6 } }
+  - { mark: "3", pos: { x: 6, z: -6 } }
+  - { mark: "4", pos: { x: -6, z: -6 } }

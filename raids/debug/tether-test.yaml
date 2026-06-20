@@ -5,51 +5,51 @@ name: Tether Test
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 30
 duration: 60
 
 players:
   - id: mt
     role: tank
-    spawn: [0, 8]
+    spawn: { x: 0, z: 8 }
   - id: ot
     role: tank
-    spawn: [0, -8]
+    spawn: { x: 0, z: -8 }
   - id: h1
     role: healer
-    spawn: [-8, 0]
+    spawn: { x: -8, z: 0 }
   - id: h2
     role: healer
-    spawn: [8, 0]
+    spawn: { x: 8, z: 0 }
   - id: r1
     role: dps
-    spawn: [-5.66, 5.66]
+    spawn: { x: -5.66, z: 5.66 }
   - id: r2
     role: dps
-    spawn: [5.66, 5.66]
+    spawn: { x: 5.66, z: 5.66 }
   - id: m1
     role: dps
-    spawn: [-5.66, -5.66]
+    spawn: { x: -5.66, z: -5.66 }
   - id: m2
     role: dps
-    spawn: [5.66, -5.66]
+    spawn: { x: 5.66, z: -5.66 }
 
 events:
   - type: tether_source
     id: void-chain
-    t: 5
+    time: 5
     name: Void Chain
-    pos: [0, -14]
+    pos: { x: 0, z: -14 }
     finalizeAfter: 7
     tetherKind: debuff
     buffName: Doom
 
   - type: tether_source
     id: life-bond
-    t: 25
+    time: 25
     name: Life Bond
-    pos: [10, -10]
+    pos: { x: 10, z: -10 }
     finalizeAfter: 6
     tetherKind: buff
     buffName: Regen

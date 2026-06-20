@@ -12,48 +12,48 @@ name: Earthquake Test
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 20
 duration: 30
 
 players:
   - id: mt
     role: tank
-    spawn: [0, 8]
+    spawn: { x: 0, z: 8 }
   - id: ot
     role: tank
-    spawn: [0, -8]
+    spawn: { x: 0, z: -8 }
   - id: h1
     role: healer
-    spawn: [-8, 0]
+    spawn: { x: -8, z: 0 }
   - id: h2
     role: healer
-    spawn: [8, 0]
+    spawn: { x: 8, z: 0 }
   - id: r1
     role: dps
-    spawn: [-5.66, 5.66]
+    spawn: { x: -5.66, z: 5.66 }
   - id: r2
     role: dps
-    spawn: [5.66, 5.66]
+    spawn: { x: 5.66, z: 5.66 }
   - id: m1
     role: dps
-    spawn: [-5.66, -5.66]
+    spawn: { x: -5.66, z: -5.66 }
   - id: m2
     role: dps
-    spawn: [5.66, -5.66]
+    spawn: { x: 5.66, z: -5.66 }
 
 events:
   # 1. Drop all HP to 1.
   - type: set_hp
     id: set-hp-1
-    t: 2
+    time: 2
     name: Seismic Crush
     amount: 1
 
   # 2a. Primordial Crust on tanks — cleansed by surviving a lethal hit.
   - type: apply_effect
     id: apply-crust
-    t: 3
+    time: 3
     name: Apply Primordial Crust
     role: tank
     applyEffect:
@@ -69,7 +69,7 @@ events:
   # 2b. Accretion on healers — cleansed by being healed to full.
   - type: apply_effect
     id: apply-accretion
-    t: 3
+    time: 3
     name: Apply Accretion
     role: healer
     applyEffect:
@@ -84,17 +84,17 @@ events:
   # 3. Full-raid heal — cleanses Accretion on the healers (hp → maxHp before expiry).
   - type: heal
     id: heal-1
-    t: 8
+    time: 8
     name: Earthen Favor
 
   # 4. Lethal AOE on the tank positions — cleanses Primordial Crust (leaves them at 1 HP).
   - id: crust-cleanse-aoe
-    t: 10
+    time: 10
     name: Aftershock
     telegraph: 1
     damage: 999999
     damageType: "true"
-    shape: { kind: circle, center: [0, 0], radius: 20 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
 
   # 5. Accretion expiry at t=14 — any uncleansed carrier takes the lethal burst.
   # (The debuff was applied at t=3 with duration 11, so it expires at t=14.)

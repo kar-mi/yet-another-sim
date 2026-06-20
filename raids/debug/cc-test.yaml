@@ -5,40 +5,40 @@ name: CC Test
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 30
 duration: 45
 
 players:
   - id: mt
     role: tank
-    spawn: [0, 7]
+    spawn: { x: 0, z: 7 }
   - id: ot
     role: tank
-    spawn: [7, 0]
+    spawn: { x: 7, z: 0 }
   - id: h1
     role: healer
-    spawn: [0, -7]
+    spawn: { x: 0, z: -7 }
   - id: h2
     role: healer
-    spawn: [-7, 0]
+    spawn: { x: -7, z: 0 }
   - id: r1
     role: dps
-    spawn: [0, 20]
+    spawn: { x: 0, z: 20 }
   - id: r2
     role: dps
-    spawn: [20, 0]
+    spawn: { x: 20, z: 0 }
   - id: m1
     role: dps
-    spawn: [0, -20]
+    spawn: { x: 0, z: -20 }
   - id: m2
     role: dps
-    spawn: [-20, 0]
+    spawn: { x: -20, z: 0 }
 
 # Shared forced-march trap defaults — merged into each march event.
 _marchBase: &marchBase
   type: forced_march
-  t: 4.5
+  time: 4.5
   radius: 1.2
   distance: 8
   duration: 25
@@ -48,7 +48,7 @@ _marchBase: &marchBase
 events:
   # Sleep the supports standing near the center.
   - id: slumber-supports
-    t: 3
+    time: 3
     name: Slumber (supports)
     telegraph: 1.5
     damage: 0
@@ -58,11 +58,11 @@ events:
       kind: debuff
       duration: 22
       behavior: { kind: sleep }
-    shape: { kind: circle, center: [0, 0], radius: 9 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 9 }
 
   # Confuse the dps standing in the outer donut.
   - id: confusion-dps
-    t: 3
+    time: 3
     name: Confusion (dps)
     telegraph: 1.5
     damage: 0
@@ -72,26 +72,26 @@ events:
       kind: debuff
       duration: 25
       behavior: { kind: confusion, damage: 50, damageType: "true", radius: 1.5 }
-    shape: { kind: donut, center: [0, 0], inner: 12, outer: 25 }
+    shape: { kind: donut, center: { x: 0, z: 0 }, inner: 12, outer: 25 }
 
   # Forced-march traps on the four cardinals.
   - <<: *marchBase
     id: march-n
     name: March N
-    pos: [0, 14]
-    direction: [0, 1]
+    pos: { x: 0, z: 14 }
+    direction: { x: 0, z: 1 }
   - <<: *marchBase
     id: march-e
     name: March E
-    pos: [14, 0]
-    direction: [1, 0]
+    pos: { x: 14, z: 0 }
+    direction: { x: 1, z: 0 }
   - <<: *marchBase
     id: march-s
     name: March S
-    pos: [0, -14]
-    direction: [0, -1]
+    pos: { x: 0, z: -14 }
+    direction: { x: 0, z: -1 }
   - <<: *marchBase
     id: march-w
     name: March W
-    pos: [-14, 0]
-    direction: [-1, 0]
+    pos: { x: -14, z: 0 }
+    direction: { x: -1, z: 0 }

@@ -4,49 +4,49 @@ name: Demo Encounter
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 30
 duration: 45
 
 players:
   - id: mt
     role: tank
-    spawn: [0, 8]
+    spawn: { x: 0, z: 8 }
   - id: ot
     role: tank
-    spawn: [0, -8]
+    spawn: { x: 0, z: -8 }
   - id: h1
     role: healer
-    spawn: [-8, 0]
+    spawn: { x: -8, z: 0 }
   - id: h2
     role: healer
-    spawn: [8, 0]
+    spawn: { x: 8, z: 0 }
   - id: r1
     role: dps
-    spawn: [-5.66, 5.66]
+    spawn: { x: -5.66, z: 5.66 }
   - id: r2
     role: dps
-    spawn: [5.66, 5.66]
+    spawn: { x: 5.66, z: 5.66 }
   - id: m1
     role: dps
-    spawn: [-5.66, -5.66]
+    spawn: { x: -5.66, z: -5.66 }
   - id: m2
     role: dps
-    spawn: [5.66, -5.66]
+    spawn: { x: 5.66, z: -5.66 }
 
 events:
   - id: raidwide
-    t: 3
+    time: 3
     name: Raidwide
     telegraph: 3
     damage: 30
     damageType: magical
     showCastBar: true
-    shape: { kind: circle, center: [0, 0], radius: 30 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 30 }
 
   - type: targeted
     id: tank-buster
-    t: 10
+    time: 10
     name: Tank Buster
     targetMode: closest
     role: tank
@@ -57,9 +57,9 @@ events:
     showCastBar: true
 
   - id: shockwave
-    t: 18
+    time: 18
     name: Shockwave
     telegraph: 4
     damage: 100
     damageType: magical
-    shape: { kind: donut, center: [0, 0], inner: 7, outer: 28 }
+    shape: { kind: donut, center: { x: 0, z: 0 }, inner: 7, outer: 28 }

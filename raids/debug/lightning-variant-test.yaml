@@ -5,7 +5,7 @@ name: Lightning Variant Test
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 20
 duration: 30
 botPatterns: lightning-variant-test-bots
@@ -13,28 +13,28 @@ botPatterns: lightning-variant-test-bots
 players:
   - id: mt
     role: tank
-    spawn: [0, 0]
+    spawn: { x: 0, z: 0 }
   - id: ot
     role: tank
-    spawn: [8, 8]
+    spawn: { x: 8, z: 8 }
   - id: h1
     role: healer
-    spawn: [-8, 8]
+    spawn: { x: -8, z: 8 }
   - id: h2
     role: healer
-    spawn: [8, -8]
+    spawn: { x: 8, z: -8 }
   - id: r1
     role: dps
-    spawn: [-8, -8]
+    spawn: { x: -8, z: -8 }
   - id: r2
     role: dps
-    spawn: [12, 0]
+    spawn: { x: 12, z: 0 }
   - id: m1
     role: dps
-    spawn: [-12, 0]
+    spawn: { x: -12, z: 0 }
   - id: m2
     role: dps
-    spawn: [0, 12]
+    spawn: { x: 0, z: 12 }
 
 # Lightning rect geometry — variant A and its mirrored variant B.
 _lightningBase: &lightningBase
@@ -49,17 +49,17 @@ _lightningBase: &lightningBase
   ringColor: "#a855f7"
   ringHeight: 3.2
   shownShapes:
-    - { kind: rect, origin: [-17.929725, -10.174735], direction: [0.724049, 0.689749], width: 10, length: 40 }
-    - { kind: rect, origin: [-4.134745, -24.655715], direction: [0.724049, 0.689749], width: 10, length: 40 }
+    - { kind: rect, origin: { x: -17.929725, z: -10.174735 }, direction: { x: 0.724049, z: 0.689749 }, width: 10, length: 40 }
+    - { kind: rect, origin: { x: -4.134745, z: -24.655715 }, direction: { x: 0.724049, z: 0.689749 }, width: 10, length: 40 }
   hiddenShapes:
-    - { kind: rect, origin: [-24.827215, -2.934245], direction: [0.724049, 0.689749], width: 10, length: 40 }
-    - { kind: rect, origin: [-11.032235, -17.415225], direction: [0.724049, 0.689749], width: 10, length: 40 }
+    - { kind: rect, origin: { x: -24.827215, z: -2.934245 }, direction: { x: 0.724049, z: 0.689749 }, width: 10, length: 40 }
+    - { kind: rect, origin: { x: -11.032235, z: -17.415225 }, direction: { x: 0.724049, z: 0.689749 }, width: 10, length: 40 }
   shownShapesB:
-    - { kind: rect, origin: [17.929725, -10.174735], direction: [-0.724049, 0.689749], width: 10, length: 40 }
-    - { kind: rect, origin: [4.134745, -24.655715], direction: [-0.724049, 0.689749], width: 10, length: 40 }
+    - { kind: rect, origin: { x: 17.929725, z: -10.174735 }, direction: { x: -0.724049, z: 0.689749 }, width: 10, length: 40 }
+    - { kind: rect, origin: { x: 4.134745, z: -24.655715 }, direction: { x: -0.724049, z: 0.689749 }, width: 10, length: 40 }
   hiddenShapesB:
-    - { kind: rect, origin: [24.827215, -2.934245], direction: [-0.724049, 0.689749], width: 10, length: 40 }
-    - { kind: rect, origin: [11.032235, -17.415225], direction: [-0.724049, 0.689749], width: 10, length: 40 }
+    - { kind: rect, origin: { x: 24.827215, z: -2.934245 }, direction: { x: -0.724049, z: 0.689749 }, width: 10, length: 40 }
+    - { kind: rect, origin: { x: 11.032235, z: -17.415225 }, direction: { x: -0.724049, z: 0.689749 }, width: 10, length: 40 }
 
 # Fire spread/stack flip cast alongside each lightning.
 _fireBase: &fireBase
@@ -82,7 +82,7 @@ events:
   # Lock the boss facing for the whole encounter.
   - type: aoe
     id: stillness
-    t: 0
+    time: 0
     name: Stillness
     telegraph: 25
     damage: 0
@@ -90,36 +90,36 @@ events:
     lockFacing: true
     showCastBar: false
     showTelegraph: false
-    shape: { kind: circle, center: [0, 0], radius: 0.1 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
 
   # Three repeats of the lightning + fire pair.
   - <<: *lightningBase
     id: lightning-1
-    t: 4
+    time: 4
   - <<: *fireBase
     id: fire-1
-    t: 4
+    time: 4
 
   - <<: *lightningBase
     id: lightning-2
-    t: 12
+    time: 12
   - <<: *fireBase
     id: fire-2
-    t: 12
+    time: 12
 
   - <<: *lightningBase
     id: lightning-3
-    t: 20
+    time: 20
   - <<: *fireBase
     id: fire-3
-    t: 20
+    time: 20
 
 waymarks:
-  - { mark: A, pos: [0, 12] }
-  - { mark: B, pos: [12, 0] }
-  - { mark: C, pos: [0, -12] }
-  - { mark: D, pos: [-12, 0] }
-  - { mark: "1", pos: [-6, 6] }
-  - { mark: "2", pos: [6, 6] }
-  - { mark: "3", pos: [6, -6] }
-  - { mark: "4", pos: [-6, -6] }
+  - { mark: A, pos: { x: 0, z: 12 } }
+  - { mark: B, pos: { x: 12, z: 0 } }
+  - { mark: C, pos: { x: 0, z: -12 } }
+  - { mark: D, pos: { x: -12, z: 0 } }
+  - { mark: "1", pos: { x: -6, z: 6 } }
+  - { mark: "2", pos: { x: 6, z: 6 } }
+  - { mark: "3", pos: { x: 6, z: -6 } }
+  - { mark: "4", pos: { x: -6, z: -6 } }

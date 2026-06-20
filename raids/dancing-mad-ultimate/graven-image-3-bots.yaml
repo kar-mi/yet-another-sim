@@ -3,45 +3,45 @@
 
 players:
   mt:
-    - { t: 0, pos: [0, -4] }
-    - { t: 14, pos: [-5, 5] }
-    - { t: 25, pos: [0, 8] }
+    - { time: 0, pos: { x: 0, z: -4 } }
+    - { time: 14, pos: { x: -5, z: 5 } }
+    - { time: 25, pos: { x: 0, z: 8 } }
   ot:
-    - { t: 0, pos: [0, -4] }
-    - { t: 14, pos: [-5, 5] }
-    - { t: 25, pos: [-8, 0] }
+    - { time: 0, pos: { x: 0, z: -4 } }
+    - { time: 14, pos: { x: -5, z: 5 } }
+    - { time: 25, pos: { x: -8, z: 0 } }
   h1:
-    - { t: 0, pos: [0, -4] }
-    - { t: 14, pos: [-5, 5] }
-    - { t: 25, pos: [-3, -6.5] }
-    - { t: 28, pos: [-3, -15] }
-    - { t: 29, pos: [0, -15] }
+    - { time: 0, pos: { x: 0, z: -4 } }
+    - { time: 14, pos: { x: -5, z: 5 } }
+    - { time: 25, pos: { x: -3, z: -6.5 } }
+    - { time: 28, pos: { x: -3, z: -15 } }
+    - { time: 29, pos: { x: 0, z: -15 } }
   h2:
-    - { t: 0, pos: [0, -4] }
-    - { t: 14, pos: [-5, 5] }
-    - { t: 25, pos: [6.5, 3] }
-    - { t: 28, pos: [15, 3] }
-    - { t: 29, pos: [15, 0] }
+    - { time: 0, pos: { x: 0, z: -4 } }
+    - { time: 14, pos: { x: -5, z: 5 } }
+    - { time: 25, pos: { x: 6.5, z: 3 } }
+    - { time: 28, pos: { x: 15, z: 3 } }
+    - { time: 29, pos: { x: 15, z: 0 } }
   r1:
-    - { t: 0, pos: [0, -4] }
-    - { t: 14, pos: [5, -5] }
-    - { t: 25, pos: [-3, 6.5] }
-    - { t: 28, pos: [-3, 15] }
-    - { t: 29, pos: [0, 15] }
+    - { time: 0, pos: { x: 0, z: -4 } }
+    - { time: 14, pos: { x: 5, z: -5 } }
+    - { time: 25, pos: { x: -3, z: 6.5 } }
+    - { time: 28, pos: { x: -3, z: 15 } }
+    - { time: 29, pos: { x: 0, z: 15 } }
   r2:
-    - { t: 0, pos: [0, -4] }
-    - { t: 14, pos: [5, -5] }
-    - { t: 25, pos: [-6.5, 3] }
-    - { t: 28, pos: [-15, 3] }
-    - { t: 29, pos: [-15, 0] }
+    - { time: 0, pos: { x: 0, z: -4 } }
+    - { time: 14, pos: { x: 5, z: -5 } }
+    - { time: 25, pos: { x: -6.5, z: 3 } }
+    - { time: 28, pos: { x: -15, z: 3 } }
+    - { time: 29, pos: { x: -15, z: 0 } }
   m1:
-    - { t: 0, pos: [0, -4] }
-    - { t: 14, pos: [5, -5] }
-    - { t: 25, pos: [0, -8] }
+    - { time: 0, pos: { x: 0, z: -4 } }
+    - { time: 14, pos: { x: 5, z: -5 } }
+    - { time: 25, pos: { x: 0, z: -8 } }
   m2:
-    - { t: 0, pos: [0, -4] }
-    - { t: 14, pos: [5, -5] }
-    - { t: 25, pos: [8, 0] }
+    - { time: 0, pos: { x: 0, z: -4 } }
+    - { time: 14, pos: { x: 5, z: -5 } }
+    - { time: 25, pos: { x: 8, z: 0 } }
 
 solvers:
   # Generic, data-driven rules in priority order: plant arrows, then Mystery Magic 3 fire/lightning,

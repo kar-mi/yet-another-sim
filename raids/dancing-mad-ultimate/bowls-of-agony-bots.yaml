@@ -1,24 +1,24 @@
 # Bot patterns for Bowls of Agony — survival, not perfect strategy.
-# Bots spread at t:24 to dodge Entropy/Dynamic Fluid pops and Thunder III get-out,
+# Bots spread at time:24 to dodge Entropy/Dynamic Fluid pops and Thunder III get-out,
 # then use diagonal safe zones for both Implosions, stack for Vacuum Wave + group stack.
 
 players:
   mt:
-    - { t: 0,  pos: [0, 6] }
+    - { time: 0,  pos: { x: 0, z: 6 } }
   ot:
-    - { t: 0,  pos: [4, 8] }
+    - { time: 0,  pos: { x: 4, z: 8 } }
   h1:
-    - { t: 0,  pos: [-6, 8] }
+    - { time: 0,  pos: { x: -6, z: 8 } }
   h2:
-    - { t: 0,  pos: [6, 8] }
+    - { time: 0,  pos: { x: 6, z: 8 } }
   r1:
-    - { t: 0,  pos: [-6, -8] }
+    - { time: 0,  pos: { x: -6, z: -8 } }
   r2:
-    - { t: 0,  pos: [6, -8] }
+    - { time: 0,  pos: { x: 6, z: -8 } }
   m1:
-    - { t: 0,  pos: [-4, -6] }
+    - { time: 0,  pos: { x: -4, z: -6 } }
   m2:
-    - { t: 0,  pos: [4, -6] }
+    - { time: 0,  pos: { x: 4, z: -6 } }
 
 solvers:
   generic:

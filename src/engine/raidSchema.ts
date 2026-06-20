@@ -2,8 +2,10 @@ import { z } from "zod";
 import { ROSTER, RaidIdSchema } from "@shared/protocol";
 import { BOSS_REGISTRY, BOSS_REGISTRY_IDS, DEFAULT_BOSS_ID, isBossRegistryId, type BossRegistryId } from "./bossRegistry";
 
-const Vec2Schema = z.tuple([z.number(), z.number()]);
-const WaypointSchema = z.object({ t: z.number().nonnegative(), pos: Vec2Schema });
+const Vec2Schema = z.object({ x: z.number(), z: z.number() }).strict()
+  .transform(({ x, z }) => [x, z] as [number, number]);
+const WaypointSchema = z.object({ time: z.number().nonnegative(), pos: Vec2Schema })
+  .transform(({ time, pos }) => ({ t: time, pos }));
 const EventIdSchema = z.string().min(1);
 const RoleSchema = z.enum(["tank", "healer", "dps"]);
 const DebuffMatchSchema = z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]);
@@ -96,8 +98,8 @@ const ZoneShapeSchema = z.discriminatedUnion("kind", [
 const AOEShapeSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("circle"), center: Vec2Schema, radius: z.number().positive() }),
   z.object({ kind: z.literal("donut"), center: Vec2Schema, inner: z.number().nonnegative(), outer: z.number().positive() }),
-  z.object({ kind: z.literal("cone"), origin: Vec2Schema.default([0, 0]), direction: Vec2Schema.default([0, 1]), angleDeg: z.number().positive(), length: z.number().positive() }),
-  z.object({ kind: z.literal("rect"), origin: Vec2Schema.default([0, 0]), direction: Vec2Schema.default([0, 1]), width: z.number().positive(), length: z.number().positive() }),
+  z.object({ kind: z.literal("cone"), origin: Vec2Schema.default({ x: 0, z: 0 }), direction: Vec2Schema.default({ x: 0, z: 1 }), angleDeg: z.number().positive(), length: z.number().positive() }),
+  z.object({ kind: z.literal("rect"), origin: Vec2Schema.default({ x: 0, z: 0 }), direction: Vec2Schema.default({ x: 0, z: 1 }), width: z.number().positive(), length: z.number().positive() }),
 ]).superRefine((shape, ctx) => {
   if (shape.kind === "donut" && shape.inner >= shape.outer) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "donut inner must be less than outer" });
@@ -211,7 +213,7 @@ const TelegraphModeSchema = z.enum(["cast", "resolve"]);
 const AOEEventSchema = z.object({
   type: z.literal("aoe").default("aoe"),
   id: EventIdSchema,
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   labels: z.array(z.string().min(1)).optional(), // bot-solver labels (GenericSolverRule.when.mechanic)
   group: z.string().min(1).optional(),           // bot-solver group (GenericSolverRule.when.soaks)
@@ -251,7 +253,7 @@ const AOEEventSchema = z.object({
 const TargetedEventSchema = z.object({
   type: z.literal("targeted"),
   id: EventIdSchema,
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   labels: z.array(z.string().min(1)).optional(), // bot-solver labels (GenericSolverRule.when.mechanic)
   group: z.string().min(1).optional(),           // bot-solver group (GenericSolverRule.when.soaks)
@@ -277,7 +279,7 @@ const TargetedEventSchema = z.object({
 const BaitEventSchema = z.object({
   type: z.literal("bait"),
   id: EventIdSchema,
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   labels: z.array(z.string().min(1)).optional(), // bot-solver labels (GenericSolverRule.when.mechanic)
   group: z.string().min(1).optional(),           // bot-solver group (GenericSolverRule.when.soaks)
@@ -296,7 +298,7 @@ const BaitEventSchema = z.object({
 const TetherSourceEventSchema = z.object({
   type: z.literal("tether_source"),
   id: EventIdSchema,
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   pos: Vec2Schema,
   finalizeAfter: z.number().positive(),
@@ -325,7 +327,7 @@ const LineLinkVisualSchema = z.object({
 const LineLinkEventSchema = z.object({
   type: z.literal("line_link"),
   id: EventIdSchema,
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   pos: Vec2Schema,
   resolveAfter: z.number().positive(),
@@ -353,7 +355,7 @@ const TowerVisualSchema = z.object({
 const TowerEventSchema = z.object({
   type: z.literal("tower"),
   id: EventIdSchema,
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   labels: z.array(z.string().min(1)).optional(), // bot-solver labels (GenericSolverRule.when.mechanic)
   group: z.string().min(1).optional(),           // bot-solver group (GenericSolverRule.when.soaks)
@@ -405,7 +407,7 @@ const EffectResolverEventSchema = z.object({
 const ChainEventSchema = z.object({
   type: z.literal("chain"),
   id: EventIdSchema,
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   pairs: z.array(z.tuple([z.string().min(1), z.string().min(1)])).min(1), // chained player-id pairs
   telegraph: z.number().positive(),     // cast duration (head icon + cast bar)
@@ -419,7 +421,7 @@ const ChainEventSchema = z.object({
 
 const GroupEventSchema = z.object({
   type: z.literal("group"),
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   id: EventIdSchema,
   groups: z.array(z.array(z.string().min(1)).min(1)).min(1),     // candidate groups of player ids
@@ -436,7 +438,7 @@ const GroupEventSchema = z.object({
 
 const EffectSelectEventSchema = z.object({
   type: z.literal("effect_select"),
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   id: EventIdSchema,
   groups: z.array(z.array(z.string().min(1)).min(1)).min(1),
@@ -451,7 +453,7 @@ const EffectSelectEventSchema = z.object({
 const ApplyEffectEventSchema = z.object({
   type: z.literal("apply_effect"),
   id: EventIdSchema,
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   role: RoleSchema.optional(),
   players: z.array(z.string().min(1)).min(1).optional(),
@@ -463,7 +465,7 @@ const ApplyEffectEventSchema = z.object({
 const InverseEventSchema = z.object({
   type: z.literal("inverse"),
   id: EventIdSchema,
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
   damage: z.number().nonnegative(),
@@ -492,7 +494,7 @@ const InverseEventSchema = z.object({
 const SpreadStackEventSchema = z.object({
   type: z.literal("spread_stack"),
   id: EventIdSchema,
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   telegraph: z.number().positive(),
   shown: z.enum(["spread", "stack", "random"]),     // marker drawn during the cast ("random" = seeded per pull)
@@ -523,7 +525,7 @@ const GazeVisualSchema = z.object({
 const GazeEventSchema = z.object({
   type: z.literal("gaze"),
   id: EventIdSchema,
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
   damage: z.number().nonnegative(),
@@ -541,7 +543,7 @@ const GazeEventSchema = z.object({
 const ForcedMarchEventSchema = z.object({
   type: z.literal("forced_march"),
   id: EventIdSchema,
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   pos: Vec2Schema,                         // center of the ground trigger zone
   radius: z.number().positive(),           // trigger zone radius
@@ -559,7 +561,7 @@ const ForcedMarchEventSchema = z.object({
 const EffectBurstEventSchema = z.object({
   type: z.literal("effect_burst"),
   id: EventIdSchema,
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
   effectName: z.string().min(1),                   // burst around each player carrying this effect
@@ -576,14 +578,14 @@ const EffectBurstEventSchema = z.object({
 const HealEventSchema = z.object({
   type: z.literal("heal"),
   id: EventIdSchema,
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
 });
 
 const SetHpEventSchema = z.object({
   type: z.literal("set_hp"),
   id: EventIdSchema,
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   amount: z.number().positive(),
   role: RoleSchema.optional(),
@@ -602,7 +604,7 @@ const ReassignChargeSchema = z.object({
 const ReassignEventSchema = z.object({
   type: z.literal("reassign"),
   id: EventIdSchema,
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   charges: z.array(ReassignChargeSchema).min(1),
   initial: z.literal("plan").optional(),
@@ -623,14 +625,18 @@ const ReassignEventSchema = z.object({
 const LimitCutEventSchema = z.object({
   type: z.literal("limit_cut"),
   id: EventIdSchema,
-  t: z.number().nonnegative(),
+  time: z.number().nonnegative(),
   name: z.string().min(1),
   effect: ApplyEffectSchema,
   players: z.array(z.string().min(1)).min(1).optional(),
   role: RoleSchema.optional(),
 });
 
-export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema]);
+export const EventSchema = z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema])
+  .transform(event => {
+    const { time, ...rest } = event;
+    return { ...rest, t: time };
+  });
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
@@ -687,21 +693,21 @@ const BossModelSchema = z.enum(BOSS_MODEL_NAMES);
 
 const BossSchema = z.object({
   id: z.enum(BOSS_REGISTRY_IDS).optional(),
-  pos: Vec2Schema.default([0, 0]),
+  pos: Vec2Schema.default({ x: 0, z: 0 }),
   radius: z.number().positive().optional(),
   ring: z.object({
     scale: z.number().positive().optional(),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   }).optional(),
   model: BossModelSchema.optional(),
-}).strict().default({ pos: [0, 0] });
+}).strict().default({ pos: { x: 0, z: 0 } });
 
 // Boss entry in a multi-boss `bosses:` list. Same fields as BossSchema plus a required id slug
 // and an optional aggro seed (player id whose threat is pre-seeded to the top so this boss
 // faces a specific tank from the start).
 const BossWithIdSchema = z.object({
   id: RaidIdSchema,
-  pos: Vec2Schema.default([0, 0]),
+  pos: Vec2Schema.default({ x: 0, z: 0 }),
   radius: z.number().positive().optional(),
   ring: z.object({
     scale: z.number().positive().optional(),

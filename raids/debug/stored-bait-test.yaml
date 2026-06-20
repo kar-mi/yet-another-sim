@@ -5,56 +5,56 @@ name: Stored Bait
 arena:
   zones:
     - kind: circle
-      center: [0, 0]
+      center: { x: 0, z: 0 }
       radius: 25
 duration: 36
 
 players:
   - id: mt
     role: tank
-    spawn: [0, 3]
+    spawn: { x: 0, z: 3 }
     pattern:
-      - { t: 10.5, pos: [0, -14] }
-      - { t: 19, pos: [0, 6] }
+      - { time: 10.5, pos: { x: 0, z: -14 } }
+      - { time: 19, pos: { x: 0, z: 6 } }
   - id: ot
     role: tank
-    spawn: [0, -8]
+    spawn: { x: 0, z: -8 }
     pattern:
-      - { t: 10.5, pos: [0, -14] }
-      - { t: 19, pos: [-4, 12] }
+      - { time: 10.5, pos: { x: 0, z: -14 } }
+      - { time: 19, pos: { x: -4, z: 12 } }
   - id: h1
     role: healer
-    spawn: [-8, 0]
+    spawn: { x: -8, z: 0 }
     pattern:
-      - { t: 10.5, pos: [-10, -10] }
-      - { t: 19, pos: [-10, 10] }
+      - { time: 10.5, pos: { x: -10, z: -10 } }
+      - { time: 19, pos: { x: -10, z: 10 } }
   - id: h2
     role: healer
-    spawn: [8, 0]
+    spawn: { x: 8, z: 0 }
     pattern:
-      - { t: 10.5, pos: [10, -10] }
-      - { t: 19, pos: [10, 10] }
+      - { time: 10.5, pos: { x: 10, z: -10 } }
+      - { time: 19, pos: { x: 10, z: 10 } }
   - id: r1
     role: dps
-    spawn: [-5.66, 5.66]
+    spawn: { x: -5.66, z: 5.66 }
     pattern:
-      - { t: 10.5, pos: [-8, -12] }
-      - { t: 19, pos: [-8, 12] }
+      - { time: 10.5, pos: { x: -8, z: -12 } }
+      - { time: 19, pos: { x: -8, z: 12 } }
   - id: r2
     role: dps
-    spawn: [5.66, 5.66]
+    spawn: { x: 5.66, z: 5.66 }
     pattern:
-      - { t: 10.5, pos: [8, -12] }
-      - { t: 19, pos: [8, 12] }
+      - { time: 10.5, pos: { x: 8, z: -12 } }
+      - { time: 19, pos: { x: 8, z: 12 } }
   - id: m1
     role: dps
-    spawn: [-5.66, -5.66]
+    spawn: { x: -5.66, z: -5.66 }
   - id: m2
     role: dps
-    spawn: [5.66, -5.66]
+    spawn: { x: 5.66, z: -5.66 }
     pattern:
-      - { t: 10.5, pos: [5.66, -14] }
-      - { t: 19, pos: [5.66, 12] }
+      - { time: 10.5, pos: { x: 5.66, z: -14 } }
+      - { time: 19, pos: { x: 5.66, z: 12 } }
 
 # Deferred half-arena cone stored on the boss, resolved later by a bait.
 _endingBase: &endingBase
@@ -81,21 +81,21 @@ events:
   # Front cone stored, then baited.
   - <<: *endingBase
     id: future-ending
-    t: 4
+    time: 4
     name: Future Ending
     directionOffset: 0
   - <<: *baitBase
     id: all-things-ending-1
-    t: 10
+    time: 10
     link: future-ending
 
   # Rear cone (offset π) stored, then baited.
   - <<: *endingBase
     id: past-ending
-    t: 18
+    time: 18
     name: Past Ending
     directionOffset: 3.141592653589793
   - <<: *baitBase
     id: all-things-ending-2
-    t: 24
+    time: 24
     link: past-ending
