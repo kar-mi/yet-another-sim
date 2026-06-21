@@ -71,6 +71,7 @@ export function promotePending(
         lockFacing: event.deferred ? false : event.lockFacing,
         bossStationary: event.bossStationary,
         deferred: event.deferred,
+        telegraphDuration: event.deferred ? event.telegraph : undefined,
         armed: false,
         requireFullHp: event.requireFullHp,
         anchor: event.anchor,

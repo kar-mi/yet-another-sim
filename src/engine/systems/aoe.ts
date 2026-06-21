@@ -4,9 +4,10 @@
 
 import type { TickContext } from "./context";
 import type {
-  ActiveMechanic, PendingEvent, PendingTargetedEvent, PendingBaitEvent, PendingEffectBurst,
-  Player, Role, Boss, AOEShape,
+  ActiveMechanic, PendingEvent, PendingTargetedEvent, PendingBaitEvent, PendingDashEvent, PendingEffectBurst,
+  Player, Role, Boss, AOEShape, DashDestination,
 } from "@shared/types";
+import type { Vec2 } from "@shared/math";
 
 function bossFor(bosses: Boss[], bossId?: string): Boss {
   const b = bossId ? bosses.find(b => b.id === bossId) : undefined;
@@ -48,11 +49,39 @@ function baitDirectionOffset(target: Player, directionOffsetByEffect: Record<str
   return undefined;
 }
 
+function selectDashDestination(
+  players: Player[],
+  boss: Boss,
+  destination: DashDestination,
+  time: number,
+  randomTargetId?: string,
+): Vec2 {
+  if ("to" in destination) return { ...destination.to };
+  if ("debuff" in destination) {
+    const carriers = players.filter(player => player.alive
+      && player.effects.some(effect => effect.name === destination.debuff && isEffectActiveAt(effect, time)));
+    const carrier = selectTargetPlayer(carriers, boss.pos, "closest");
+    return carrier ? { ...carrier.pos } : { ...boss.pos };
+  }
+  if (destination.bait === "random") {
+    const target = players.find(player => player.id === randomTargetId && player.alive);
+    return target ? { ...target.pos } : { ...boss.pos };
+  }
+  if (destination.bait === "aggro") {
+    const target = players.find(player => player.id === boss.currentTarget && player.alive
+      && (!destination.role || player.role === destination.role));
+    return target ? { ...target.pos } : { ...boss.pos };
+  }
+  const target = selectTargetPlayer(players, boss.pos, destination.bait, destination.role);
+  return target ? { ...target.pos } : { ...boss.pos };
+}
+
 export function resolveAoe(ctx: TickContext): {
   active: ActiveMechanic[];
   pending: PendingEvent[];
   pendingTargeted: PendingTargetedEvent[];
   pendingBaits: PendingBaitEvent[];
+  pendingDashes: PendingDashEvent[];
   pendingEffectBursts: PendingEffectBurst[];
 } {
   const { players, bosses, boss, log, time, dt, randInt } = ctx;
@@ -164,6 +193,80 @@ export function resolveAoe(ctx: TickContext): {
     }
   }
 
+  // 3e. Dashes remain pending through their windup so the landing marker can track a live target.
+  // At cast end the boss blinks, then the linked stored AOE is re-anchored and given a fresh cast.
+  const remainingPendingDashes: PendingDashEvent[] = [];
+  for (const pd of ctx.world.pendingDashes) {
+    if (pd.t > time) { remainingPendingDashes.push(pd); continue; }
+    const dashBoss = bossFor(bosses, pd.bossId);
+    const resolveAt = pd.t + pd.telegraph;
+    let randomTargetId = pd.randomTargetId;
+    const started = active.some(mechanic => mechanic.id === pd.id && !mechanic.resolved);
+
+    if (!started) {
+      if ("bait" in pd.destination && pd.destination.bait === "random") {
+        randomTargetId = selectBaitTarget(players, dashBoss, "random", pd.destination.role, randInt)?.id;
+      }
+      const initialDestination = selectDashDestination(players, dashBoss, pd.destination, time, randomTargetId);
+      // Visual-only cast controller and landing marker. Like bait's controller, these use the normal
+      // zero-damage ActiveMechanic path, including its resolve-time combat-log entries.
+      active.push({
+        id: pd.id,
+        name: pd.name,
+        labels: pd.labels,
+        group: pd.group,
+        bossId: pd.bossId,
+        shape: { kind: "circle", center: { ...dashBoss.pos }, radius: 0 },
+        telegraphStart: pd.t,
+        resolveAt,
+        damage: 0,
+        damageType: "true",
+        lockFacing: true,
+        bossStationary: true,
+        resolved: false,
+        showCastBar: pd.showCastBar,
+        showTelegraph: false,
+      });
+      active.push({
+        id: `${pd.id}-landing`,
+        name: pd.name,
+        bossId: pd.bossId,
+        shape: { kind: "circle", center: initialDestination, radius: dashBoss.radius },
+        telegraphStart: pd.t,
+        resolveAt,
+        damage: 0,
+        damageType: "true",
+        resolved: false,
+        showCastBar: false,
+        showTelegraph: true,
+      });
+    }
+
+    const destination = selectDashDestination(players, dashBoss, pd.destination, time, randomTargetId);
+    const marker = active.find(mechanic => mechanic.id === `${pd.id}-landing` && !mechanic.resolved);
+    if (marker) marker.shape = { kind: "circle", center: destination, radius: dashBoss.radius };
+
+    if (resolveAt > time) {
+      remainingPendingDashes.push({ ...pd, randomTargetId });
+      continue;
+    }
+
+    const dx = destination.x - dashBoss.pos.x;
+    const dz = destination.z - dashBoss.pos.z;
+    if (dx !== 0 || dz !== 0) dashBoss.facing = atan2(dx, dz);
+    dashBoss.pos = { ...destination };
+
+    const stored = active.find(mechanic => mechanic.id === pd.link && mechanic.deferred);
+    if (stored) {
+      stored.shape = anchorShape(dashBoss, stored.shape, stored);
+      stored.telegraphStart = time;
+      stored.resolveAt = time + (stored.telegraphDuration ?? 0);
+      stored.armed = true;
+      stored.showTelegraph = true;
+      stored.showCastBar = false;
+    }
+  }
+
   // 3. Resolve mechanics past resolveAt (FFXIV snapshot semantics)
   const stillActive: ActiveMechanic[] = [];
   for (const mechanic of active) {
@@ -269,6 +372,7 @@ export function resolveAoe(ctx: TickContext): {
     pending,
     pendingTargeted: remainingPendingTargeted,
     pendingBaits: remainingPendingBaits,
+    pendingDashes: remainingPendingDashes,
     pendingEffectBursts: remainingPendingEffectBursts,
   };
 }
