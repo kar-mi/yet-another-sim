@@ -173,7 +173,7 @@ export function initSettingsPanel(
       tab.classList.add("active");
       const target = tab.dataset.tab!;
       document.querySelectorAll<HTMLElement>("[id^='tab-']").forEach(panel => {
-        panel.style.display = panel.id === `tab-${target}` ? "" : "none";
+        panel.classList.toggle("active", panel.id === `tab-${target}`);
       });
     });
   });
@@ -192,7 +192,7 @@ export function initSettingsPanel(
       opt.textContent = `${c.type.toUpperCase()} — ${c.name}`;
       controllerSelect.appendChild(opt);
     }
-    controllerSelect.style.display = list.length > 1 ? "" : "none";
+    controllerSelect.classList.toggle("is-hidden", list.length <= 1);
 
     const info = getControllerInfo();
     if (info) {
