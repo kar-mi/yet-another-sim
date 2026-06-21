@@ -193,7 +193,7 @@ players:
 Every event has a `type` that selects its schema. `type` defaults to `"aoe"` if omitted,
 which is why many AOE examples skip it. Supported event types are `aoe`, `targeted`,
 `bait`, `tether_source`, `line_link`, `chain`, `group`, `tower`, `effect_resolver`,
-`forced_march`, `effect_burst`, `heal`, `effect_select`, `apply_effect`, `inverse`,
+`forced_march`, `divebomb`, `effect_burst`, `heal`, `effect_select`, `apply_effect`, `inverse`,
 `spread_stack`, `gaze`, and `reassign`.
 
 All damaging events share the same lifecycle: the cast begins at `t`, and **resolves** at
@@ -903,6 +903,43 @@ Actions from `raids/debug/debuff-tower-test.yaml`:
   The carrier is not hit by their own cone.
 
 See `raids/debug/debuff-tower-test.yaml` for tower-gated spread, stack, and cone examples.
+
+### `divebomb` — stepping circle across the arena
+
+A divebomb is one ground-bisected sphere that appears at `from`, disappears, and reappears at each
+successive `gap` position until it reaches `to`, then disappears. Its lifetime is derived from the
+path, `gap`, and `speed`. Only players inside the currently visible circle are hit, subject to `hitInterval`. Omitting `damage` and
+`applyEffect` makes the event visual-only and does not produce hit-log entries.
+
+| Field | Required | Meaning |
+|---|---:|---|
+| `type` | yes | `"divebomb"`. |
+| `id`, `time`, `name` | yes | Standard event fields. |
+| `from`, `to` | yes | Distinct `{ x, z }` endpoints of the corridor. |
+| `speed` | yes | Progression speed in world units per second; each step lasts `gap / speed` seconds. |
+| `size` | yes | Sphere and active collision-circle diameter. |
+| `color` | no | Six-digit hex color; defaults to `#ff5533`. |
+| `gap` | no | Distance between successive circle positions; defaults to `size * 1.5`. |
+| `damage` | no | Damage per hit. Omitted or zero means no damage. |
+| `damageType` | no | `physical`, `magical`, or `true`; defaults to `physical`. |
+| `applyEffect` | no | Status effect applied to surviving players on each hit. |
+| `hitInterval` | no | Minimum seconds between applications per player; defaults to `gap / speed`. |
+
+```yaml
+- type: divebomb
+  id: north-south
+  time: 3
+  name: North-South Divebomb
+  from: { x: 0, z: 20 }
+  to: { x: 0, z: -20 }
+  speed: 30
+  size: 3
+  color: "#ff5533"
+  damage: 40
+  damageType: physical
+```
+
+See `raids/debug/divebomb-test.yaml` for damaging, visual-only, and effect-applying examples.
 
 ### `forced_march` — ground arrow that teleports the first entrant
 

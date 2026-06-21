@@ -579,6 +579,27 @@ const ForcedMarchEventSchema = z.object({
   }
 });
 
+const DivebombEventSchema = z.object({
+  type: z.literal("divebomb"),
+  id: EventIdSchema,
+  time: z.number().nonnegative(),
+  name: z.string().min(1),
+  from: Vec2Schema,
+  to: Vec2Schema,
+  speed: z.number().positive(),
+  size: z.number().positive(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#ff5533"),
+  gap: z.number().positive().optional(),
+  damage: z.number().nonnegative().optional(),
+  damageType: z.enum(["physical", "magical", "true"]).default("physical"),
+  applyEffect: ApplyEffectSchema.optional(),
+  hitInterval: z.number().positive().optional(),
+}).superRefine((ev, ctx) => {
+  if (ev.from[0] === ev.to[0] && ev.from[1] === ev.to[1]) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["to"], message: "divebomb endpoints must be distinct" });
+  }
+});
+
 const EffectBurstEventSchema = z.object({
   type: z.literal("effect_burst"),
   id: EventIdSchema,
@@ -657,7 +678,7 @@ export const EventSchema = z.preprocess(
   value => typeof value === "object" && value !== null && "t" in value && !("time" in value)
     ? { ...value, time: value.t }
     : value,
-  z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema]),
+  z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, DivebombEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema]),
 ).transform(event => {
     if (!("time" in event)) return event;
     const { time, ...rest } = event;
