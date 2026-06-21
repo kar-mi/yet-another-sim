@@ -1,6 +1,6 @@
 import { type ClientMessage, type Frame, type ServerMessage } from "@shared/protocol";
 import type { Boss, Intent, Player, World } from "@shared/types";
-import { shortestAngleDelta } from "@shared/math";
+import { length, shortestAngleDelta, sub } from "@shared/math";
 import { LocalPredictor } from "./predictor";
 import { tick } from "../engine/sim";
 import { computeBotIntents } from "../engine/botIntent";
@@ -25,6 +25,7 @@ const RECONNECT_MAX_MS = 8000;
 const HASH_INTERVAL = 300;
 // Host sends a world snapshot this often; replay tail on late join is bounded by this interval.
 const SNAPSHOT_INTERVAL = 600;
+const BOSS_SNAP_THRESHOLD = 3;
 
 type Snapshot = { t: number; world: World };
 
@@ -387,9 +388,10 @@ function interpolatePlayer(prev: Player | undefined, next: Player, t: number): P
 }
 
 function interpolateBoss(prev: Boss, next: Boss, t: number): Boss {
+  const snap = length(sub(next.pos, prev.pos)) > BOSS_SNAP_THRESHOLD;
   return {
     ...next,
-    pos: { x: lerp(prev.pos.x, next.pos.x, t), z: lerp(prev.pos.z, next.pos.z, t) },
+    pos: snap ? next.pos : { x: lerp(prev.pos.x, next.pos.x, t), z: lerp(prev.pos.z, next.pos.z, t) },
     facing: lerpAngle(prev.facing, next.facing, t), // smooth turning (sim snaps per tick)
   };
 }

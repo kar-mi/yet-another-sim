@@ -316,6 +316,24 @@ const BaitEventSchema = z.object({
   bossId: z.string().min(1).optional(),
 });
 
+const DashEventSchema = z.object({
+  type: z.literal("dash"),
+  id: EventIdSchema,
+  time: z.number().nonnegative(),
+  name: z.string().min(1),
+  labels: z.array(z.string().min(1)).optional(),
+  group: z.string().min(1).optional(),
+  bossId: z.string().min(1).optional(),
+  telegraph: z.number().positive(),
+  link: z.string().min(1),
+  destination: z.union([
+    z.object({ to: Vec2Schema }).strict(),
+    z.object({ debuff: z.string().min(1) }).strict(),
+    z.object({ bait: z.enum(["closest", "furthest", "random", "aggro"]), role: RoleSchema.optional() }).strict(),
+  ]),
+  showCastBar: z.boolean().optional(),
+});
+
 const TetherSourceEventSchema = z.object({
   type: z.literal("tether_source"),
   id: EventIdSchema,
@@ -678,7 +696,7 @@ export const EventSchema = z.preprocess(
   value => typeof value === "object" && value !== null && "t" in value && !("time" in value)
     ? { ...value, time: value.t }
     : value,
-  z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, DivebombEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema]),
+  z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, DashEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, DivebombEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema]),
 ).transform(event => {
     if (!("time" in event)) return event;
     const { time, ...rest } = event;
@@ -1018,25 +1036,25 @@ export const RaidSchema = z.object({
     });
   });
 
-  // bait events: link (if set) must reference an earlier `aoe` with deferred:true (the stored cleave).
+  // bait/dash events must reference an earlier `aoe` with deferred:true (the stored cleave).
   const deferredAoeById = new Map<string, { t: number; index: number }>();
   raid.events.forEach((event, i) => {
     if (event.type === "aoe" && event.deferred) deferredAoeById.set(event.id, { t: event.t, index: i });
   });
   raid.events.forEach((event, i) => {
-    if (event.type !== "bait" || event.link === undefined) return;
+    if (event.type !== "bait" && event.type !== "dash") return;
     const source = deferredAoeById.get(event.link);
     if (!source) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["events", i, "link"],
-        message: `bait link "${event.link}" must reference an aoe event with deferred:true`,
+        message: `${event.type} link "${event.link}" must reference an aoe event with deferred:true`,
       });
     } else if (source.t > event.t || (source.t === event.t && source.index >= i)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["events", i, "link"],
-        message: `linked stored cleave "${event.link}" must occur earlier than the bait`,
+        message: `linked stored cleave "${event.link}" must occur earlier than the ${event.type}`,
       });
     }
   });

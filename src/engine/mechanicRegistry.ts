@@ -39,7 +39,7 @@ export type EventType = RaidEvent["type"];
 
 // The mutable pending/resolver collections createWorld populates; keys match World fields exactly.
 export type Collections = Pick<World,
-  | "pending" | "pendingTethers" | "pendingLineLinks" | "pendingTargeted" | "pendingBaits"
+  | "pending" | "pendingTethers" | "pendingLineLinks" | "pendingTargeted" | "pendingBaits" | "pendingDashes"
   | "pendingTowers" | "pendingChains" | "pendingGroups" | "pendingEffectSelects"
   | "pendingApplyEffects" | "pendingLimitCuts" | "pendingInversions" | "pendingSpreadStacks" | "pendingGazes"
   | "pendingForcedMarches" | "pendingDivebombs" | "pendingEffectBursts" | "pendingHeals" | "pendingSetHps" | "reassigns"
@@ -145,7 +145,7 @@ const chains: MechanicModule = {
   isResolved: w => w.pendingChains.length === 0 && w.chains.every(c => c.outcome !== undefined),
 };
 
-// Owns the four event types resolved by the AOE pipeline (aoe + targeted + bait + effect_burst).
+// Owns the event types resolved by the AOE pipeline.
 const aoe: MechanicModule = {
   fromEvent(e, c) {
     switch (e.type) {
@@ -215,6 +215,22 @@ const aoe: MechanicModule = {
           showCastBar: e.showCastBar ?? false,
         });
         break;
+      case "dash":
+        c.pendingDashes.push({
+          id: e.id,
+          t: e.t,
+          name: e.name,
+          labels: e.labels,
+          group: e.group,
+          bossId: e.bossId,
+          telegraph: e.telegraph,
+          link: e.link,
+          destination: "to" in e.destination
+            ? { to: toVec2(e.destination.to) }
+            : e.destination,
+          showCastBar: e.showCastBar ?? false,
+        });
+        break;
       case "effect_burst":
         c.pendingEffectBursts.push({
           id: e.id,
@@ -238,6 +254,7 @@ const aoe: MechanicModule = {
   isResolved: w => w.pending.length === 0 && w.active.every(m => m.resolved)
     && w.pendingTargeted.length === 0
     && w.pendingBaits.length === 0
+    && w.pendingDashes.length === 0
     && w.pendingEffectBursts.length === 0,
 };
 
@@ -520,6 +537,7 @@ const MODULE_FOR_TYPE = {
   aoe: aoe,
   targeted: aoe,
   bait: aoe,
+  dash: aoe,
   effect_burst: aoe,
   tower: towers,
   group: groups,

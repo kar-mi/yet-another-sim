@@ -260,6 +260,7 @@ export type ActiveMechanic = {
   // facing at arm time (see promotePending + resolveAoe).
   deferred?: boolean;
   armed?: boolean;
+  telegraphDuration?: number;
   requireFullHp?: boolean;
   anchor?: "boss";
   directionFrom?: "bossFacing";
@@ -348,6 +349,25 @@ export type PendingBaitEvent = {
   link: string;
   directionOffsetByEffect?: Record<string, number>;
   showCastBar: boolean;
+};
+
+export type DashDestination =
+  | { to: Vec2 }
+  | { debuff: string }
+  | { bait: "closest" | "furthest" | "random" | "aggro"; role?: Role };
+
+export type PendingDashEvent = {
+  id: string;
+  t: number;
+  name: string;
+  labels?: string[];
+  group?: string;
+  bossId?: string;
+  telegraph: number;
+  link: string;
+  destination: DashDestination;
+  showCastBar: boolean;
+  randomTargetId?: string;
 };
 
 // An effect-burst spawns an AOE circle on every player carrying a named effect (e.g. a burst
@@ -843,6 +863,7 @@ export type World = {
   pendingLineLinks: PendingLineLink[];
   pendingTargeted: PendingTargetedEvent[];
   pendingBaits: PendingBaitEvent[];
+  pendingDashes: PendingDashEvent[];
   towers: ActiveTower[];
   pendingTowers: PendingTower[];
   botHoldUntil?: number; // bots hold position until this time (set when a tower resolves)

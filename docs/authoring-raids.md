@@ -194,7 +194,7 @@ Every event has a `type` that selects its schema. `type` defaults to `"aoe"` if 
 which is why many AOE examples skip it. Supported event types are `aoe`, `targeted`,
 `bait`, `tether_source`, `line_link`, `chain`, `group`, `tower`, `effect_resolver`,
 `forced_march`, `divebomb`, `effect_burst`, `heal`, `effect_select`, `apply_effect`, `inverse`,
-`spread_stack`, `gaze`, and `reassign`.
+`spread_stack`, `gaze`, `dash`, and `reassign`.
 
 All damaging events share the same lifecycle: the cast begins at `t`, and **resolves** at
 `t + telegraph`. Damage and effects are snapshotted at resolve time (FFXIV-style) — a
@@ -219,6 +219,7 @@ leaving the area before then.
 ### `aoe` — fixed-shape area
 
 The classic mechanic: a shape on the ground that hits whoever stands in it at resolve.
+
 Excerpt from `raids/debug/sample-raid.yaml`:
 
 ```yaml
@@ -354,6 +355,40 @@ safe — all players are topped before the HP check runs. See also: [Heal / Accr
 | Field          | Required | Notes |
 |----------------|----------|-------|
 | `requireFullHp`| no       | `true` turns the AOE into a raidwide HP check. Shape is unused. Defaults to `false`. |
+
+### `dash` — blink followed by a landing AOE
+
+A dash holds the boss in place during its windup, shows a landing marker that tracks the current
+destination, then instantly moves the boss there. Its required `link` references an earlier
+`aoe` with `deferred: true`. After the blink, that AOE gets its own full telegraph before resolving.
+
+Choose one destination form: `to: { x, z }` for a fixed point; `debuff: <name>` for the closest
+living carrier of an active effect; or `bait: closest|furthest|random|aggro` with an optional
+`role`. Closest, furthest, aggro, and debuff destinations track until cast end. Random selects one
+eligible player at cast start and tracks that player.
+
+```yaml
+events:
+  - type: aoe
+    id: landing-hit
+    time: 2
+    name: Landing Hit
+    deferred: true
+    anchor: boss
+    telegraph: 1.5
+    damage: 60
+    damageType: physical
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 6 }
+
+  - type: dash
+    id: boss-dash
+    time: 5
+    name: Boss Dash
+    telegraph: 2
+    destination: { bait: furthest, role: dps }
+    link: landing-hit
+    showCastBar: true
+```
 
 ### `targeted` — near/far baited circle
 

@@ -243,6 +243,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     pendingLineLinks: [],
     pendingTargeted: [],
     pendingBaits: [],
+    pendingDashes: [],
     pendingTowers: [],
     pendingChains: [],
     pendingGroups: [],

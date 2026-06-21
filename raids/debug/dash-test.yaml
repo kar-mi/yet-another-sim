@@ -1,0 +1,118 @@
+# Dash Test — three blink destinations, each followed by a deferred landing AOE.
+
+name: Dash Test
+arena:
+  zones:
+    - kind: circle
+      center: { x: 0, z: 0 }
+      radius: 30
+duration: 36
+
+players:
+  - id: mt
+    role: tank
+    spawn: { x: 0, z: 10 }
+  - id: ot
+    role: tank
+    spawn: { x: 0, z: -10 }
+  - id: h1
+    role: healer
+    spawn: { x: -10, z: 0 }
+  - id: h2
+    role: healer
+    spawn: { x: 10, z: 0 }
+  - id: r1
+    role: dps
+    spawn: { x: -14, z: 14 }
+  - id: r2
+    role: dps
+    spawn: { x: 14, z: 14 }
+  - id: m1
+    role: dps
+    spawn: { x: -14, z: -14 }
+  - id: m2
+    role: dps
+    spawn: { x: 14, z: -14 }
+
+events:
+  # Fixed destination: blink east, then resolve a circle at the landing point.
+  - type: aoe
+    id: fixed-landing
+    time: 1
+    name: Store Fixed Landing
+    deferred: true
+    anchor: boss
+    telegraph: 1.5
+    damage: 25
+    damageType: physical
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 6 }
+
+  - type: dash
+    id: fixed-dash
+    time: 4
+    name: Fixed Dash
+    telegraph: 2
+    destination: { to: { x: 18, z: 0 } }
+    link: fixed-landing
+    showCastBar: true
+
+  # Debuff destination: blink to the marked healer, then resolve a donut.
+  - type: aoe
+    id: marked-landing
+    time: 9
+    name: Store Marked Landing
+    deferred: true
+    anchor: boss
+    telegraph: 1.5
+    damage: 25
+    damageType: magical
+    shape: { kind: donut, center: { x: 0, z: 0 }, inner: 3, outer: 10 }
+
+  - type: apply_effect
+    id: mark-healer
+    time: 10
+    name: Mark Healer
+    players: [h1]
+    applyEffect:
+      name: Dash Target
+      kind: debuff
+      duration: 8
+      behavior: { kind: none }
+      marker: DASH
+
+  - type: dash
+    id: marked-dash
+    time: 12
+    name: Marked Dash
+    telegraph: 2
+    destination: { debuff: Dash Target }
+    link: marked-landing
+    showCastBar: true
+
+  # Bait destination: track the furthest DPS through the cast, then cleave forward.
+  - type: aoe
+    id: bait-landing
+    time: 18
+    name: Store Bait Landing
+    deferred: true
+    anchor: boss
+    directionFrom: bossFacing
+    telegraph: 1.5
+    damage: 25
+    damageType: physical
+    shape: { kind: cone, angleDeg: 100, length: 18 }
+
+  - type: dash
+    id: bait-dash
+    time: 21
+    name: Furthest DPS Dash
+    telegraph: 2
+    destination: { bait: furthest, role: dps }
+    link: bait-landing
+    showCastBar: true
+
+waymarks:
+  - { mark: A, pos: { x: 0, z: 20 } }
+  - { mark: B, pos: { x: 20, z: 0 } }
+  - { mark: C, pos: { x: 0, z: -20 } }
+  - { mark: D, pos: { x: -20, z: 0 } }
