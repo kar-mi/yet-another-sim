@@ -907,8 +907,8 @@ See `raids/debug/debuff-tower-test.yaml` for tower-gated spread, stack, and cone
 ### `divebomb` — stepping circle across the arena
 
 A divebomb is one ground-bisected sphere that appears at `from`, disappears, and reappears at each
-successive `gap` position until it reaches `to`. Long-duration events wrap back to the start. Only
-players inside the currently visible circle are hit, subject to `hitInterval`. Omitting `damage` and
+successive `gap` position until it reaches `to`, then disappears. Its lifetime is derived from the
+path, `gap`, and `speed`. Only players inside the currently visible circle are hit, subject to `hitInterval`. Omitting `damage` and
 `applyEffect` makes the event visual-only and does not produce hit-log entries.
 
 | Field | Required | Meaning |
@@ -918,7 +918,6 @@ players inside the currently visible circle are hit, subject to `hitInterval`. O
 | `from`, `to` | yes | Distinct `{ x, z }` endpoints of the corridor. |
 | `speed` | yes | Progression speed in world units per second; each step lasts `gap / speed` seconds. |
 | `size` | yes | Sphere and active collision-circle diameter. |
-| `duration` | yes | Seconds the corridor remains active. |
 | `color` | no | Six-digit hex color; defaults to `#ff5533`. |
 | `gap` | no | Distance between successive circle positions; defaults to `size * 1.5`. |
 | `damage` | no | Damage per hit. Omitted or zero means no damage. |
@@ -935,7 +934,6 @@ players inside the currently visible circle are hit, subject to `hitInterval`. O
   to: { x: 0, z: -20 }
   speed: 30
   size: 3
-  duration: 6
   color: "#ff5533"
   damage: 40
   damageType: physical

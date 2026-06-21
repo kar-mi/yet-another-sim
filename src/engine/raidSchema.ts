@@ -588,7 +588,6 @@ const DivebombEventSchema = z.object({
   to: Vec2Schema,
   speed: z.number().positive(),
   size: z.number().positive(),
-  duration: z.number().positive(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#ff5533"),
   gap: z.number().positive().optional(),
   damage: z.number().nonnegative().optional(),

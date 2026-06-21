@@ -1,7 +1,7 @@
 import type { ActiveDivebomb, PendingDivebomb } from "@shared/types";
 import { DIVEBOMB_LINGER } from "@shared/constants";
 import { length, sub } from "@shared/math";
-import { divebombPosition } from "@shared/divebomb";
+import { divebombLifetime, divebombPosition } from "@shared/divebomb";
 import type { TickContext } from "./context";
 import { applyEffect, applyMechanicDamage } from "./helpers";
 
@@ -15,11 +15,11 @@ export function resolveDivebombs(ctx: TickContext): {
 
   for (const pending of ctx.world.pendingDivebombs) {
     if (pending.t <= time) {
-      const { t, duration, ...fields } = pending;
+      const { t, ...fields } = pending;
       divebombs.push({
         ...fields,
         startedAt: t,
-        expireAt: t + duration,
+        expireAt: t + divebombLifetime(pending.from, pending.to, pending.gap, pending.speed),
         resolved: false,
         hits: {},
       });

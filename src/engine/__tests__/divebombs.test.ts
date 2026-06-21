@@ -14,7 +14,6 @@ const divebombEvent = (over: Record<string, unknown> = {}) => ({
   to: [0, 10] as Vec,
   speed: 20,
   size: 2,
-  duration: 1,
   damage: 10,
   ...over,
 });
@@ -68,7 +67,7 @@ test("divebomb rejects equal endpoints", () => {
 });
 
 test("resolved divebombs remain for their render linger and are then culled", () => {
-  const world0 = createWorld(raidWith(divebombEvent({ duration: 0.2, damage: undefined })));
+  const world0 = createWorld(raidWith(divebombEvent({ gap: 10, speed: 100, damage: undefined })));
   const world1 = tick(world0, {}, 0.2);
   expect(world1.divebombs[0]!.resolved).toBe(true);
   const world2 = tick(world1, {}, DIVEBOMB_LINGER - 0.01);
@@ -77,9 +76,9 @@ test("resolved divebombs remain for their render linger and are then culled", ()
   expect(world3.divebombs).toHaveLength(0);
 });
 
-test("divebomb advances one discrete circle at a time and includes the endpoint", () => {
+test("divebomb advances one discrete circle at a time and stops at the endpoint", () => {
   expect(divebombPosition({ x: 0, z: 0 }, { x: 0, z: 10 }, 4, 4, 0)).toEqual({ x: 0, z: 0 });
   expect(divebombPosition({ x: 0, z: 0 }, { x: 0, z: 10 }, 4, 4, 1)).toEqual({ x: 0, z: 4 });
   expect(divebombPosition({ x: 0, z: 0 }, { x: 0, z: 10 }, 4, 4, 3)).toEqual({ x: 0, z: 10 });
-  expect(divebombPosition({ x: 0, z: 0 }, { x: 0, z: 10 }, 4, 4, 4)).toEqual({ x: 0, z: 0 });
+  expect(divebombPosition({ x: 0, z: 0 }, { x: 0, z: 10 }, 4, 4, 4)).toEqual({ x: 0, z: 10 });
 });

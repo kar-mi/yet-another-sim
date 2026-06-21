@@ -464,7 +464,6 @@ const divebomb: MechanicModule = {
       to: toVec2(e.to),
       speed: e.speed,
       size: e.size,
-      duration: e.duration,
       color: e.color,
       gap,
       damage: e.damage,

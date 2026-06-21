@@ -793,7 +793,6 @@ export type PendingDivebomb = {
   to: Vec2;
   speed: number;
   size: number;
-  duration: number;
   color: string;
   gap: number;
   damage?: number;
@@ -802,7 +801,7 @@ export type PendingDivebomb = {
   hitInterval: number;
 };
 
-export type ActiveDivebomb = Omit<PendingDivebomb, "t" | "duration"> & {
+export type ActiveDivebomb = Omit<PendingDivebomb, "t"> & {
   startedAt: number;
   expireAt: number;
   resolved: boolean;

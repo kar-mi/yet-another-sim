@@ -1,7 +1,13 @@
 import { add, length, normalize, scale, sub, type Vec2 } from "./math";
 
+export function divebombLifetime(from: Vec2, to: Vec2, gap: number, speed: number): number {
+  const stepCount = Math.ceil(length(sub(to, from)) / gap);
+  // Include a full display interval for both the starting slot and the endpoint slot.
+  return (stepCount + 1) * gap / speed;
+}
+
 // A divebomb occupies one discrete slot at a time. It advances one authored gap every gap/speed
-// seconds, includes the exact endpoint as its final slot, then wraps to the start for long durations.
+// seconds and includes the exact endpoint as its final slot.
 export function divebombPosition(
   from: Vec2,
   to: Vec2,
@@ -11,8 +17,8 @@ export function divebombPosition(
 ): Vec2 {
   const segment = sub(to, from);
   const segmentLength = length(segment);
-  const slotCount = Math.ceil(segmentLength / gap) + 1;
-  const step = Math.floor(Math.max(0, elapsed) * speed / gap) % slotCount;
+  const finalStep = Math.ceil(segmentLength / gap);
+  const step = Math.min(Math.floor(Math.max(0, elapsed) * speed / gap), finalStep);
   const distance = Math.min(step * gap, segmentLength);
   return add(from, scale(normalize(segment), distance));
 }
