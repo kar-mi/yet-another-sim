@@ -1091,6 +1091,56 @@ img.yas-debuff-icon {
   box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow), 0 0 8px var(--px-glow);
 }
 
+.yas-position-helper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.yas-position-frame {
+  width: 176px;
+  height: 52px;
+  padding: 0 8px;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  color: var(--px-text);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.yas-position-frame:focus {
+  border-color: var(--px-accent);
+  outline: none;
+}
+
+.yas-position-readout {
+  display: none;
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  z-index: 220;
+  min-width: 390px;
+  padding: 9px 11px;
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  border-radius: 5px;
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  color: var(--px-text);
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre;
+  user-select: text;
+  cursor: copy;
+}
+
+.yas-position-readout.is-visible {
+  display: block;
+}
+
 .yas-controller-hotbar {
   align-items: center;
   gap: 10px;

@@ -19,14 +19,19 @@ const AbsoluteSpotSchema = z.object({ x: z.number(), z: z.number() }).strict();
 const RelativeSpotSchema = z.object({ r: z.number(), z: z.number() }).strict();
 const PolarSpotSchema = z.object({ dist: z.number(), angleDeg: z.number() }).strict();
 const SolverSpotSchema = z.union([AbsoluteSpotSchema, RelativeSpotSchema, PolarSpotSchema]);
-const GenericSolverFrameSchema = z.union([
-  z.literal("matched"),
-  z.array(EventIdSchema).min(1),
+// A single positioned reference summed into a frame's north vector: a positioned event id (tower),
+// a resolved elemental crystal, or a boss (its facing direction or position).
+const FrameRefSchema = z.union([
+  EventIdSchema,
   z.object({ crystal: z.enum(["wind", "fire", "water"]) }),
   z.object({ boss: z.object({
     id: z.string().min(1).optional(),
     from: z.enum(["facing", "position"]),
   }) }),
+]);
+const GenericSolverFrameSchema = z.union([
+  z.literal("matched"),
+  z.array(FrameRefSchema).min(1),
 ]);
 
 const GenericSolverRuleSchema = z.object({
@@ -44,8 +49,8 @@ const GenericSolverRuleSchema = z.object({
   }),
   startAt: z.number().nonnegative().optional(),
   endAt: z.number().nonnegative().optional(),
-  // Rotated spot frame: "matched" (north = bisector of the live matched mechanics), an explicit
-  // list of positioned event ids, or a resolved elemental crystal position.
+  // Rotated spot frame: "matched" (north = bisector of the live matched mechanics) or a list of
+  // references (positioned event ids, { crystal }, { boss }) whose positions are summed for north.
   frame: GenericSolverFrameSchema.optional(),
   spots: z.record(z.string().min(1), SolverSpotSchema).optional(),
   spot: SolverSpotSchema.optional(),
@@ -797,16 +802,17 @@ export const RaidSchema = z.object({
     }
   });
   raid.botSolvers?.generic?.forEach((rule, i) => {
-    const bossId = typeof rule.frame === "object" && !Array.isArray(rule.frame) && "boss" in rule.frame
-      ? rule.frame.boss.id
-      : undefined;
-    if (bossId !== undefined && !bossIds.has(bossId)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["botSolvers", "generic", i, "frame", "boss", "id"],
-        message: `solver frame boss id "${bossId}" does not match any declared boss id (${[...bossIds].join(", ")})`,
-      });
-    }
+    if (!Array.isArray(rule.frame)) return;
+    rule.frame.forEach((ref, j) => {
+      const bossId = typeof ref === "object" && "boss" in ref ? ref.boss.id : undefined;
+      if (bossId !== undefined && !bossIds.has(bossId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["botSolvers", "generic", i, "frame", j, "boss", "id"],
+          message: `solver frame boss id "${bossId}" does not match any declared boss id (${[...bossIds].join(", ")})`,
+        });
+      }
+    });
   });
 }).superRefine((raid, ctx) => {
   const eventIds = new Map<string, { type: string; index: number }>();
