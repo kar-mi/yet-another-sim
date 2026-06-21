@@ -38,8 +38,11 @@ test("dash blinks at cast end, then gives the linked AOE a fresh telegraph", () 
   expect(world.boss.pos).toEqual(castPosition);
   expect(byId(world, "m1").hp).toBe(DPS_HP);
 
-  world = runTicks(world, {}, 2); // dash has resolved, landing AOE is now casting
+  world = runTicks(world, {}, 1); // dash resolves; its marker lingers for this render tick
   expect(world.boss.pos).toEqual({ x: 10, z: 0 });
+  const landingMarker = world.active.find(mechanic => mechanic.id === "dash-landing");
+  expect(landingMarker?.shape.kind).toBe("circle");
+  if (landingMarker?.shape.kind === "circle") expect(world.boss.pos).not.toBe(landingMarker.shape.center);
   expect(world.active.find(mechanic => mechanic.id === "landing-aoe")?.resolved).toBe(false);
   expect(byId(world, "m1").hp).toBe(DPS_HP);
 

@@ -208,6 +208,8 @@ export function resolveAoe(ctx: TickContext): {
         randomTargetId = selectBaitTarget(players, dashBoss, "random", pd.destination.role, randInt)?.id;
       }
       const initialDestination = selectDashDestination(players, dashBoss, pd.destination, time, randomTargetId);
+      // Visual-only cast controller and landing marker. Like bait's controller, these use the normal
+      // zero-damage ActiveMechanic path, including its resolve-time combat-log entries.
       active.push({
         id: pd.id,
         name: pd.name,
@@ -252,7 +254,7 @@ export function resolveAoe(ctx: TickContext): {
     const dx = destination.x - dashBoss.pos.x;
     const dz = destination.z - dashBoss.pos.z;
     if (dx !== 0 || dz !== 0) dashBoss.facing = atan2(dx, dz);
-    dashBoss.pos = destination;
+    dashBoss.pos = { ...destination };
 
     const stored = active.find(mechanic => mechanic.id === pd.link && mechanic.deferred);
     if (stored) {
