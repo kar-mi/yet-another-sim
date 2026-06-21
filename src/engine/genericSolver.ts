@@ -221,6 +221,21 @@ function frameNorth(frame: NonNullable<GenericSolverRule["frame"]>, matched: Res
   return normalize(sum);
 }
 
+type GenericFrame = NonNullable<GenericSolverRule["frame"]>;
+
+// Public frame-resolution helpers for client-side authoring tools. Keeping this logic here makes
+// readouts use exactly the same north vectors as the solver instead of maintaining a second copy.
+export function genericFrameNorth(frame: Exclude<GenericFrame, "matched">, world: World): Vec2 | undefined {
+  return frameNorth(frame, [], world);
+}
+
+export function genericRuleFrameNorth(rule: GenericSolverRule, player: Player, world: World): Vec2 | undefined {
+  if (rule.frame === undefined) return undefined;
+  if (rule.frame !== "matched") return genericFrameNorth(rule.frame, world);
+  const matched = ruleMatches(rule, player, world, resolvedMechanics(world));
+  return matched === null ? undefined : frameNorth(rule.frame, matched, world);
+}
+
 // Map a runtime frame coordinate to world space: x stores authored r (right/lateral), z is north.
 function frameToWorld(spot: Vec2, north: Vec2): Vec2 {
   const right: Vec2 = { x: north.z, z: -north.x };

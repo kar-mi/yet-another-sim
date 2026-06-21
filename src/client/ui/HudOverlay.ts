@@ -19,6 +19,7 @@ import type { Settings, ControllerType } from "../settings";
 import type { PlaybackState } from "@shared/protocol";
 import { clamp01 } from "@shared/math";
 import { createEffectRenderState, syncEffectChips, type EffectRenderState } from "./effectChips";
+import { invertFramePosition, positionFrameOptions, type PositionFrameOption } from "../frameReadout";
 
 declare const __YAS_DEBUG__: boolean | undefined;
 
@@ -170,6 +171,11 @@ export class HudOverlay {
   private slotKeybinds: HTMLSpanElement[] = [];
   private modeToggleBtn!: HTMLButtonElement;
   private debugPositionBtn: HTMLButtonElement | null = null;
+  private positionHelperEl: HTMLDivElement | null = null;
+  private positionFrameEl: HTMLSelectElement | null = null;
+  private positionReadoutEl: HTMLPreElement | null = null;
+  private positionFrameOptions: PositionFrameOption[] = [];
+  private positionFrameSignature = "";
   private currentSettings!: Settings;
   private latestPlayer: Player | null = null;
   private debuffTrackerEl!: HTMLDivElement;
@@ -204,9 +210,15 @@ export class HudOverlay {
     this.slotKeybinds = Array.from(this.kbmHotbar.querySelectorAll<HTMLSpanElement>(".yas-keybind"));
     this.modeToggleBtn = this.root.querySelector<HTMLButtonElement>(".yas-hotbar-toggle")!;
     this.debugPositionBtn = this.root.querySelector<HTMLButtonElement>(".yas-hotbar-debug")!;
+    this.positionHelperEl = this.root.querySelector<HTMLDivElement>(".yas-position-helper")!;
+    this.positionFrameEl = this.root.querySelector<HTMLSelectElement>(".yas-position-frame")!;
+    this.positionReadoutEl = this.root.querySelector<HTMLPreElement>(".yas-position-readout")!;
     if (!DEBUG_POSITION_ENABLED) {
-      this.debugPositionBtn.remove();
+      this.positionHelperEl.remove();
       this.debugPositionBtn = null;
+      this.positionHelperEl = null;
+      this.positionFrameEl = null;
+      this.positionReadoutEl = null;
     }
     this.skillSpecs = [
       { action: "sprint", tankOnly: false, read: p => ({ activeSecs: p.sprintActive, cooldownSecs: p.sprintCooldown, cooldownMax: SPRINT_COOLDOWN }) },
@@ -512,6 +524,10 @@ export class HudOverlay {
       this.applySettings(next);
     });
     this.debugPositionBtn?.addEventListener("click", () => this.logCurrentPosition());
+    this.positionReadoutEl?.addEventListener("click", () => {
+      const text = this.positionReadoutEl?.textContent;
+      if (text) void navigator.clipboard.writeText(text);
+    });
   }
 
   private flashSlot(slot: HTMLDivElement): void {
@@ -524,6 +540,7 @@ export class HudOverlay {
   sync(world: World): void {
     const p = world.players.find(player => player.id === this.localPlayerId) ?? world.players[0];
     this.latestPlayer = p ?? null;
+    if (DEBUG_POSITION_ENABLED && p) this.syncPositionFrames(world, p);
     const botPlayers = world.players.filter(player => player.control === "bot");
     this.botInvulnBtn.classList.toggle("is-active", botPlayers.length > 0 && botPlayers.every(player => player.invincible));
 
@@ -666,12 +683,48 @@ export class HudOverlay {
   private logCurrentPosition(): void {
     const player = this.latestPlayer;
     if (!player) return;
+    const selected = this.positionFrameOptions.find(option => option.key === this.positionFrameEl?.value)
+      ?? this.positionFrameOptions[0];
+    if (this.positionReadoutEl) {
+      const worldLine = `world  { x: ${player.pos.x.toFixed(3)}, z: ${player.pos.z.toFixed(3)} }`;
+      if (selected?.north) {
+        const readout = invertFramePosition(player.pos, selected.north);
+        this.positionReadoutEl.textContent = [
+          selected.descriptor ?? selected.label,
+          worldLine,
+          `r/z    { r: ${readout.r.toFixed(3)}, z: ${readout.z.toFixed(3)} }`,
+          `polar  { dist: ${readout.dist.toFixed(3)}, angleDeg: ${readout.angleDeg.toFixed(1)} }`,
+        ].join("\n");
+      } else {
+        this.positionReadoutEl.textContent = selected?.key === "world"
+          ? worldLine
+          : `${selected?.descriptor ?? selected?.label ?? "frame"}\nframe unavailable\n${worldLine}`;
+      }
+      this.positionReadoutEl.classList.add("is-visible");
+    }
     this.onDebugPosition({
       playerId: player.id,
       x: Number(player.pos.x.toFixed(3)),
       y: Number(player.y.toFixed(3)),
       z: Number(player.pos.z.toFixed(3)),
     });
+  }
+
+  private syncPositionFrames(world: World, player: Player): void {
+    const options = positionFrameOptions(world, player);
+    this.positionFrameOptions = options;
+    const signature = options.map(option => `${option.key}:${option.north ? "1" : "0"}`).join("|");
+    if (!this.positionFrameEl || signature === this.positionFrameSignature) return;
+    this.positionFrameSignature = signature;
+    const selected = this.positionFrameEl.value;
+    this.positionFrameEl.replaceChildren(...options.map(option => {
+      const el = document.createElement("option");
+      el.value = option.key;
+      el.textContent = option.label;
+      el.disabled = option.key !== "world" && !option.north;
+      return el;
+    }));
+    if (options.some(option => option.key === selected && option.north)) this.positionFrameEl.value = selected;
   }
 
   // Renders a skill's cooldown sweep, ready-pulse, and active highlight across its hotbar slots.
