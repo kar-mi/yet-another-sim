@@ -136,7 +136,15 @@ export class NetClient {
     if (!authLocal) return view;
 
     const predicted = this.predictor.predict(authLocal, this.world.arena.zones, this.world.time, intent, dt);
-    const players = view.players.map(p => (p.id === this.claimedPlayerId ? { ...p, pos: predicted.pos, facing: predicted.facing, y: predicted.y } : p));
+    const localIndex = view.players.findIndex(p => p.id === this.claimedPlayerId);
+    if (localIndex === -1) return view;
+    const players = view.players.slice();
+    players[localIndex] = {
+      ...players[localIndex],
+      pos: predicted.pos,
+      facing: predicted.facing,
+      y: predicted.y,
+    };
     const world = { ...view, players };
     const renderKeys = getWorldRenderKeys(view);
     if (renderKeys) setWorldRenderKeys(world, renderKeys);
@@ -386,14 +394,32 @@ function interpolateBoss(prev: Boss, next: Boss, t: number): Boss {
   };
 }
 
+type EntityIndex = {
+  players: Map<string, Player>;
+  bosses: Map<string, Boss>;
+};
+
+const entityIndexes = new WeakMap<World, EntityIndex>();
+
+function getEntityIndex(world: World): EntityIndex {
+  let index = entityIndexes.get(world);
+  if (!index) {
+    index = {
+      players: new Map(world.players.map(player => [player.id, player])),
+      bosses: new Map(world.bosses.map(boss => [boss.id, boss])),
+    };
+    entityIndexes.set(world, index);
+  }
+  return index;
+}
+
 function interpolateWorld(prev: World, next: World, t: number): World {
-  const prevById = new Map(prev.players.map(p => [p.id, p]));
-  const prevBossById = new Map(prev.bosses.map(b => [b.id, b]));
-  const bosses = next.bosses.map(b => interpolateBoss(prevBossById.get(b.id) ?? b, b, t));
+  const prevIndex = getEntityIndex(prev);
+  const bosses = next.bosses.map(b => interpolateBoss(prevIndex.bosses.get(b.id) ?? b, b, t));
   const world = {
     ...next,
     time: lerp(prev.time, next.time, t),
-    players: next.players.map(playerB => interpolatePlayer(prevById.get(playerB.id), playerB, t)),
+    players: next.players.map(playerB => interpolatePlayer(prevIndex.players.get(playerB.id), playerB, t)),
     bosses,
     boss: bosses[0]!,
   };
