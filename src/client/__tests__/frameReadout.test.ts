@@ -1,5 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { invertFramePosition } from "../frameReadout";
+import { genericFrameNorth } from "../../engine/genericSolver";
+import { createWorld } from "../../engine/world";
+import { baseRaid, loadRaid } from "../../engine/__tests__/helpers";
+import {
+  combinePositionFrames,
+  invertFramePosition,
+  positionFrameOptions,
+} from "../frameReadout";
 
 describe("frame position readout", () => {
   test("north-facing frame preserves world coordinates", () => {
@@ -16,5 +23,41 @@ describe("frame position readout", () => {
     expect(result.z).toBeCloseTo(3);
     expect(result.dist).toBeCloseTo(5);
     expect(result.angleDeg).toBeCloseTo(-53.1301024);
+  });
+
+  test("combined refs are summed before normalization", () => {
+    const initial = createWorld(loadRaid(baseRaid));
+    const boss = { ...initial.boss, pos: { x: 1, z: 0 } };
+    const world = {
+      ...initial,
+      boss,
+      bosses: [boss],
+      crystals: [{
+        id: "crystal-fire",
+        element: "fire" as const,
+        pos: { x: 0, z: 2 },
+        spawnAt: 0,
+      }],
+    };
+    const options = positionFrameOptions(world, world.players[0]!);
+    const bossOption = options.find(option => option.key === `boss:${boss.id}:position`)!;
+    const crystalOption = options.find(option => option.key === "crystal:fire")!;
+    const combined = combinePositionFrames([bossOption, crystalOption], world)!;
+    const expected = genericFrameNorth([bossOption.refs![0]!, crystalOption.refs![0]!], world)!;
+
+    expect(combined.north?.x).toBeCloseTo(expected.x);
+    expect(combined.north?.z).toBeCloseTo(expected.z);
+    expect(combined.north?.x).not.toBeCloseTo((bossOption.north!.x + crystalOption.north!.x) / 2);
+    expect(combined.north?.z).not.toBeCloseTo((bossOption.north!.z + crystalOption.north!.z) / 2);
+  });
+
+  test("non-ref and mixed selections cannot be combined", () => {
+    const world = createWorld(loadRaid(baseRaid));
+    const worldOption = positionFrameOptions(world, world.players[0]!)[0]!;
+    const bossOption = positionFrameOptions(world, world.players[0]!)
+      .find(option => option.key.endsWith(":position"))!;
+
+    expect(combinePositionFrames([worldOption], world)).toBeUndefined();
+    expect(combinePositionFrames([worldOption, bossOption], world)).toBeUndefined();
   });
 });

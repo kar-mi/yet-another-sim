@@ -1106,13 +1106,90 @@ img.yas-debuff-icon {
   border: 2px solid var(--px-edge);
   border-radius: 4px;
   color: var(--px-text);
+  font-family: var(--px-font);
   font-size: 14px;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .yas-position-frame:focus {
   border-color: var(--px-accent);
   outline: none;
+}
+
+.yas-position-frame-modal {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  z-index: 230;
+  width: 300px;
+  max-height: min(420px, 70vh);
+  padding: 10px;
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  border-radius: 5px;
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+}
+
+.yas-position-frame-title {
+  margin-bottom: 8px;
+  color: var(--px-accent);
+  font-size: 12px;
+  letter-spacing: 1.5px;
+}
+
+.yas-position-frame-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: min(330px, 55vh);
+  overflow-y: auto;
+}
+
+.yas-position-frame-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--px-bg-2);
+  border: 1px solid var(--px-edge);
+  border-radius: 3px;
+  color: var(--px-text);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.yas-position-frame-option:has(input:checked) {
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+}
+
+.yas-position-frame-option:has(input:disabled) {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.yas-position-frame-option input {
+  accent-color: var(--px-accent);
+}
+
+.yas-position-frame-done {
+  width: 100%;
+  margin-top: 8px;
+  padding: 6px;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  border-radius: 3px;
+  color: var(--px-text);
+  font-family: var(--px-font);
+  cursor: pointer;
+}
+
+.yas-position-frame-done:hover {
+  border-color: var(--px-accent);
+  color: var(--px-accent);
 }
 
 .yas-position-readout {
