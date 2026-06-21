@@ -311,26 +311,44 @@ test("frame: [eventIds] rotates using static event positions", () => {
   expect(spot.z).toBeCloseTo(-3.5355, 3);
 });
 
-test("frame: { crystal } rotates using the resolved crystal position", () => {
+test("frame: [{ crystal }] rotates using the resolved crystal position", () => {
   const w = world({
     time: 2,
     active: [{ id: "bait", telegraphStart: 0, resolveAt: 5, resolved: false }],
     crystals: [{ id: "crystal-wind", element: "wind", pos: { x: 9, z: 9 }, spawnAt: 0 }],
-    botSolvers: { generic: [{ when: { mechanic: "bait" }, frame: { crystal: "wind" }, spot: { x: 0, z: 5 } }] },
+    botSolvers: { generic: [{ when: { mechanic: "bait" }, frame: [{ crystal: "wind" }], spot: { x: 0, z: 5 } }] },
   });
   const spot = genericSolverWaypoint(player({}), w)!;
   expect(spot.x).toBeCloseTo(3.5355, 3);
   expect(spot.z).toBeCloseTo(3.5355, 3);
 });
 
-test("frame: { boss: { from: facing } } rotates using the primary boss facing", () => {
+test("frame: [ref, ref] sums a boss position and a crystal position for north", () => {
+  // Boss at [3,0] + wind crystal at [0,3]: sum [3,3] -> north [0.707, 0.707]; spot [0,5] -> 5*north.
+  const w = world({
+    time: 2,
+    active: [{ id: "bait", telegraphStart: 0, resolveAt: 5, resolved: false }],
+    boss: { id: "primary", pos: { x: 3, z: 0 }, facing: 0 },
+    crystals: [{ id: "crystal-wind", element: "wind", pos: { x: 0, z: 3 }, spawnAt: 0 }],
+    botSolvers: { generic: [{
+      when: { mechanic: "bait" },
+      frame: [{ boss: { from: "position" } }, { crystal: "wind" }],
+      spot: { x: 0, z: 5 },
+    }] },
+  });
+  const spot = genericSolverWaypoint(player({}), w)!;
+  expect(spot.x).toBeCloseTo(3.5355, 3);
+  expect(spot.z).toBeCloseTo(3.5355, 3);
+});
+
+test("frame: [{ boss: { from: facing } }] rotates using the primary boss facing", () => {
   const w = world({
     time: 2,
     active: [{ id: "bait", telegraphStart: 0, resolveAt: 5, resolved: false }],
     boss: { id: "primary", pos: { x: 0, z: 0 }, facing: Math.PI / 2 },
     botSolvers: { generic: [{
       when: { mechanic: "bait" },
-      frame: { boss: { from: "facing" } },
+      frame: [{ boss: { from: "facing" } }],
       spot: { x: 0, z: 5 },
     }] },
   });
@@ -339,7 +357,7 @@ test("frame: { boss: { from: facing } } rotates using the primary boss facing", 
   expect(spot.z).toBeCloseTo(0);
 });
 
-test("frame: { boss: { from: position } } can select a named boss", () => {
+test("frame: [{ boss: { from: position } }] can select a named boss", () => {
   const w = world({
     time: 2,
     active: [{ id: "bait", telegraphStart: 0, resolveAt: 5, resolved: false }],
@@ -350,7 +368,7 @@ test("frame: { boss: { from: position } } can select a named boss", () => {
     ],
     botSolvers: { generic: [{
       when: { mechanic: "bait" },
-      frame: { boss: { id: "add", from: "position" } },
+      frame: [{ boss: { id: "add", from: "position" } }],
       spot: { x: 0, z: 5 },
     }] },
   });
@@ -363,7 +381,7 @@ test("a boss-position frame at arena center falls through to the next rule", () 
     active: [{ id: "bait", telegraphStart: 0, resolveAt: 5, resolved: false }],
     boss: { id: "primary", pos: { x: 0, z: 0 }, facing: 0 },
     botSolvers: { generic: [
-      { when: { mechanic: "bait" }, frame: { boss: { from: "position" } }, spot: { x: 1, z: 1 } },
+      { when: { mechanic: "bait" }, frame: [{ boss: { from: "position" } }], spot: { x: 1, z: 1 } },
       { when: { mechanic: "bait" }, spot: { x: 9, z: 9 } },
     ] },
   });
@@ -377,7 +395,7 @@ test("a crystal frame with no matching crystal falls through to the next rule", 
     crystals: [{ id: "crystal-fire", element: "fire", pos: { x: 9, z: 9 }, spawnAt: 0 }],
     botSolvers: {
       generic: [
-        { when: { mechanic: "bait" }, frame: { crystal: "wind" }, spot: { x: 1, z: 1 } },
+        { when: { mechanic: "bait" }, frame: [{ crystal: "wind" }], spot: { x: 1, z: 1 } },
         { when: { mechanic: "bait" }, spot: { x: 9, z: 9 } },
       ],
     },
@@ -408,14 +426,14 @@ test("loadBotPatterns converts authored solver spot objects to Vec2 and preserve
   const w = createWorld(applyBotPatterns(loadRaid(baseRaid), loadBotPatterns({
     players: {},
     solvers: { generic: [
-      { when: { mechanic: "stack-1.g0", role: "tank" }, frame: { crystal: "wind" }, spot: { r: -7, z: 7 } },
+      { when: { mechanic: "stack-1.g0", role: "tank" }, frame: [{ crystal: "wind" }], spot: { r: -7, z: 7 } },
       { when: { mechanic: "stack-1.g0", role: "healer" }, spot: { x: -4, z: 4 } },
     ] },
   })), 1);
 
   expect(w.botSolvers?.generic).toHaveLength(2);
   expect(w.botSolvers?.generic?.[0]?.when).toEqual({ mechanic: "stack-1.g0", role: "tank" });
-  expect(w.botSolvers?.generic?.[0]?.frame).toEqual({ crystal: "wind" });
+  expect(w.botSolvers?.generic?.[0]?.frame).toEqual([{ crystal: "wind" }]);
   expect(w.botSolvers?.generic?.[0]?.spot).toEqual({ x: -7, z: 7 }); // relative r -> runtime x
   expect(w.botSolvers?.generic?.[1]?.spot).toEqual({ x: -4, z: 4 });
 });
@@ -455,7 +473,7 @@ test("solver spot schema enforces relative framed and absolute unframed shapes",
     players: {},
     solvers: { generic: [{
       when: { debuff: "Headwind" },
-      frame: { crystal: "wind" },
+      frame: [{ crystal: "wind" }],
       spot: { x: 0, z: 5 },
     }] },
   })).toThrow(/frame requires relative/);

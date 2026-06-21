@@ -1,7 +1,7 @@
 import type { Vec2 } from "@shared/math";
 import { add, normalize } from "@shared/math";
 import { cos, sin } from "@shared/dmath";
-import type { GenericSolverRule, Player, World } from "@shared/types";
+import type { FrameRef, GenericSolverRule, Player, World } from "@shared/types";
 
 // A live unresolved mechanic the generic solver can match against. `labels`/`group`/`pos` are carried
 // from the authored event (towers have a position; targeted/bait/aoe carry labels+group but no pos).
@@ -192,30 +192,33 @@ function ruleMatches(rule: GenericSolverRule, player: Player, world: World, mech
   return matched;
 }
 
+// Resolve a single frame reference to a world vector: a string is a positioned event id
+// (static tower/event position); { crystal } is a resolved crystal's position; { boss } is the
+// named/primary boss's facing direction or its position. Returns undefined when it can't resolve.
+function refToVec(ref: FrameRef, world: World): Vec2 | undefined {
+  if (typeof ref === "string") return world.eventPositions?.[ref];
+  if ("crystal" in ref) return world.crystals?.find(c => c.element === ref.crystal)?.pos;
+  const boss = ref.boss.id
+    ? world.bosses?.find(candidate => candidate.id === ref.boss.id)
+    : world.boss;
+  if (!boss) return undefined;
+  return ref.boss.from === "facing"
+    ? { x: sin(boss.facing), z: cos(boss.facing) }
+    : boss.pos;
+}
+
 // Compute the frame's north vector: "matched" sums the positions of the live matched mechanics
-// (a tower pair's bisector); a list sums those events' static positions; { crystal } uses the
-// resolved crystal direction; { boss } uses its facing or position. Returns undefined when no
-// usable vector exists (the rule then yields no spot for this bot).
+// (a tower pair's bisector); otherwise sum each reference's resolved position (events, crystals,
+// bosses). Returns undefined when no usable vector exists (the rule then yields no spot for this bot).
 function frameNorth(frame: NonNullable<GenericSolverRule["frame"]>, matched: ResolvedMechanic[], world: World): Vec2 | undefined {
   let sum: Vec2 = { x: 0, z: 0 };
   if (frame === "matched") {
     for (const m of matched) if (m.pos) sum = add(sum, m.pos);
-  } else if (Array.isArray(frame)) {
-    for (const id of frame) {
-      const pos = world.eventPositions?.[id];
+  } else {
+    for (const ref of frame) {
+      const pos = refToVec(ref, world);
       if (pos) sum = add(sum, pos);
     }
-  } else if ("crystal" in frame) {
-    const crystal = world.crystals?.find(c => c.element === frame.crystal);
-    if (crystal) sum = add(sum, crystal.pos);
-  } else {
-    const boss = frame.boss.id
-      ? world.bosses?.find(candidate => candidate.id === frame.boss.id)
-      : world.boss;
-    if (!boss) return undefined;
-    sum = frame.boss.from === "facing"
-      ? { x: sin(boss.facing), z: cos(boss.facing) }
-      : boss.pos;
   }
   if (sum.x === 0 && sum.z === 0) return undefined;
   return normalize(sum);

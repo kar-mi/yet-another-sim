@@ -85,16 +85,20 @@ A rule has:
     omit it to match either. One `(combo, slot) → spot` rule per placement, e.g.
     `- { when: { plant: right right, plantSlot: 0 }, spot: { x: 0, z: 12 } }`.
 - `startAt` / `endAt` — optional absolute time clamps on the activation window.
-- `frame` — optional rotated coordinate frame for the spot(s). `"matched"` sets north to the bisector
-  of the live matched mechanics' positions (e.g. a wave's two towers — requires `when.mechanic`); a
-  list of event ids sets north from those events' **static** positions; `{ crystal: wind }` (or
-  `fire` / `water`) sets north from the resolved elemental crystal. `{ boss: { from: facing } }`
-  uses the primary boss's facing, while `{ boss: { from: position, id: add } }` points from arena
-  centre toward a named boss (`id` defaults to the primary boss). A frame coordinate `{ r, z }` maps
-  to world `r · right + z · north`, with `right = { x: north.z, z: -north.x }` and the arena centre as
-  origin. Polar `{ dist, angleDeg }` is also accepted, with degrees measured clockwise from frame
-  north. One spot set then serves every wave of a rotating mechanic. A rule whose frame can't be
-  computed yields no spot (falls through). See [Rotated frames](#rotated-frames) for the geometry.
+- `frame` — optional rotated coordinate frame for the spot(s). It is either `"matched"` or a **list of
+  references** whose positions are summed and normalized to set north. `"matched"` sets north to the
+  bisector of the live matched mechanics' positions (e.g. a wave's two towers — requires
+  `when.mechanic`). Each reference in the list is one of: an **event id** (a positioned event such as a
+  tower, using its **static** position); `{ crystal: wind }` (or `fire` / `water`, the resolved
+  elemental crystal); `{ boss: { from: facing } }` (the primary boss's facing direction) or
+  `{ boss: { from: position, id: add } }` (from arena centre toward a named boss — `id` defaults to the
+  primary boss). Kinds may be mixed in one list, e.g. `frame: [{ boss: { from: position } }, { crystal: wind }]`
+  points north toward the midpoint of the boss and the wind crystal; `frame: [tower-3-left, tower-3-right]`
+  is the towers' bisector. A frame coordinate `{ r, z }` maps to world `r · right + z · north`, with
+  `right = { x: north.z, z: -north.x }` and the arena centre as origin. Polar `{ dist, angleDeg }` is
+  also accepted, with degrees measured clockwise from frame north. One spot set then serves every wave
+  of a rotating mechanic. A rule whose frame can't be computed yields no spot (falls through). See
+  [Rotated frames](#rotated-frames) for the geometry.
 - `spots` and/or `spot`; `spots[id]` wins. Unframed rules use absolute world positions `{ x, z }`.
   Framed rules require relative `{ r, z }` or polar `{ dist, angleDeg }` positions. Polar spots are
   rejected on unframed rules.
@@ -174,8 +178,8 @@ don't author the same formation eight times at eight angles. A spot like `{ r: 5
 a world position — it's a coordinate in a local frame whose:
 
 - **origin** is the arena centre `(0, 0)`,
-- **+z axis ("north")** is the direction the solver computes (the bisector for `frame: matched`, the
-  summed static positions for event ids, the selected crystal's position, or a boss's facing/position),
+- **+z axis ("north")** is the direction the solver computes (the bisector for `frame: matched`, or
+  the normalized sum of the listed references' positions — event ids, crystals, and/or bosses),
 - **+x axis ("right")** is north rotated 90° clockwise: `right = { x: north.z, z: -north.x }`.
 
 The world position is `spot.r · right + spot.z · north`. Intuitively, **`z` pushes the bot along the

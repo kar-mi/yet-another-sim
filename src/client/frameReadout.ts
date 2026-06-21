@@ -1,4 +1,4 @@
-import type { GenericSolverRule, Player, World } from "@shared/types";
+import type { FrameRef, GenericSolverRule, Player, World } from "@shared/types";
 import type { Vec2 } from "@shared/math";
 import { genericFrameNorth, genericRuleFrameNorth } from "../engine/genericSolver";
 
@@ -28,6 +28,14 @@ export function invertFramePosition(pos: Vec2, north: Vec2): FramePositionReadou
   };
 }
 
+// Render one frame reference for the readout label/descriptor: a bare event id, crystal:<element>,
+// or boss:<id>:<from>.
+function frameRefLabel(ref: FrameRef): string {
+  if (typeof ref === "string") return ref;
+  if ("crystal" in ref) return `crystal:${ref.crystal}`;
+  return `boss:${ref.boss.id ?? "primary"}:${ref.boss.from}`;
+}
+
 function mechanicLabel(rule: GenericSolverRule, index: number): string {
   const mechanic = rule.when.mechanic;
   if (Array.isArray(mechanic)) return mechanic.join(" + ");
@@ -49,8 +57,8 @@ export function positionFrameOptions(world: World, player: Player): PositionFram
       push({
         key: `boss:${boss.id}:${from}`,
         label: `Boss: ${boss.id} — ${from}`,
-        descriptor: `frame: { boss: { id: ${boss.id}, from: ${from} } }`,
-        north: genericFrameNorth(frame, world),
+        descriptor: `frame: [{ boss: { id: ${boss.id}, from: ${from} } }]`,
+        north: genericFrameNorth([frame], world),
       });
     }
   }
@@ -60,8 +68,8 @@ export function positionFrameOptions(world: World, player: Player): PositionFram
     push({
       key: `crystal:${crystal.element}`,
       label: `Crystal: ${crystal.element}`,
-      descriptor: `frame: { crystal: ${crystal.element} }`,
-      north: genericFrameNorth(frame, world),
+      descriptor: `frame: [{ crystal: ${crystal.element} }]`,
+      north: genericFrameNorth([frame], world),
     });
   }
 
@@ -76,10 +84,11 @@ export function positionFrameOptions(world: World, player: Player): PositionFram
         north: genericRuleFrameNorth(rule, player, world),
       });
     } else if (Array.isArray(frame)) {
+      const labels = frame.map(frameRefLabel);
       push({
-        key: `events:${frame.join("|")}`,
-        label: `Events: ${frame.join(" + ")}`,
-        descriptor: `frame: [${frame.join(", ")}]`,
+        key: `refs:${labels.join("|")}`,
+        label: `Frame: ${labels.join(" + ")}`,
+        descriptor: `frame: [${labels.join(", ")}]`,
         north: genericFrameNorth(frame, world),
       });
     }

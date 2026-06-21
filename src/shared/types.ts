@@ -47,17 +47,23 @@ export type GenericSolverRule = {
   startAt?: number;
   endAt?: number;
   // Optional rotated frame for spot coordinates. "matched": north = normalize(Σ positions) of the
-  // live matched mechanics (e.g. a tower pair's bisector). string[]: north from those events' static
-  // positions. { crystal }: north from the arena center to that resolved crystal. { boss }: north
-  // from the selected boss's facing or its position relative to arena center. Authored framed spots
-  // use {r, z} or polar {dist, angleDeg}; load-time conversion stores
+  // live matched mechanics (e.g. a tower pair's bisector). Otherwise a list of references whose
+  // positions are summed and normalized: a positioned event id (tower), { crystal } (a resolved
+  // elemental crystal), or { boss } (a boss's facing direction or its position). Mixing kinds is
+  // allowed. Authored framed spots use {r, z} or polar {dist, angleDeg}; load-time conversion stores
   // the lateral frame coordinate r in Vec2.x for the frame transform.
   // A rule whose frame can't be computed yields no spot (falls through).
-  frame?: "matched" | string[] | { crystal: CrystalElement }
-    | { boss: { id?: string; from: "facing" | "position" } };
+  frame?: "matched" | FrameRef[];
   spots?: Record<string, Vec2>; // per-player spot; wins over spot
   spot?: Vec2;                   // one spot for every matching bot
 };
+
+// A single positioned reference summed into a frame's north vector: a positioned event id, a
+// resolved elemental crystal, or a boss (its facing direction or its position).
+export type FrameRef =
+  | string
+  | { crystal: CrystalElement }
+  | { boss: { id?: string; from: "facing" | "position" } };
 
 // When any mechanic matching `mechanic` (id-prefix or label, like GenericSolverRule.when.mechanic)
 // resolves, bots hold their current position for `duration` seconds before re-solving.

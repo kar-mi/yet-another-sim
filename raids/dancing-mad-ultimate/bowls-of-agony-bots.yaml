@@ -35,13 +35,13 @@ solvers:
     - when: { static: true }
       startAt: 24
       endAt: 36
-      frame: { crystal: wind }
+      frame: [{ crystal: wind }]
       spots:
         ot: { r: 0, z: 4.5 }
 
     # Once Thunder III snapshots Exdeath, OT moves farther along the same Wind-frame line.
     - when: { mechanic: thunder-iii-get-out }
-      frame: { crystal: wind }
+      frame: [{ crystal: wind }]
       spots:
         ot: { r: 0, z: 14 }
 
@@ -49,7 +49,7 @@ solvers:
     - when: { static: true }
       startAt: 24
       endAt: 43
-      frame: { crystal: wind }
+      frame: [{ crystal: wind }]
       spots:
         mt: { r: 0, z: 18 }
         h1: { r: 6, z: 16 }
@@ -61,7 +61,7 @@ solvers:
     - when: { static: true } # 
       startAt: 36
       endAt: 47
-      frame: { crystal: wind }
+      frame: [{ crystal: wind }]
       spots:
         ot: { r: 0, z: 4.5 }
         mt: { r: 0, z: 4.5 }
@@ -71,7 +71,7 @@ solvers:
     - when: { static: true } # TODO: gate on entropy-short debuff when that mechanic exists
       startAt: 24
       endAt: 43
-      frame: { crystal: fire }
+      frame: [{ crystal: fire }]
       spots:
         r1: { r: -5, z: 14 }
         r2: { r: 5, z: 14 }
@@ -81,7 +81,7 @@ solvers:
     - when: { static: true }
       startAt: 43
       endAt: 53
-      frame: { crystal: wind }
+      frame: [{ crystal: wind }]
       spots:
         r1: { r: 0, z: -14 }
         r2: { r: 0, z: -14 }
@@ -90,7 +90,7 @@ solvers:
     - when: { static: true }
       startAt: 53
       endAt: 60
-      frame: { crystal: wind }
+      frame: [{ crystal: wind }]
       spots:
         mt: { r: 0, z: 18 }
         ot: { r: 0, z: 18 }
@@ -102,7 +102,7 @@ solvers:
     - when: { static: true } # TODO: gate on fluid-long debuff when that mechanic exists, 
       startAt: 53
       endAt: 60
-      frame: { crystal: water }
+      frame: [{ crystal: water }]
       spots:
         r1: { r: -4, z: 14 } #adjust this, so that its in line with the south intercard of the boss if boss was at wind
         r2: { r: 4, z: 10 }
@@ -123,7 +123,7 @@ solvers:
     #  - Latitude, angle 224°, R 16→25.1 → { r: -17.4, z: -6.2 } (dist ≈18.5)
   #- Longitude, angle 226°, R 16→24.7 → { r: -17.7, z: -5.2 } (dist ≈18.5)
     - when: { mechanic: [latitude-implosion-left, latitude-implosion-right] }
-      frame: { boss: { id: chaos, from: facing } }
+      frame: [{ boss: { id: chaos, from: facing } }]
       spots:
         mt: { r: 4.2, z: 16.2 }
         ot: { r: 4.9, z: 16.9 }
@@ -135,7 +135,7 @@ solvers:
         r2: { r: -11.1, z: 0.4 }
 
     - when: { mechanic: [longitude-implosion-front, longitude-implosion-back] }
-      frame: { boss: { id: chaos, from: facing } }
+      frame: [{ boss: { id: chaos, from: facing } }]
       spots:
         mt: { r: 4.3, z: 16.1 }
         ot: { r: 5.0, z: 16.8 }
@@ -148,7 +148,7 @@ solvers:
 
     # Vacuum Wave + Umbra Smash (t:81–88): one bot baits furthest; the rest stack for knockback.
     - when: { mechanic: [vacuum-wave, umbra-smash] }
-      frame: { crystal: wind }
+      frame: [{ crystal: wind }]
       spots:
         mt: { r: 0, z: 6 }
         ot: { r: 0, z: 6 }
@@ -162,12 +162,12 @@ solvers:
     # Vacuum Wave (t:81–88): stack west of exdeath; KB pushes group further west, stays in arena.
     # Headwind/Tailwind facing is not auto set, this needs to be fixed
     - when: { mechanic: vacuum-wave }
-      frame: { crystal: wind }
+      frame: [{ crystal: wind }]
       spot: { r: 0, z: 6 }
 
     # Bowls stack (t:90–93): converge so requiredCount:4 is met; 80 dmg split 8 ways.
     - when: { mechanic: bowls-stack }
-      frame: { crystal: wind }
+      frame: [{ crystal: wind }]
       spot: { r: 0, z: 6 }
 
   holds:
