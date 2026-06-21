@@ -102,6 +102,10 @@ const server = Bun.serve<SocketData>({
     return withServerSpan("http.fetch", { method: req.method, path: url.pathname }, async span => {
       try {
         if (req.headers.get("upgrade")?.toLowerCase() === "websocket") {
+          // Gate cross-site WebSocket hijacking: only same-origin or allow-listed Origins upgrade.
+          // req.url carries the scheme Bun terminated (http on 127.0.0.1 behind a TLS proxy), not
+          // the browser's https — so behind Caddy the same-origin branch never matches and the
+          // public origin must be supplied via ALLOWED_ORIGINS (see .env.example).
           const origin = req.headers.get("origin");
           if (!isOriginAllowed(origin, req.url, ALLOWED_ORIGINS)) {
             logger.warn("server", "rejected ws upgrade: origin not allowed", { origin });
