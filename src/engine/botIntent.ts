@@ -3,7 +3,7 @@ import type { EffectBehavior, Intents, Player, Waypoint, World } from "@shared/t
 import { length, normalize, sub } from "@shared/math";
 import { atan2 } from "@shared/dmath";
 import { MOVE_SPEED } from "@shared/constants";
-import { genericSolverWaypoint } from "./genericSolver";
+import { genericSolverWaypoint, resolvedMechanics } from "./genericSolver";
 import { isEffectActiveAt, shapeOrigin } from "./systems/helpers";
 
 function activeWaypoint(pattern: Waypoint[], time: number, after = -Infinity): Waypoint | undefined {
@@ -28,6 +28,7 @@ export function computeBotIntents(world: World, dt: number): Intents {
   const intents: Intents = {};
 
   const held = world.botHoldUntil !== undefined && world.time < world.botHoldUntil;
+  const mechanics = world.botSolvers?.generic?.length ? resolvedMechanics(world) : undefined;
 
   for (const player of world.players) {
     if (!player.alive || player.control !== "bot") continue;
@@ -38,7 +39,7 @@ export function computeBotIntents(world: World, dt: number): Intents {
     if (held) {
       intent = { move: { x: 0, z: 0 } };
     } else {
-      const solverTarget = genericSolverWaypoint(player, world);
+      const solverTarget = genericSolverWaypoint(player, world, mechanics);
       if (solverTarget) {
         player.botWaypointResumeAfter = world.time;
         intent = moveIntent(player, solverTarget, dt);

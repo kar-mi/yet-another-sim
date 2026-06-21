@@ -5,7 +5,7 @@ import type { FrameRef, GenericSolverRule, Player, World } from "@shared/types";
 
 // A live unresolved mechanic the generic solver can match against. `labels`/`group`/`pos` are carried
 // from the authored event (towers have a position; targeted/bait/aoe carry labels+group but no pos).
-type ResolvedMechanic = {
+export type ResolvedMechanic = {
   resolvedId: string;
   telegraphStart: number;
   resolveAt: number;
@@ -232,10 +232,15 @@ export function genericFrameNorth(frame: Exclude<GenericFrame, "matched">, world
   return frameNorth(frame, [], world);
 }
 
-export function genericRuleFrameNorth(rule: GenericSolverRule, player: Player, world: World): Vec2 | undefined {
+export function genericRuleFrameNorth(
+  rule: GenericSolverRule,
+  player: Player,
+  world: World,
+  mechanics?: ResolvedMechanic[],
+): Vec2 | undefined {
   if (rule.frame === undefined) return undefined;
   if (rule.frame !== "matched") return genericFrameNorth(rule.frame, world);
-  const matched = ruleMatches(rule, player, world, resolvedMechanics(world));
+  const matched = ruleMatches(rule, player, world, mechanics ?? resolvedMechanics(world));
   return matched === null ? undefined : frameNorth(rule.frame, matched, world);
 }
 
@@ -251,11 +256,15 @@ function frameToWorld(spot: Vec2, north: Vec2): Vec2 {
 // Generic, data-driven bot solver: iterate world.botSolvers.generic in order; the first rule whose
 // conditions all match and that yields a spot for this bot wins. Returns undefined when no rule
 // applies, letting the caller fall back to authored waypoints.
-export function genericSolverWaypoint(player: Player, world: World): Vec2 | undefined {
+export function genericSolverWaypoint(
+  player: Player,
+  world: World,
+  mechanics?: ResolvedMechanic[],
+): Vec2 | undefined {
   const rules = world.botSolvers?.generic;
   if (!rules?.length) return undefined;
 
-  const mechanics = resolvedMechanics(world);
+  mechanics ??= resolvedMechanics(world);
   for (const rule of rules) {
     const matched = ruleMatches(rule, player, world, mechanics);
     if (matched === null) continue;

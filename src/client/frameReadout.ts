@@ -1,6 +1,6 @@
 import type { FrameRef, GenericSolverRule, Player, World } from "@shared/types";
 import type { Vec2 } from "@shared/math";
-import { genericFrameNorth, genericRuleFrameNorth } from "../engine/genericSolver";
+import { genericFrameNorth, genericRuleFrameNorth, resolvedMechanics } from "../engine/genericSolver";
 
 export type PositionFrameOption = {
   key: string;
@@ -46,6 +46,7 @@ function mechanicLabel(rule: GenericSolverRule, index: number): string {
 export function positionFrameOptions(world: World, player: Player): PositionFrameOption[] {
   const options: PositionFrameOption[] = [{ key: "world", label: "World" }];
   const seen = new Set(["world"]);
+  const mechanics = world.botSolvers?.generic?.length ? resolvedMechanics(world) : undefined;
   const push = (option: PositionFrameOption): void => {
     if (seen.has(option.key)) return;
     seen.add(option.key);
@@ -84,7 +85,7 @@ export function positionFrameOptions(world: World, player: Player): PositionFram
         key: `matched:${index}`,
         label: `Matched: ${mechanicLabel(rule, index)}`,
         descriptor: "frame: matched",
-        north: genericRuleFrameNorth(rule, player, world),
+        north: genericRuleFrameNorth(rule, player, world, mechanics),
       });
     } else if (Array.isArray(frame)) {
       const labels = frame.map(frameRefLabel);
