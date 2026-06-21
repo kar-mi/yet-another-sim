@@ -32,6 +32,7 @@ import { resolveSpreadStacks } from "./systems/spreadStack";
 import { resolveGazes } from "./systems/gaze";
 import { resolveLimitCuts } from "./systems/limitCut";
 import { resolveSetHps } from "./systems/setHp";
+import { resolveDivebombs } from "./systems/divebombs";
 
 type RaidEvent = RaidDef["events"][number];
 export type EventType = RaidEvent["type"];
@@ -41,7 +42,7 @@ export type Collections = Pick<World,
   | "pending" | "pendingTethers" | "pendingLineLinks" | "pendingTargeted" | "pendingBaits"
   | "pendingTowers" | "pendingChains" | "pendingGroups" | "pendingEffectSelects"
   | "pendingApplyEffects" | "pendingLimitCuts" | "pendingInversions" | "pendingSpreadStacks" | "pendingGazes"
-  | "pendingForcedMarches" | "pendingEffectBursts" | "pendingHeals" | "pendingSetHps" | "reassigns"
+  | "pendingForcedMarches" | "pendingDivebombs" | "pendingEffectBursts" | "pendingHeals" | "pendingSetHps" | "reassigns"
   | "effectResolvers"
 >;
 
@@ -451,6 +452,31 @@ const gaze: MechanicModule = {
   isResolved: w => w.pendingGazes.length === 0 && w.gazes.every(g => g.resolved),
 };
 
+const divebomb: MechanicModule = {
+  fromEvent(e, c) {
+    if (e.type !== "divebomb") return;
+    const gap = e.gap ?? e.size * 1.5;
+    c.pendingDivebombs.push({
+      id: e.id,
+      t: e.t,
+      name: e.name,
+      from: toVec2(e.from),
+      to: toVec2(e.to),
+      speed: e.speed,
+      size: e.size,
+      duration: e.duration,
+      color: e.color,
+      gap,
+      damage: e.damage,
+      damageType: e.damageType,
+      applyEffect: e.applyEffect,
+      hitInterval: e.hitInterval ?? gap / e.speed,
+    });
+  },
+  resolve: ctx => resolveDivebombs(ctx),
+  isResolved: w => w.pendingDivebombs.length === 0 && w.divebombs.every(db => db.resolved),
+};
+
 const setHp: MechanicModule = {
   fromEvent(e, c) {
     if (e.type !== "set_hp") return;
@@ -508,6 +534,7 @@ const MODULE_FOR_TYPE = {
   set_hp: setHp,
   heal: heal,
   effect_resolver: effectResolver,
+  divebomb: divebomb,
 } satisfies Record<EventType, MechanicModule>;
 
 // Resolve/clear-detection order — RNG-critical (see header). Resolve-bearing modules in the fixed
@@ -515,7 +542,7 @@ const MODULE_FOR_TYPE = {
 export const REGISTRY: readonly MechanicModule[] = [
   forcedMarch, tethers, lineLinks, chains, aoe, towers, groups,
   effectSelect, applyEffects, reassign, inverse, spreadStack, gaze, limitCut,
-  setHp, heal, effectResolver,
+  setHp, heal, effectResolver, divebomb,
 ];
 
 // Invariant: every owning module participates in the REGISTRY loop (so its resolve/isResolved run).

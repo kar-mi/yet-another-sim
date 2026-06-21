@@ -1,0 +1,61 @@
+name: Divebomb Test
+arena:
+  zones:
+    - kind: circle
+      center: { x: 0, z: 0 }
+      radius: 20
+duration: 28
+
+players:
+  - { id: mt, role: tank, spawn: { x: 0, z: 0 } }
+  - { id: ot, role: tank, spawn: { x: 8, z: 8 } }
+  - { id: h1, role: healer, spawn: { x: -8, z: 8 } }
+  - { id: h2, role: healer, spawn: { x: 8, z: -8 } }
+  - { id: r1, role: dps, spawn: { x: -8, z: -8 } }
+  - { id: r2, role: dps, spawn: { x: 12, z: 0 } }
+  - { id: m1, role: dps, spawn: { x: -12, z: 0 } }
+  - { id: m2, role: dps, spawn: { x: 0, z: 12 } }
+
+events:
+  - type: divebomb
+    id: north-south
+    time: 2
+    name: North-South Divebomb
+    from: { x: 0, z: 20 }
+    to: { x: 0, z: -20 }
+    speed: 30
+    size: 3
+    duration: 1
+    color: "#ff5533"
+    damage: 40
+    damageType: physical
+
+  - type: divebomb
+    id: visual-only
+    time: 10
+    name: Visual Stream
+    from: { x: -20, z: -6 }
+    to: { x: 20, z: 6 }
+    speed: 24
+    size: 2
+    gap: 4
+    duration: 5
+    color: "#55aaff"
+
+  - type: divebomb
+    id: vulnerability-stream
+    time: 18
+    name: Vulnerability Divebomb
+    from: { x: -20, z: 0 }
+    to: { x: 20, z: 0 }
+    speed: 32
+    size: 3
+    duration: 5
+    color: "#bb55ff"
+    damage: 20
+    damageType: magical
+    applyEffect:
+      name: Magic Vulnerability
+      kind: debuff
+      duration: 6
+      behavior: { kind: vuln, damageType: magical, multiplier: 1.25 }

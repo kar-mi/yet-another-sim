@@ -785,6 +785,30 @@ export type ActiveForcedMarch = {
   teleported: boolean;         // whether the teleport (after preDelay) has happened yet
 };
 
+export type PendingDivebomb = {
+  id: string;
+  t: number;
+  name: string;
+  from: Vec2;
+  to: Vec2;
+  speed: number;
+  size: number;
+  duration: number;
+  color: string;
+  gap: number;
+  damage?: number;
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
+  hitInterval: number;
+};
+
+export type ActiveDivebomb = Omit<PendingDivebomb, "t" | "duration"> & {
+  startedAt: number;
+  expireAt: number;
+  resolved: boolean;
+  hits: Record<string, number>;
+};
+
 export type Intent = {
   move: Vec2;
   facing?: number;             // absolute facing in radians (atan2(x, z)); when set, overrides movement-derived facing
@@ -834,7 +858,9 @@ export type World = {
   gazes: ActiveGaze[];
   pendingGazes: PendingGaze[];
   forcedMarches: ActiveForcedMarch[];
+  divebombs: ActiveDivebomb[];
   pendingForcedMarches: PendingForcedMarch[];
+  pendingDivebombs: PendingDivebomb[];
   pendingEffectBursts: PendingEffectBurst[];
   effectResolvers: Record<string, EffectResolver>;
   pendingHeals: PendingHeal[];
