@@ -116,9 +116,12 @@ solvers:
     # angle A and radius R is { r: R*sin(A), z: 11.9 + R*cos(A) }.
     #   mt/ot/h1/h2 -> NE intercard (45): latitude 44, longitude 46.
     #   m1/m2       -> NW intercard (315): latitude 316, longitude 314.
-    #   r1/r2       -> nearest back intercard, far out: SW(225) 224/226 and SE(135) 136/134.
+    #   r1/r2       -> nearest back intercard, far out: SW(225) 224/226 or SE(135) 136/134 based on crystal
     # Latitude (E/W) fires first -> sit off the E/W cone (44/316/224/136); Longitude (N/S) -> the
     # other side (46/314/226/134). The 2-degree straddle is a tiny move that fits the 2s gap.
+
+    #  - Latitude, angle 224°, R 16→25.1 → { r: -17.4, z: -6.2 } (dist ≈18.5)
+  #- Longitude, angle 226°, R 16→24.7 → { r: -17.7, z: -5.2 } (dist ≈18.5)
     - when: { mechanic: [latitude-implosion-left, latitude-implosion-right] }
       frame: { boss: { id: chaos, from: facing } }
       spots:
@@ -128,7 +131,7 @@ solvers:
         h2: { r: 6.3, z: 18.4 }
         m1: { r: -4.9, z: 16.9 }
         m2: { r: -5.6, z: 17.7 }
-        r1: { r: -11.1, z: 0.4 }
+        r1: { r: -17.4, z: -6.2 } # same SW intercard line as r2, pushed out near the edge
         r2: { r: -11.1, z: 0.4 }
 
     - when: { mechanic: [longitude-implosion-front, longitude-implosion-back] }
@@ -140,7 +143,7 @@ solvers:
         h2: { r: 6.5, z: 18.3 }
         m1: { r: -5.0, z: 16.8 }
         m2: { r: -5.8, z: 17.5 }
-        r1: { r: -11.5, z: 0.8 }
+        r1: { r: -17.7, z: -5.2 } # same SW intercard line as r2, pushed out near the edge
         r2: { r: -11.5, z: 0.8 }
 
     # Vacuum Wave + Umbra Smash (t:81–88): one bot baits furthest; the rest stack for knockback.
