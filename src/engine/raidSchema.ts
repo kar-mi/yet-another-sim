@@ -17,7 +17,8 @@ const RoleSchema = z.enum(["tank", "healer", "dps"]);
 const DebuffMatchSchema = z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]);
 const AbsoluteSpotSchema = z.object({ x: z.number(), z: z.number() }).strict();
 const RelativeSpotSchema = z.object({ r: z.number(), z: z.number() }).strict();
-const SolverSpotSchema = z.union([AbsoluteSpotSchema, RelativeSpotSchema]);
+const PolarSpotSchema = z.object({ dist: z.number(), angleDeg: z.number() }).strict();
+const SolverSpotSchema = z.union([AbsoluteSpotSchema, RelativeSpotSchema, PolarSpotSchema]);
 const GenericSolverFrameSchema = z.union([
   z.literal("matched"),
   z.array(EventIdSchema).min(1),
@@ -62,14 +63,16 @@ const GenericSolverRuleSchema = z.object({
   }
   const spots = [rule.spot, ...Object.values(rule.spots ?? {})]
     .filter((spot): spot is NonNullable<typeof spot> => spot !== undefined);
-  const expectedKey = rule.frame === undefined ? "x" : "r";
-  if (spots.some(spot => !(expectedKey in spot))) {
+  const hasInvalidSpot = rule.frame === undefined
+    ? spots.some(spot => !("x" in spot))
+    : spots.some(spot => !("r" in spot) && !("angleDeg" in spot));
+  if (hasInvalidSpot) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ["spot"],
       message: rule.frame === undefined
         ? "unframed rule requires absolute { x, z } spots"
-        : "frame requires relative { r, z } spots",
+        : "frame requires relative { r, z } or polar { dist, angleDeg } spots",
     });
   }
 });

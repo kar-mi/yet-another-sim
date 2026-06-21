@@ -7,6 +7,7 @@ import { topThreatTarget } from "./systems/helpers";
 import { toVec2 } from "./eventTransforms";
 import { bucketEvent, type Collections } from "./mechanicRegistry";
 import { placeCrystals } from "./crystals";
+import { cos, sin } from "@shared/dmath";
 
 export const ROLE_HP: Record<Player["role"], number> = { tank: 160, healer: 100, dps: 100 };
 
@@ -15,9 +16,16 @@ function toBotSolvers(raid: RaidDef): World["botSolvers"] {
   const holds = raid.botSolvers?.holds;
   if (!generic && !holds) return undefined;
 
-  const toSpot = (spot: { x: number; z: number } | { r: number; z: number }): Vec2 =>
-    "x" in spot ? vec2(spot.x, spot.z) : vec2(spot.r, spot.z);
-  const toSpots = (spots: Record<string, { x: number; z: number } | { r: number; z: number }>) =>
+  type AuthoredSpot = { x: number; z: number } | { r: number; z: number }
+    | { dist: number; angleDeg: number };
+  const toSpot = (spot: AuthoredSpot): Vec2 => {
+    if ("angleDeg" in spot) {
+      const angle = spot.angleDeg * Math.PI / 180;
+      return vec2(spot.dist * sin(angle), spot.dist * cos(angle));
+    }
+    return "x" in spot ? vec2(spot.x, spot.z) : vec2(spot.r, spot.z);
+  };
+  const toSpots = (spots: Record<string, AuthoredSpot>) =>
     Object.fromEntries(Object.entries(spots).map(([id, spot]) => [id, toSpot(spot)]));
 
   return {

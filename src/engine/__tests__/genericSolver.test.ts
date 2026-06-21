@@ -420,6 +420,36 @@ test("loadBotPatterns converts authored solver spot objects to Vec2 and preserve
   expect(w.botSolvers?.generic?.[1]?.spot).toEqual({ x: -4, z: 4 });
 });
 
+test("loadBotPatterns converts polar frame spots and resolves their world positions", () => {
+  const w = createWorld(applyBotPatterns(loadRaid(baseRaid), loadBotPatterns({
+    players: {},
+    solvers: { generic: [{
+      when: { mechanic: "wave" },
+      frame: "matched",
+      spots: {
+        north: { dist: 5, angleDeg: 0 },
+        right: { dist: 5, angleDeg: 90 },
+        diagonal: { dist: 5, angleDeg: 45 },
+      },
+    }] },
+  })), 1);
+  w.time = 2;
+  w.towers = [
+    { id: "t-l", labels: ["wave"], pos: { x: 0, z: 5 }, telegraphStart: 0, resolveAt: 5, resolved: false },
+    { id: "t-r", labels: ["wave"], pos: { x: 5, z: 0 }, telegraphStart: 0, resolveAt: 5, resolved: false },
+  ] as World["towers"];
+
+  const north = genericSolverWaypoint(player({ id: "north" }), w)!;
+  expect(north.x).toBeCloseTo(3.5355, 3);
+  expect(north.z).toBeCloseTo(3.5355, 3);
+  const right = genericSolverWaypoint(player({ id: "right" }), w)!;
+  expect(right.x).toBeCloseTo(3.5355, 3);
+  expect(right.z).toBeCloseTo(-3.5355, 3);
+  const diagonal = genericSolverWaypoint(player({ id: "diagonal" }), w)!;
+  expect(diagonal.x).toBeCloseTo(5, 3);
+  expect(diagonal.z).toBeCloseTo(0, 3);
+});
+
 test("solver spot schema enforces relative framed and absolute unframed shapes", () => {
   expect(() => loadBotPatterns({
     players: {},
@@ -433,6 +463,11 @@ test("solver spot schema enforces relative framed and absolute unframed shapes",
   expect(() => loadBotPatterns({
     players: {},
     solvers: { generic: [{ when: { debuff: "Headwind" }, spot: { r: 0, z: 5 } }] },
+  })).toThrow(/unframed rule requires absolute/);
+
+  expect(() => loadBotPatterns({
+    players: {},
+    solvers: { generic: [{ when: { debuff: "Headwind" }, spot: { dist: 5, angleDeg: 45 } }] },
   })).toThrow(/unframed rule requires absolute/);
 });
 
