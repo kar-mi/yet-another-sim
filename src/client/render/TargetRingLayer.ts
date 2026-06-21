@@ -18,7 +18,7 @@ export class TargetRingLayer {
   sync(boss: Boss, isTargeted: boolean): void {
     if (!this.mesh) this.build(boss);
     this.mesh!.position.set(boss.pos.x, RING_Y, boss.pos.z);
-    this.mesh!.setEnabled(boss.hp > 0 && isTargeted);
+    this.mesh!.setEnabled(boss.hp > 0 && isTargeted && boss.targetable !== false);
   }
 
   private build(boss: Boss): void {

@@ -243,7 +243,7 @@ export class BabylonRenderer implements Renderer {
     const local = world.players.find(p => p.id === this.localPlayerId);
     for (const boss of world.bosses) {
       this.bossLayers.get(boss.id)?.sync(boss);
-      if (boss.targetable !== false) this.bossRingLayers.get(boss.id)?.sync(boss);
+      this.bossRingLayers.get(boss.id)?.sync(boss);
       this.targetRingLayers.get(boss.id)?.sync(boss, local?.targetBossId === boss.id);
     }
     const focus = local?.alive

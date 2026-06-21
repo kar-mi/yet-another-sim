@@ -33,7 +33,7 @@ export class BossRingLayer {
     if (!this.node) this.build(boss);
     this.node!.position.set(boss.pos.x, RING_Y, boss.pos.z);
     this.node!.rotation.y = boss.facing;
-    this.node!.setEnabled(boss.hp > 0);
+    this.node!.setEnabled(boss.hp > 0 && boss.targetable !== false);
   }
 
   private build(boss: Boss): void {
