@@ -222,6 +222,45 @@ events:
     bossId: kefka
     shape: { kind: circle, center: { x: -8, z: 0 }, radius: 20 }
 
+  - type: divebomb
+    id: trance-divebomb-1
+    time: 64
+    name: Trance
+    from: { x: 0, z: 20 }
+    to: { x: 0, z: -20 }
+    speed: 30
+    size: 14
+    gap: 10
+    color: "#7722aa"
+    damage: 5
+    damageType: magical
+
+  - type: divebomb
+    id: trance-divebomb-2
+    time: 67
+    name: Trance
+    from: { x: -20, z: 20 }
+    to: { x: 20, z: -20 }
+    speed: 30
+    size: 14
+    gap: 10
+    color: "#7722aa"
+    damage: 5
+    damageType: magical
+
+  - type: divebomb
+    id: trance-divebomb-3
+    time: 70
+    name: Trance
+    from: { x: -20, z: 0 }
+    to: { x: 20, z: 0 }
+    speed: 30
+    size: 14
+    gap: 10
+    color: "#7722aa"
+    damage: 5
+    damageType: magical
+
   - type: aoe
     id: latitude-implosion-left
     time: 60
@@ -377,17 +416,28 @@ events:
     bossId: kefka
     shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
 
-  - type: targeted
+  - type: aoe
+    id: umbra-smash-landing
+    time: 79
+    name: Umbra Smash
+    deferred: true
+    anchor: boss
+    telegraph: 1.5
+    damage: 25
+    damageType: physical
+    bossId: chaos
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 5 }
+
+  - type: dash
     id: umbra-smash
     time: 81
     name: Umbra Smash
-    targetMode: furthest
-    radius: 5
     telegraph: 4
-    damage: 25
-    damageType: physical
+    destination: { bait: furthest }
+    link: umbra-smash-landing
     showCastBar: true
     bossId: chaos
+
   - type: aoe
     id: vacuum-wave
     time: 81
