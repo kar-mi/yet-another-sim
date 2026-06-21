@@ -129,7 +129,8 @@ solvers:
         m1: { r: -4.9, z: 16.9 }
         m2: { r: -5.6, z: 17.7 }
         r1: { r: -11.1, z: 0.4 }
-        r2: { r: 11.1, z: 0.4 }
+        r2: { r: -11.1, z: 0.4 }
+
     - when: { mechanic: [longitude-implosion-front, longitude-implosion-back] }
       frame: { boss: { id: chaos, from: facing } }
       spots:
@@ -140,7 +141,7 @@ solvers:
         m1: { r: -5.0, z: 16.8 }
         m2: { r: -5.8, z: 17.5 }
         r1: { r: -11.5, z: 0.8 }
-        r2: { r: 11.5, z: 0.8 }
+        r2: { r: -11.5, z: 0.8 }
 
     # Vacuum Wave + Umbra Smash (t:81–88): one bot baits furthest; the rest stack for knockback.
     - when: { mechanic: [vacuum-wave, umbra-smash] }
