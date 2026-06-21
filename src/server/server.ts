@@ -1,25 +1,21 @@
 import { addServerTraceEvent, recordServerException, withServerSpan } from "./otel";
-import { parseRaidFile } from "./raidFileReader";
 import { join } from "path";
 import {
   ClientMessageSchema,
-  MAX_RAIDS,
-  RAID_SEGMENT_REGEX,
-  normalizeRaidName,
-  type RaidCategory,
-  type RaidEntry,
   type ServerMessage,
 } from "@shared/protocol";
 import { SessionManager, capacitySnapshot } from "./session";
 import { logger, createSessionLog, isDevelopment } from "./logger";
 import { metrics } from "./metrics";
 import { startMetricsServer } from "./metricsServer";
+import { isOriginAllowed, parseAllowedOrigins } from "./origin";
+import { getRaidCategories, raidCatalogCacheControl, RAIDS_DIR } from "./raidCatalog";
 
 const ROOT = join(import.meta.dir, "..", "..");
 const BUNDLE_DIR = join(ROOT, ".bundle");
-const RAIDS_DIR = join(ROOT, "raids");
 const STATIC_DIR = join(ROOT, "static");
 const PORT = Number(Bun.env.PORT || 3000);
+const ALLOWED_ORIGINS = parseAllowedOrigins(Bun.env.ALLOWED_ORIGINS);
 
 // Maximum allocated rooms on this backend. A bad cap must fail startup, never be
 // silently coerced into an unbounded or nonsensical limit.
@@ -50,105 +46,6 @@ interface SocketData {
 
 // Reused across all inbound binary frames; allocating a TextDecoder per message is needless churn.
 const wsTextDecoder = new TextDecoder();
-
-function raidSegmentFromFile(file: string): string | null {
-  const ext = file.endsWith(".yaml") ? ".yaml" : file.endsWith(".yml") ? ".yml" : null;
-  if (!ext) return null;
-  const segment = file.slice(0, -ext.length);
-  return RAID_SEGMENT_REGEX.test(segment) ? segment : null;
-}
-
-async function loadCategoryRaids(categoryId: string, remaining: number): Promise<RaidEntry[]> {
-  const dir = join(RAIDS_DIR, categoryId);
-  const EXTS = [".yaml", ".yml"] as const;
-
-  // Collect files across all extensions; first extension in priority order wins per segment.
-  const segmentMap = new Map<string, string>(); // segment → filename
-  for (const ext of EXTS) {
-    for (const file of await Array.fromAsync(new Bun.Glob(`*${ext}`).scan(dir))) {
-      const segment = file.slice(0, -ext.length);
-      if (!segmentMap.has(segment)) segmentMap.set(segment, file);
-    }
-  }
-
-  const files = [...segmentMap.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([, file]) => file);
-
-  const raids: RaidEntry[] = [];
-
-  for (const file of files) {
-    const base = raidSegmentFromFile(file);
-    if (!base || base === "raid_info" || base.endsWith("-bots")) continue;
-    if (raids.length >= remaining) break;
-
-    let obj: { name?: unknown };
-    try {
-      obj = await parseRaidFile(join(dir, file)) as { name?: unknown };
-    } catch {
-      logger.warn("raid", "skipping raid with invalid file", { category: categoryId, file });
-      continue;
-    }
-
-    const name = normalizeRaidName(obj.name);
-    if (!name) {
-      logger.warn("raid", "skipping raid with invalid name", { category: categoryId, file });
-      continue;
-    }
-
-    raids.push({ id: `${categoryId}/${base}`, name });
-  }
-
-  return raids;
-}
-
-async function loadRaidCategories(): Promise<RaidCategory[]> {
-  const EXTS = [".yaml", ".yml"] as const;
-
-  // Collect raid_info files; first extension wins per category.
-  const categoryMap = new Map<string, string>(); // categoryId → infoFile path
-  for (const ext of EXTS) {
-    for (const raw of await Array.fromAsync(new Bun.Glob(`*/raid_info${ext}`).scan(RAIDS_DIR))) {
-      const infoFile = raw.replaceAll("\\", "/");
-      const categoryId = infoFile.slice(0, infoFile.indexOf("/"));
-      if (!categoryMap.has(categoryId)) categoryMap.set(categoryId, infoFile);
-    }
-  }
-
-  const infoEntries = [...categoryMap.entries()].sort(([a], [b]) => a.localeCompare(b));
-  const categories: RaidCategory[] = [];
-  let total = 0;
-
-  for (const [categoryId, infoFile] of infoEntries) {
-    if (total >= MAX_RAIDS) break;
-
-    if (!RAID_SEGMENT_REGEX.test(categoryId)) {
-      logger.warn("raid", "skipping category with invalid folder name", { category: categoryId });
-      continue;
-    }
-
-    let info: { name?: unknown; description?: unknown };
-    try {
-      info = await parseRaidFile(join(RAIDS_DIR, infoFile)) as { name?: unknown; description?: unknown };
-    } catch {
-      logger.warn("raid", "skipping category with invalid raid_info", { category: categoryId });
-      continue;
-    }
-
-    const name = normalizeRaidName(info.name);
-    if (!name) {
-      logger.warn("raid", "skipping category with invalid name", { category: categoryId });
-      continue;
-    }
-
-    const description = typeof info.description === "string" ? info.description : "";
-    const raids = await loadCategoryRaids(categoryId, MAX_RAIDS - total);
-    total += raids.length;
-    categories.push({ id: categoryId, name, description, raids });
-  }
-
-  return categories;
-}
 
 logger.info("build", "building client bundle");
 const buildResult = await Bun.build({
@@ -204,12 +101,22 @@ const server = Bun.serve<SocketData>({
 
     return withServerSpan("http.fetch", { method: req.method, path: url.pathname }, async span => {
       try {
-        if (server.upgrade(req, { data: { clientId: crypto.randomUUID() } })) {
-          return undefined as unknown as Response;
+        if (req.headers.get("upgrade")?.toLowerCase() === "websocket") {
+          const origin = req.headers.get("origin");
+          if (!isOriginAllowed(origin, req.url, ALLOWED_ORIGINS)) {
+            logger.warn("server", "rejected ws upgrade: origin not allowed", { origin });
+            return new Response("Forbidden", { status: 403 });
+          }
+          if (server.upgrade(req, { data: { clientId: crypto.randomUUID() } })) {
+            return undefined as unknown as Response;
+          }
+          return new Response("Upgrade failed", { status: 400 });
         }
 
         if (url.pathname === "/api/raids") {
-          return Response.json(await loadRaidCategories());
+          return Response.json(await getRaidCategories(), {
+            headers: { "Cache-Control": raidCatalogCacheControl },
+          });
         }
 
         // Liveness only — always 200 while the process is up. Capacity is never
