@@ -24,7 +24,7 @@
       <button class="settings-tab" data-tab="display">DISPLAY</button>
     </div>
 
-    <div id="tab-camera">
+    <div id="tab-camera" class="settings-tab-content active">
       <div class="settings-group-header">KEYBOARD &amp; MOUSE</div>
 
       <div class="settings-field">
@@ -46,7 +46,7 @@
 
     </div>
 
-    <div id="tab-keybinds" style="display:none">
+    <div id="tab-keybinds" class="settings-tab-content">
       <div class="settings-group-header">KEYBINDS</div>
       <div class="keybind-header">
         <span></span>
@@ -111,7 +111,7 @@
       <button id="reset-keybinds">RESET KEYBINDS</button>
     </div>
 
-    <div id="tab-controller" style="display:none">
+    <div id="tab-controller" class="settings-tab-content">
       <div class="settings-group-header">CAMERA</div>
 
       <div class="settings-field">
@@ -137,12 +137,12 @@
         <div class="controller-info">
           <span id="controller-type-badge" class="controller-badge controller-badge--none">NO CONTROLLER</span>
           <span id="controller-name" class="controller-name"></span>
-          <select id="controller-select" class="controller-select" style="display:none"></select>
+          <select id="controller-select" class="controller-select is-hidden"></select>
         </div>
       </div>
     </div>
 
-    <div id="tab-display" style="display:none">
+    <div id="tab-display" class="settings-tab-content">
       <div class="settings-field">
         <label class="settings-check">
           <input id="rendered-player-hp-toggle" type="checkbox"> RENDERED PLAYER HP BARS
@@ -200,7 +200,7 @@
         <div class="yas-debuff-tracker"></div>
         <div class="yas-hotbar-panel">
           <div class="yas-hotbar"></div>
-          <div class="yas-controller-hotbar" style="display:none"></div>
+          <div class="yas-controller-hotbar"></div>
           <div class="yas-position-helper">
             <button class="yas-position-frame" type="button" title="Choose position frames">World</button>
             <div class="yas-position-frame-modal" hidden>
@@ -220,14 +220,14 @@
           <div class="yas-bar-row">
             <span class="yas-bar-label">HP</span>
             <div class="yas-bar-track">
-              <div class="yas-bar-fill yas-hp-fill" style="width:100%"></div>
+              <div class="yas-bar-fill yas-hp-fill"></div>
               <span class="yas-bar-val" data-hp-val>100 / 100</span>
             </div>
           </div>
           <div class="yas-bar-row">
             <span class="yas-bar-label">MP</span>
             <div class="yas-bar-track">
-              <div class="yas-bar-fill yas-mp-fill" style="width:100%"></div>
+              <div class="yas-bar-fill yas-mp-fill"></div>
               <span class="yas-bar-val" data-mp-val>10000 / 10000</span>
             </div>
           </div>

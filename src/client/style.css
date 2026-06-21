@@ -390,6 +390,15 @@ body:focus-visible {
   border-bottom-color: var(--px-accent);
 }
 
+/* Only the active settings tab's panel is shown; toggled by SettingsPanel.ts. */
+.settings-tab-content {
+  display: none;
+}
+
+.settings-tab-content.active {
+  display: block;
+}
+
 /* ===== KEYBIND ROWS ===== */
 .keybind-header,
 .keybind-row {
@@ -551,6 +560,10 @@ body:focus-visible {
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 280px;
+}
+
+.controller-select.is-hidden {
+  display: none;
 }
 
 .controller-select {
@@ -959,6 +972,7 @@ img.party-effect-icon {
 .yas-bar-fill {
   position: absolute;
   top: 0; left: 0; bottom: 0;
+  width: 100%;
   transition: width 0.1s linear;
 }
 
@@ -1219,6 +1233,7 @@ img.yas-debuff-icon {
 }
 
 .yas-controller-hotbar {
+  display: none; /* shown via JS (HudOverlay) when a controller is the active input */
   align-items: center;
   gap: 10px;
 }
