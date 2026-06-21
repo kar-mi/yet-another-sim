@@ -19,7 +19,12 @@ import type { Settings, ControllerType } from "../settings";
 import type { PlaybackState } from "@shared/protocol";
 import { clamp01 } from "@shared/math";
 import { createEffectRenderState, syncEffectChips, type EffectRenderState } from "./effectChips";
-import { invertFramePosition, positionFrameOptions, type PositionFrameOption } from "../frameReadout";
+import {
+  combinePositionFrames,
+  invertFramePosition,
+  positionFrameOptions,
+  type PositionFrameOption,
+} from "../frameReadout";
 
 declare const __YAS_DEBUG__: boolean | undefined;
 
@@ -178,6 +183,7 @@ export class HudOverlay {
   private positionFrameSignature = "";
   private currentSettings!: Settings;
   private latestPlayer: Player | null = null;
+  private latestWorld: World | null = null;
   private debuffTrackerEl!: HTMLDivElement;
   private debuffTrackerState = createEffectRenderState();
   private kbmHotbar!: HTMLDivElement;
@@ -540,6 +546,7 @@ export class HudOverlay {
   sync(world: World): void {
     const p = world.players.find(player => player.id === this.localPlayerId) ?? world.players[0];
     this.latestPlayer = p ?? null;
+    this.latestWorld = world;
     if (DEBUG_POSITION_ENABLED && p) this.syncPositionFrames(world, p);
     const botPlayers = world.players.filter(player => player.control === "bot");
     this.botInvulnBtn.classList.toggle("is-active", botPlayers.length > 0 && botPlayers.every(player => player.invincible));
@@ -682,23 +689,30 @@ export class HudOverlay {
 
   private logCurrentPosition(): void {
     const player = this.latestPlayer;
-    if (!player) return;
-    const selected = this.positionFrameOptions.find(option => option.key === this.positionFrameEl?.value)
-      ?? this.positionFrameOptions[0];
+    const world = this.latestWorld;
+    if (!player || !world) return;
+    const selected = Array.from(this.positionFrameEl?.selectedOptions ?? [])
+      .map(el => this.positionFrameOptions.find(option => option.key === el.value))
+      .filter((option): option is PositionFrameOption => option !== undefined);
+    const frame = selected.length > 1
+      ? combinePositionFrames(selected, world)
+      : selected[0] ?? this.positionFrameOptions[0];
     if (this.positionReadoutEl) {
       const worldLine = `world  { x: ${player.pos.x.toFixed(3)}, z: ${player.pos.z.toFixed(3)} }`;
-      if (selected?.north) {
-        const readout = invertFramePosition(player.pos, selected.north);
+      if (frame?.north) {
+        const readout = invertFramePosition(player.pos, frame.north);
         this.positionReadoutEl.textContent = [
-          selected.descriptor ?? selected.label,
+          frame.descriptor ?? frame.label,
           worldLine,
           `r/z    { r: ${readout.r.toFixed(3)}, z: ${readout.z.toFixed(3)} }`,
           `polar  { dist: ${readout.dist.toFixed(3)}, angleDeg: ${readout.angleDeg.toFixed(1)} }`,
         ].join("\n");
       } else {
-        this.positionReadoutEl.textContent = selected?.key === "world"
+        this.positionReadoutEl.textContent = frame?.key === "world"
           ? worldLine
-          : `${selected?.descriptor ?? selected?.label ?? "frame"}\nframe unavailable\n${worldLine}`;
+          : selected.length > 1 && !frame
+            ? `selected frames cannot be combined\n${worldLine}`
+            : `${frame?.descriptor ?? frame?.label ?? "frame"}\nframe unavailable\n${worldLine}`;
       }
       this.positionReadoutEl.classList.add("is-visible");
     }
@@ -716,15 +730,20 @@ export class HudOverlay {
     const signature = options.map(option => `${option.key}:${option.north ? "1" : "0"}`).join("|");
     if (!this.positionFrameEl || signature === this.positionFrameSignature) return;
     this.positionFrameSignature = signature;
-    const selected = this.positionFrameEl.value;
-    this.positionFrameEl.replaceChildren(...options.map(option => {
+    const selected = new Set(Array.from(this.positionFrameEl.selectedOptions, el => el.value));
+    const optionEls = options.map(option => {
       const el = document.createElement("option");
       el.value = option.key;
       el.textContent = option.label;
       el.disabled = option.key !== "world" && !option.north;
+      el.selected = selected.has(option.key) && !el.disabled;
       return el;
-    }));
-    if (options.some(option => option.key === selected && option.north)) this.positionFrameEl.value = selected;
+    });
+    if (!optionEls.some(el => el.selected)) {
+      const worldOption = optionEls.find(el => el.value === "world");
+      if (worldOption) worldOption.selected = true;
+    }
+    this.positionFrameEl.replaceChildren(...optionEls);
   }
 
   // Renders a skill's cooldown sweep, ready-pulse, and active highlight across its hotbar slots.

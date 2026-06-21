@@ -7,6 +7,7 @@ export type PositionFrameOption = {
   label: string;
   descriptor?: string;
   north?: Vec2;
+  refs?: FrameRef[];
 };
 
 export type FramePositionReadout = {
@@ -59,6 +60,7 @@ export function positionFrameOptions(world: World, player: Player): PositionFram
         label: `Boss: ${boss.id} — ${from}`,
         descriptor: `frame: [{ boss: { id: ${boss.id}, from: ${from} } }]`,
         north: genericFrameNorth([frame], world),
+        refs: [frame],
       });
     }
   }
@@ -70,6 +72,7 @@ export function positionFrameOptions(world: World, player: Player): PositionFram
       label: `Crystal: ${crystal.element}`,
       descriptor: `frame: [{ crystal: ${crystal.element} }]`,
       north: genericFrameNorth([frame], world),
+      refs: [frame],
     });
   }
 
@@ -90,9 +93,27 @@ export function positionFrameOptions(world: World, player: Player): PositionFram
         label: `Frame: ${labels.join(" + ")}`,
         descriptor: `frame: [${labels.join(", ")}]`,
         north: genericFrameNorth(frame, world),
+        refs: frame,
       });
     }
   }
 
   return options;
+}
+
+export function combinePositionFrames(
+  selected: PositionFrameOption[],
+  world: World,
+): PositionFrameOption | undefined {
+  if (selected.length === 0 || selected.some(option => !option.refs)) return undefined;
+  const refs = selected.flatMap(option => option.refs!);
+  if (refs.length === 0) return undefined;
+  const labels = refs.map(frameRefLabel);
+  return {
+    key: `combined:${labels.join("|")}`,
+    label: `Frame: ${labels.join(" + ")}`,
+    descriptor: `frame: [${labels.join(", ")}]`,
+    north: genericFrameNorth(refs, world),
+    refs,
+  };
 }

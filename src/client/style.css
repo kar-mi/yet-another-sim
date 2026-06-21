@@ -1100,8 +1100,8 @@ img.yas-debuff-icon {
 
 .yas-position-frame {
   width: 176px;
-  height: 52px;
-  padding: 0 8px;
+  height: 76px;
+  padding: 2px 4px;
   background: var(--px-bg-2);
   border: 2px solid var(--px-edge);
   border-radius: 4px;
