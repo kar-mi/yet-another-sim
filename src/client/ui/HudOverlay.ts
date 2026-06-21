@@ -177,9 +177,13 @@ export class HudOverlay {
   private modeToggleBtn!: HTMLButtonElement;
   private debugPositionBtn: HTMLButtonElement | null = null;
   private positionHelperEl: HTMLDivElement | null = null;
-  private positionFrameEl: HTMLSelectElement | null = null;
+  private positionFrameEl: HTMLButtonElement | null = null;
+  private positionFrameModalEl: HTMLDivElement | null = null;
+  private positionFrameOptionsEl: HTMLDivElement | null = null;
+  private positionFrameDoneEl: HTMLButtonElement | null = null;
   private positionReadoutEl: HTMLPreElement | null = null;
   private positionFrameOptions: PositionFrameOption[] = [];
+  private selectedPositionFrameKeys = new Set<string>();
   private positionFrameSignature = "";
   private currentSettings!: Settings;
   private latestPlayer: Player | null = null;
@@ -217,13 +221,19 @@ export class HudOverlay {
     this.modeToggleBtn = this.root.querySelector<HTMLButtonElement>(".yas-hotbar-toggle")!;
     this.debugPositionBtn = this.root.querySelector<HTMLButtonElement>(".yas-hotbar-debug")!;
     this.positionHelperEl = this.root.querySelector<HTMLDivElement>(".yas-position-helper")!;
-    this.positionFrameEl = this.root.querySelector<HTMLSelectElement>(".yas-position-frame")!;
+    this.positionFrameEl = this.root.querySelector<HTMLButtonElement>(".yas-position-frame")!;
+    this.positionFrameModalEl = this.root.querySelector<HTMLDivElement>(".yas-position-frame-modal")!;
+    this.positionFrameOptionsEl = this.root.querySelector<HTMLDivElement>(".yas-position-frame-options")!;
+    this.positionFrameDoneEl = this.root.querySelector<HTMLButtonElement>(".yas-position-frame-done")!;
     this.positionReadoutEl = this.root.querySelector<HTMLPreElement>(".yas-position-readout")!;
     if (!DEBUG_POSITION_ENABLED) {
       this.positionHelperEl.remove();
       this.debugPositionBtn = null;
       this.positionHelperEl = null;
       this.positionFrameEl = null;
+      this.positionFrameModalEl = null;
+      this.positionFrameOptionsEl = null;
+      this.positionFrameDoneEl = null;
       this.positionReadoutEl = null;
     }
     this.skillSpecs = [
@@ -530,6 +540,12 @@ export class HudOverlay {
       this.applySettings(next);
     });
     this.debugPositionBtn?.addEventListener("click", () => this.logCurrentPosition());
+    this.positionFrameEl?.addEventListener("click", () => {
+      if (this.positionFrameModalEl) this.positionFrameModalEl.hidden = !this.positionFrameModalEl.hidden;
+    });
+    this.positionFrameDoneEl?.addEventListener("click", () => {
+      if (this.positionFrameModalEl) this.positionFrameModalEl.hidden = true;
+    });
     this.positionReadoutEl?.addEventListener("click", () => {
       const text = this.positionReadoutEl?.textContent;
       if (text) void navigator.clipboard.writeText(text);
@@ -691,8 +707,8 @@ export class HudOverlay {
     const player = this.latestPlayer;
     const world = this.latestWorld;
     if (!player || !world) return;
-    const selected = Array.from(this.positionFrameEl?.selectedOptions ?? [])
-      .map(el => this.positionFrameOptions.find(option => option.key === el.value))
+    const selected = Array.from(this.selectedPositionFrameKeys)
+      .map(key => this.positionFrameOptions.find(option => option.key === key))
       .filter((option): option is PositionFrameOption => option !== undefined);
     const frame = selected.length > 1
       ? combinePositionFrames(selected, world)
@@ -728,22 +744,61 @@ export class HudOverlay {
     const options = positionFrameOptions(world, player);
     this.positionFrameOptions = options;
     const signature = options.map(option => `${option.key}:${option.north ? "1" : "0"}`).join("|");
-    if (!this.positionFrameEl || signature === this.positionFrameSignature) return;
+    if (!this.positionFrameEl || !this.positionFrameOptionsEl || signature === this.positionFrameSignature) return;
     this.positionFrameSignature = signature;
-    const selected = new Set(Array.from(this.positionFrameEl.selectedOptions, el => el.value));
+    const validKeys = new Set(options
+      .filter(option => option.key === "world" || option.north)
+      .map(option => option.key));
+    this.selectedPositionFrameKeys = new Set(
+      Array.from(this.selectedPositionFrameKeys).filter(key => validKeys.has(key)),
+    );
+    if (this.selectedPositionFrameKeys.size === 0) this.selectedPositionFrameKeys.add("world");
+
     const optionEls = options.map(option => {
-      const el = document.createElement("option");
-      el.value = option.key;
-      el.textContent = option.label;
-      el.disabled = option.key !== "world" && !option.north;
-      el.selected = selected.has(option.key) && !el.disabled;
-      return el;
+      const label = document.createElement("label");
+      label.className = "yas-position-frame-option";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = option.key;
+      input.checked = this.selectedPositionFrameKeys.has(option.key);
+      input.disabled = option.key !== "world" && !option.north;
+      const text = document.createElement("span");
+      text.textContent = option.label;
+      input.addEventListener("change", () => {
+        if (input.checked) {
+          if (!option.refs) {
+            this.selectedPositionFrameKeys = new Set([option.key]);
+          } else {
+            for (const key of this.selectedPositionFrameKeys) {
+              if (!options.find(candidate => candidate.key === key)?.refs) {
+                this.selectedPositionFrameKeys.delete(key);
+              }
+            }
+            this.selectedPositionFrameKeys.add(option.key);
+          }
+        } else {
+          this.selectedPositionFrameKeys.delete(option.key);
+          if (this.selectedPositionFrameKeys.size === 0) this.selectedPositionFrameKeys.add("world");
+        }
+        this.syncPositionFramePicker();
+      });
+      label.append(input, text);
+      return label;
     });
-    if (!optionEls.some(el => el.selected)) {
-      const worldOption = optionEls.find(el => el.value === "world");
-      if (worldOption) worldOption.selected = true;
+    this.positionFrameOptionsEl.replaceChildren(...optionEls);
+    this.syncPositionFramePicker();
+  }
+
+  private syncPositionFramePicker(): void {
+    if (!this.positionFrameEl || !this.positionFrameOptionsEl) return;
+    for (const input of this.positionFrameOptionsEl.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')) {
+      const option = this.positionFrameOptions.find(candidate => candidate.key === input.value);
+      if (option) input.checked = this.selectedPositionFrameKeys.has(option.key);
     }
-    this.positionFrameEl.replaceChildren(...optionEls);
+    const selected = this.positionFrameOptions.filter(option => this.selectedPositionFrameKeys.has(option.key));
+    this.positionFrameEl.textContent = selected.length === 1
+      ? selected[0]!.label
+      : `${selected.length} frames selected`;
   }
 
   // Renders a skill's cooldown sweep, ready-pulse, and active highlight across its hotbar slots.
