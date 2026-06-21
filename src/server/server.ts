@@ -9,6 +9,7 @@ import { logger, createSessionLog, isDevelopment } from "./logger";
 import { metrics } from "./metrics";
 import { startMetricsServer } from "./metricsServer";
 import { isOriginAllowed, parseAllowedOrigins } from "./origin";
+import { ConnectionCounter, clientIpFor, createMessageRateLimiter, type RateLimiter } from "./rateLimit";
 import { getRaidCategories, raidCatalogCacheControl, RAIDS_DIR } from "./raidCatalog";
 
 const ROOT = join(import.meta.dir, "..", "..");
@@ -30,6 +31,15 @@ function parsePositiveInt(name: string, raw: string | undefined, fallback: numbe
 }
 const MAX_SESSIONS = parsePositiveInt("MAX_SESSIONS", Bun.env.MAX_SESSIONS, 10);
 
+// Per-IP WebSocket connection cap so one client can't open enough sockets to exhaust the
+// room pool. Default tolerates NAT/shared IPs (the pool is already bounded by MAX_SESSIONS).
+const MAX_CONNECTIONS_PER_IP = parsePositiveInt("MAX_CONNECTIONS_PER_IP", Bun.env.MAX_CONNECTIONS_PER_IP, 16);
+
+// Per-connection inbound message-rate cap (messages/second). Sits well above normal play —
+// intents are sent only on change at the display refresh rate plus host snapshot/hash — so it
+// only trips on a flood. Over-limit messages are dropped, not disconnected.
+const MAX_WS_MSGS_PER_SEC = parsePositiveInt("MAX_WS_MSGS_PER_SEC", Bun.env.MAX_WS_MSGS_PER_SEC, 300);
+
 // Client->server messages (intents, joins, claims) are all tiny, so cap accepted WS payloads well
 // below Bun's ~16 MB default to cheaply reject abusive oversized frames. This bounds ingress only;
 // the large outbound resync (full input log) is not governed by it.
@@ -40,8 +50,36 @@ const MAX_WS_PAYLOAD_BYTES = 1 << 20; // 1 MiB
 // perMessageDeflate, so anything below this is sent uncompressed (Bun's per-send compress flag).
 const WS_COMPRESS_THRESHOLD = 8192;
 
+// Baseline defense-in-depth headers on served HTML/assets. CSP is kept in-app because it is
+// coupled to index.html: the Google Fonts hosts are allow-listed and ws:/wss: covers the
+// WebSocket connection. style-src omits 'unsafe-inline' — index.html carries no inline style=""
+// attributes and runtime styling uses CSSOM property setters (el.style.x), which CSP permits. The
+// WebGL renderer compiles shaders GPU-side (no JS eval), so script-src stays 'self' with no
+// 'unsafe-eval'. frame-ancestors 'none' replaces X-Frame-Options against clickjacking.
+const SECURITY_HEADERS: Record<string, string> = {
+  "Content-Security-Policy": [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: blob:",
+    "connect-src 'self' ws: wss:",
+    "base-uri 'self'",
+    "object-src 'none'",
+    "frame-ancestors 'none'",
+  ].join("; "),
+  "X-Content-Type-Options": "nosniff",
+};
+
+function withSecurityHeaders(response: Response): Response {
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) response.headers.set(name, value);
+  return response;
+}
+
 interface SocketData {
   clientId: string;
+  ip: string;
+  rate: RateLimiter;
 }
 
 // Reused across all inbound binary frames; allocating a TextDecoder per message is needless churn.
@@ -74,6 +112,7 @@ if (!buildResult.success) {
 logger.info("build", "bundle ready");
 
 const clients = new Map<string, Bun.ServerWebSocket<SocketData>>();
+const ipConnections = new ConnectionCounter(MAX_CONNECTIONS_PER_IP);
 const manager = new SessionManager({
   raidsDir: RAIDS_DIR,
   send(clientId: string, message: ServerMessage | string) {
@@ -111,9 +150,19 @@ const server = Bun.serve<SocketData>({
             logger.warn("server", "rejected ws upgrade: origin not allowed", { origin });
             return new Response("Forbidden", { status: 403 });
           }
-          if (server.upgrade(req, { data: { clientId: crypto.randomUUID() } })) {
+          // Per-IP connection cap: reserve a slot before upgrading; released on close. Behind
+          // Caddy the real client IP is the first X-Forwarded-For entry, else the socket peer.
+          const ip = clientIpFor(req.headers.get("x-forwarded-for"), server.requestIP(req)?.address);
+          if (!ipConnections.tryAcquire(ip)) {
+            logger.warn("server", "rejected ws upgrade: per-IP connection cap", { ip });
+            return new Response("Too Many Requests", { status: 429 });
+          }
+          const data: SocketData = { clientId: crypto.randomUUID(), ip, rate: createMessageRateLimiter(MAX_WS_MSGS_PER_SEC) };
+          if (server.upgrade(req, { data })) {
             return undefined as unknown as Response;
           }
+          // Upgrade refused after we reserved a slot — release it so the IP isn't leaked.
+          ipConnections.release(ip);
           return new Response("Upgrade failed", { status: 400 });
         }
 
@@ -139,7 +188,7 @@ const server = Bun.serve<SocketData>({
         // Serve bundled client
         const relPath = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
         const bundleFile = Bun.file(join(BUNDLE_DIR, relPath));
-        if (await bundleFile.exists()) return new Response(bundleFile);
+        if (await bundleFile.exists()) return withSecurityHeaders(new Response(bundleFile));
 
         // Serve static assets (effect icons, etc.) from /static/*. Validate the relative path to
         // avoid traversal; only simple file-path characters are allowed.
@@ -150,7 +199,7 @@ const server = Bun.serve<SocketData>({
             if (await staticFile.exists()) {
               // Cacheable so assets warmed by preloadAssets() are reused from cache (no revalidation)
               // on a later raid change instead of downloading mid-pull.
-              return new Response(staticFile, { headers: { "Cache-Control": "public, max-age=3600" } });
+              return withSecurityHeaders(new Response(staticFile, { headers: { "Cache-Control": "public, max-age=3600" } }));
             }
           }
           return new Response("Not found", { status: 404 });
@@ -178,6 +227,11 @@ const server = Bun.serve<SocketData>({
       logger.info("net", "WS connected", { addr: ws.remoteAddress, clientId: ws.data.clientId });
     },
     async message(ws, msg) {
+      // Per-connection flood guard: drop the message before any parse work once over the rate cap.
+      if (!ws.data.rate.allow()) {
+        metrics.wsRateLimitedTotal.inc();
+        return;
+      }
       await withServerSpan("ws.message", { clientId: ws.data.clientId }, async span => {
         metrics.wsMessagesTotal.inc();
         const text = typeof msg === "string" ? msg : wsTextDecoder.decode(msg);
@@ -215,6 +269,7 @@ const server = Bun.serve<SocketData>({
       });
     },
     close(ws) {
+      ipConnections.release(ws.data.ip);
       clients.delete(ws.data.clientId);
       manager.disconnect(ws.data.clientId);
       addServerTraceEvent("net", "WS disconnected", { clientId: ws.data.clientId });
