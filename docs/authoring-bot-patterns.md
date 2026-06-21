@@ -92,10 +92,12 @@ A rule has:
   uses the primary boss's facing, while `{ boss: { from: position, id: add } }` points from arena
   centre toward a named boss (`id` defaults to the primary boss). A frame coordinate `{ r, z }` maps
   to world `r · right + z · north`, with `right = { x: north.z, z: -north.x }` and the arena centre as
-  origin. One spot set then serves every wave of a rotating mechanic. A rule whose frame can't be
+  origin. Polar `{ dist, angleDeg }` is also accepted, with degrees measured clockwise from frame
+  north. One spot set then serves every wave of a rotating mechanic. A rule whose frame can't be
   computed yields no spot (falls through). See [Rotated frames](#rotated-frames) for the geometry.
 - `spots` and/or `spot`; `spots[id]` wins. Unframed rules use absolute world positions `{ x, z }`.
-  Framed rules require relative positions `{ r, z }`, where `r` is the frame's right/lateral axis.
+  Framed rules require relative `{ r, z }` or polar `{ dist, angleDeg }` positions. Polar spots are
+  rejected on unframed rules.
   A rule must specify at least one. If a rule matches but supplies no spot for this bot, the search
   falls through to later rules. Tuple syntax is not accepted for solver spots.
 
@@ -180,10 +182,16 @@ The world position is `spot.r · right + spot.z · north`. Intuitively, **`z` pu
 frame's north (toward the matched mechanics), `r` slides it sideways** (positive `r` = clockwise / to
 the right when facing north). Both are in yalms from centre.
 
+Alternatively, a framed spot can use polar coordinates: `{ dist, angleDeg }`. `dist` is the distance
+from the arena centre and `angleDeg` is measured clockwise from frame north in degrees. At load time
+this becomes `{ r: dist · sin(angleDeg), z: dist · cos(angleDeg) }`; `0` degrees is frame north and
+`90` degrees is frame right. Polar spots require a `frame` and are rejected on unframed rules.
+
 ### Worked example
 
 In Forsaken each `tower-odd` wave is the previous one rotated 45°. The healer rule is
 `{ when: { mechanic: tower-odd, soaks: true, debuff: Stack Charge, role: healer }, frame: matched, spot: { r: 5.1265, z: 5.1265 } }`.
+The equivalent polar spot is `{ dist: 7.25, angleDeg: 45 }`.
 On wave 1 the two matched towers are at `[0, 8]` (W) and `[8, 0]` (N):
 
 - north = normalize(`[0,8]` + `[8,0]`) = normalize(`[8,8]`) = `(0.707, 0.707)` (northeast).
