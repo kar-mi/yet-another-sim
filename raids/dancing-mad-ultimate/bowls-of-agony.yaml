@@ -266,7 +266,7 @@ events:
     time: 60
     name: Latitude Implosion
     telegraph: 6
-    damage: 60
+    damage: 200
     damageType: magical
     anchor: boss
     directionFrom: bossFacing
@@ -282,7 +282,7 @@ events:
     time: 60
     name: Latitude Implosion
     telegraph: 6
-    damage: 60
+    damage: 200
     damageType: magical
     anchor: boss
     directionFrom: bossFacing
@@ -299,7 +299,7 @@ events:
     time: 60
     name: Longitude Implosion
     telegraph: 8
-    damage: 60
+    damage: 200
     damageType: magical
     anchor: boss
     directionFrom: bossFacing
@@ -315,7 +315,7 @@ events:
     time: 60
     name: Longitude Implosion
     telegraph: 8
-    damage: 60
+    damage: 200
     damageType: magical
     anchor: boss
     directionFrom: bossFacing
