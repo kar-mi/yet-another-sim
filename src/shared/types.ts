@@ -59,6 +59,11 @@ export type GenericSolverRule = {
   mirrorLateral?: boolean;
   spots?: Record<string, Vec2>; // per-player spot; wins over spot
   spot?: Vec2;                   // one spot for every matching bot
+  // Limit Cut placement: `spots[n-1]` is the placement for limit-cut number n, authored relative to
+  // relative-north (lateral r in Vec2.x, like a frame spot). The solver rotates it by
+  // world.limitCutRotation.north and mirrors it by the players' rotation direction. Returns absolute
+  // coords, so this rule must not also set frame/spot/spots; bots without a number fall through.
+  limitCutSpread?: { spots: Vec2[] };
 };
 
 // A single positioned reference summed into a frame's north vector: a positioned event id, a
@@ -155,6 +160,9 @@ export type StatusEffect = {
   lockedTargetId?: string;
   // Plant slot index from the assigned combo. Used by bot solvers to place each arrow separately.
   plantSlot?: number;
+  // Limit Cut number (1–8) assigned by a limit_cut event. Used by bot solvers to place each
+  // numbered player around the inter-inter-cardinal ring.
+  limitCutNumber?: number;
 };
 
 // Generic "reassign" mechanic: distribute named charge debuffs across players, then re-balance to
@@ -909,4 +917,8 @@ export type World = {
   playerGroups: Record<string, string>;
   initialCharges: Record<string, string>;
   eventPositions: Record<string, Vec2>;
+  // Limit Cut placement basis, derived at world build from the limit_cut event's rotation config.
+  // `north` is the relative-north unit vector (opposite Kefka's first divebomb); `clockwise` is the
+  // players' placement direction (opposite Kefka's dash rotation). Absent when no limit_cut event.
+  limitCutRotation?: { north: Vec2; clockwise: boolean };
 };

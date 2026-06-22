@@ -55,11 +55,21 @@ const GenericSolverRuleSchema = z.object({
   mirrorLateral: z.boolean().optional(),
   spots: z.record(z.string().min(1), SolverSpotSchema).optional(),
   spot: SolverSpotSchema.optional(),
+  // Limit Cut ring placement; `spots[n-1]` (relative/polar) is rotated by world.limitCutRotation.
+  limitCutSpread: z.object({ spots: z.array(z.union([RelativeSpotSchema, PolarSpotSchema])).min(1) }).optional(),
 }).superRefine((rule, ctx) => {
   const hasCondition = rule.when.static === true || rule.when.mechanic !== undefined || rule.when.debuff !== undefined
     || rule.when.partnerDebuff !== undefined || rule.when.plant !== undefined;
   if (!hasCondition) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["when"], message: "rule must have when.static: true or at least one of when.mechanic / when.debuff / when.partnerDebuff / when.plant" });
+  }
+  // limitCutSpread computes absolute coords from each bot's number; it replaces (and forbids) the
+  // usual frame/spot/spots placement, so skip those requirements once it's validated.
+  if (rule.limitCutSpread !== undefined) {
+    if (rule.frame !== undefined || rule.spot !== undefined || rule.spots !== undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["limitCutSpread"], message: "limitCutSpread returns absolute coords; do not also set frame / spot / spots" });
+    }
+    return;
   }
   if ((rule.when.soaks !== undefined || rule.frame === "matched") && rule.when.mechanic === undefined) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["when"], message: "when.soaks and frame: \"matched\" require when.mechanic" });
@@ -694,6 +704,10 @@ const LimitCutEventSchema = z.object({
   effect: ApplyEffectSchema,
   players: z.array(z.string().min(1)).min(1).optional(),
   role: RoleSchema.optional(),
+  // Optional bot-solver placement basis (RNG-ready). `kefkaStart` is the direction Kefka's first
+  // divebomb comes from; relative-north is its opposite. `kefkaClockwise` is Kefka's dash rotation;
+  // players place in the opposite direction. Defaults to N start / CCW (the current hardcoded case).
+  rotation: z.object({ kefkaStart: Vec2Schema, kefkaClockwise: z.boolean() }).optional(),
 });
 
 export const EventSchema = z.preprocess(

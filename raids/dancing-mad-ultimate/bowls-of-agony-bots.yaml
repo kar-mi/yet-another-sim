@@ -209,5 +209,24 @@ solvers:
       frame: [{ crystal: wind }]
       spot: { r: 0, z: 6 }
 
+    # Limit Cut (t:91+): each bot fans out to its numbered inter-inter-cardinal at radius 18. Spots are
+    # authored relative to relative-north (clockwise polar: #1 is one inter-inter step clockwise of N);
+    # the solver rotates them by world.limitCutRotation (relative-north = opposite Kefka's first
+    # divebomb, handedness = opposite Kefka's dash direction). With the bowls config (Kefka N/CCW),
+    # relative-north resolves to S and bots place clockwise, so #1 lands SSW … #8 SSE. One rule covers
+    # all 8 bots; it only yields a spot for bots currently carrying a limit-cut number.
+    - when: { static: true }
+      startAt: 91
+      limitCutSpread:
+        spots:
+          - { dist: 18, angleDeg: 22.5 }   # #1
+          - { dist: 18, angleDeg: 67.5 }   # #2
+          - { dist: 18, angleDeg: 112.5 }  # #3
+          - { dist: 18, angleDeg: 157.5 }  # #4
+          - { dist: 18, angleDeg: 202.5 }  # #5
+          - { dist: 18, angleDeg: 247.5 }  # #6
+          - { dist: 18, angleDeg: 292.5 }  # #7
+          - { dist: 18, angleDeg: 337.5 }  # #8
+
   holds:
     - { mechanic: bowls-stack, duration: 1 }

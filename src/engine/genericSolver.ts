@@ -105,6 +105,27 @@ export function holdUntilFromResolves(world: World, previousTime: number): numbe
   return until;
 }
 
+// The limit-cut number (1–8) of the bot's active limit-cut effect, or undefined when it carries none.
+function activeLimitCutNumber(player: Player, time: number): number | undefined {
+  const effect = player.effects.find(e =>
+    e.limitCutNumber !== undefined && e.appliedAt <= time && e.appliedAt + e.duration > time);
+  return effect?.limitCutNumber;
+}
+
+// World coords for a bot's numbered limit-cut spot: take the authored spot for the bot's number
+// (relative to relative-north) and rotate it into the world frame using world.limitCutRotation —
+// north is the relative-north vector and clockwise picks the lateral handedness. Returns undefined
+// when the world has no rotation basis, the bot has no number yet, or no spot was authored for it.
+function limitCutSpot(player: Player, world: World, spots: Vec2[]): Vec2 | undefined {
+  const rotation = world.limitCutRotation;
+  if (!rotation) return undefined;
+  const n = activeLimitCutNumber(player, world.time);
+  if (n === undefined) return undefined;
+  const spot = spots[n - 1];
+  if (!spot) return undefined;
+  return frameToWorld(spot, rotation.north, rotation.clockwise ? 1 : -1);
+}
+
 function hasActiveDebuff(player: Player, name: string, time: number): boolean {
   return player.effects.some(effect =>
     effect.name === name && effect.appliedAt <= time && effect.appliedAt + effect.duration > time);
@@ -288,6 +309,11 @@ export function genericSolverWaypoint(
   for (const rule of rules) {
     const matched = ruleMatches(rule, player, world, mechanics);
     if (matched === null) continue;
+    if (rule.limitCutSpread) {
+      const placement = limitCutSpot(player, world, rule.limitCutSpread.spots);
+      if (placement) return placement;
+      continue; // bot has no number yet: fall through to the next rule
+    }
     const spot = rule.spots?.[player.id] ?? rule.spot;
     if (!spot) continue;
     if (rule.frame === undefined) return spot;
