@@ -71,6 +71,7 @@ export function applyStatusEffects(ctx: TickContext): void {
             ? { kind: "donut", center: player.pos, inner: b.selfInner!, outer: b.radius }
             : { kind: "circle", center: player.pos, radius: b.radius };
           applyShapeHit(players, log, time, selfShape, player.pos, b.damage, b.damageType, b.knockbackDistance, player.id, effect.name);
+          addResolvedAoeVisual(ctx, `${effect.id}-self`, effect.name, selfShape);
           if (b.followUp) {
             const fu = b.followUp;
             const others = players.filter(p => p.alive && p.id !== player.id);
