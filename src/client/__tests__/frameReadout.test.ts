@@ -25,6 +25,23 @@ describe("frame position readout", () => {
     expect(result.angleDeg).toBeCloseTo(-53.1301024);
   });
 
+  test("a mirrored right axis reads a reflected world position as the same local spot", () => {
+    const eastNorth = { x: 9 / Math.sqrt(181), z: 10 / Math.sqrt(181) };
+    const westNorth = { x: -9 / Math.sqrt(181), z: 10 / Math.sqrt(181) };
+    const eastWorld = {
+      x: 3 * eastNorth.z + 4 * eastNorth.x,
+      z: -3 * eastNorth.x + 4 * eastNorth.z,
+    };
+    const westWorld = { x: -eastWorld.x, z: eastWorld.z };
+
+    const east = invertFramePosition(eastWorld, eastNorth, 1);
+    const west = invertFramePosition(westWorld, westNorth, -1);
+    expect(east.r).toBeCloseTo(3);
+    expect(east.z).toBeCloseTo(4);
+    expect(west.r).toBeCloseTo(3);
+    expect(west.z).toBeCloseTo(4);
+  });
+
   test("combined refs are summed before normalization", () => {
     const initial = createWorld(loadRaid(baseRaid));
     const boss = { ...initial.boss, pos: { x: 1, z: 0 } };
@@ -35,12 +52,12 @@ describe("frame position readout", () => {
       crystals: [{
         id: "crystal-fire",
         element: "fire" as const,
-        pos: { x: 0, z: 2 },
+        pos: { x: 2, z: 2 },
         spawnAt: 0,
       }],
     };
     const options = positionFrameOptions(world, world.players[0]!);
-    const bossOption = options.find(option => option.key === `boss:${boss.id}:position`)!;
+    const bossOption = options.find(option => option.key === `boss:${boss.id}:facing`)!;
     const crystalOption = options.find(option => option.key === "crystal:fire")!;
     const combined = combinePositionFrames([bossOption, crystalOption], world)!;
     const expected = genericFrameNorth([bossOption.refs![0]!, crystalOption.refs![0]!], world)!;
@@ -49,6 +66,7 @@ describe("frame position readout", () => {
     expect(combined.north?.z).toBeCloseTo(expected.z);
     expect(combined.north?.x).not.toBeCloseTo((bossOption.north!.x + crystalOption.north!.x) / 2);
     expect(combined.north?.z).not.toBeCloseTo((bossOption.north!.z + crystalOption.north!.z) / 2);
+    expect(combined.descriptor).toContain("mirrorLateral: true");
   });
 
   test("non-ref and mixed selections cannot be combined", () => {

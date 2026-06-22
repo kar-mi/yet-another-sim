@@ -147,6 +147,38 @@ test("burstSpread followUp originCrystal targets by crystal distance", () => {
   expect(byId(world, "h1").hp).toBe(HEALER_HP - 50);   // closest to fire crystal
 });
 
+test("burstSpread followUp originCrystal: two carriers fire one shared set of count AOEs", () => {
+  // water crystal at [0,-10]. Carriers mt + ot both originCrystal water, count 2.
+  // Closest 2 to water (all players, carriers included): mt [0,-9] and h1 [0,-8].
+  // Per-carrier resolution would produce 3+ AOEs (each carrier excludes itself); the shared
+  // resolution must produce exactly 2, centered on mt and h1.
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({
+      mt: { spawn: [0, -9] }, ot: { spawn: [10, 0] }, h1: { spawn: [0, -8] },
+      h2: { spawn: [12, 0] }, r1: { spawn: [0, 12] }, r2: { spawn: [-12, 0] },
+    }),
+    crystals: { rng: false, spots: [[0, 10], [10, 0], [0, -10], [-10, 0]] },
+    events: [{
+      type: "apply_effect", t: 0, name: "DT", players: ["mt", "ot"],
+      applyEffect: {
+        name: "DT", kind: "debuff", duration: 0.1,
+        behavior: {
+          kind: "burstSpread",
+          selfShape: "donut", selfInner: 1, radius: 3, damage: 1, damageType: "magical", knockbackDistance: 0,
+          followUp: { mode: "closest", count: 2, originCrystal: "water", shape: "circle", radius: 0.5, damage: 50, damageType: "magical" },
+        },
+      },
+    }],
+  });
+  const world = runTicks(createWorld(raid), noMove, 20);
+
+  const fuVisuals = world.active.filter(m => m.id.includes("-fu-") && m.resolved);
+  expect(fuVisuals).toHaveLength(2);
+  expect(fuVisuals.some(m => m.id.includes("-fu-mt"))).toBe(true);
+  expect(fuVisuals.some(m => m.id.includes("-fu-h1"))).toBe(true);
+});
+
 test("burstSpread followUp shape (Entropy): circle self-pop + donut follow-up", () => {
   // Entropy: carrier mt at [0,0], selfShape circle r=2, followUp donut inner=1 outer=4
   // ot at [5,0] → follow-up target; player in ot's donut ring: h1 at [6,0] (dist 1 from ot, in ring)

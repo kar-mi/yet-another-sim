@@ -34,6 +34,10 @@ function applyShapeHit(
 
 export function applyStatusEffects(ctx: TickContext): void {
   const { players, log, time, previousTime, actedByPlayer, forcedMarches } = ctx;
+  // Crystal-origin follow-ups share one origin across all carriers of a mechanic, so they resolve
+  // once per tick (keyed by mechanic + element) rather than once per carrier — otherwise N carriers
+  // each fire `count` overlapping AOEs from the same crystal.
+  const resolvedCrystalFollowUps = new Set<string>();
   for (const player of players) {
     if (player.alive && !player.invincible) {
       const acted = actedByPlayer.get(player.id) ?? false;
@@ -71,13 +75,23 @@ export function applyStatusEffects(ctx: TickContext): void {
             ? { kind: "donut", center: player.pos, inner: b.selfInner!, outer: b.radius }
             : { kind: "circle", center: player.pos, radius: b.radius };
           applyShapeHit(players, log, time, selfShape, player.pos, b.damage, b.damageType, b.knockbackDistance, player.id, effect.name);
+          addResolvedAoeVisual(ctx, `${effect.id}-self`, effect.name, selfShape);
           if (b.followUp) {
             const fu = b.followUp;
-            const others = players.filter(p => p.alive && p.id !== player.id);
-            const origin = fu.originCrystal !== undefined
-              ? ctx.world.crystals.find(crystal => crystal.element === fu.originCrystal)?.pos ?? player.pos
-              : player.pos;
-            const fuTargets = selectTargetPlayers(others, origin, fu.mode, fu.count);
+            // Crystal-origin: every carrier shares the crystal as origin, so resolve once for the
+            // whole mechanic (all alive players are eligible targets, carriers included). Self-origin:
+            // per-carrier, excluding the carrier.
+            let fuTargets: typeof players;
+            if (fu.originCrystal !== undefined) {
+              const key = `${effect.name}:${fu.originCrystal}`;
+              if (resolvedCrystalFollowUps.has(key)) { continue; }
+              resolvedCrystalFollowUps.add(key);
+              const origin = ctx.world.crystals.find(crystal => crystal.element === fu.originCrystal)?.pos ?? player.pos;
+              fuTargets = selectTargetPlayers(players.filter(p => p.alive), origin, fu.mode, fu.count);
+            } else {
+              const others = players.filter(p => p.alive && p.id !== player.id);
+              fuTargets = selectTargetPlayers(others, player.pos, fu.mode, fu.count);
+            }
             for (const fuTarget of fuTargets) {
               const fuShape: AOEShape = fu.shape === "donut"
                 ? { kind: "donut", center: fuTarget.pos, inner: fu.inner!, outer: fu.radius }

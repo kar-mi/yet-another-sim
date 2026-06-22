@@ -1,12 +1,13 @@
 import type { FrameRef, GenericSolverRule, Player, World } from "@shared/types";
 import type { Vec2 } from "@shared/math";
-import { genericFrameNorth, genericRuleFrameNorth, resolvedMechanics } from "../engine/genericSolver";
+import { genericFrameNorth, genericFrameRightSign, genericRuleFrameNorth, resolvedMechanics } from "../engine/genericSolver";
 
 export type PositionFrameOption = {
   key: string;
   label: string;
   descriptor?: string;
   north?: Vec2;
+  rightSign?: 1 | -1;
   refs?: FrameRef[];
 };
 
@@ -17,8 +18,8 @@ export type FramePositionReadout = {
   angleDeg: number;
 };
 
-export function invertFramePosition(pos: Vec2, north: Vec2): FramePositionReadout {
-  const right = { x: north.z, z: -north.x };
+export function invertFramePosition(pos: Vec2, north: Vec2, rightSign: 1 | -1 = 1): FramePositionReadout {
+  const right = { x: rightSign * north.z, z: rightSign * -north.x };
   const r = pos.x * right.x + pos.z * right.z;
   const z = pos.x * north.x + pos.z * north.z;
   return {
@@ -35,6 +36,11 @@ function frameRefLabel(ref: FrameRef): string {
   if (typeof ref === "string") return ref;
   if ("crystal" in ref) return `crystal:${ref.crystal}`;
   return `boss:${ref.boss.id ?? "primary"}:${ref.boss.from}`;
+}
+
+function canMirrorLateral(refs: FrameRef[]): boolean {
+  return refs.length > 1 && refs.some(ref =>
+    typeof ref !== "string" && "boss" in ref && ref.boss.from === "facing");
 }
 
 function mechanicLabel(rule: GenericSolverRule, index: number): string {
@@ -90,10 +96,11 @@ export function positionFrameOptions(world: World, player: Player): PositionFram
     } else if (Array.isArray(frame)) {
       const labels = frame.map(frameRefLabel);
       push({
-        key: `refs:${labels.join("|")}`,
+        key: `refs:${labels.join("|")}:${rule.mirrorLateral ? "mirrored" : "fixed"}`,
         label: `Frame: ${labels.join(" + ")}`,
-        descriptor: `frame: [${labels.join(", ")}]`,
+        descriptor: `frame: [${labels.join(", ")}]${rule.mirrorLateral ? "\nmirrorLateral: true" : ""}`,
         north: genericFrameNorth(frame, world),
+        rightSign: rule.mirrorLateral ? genericFrameRightSign(frame, world) : 1,
         refs: frame,
       });
     }
@@ -110,11 +117,13 @@ export function combinePositionFrames(
   const refs = selected.flatMap(option => option.refs!);
   if (refs.length === 0) return undefined;
   const labels = refs.map(frameRefLabel);
+  const mirrorLateral = canMirrorLateral(refs);
   return {
     key: `combined:${labels.join("|")}`,
     label: `Frame: ${labels.join(" + ")}`,
-    descriptor: `frame: [${labels.join(", ")}]`,
+    descriptor: `frame: [${labels.join(", ")}]${mirrorLateral ? "\nmirrorLateral: true" : ""}`,
     north: genericFrameNorth(refs, world),
+    rightSign: mirrorLateral ? genericFrameRightSign(refs, world) : 1,
     refs,
   };
 }

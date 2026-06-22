@@ -716,7 +716,7 @@ export class HudOverlay {
     if (this.positionReadoutEl) {
       const worldLine = `world  { x: ${player.pos.x.toFixed(3)}, z: ${player.pos.z.toFixed(3)} }`;
       if (frame?.north) {
-        const readout = invertFramePosition(player.pos, frame.north);
+        const readout = invertFramePosition(player.pos, frame.north, frame.rightSign);
         this.positionReadoutEl.textContent = [
           frame.descriptor ?? frame.label,
           worldLine,

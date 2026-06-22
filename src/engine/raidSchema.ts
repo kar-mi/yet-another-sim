@@ -52,6 +52,7 @@ const GenericSolverRuleSchema = z.object({
   // Rotated spot frame: "matched" (north = bisector of the live matched mechanics) or a list of
   // references (positioned event ids, { crystal }, { boss }) whose positions are summed for north.
   frame: GenericSolverFrameSchema.optional(),
+  mirrorLateral: z.boolean().optional(),
   spots: z.record(z.string().min(1), SolverSpotSchema).optional(),
   spot: SolverSpotSchema.optional(),
 }).superRefine((rule, ctx) => {
@@ -62,6 +63,9 @@ const GenericSolverRuleSchema = z.object({
   }
   if ((rule.when.soaks !== undefined || rule.frame === "matched") && rule.when.mechanic === undefined) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["when"], message: "when.soaks and frame: \"matched\" require when.mechanic" });
+  }
+  if (rule.mirrorLateral && !Array.isArray(rule.frame)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["mirrorLateral"], message: "mirrorLateral requires a reference-list frame" });
   }
   if (rule.spots === undefined && rule.spot === undefined) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["spot"], message: "rule must have at least one of spot / spots" });

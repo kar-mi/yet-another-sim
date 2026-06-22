@@ -54,6 +54,9 @@ export type GenericSolverRule = {
   // the lateral frame coordinate r in Vec2.x for the frame transform.
   // A rule whose frame can't be computed yields no spot (falls through).
   frame?: "matched" | FrameRef[];
+  // For a mixed boss-facing frame, flip the lateral axis when the other references are on the
+  // boss's left. This lets one authored spot mirror across east/west mechanic configurations.
+  mirrorLateral?: boolean;
   spots?: Record<string, Vec2>; // per-player spot; wins over spot
   spot?: Vec2;                   // one spot for every matching bot
 };

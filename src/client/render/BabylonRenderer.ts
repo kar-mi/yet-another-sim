@@ -80,6 +80,7 @@ export class BabylonRenderer implements Renderer {
   private spectateTargetId: string | null = null;
   private onResize!: () => void;
   private panButtons = { left: false, right: false };
+  private swallowNextLockedMove = false;
   private controllerSensitivity = 2.0;
   private cameraAccel = false;
   private cameraAccelStrength = 1;
@@ -133,7 +134,11 @@ export class BabylonRenderer implements Renderer {
     };
     this.onLockChange = () => {
       const mouseInput = this.camera.inputs.attached.pointers as ArcRotateCameraPointersInput | undefined;
-      if (document.pointerLockElement !== this.canvas) {
+      if (document.pointerLockElement === this.canvas) {
+        // Lock just acquired: the browser warps the cursor to screen center, and the first
+        // pointermove under lock carries that warp as a large movementX/Y. Drop it (see onTouch wrap).
+        this.swallowNextLockedMove = true;
+      } else {
         // Lock lost (e.g. Esc) without a pointerup — clear drag state so it doesn't stick.
         this.panButtons.left = false;
         this.panButtons.right = false;
@@ -143,6 +148,21 @@ export class BabylonRenderer implements Renderer {
     this.canvas.addEventListener("pointerdown", this.onPanDown);
     document.addEventListener("pointerup", this.onPanUp);
     document.addEventListener("pointerlockchange", this.onLockChange);
+
+    // Every locked rotation delta flows through the pointers input's onTouch. Drop the single bogus
+    // delta the browser emits when pointer lock engages (cursor warp to center) so a click doesn't
+    // snap the camera; rotation then begins cleanly on the next real move.
+    const pointers = this.camera.inputs.attached.pointers as ArcRotateCameraPointersInput | undefined;
+    if (pointers) {
+      const baseOnTouch = pointers.onTouch.bind(pointers);
+      pointers.onTouch = (point, offsetX, offsetY) => {
+        if (this.swallowNextLockedMove) {
+          this.swallowNextLockedMove = false;
+          return;
+        }
+        baseOnTouch(point, offsetX, offsetY);
+      };
+    }
 
     new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
 

@@ -232,6 +232,26 @@ export function genericFrameNorth(frame: Exclude<GenericFrame, "matched">, world
   return frameNorth(frame, [], world);
 }
 
+// Preserve handedness for frames that combine a boss-facing direction with another positioned
+// reference. The normal clockwise right axis is used when that reference is on the boss's right;
+// it is flipped when the reference is on the boss's left.
+export function genericFrameRightSign(frame: Exclude<GenericFrame, "matched">, world: World): 1 | -1 {
+  const facingIndex = frame.findIndex(ref =>
+    typeof ref !== "string" && "boss" in ref && ref.boss.from === "facing");
+  if (facingIndex < 0) return 1;
+  const facing = refToVec(frame[facingIndex]!, world);
+  if (!facing) return 1;
+
+  let others: Vec2 = { x: 0, z: 0 };
+  for (const [index, ref] of frame.entries()) {
+    if (index === facingIndex) continue;
+    const pos = refToVec(ref, world);
+    if (pos) others = add(others, pos);
+  }
+  const bossRight = { x: facing.z, z: -facing.x };
+  return others.x * bossRight.x + others.z * bossRight.z < 0 ? -1 : 1;
+}
+
 export function genericRuleFrameNorth(
   rule: GenericSolverRule,
   player: Player,
@@ -245,8 +265,8 @@ export function genericRuleFrameNorth(
 }
 
 // Map a runtime frame coordinate to world space: x stores authored r (right/lateral), z is north.
-function frameToWorld(spot: Vec2, north: Vec2): Vec2 {
-  const right: Vec2 = { x: north.z, z: -north.x };
+function frameToWorld(spot: Vec2, north: Vec2, rightSign: 1 | -1 = 1): Vec2 {
+  const right: Vec2 = { x: rightSign * north.z, z: rightSign * -north.x };
   return {
     x: spot.x * right.x + spot.z * north.x,
     z: spot.x * right.z + spot.z * north.z,
@@ -273,7 +293,10 @@ export function genericSolverWaypoint(
     if (rule.frame === undefined) return spot;
     const north = frameNorth(rule.frame, matched, world);
     if (!north) continue; // frame uncomputable: fall through to the next rule
-    return frameToWorld(spot, north);
+    const rightSign = rule.mirrorLateral && rule.frame !== "matched"
+      ? genericFrameRightSign(rule.frame, world)
+      : 1;
+    return frameToWorld(spot, north, rightSign);
   }
   return undefined;
 }
