@@ -1,5 +1,5 @@
 import type { World, Player, Boss, Arena, ZoneShape, Waymark } from "@shared/types";
-import { vec2, normalize, type Vec2 } from "@shared/math";
+import { vec2, type Vec2 } from "@shared/math";
 import { makeSeed, nextRandom, randomInt } from "@shared/rng";
 import type { RaidDef } from "./raidSchema";
 import { INITIAL_TANK_THREAT, PROVOKE_LEAD } from "@shared/constants";
@@ -40,19 +40,6 @@ function toBotSolvers(raid: RaidDef): World["botSolvers"] {
       limitCutSpread: rule.limitCutSpread && { spots: rule.limitCutSpread.spots.map(toSpot) },
     })),
     holds: holds?.map(hold => ({ ...hold })),
-  };
-}
-
-// Bot-solver placement basis from the raid's limit_cut event (if any). Relative-north is opposite
-// Kefka's first divebomb; players place opposite Kefka's rotation. Defaults to N start / CCW.
-function toLimitCutRotation(raid: RaidDef): World["limitCutRotation"] {
-  const lc = raid.events.find(e => e.type === "limit_cut");
-  if (!lc) return undefined;
-  const rotation = (lc as { rotation?: { kefkaStart: Vec2; kefkaClockwise: boolean } }).rotation;
-  if (!rotation) return { north: { x: 0, z: -1 }, clockwise: true };
-  return {
-    north: normalize({ x: -rotation.kefkaStart.x, z: -rotation.kefkaStart.z }),
-    clockwise: !rotation.kefkaClockwise,
   };
 }
 
@@ -313,6 +300,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     gazes: [],
     forcedMarches: [],
     divebombs: [],
+    limitCuts: [],
     ...collections,
     plantPlan,
     plantDebuffOrder,
@@ -321,6 +309,5 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     playerGroups,
     initialCharges,
     eventPositions,
-    limitCutRotation: toLimitCutRotation(raid),
   };
 }

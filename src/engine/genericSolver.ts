@@ -63,6 +63,11 @@ export function resolvedMechanics(world: World): ResolvedMechanic[] {
     out.push({ resolvedId: `${gm.id}.g${index}`, telegraphStart: gm.telegraphStart, resolveAt: gm.resolveAt });
   }
 
+  // Limit cut: live for its effect duration so when.mechanic / limitCutSpread rules can gate on it.
+  for (const lc of world.limitCuts) {
+    out.push({ resolvedId: lc.id, telegraphStart: lc.appliedAt, resolveAt: lc.appliedAt + lc.duration });
+  }
+
   return out;
 }
 
@@ -113,17 +118,18 @@ function activeLimitCutNumber(player: Player, time: number): number | undefined 
 }
 
 // World coords for a bot's numbered limit-cut spot: take the authored spot for the bot's number
-// (relative to relative-north) and rotate it into the world frame using world.limitCutRotation —
-// north is the relative-north vector and clockwise picks the lateral handedness. Returns undefined
-// when the world has no rotation basis, the bot has no number yet, or no spot was authored for it.
-function limitCutSpot(player: Player, world: World, spots: Vec2[]): Vec2 | undefined {
-  const rotation = world.limitCutRotation;
-  if (!rotation) return undefined;
+// (relative to relative-north) and rotate it into the world frame using the matched limit cut's
+// rotation basis — north is the relative-north vector and clockwise picks the lateral handedness.
+// Returns undefined when the matched mechanic isn't a live limit cut, the bot has no number yet,
+// or no spot was authored for it.
+function limitCutSpot(player: Player, world: World, spots: Vec2[], mechanicId: string): Vec2 | undefined {
+  const lc = world.limitCuts.find(l => l.id === mechanicId);
+  if (!lc) return undefined;
   const n = activeLimitCutNumber(player, world.time);
   if (n === undefined) return undefined;
   const spot = spots[n - 1];
   if (!spot) return undefined;
-  return frameToWorld(spot, rotation.north, rotation.clockwise ? 1 : -1);
+  return frameToWorld(spot, lc.north, lc.clockwise ? 1 : -1);
 }
 
 function hasActiveDebuff(player: Player, name: string, time: number): boolean {
@@ -310,8 +316,12 @@ export function genericSolverWaypoint(
     const matched = ruleMatches(rule, player, world, mechanics);
     if (matched === null) continue;
     if (rule.limitCutSpread) {
-      const placement = limitCutSpot(player, world, rule.limitCutSpread.spots);
-      if (placement) return placement;
+      // The matched mechanic (required when.mechanic) identifies which limit cut supplies the basis.
+      const mechanicId = matched[0]?.resolvedId;
+      if (mechanicId) {
+        const placement = limitCutSpot(player, world, rule.limitCutSpread.spots, mechanicId);
+        if (placement) return placement;
+      }
       continue; // bot has no number yet: fall through to the next rule
     }
     const spot = rule.spots?.[player.id] ?? rule.spot;

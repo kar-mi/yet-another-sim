@@ -59,10 +59,11 @@ export type GenericSolverRule = {
   mirrorLateral?: boolean;
   spots?: Record<string, Vec2>; // per-player spot; wins over spot
   spot?: Vec2;                   // one spot for every matching bot
-  // Limit Cut placement: `spots[n-1]` is the placement for limit-cut number n, authored relative to
-  // relative-north (lateral r in Vec2.x, like a frame spot). The solver rotates it by
-  // world.limitCutRotation.north and mirrors it by the players' rotation direction. Returns absolute
-  // coords, so this rule must not also set frame/spot/spots; bots without a number fall through.
+  // Limit Cut placement. Requires when.mechanic naming a fired limit cut (World.limitCuts): the
+  // matched mechanic supplies the rotation basis. `spots[n-1]` is the placement for limit-cut number
+  // n, authored relative to relative-north (lateral r in Vec2.x, like a frame spot); the solver
+  // rotates it by that limit cut's north and mirrors it by the players' rotation direction. Returns
+  // absolute coords, so this rule must not also set frame/spot/spots; bots without a number fall through.
   limitCutSpread?: { spots: Vec2[] };
 };
 
@@ -634,6 +635,19 @@ export type PendingLimitCut = {
   effect: EffectSpec;
   players?: string[];
   role?: Role;
+  // Bot-solver placement basis: relative-north (opposite Kefka's first divebomb) + the players'
+  // rotation direction (opposite Kefka's dash). Computed from the event's rotation config at build.
+  rotation: { north: Vec2; clockwise: boolean };
+};
+
+// A fired limit cut, live for its effect duration so bot-solver rules can gate on it via
+// when.mechanic and read its placement basis. `north`/`clockwise` carry the rotation from the event.
+export type ActiveLimitCut = {
+  id: string;
+  appliedAt: number;
+  duration: number;
+  north: Vec2;
+  clockwise: boolean;
 };
 
 // A standalone "drop this effect on players now" event. Targeting: `players` ids if given, else
@@ -900,6 +914,8 @@ export type World = {
   pendingEffectSelects: PendingEffectSelect[];
   pendingApplyEffects: PendingApplyEffect[];
   pendingLimitCuts: PendingLimitCut[];
+  // Fired limit cuts, live for their effect duration (bot-solver when.mechanic gates on these).
+  limitCuts: ActiveLimitCut[];
   // Per-player plant directions (one per plant slot), assigned from optionals.combinations.plant
   // at world creation. Empty when the raid has no plant combinations. Stamped onto each plant
   // debuff as it lands so the HUD arrow + trap use the player's assigned heading.
@@ -917,8 +933,4 @@ export type World = {
   playerGroups: Record<string, string>;
   initialCharges: Record<string, string>;
   eventPositions: Record<string, Vec2>;
-  // Limit Cut placement basis, derived at world build from the limit_cut event's rotation config.
-  // `north` is the relative-north unit vector (opposite Kefka's first divebomb); `clockwise` is the
-  // players' placement direction (opposite Kefka's dash rotation). Absent when no limit_cut event.
-  limitCutRotation?: { north: Vec2; clockwise: boolean };
 };

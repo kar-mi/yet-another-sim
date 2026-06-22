@@ -55,7 +55,8 @@ const GenericSolverRuleSchema = z.object({
   mirrorLateral: z.boolean().optional(),
   spots: z.record(z.string().min(1), SolverSpotSchema).optional(),
   spot: SolverSpotSchema.optional(),
-  // Limit Cut ring placement; `spots[n-1]` (relative/polar) is rotated by world.limitCutRotation.
+  // Limit Cut ring placement; `spots[n-1]` (relative/polar) is rotated by the basis of the limit cut
+  // named in when.mechanic (see GenericSolverRule.limitCutSpread).
   limitCutSpread: z.object({ spots: z.array(z.union([RelativeSpotSchema, PolarSpotSchema])).min(1) }).optional(),
 }).superRefine((rule, ctx) => {
   const hasCondition = rule.when.static === true || rule.when.mechanic !== undefined || rule.when.debuff !== undefined
@@ -63,9 +64,13 @@ const GenericSolverRuleSchema = z.object({
   if (!hasCondition) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["when"], message: "rule must have when.static: true or at least one of when.mechanic / when.debuff / when.partnerDebuff / when.plant" });
   }
-  // limitCutSpread computes absolute coords from each bot's number; it replaces (and forbids) the
-  // usual frame/spot/spots placement, so skip those requirements once it's validated.
+  // limitCutSpread computes absolute coords from each bot's number; it sources its rotation basis
+  // from the limit cut named by when.mechanic, and replaces (and forbids) the usual frame/spot/spots
+  // placement, so skip those requirements once it's validated.
   if (rule.limitCutSpread !== undefined) {
+    if (rule.when.mechanic === undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["limitCutSpread"], message: "limitCutSpread requires when.mechanic naming the limit cut" });
+    }
     if (rule.frame !== undefined || rule.spot !== undefined || rule.spots !== undefined) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["limitCutSpread"], message: "limitCutSpread returns absolute coords; do not also set frame / spot / spots" });
     }

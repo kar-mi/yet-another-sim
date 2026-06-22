@@ -20,6 +20,7 @@ function world(over: Record<string, unknown>): World {
     spreadStacks: [],
     gazes: [],
     groupMechanics: [],
+    limitCuts: [],
     players: [],
     botSolvers: undefined,
     ...over,
@@ -266,8 +267,8 @@ const lcSpots = [22.5, 67.5, 112.5, 157.5, 202.5, 247.5, 292.5, 337.5].map(deg =
 
 const lcWorld = (clockwise: boolean) => world({
   time: 0,
-  limitCutRotation: { north: { x: 0, z: -1 }, clockwise },
-  botSolvers: { generic: [{ when: { static: true }, limitCutSpread: { spots: lcSpots } }] },
+  limitCuts: [{ id: "lc", appliedAt: 0, duration: 9, north: { x: 0, z: -1 }, clockwise }],
+  botSolvers: { generic: [{ when: { mechanic: "lc" }, limitCutSpread: { spots: lcSpots } }] },
 });
 
 const closeTo = (got: { x: number; z: number } | undefined, x: number, z: number) => {
@@ -288,15 +289,16 @@ test("limitCutSpread reverses to counter-clockwise when clockwise is false", () 
   closeTo(genericSolverWaypoint(numbered(1), w), 6.888, -16.630); // SSE
 });
 
-test("limitCutSpread yields no spot without a number or a rotation basis", () => {
+test("limitCutSpread yields no spot without a number or while its mechanic is inactive", () => {
   // Bot with no limit-cut number falls through.
   expect(genericSolverWaypoint(player({ id: "px" }), lcWorld(true))).toBeUndefined();
-  // Numbered bot but no rotation basis on the world.
-  const noRotation = world({
-    time: 0,
-    botSolvers: { generic: [{ when: { static: true }, limitCutSpread: { spots: lcSpots } }] },
+  // Numbered bot but the limit cut isn't live (outside its window), so when.mechanic doesn't match.
+  const expired = world({
+    time: 20,
+    limitCuts: [{ id: "lc", appliedAt: 0, duration: 9, north: { x: 0, z: -1 }, clockwise: true }],
+    botSolvers: { generic: [{ when: { mechanic: "lc" }, limitCutSpread: { spots: lcSpots } }] },
   });
-  expect(genericSolverWaypoint(numbered(1), noRotation)).toBeUndefined();
+  expect(genericSolverWaypoint(numbered(1), expired)).toBeUndefined();
 });
 
 test("partnerDebuff checks the bot's partner via world.partners", () => {
