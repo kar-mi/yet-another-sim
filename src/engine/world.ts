@@ -37,6 +37,7 @@ function toBotSolvers(raid: RaidDef): World["botSolvers"] {
       mirrorLateral: rule.mirrorLateral,
       spots: rule.spots && toSpots(rule.spots),
       spot: rule.spot && toSpot(rule.spot),
+      limitCutSpread: rule.limitCutSpread && { spots: rule.limitCutSpread.spots.map(toSpot) },
     })),
     holds: holds?.map(hold => ({ ...hold })),
   };
@@ -299,6 +300,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     gazes: [],
     forcedMarches: [],
     divebombs: [],
+    limitCuts: [],
     ...collections,
     plantPlan,
     plantDebuffOrder,

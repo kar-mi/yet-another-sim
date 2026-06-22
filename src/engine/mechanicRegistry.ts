@@ -13,7 +13,7 @@
 // Modules without a `resolve` (heal, effect_resolver) may sit anywhere — they draw no RNG.
 
 import type { World, EffectResolver } from "@shared/types";
-import type { Vec2 } from "@shared/math";
+import { normalize, type Vec2 } from "@shared/math";
 import type { RaidDef } from "./raidSchema";
 import type { TickContext } from "./systems/context";
 import { toVec2, toAOEShape, toKnockback } from "./eventTransforms";
@@ -356,6 +356,12 @@ const applyEffects: MechanicModule = {
 const limitCut: MechanicModule = {
   fromEvent(e, c) {
     if (e.type !== "limit_cut") return;
+    // Relative-north = opposite Kefka's first divebomb; players place opposite Kefka's rotation.
+    // Defaults to N start / CCW (the current hardcoded case) when no rotation config is authored.
+    const r = e.rotation;
+    const rotation = r
+      ? { north: normalize({ x: -toVec2(r.kefkaStart).x, z: -toVec2(r.kefkaStart).z }), clockwise: !r.kefkaClockwise }
+      : { north: { x: 0, z: -1 }, clockwise: true };
     c.pendingLimitCuts.push({
       id: e.id,
       t: e.t,
@@ -363,9 +369,13 @@ const limitCut: MechanicModule = {
       effect: e.effect,
       players: e.players,
       role: e.role,
+      rotation,
     });
   },
-  resolve: ctx => ({ pendingLimitCuts: resolveLimitCuts(ctx) }),
+  resolve: ctx => {
+    const { remaining, limitCuts } = resolveLimitCuts(ctx);
+    return { pendingLimitCuts: remaining, limitCuts };
+  },
   isResolved: w => w.pendingLimitCuts.length === 0,
 };
 

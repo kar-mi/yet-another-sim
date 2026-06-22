@@ -223,7 +223,7 @@ events:
     shape: { kind: circle, center: { x: -8, z: 0 }, radius: 20 }
 
   - type: divebomb
-    id: trance-divebomb-1
+    id: trance-divebomb-n
     time: 64
     name: Trance
     from: { x: 0, z: 20 }
@@ -236,7 +236,7 @@ events:
     damageType: magical
 
   - type: divebomb
-    id: trance-divebomb-2
+    id: trance-divebomb-nw
     time: 67
     name: Trance
     from: { x: -20, z: 20 }
@@ -249,7 +249,7 @@ events:
     damageType: magical
 
   - type: divebomb
-    id: trance-divebomb-3
+    id: trance-divebomb-w
     time: 70
     name: Trance
     from: { x: -20, z: 0 }
@@ -466,6 +466,9 @@ events:
     id: bowls-limit-cut
     time: 91
     name: Limit Cut
+    # Mirrors the trance divebombs (first sweep from N, sequence rotates CCW). Relative-north is the
+    # opposite (S) and bots place clockwise. RNG-ready: roll kefkaStart/kefkaClockwise here later.
+    rotation: { kefkaStart: { x: 0, z: 20 }, kefkaClockwise: false }
     effect:
       name: Limit Cut
       kind: debuff

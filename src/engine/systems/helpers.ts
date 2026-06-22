@@ -209,7 +209,7 @@ export function applyKnockback(player: Player, knockback: Knockback, origin: Vec
   }
 }
 
-export function applyEffect(player: Player, spec: EffectSpec, time: number, id: string, players: Player[], plantSlot?: number): void {
+export function applyEffect(player: Player, spec: EffectSpec, time: number, id: string, players: Player[], plantSlot?: number, limitCutNumber?: number): void {
   // A confusion debuff locks onto the closest other living player at apply time.
   let lockedTargetId: string | undefined;
   if (spec.behavior.kind === "confusion") {
@@ -230,6 +230,7 @@ export function applyEffect(player: Player, spec: EffectSpec, time: number, id: 
     markerIconScale: spec.markerIconScale,
     lockedTargetId,
     plantSlot,
+    limitCutNumber,
   }];
 }
 

@@ -33,6 +33,16 @@ test("limit_cut assigns numbers 1–8 each exactly once", () => {
   expect(markers.sort()).toEqual(["limit1_head.png", "limit2_head.png", "limit3_head.png", "limit4_head.png", "limit5_head.png", "limit6_head.png", "limit7_head.png", "limit8_head.png"]);
 });
 
+test("limit_cut stamps limitCutNumber 1–8 on each numbered effect", () => {
+  const raid = limitCutRaid(0.05);
+  const w = runTicks(createWorld(raid, 1), noMove, 10);
+  const numbers = w.players
+    .flatMap(p => p.effects.filter(e => e.name === "Limit Cut"))
+    .map(e => e.limitCutNumber)
+    .sort((a, b) => (a ?? 0) - (b ?? 0));
+  expect(numbers).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+});
+
 test("limit_cut drains pendingLimitCuts after t fires", () => {
   const raid = limitCutRaid(0.05);
   const w = runTicks(createWorld(raid, 1), noMove, 10);

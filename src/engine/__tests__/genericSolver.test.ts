@@ -20,6 +20,7 @@ function world(over: Record<string, unknown>): World {
     spreadStacks: [],
     gazes: [],
     groupMechanics: [],
+    limitCuts: [],
     players: [],
     botSolvers: undefined,
     ...over,
@@ -252,6 +253,52 @@ test("a debuff array requires every listed effect to be active", () => {
   const one = player({ effects: [{ name: "A", appliedAt: 0, duration: 5 }] as Player["effects"] });
   expect(genericSolverWaypoint(both, world(base))).toEqual({ x: 1, z: 1 });
   expect(genericSolverWaypoint(one, world(base))).toBeUndefined();
+});
+
+// A bot carrying limit-cut number `n`, active at time 0.
+const numbered = (n: number) =>
+  player({ id: `p${n}`, effects: [{ name: "Limit Cut", appliedAt: 0, duration: 9, limitCutNumber: n }] as Player["effects"] });
+
+// The 8 ring spots as the loader would store them: polar {dist:18, angleDeg} -> {x: r, z}.
+const lcSpots = [22.5, 67.5, 112.5, 157.5, 202.5, 247.5, 292.5, 337.5].map(deg => {
+  const a = (deg * Math.PI) / 180;
+  return { x: 18 * Math.sin(a), z: 18 * Math.cos(a) };
+});
+
+const lcWorld = (clockwise: boolean) => world({
+  time: 0,
+  limitCuts: [{ id: "lc", appliedAt: 0, duration: 9, north: { x: 0, z: -1 }, clockwise }],
+  botSolvers: { generic: [{ when: { mechanic: "lc" }, limitCutSpread: { spots: lcSpots } }] },
+});
+
+const closeTo = (got: { x: number; z: number } | undefined, x: number, z: number) => {
+  expect(got!.x).toBeCloseTo(x, 2);
+  expect(got!.z).toBeCloseTo(z, 2);
+};
+
+test("limitCutSpread places #1 at SSW and rotates clockwise from relative-north (S)", () => {
+  const w = lcWorld(true);
+  closeTo(genericSolverWaypoint(numbered(1), w), -6.888, -16.630); // SSW
+  closeTo(genericSolverWaypoint(numbered(2), w), -16.630, -6.888); // WSW
+  closeTo(genericSolverWaypoint(numbered(5), w), 6.888, 16.630);   // NNE
+  closeTo(genericSolverWaypoint(numbered(8), w), 6.888, -16.630);  // SSE
+});
+
+test("limitCutSpread reverses to counter-clockwise when clockwise is false", () => {
+  const w = lcWorld(false);
+  closeTo(genericSolverWaypoint(numbered(1), w), 6.888, -16.630); // SSE
+});
+
+test("limitCutSpread yields no spot without a number or while its mechanic is inactive", () => {
+  // Bot with no limit-cut number falls through.
+  expect(genericSolverWaypoint(player({ id: "px" }), lcWorld(true))).toBeUndefined();
+  // Numbered bot but the limit cut isn't live (outside its window), so when.mechanic doesn't match.
+  const expired = world({
+    time: 20,
+    limitCuts: [{ id: "lc", appliedAt: 0, duration: 9, north: { x: 0, z: -1 }, clockwise: true }],
+    botSolvers: { generic: [{ when: { mechanic: "lc" }, limitCutSpread: { spots: lcSpots } }] },
+  });
+  expect(genericSolverWaypoint(numbered(1), expired)).toBeUndefined();
 });
 
 test("partnerDebuff checks the bot's partner via world.partners", () => {
