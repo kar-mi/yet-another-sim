@@ -341,6 +341,26 @@ test("frame: [ref, ref] sums a boss position and a crystal position for north", 
   expect(spot.z).toBeCloseTo(3.5355, 3);
 });
 
+test("mirrorLateral reflects one local spot across left/right crystal configurations", () => {
+  const withWaterAt = (x: number) => world({
+    time: 2,
+    active: [{ id: "bait", telegraphStart: 0, resolveAt: 5, resolved: false }],
+    boss: { id: "primary", pos: { x: 0, z: 0 }, facing: 0 },
+    crystals: [{ id: "crystal-water", element: "water", pos: { x, z: 9 }, spawnAt: 0 }],
+    botSolvers: { generic: [{
+      when: { mechanic: "bait" },
+      frame: [{ boss: { from: "facing" } }, { crystal: "water" }],
+      mirrorLateral: true,
+      spot: { x: 3, z: 4 },
+    }] },
+  });
+
+  const east = genericSolverWaypoint(player({}), withWaterAt(9))!;
+  const west = genericSolverWaypoint(player({}), withWaterAt(-9))!;
+  expect(west.x).toBeCloseTo(-east.x);
+  expect(west.z).toBeCloseTo(east.z);
+});
+
 test("frame: [{ boss: { from: facing } }] rotates using the primary boss facing", () => {
   const w = world({
     time: 2,

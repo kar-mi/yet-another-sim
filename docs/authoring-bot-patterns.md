@@ -99,6 +99,10 @@ A rule has:
   also accepted, with degrees measured clockwise from frame north. One spot set then serves every wave
   of a rotating mechanic. A rule whose frame can't be computed yields no spot (falls through). See
   [Rotated frames](#rotated-frames) for the geometry.
+- `mirrorLateral` — optional for a reference-list frame that includes `{ boss: { from: facing } }`.
+  When `true`, the frame's lateral axis flips if the other references lie on the boss's left. Use it
+  when opposite crystal configurations should mirror the same authored `{ r, z }` spot rather than
+  merely rotate it.
 - `spots` and/or `spot`; `spots[id]` wins. Unframed rules use absolute world positions `{ x, z }`.
   Framed rules require relative `{ r, z }` or polar `{ dist, angleDeg }` positions. Polar spots are
   rejected on unframed rules.

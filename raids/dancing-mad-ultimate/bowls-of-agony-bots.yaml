@@ -125,26 +125,65 @@ solvers:
     - when: { mechanic: [latitude-implosion-left, latitude-implosion-right] }
       frame: [{ boss: { id: chaos, from: facing } }]
       spots:
-        mt: { r: 4.2, z: 16.2 }
-        ot: { r: 4.9, z: 16.9 }
-        h1: { r: 5.6, z: 17.7 }
-        h2: { r: 6.3, z: 18.4 }
-        m1: { r: -4.9, z: 16.9 }
-        m2: { r: -5.6, z: 17.7 }
-        r1: { r: -17.4, z: -6.2 } # same SW intercard line as r2, pushed out near the edge
-        r2: { r: -11.1, z: 0.4 }
+        mt: { r: 3.93, z: 17.98 }
+        ot: { r: 3.93, z: 17.98 }
+        h1: { r: 3.93, z: 17.98 }
+        h2: { r: 3.93, z: 17.98 }
+        m1: { r: -3.93, z: 17.98 }
+        m2: { r: -3.93, z: 17.98 }
 
     - when: { mechanic: [longitude-implosion-front, longitude-implosion-back] }
       frame: [{ boss: { id: chaos, from: facing } }]
       spots:
-        mt: { r: 4.3, z: 16.1 }
-        ot: { r: 5.0, z: 16.8 }
-        h1: { r: 5.8, z: 17.5 }
-        h2: { r: 6.5, z: 18.3 }
-        m1: { r: -5.0, z: 16.8 }
-        m2: { r: -5.8, z: 17.5 }
-        r1: { r: -17.7, z: -5.2 } # same SW intercard line as r2, pushed out near the edge
-        r2: { r: -11.5, z: 0.8 }
+        mt: { r: 6.1, z: 15.67}
+        ot: { r: 6.1, z: 15.67}
+        h1: { r: 6.1, z: 15.67}
+        h2: { r: 6.1, z: 15.67}
+        m1: { r: -6.1, z: 15.67}
+        m2: { r: -6.1, z: 15.67}
+
+
+    - when: { mechanic: [latitude-implosion-left, latitude-implosion-right] }
+      frame: [{ boss: { id: chaos, from: facing } }, { crystal : water }]
+      mirrorLateral: true
+      spots:
+        r1:   { r: 8.989, z: 16.694 }
+        r2:  { r: -0.279, z: 8.492 }
+
+    - when: { mechanic: [longitude-implosion-front, longitude-implosion-back] }
+      frame: [{ boss: { id: chaos, from: facing } }, { crystal : water }]
+      mirrorLateral: true
+      spots:
+        r1:  { r: 3.036, z: 18.696 }
+        r2: { r: -2.875, z: 11.331 }
+
+#lat safe r1
+# frame: [boss:chaos:facing, crystal:water]
+# world  { x: -6.857, z: 17.676 }
+# r/z    { r: 8.989, z: 16.694 }
+# polar  { dist: 18.960, angleDeg: 28.3 }
+
+
+
+#long safe
+# frame: [boss:chaos:facing, crystal:water]
+# world  { x: -11.742, z: 14.861 }
+# r/z    { r: 3.036, z: 18.696 }
+# polar  { dist: 18.941, angleDeg: 9.2 }
+
+
+
+#lat safe r2
+# frame: [boss:chaos:facing, crystal:water]
+# world  { x: -5.306, z: -6.636 }
+# r/z    { r: -0.279, z: 8.492 }
+# polar  { dist: 8.496, angleDeg: -1.9 }
+
+#long safe r2
+# frame: [boss:chaos:facing, crystal:water]
+# world  { x: -5.243, z: -9.635 }
+# r/z    { r: -2.275, z: 10.731 }
+# polar  { dist: 10.969, angleDeg: -12.0 }
 
     # Vacuum Wave + Umbra Smash (t:81–88): one bot baits furthest; the rest stack for knockback.
     - when: { mechanic: [vacuum-wave, umbra-smash] }
