@@ -447,8 +447,9 @@ events:
     damageType: magical
     showCastBar: true
     bossId: exdeath
-    shape: { kind: circle, center: { x: 8, z: 0 }, radius: 20 }
-    knockback: { distance: 8, origin: { x: 8, z: 0 } }
+    anchor: boss
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
+    knockback: { distance: 8 }
 
   - type: group
     id: bowls-stack

@@ -157,6 +157,14 @@ solvers:
         r1:  { r: 3.036, z: 18.696 }
         r2: { r: -2.875, z: 11.331 }
 
+    # Pre-park Exdeath on the inner wind line so its t:81 Vacuum Wave snapshot is stable per seed.
+    - when: { static: true }
+      startAt: 68
+      endAt: 81
+      frame: [{ crystal: wind }]
+      spots:
+        ot: { r: 0, z: 4 }
+
 #lat safe r1
 # frame: [boss:chaos:facing, crystal:water]
 # world  { x: -6.857, z: 17.676 }
@@ -189,20 +197,20 @@ solvers:
     - when: { mechanic: [vacuum-wave, umbra-smash] }
       frame: [{ crystal: wind }]
       spots:
-        mt: { r: 0, z: 6 }
-        ot: { r: 0, z: 6 }
-        h1: { r: 0, z: 6 }
-        h2: { r: 0, z: 6 }
-        r1: { r: 0, z: 6 }
+        mt: { r: 0, z: 8 }
+        ot: { r: 0, z: 8 }
+        h1: { r: 0, z: 8 }
+        h2: { r: 0, z: 8 }
+        r1: { r: 0, z: 8 }
         r2: { r: 0, z: -10 }
-        m1: { r: 0, z: 6 }
-        m2: { r: 0, z: 6 }
+        m1: { r: 0, z: 8 }
+        m2: { r: 0, z: 8 }
 
     # Vacuum Wave (t:81–88): stack west of exdeath; KB pushes group further west, stays in arena.
     # Headwind/Tailwind facing is not auto set, this needs to be fixed
     - when: { mechanic: vacuum-wave }
       frame: [{ crystal: wind }]
-      spot: { r: 0, z: 6 }
+      spot: { r: 0, z: 8 }
 
     # Bowls stack (t:90–93): converge so requiredCount:4 is met; 80 dmg split 8 ways.
     - when: { mechanic: bowls-stack }
