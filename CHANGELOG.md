@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-24
+
+### Added
+
+- New raid content: Bowls of Agony, plus Exdeath and Chaos bosses with their models.
+- Multi-boss support via a boss registry, enabling encounters with more than one boss.
+- New mechanics: limit cut, earthquake, white hole, dive bombs, boss dash, head wind/tailwind, entropy dynamic fluid, swap target, and generic assignment.
+- Raid encounter timer.
+- Generic double-trouble debuff and a swappable raid selector.
+- Authoring support for angles in degrees, solving on position, and static-value bot intents.
+- HUD rewrite and general UI updates, including a session-expired message and removal of the targeting ring from non-targeted players.
+- Expanded debug tooling and debug button.
+
+### Changed
+
+- Client and general performance optimizations.
+- Improved bot positioning, particularly for the Bowls encounter.
+- Split the deployment workflow and adjusted version handling in CI.
+- Moved asset loading to startup.
+
+### Fixed
+
+- Fixed knockback and limit cut behavior.
+- CORS and security hardening.
+- Fixed a Windows compatibility issue.
+
 ## [0.3.0] - 2026-06-16
 
 ### Added
