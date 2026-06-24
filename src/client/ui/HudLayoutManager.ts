@@ -96,6 +96,7 @@ export class HudLayoutManager {
     const title = document.createElement("div");
     title.className = "yas-hud-edit-panel-title";
     title.textContent = "EDIT HUD LAYOUT";
+    title.addEventListener("pointerdown", event => this.startPanelDrag(event, panel));
     const globalControls = document.createElement("div");
     globalControls.className = "yas-hud-edit-global-controls";
     const grid = this.makeButton("GRID SNAP: OFF", () => {
@@ -215,6 +216,33 @@ export class HudLayoutManager {
     outline.addEventListener("pointermove", move);
     outline.addEventListener("pointerup", up);
     outline.addEventListener("pointercancel", up);
+  }
+
+  private startPanelDrag(event: PointerEvent, panel: HTMLDivElement): void {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const title = event.currentTarget as HTMLDivElement;
+    const rect = panel.getBoundingClientRect();
+    const offsetX = event.clientX - rect.left;
+    const offsetY = event.clientY - rect.top;
+    title.setPointerCapture(event.pointerId);
+    const move = (moveEvent: PointerEvent) => {
+      const panelWidth = panel.offsetWidth;
+      const panelHeight = panel.offsetHeight;
+      panel.style.transform = "none";
+      panel.style.left = `${Math.max(0, Math.min(moveEvent.clientX - offsetX, innerWidth - panelWidth))}px`;
+      panel.style.top = `${Math.max(0, Math.min(moveEvent.clientY - offsetY, innerHeight - panelHeight))}px`;
+    };
+    const up = (upEvent: PointerEvent) => {
+      if (title.hasPointerCapture(upEvent.pointerId)) title.releasePointerCapture(upEvent.pointerId);
+      title.removeEventListener("pointermove", move);
+      title.removeEventListener("pointerup", up);
+      title.removeEventListener("pointercancel", up);
+    };
+    title.addEventListener("pointermove", move);
+    title.addEventListener("pointerup", up);
+    title.addEventListener("pointercancel", up);
   }
 
   private selectGroup(id: HudGroupId | null): void {

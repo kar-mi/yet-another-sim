@@ -994,9 +994,9 @@ img.party-effect-icon {
 
 #yas-hud-edit-panel {
   position: fixed;
-  top: 16px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   z-index: 301;
   width: min(520px, calc(100vw - 24px));
   box-sizing: border-box;
@@ -1006,7 +1006,7 @@ img.party-effect-icon {
   gap: 9px;
 }
 
-.yas-hud-edit-panel-title { color: var(--px-accent); font-size: 18px; }
+.yas-hud-edit-panel-title { color: var(--px-accent); font-size: 18px; cursor: move; user-select: none; }
 .yas-hud-edit-global-controls { display: flex; gap: 8px; }
 .yas-hud-edit-global-controls button { flex: 1; }
 .yas-hud-edit-selection { display: flex; flex-direction: column; gap: 9px; border-top: 1px solid var(--px-edge); padding-top: 9px; }
