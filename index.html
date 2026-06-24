@@ -177,6 +177,9 @@
           </label>
         </div>
       </div>
+      <div class="settings-field">
+        <button id="edit-hud-btn" type="button">EDIT HUD LAYOUT</button>
+      </div>
     </div>
 
     <div class="settings-footer">
@@ -195,9 +198,8 @@
   </div>
 
   <template id="yas-hud-template">
-    <div id="yas-hud">
-      <div class="yas-hotbar-row">
-        <div class="yas-debuff-tracker"></div>
+    <div class="yas-hud-template-root">
+      <div class="yas-hotbar-group" data-hud-group="hotbar">
         <div class="yas-hotbar-panel">
           <div class="yas-hotbar"></div>
           <div class="yas-controller-hotbar"></div>
@@ -213,9 +215,9 @@
           </div>
           <button class="yas-hotbar-toggle" title="Switch input display">⌨</button>
         </div>
-        <div class="yas-boss-cast-panel"></div>
       </div>
-      <div class="yas-resource-cluster">
+      <div class="yas-debuff-tracker" data-hud-group="debuffs"></div>
+      <div class="yas-resource-cluster" data-hud-group="resources">
         <div class="yas-resource-panel">
           <div class="yas-bar-row">
             <span class="yas-bar-label">HP</span>
@@ -235,6 +237,7 @@
         <button class="yas-invuln-btn" title="Toggle invincibility">🛡∞</button>
         <button class="yas-bot-invuln-btn" title="Toggle bot invincibility">BOT∞</button>
       </div>
+      <div class="yas-boss-cast-panel" data-hud-group="bosscasts"></div>
     </div>
   </template>
 

@@ -33,6 +33,7 @@ import { WaymarkLayer } from "./WaymarkLayer";
 import { CrystalLayer } from "./CrystalLayer";
 import { setControlScheme } from "../input";
 import { computeWorldRenderKeys, getWorldRenderKeys } from "../worldRenderKeys";
+import type { HudLayoutManager } from "../ui/HudLayoutManager";
 import { prewarmShaders } from "./shaderPrewarm";
 
 // Sub-path Babylon imports pull in only the classes we reference, not the engine's side-effect
@@ -92,9 +93,10 @@ export class BabylonRenderer implements Renderer {
 
   constructor(
     private canvas: HTMLCanvasElement,
-    private onSettingsChange: (settings: Settings) => void = () => {},
-    private onDebugPosition: (position: { playerId: string; x: number; y: number; z: number }) => void = () => {},
-    private onBotsInvincibleChange: (enabled: boolean) => void = () => {},
+    private onSettingsChange: (settings: Settings) => void,
+    private onDebugPosition: (position: { playerId: string; x: number; y: number; z: number }) => void,
+    private onBotsInvincibleChange: (enabled: boolean) => void,
+    private hudLayout: HudLayoutManager,
   ) {}
 
   init(world: World, sessionId: string, localPlayerId: string | null = null): void {
@@ -206,6 +208,7 @@ export class BabylonRenderer implements Renderer {
       id => this.setSpectateTarget(id),
       this.onDebugPosition,
       this.onBotsInvincibleChange,
+      this.hudLayout,
     );
 
     // Compile the mid-fight material shaders now (during load) so the first AOE/marker doesn't hitch.

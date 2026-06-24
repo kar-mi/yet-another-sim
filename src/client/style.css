@@ -70,8 +70,7 @@ body:focus-visible {
 
 /* ===== UI SCALE (accessibility) ===== */
 /* Zoom each overlay container by --ui-scale; leaves the 3D #canvas untouched. */
-#yas-hud, #yas-party, #yas-cast-bar, #yas-status, #yas-session-id,
-#yas-raid-select, #yas-timer, #settings-panel, #home-btn, #settings-btn, #info-btn, #info-panel, #yas-menu, #yas-raid-modal {
+#yas-status, #yas-session-id, #settings-panel, #home-btn, #settings-btn, #info-btn, #info-panel, #yas-menu, #yas-raid-modal {
   zoom: var(--ui-scale, 1);
 }
 
@@ -579,7 +578,7 @@ body:focus-visible {
 }
 
 /* ===== Non-selectable overlays ===== */
-#yas-party, #yas-hud, #yas-status, #yas-session-id, #yas-menu, #yas-raid-select, #yas-timer, #yas-raid-modal, #settings-panel, #info-panel, #yas-cast-bar {
+#yas-status, #yas-session-id, #yas-menu, #yas-raid-modal, #settings-panel, #info-panel, [data-hud-group] {
   user-select: none;
 }
 
@@ -856,19 +855,39 @@ img.party-effect-icon {
 }
 
 /* ===== HUD ===== */
-#yas-hud {
+[data-hud-group="hotbar"],
+[data-hud-group="debuffs"],
+[data-hud-group="resources"],
+[data-hud-group="bosscasts"] {
   position: fixed;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding-bottom: 14px;
   z-index: 50;
-  pointer-events: none;
   font-family: var(--px-font);
+}
+
+[data-hud-group="hotbar"] {
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  pointer-events: all;
+}
+
+[data-hud-group="debuffs"] {
+  right: calc(50% + 245px);
+  bottom: 96px;
+  pointer-events: none;
+}
+
+[data-hud-group="resources"] {
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+[data-hud-group="bosscasts"] {
+  left: calc(50% + 245px);
+  bottom: 96px;
+  pointer-events: none;
 }
 
 .yas-resource-cluster {
@@ -876,6 +895,110 @@ img.party-effect-icon {
   align-items: center;
   gap: 8px;
 }
+
+.yas-hud-hidden { display: none !important; }
+
+/* ===== HUD LAYOUT EDITOR ===== */
+#yas-hud-edit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background-color: rgba(5, 7, 12, 0.42);
+  pointer-events: auto;
+  font-family: var(--px-font);
+  user-select: none;
+}
+
+#yas-hud-edit-overlay.yas-grid-enabled {
+  background-image:
+    repeating-linear-gradient(to right, transparent 0, transparent calc(1vw - 1px), rgba(255, 194, 77, 0.1) calc(1vw - 1px), rgba(255, 194, 77, 0.1) 1vw),
+    repeating-linear-gradient(to bottom, transparent 0, transparent calc(1vh - 1px), rgba(255, 194, 77, 0.1) calc(1vh - 1px), rgba(255, 194, 77, 0.1) 1vh);
+}
+
+#yas-hud-edit-overlay.yas-grid-dragging::before,
+#yas-hud-edit-overlay.yas-grid-dragging::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  background: rgba(255, 194, 77, 0.35);
+}
+
+#yas-hud-edit-overlay.yas-grid-dragging::before { left: 50%; top: 0; width: 1px; height: 100%; }
+#yas-hud-edit-overlay.yas-grid-dragging::after { left: 0; top: 50%; width: 100%; height: 1px; }
+
+.yas-hud-edit-toolbar,
+#yas-hud-edit-panel {
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  color: var(--px-text);
+}
+
+.yas-hud-edit-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  white-space: nowrap;
+  z-index: 3;
+}
+
+#yas-cast-bar.is-active { display: flex; }
+
+.yas-hud-edit-toolbar button,
+#yas-hud-edit-panel button {
+  padding: 5px 9px;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  color: var(--px-accent);
+  cursor: pointer;
+}
+
+.yas-hud-edit-outline {
+  position: absolute;
+  min-width: 30px;
+  min-height: 24px;
+  border: 2px dashed rgba(255, 194, 77, 0.75);
+  background: rgba(255, 194, 77, 0.06);
+  cursor: move;
+  pointer-events: auto;
+}
+
+.yas-hud-edit-outline.is-selected {
+  border-style: solid;
+  box-shadow: 0 0 10px var(--px-glow);
+  background: rgba(255, 194, 77, 0.12);
+}
+
+.yas-hud-edit-outline > span {
+  position: absolute;
+  left: -2px;
+  bottom: 100%;
+  padding: 2px 5px;
+  background: var(--px-accent);
+  color: var(--px-ink);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+#yas-hud-edit-panel {
+  position: absolute;
+  z-index: 4;
+  width: 210px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.yas-hud-edit-panel-title { color: var(--px-accent); font-size: 18px; }
+#yas-hud-edit-panel label { display: flex; flex-direction: column; gap: 3px; color: var(--px-text-dim); }
+#yas-hud-edit-panel input[type="range"] { width: 100%; accent-color: var(--px-accent); }
+#yas-hud-edit-panel .yas-hud-edit-visible { flex-direction: row; align-items: center; color: var(--px-text); }
 
 .yas-resource-panel {
   display: flex;
@@ -1004,13 +1127,6 @@ img.party-effect-icon {
   text-shadow: 1px 1px 0 var(--px-shadow);
   user-select: none;
   pointer-events: none;
-}
-
-.yas-hotbar-row {
-  pointer-events: all;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .yas-hotbar-panel {

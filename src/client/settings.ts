@@ -15,6 +15,31 @@ export interface KeyBindings {
   swapTarget: string;
 }
 
+export type HudGroupId = "party" | "hotbar" | "debuffs" | "resources" | "targetcast" | "bosscasts" | "timer" | "raidselector";
+
+export interface HudGroupLayout {
+  x: number;
+  y: number;
+  scale: number;
+  opacity: number;
+  hidden: boolean;
+}
+
+export const HUD_GROUPS: readonly HudGroupId[] = [
+  "party", "hotbar", "debuffs", "resources", "targetcast", "bosscasts", "timer", "raidselector",
+];
+
+export const HUD_GROUP_LABELS: Record<HudGroupId, string> = {
+  party: "Party List",
+  hotbar: "Hotbar",
+  debuffs: "Debuffs",
+  resources: "HP / MP",
+  targetcast: "Boss Cast Bar",
+  bosscasts: "All Boss Casts",
+  timer: "Timer",
+  raidselector: "Raid Selector",
+};
+
 export interface Settings {
   mouseSensitivity: number;
   controlScheme: "legacy" | "standard";
@@ -28,6 +53,7 @@ export interface Settings {
   uiScale: number;
   uiFont: "pixel" | "readable";
   renderedPlayerHealthBars: boolean;
+  hudLayout: Partial<Record<HudGroupId, HudGroupLayout>>;
 }
 
 export const DEFAULT_BINDINGS: KeyBindings = {
@@ -57,6 +83,7 @@ const DEFAULTS: Settings = {
   uiScale: 1.25,
   uiFont: "pixel",
   renderedPlayerHealthBars: false,
+  hudLayout: {},
 };
 
 const KEY = "yas_settings";
@@ -80,6 +107,7 @@ export function loadSettings(): Settings {
       ...saved,
       keyBindings: { ...DEFAULT_BINDINGS, ...saved.keyBindings },
       controllerBindings: { ...DEFAULT_CONTROLLER_BINDINGS, ...saved.controllerBindings },
+      hudLayout: { ...saved.hudLayout },
     };
   } catch {
     return {

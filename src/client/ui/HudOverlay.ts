@@ -25,6 +25,7 @@ import {
   positionFrameOptions,
   type PositionFrameOption,
 } from "../frameReadout";
+import type { HudLayoutManager } from "./HudLayoutManager";
 
 declare const __YAS_DEBUG__: boolean | undefined;
 
@@ -195,14 +196,17 @@ export class HudOverlay {
   private bossCastPanelEl!: HTMLDivElement;
   private bossCastRows = new Map<string, BossCastRow>();
   private bossCastKey = "";
+  private hotbarGroupEl!: HTMLDivElement;
+  private resourceGroupEl!: HTMLDivElement;
 
   constructor(
     sessionId: string,
-    private readonly localPlayerId: string | null = null,
-    private onSettingsChange: (settings: Settings) => void = () => {},
-    private onSpectate: (id: string) => void = () => {},
-    private onDebugPosition: (position: { playerId: string; x: number; y: number; z: number }) => void = () => {},
-    private onBotsInvincibleChange: (enabled: boolean) => void = () => {},
+    private readonly localPlayerId: string | null,
+    private onSettingsChange: (settings: Settings) => void,
+    private onSpectate: (id: string) => void,
+    private onDebugPosition: (position: { playerId: string; x: number; y: number; z: number }) => void,
+    private onBotsInvincibleChange: (enabled: boolean) => void,
+    private hudLayout: HudLayoutManager,
   ) {
     this.root = this.buildHud();
     document.body.appendChild(this.root);
@@ -217,6 +221,8 @@ export class HudOverlay {
     this.kbmHotbar = this.root.querySelector<HTMLDivElement>(".yas-hotbar")!;
     this.controllerHotbar = this.root.querySelector<HTMLDivElement>(".yas-controller-hotbar")!;
     this.bossCastPanelEl = this.root.querySelector<HTMLDivElement>(".yas-boss-cast-panel")!;
+    this.hotbarGroupEl = this.root.querySelector<HTMLDivElement>('[data-hud-group="hotbar"]')!;
+    this.resourceGroupEl = this.root.querySelector<HTMLDivElement>('[data-hud-group="resources"]')!;
     this.slotKeybinds = Array.from(this.kbmHotbar.querySelectorAll<HTMLSpanElement>(".yas-keybind"));
     this.modeToggleBtn = this.root.querySelector<HTMLButtonElement>(".yas-hotbar-toggle")!;
     this.debugPositionBtn = this.root.querySelector<HTMLButtonElement>(".yas-hotbar-debug")!;
@@ -306,7 +312,6 @@ export class HudOverlay {
 
     this.castBarEl = document.createElement("div");
     this.castBarEl.id = "yas-cast-bar";
-    this.castBarEl.style.display = "none";
     this.castNameEl = document.createElement("div");
     this.castNameEl.className = "yas-cast-name";
     const castTrack = document.createElement("div");
@@ -319,6 +324,16 @@ export class HudOverlay {
     castTrack.appendChild(this.castFillEl);
     this.castBarEl.append(this.castNameEl, castTrack, this.castTimerEl);
     document.body.appendChild(this.castBarEl);
+
+    document.body.append(...Array.from(this.root.children));
+    this.root.remove();
+    this.hudLayout.register("party", this.partyEl);
+    this.hudLayout.register("hotbar", this.hotbarGroupEl);
+    this.hudLayout.register("debuffs", this.debuffTrackerEl);
+    this.hudLayout.register("resources", this.resourceGroupEl);
+    this.hudLayout.register("targetcast", this.castBarEl);
+    this.hudLayout.register("bosscasts", this.bossCastPanelEl);
+    this.hudLayout.register("timer", this.timerEl);
 
     this.bindEvents();
   }
@@ -527,7 +542,7 @@ export class HudOverlay {
       this.onBotsInvincibleChange(enabled);
     });
 
-    this.root.querySelectorAll<HTMLDivElement>(".yas-slot").forEach(slot => {
+    this.hotbarGroupEl.querySelectorAll<HTMLDivElement>(".yas-slot").forEach(slot => {
       slot.addEventListener("mousedown", () => this.flashSlot(slot));
     });
 
@@ -607,7 +622,7 @@ export class HudOverlay {
     if (casting) {
       const span = casting.resolveAt - casting.telegraphStart;
       const progress = span > 0 ? Math.min(1, (world.time - casting.telegraphStart) / span) : 1;
-      this.castBarEl.style.display = "flex";
+      this.castBarEl.classList.add("is-active");
       this.castNameEl.textContent = casting.name;
       this.castFillEl.style.width = `${progress * 100}%`;
       if (DEBUG_ENABLED) {
@@ -615,7 +630,7 @@ export class HudOverlay {
         this.castTimerEl.textContent = remaining.toFixed(1) + "s";
       }
     } else {
-      this.castBarEl.style.display = "none";
+      this.castBarEl.classList.remove("is-active");
     }
 
     this.ensureBossCastRows(world.bosses);
@@ -849,7 +864,14 @@ export class HudOverlay {
   }
 
   dispose(): void {
-    this.root.remove();
+    this.hudLayout.exitEditMode();
+    for (const id of ["party", "hotbar", "debuffs", "resources", "targetcast", "bosscasts", "timer"] as const) {
+      this.hudLayout.unregister(id);
+    }
+    this.hotbarGroupEl.remove();
+    this.debuffTrackerEl.remove();
+    this.resourceGroupEl.remove();
+    this.bossCastPanelEl.remove();
     this.statusEl.remove();
     this.sessionEl.remove();
     this.timerEl.remove();
