@@ -77,6 +77,9 @@ export async function loadRaidCategories(): Promise<RaidCategory[]> {
 
 export function showLanding(options?: { notice?: string }): Promise<string> {
   return new Promise((resolve) => {
+    const landingNote = typeof __YAS_STATIC__ !== "undefined" && __YAS_STATIC__
+      ? "Single-player practice build — online multiplayer is not available. Your session runs entirely in this browser."
+      : "A UUID session link will be created. Copy the page URL to invite others.";
     const overlay = document.createElement("div");
     overlay.id = "yas-menu";
 
@@ -105,7 +108,7 @@ export function showLanding(options?: { notice?: string }): Promise<string> {
     panel.append(
       createElement("div", "yas-menu-title", "YET ANOTHER SIM"),
       createElement("div", "yas-menu-subtitle", "CREATE SESSION"),
-      createElement("div", "yas-landing-note", "A UUID session link will be created. Copy the page URL to invite others."),
+      createElement("div", "yas-landing-note", landingNote),
     );
     if (options?.notice) panel.appendChild(createElement("div", "yas-menu-error", options.notice));
     panel.appendChild(createBtn);

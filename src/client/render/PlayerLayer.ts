@@ -6,10 +6,11 @@ import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import type { Scene } from "@babylonjs/core/scene";
 import { logger } from "@shared/logger";
 import type { Player } from "@shared/types";
+import { STATIC_ROOT } from "../staticBase";
 import { glyphBillboardMaterial, imageBillboardMaterial } from "./meshes/billboardMaterials";
 
 const PLAYER_CENTER_Y = 0.4;
-export const PLAYER_MODEL_ROOT = "/static/model/";
+export const PLAYER_MODEL_ROOT = `${STATIC_ROOT}/model/`;
 export const DEFAULT_PLAYER_MODEL_FILE = "DefaultHermit.glb";
 export const PLAYER_MODEL_FILES: Record<string, string> = {
   mt: "MTHermit.glb",
@@ -132,7 +133,7 @@ export class PlayerLayer {
         ? imageBillboardMaterial(
           this.scene,
           `player-marker-mat-${player.id}-${effect.id}`,
-          `/static/head_markers/${markerIcon}`,
+          `${STATIC_ROOT}/head_markers/${markerIcon}`,
         )
         : glyphBillboardMaterial(
           this.scene,
