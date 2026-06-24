@@ -351,14 +351,29 @@ export class HudLayoutManager {
     const rect = el.getBoundingClientRect();
     const hidden = entry.hidden || rect.width === 0 || rect.height === 0
       || (id === "bosscasts" && el.childElementCount === 0);
-    const left = hidden ? entry.x * innerWidth - PLACEHOLDER_WIDTH / 2 : rect.left;
-    const top = hidden ? entry.y * innerHeight - PLACEHOLDER_HEIGHT / 2 : rect.top;
+    const outlineRect = hidden ? rect : this.outlineRect(id, el);
+    // hotbar/resources highlights render half a width too far left; nudge them back.
+    const shiftX = !hidden && (id === "hotbar" || id === "resources") ? outlineRect.width / 2 : 0;
+    const left = hidden ? entry.x * innerWidth - PLACEHOLDER_WIDTH / 2 : outlineRect.left + shiftX;
+    const top = hidden ? entry.y * innerHeight - PLACEHOLDER_HEIGHT / 2 : outlineRect.top;
     Object.assign(outline.style, {
       left: `${left}px`,
       top: `${top}px`,
-      width: `${hidden ? PLACEHOLDER_WIDTH : rect.width}px`,
-      height: `${hidden ? PLACEHOLDER_HEIGHT : rect.height}px`,
+      width: `${hidden ? PLACEHOLDER_WIDTH : outlineRect.width}px`,
+      height: `${hidden ? PLACEHOLDER_HEIGHT : outlineRect.height}px`,
     });
+  }
+
+  private outlineRect(id: HudGroupId, el: HTMLElement): DOMRect {
+    if (id === "hotbar") {
+      const target = Array.from(el.querySelectorAll<HTMLElement>(".yas-hotbar, .yas-controller-hotbar"))
+        .find(candidate => candidate.getClientRects().length > 0);
+      return (target ?? el).getBoundingClientRect();
+    }
+    if (id === "resources") {
+      return (el.querySelector<HTMLElement>(".yas-resource-panel") ?? el).getBoundingClientRect();
+    }
+    return el.getBoundingClientRect();
   }
 
   private positionOutlines(): void {
