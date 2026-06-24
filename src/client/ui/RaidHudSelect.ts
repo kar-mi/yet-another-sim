@@ -4,12 +4,13 @@ import type { NetClient } from "../net";
 import { loadRaidCategories } from "./MainMenu";
 import { showLoadingOverlay } from "./LoadingOverlay";
 import { el } from "./dom";
+import type { HudLayoutManager } from "./HudLayoutManager";
 
 /**
  * In-sim HUD: raid picker modal + playback controls.
  * Returns a disposer that tears down listeners and DOM.
  */
-export async function createRaidHudSelect(net: NetClient, initialRaidId: string, initialIsHost: boolean, initialPlaybackState: PlaybackState = "playing"): Promise<() => void> {
+export async function createRaidHudSelect(net: NetClient, initialRaidId: string, initialIsHost: boolean, initialPlaybackState: PlaybackState, hudLayout: HudLayoutManager): Promise<() => void> {
   let isHost = initialIsHost;
   let lastState: PlaybackState = initialPlaybackState;
   const defaultLobbyCategory: RaidCategory = {
@@ -246,11 +247,13 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
   selectRow.append(raidBtn);
   wrapper.append(label, selectRow, controls);
   document.body.appendChild(wrapper);
+  hudLayout.register("raidselector", wrapper);
   return () => {
     disposePlayback();
     disposeError();
     document.removeEventListener("keydown", onKeydown);
     modal.remove();
+    hudLayout.unregister("raidselector");
     wrapper.remove();
   };
 }

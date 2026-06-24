@@ -5,6 +5,7 @@ import type { ActionId } from "../actions";
 import type { ControllerType, KeyBindings, Settings } from "../settings";
 import type { BabylonRenderer } from "../render/BabylonRenderer";
 import pkg from "../../../package.json";
+import type { HudLayoutManager } from "./HudLayoutManager";
 
 /**
  * Wires the settings/options panel, info panel, controller detection and keybind
@@ -16,6 +17,7 @@ import pkg from "../../../package.json";
 export function initSettingsPanel(
   settings: Settings,
   getRenderer: () => BabylonRenderer | null,
+  hudLayout: HudLayoutManager,
 ): { syncKeybindLabels: () => void; updateController: () => void } {
   const sensitivitySlider = document.getElementById("sensitivity-slider") as HTMLInputElement;
   const sensitivityVal = document.getElementById("sensitivity-val")!;
@@ -29,10 +31,12 @@ export function initSettingsPanel(
   const uiScaleBtns = document.querySelectorAll<HTMLInputElement>('input[name="uiScale"]');
   const uiFontSelect = document.getElementById("ui-font-select") as HTMLSelectElement;
   const settingsPanel = document.getElementById("settings-panel")!;
+  const editHudBtn = document.getElementById("edit-hud-btn") as HTMLButtonElement;
   let currentControllerType: ControllerType = "unknown";
 
   const applyUiScale = (scale: number) => {
     document.documentElement.style.setProperty("--ui-scale", String(scale));
+    hudLayout.setUiScale(scale);
   };
 
   const applyUiFont = (font: Settings["uiFont"]) => {
@@ -81,9 +85,15 @@ export function initSettingsPanel(
 
   // Hide the gameplay HUD (hotbar + HP/MP bars) while a panel is open.
   const setHudHidden = (hidden: boolean) => {
-    const hud = document.getElementById("yas-hud");
-    if (hud) hud.style.display = hidden ? "none" : "";
+    hudLayout.setHudHidden(hidden);
   };
+
+  editHudBtn.addEventListener("click", () => {
+    if (!hudLayout.hasGroups()) return;
+    settingsPanel.style.display = "none";
+    setHudHidden(false);
+    hudLayout.enterEditMode();
+  });
 
   // A slider that persists a numeric setting and live-applies it to the renderer.
   const bindSlider = (input: HTMLInputElement, valEl: HTMLElement, apply: (value: number) => void) => {

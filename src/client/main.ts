@@ -9,6 +9,7 @@ import { connect } from "./net";
 import { preloadAssets } from "./render/preloadAssets";
 import { SessionIdSchema } from "@shared/protocol";
 import { consoleSink, logger, parseLevel } from "@shared/logger";
+import { HudLayoutManager } from "./ui/HudLayoutManager";
 
 logger.configure({
   level: parseLevel(
@@ -29,6 +30,10 @@ async function main(): Promise<void> {
 
   const net = await connect();
   const settings = loadSettings();
+  const hudLayout = new HudLayoutManager(settings.hudLayout, settings.uiScale, layout => {
+    settings.hudLayout = layout;
+    saveSettings(settings);
+  });
   let renderer: BabylonRenderer | null = null;
   const getRenderer = () => renderer;
 
@@ -37,7 +42,7 @@ async function main(): Promise<void> {
   setControllerDeadzone(settings.controllerDeadzone);
   setControlScheme(settings.controlScheme);
 
-  const { syncKeybindLabels, updateController } = initSettingsPanel(settings, getRenderer);
+  const { syncKeybindLabels, updateController } = initSettingsPanel(settings, getRenderer, hudLayout);
 
   // Home button: resolve the per-session promise to leave the sim and return to the lobby.
   const homeBtn = document.getElementById("home-btn")!;
@@ -82,14 +87,14 @@ async function main(): Promise<void> {
       net.send({ type: "debugPosition", ...position });
     }, enabled => {
       net.send({ type: "setBotsInvincible", enabled });
-    });
+    }, hudLayout);
     renderer.init(session.world, sessionId, session.yourPlayerId);
     renderer.applySettings(settings);
     renderer.setPlaybackState(session.playbackState);
     syncKeybindLabels();
     updateController();
 
-    const disposeRaidSelect = await createRaidHudSelect(net, session.raidId, session.isHost, session.playbackState);
+    const disposeRaidSelect = await createRaidHudSelect(net, session.raidId, session.isHost, session.playbackState, hudLayout);
     const disposeInput = initInput();
     const stopLoop = startNetLoop(renderer, net);
 
