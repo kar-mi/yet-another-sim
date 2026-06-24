@@ -607,7 +607,7 @@ body:focus-visible {
 /* ===== Party List ===== */
 #yas-party {
   position: fixed;
-  top: 12px;
+  top: 45px;
   left: 38px;
   display: flex;
   flex-direction: column;
@@ -894,7 +894,7 @@ img.party-effect-icon {
 }
 
 [data-hud-group="debuffs"] {
-  right: calc(50% + 245px);
+  right: calc(50% + 490px);
   bottom: 96px;
   pointer-events: none;
 }
@@ -907,7 +907,7 @@ img.party-effect-icon {
 }
 
 [data-hud-group="bosscasts"] {
-  left: calc(50% + 245px);
+  left: calc(50% + 490px);
   bottom: 96px;
   pointer-events: none;
 }
@@ -1770,7 +1770,7 @@ img.yas-debuff-icon {
 /* ===== PULL TIMER ===== */
 #yas-timer {
   position: fixed;
-  top: 54px;
+  top: 70px;
   right: 12px;
   z-index: 10;
   display: flex;
