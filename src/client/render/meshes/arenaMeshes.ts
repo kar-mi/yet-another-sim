@@ -9,11 +9,12 @@ import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ZoneShape, FloorPlan } from "@shared/types";
 import { logger } from "@shared/logger";
+import { STATIC_ROOT } from "../../staticBase";
 
 // Floor-plan enum value -> top-down arena image. "squares" uses the default crosshatch (no image).
 export const FLOOR_PLAN_IMAGES: Record<Exclude<FloorPlan, "squares">, string> = {
-  "dmu-p1": "/static/arena_raid_imgs/dmu/p1-cropped.webp",
-  "dmu-p2": "/static/arena_raid_imgs/dmu/p2-cropped.webp",
+  "dmu-p1": `${STATIC_ROOT}/arena_raid_imgs/dmu/p1-cropped.webp`,
+  "dmu-p2": `${STATIC_ROOT}/arena_raid_imgs/dmu/p2-cropped.webp`,
 };
 
 export function createZoneMesh(scene: Scene, zone: ZoneShape, floorPlan: FloorPlan): Mesh | null {

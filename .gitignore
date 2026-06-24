@@ -8,8 +8,11 @@ CLAUDE.md
 node_modules/
 dist/
 .bundle/
+.bundle-static/
+src/client/staticRaids.generated.ts
 .env
 .mcp.json
 logs/
 monitoring/
-scripts/
+scripts/*
+!scripts/generate-static-raids.ts

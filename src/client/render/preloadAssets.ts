@@ -1,6 +1,7 @@
 import { BOSS_MODEL_FILE, BOSS_MODEL_ROOT } from "./BossLayer";
 import { DEFAULT_PLAYER_MODEL_FILE, PLAYER_MODEL_FILES, PLAYER_MODEL_ROOT } from "./PlayerLayer";
 import { FLOOR_PLAN_IMAGES } from "./meshes/arenaMeshes";
+import { STATIC_ROOT } from "../staticBase";
 
 // Above-head marker icons (PlayerLayer.syncMarkers) and HUD debuff icons (effectChips) load lazily
 // the first time a mechanic applies them mid-pull. Keep these lists in sync with static/head_markers/
@@ -9,7 +10,7 @@ const HEAD_MARKER_ICONS = [
   "cone_processed.png",
   "defam_processed.png",
   "stack_processed.png",
-].map(file => `/static/head_markers/${file}`);
+].map(file => `${STATIC_ROOT}/head_markers/${file}`);
 
 const DEBUFF_ICONS = [
   "bind.png",
@@ -23,7 +24,7 @@ const DEBUFF_ICONS = [
   "teleportent_left.png",
   "teleportent_right.png",
   "teleportent_up.png",
-].map(file => `/static/debuffs/${file}`);
+].map(file => `${STATIC_ROOT}/debuffs/${file}`);
 
 // Warm the browser cache for every static asset up front so a later raid change / first session entry
 // renders models and icons from cache instead of downloading after the pull has already started.

@@ -4,6 +4,7 @@
 // otherwise just ticks the countdown timers. Extracted from HudOverlay.
 
 import type { Player } from "@shared/types";
+import { STATIC_ROOT } from "../staticBase";
 
 const EFFECT_TIMER_STEP = 0.25;
 
@@ -27,14 +28,14 @@ function teleportentIcon([x, z]: [number, number]): string {
 function effectIcon(effect: Player["effects"][number]): { glyph?: string; src?: string; rotate?: number } {
   switch (effect.behavior.kind) {
     case "plant": {
-      return { src: `/static/debuffs/${teleportentIcon(effect.behavior.direction)}` };
+      return { src: `${STATIC_ROOT}/debuffs/${teleportentIcon(effect.behavior.direction)}` };
     }
-    case "sleep": return { src: "/static/debuffs/sleep.png" };
-    case "confusion": return { src: "/static/debuffs/confuse.png" };
+    case "sleep": return { src: `${STATIC_ROOT}/debuffs/sleep.png` };
+    case "confusion": return { src: `${STATIC_ROOT}/debuffs/confuse.png` };
     case "directionalKnockback":
-      return { src: `/static/debuffs/${effect.behavior.requiredFacing === "toward" ? "headwind" : "tailwind"}.png` };
-    case "primordialCrust": return { src: "/static/debuffs/primoridial_crust.png" };
-    case "accretion": return { src: "/static/debuffs/accretion.png" };
+      return { src: `${STATIC_ROOT}/debuffs/${effect.behavior.requiredFacing === "toward" ? "headwind" : "tailwind"}.png` };
+    case "primordialCrust": return { src: `${STATIC_ROOT}/debuffs/primoridial_crust.png` };
+    case "accretion": return { src: `${STATIC_ROOT}/debuffs/accretion.png` };
     case "vuln": return { glyph: "▼" };
     case "dot": {
       const c = effect.behavior.condition;
@@ -108,7 +109,7 @@ function buildEffectChip(
   let iconEl: HTMLElement;
   if (effect.icon) {
     const img = document.createElement("img");
-    img.src = `/static/debuffs/${effect.icon}`;
+    img.src = `${STATIC_ROOT}/debuffs/${effect.icon}`;
     img.alt = effect.name;
     iconEl = img;
   } else if (icon.src) {

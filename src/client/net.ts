@@ -7,6 +7,16 @@ import { computeBotIntents } from "../engine/botIntent";
 import { worldHash } from "@shared/worldHash";
 import { WORLD_RENDER_KEYS, computeWorldRenderKeys, getWorldRenderKeys, setWorldRenderKeys, type WorldRenderKeys } from "./worldRenderKeys";
 
+declare const __YAS_STATIC__: boolean | undefined;
+
+export interface Transport {
+  open(): Promise<void>;
+  send(message: ClientMessage): boolean;
+  onMessage(cb: (message: ServerMessage) => void): void;
+  onReconnect(cb: () => void): void;
+  close(): void;
+}
+
 type MessageType = ServerMessage["type"];
 type Handler<T extends MessageType> = (message: Extract<ServerMessage, { type: T }>) => void;
 
@@ -27,6 +37,85 @@ const HASH_INTERVAL = 300;
 const SNAPSHOT_INTERVAL = 600;
 const BOSS_SNAP_THRESHOLD = 3;
 
+export class WebSocketTransport implements Transport {
+  private ws: WebSocket | null = null;
+  private messageHandler: (message: ServerMessage) => void = () => {};
+  private reconnectHandler: () => void = () => {};
+  private closing = false;
+  private opened = false;
+  private reconnectDelay = RECONNECT_INITIAL_MS;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor(private readonly url: string) {}
+
+  open(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const ws = this.attachSocket();
+      ws.addEventListener("open", () => {
+        this.opened = true;
+        resolve();
+      }, { once: true });
+      ws.addEventListener("error", () => reject(new Error("Failed to connect to server")), { once: true });
+    });
+  }
+
+  send(message: ClientMessage): boolean {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return false;
+    this.ws.send(JSON.stringify(message));
+    return true;
+  }
+
+  onMessage(cb: (message: ServerMessage) => void): void {
+    this.messageHandler = cb;
+  }
+
+  onReconnect(cb: () => void): void {
+    this.reconnectHandler = cb;
+  }
+
+  close(): void {
+    this.closing = true;
+    if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
+    this.ws?.close();
+    this.ws = null;
+  }
+
+  private attachSocket(): WebSocket {
+    const ws = new WebSocket(this.url);
+    this.ws = ws;
+    ws.addEventListener("message", event => {
+      if (typeof event.data !== "string") return;
+      let message: ServerMessage;
+      try {
+        message = JSON.parse(event.data) as ServerMessage;
+      } catch {
+        return;
+      }
+      if (!message || typeof message.type !== "string") return;
+      this.messageHandler(message);
+    });
+    ws.addEventListener("close", () => {
+      if (this.ws === ws) this.ws = null;
+      if (!this.closing && this.opened) this.scheduleReconnect();
+    });
+    return ws;
+  }
+
+  private scheduleReconnect(): void {
+    if (this.reconnectTimer || this.closing) return;
+    const delay = this.reconnectDelay;
+    this.reconnectDelay = Math.min(this.reconnectDelay * 2, RECONNECT_MAX_MS);
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      const ws = this.attachSocket();
+      ws.addEventListener("open", () => {
+        this.reconnectDelay = RECONNECT_INITIAL_MS;
+        this.reconnectHandler();
+      }, { once: true });
+    }, delay);
+  }
+}
+
 type Snapshot = { t: number; world: World };
 
 // Server-relayed deterministic lockstep: every client runs the engine locally. The server sends the
@@ -35,15 +124,11 @@ type Snapshot = { t: number; world: World };
 export class NetClient {
   clientId: string | null = null;
 
-  private ws: WebSocket | null = null;
   private readonly handlers = new Map<MessageType, Set<(message: ServerMessage) => void>>();
   private readonly snapshots: Snapshot[] = [];
   private lastJoin: { sessionId: string; raidId: string } | null = null;
   private claimedPlayerId: string | null = null;
   private observing = false;
-  private closing = false;
-  private reconnectDelay = RECONNECT_INITIAL_MS;
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private worldRenderKeys: WorldRenderKeys | null = null;
   private readonly predictor = new LocalPredictor();
   // Playout clock for the snapshot buffer: maps a tick number to a render-timeline timestamp so
@@ -61,18 +146,13 @@ export class NetClient {
   private playing = false;
   private simEndedSent = false;  // host: simEnded already reported for this pull
 
-  constructor(private readonly url: string) {}
+  constructor(private readonly transport: Transport) {
+    transport.onMessage(message => this.handleMessage(message));
+    transport.onReconnect(() => this.resumeSession());
+  }
 
   open(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const ws = this.attachSocket();
-      ws.addEventListener("open", () => {
-        resolve();
-      }, { once: true });
-      ws.addEventListener("error", () => {
-        reject(new Error("Failed to connect to server"));
-      }, { once: true });
-    });
+    return this.transport.open();
   }
 
   send(message: ClientMessage): boolean {
@@ -86,9 +166,7 @@ export class NetClient {
     }
     if (message.type === "releaseObserver") this.observing = false;
 
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return false;
-    this.ws.send(JSON.stringify(message));
-    return true;
+    return this.transport.send(message);
   }
 
   on<T extends MessageType>(type: T, handler: Handler<T>): () => void {
@@ -153,39 +231,7 @@ export class NetClient {
   }
 
   close(): void {
-    this.closing = true;
-    if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
-    this.ws?.close();
-    this.ws = null;
-  }
-
-  private attachSocket(): WebSocket {
-    const ws = new WebSocket(this.url);
-    this.ws = ws;
-    ws.addEventListener("message", event => this.handleMessage(event));
-    ws.addEventListener("close", () => this.onClose());
-    return ws;
-  }
-
-  private onClose(): void {
-    this.ws = null;
-    this.clientId = null;
-    if (this.closing) return;
-    this.scheduleReconnect();
-  }
-
-  private scheduleReconnect(): void {
-    if (this.reconnectTimer || this.closing || !this.lastJoin) return;
-    const delay = this.reconnectDelay;
-    this.reconnectDelay = Math.min(this.reconnectDelay * 2, RECONNECT_MAX_MS);
-    this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = null;
-      const ws = this.attachSocket();
-      ws.addEventListener("open", () => {
-        this.reconnectDelay = RECONNECT_INITIAL_MS;
-        this.resumeSession();
-      }, { once: true });
-    }, delay);
+    this.transport.close();
   }
 
   private resumeSession(): void {
@@ -200,17 +246,7 @@ export class NetClient {
     if (observing) this.send({ type: "claimObserver" });
   }
 
-  private handleMessage(event: MessageEvent): void {
-    if (typeof event.data !== "string") return;
-
-    let message: ServerMessage;
-    try {
-      message = JSON.parse(event.data) as ServerMessage;
-    } catch {
-      return;
-    }
-    if (!message || typeof message.type !== "string") return;
-
+  private handleMessage(message: ServerMessage): void {
     if (message.type === "joined") {
       this.clientId = message.clientId;
     }
@@ -363,8 +399,15 @@ function applyFrameControls(world: World, frame: Frame): World {
 }
 
 export async function connect(): Promise<NetClient> {
-  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-  const client = new NetClient(`${protocol}//${location.host}`);
+  let transport: Transport;
+  if (typeof __YAS_STATIC__ !== "undefined" && __YAS_STATIC__) {
+    const { LoopbackTransport } = await import("./loopbackTransport");
+    transport = new LoopbackTransport();
+  } else {
+    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+    transport = new WebSocketTransport(`${protocol}//${location.host}`);
+  }
+  const client = new NetClient(transport);
   await client.open();
   return client;
 }

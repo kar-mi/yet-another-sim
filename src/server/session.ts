@@ -48,7 +48,7 @@ function mergePendingIntent(previous: Intent | undefined, next: Intent): Intent 
   };
 }
 
-function createEmptyRaid(): RaidDef {
+export function createEmptyRaid(): RaidDef {
   const players: RaidPlayerDef[] = ROSTER.map(({ id, role }) => ({ id, role, spawn: CLOCK_SPOTS[id] }));
   const preset = BOSS_REGISTRY[DEFAULT_BOSS_ID];
   const boss = { pos: [0, 0] as [number, number], ...preset };
@@ -729,6 +729,7 @@ export interface SessionManagerOptions {
   createSessionLog?: (sessionId: string) => SessionLog;
   /** Maximum allocated rooms on this backend. Defaults to unlimited. */
   maxSessions?: number;
+  loadRaid?: (raidId: string) => Promise<RaidDef>;
 }
 
 export interface CapacitySnapshot {
@@ -752,6 +753,7 @@ export class SessionManager {
   private readonly lobbyTimeoutMs?: number;
   private readonly createSessionLog?: (sessionId: string) => SessionLog;
   private readonly maxSessions: number;
+  private readonly loadRaid: (raidId: string) => Promise<RaidDef>;
 
   constructor(options: SessionManagerOptions) {
     this.raidsDir = options.raidsDir;
@@ -760,6 +762,7 @@ export class SessionManager {
     this.lobbyTimeoutMs = options.lobbyTimeoutMs;
     this.createSessionLog = options.createSessionLog;
     this.maxSessions = options.maxSessions ?? Infinity;
+    this.loadRaid = options.loadRaid ?? (raidId => loadSessionRaid(raidId, this.raidsDir));
   }
 
   sessionCount(): number {
@@ -828,7 +831,7 @@ export class SessionManager {
         return;
       }
 
-      const raid = await loadSessionRaid(raidId, this.raidsDir);
+      const raid = await this.loadRaid(raidId);
       session = this.sessions.get(sessionId);
       if (!session) {
         // Re-check after the await: a concurrent create may have filled the pool.
@@ -863,7 +866,7 @@ export class SessionManager {
     const seq = ++session.raidRequestSeq;
     let raid: RaidDef;
     try {
-      raid = await loadSessionRaid(raidId, this.raidsDir);
+      raid = await this.loadRaid(raidId);
     } catch {
       logger.warn("session", "raid not found", { clientId, raid: raidId });
       this.send(clientId, { type: "error", message: "Raid not found" });
