@@ -102,6 +102,7 @@ const buildResult = await Bun.build({
   ignoreDCEAnnotations: true,
   define: {
     __YAS_DEBUG__: JSON.stringify(isDevelopment),
+    __YAS_STATIC__: "false",
   },
 });
 

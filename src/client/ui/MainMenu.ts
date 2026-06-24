@@ -16,6 +16,8 @@ import type { World } from "@shared/types";
 import type { NetClient } from "../net";
 import { createElement } from "./dom";
 
+declare const __YAS_STATIC__: boolean | undefined;
+
 const LOBBY_SLOT_ORDER = ["mt", "ot", "h1", "h2", "m1", "m2", "r1", "r2"] as const;
 
 type LobbyMessage = Extract<ServerMessage, { type: "lobby" }>;
@@ -51,9 +53,14 @@ function normalizeCategory(value: unknown): RaidCategory | null {
 }
 
 export async function loadRaidCategories(): Promise<RaidCategory[]> {
-  const res = await fetch("/api/raids");
-  if (!res.ok) throw new Error(`Failed to load raid list: ${res.status}`);
-  const json: unknown = await res.json();
+  let json: unknown;
+  if (typeof __YAS_STATIC__ !== "undefined" && __YAS_STATIC__) {
+    json = (await import("../staticRaids.generated")).RAID_CATALOG;
+  } else {
+    const res = await fetch("/api/raids");
+    if (!res.ok) throw new Error(`Failed to load raid list: ${res.status}`);
+    json = await res.json();
+  }
   if (!Array.isArray(json)) throw new Error("Invalid raid list");
 
   let total = 0;
