@@ -129,22 +129,33 @@ export function recordHostSnapshot(durationMs: number, bytes: number): void {
 export function initPerfHud(): () => void {
   if (!PERF_ENABLED) return () => {};
 
+  const root = document.createElement("div");
+  root.id = "yas-perf";
+  const copy = document.createElement("button");
+  copy.type = "button";
+  copy.textContent = "COPY";
   const el = document.createElement("pre");
-  el.id = "yas-perf";
-  document.body.appendChild(el);
+  root.append(copy, el);
+  document.body.appendChild(root);
+
+  let latestText = "";
+  copy.addEventListener("click", () => {
+    void navigator.clipboard?.writeText(latestText);
+  });
 
   const timer = setInterval(() => {
-    el.textContent = [
+    latestText = [
       `frame ${perf.frameMs.toFixed(1)}ms max ${perf.frameMaxMs.toFixed(1)} | raf ${perf.rafMs.toFixed(1)} max ${perf.rafMaxMs.toFixed(1)} drop ${perf.droppedFrames}`,
       `view ${perf.getViewMs.toFixed(2)}ms | sync ${perf.syncMs.toFixed(2)} max ${perf.syncMaxMs.toFixed(2)} | render ${perf.renderMs.toFixed(2)} max ${perf.renderMaxMs.toFixed(2)}`,
       `apply ${perf.applyFramesMs.toFixed(2)}ms max ${perf.applyFramesMaxMs.toFixed(2)} | batch ${perf.batchFrames}/${perf.batchMaxFrames} | ticks ${perf.appliedTicks}/${perf.appliedTicksMax}`,
       `interp buf ${perf.snapshotBuffer} | delay ${perf.renderDelayMs.toFixed(1)}ms | headroom ${perf.headroomMs.toFixed(1)}ms | extrap ${perf.extrapolations}`,
       `resync ${perf.resyncRequests} | resets ${perf.bufferResets} | host snap ${perf.hostSnapshotMs.toFixed(2)}ms max ${perf.hostSnapshotMaxMs.toFixed(2)} bytes ${perf.hostSnapshotBytes}/${perf.hostSnapshotMaxBytes}`,
     ].join("\n");
+    el.textContent = latestText;
   }, 250);
 
   return () => {
     clearInterval(timer);
-    el.remove();
+    root.remove();
   };
 }
