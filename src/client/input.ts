@@ -1,5 +1,5 @@
 import type { Intent } from "@shared/types";
-import { normalize, shortestAngleDelta, normalizeAngle } from "@shared/math";
+import { normalize, shortestAngleDelta, normalizeAngle, type Vec2 } from "@shared/math";
 import {
   CONTROLLER_FACE_BUTTONS,
   CONTROLLER_DPAD_BUTTONS,
@@ -34,12 +34,13 @@ let standardFacing = 0;         // client-tracked character facing for standard 
 let standardFacingSynced = false;
 let keyboardCameraPan = 0;      // camera yaw delta produced by the last getIntent() call
 let oneShotSink: (() => void) | null = null;
+let cachedPads: ReturnType<typeof navigator.getGamepads> | null = null;
 
 const STANDARD_TURN_RATE = 2.6; // rad/s character turn from A/D (standard)
 const CAMERA_FOLLOW_RATE = 4;   // camera auto-trail responsiveness (standard)
 
 function getGamepad(): Gamepad | null {
-  const pads = navigator.getGamepads();
+  const pads = cachedPads ?? navigator.getGamepads();
   if (selectedGamepadIndex !== null && pads[selectedGamepadIndex]) {
     return pads[selectedGamepadIndex];
   }
@@ -47,6 +48,11 @@ function getGamepad(): Gamepad | null {
     if (gp) return gp;
   }
   return null;
+}
+
+function relMove(st: number, f: number, ang: number): Vec2 {
+  const c = Math.cos(ang), s = Math.sin(ang);
+  return normalize({ x: st * c + f * s, z: -st * s + f * c });
 }
 
 function applyDeadzone(v: number, dz: number): number {
@@ -131,7 +137,8 @@ export function listControllers(): { index: number; name: string; type: Controll
 
 export function setActiveGamepad(index: number | null): void {
   selectedGamepadIndex = index;
-  prevButtons = []; // avoid carrying button state across a switch
+  prevButtons.length = 0; // avoid carrying button state across a switch
+  cachedPads = null;
 }
 
 export function setKeyBindings(kb: KeyBindings): void {
@@ -235,6 +242,7 @@ export function initInput(): () => void {
 }
 
 export function getIntent(cameraYaw: number, dt: number, mouse: { left: boolean; right: boolean }): Intent {
+  cachedPads = navigator.getGamepads();
   const jump = jumpPressed;
   jumpPressed = false;
   const sprint = sprintPressed;
@@ -282,15 +290,11 @@ export function getIntent(cameraYaw: number, dt: number, mouse: { left: boolean;
       const pressed = gp.buttons[idx]?.pressed ?? false;
       if (pressed && !(prevButtons[idx] ?? false)) triggerAction(actionId);
     }
-    prevButtons = Array.from(gp.buttons).map(b => b.pressed);
+    for (let i = 0; i < gp.buttons.length; i++) prevButtons[i] = gp.buttons[i].pressed;
+    if (prevButtons.length > gp.buttons.length) prevButtons.length = gp.buttons.length;
   }
 
   // Move vector for strafe/forward axes, relative to a given heading angle.
-  const relMove = (st: number, f: number, ang: number) => {
-    const c = Math.cos(ang), s = Math.sin(ang);
-    return normalize({ x: st * c + f * s, z: -st * s + f * c });
-  };
-
   let move = { x: 0, z: 0 };
   let facing: number | undefined;
   keyboardCameraPan = 0;
