@@ -59,7 +59,7 @@ export const metrics = {
   catchupExhausted: registry.register(
     new Counter(
       "sim_catchup_exhausted_total",
-      "Times a session hit MAX_CATCH_UP_STEPS and dropped accumulated sim time.",
+      "Times a relay loop clamped a pathological elapsed gap (process suspension/debugger) and dropped sim time.",
     ),
   ),
   frameBroadcastBatchLast: registry.register(
