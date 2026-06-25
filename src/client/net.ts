@@ -1,7 +1,6 @@
 import { type ClientMessage, type Frame, type ServerMessage } from "@shared/protocol";
-import type { Boss, Intent, Player, World } from "@shared/types";
-import { length, shortestAngleDelta, sub } from "@shared/math";
-import { LocalPredictor } from "./predictor";
+import type { Boss, Player, World } from "@shared/types";
+import { length, shortestAngleDelta, sub, type Vec2 } from "@shared/math";
 import { tick } from "../engine/sim";
 import { computeBotIntents } from "../engine/botIntent";
 import { worldHash } from "@shared/worldHash";
@@ -22,9 +21,13 @@ type Handler<T extends MessageType> = (message: Extract<ServerMessage, { type: T
 
 const DT = 1 / 60;
 const TICK_MS = 1000 / 60;
-const RENDER_DELAY_MS = 33;
+// Floor is ~1 tick for lowest lag on clean links; ceiling caps lag under heavy jitter.
+const MIN_RENDER_DELAY_MS = 16;
+const MAX_RENDER_DELAY_MS = 80;
 const SNAPSHOT_BUFFER_MAX = 32;
 const SNAPSHOT_GAP_RESET_MS = 250;
+// Cap forward extrapolation so a long stall holds rather than flinging entities.
+const EXTRAPOLATE_MAX_MS = 100;
 // How fast the snapshot playout clock tracks wall-clock drift. Small so snapshots stay spaced at a
 // steady TICK_MS apart (smooth interpolation) regardless of network burstiness, while still slowly
 // following genuine clock drift between the server's tick loop and this client's render clock.
@@ -130,7 +133,8 @@ export class NetClient {
   private claimedPlayerId: string | null = null;
   private observing = false;
   private worldRenderKeys: WorldRenderKeys | null = null;
-  private readonly predictor = new LocalPredictor();
+  private renderDelayMs = MIN_RENDER_DELAY_MS;
+  private lastAdaptNow = 0;
   // Playout clock for the snapshot buffer: maps a tick number to a render-timeline timestamp so
   // snapshots are spaced at a steady TICK_MS apart, independent of jittery/bursty frame arrival.
   private snapClockBase: number | null = null;
@@ -140,10 +144,6 @@ export class NetClient {
   private world: World | null = null;
   private appliedTick = 0;       // number of input frames applied == current sim tick
   private isHost = false;
-  // True only while the pull is actively relaying frames (playing). Pause/stop/done leave the local
-  // world's status as "running", so this gates local prediction so the player can't nudge while the
-  // sim is halted. Set on frame arrival, cleared on a non-playing playback state or a fresh `started`.
-  private playing = false;
   private simEndedSent = false;  // host: simEnded already reported for this pull
 
   constructor(private readonly transport: Transport) {
@@ -177,21 +177,38 @@ export class NetClient {
     return () => handlers.delete(wrapped);
   }
 
-  getRenderView(now: number, predict?: { intent: Intent; dt: number }): World | null {
+  getRenderView(now: number): World | null {
     const buf = this.snapshots;
     if (buf.length === 0) return null;
 
-    const view = this.interpolatedView(now);
-    return predict ? this.applyPrediction(view, predict.intent, predict.dt) : view;
+    return this.interpolatedView(now);
   }
 
   private interpolatedView(now: number): World {
     const buf = this.snapshots;
     if (buf.length === 1) return buf[0].world;
 
-    const target = now - RENDER_DELAY_MS;
+    const last = buf[buf.length - 1];
+    const headroom = last.t - (now - this.renderDelayMs);
+    if (headroom < TICK_MS) {
+      this.renderDelayMs = Math.min(MAX_RENDER_DELAY_MS, this.renderDelayMs + (TICK_MS - headroom));
+    } else {
+      const dt = this.lastAdaptNow ? (now - this.lastAdaptNow) / 1000 : 0;
+      if (headroom > 2 * TICK_MS) this.renderDelayMs = Math.max(MIN_RENDER_DELAY_MS, this.renderDelayMs - 2 * dt);
+    }
+    this.lastAdaptNow = now;
+
+    const target = now - this.renderDelayMs;
     if (target <= buf[0].t) return buf[0].world;
-    if (target >= buf[buf.length - 1].t) return buf[buf.length - 1].world;
+    if (target >= last.t) {
+      const prev = buf[buf.length - 2];
+      if (target > last.t && last.t > prev.t) {
+        const over = Math.min(target - last.t, EXTRAPOLATE_MAX_MS);
+        const alpha = (last.t - prev.t + over) / (last.t - prev.t);
+        return interpolateWorld(prev.world, last.world, alpha);
+      }
+      return last.world;
+    }
 
     let prevIdx = 0;
     for (let i = buf.length - 1; i >= 0; i--) {
@@ -202,32 +219,6 @@ export class NetClient {
     const span = next.t - prev.t;
     const alpha = span > 0 ? Math.min(1, Math.max(0, (target - prev.t) / span)) : 1;
     return interpolateWorld(prev.world, next.world, alpha);
-  }
-
-  // Override the local player in the render view with a client-predicted position so the user's own
-  // movement is instant. Render-only: anchors to the latest authoritative world (`this.world`) and
-  // never mutates `view` (which may be a stored snapshot) — a new players array is built instead.
-  private applyPrediction(view: World, intent: Intent, dt: number): World {
-    // Only predict while the pull is live. Paused/stopped/done leave world.status === "running" but
-    // halt the relay, so without `playing` the player could nudge the frozen character around.
-    if (!this.playing || !this.claimedPlayerId || !this.world || this.world.status !== "running") return view;
-    const authLocal = this.world.players.find(p => p.id === this.claimedPlayerId);
-    if (!authLocal) return view;
-
-    const predicted = this.predictor.predict(authLocal, this.world.arena.zones, this.world.time, intent, dt);
-    const localIndex = view.players.findIndex(p => p.id === this.claimedPlayerId);
-    if (localIndex === -1) return view;
-    const players = view.players.slice();
-    players[localIndex] = {
-      ...players[localIndex],
-      pos: predicted.pos,
-      facing: predicted.facing,
-      y: predicted.y,
-    };
-    const world = { ...view, players };
-    const renderKeys = getWorldRenderKeys(view);
-    if (renderKeys) setWorldRenderKeys(world, renderKeys);
-    return world;
   }
 
   close(): void {
@@ -254,12 +245,9 @@ export class NetClient {
       this.claimedPlayerId = message.slots.find(slot => slot.claimedByYou)?.playerId ?? null;
       this.observing = message.observingByYou;
       this.isHost = this.clientId !== null && this.clientId === message.hostClientId;
-      this.predictor.reset();
     }
     if (message.type === "playback") {
       this.isHost = this.clientId !== null && this.clientId === message.hostClientId;
-      this.playing = message.state === "playing";
-      this.predictor.reset();
     }
     if (message.type === "started") {
       this.claimedPlayerId = message.yourPlayerId;
@@ -272,8 +260,6 @@ export class NetClient {
       this.claimedPlayerId = null;
       this.observing = false;
       this.isHost = false;
-      this.playing = false;
-      this.predictor.reset();
     }
 
     const handlers = this.handlers.get(message.type as MessageType);
@@ -288,8 +274,6 @@ export class NetClient {
     this.world = message.world;
     this.appliedTick = message.baseTick;
     this.simEndedSent = false;
-    this.playing = false; // re-enabled by the first frame if this pull is actually live (not a stop/late-join into a halted pull)
-    this.predictor.reset();
     for (const frame of message.frames) this.stepOne(frame);
     this.snapshots.length = 0;
     this.snapClockBase = null;
@@ -302,7 +286,6 @@ export class NetClient {
     if (!this.world) return;
     const offset = this.appliedTick - message.startTick;
     if (offset < 0) { this.resumeSession(); return; } // gap: missed frames, resync from scratch
-    this.playing = true; // frames are flowing → the pull is live; local prediction is allowed
     for (let i = offset; i < message.frames.length; i++) {
       this.stepOne(message.frames[i]);
       this.pushSnapshot(this.world, this.appliedTick);
@@ -420,23 +403,36 @@ function lerpAngle(a: number, b: number, t: number): number {
   return a + shortestAngleDelta(a, b) * t;
 }
 
-function interpolatePlayer(prev: Player | undefined, next: Player, t: number): Player {
-  if (!prev) return next;
-  return {
-    ...next,
-    pos: { x: lerp(prev.pos.x, next.pos.x, t), z: lerp(prev.pos.z, next.pos.z, t) },
-    y: lerp(prev.y, next.y, t),
-    facing: lerpAngle(prev.facing, next.facing, t),
-  };
+function interpolatePlayerInto(out: Player, prev: Player | undefined, next: Player, t: number): Player {
+  const pos = out.pos;
+  Object.assign(out, next);
+  out.pos = pos;
+  if (!prev) {
+    out.pos.x = next.pos.x;
+    out.pos.z = next.pos.z;
+    return out;
+  }
+  out.pos.x = lerp(prev.pos.x, next.pos.x, t);
+  out.pos.z = lerp(prev.pos.z, next.pos.z, t);
+  out.y = lerp(prev.y, next.y, t);
+  out.facing = lerpAngle(prev.facing, next.facing, t);
+  return out;
 }
 
-function interpolateBoss(prev: Boss, next: Boss, t: number): Boss {
+function interpolateBossInto(out: Boss, prev: Boss, next: Boss, t: number): Boss {
   const snap = length(sub(next.pos, prev.pos)) > BOSS_SNAP_THRESHOLD;
-  return {
-    ...next,
-    pos: snap ? next.pos : { x: lerp(prev.pos.x, next.pos.x, t), z: lerp(prev.pos.z, next.pos.z, t) },
-    facing: lerpAngle(prev.facing, next.facing, t), // smooth turning (sim snaps per tick)
-  };
+  const pos = out.pos;
+  Object.assign(out, next);
+  out.pos = pos;
+  if (snap) {
+    out.pos.x = next.pos.x;
+    out.pos.z = next.pos.z;
+  } else {
+    out.pos.x = lerp(prev.pos.x, next.pos.x, t);
+    out.pos.z = lerp(prev.pos.z, next.pos.z, t);
+  }
+  out.facing = lerpAngle(prev.facing, next.facing, t); // smooth turning (sim snaps per tick)
+  return out;
 }
 
 type EntityIndex = {
@@ -458,16 +454,68 @@ function getEntityIndex(world: World): EntityIndex {
   return index;
 }
 
+type InterpolationBuffer = {
+  world: World | null;
+  players: Player[];
+  playerPositions: Vec2[];
+  bosses: Boss[];
+  bossPositions: Vec2[];
+};
+
+const interpolationBuffers: InterpolationBuffer[] = [
+  { world: null, players: [], playerPositions: [], bosses: [], bossPositions: [] },
+  { world: null, players: [], playerPositions: [], bosses: [], bossPositions: [] },
+];
+let interpolationBufferIndex = 0;
+
+function ensurePlayerBuffer(buf: InterpolationBuffer, players: Player[]): void {
+  let rebuild = buf.players.length !== players.length;
+  if (!rebuild) {
+    for (let i = 0; i < players.length; i++) {
+      if (buf.players[i].id !== players[i].id) { rebuild = true; break; }
+    }
+  }
+  if (rebuild) {
+    buf.playerPositions = players.map(() => ({ x: 0, z: 0 }));
+    buf.players = players.map((_, i) => ({ pos: buf.playerPositions[i] }) as Player);
+  }
+}
+
+function ensureBossBuffer(buf: InterpolationBuffer, bosses: Boss[]): void {
+  let rebuild = buf.bosses.length !== bosses.length;
+  if (!rebuild) {
+    for (let i = 0; i < bosses.length; i++) {
+      if (buf.bosses[i].id !== bosses[i].id) { rebuild = true; break; }
+    }
+  }
+  if (rebuild) {
+    buf.bossPositions = bosses.map(() => ({ x: 0, z: 0 }));
+    buf.bosses = bosses.map((_, i) => ({ pos: buf.bossPositions[i] }) as Boss);
+  }
+}
+
 function interpolateWorld(prev: World, next: World, t: number): World {
+  const buf = interpolationBuffers[interpolationBufferIndex];
+  interpolationBufferIndex = (interpolationBufferIndex + 1) % interpolationBuffers.length;
   const prevIndex = getEntityIndex(prev);
-  const bosses = next.bosses.map(b => interpolateBoss(prevIndex.bosses.get(b.id) ?? b, b, t));
-  const world = {
-    ...next,
-    time: lerp(prev.time, next.time, t),
-    players: next.players.map(playerB => interpolatePlayer(prevIndex.players.get(playerB.id), playerB, t)),
-    bosses,
-    boss: bosses[0]!,
-  };
+  ensurePlayerBuffer(buf, next.players);
+  ensureBossBuffer(buf, next.bosses);
+  for (let i = 0; i < next.players.length; i++) {
+    const player = next.players[i];
+    buf.players[i].pos = buf.playerPositions[i];
+    interpolatePlayerInto(buf.players[i], prevIndex.players.get(player.id), player, t);
+  }
+  for (let i = 0; i < next.bosses.length; i++) {
+    const boss = next.bosses[i];
+    buf.bosses[i].pos = buf.bossPositions[i];
+    interpolateBossInto(buf.bosses[i], prevIndex.bosses.get(boss.id) ?? boss, boss, t);
+  }
+  const world = Object.assign(buf.world ?? ({} as World), next);
+  buf.world = world;
+  world.time = lerp(prev.time, next.time, t);
+  world.players = buf.players;
+  world.bosses = buf.bosses;
+  world.boss = buf.bosses[0]!;
   const renderKeys = getWorldRenderKeys(next) ?? getWorldRenderKeys(prev);
   if (renderKeys) setWorldRenderKeys(world, renderKeys);
   return world;

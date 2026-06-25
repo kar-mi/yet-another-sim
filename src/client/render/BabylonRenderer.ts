@@ -60,6 +60,7 @@ export class BabylonRenderer implements Renderer {
   private bossRingLayers = new Map<string, BossRingLayer>();
   private targetRingLayers = new Map<string, TargetRingLayer>();
   private bossesKey = "";
+  private bossIds: string[] = [];
   private healthBars!: HealthBarLayer;
   private telegraphs!: TelegraphLayer;
   private tethers!: TetherLayer;
@@ -236,7 +237,19 @@ export class BabylonRenderer implements Renderer {
       const targetRingLayer = new TargetRingLayer(this.scene);
       this.targetRingLayers.set(boss.id, targetRingLayer);
     }
-    this.bossesKey = bosses.map(b => b.id).join(",");
+    this.bossIds = bosses.map(b => b.id);
+    this.bossesKey = this.bossIds.join(",");
+  }
+
+  private bossSetChanged(bosses: Boss[]): boolean {
+    if (bosses.length !== this.bossIds.length) return true;
+    for (let i = 0; i < bosses.length; i++) {
+      if (bosses[i].id !== this.bossIds[i]) {
+        const bossesKey = bosses.map(b => b.id).join(",");
+        return bossesKey !== this.bossesKey;
+      }
+    }
+    return false;
   }
 
   private buildArena(zones: ZoneShape[], floorPlan: FloorPlan, key: string): void {
@@ -259,8 +272,7 @@ export class BabylonRenderer implements Renderer {
     this.waymarks.sync(world.waymarks, renderKeys.waymarks);
     this.crystals.sync(world.crystals, world.time, renderKeys.crystals);
 
-    const bossesKey = world.bosses.map(b => b.id).join(",");
-    if (bossesKey !== this.bossesKey) this.rebuildBossLayers(world.bosses);
+    if (this.bossSetChanged(world.bosses)) this.rebuildBossLayers(world.bosses);
 
     this.players.sync(world.players, world.time);
     const local = world.players.find(p => p.id === this.localPlayerId);
