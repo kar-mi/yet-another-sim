@@ -42,6 +42,10 @@ const EXTRAPOLATE_MAX_MS = 100;
 // steady TICK_MS apart (smooth interpolation) regardless of network burstiness, while still slowly
 // following genuine clock drift between the server's tick loop and this client's render clock.
 const CLOCK_SMOOTH = 0.02;
+// Per-snapshot decay of the rolling-max delivery gap (recentMaxGapMs). ~0.999^600 ≈ 0.55 over 10s
+// and ≈0.17 over 30s at 60Hz: a delivery-stall spike keeps the playout floor elevated across the
+// several-second gaps between stalls (so they don't re-underrun) before fading on a clean link.
+const GAP_DECAY = 0.999;
 const RECONNECT_INITIAL_MS = 500;
 const RECONNECT_MAX_MS = 8000;
 // Report a world hash this often (in ticks) so the server can detect cross-client desync.
@@ -149,6 +153,9 @@ export class NetClient {
   // snapshots are spaced at a steady TICK_MS apart, independent of jittery/bursty frame arrival.
   private snapClockBase: number | null = null;
   private lastSnapshotWall = 0; // wall-clock arrival of the last snapshot, for gap detection
+  // Decaying rolling max of the inter-snapshot delivery gap. Sizes the playout floor so the render
+  // target never marches past the buffer during a server delivery stall (the stutter source).
+  private recentMaxGapMs = 0;
 
   // Local simulation state.
   private world: World | null = null;
@@ -198,6 +205,14 @@ export class NetClient {
     return this.interpolatedView(now);
   }
 
+  // Lower bound for the playout buffer: deep enough to outlast the worst recent delivery gap (plus a
+  // one-tick margin) so the render target stays inside the buffer through a stall instead of lurching
+  // backward and extrapolating. Clamped to the static [MIN, MAX] band.
+  private effectiveFloorMs(): number {
+    const floor = this.recentMaxGapMs + TICK_MS;
+    return Math.min(MAX_RENDER_DELAY_MS, Math.max(MIN_RENDER_DELAY_MS, floor));
+  }
+
   private interpolatedView(now: number): World {
     const buf = this.snapshots;
 
@@ -211,7 +226,7 @@ export class NetClient {
       if (headroom > 2 * TICK_MS) {
         const excess = headroom - 2 * TICK_MS;
         const k = Math.min(1, dt / DRAIN_TAU_S);
-        this.renderDelayMs = Math.max(MIN_RENDER_DELAY_MS, this.renderDelayMs - excess * k);
+        this.renderDelayMs = Math.max(this.effectiveFloorMs(), this.renderDelayMs - excess * k);
       }
     }
     this.lastAdaptNow = now;
@@ -373,10 +388,15 @@ export class NetClient {
 
   private pushSnapshot(world: World, tick: number): void {
     const wall = performance.now();
-    if (this.lastSnapshotWall && wall - this.lastSnapshotWall > SNAPSHOT_GAP_RESET_MS) {
+    const gap = this.lastSnapshotWall ? wall - this.lastSnapshotWall : TICK_MS;
+    if (this.lastSnapshotWall && gap > SNAPSHOT_GAP_RESET_MS) {
       this.snapshots.length = 0;
       this.snapClockBase = null;
       recordBufferReset();
+    } else if (this.lastSnapshotWall) {
+      // Grow the playout floor toward the worst recent delivery gap (decays on a clean link). Skipped
+      // for the pathological >reset gap above so a one-off freeze can't pin the floor at MAX.
+      this.recentMaxGapMs = Math.max(gap, this.recentMaxGapMs * GAP_DECAY);
     }
     this.lastSnapshotWall = wall;
 
@@ -385,9 +405,15 @@ export class NetClient {
     // frames (or network jitter) can't collapse interpolation into instant skips. The base anchors
     // so the newest snapshot sits at ~now, then drifts slowly to track real clock drift.
     const desiredBase = wall - tick * TICK_MS;
-    this.snapClockBase = this.snapClockBase === null
-      ? desiredBase
-      : this.snapClockBase + (desiredBase - this.snapClockBase) * CLOCK_SMOOTH;
+    if (this.snapClockBase === null) {
+      this.snapClockBase = desiredBase;
+    } else {
+      // Weight the smoothing by elapsed wall time (gap/TICK_MS): a synchronous catch-up burst pushes
+      // several snapshots at the same wall, so the 2nd..Nth see gap≈0 and barely move the base —
+      // otherwise the per-snapshot CLOCK_SMOOTH would apply N times and drag the playout clock.
+      const alpha = Math.min(1, CLOCK_SMOOTH * (gap / TICK_MS));
+      this.snapClockBase += (desiredBase - this.snapClockBase) * alpha;
+    }
     const t = this.snapClockBase + tick * TICK_MS;
 
     if (!this.worldRenderKeys) this.worldRenderKeys = computeWorldRenderKeys(world);
