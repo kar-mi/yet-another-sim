@@ -62,6 +62,30 @@ export const metrics = {
       "Times a session hit MAX_CATCH_UP_STEPS and dropped accumulated sim time.",
     ),
   ),
+  frameBroadcastBatchLast: registry.register(
+    new Gauge(
+      "sim_frame_broadcast_batch_last",
+      "Frames in the most recent relay broadcast batch.",
+    ),
+  ),
+  frameBroadcastBatchMax: registry.register(
+    new Gauge(
+      "sim_frame_broadcast_batch_max",
+      "Largest relay broadcast batch observed since process start.",
+    ),
+  ),
+  relayCatchupBatchesTotal: registry.register(
+    new Counter(
+      "sim_relay_catchup_batches_total",
+      "Relay broadcasts that contained more than one frame due to catch-up.",
+    ),
+  ),
+  relayTickDriftSeconds: registry.register(
+    new Gauge(
+      "sim_relay_tick_drift_seconds",
+      "Most recent relay loop drift beyond the ideal 60Hz tick cadence.",
+    ),
+  ),
   sessionsActive: registry.register(new Gauge("sim_sessions_active", "Sessions currently in the manager.")),
   sessionsCapacity: registry.register(new Gauge("sim_sessions_capacity", "Configured maximum sessions per backend (MAX_SESSIONS).")),
   clientsConnected: registry.register(new Gauge("sim_clients_connected", "Open WebSocket clients.")),
@@ -70,6 +94,8 @@ export const metrics = {
   wsMessagesTotal: registry.register(new Counter("ws_messages_received_total", "WebSocket messages received.")),
   wsInvalidTotal: registry.register(new Counter("ws_invalid_messages_total", "WebSocket messages that failed validation/JSON parse.")),
   wsRateLimitedTotal: registry.register(new Counter("ws_rate_limited_messages_total", "Inbound WebSocket messages dropped by the per-connection rate limit.")),
+  wsOutboundPayloadBytesLast: registry.register(new Gauge("sim_ws_outbound_payload_bytes_last", "Bytes in the most recent outbound WebSocket payload.")),
+  wsOutboundPayloadBytesMax: registry.register(new Gauge("sim_ws_outbound_payload_bytes_max", "Largest outbound WebSocket payload observed since process start.")),
 
   // Process runtime (sampled by the metrics server).
   residentMemoryBytes: registry.register(new Gauge("process_resident_memory_bytes", "Resident set size in bytes.")),

@@ -19,6 +19,8 @@ const POLL_MS = 5;
 // Generous slack past the raid duration; the host normally ends the pull near `duration`.
 const PULL_GRACE_SECONDS = 30;
 
+let maxFrameBroadcastBatch = 0;
+
 type TickHandle = ReturnType<typeof setInterval>;
 
 export interface FrameRelayOptions {
@@ -86,8 +88,15 @@ export class FrameRelay {
   flush(): void {
     if (this.frameBatch.length === 0) return;
     const startTick = this.inputLog.length - this.frameBatch.length;
+    const batchSize = this.frameBatch.length;
     this.onFrames(startTick, this.frameBatch);
-    metrics.framesBroadcast.inc(this.frameBatch.length);
+    metrics.framesBroadcast.inc(batchSize);
+    metrics.frameBroadcastBatchLast.set(batchSize);
+    if (batchSize > maxFrameBroadcastBatch) {
+      maxFrameBroadcastBatch = batchSize;
+      metrics.frameBroadcastBatchMax.set(batchSize);
+    }
+    if (batchSize > 1) metrics.relayCatchupBatchesTotal.inc();
     this.frameBatch = [];
   }
 
@@ -110,6 +119,7 @@ export class FrameRelay {
 
     const now = this.now();
     const elapsed = Math.min((now - this.lastTickAt) / 1000, 0.25);
+    metrics.relayTickDriftSeconds.set(Math.max(0, elapsed - DT));
     this.lastTickAt = now;
     this.tickAccumulator += Math.max(0, elapsed);
 

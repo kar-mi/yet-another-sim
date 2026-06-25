@@ -10,6 +10,7 @@ import { preloadAssets } from "./render/preloadAssets";
 import { SessionIdSchema } from "@shared/protocol";
 import { consoleSink, logger, parseLevel } from "@shared/logger";
 import { HudLayoutManager } from "./ui/HudLayoutManager";
+import { initPerfHud } from "./perfMetrics";
 
 logger.configure({
   level: parseLevel(
@@ -96,11 +97,13 @@ async function main(): Promise<void> {
 
     const disposeRaidSelect = await createRaidHudSelect(net, session.raidId, session.isHost, session.playbackState, hudLayout);
     const disposeInput = initInput();
+    const disposePerfHud = initPerfHud();
     const stopLoop = startNetLoop(renderer, net);
 
     const activeRenderer = renderer;
     currentTeardown = () => {
       stopLoop();
+      disposePerfHud();
       disposeInput();
       disposeRaidSelect();
       activeRenderer.dispose();

@@ -1,4 +1,5 @@
 import { addServerTraceEvent, recordServerException, withServerSpan } from "./otel";
+import { Buffer } from "node:buffer";
 import { join } from "path";
 import {
   ClientMessageSchema,
@@ -114,12 +115,19 @@ logger.info("build", "bundle ready");
 
 const clients = new Map<string, Bun.ServerWebSocket<SocketData>>();
 const ipConnections = new ConnectionCounter(MAX_CONNECTIONS_PER_IP);
+let maxOutboundPayloadBytes = 0;
 const manager = new SessionManager({
   raidsDir: RAIDS_DIR,
   send(clientId: string, message: ServerMessage | string) {
     const ws = clients.get(clientId);
     if (ws?.readyState !== WebSocket.OPEN) return;
     const payload = typeof message === "string" ? message : JSON.stringify(message);
+    const payloadBytes = Buffer.byteLength(payload);
+    metrics.wsOutboundPayloadBytesLast.set(payloadBytes);
+    if (payloadBytes > maxOutboundPayloadBytes) {
+      maxOutboundPayloadBytes = payloadBytes;
+      metrics.wsOutboundPayloadBytesMax.set(payloadBytes);
+    }
     ws.send(payload, payload.length > WS_COMPRESS_THRESHOLD);
   },
   createSessionLog,

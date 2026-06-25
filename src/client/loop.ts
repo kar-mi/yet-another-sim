@@ -2,6 +2,7 @@ import type { Renderer } from "./render/Renderer";
 import { getIntent, getRightStick, getKeyboardCameraPan, setOneShotSink } from "./input";
 import type { NetClient } from "./net";
 import type { Intent } from "@shared/types";
+import { recordLoopPerf } from "./perfMetrics";
 
 function hasOneShotIntent(intent: Intent): boolean {
   return !!(
@@ -45,7 +46,9 @@ export function startNetLoop(renderer: Renderer, net: NetClient): () => void {
   };
 
   function frame(now: number): void {
+    const frameStart = performance.now();
     const elapsed = Math.min((now - lastTime) / 1000, 0.1);
+    const rafMs = now - lastTime;
     lastTime = now;
 
     const intent = getIntent(renderer.getCameraYaw(), elapsed, renderer.getPanButtons());
@@ -54,9 +57,25 @@ export function startNetLoop(renderer: Renderer, net: NetClient): () => void {
 
     const rs = getRightStick();
     renderer.applyControllerPan(rs.x, rs.y, elapsed);
+    const getViewStart = performance.now();
     const view = net.getRenderView(now);
-    if (view) renderer.sync(view);
+    const getViewMs = performance.now() - getViewStart;
+    let syncMs = 0;
+    if (view) {
+      const syncStart = performance.now();
+      renderer.sync(view);
+      syncMs = performance.now() - syncStart;
+    }
+    const renderStart = performance.now();
     renderer.render();
+    const renderMs = performance.now() - renderStart;
+    recordLoopPerf({
+      rafMs,
+      frameMs: performance.now() - frameStart,
+      getViewMs,
+      syncMs,
+      renderMs,
+    });
     rafId = requestAnimationFrame(frame);
   }
 

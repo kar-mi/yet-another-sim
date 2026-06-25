@@ -5,6 +5,14 @@ import { tick } from "../engine/sim";
 import { computeBotIntents } from "../engine/botIntent";
 import { worldHash } from "@shared/worldHash";
 import { WORLD_RENDER_KEYS, computeWorldRenderKeys, getWorldRenderKeys, setWorldRenderKeys, type WorldRenderKeys } from "./worldRenderKeys";
+import {
+  PERF_ENABLED,
+  recordApplyFrames,
+  recordBufferReset,
+  recordHostSnapshot,
+  recordInterpolation,
+  recordResyncRequest,
+} from "./perfMetrics";
 
 declare const __YAS_STATIC__: boolean | undefined;
 
@@ -182,13 +190,16 @@ export class NetClient {
   getRenderView(now: number): World | null {
     const buf = this.snapshots;
     if (buf.length === 0) return null;
+    if (buf.length === 1) {
+      recordInterpolation({ snapshotBuffer: 1, renderDelayMs: this.renderDelayMs, headroomMs: 0, extrapolated: false });
+      return buf[0].world;
+    }
 
     return this.interpolatedView(now);
   }
 
   private interpolatedView(now: number): World {
     const buf = this.snapshots;
-    if (buf.length === 1) return buf[0].world;
 
     const last = buf[buf.length - 1];
     const headroom = last.t - (now - this.renderDelayMs);
@@ -206,14 +217,19 @@ export class NetClient {
     this.lastAdaptNow = now;
 
     const target = now - this.renderDelayMs;
-    if (target <= buf[0].t) return buf[0].world;
+    if (target <= buf[0].t) {
+      recordInterpolation({ snapshotBuffer: buf.length, renderDelayMs: this.renderDelayMs, headroomMs: headroom, extrapolated: false });
+      return buf[0].world;
+    }
     if (target >= last.t) {
       const prev = buf[buf.length - 2];
       if (target > last.t && last.t > prev.t) {
         const over = Math.min(target - last.t, EXTRAPOLATE_MAX_MS);
         const alpha = (last.t - prev.t + over) / (last.t - prev.t);
+        recordInterpolation({ snapshotBuffer: buf.length, renderDelayMs: this.renderDelayMs, headroomMs: headroom, extrapolated: true });
         return interpolateWorld(prev.world, last.world, alpha);
       }
+      recordInterpolation({ snapshotBuffer: buf.length, renderDelayMs: this.renderDelayMs, headroomMs: headroom, extrapolated: false });
       return last.world;
     }
 
@@ -225,6 +241,7 @@ export class NetClient {
     const next = buf[prevIdx + 1];
     const span = next.t - prev.t;
     const alpha = span > 0 ? Math.min(1, Math.max(0, (target - prev.t) / span)) : 1;
+    recordInterpolation({ snapshotBuffer: buf.length, renderDelayMs: this.renderDelayMs, headroomMs: headroom, extrapolated: false });
     return interpolateWorld(prev.world, next.world, alpha);
   }
 
@@ -291,15 +308,19 @@ export class NetClient {
   // a resync) and detect a gap (missed frames) that warrants a full resync via rejoin.
   private applyFrames(message: Extract<ServerMessage, { type: "frames" }>): void {
     if (!this.world) return;
+    const start = performance.now();
     const offset = this.appliedTick - message.startTick;
-    if (offset < 0) { this.resumeSession(); return; } // gap: missed frames, resync from scratch
+    if (offset < 0) { recordResyncRequest(); this.resumeSession(); return; } // gap: missed frames, resync from scratch
+    let applied = 0;
     for (let i = offset; i < message.frames.length; i++) {
       this.stepOne(message.frames[i]);
       this.pushSnapshot(this.world, this.appliedTick);
       this.maybeReportHash();
       this.maybeReportSnapshot();
+      applied++;
     }
     this.maybeReportSimEnded();
+    recordApplyFrames(message.frames.length, applied, performance.now() - start);
   }
 
   // One deterministic engine step. Control is derived from the frame's intent keys (a slot is human
@@ -328,7 +349,13 @@ export class NetClient {
     // sets it on this.world just before this runs), and although JSON.stringify would drop it on send,
     // strip it here so `world` is clean.
     const { [WORLD_RENDER_KEYS]: _drop, ...world } = this.world as any;
-    this.send({ type: "snapshot", tick: this.appliedTick, world });
+    const message = { type: "snapshot", tick: this.appliedTick, world } as const;
+    if (PERF_ENABLED) {
+      const start = performance.now();
+      const bytes = JSON.stringify(message).length;
+      recordHostSnapshot(performance.now() - start, bytes);
+    }
+    this.send(message);
   }
 
   // Report on fixed tick boundaries (not a per-client delta) so every client hashes the SAME ticks.
@@ -349,6 +376,7 @@ export class NetClient {
     if (this.lastSnapshotWall && wall - this.lastSnapshotWall > SNAPSHOT_GAP_RESET_MS) {
       this.snapshots.length = 0;
       this.snapClockBase = null;
+      recordBufferReset();
     }
     this.lastSnapshotWall = wall;
 
