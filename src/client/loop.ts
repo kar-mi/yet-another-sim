@@ -58,7 +58,7 @@ export function startNetLoop(renderer: Renderer, net: NetClient): () => void {
     const rs = getRightStick();
     renderer.applyControllerPan(rs.x, rs.y, elapsed);
     const getViewStart = performance.now();
-    const view = net.getRenderView(now);
+    const view = net.getRenderView(now, { intent, dt: elapsed });
     const getViewMs = performance.now() - getViewStart;
     let syncMs = 0;
     if (view) {

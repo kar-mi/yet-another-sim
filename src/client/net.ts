@@ -1,8 +1,9 @@
 import { type ClientMessage, type Frame, type ServerMessage } from "@shared/protocol";
-import type { Boss, Player, World } from "@shared/types";
+import type { Boss, Intent, Player, World } from "@shared/types";
 import { length, shortestAngleDelta, sub, type Vec2 } from "@shared/math";
 import { tick } from "../engine/sim";
 import { computeBotIntents } from "../engine/botIntent";
+import { LocalPredictor } from "./predictor";
 import { worldHash } from "@shared/worldHash";
 import { WORLD_RENDER_KEYS, computeWorldRenderKeys, getWorldRenderKeys, setWorldRenderKeys, type WorldRenderKeys } from "./worldRenderKeys";
 import {
@@ -161,6 +162,11 @@ export class NetClient {
   private world: World | null = null;
   private appliedTick = 0;       // number of input frames applied == current sim tick
   private isHost = false;
+  private readonly predictor = new LocalPredictor();
+  // True only while the pull is actively relaying frames (playing). Pause/stop/done leave the local
+  // world's status as "running", so this gates local prediction so the player can't nudge while the
+  // sim is halted. Set on frame arrival, cleared on a non-playing playback state or a fresh `started`.
+  private playing = false;
   private simEndedSent = false;  // host: simEnded already reported for this pull
 
   constructor(private readonly transport: Transport) {
@@ -194,15 +200,43 @@ export class NetClient {
     return () => handlers.delete(wrapped);
   }
 
-  getRenderView(now: number): World | null {
+  getRenderView(now: number, predict?: { intent: Intent; dt: number }): World | null {
     const buf = this.snapshots;
     if (buf.length === 0) return null;
+    let view: World;
     if (buf.length === 1) {
       recordInterpolation({ snapshotBuffer: 1, renderDelayMs: this.renderDelayMs, headroomMs: 0, extrapolated: false });
-      return buf[0].world;
+      view = buf[0].world;
+    } else {
+      view = this.interpolatedView(now);
     }
+    return predict ? this.applyPrediction(view, predict.intent, predict.dt) : view;
+  }
 
-    return this.interpolatedView(now);
+  // Override the local player in the render view with a client-predicted position so the user's own
+  // movement is instant. Render-only: anchors to the latest authoritative world (`this.world`) and
+  // never mutates `view` (which may be a stored snapshot) — a new players array is built instead.
+  private applyPrediction(view: World, intent: Intent, dt: number): World {
+    // Only predict while the pull is live. Paused/stopped/done leave world.status === "running" but
+    // halt the relay, so without `playing` the player could nudge the frozen character around.
+    if (!this.playing || !this.claimedPlayerId || !this.world || this.world.status !== "running") return view;
+    const authLocal = this.world.players.find(p => p.id === this.claimedPlayerId);
+    if (!authLocal) return view;
+
+    const predicted = this.predictor.predict(authLocal, this.world.arena.zones, this.world.time, intent, dt);
+    const localIndex = view.players.findIndex(p => p.id === this.claimedPlayerId);
+    if (localIndex === -1) return view;
+    const players = view.players.slice();
+    players[localIndex] = {
+      ...players[localIndex],
+      pos: predicted.pos,
+      facing: predicted.facing,
+      y: predicted.y,
+    };
+    const world = { ...view, players };
+    const renderKeys = getWorldRenderKeys(view);
+    if (renderKeys) setWorldRenderKeys(world, renderKeys);
+    return world;
   }
 
   // Lower bound for the playout buffer: deep enough to outlast the worst recent delivery gap (plus a
@@ -284,9 +318,12 @@ export class NetClient {
       this.claimedPlayerId = message.slots.find(slot => slot.claimedByYou)?.playerId ?? null;
       this.observing = message.observingByYou;
       this.isHost = this.clientId !== null && this.clientId === message.hostClientId;
+      this.predictor.reset();
     }
     if (message.type === "playback") {
       this.isHost = this.clientId !== null && this.clientId === message.hostClientId;
+      this.playing = message.state === "playing";
+      this.predictor.reset();
     }
     if (message.type === "started") {
       this.claimedPlayerId = message.yourPlayerId;
@@ -299,6 +336,8 @@ export class NetClient {
       this.claimedPlayerId = null;
       this.observing = false;
       this.isHost = false;
+      this.playing = false;
+      this.predictor.reset();
     }
 
     const handlers = this.handlers.get(message.type as MessageType);
@@ -313,6 +352,8 @@ export class NetClient {
     this.world = message.world;
     this.appliedTick = message.baseTick;
     this.simEndedSent = false;
+    this.playing = false; // re-enabled by the first frame if this pull is actually live (not a stop/late-join into a halted pull)
+    this.predictor.reset();
     for (const frame of message.frames) this.stepOne(frame);
     this.snapshots.length = 0;
     this.snapClockBase = null;
@@ -326,6 +367,7 @@ export class NetClient {
     const start = performance.now();
     const offset = this.appliedTick - message.startTick;
     if (offset < 0) { recordResyncRequest(); this.resumeSession(); return; } // gap: missed frames, resync from scratch
+    this.playing = true; // frames are flowing → the pull is live; local prediction is allowed
     let applied = 0;
     for (let i = offset; i < message.frames.length; i++) {
       this.stepOne(message.frames[i]);
