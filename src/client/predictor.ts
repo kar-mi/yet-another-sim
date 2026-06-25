@@ -13,12 +13,15 @@ import { activeEffectOfKind } from "../engine/systems/helpers";
 import { isOnFloor } from "../engine/shapes";
 
 const SNAP_THRESHOLD = 3;  // yalms: divergence past this hard-resets (teleport, forced march, respawn)
-// Soft reconciliation rates (1/s). Below SNAP_THRESHOLD the predicted pos eases toward authoritative
-// instead of riding along until a snap. Gentle while moving (keep most of the predicted lead =
-// responsive); fast once stopped so the char settles onto the true server position in a few hundred
-// ms — that's where placed arrows / hazards actually land. Frame-rate independent (1 - e^(-rate·dt)).
-const RECONCILE_RATE_MOVING = 3;
-const RECONCILE_RATE_STOPPED = 12;
+// Drift correction. The predicted lead over the authoritative position is legitimate (it masks input
+// latency) and resolves on its own when you stop, so we must NOT reconcile while moving or while the
+// server is still catching up — that pulls the char backward against in-flight input (rubber banding,
+// worst on small taps). Instead, only once you're idle AND the authoritative position has itself been
+// still for SETTLE_DELAY, ease out the residual integration/dropped-tick drift. So in clean conditions
+// (no drift) this is a no-op; it only acts when a real offset has accumulated. Frame-rate independent.
+const SETTLE_EPSILON = 0.02;     // yalms: authoritative move below this counts as "not moving"
+const SETTLE_DELAY = 0.15;       // s: authoritative must be still this long before easing drift
+const RECONCILE_RATE_IDLE = 8;   // 1/s: drift ease-out once settled (~0.4s), no backward pull
 
 export class LocalPredictor {
   private active = false;
@@ -28,9 +31,12 @@ export class LocalPredictor {
   private verticalVelocity = 0;
   private sprintActive = 0;
   private sprintCooldown = 0;
+  private lastAuthPos: { x: number; z: number } | null = null;
+  private lastAuthMoveTime = 0;
 
   reset(): void {
     this.active = false;
+    this.lastAuthPos = null;
   }
 
   // Predict the local player's pos/facing/y from `intent` over `dt`, anchored to the latest
@@ -84,18 +90,19 @@ export class LocalPredictor {
       }
     }
 
-    // Reconcile against the authoritative position. A pure free-run drifts (integration rounding,
-    // dropped server ticks) and the old code only corrected with a 3-yalm hard snap, so a sub-snap
-    // offset rode along forever — after you stopped, the visible char stayed ahead of where the server
-    // actually had you and placed arrows dropped behind it. Instead, ease toward authoritative every
-    // frame: gently while moving (preserve the responsive lead), quickly once stopped so the char
-    // settles onto the true server position. Hard-snap only on a divergence too large to model.
+    // Drift correction (see constants). Track authoritative motion so we only ease out residual drift
+    // once both the input has stopped and the server position has settled — never while moving or
+    // during the post-stop catch-up window, which would pull the char backward (rubber banding). A
+    // large unmodeled jump still hard-snaps.
+    const authMoved = this.lastAuthPos ? length(sub(authLocal.pos, this.lastAuthPos)) : Infinity;
+    if (authMoved > SETTLE_EPSILON) this.lastAuthMoveTime = time;
+    this.lastAuthPos = { x: authLocal.pos.x, z: authLocal.pos.z };
+
     const err = sub(authLocal.pos, this.pos);
     if (length(err) > SNAP_THRESHOLD) {
       this.pos = { ...authLocal.pos }; // teleport / forced march / respawn
-    } else {
-      const rate = length(intent.move) > 0 ? RECONCILE_RATE_MOVING : RECONCILE_RATE_STOPPED;
-      this.pos = add(this.pos, scale(err, 1 - Math.exp(-rate * dt)));
+    } else if (length(intent.move) === 0 && time - this.lastAuthMoveTime > SETTLE_DELAY) {
+      this.pos = add(this.pos, scale(err, 1 - Math.exp(-RECONCILE_RATE_IDLE * dt)));
     }
 
     return { ...authLocal, pos: { ...this.pos }, facing: this.facing, y: this.y };
