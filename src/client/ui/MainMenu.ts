@@ -199,8 +199,11 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
 
     const renderLobby = (message: LobbyMessage) => {
       lastLobby = message;
+      const isDefaultLobby = message.raidId === EMPTY_RAID_ID;
       const subtitle = message.status === "lobby"
         ? `${message.raidName.toUpperCase()} — CLAIM PARTY SLOT`
+        : isDefaultLobby && message.status === "running"
+          ? `${message.raidName.toUpperCase()} — JOINABLE LOBBY`
         : message.status === "running"
           ? `${message.raidName.toUpperCase()} — IN PROGRESS, CLAIM TO JOIN`
           : message.status === "paused"
@@ -223,18 +226,21 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
       const canStart = message.status === "lobby" && (message.slots.some(slot => slot.claimed) || message.observingByYou);
       const canResume = message.status === "paused" && (claimedByMe || message.observingByYou);
       const canPlayStopped = message.status === "stopped" && (claimedByMe || message.observingByYou);
+      const canRestartDone = message.status === "done" && (claimedByMe || message.observingByYou);
       const startLabel = message.status !== "lobby"
-        ? message.status === "running"
+        ? isDefaultLobby && message.status === "running"
+          ? "LOBBY ACTIVE"
+        : message.status === "running"
           ? "IN PROGRESS"
           : message.status === "paused"
             ? "RESUME"
             : message.status === "stopped"
               ? "START"
-              : "FINISHED"
+              : "RESTART"
         : isHost ? "START" : "WAIT HOST";
       const startBtn = createElement("button", "yas-menu-start", startLabel);
-      startBtn.disabled = !isHost || (message.status === "paused" ? !canResume : message.status === "stopped" ? !canPlayStopped : !canStart);
-      startBtn.addEventListener("click", () => net.send(message.status === "paused" || message.status === "stopped" ? { type: "play" } : { type: "start" }));
+      startBtn.disabled = !isHost || (message.status === "paused" ? !canResume : message.status === "stopped" ? !canPlayStopped : message.status === "done" ? !canRestartDone : !canStart);
+      startBtn.addEventListener("click", () => net.send(message.status === "done" ? { type: "restart" } : message.status === "paused" || message.status === "stopped" ? { type: "play" } : { type: "start" }));
 
       const sessionEl = createElement("div", "yas-menu-session");
       sessionEl.append(

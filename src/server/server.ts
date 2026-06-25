@@ -1,4 +1,5 @@
 import { addServerTraceEvent, recordServerException, withServerSpan } from "./otel";
+import { Buffer } from "node:buffer";
 import { join } from "path";
 import {
   ClientMessageSchema,
@@ -76,6 +77,12 @@ function withSecurityHeaders(response: Response): Response {
   return response;
 }
 
+function cacheControlForBundlePath(path: string): string {
+  return path === "index.html"
+    ? "no-cache"
+    : "public, max-age=31536000, immutable";
+}
+
 interface SocketData {
   clientId: string;
   ip: string;
@@ -92,6 +99,7 @@ const buildResult = await Bun.build({
   target: "browser",
   sourcemap: isDevelopment ? "inline" : "none",
   env: "disable",
+  minify: true,
   // Babylon registers engine extensions, scene-loader plugins (glTF), and material shaders via
   // side-effect modules that @babylonjs/core marks as tree-shakeable (sideEffects allow-list +
   // __PURE__ annotations). Bun's DCE strips the ones it can't see referenced, and how much it
@@ -114,12 +122,19 @@ logger.info("build", "bundle ready");
 
 const clients = new Map<string, Bun.ServerWebSocket<SocketData>>();
 const ipConnections = new ConnectionCounter(MAX_CONNECTIONS_PER_IP);
+let maxOutboundPayloadBytes = 0;
 const manager = new SessionManager({
   raidsDir: RAIDS_DIR,
   send(clientId: string, message: ServerMessage | string) {
     const ws = clients.get(clientId);
     if (ws?.readyState !== WebSocket.OPEN) return;
     const payload = typeof message === "string" ? message : JSON.stringify(message);
+    const payloadBytes = Buffer.byteLength(payload);
+    metrics.wsOutboundPayloadBytesLast.set(payloadBytes);
+    if (payloadBytes > maxOutboundPayloadBytes) {
+      maxOutboundPayloadBytes = payloadBytes;
+      metrics.wsOutboundPayloadBytesMax.set(payloadBytes);
+    }
     ws.send(payload, payload.length > WS_COMPRESS_THRESHOLD);
   },
   createSessionLog,
@@ -189,7 +204,11 @@ const server = Bun.serve<SocketData>({
         // Serve bundled client
         const relPath = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
         const bundleFile = Bun.file(join(BUNDLE_DIR, relPath));
-        if (await bundleFile.exists()) return withSecurityHeaders(new Response(bundleFile));
+        if (await bundleFile.exists()) {
+          return withSecurityHeaders(new Response(bundleFile, {
+            headers: { "Cache-Control": cacheControlForBundlePath(relPath) },
+          }));
+        }
 
         // Serve static assets (effect icons, etc.) from /static/*. Validate the relative path to
         // avoid traversal; only simple file-path characters are allowed.

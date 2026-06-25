@@ -150,8 +150,8 @@ function isOnTetherLine(pPos: Vec2, src: Vec2, tgt: Vec2): boolean {
   const t = ((pPos.x - src.x) * dx + (pPos.z - src.z) * dz) / lenSq;
   if (t <= 0.1 || t >= 0.9) return false;
   const cx = src.x + t * dx, cz = src.z + t * dz;
-  const d2 = (pPos.x - cx) ** 2 + (pPos.z - cz) ** 2;
-  return d2 < INTERCEPT_THRESHOLD ** 2;
+  const d2 = ((pPos.x - cx) * (pPos.x - cx)) + ((pPos.z - cz) * (pPos.z - cz));
+  return d2 < INTERCEPT_THRESHOLD * INTERCEPT_THRESHOLD;
 }
 
 export function findInterceptor(players: Player[], src: Vec2, tgt: Vec2, excludeId: string): Player | null {

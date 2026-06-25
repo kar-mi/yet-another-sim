@@ -3,7 +3,7 @@ import { loadRaid } from "../engine/raidLoader";
 import { baseRaid, roster } from "../engine/__tests__/helpers";
 import { ClientMessageSchema, EMPTY_RAID_ID, MAX_OBSERVERS } from "@shared/protocol";
 import type { ServerMessage } from "@shared/protocol";
-import { capacitySnapshot, EMPTY_LOBBY_TIMEOUT_MS, loadSessionRaid, LOBBY_TIMEOUT_MS, Session, SessionManager, type SessionStatus } from "./session";
+import { capacitySnapshot, createEmptyRaid, EMPTY_LOBBY_TIMEOUT_MS, loadSessionRaid, LOBBY_TIMEOUT_MS, Session, SessionManager, type SessionStatus } from "./session";
 
 // Session test raids reuse the shared canonical roster builder (clock spots from shared/protocol) so
 // spawns stay in sync with the engine; only the arena/duration and a couple of spawn overrides differ.
@@ -36,6 +36,18 @@ function makeSession(options: { now?: () => number; lobbyTimeoutMs?: number } = 
     autoTick: false,
     now: options.now,
     lobbyTimeoutMs: options.lobbyTimeoutMs,
+  });
+  return { session, sent };
+}
+
+function makeDefaultLobbySession() {
+  const sent: Array<{ clientId: string; message: ServerMessage }> = [];
+  const session = new Session({
+    id: "default-room",
+    raidId: EMPTY_RAID_ID,
+    raid: createEmptyRaid(),
+    send: (clientId, message) => sent.push({ clientId, message: typeof message === "string" ? JSON.parse(message) as ServerMessage : message }),
+    autoTick: false,
   });
   return { session, sent };
 }
@@ -80,7 +92,7 @@ test("unclaimed clients do not enter the game on start", () => {
   expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Claim a slot to join the running session")).toBe(true);
 });
 
-test("late joiner must claim before entering a running session", () => {
+test("late joiner cannot enter a running session", () => {
   const { session, sent } = makeSession();
   session.join("c1");
   session.claimSlot("c1", "mt");
@@ -90,10 +102,42 @@ test("late joiner must claim before entering a running session", () => {
   expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "started")).toBe(false);
 
   session.claimSlot("c2", "ot");
-  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "started" && entry.message.yourPlayerId === "ot")).toBe(true);
+  expect(session.slots.get("ot")).toBeNull();
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "started")).toBe(false);
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Wait for the next pull to join")).toBe(true);
 });
 
-test("client can reclaim and enter a paused session", () => {
+test("default lobby remains joinable while running", () => {
+  const { session, sent } = makeDefaultLobbySession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+
+  session.join("c2");
+  session.claimSlot("c2", "ot");
+
+  expect(session.raidId).toBe(EMPTY_RAID_ID);
+  expect(session.status).toBe("running");
+  expect(session.slots.get("ot")).toBe("c2");
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "started" && entry.message.yourPlayerId === "ot")).toBe(true);
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Wait for the next pull to join")).toBe(false);
+});
+
+test("default lobby observers can enter while running", () => {
+  const { session, sent } = makeDefaultLobbySession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+
+  session.join("c2");
+  session.claimObserver("c2");
+
+  expect(session.observers.has("c2")).toBe(true);
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "started" && entry.message.yourPlayerId === null)).toBe(true);
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Wait for the next pull to join")).toBe(false);
+});
+
+test("client cannot reclaim and enter a paused session", () => {
   const { session, sent } = makeSession();
   session.join("c1");
   session.claimSlot("c1", "mt");
@@ -107,7 +151,8 @@ test("client can reclaim and enter a paused session", () => {
 
   expect(session.status).toBe("paused");
   expect(session.world.time).toBe(pausedTime);
-  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === "mt" && entry.message.world.time === pausedTime)).toBe(true);
+  expect(session.slots.get("mt")).toBeNull();
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "error" && entry.message.message === "Wait for the next pull to join")).toBe(true);
 });
 
 test("host can resume a paused session", () => {
@@ -156,7 +201,7 @@ test("host can start again from a stopped lobby re-entry", () => {
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "playback" && entry.message.state === "playing")).toBe(true);
 });
 
-test("observers enter running sessions without occupying player slots", () => {
+test("observers cannot enter running sessions", () => {
   const { session, sent } = makeSession();
   session.join("c1");
   session.join("c2");
@@ -165,9 +210,10 @@ test("observers enter running sessions without occupying player slots", () => {
 
   session.claimObserver("c2");
 
-  expect(session.observers.has("c2")).toBe(true);
+  expect(session.observers.has("c2")).toBe(false);
   expect([...session.slots.values()].filter(ownerId => ownerId !== null)).toHaveLength(1);
-  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "started" && entry.message.yourPlayerId === null)).toBe(true);
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "started")).toBe(false);
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Wait for the next pull to join")).toBe(true);
 });
 
 test("host can start as an observer without claiming a player slot", () => {
@@ -356,7 +402,7 @@ test("host can restart the current raid", () => {
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === "mt")).toBe(true);
 });
 
-test("late joiner receives the initial world plus the full input log to fast-forward", () => {
+test("late joiner is not fast-forwarded into a running pull", () => {
   const { session, sent } = makeSession();
   session.join("c1");
   session.claimSlot("c1", "mt");
@@ -368,16 +414,12 @@ test("late joiner receives the initial world plus the full input log to fast-for
   session.join("c2");
   session.claimSlot("c2", "ot");
 
-  const started = sent.find(entry => entry.clientId === "c2" && entry.message.type === "started");
-  const message = started?.message as Extract<ServerMessage, { type: "started" }> | undefined;
-  expect(message?.tick).toBe(2);
-  expect(message?.baseTick).toBe(0);
-  expect(message?.frames).toHaveLength(2);
-  expect(message?.world.time).toBe(0); // initial world; the client replays the frames locally
-  expect(message?.yourPlayerId).toBe("ot");
+  expect(session.slots.get("ot")).toBeNull();
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "started")).toBe(false);
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Wait for the next pull to join")).toBe(true);
 });
 
-test("snapshot anchor: late join after host snapshot sends world + tail only", () => {
+test("snapshot anchor: late join after host snapshot is still rejected", () => {
   const { session, sent } = makeSession();
   session.join("c1");
   session.claimSlot("c1", "mt");
@@ -390,11 +432,9 @@ test("snapshot anchor: late join after host snapshot sends world + tail only", (
   session.join("c2");
   session.claimSlot("c2", "ot");
 
-  const started = sent.find(e => e.clientId === "c2" && e.message.type === "started");
-  const msg = started?.message as Extract<ServerMessage, { type: "started" }> | undefined;
-  expect(msg?.baseTick).toBe(3);
-  expect(msg?.tick).toBe(5);
-  expect(msg?.frames).toHaveLength(2); // only tail after snapshot tick
+  expect(session.slots.get("ot")).toBeNull();
+  expect(sent.some(e => e.clientId === "c2" && e.message.type === "started")).toBe(false);
+  expect(sent.some(e => e.clientId === "c2" && e.message.type === "error" && e.message.message === "Wait for the next pull to join")).toBe(true);
 });
 
 test("snapshot anchor: desync resync uses snapshot + tail", () => {
@@ -425,77 +465,90 @@ test("snapshot anchor: non-host snapshot is rejected", () => {
   session.join("c1");
   session.join("c2");
   session.claimSlot("c1", "mt");
+  session.claimSlot("c2", "ot");
   session.start("c1");
   for (let i = 0; i < 3; i++) session.step(false);
 
   // c2 is not the host — snapshot must be ignored
   session.handle("c2", { type: "snapshot", tick: 2, world: { arena: {}, players: [], sentinel: true } });
 
-  session.join("c3");
-  session.claimSlot("c3", "ot");
+  session.reportWorldHash("c1", 1, 111);
+  const beforeResync = sent.filter(e => e.clientId === "c2" && e.message.type === "started").length;
+  session.reportWorldHash("c2", 1, 222);
 
-  const started = sent.find(e => e.clientId === "c3" && e.message.type === "started");
-  const msg = started?.message as Extract<ServerMessage, { type: "started" }> | undefined;
-  expect(msg?.baseTick).toBe(0);
-  expect(msg?.frames).toHaveLength(3); // full log, no anchor
+  const resyncs = sent.filter(e => e.clientId === "c2" && e.message.type === "started");
+  expect(resyncs).toHaveLength(beforeResync + 1);
+  const msg = resyncs[resyncs.length - 1].message as Extract<ServerMessage, { type: "started" }>;
+  expect(msg.baseTick).toBe(0);
+  expect(msg.frames).toHaveLength(3); // full log, no anchor
 });
 
 test("snapshot anchor: resetPull clears the snapshot", () => {
   const { session, sent } = makeSession();
   session.join("c1");
+  session.join("c2");
   session.claimSlot("c1", "mt");
+  session.claimSlot("c2", "ot");
   session.start("c1");
   for (let i = 0; i < 5; i++) session.step(false);
 
   session.handle("c1", { type: "snapshot", tick: 3, world: { arena: {}, players: [], sentinel: true } });
 
   // Restart resets the pull — snapshot must be cleared
+  const beforeRestart = sent.filter(e => e.clientId === "c2" && e.message.type === "started").length;
   session.restart("c1");
-  session.join("c2");
-  session.claimSlot("c2", "ot");
 
-  const started = sent.find(e => e.clientId === "c2" && e.message.type === "started");
-  const msg = started?.message as Extract<ServerMessage, { type: "started" }> | undefined;
-  expect(msg?.baseTick).toBe(0); // snapshot was cleared by restart
-  expect(msg?.frames).toHaveLength(0);
+  const started = sent.filter(e => e.clientId === "c2" && e.message.type === "started");
+  expect(started).toHaveLength(beforeRestart + 1);
+  const msg = started[started.length - 1].message as Extract<ServerMessage, { type: "started" }>;
+  expect(msg.baseTick).toBe(0); // snapshot was cleared by restart
+  expect(msg.frames).toHaveLength(0);
 });
 
 test("snapshot anchor: monotonic — older snapshot does not replace newer", () => {
   const { session, sent } = makeSession();
   session.join("c1");
+  session.join("c2");
   session.claimSlot("c1", "mt");
+  session.claimSlot("c2", "ot");
   session.start("c1");
   for (let i = 0; i < 5; i++) session.step(false);
 
   session.handle("c1", { type: "snapshot", tick: 4, world: { arena: {}, players: [], snap: "new" } });
   session.handle("c1", { type: "snapshot", tick: 2, world: { arena: {}, players: [], snap: "old" } }); // older — must be ignored
 
-  session.join("c2");
-  session.claimSlot("c2", "ot");
+  session.reportWorldHash("c1", 1, 111);
+  const beforeResync = sent.filter(e => e.clientId === "c2" && e.message.type === "started").length;
+  session.reportWorldHash("c2", 1, 222);
 
-  const started = sent.find(e => e.clientId === "c2" && e.message.type === "started");
-  const msg = started?.message as Extract<ServerMessage, { type: "started" }> | undefined;
-  expect(msg?.baseTick).toBe(4);
-  expect((msg?.world as any)?.snap).toBe("new");
+  const resyncs = sent.filter(e => e.clientId === "c2" && e.message.type === "started");
+  expect(resyncs).toHaveLength(beforeResync + 1);
+  const msg = resyncs[resyncs.length - 1].message as Extract<ServerMessage, { type: "started" }>;
+  expect(msg.baseTick).toBe(4);
+  expect((msg.world as any)?.snap).toBe("new");
 });
 
 test("snapshot anchor: malformed world is rejected (falls back to full log)", () => {
   const { session, sent } = makeSession();
   session.join("c1");
+  session.join("c2");
   session.claimSlot("c1", "mt");
+  session.claimSlot("c2", "ot");
   session.start("c1");
   for (let i = 0; i < 5; i++) session.step(false);
 
   // Missing arena/players — must not be stored, so a later join falls back to full-log anchoring.
   session.handle("c1", { type: "snapshot", tick: 3, world: { bogus: true } });
 
-  session.join("c2");
-  session.claimSlot("c2", "ot");
+  session.reportWorldHash("c1", 1, 111);
+  const beforeResync = sent.filter(e => e.clientId === "c2" && e.message.type === "started").length;
+  session.reportWorldHash("c2", 1, 222);
 
-  const started = sent.find(e => e.clientId === "c2" && e.message.type === "started");
-  const msg = started?.message as Extract<ServerMessage, { type: "started" }> | undefined;
-  expect(msg?.baseTick).toBe(0);
-  expect(msg?.frames).toHaveLength(5);
+  const resyncs = sent.filter(e => e.clientId === "c2" && e.message.type === "started");
+  expect(resyncs).toHaveLength(beforeResync + 1);
+  const msg = resyncs[resyncs.length - 1].message as Extract<ServerMessage, { type: "started" }>;
+  expect(msg.baseTick).toBe(0);
+  expect(msg.frames).toHaveLength(5);
 });
 
 test("only the host can end the session via simEnded", () => {
@@ -583,6 +636,36 @@ test("host can restart after the session ends", () => {
   expect(session.status).toBe("running");
   expect(session.world.time).toBe(0);
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "playback" && entry.message.state === "playing")).toBe(true);
+});
+
+test("client can re-enter after leaving a finished session", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+  session.status = "done" as SessionStatus;
+
+  session.releaseSlot("c1", "mt");
+  session.claimSlot("c1", "mt");
+
+  expect(session.status).toBe("done");
+  expect(session.slots.get("mt")).toBe("c1");
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === "mt")).toBe(true);
+});
+
+test("observer can re-enter after leaving a finished session", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimObserver("c1");
+  session.start("c1");
+  session.status = "done" as SessionStatus;
+
+  session.releaseObserver("c1");
+  session.claimObserver("c1");
+
+  expect(session.status).toBe("done");
+  expect(session.observers.has("c1")).toBe(true);
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === null)).toBe(true);
 });
 
 test("host can stop after the session ends", () => {

@@ -1,6 +1,8 @@
 AGENTS.md
 CLAUDE.md
 
+*.txt
+
 *.claude/
 *.codex/
 *.serena/

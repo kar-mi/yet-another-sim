@@ -27,3 +27,9 @@ services:
     # header plus every frame batch, so this dir grows continuously and needs age/size retention.
     volumes:
       - ./logs:/app/logs
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

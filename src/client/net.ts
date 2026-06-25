@@ -1,10 +1,19 @@
 import { type ClientMessage, type Frame, type ServerMessage } from "@shared/protocol";
-import type { Boss, Player, World } from "@shared/types";
+import type { Boss, Intent, Player, World } from "@shared/types";
 import { length, shortestAngleDelta, sub, type Vec2 } from "@shared/math";
 import { tick } from "../engine/sim";
 import { computeBotIntents } from "../engine/botIntent";
+import { LocalPredictor } from "./predictor";
 import { worldHash } from "@shared/worldHash";
 import { WORLD_RENDER_KEYS, computeWorldRenderKeys, getWorldRenderKeys, setWorldRenderKeys, type WorldRenderKeys } from "./worldRenderKeys";
+import {
+  PERF_ENABLED,
+  recordApplyFrames,
+  recordBufferReset,
+  recordHostSnapshot,
+  recordInterpolation,
+  recordResyncRequest,
+} from "./perfMetrics";
 
 declare const __YAS_STATIC__: boolean | undefined;
 
@@ -21,17 +30,23 @@ type Handler<T extends MessageType> = (message: Extract<ServerMessage, { type: T
 
 const DT = 1 / 60;
 const TICK_MS = 1000 / 60;
-// Floor is ~1 tick for lowest lag on clean links; ceiling caps lag under heavy jitter.
-const MIN_RENDER_DELAY_MS = 16;
-const MAX_RENDER_DELAY_MS = 80;
+// Keep a small multiplayer playout buffer so browser/network jitter does not force extrapolation.
+const MIN_RENDER_DELAY_MS = 50;
+const MAX_RENDER_DELAY_MS = 160;
+// Exponential recovery time-constant (seconds) for shrinking the render buffer after jitter spikes.
+const DRAIN_TAU_S = 2;
 const SNAPSHOT_BUFFER_MAX = 32;
-const SNAPSHOT_GAP_RESET_MS = 250;
+const SNAPSHOT_GAP_RESET_MS = 1000;
 // Cap forward extrapolation so a long stall holds rather than flinging entities.
 const EXTRAPOLATE_MAX_MS = 100;
 // How fast the snapshot playout clock tracks wall-clock drift. Small so snapshots stay spaced at a
 // steady TICK_MS apart (smooth interpolation) regardless of network burstiness, while still slowly
 // following genuine clock drift between the server's tick loop and this client's render clock.
 const CLOCK_SMOOTH = 0.02;
+// Per-snapshot decay of the rolling-max delivery gap (recentMaxGapMs). ~0.999^600 ≈ 0.55 over 10s
+// and ≈0.17 over 30s at 60Hz: a delivery-stall spike keeps the playout floor elevated across the
+// several-second gaps between stalls (so they don't re-underrun) before fading on a clean link.
+const GAP_DECAY = 0.999;
 const RECONNECT_INITIAL_MS = 500;
 const RECONNECT_MAX_MS = 8000;
 // Report a world hash this often (in ticks) so the server can detect cross-client desync.
@@ -139,11 +154,19 @@ export class NetClient {
   // snapshots are spaced at a steady TICK_MS apart, independent of jittery/bursty frame arrival.
   private snapClockBase: number | null = null;
   private lastSnapshotWall = 0; // wall-clock arrival of the last snapshot, for gap detection
+  // Decaying rolling max of the inter-snapshot delivery gap. Sizes the playout floor so the render
+  // target never marches past the buffer during a server delivery stall (the stutter source).
+  private recentMaxGapMs = 0;
 
   // Local simulation state.
   private world: World | null = null;
   private appliedTick = 0;       // number of input frames applied == current sim tick
   private isHost = false;
+  private readonly predictor = new LocalPredictor();
+  // True only while the pull is actively relaying frames (playing). Pause/stop/done leave the local
+  // world's status as "running", so this gates local prediction so the player can't nudge while the
+  // sim is halted. Set on frame arrival, cleared on a non-playing playback state or a fresh `started`.
+  private playing = false;
   private simEndedSent = false;  // host: simEnded already reported for this pull
 
   constructor(private readonly transport: Transport) {
@@ -177,16 +200,55 @@ export class NetClient {
     return () => handlers.delete(wrapped);
   }
 
-  getRenderView(now: number): World | null {
+  getRenderView(now: number, predict?: { intent: Intent; dt: number }): World | null {
     const buf = this.snapshots;
     if (buf.length === 0) return null;
+    let view: World;
+    if (buf.length === 1) {
+      recordInterpolation({ snapshotBuffer: 1, renderDelayMs: this.renderDelayMs, headroomMs: 0, extrapolated: false });
+      view = buf[0].world;
+    } else {
+      view = this.interpolatedView(now);
+    }
+    return predict ? this.applyPrediction(view, predict.intent, predict.dt) : view;
+  }
 
-    return this.interpolatedView(now);
+  // Override the local player in the render view with a client-predicted position so the user's own
+  // movement is instant. Render-only: anchors to the latest authoritative world (`this.world`) and
+  // never mutates `view` (which may be a stored snapshot) — a new players array is built instead.
+  private applyPrediction(view: World, intent: Intent, dt: number): World {
+    // Only predict while the pull is live. Paused/stopped/done leave world.status === "running" but
+    // halt the relay, so without `playing` the player could nudge the frozen character around.
+    if (!this.playing || !this.claimedPlayerId || !this.world || this.world.status !== "running") return view;
+    const authLocal = this.world.players.find(p => p.id === this.claimedPlayerId);
+    if (!authLocal) return view;
+
+    const predicted = this.predictor.predict(authLocal, this.world.arena.zones, this.world.time, intent, dt);
+    const localIndex = view.players.findIndex(p => p.id === this.claimedPlayerId);
+    if (localIndex === -1) return view;
+    const players = view.players.slice();
+    players[localIndex] = {
+      ...players[localIndex],
+      pos: predicted.pos,
+      facing: predicted.facing,
+      y: predicted.y,
+    };
+    const world = { ...view, players };
+    const renderKeys = getWorldRenderKeys(view);
+    if (renderKeys) setWorldRenderKeys(world, renderKeys);
+    return world;
+  }
+
+  // Lower bound for the playout buffer: deep enough to outlast the worst recent delivery gap (plus a
+  // one-tick margin) so the render target stays inside the buffer through a stall instead of lurching
+  // backward and extrapolating. Clamped to the static [MIN, MAX] band.
+  private effectiveFloorMs(): number {
+    const floor = this.recentMaxGapMs + TICK_MS;
+    return Math.min(MAX_RENDER_DELAY_MS, Math.max(MIN_RENDER_DELAY_MS, floor));
   }
 
   private interpolatedView(now: number): World {
     const buf = this.snapshots;
-    if (buf.length === 1) return buf[0].world;
 
     const last = buf[buf.length - 1];
     const headroom = last.t - (now - this.renderDelayMs);
@@ -194,19 +256,29 @@ export class NetClient {
       this.renderDelayMs = Math.min(MAX_RENDER_DELAY_MS, this.renderDelayMs + (TICK_MS - headroom));
     } else {
       const dt = this.lastAdaptNow ? (now - this.lastAdaptNow) / 1000 : 0;
-      if (headroom > 2 * TICK_MS) this.renderDelayMs = Math.max(MIN_RENDER_DELAY_MS, this.renderDelayMs - 2 * dt);
+      // Previously ~2ms/s (~30s recovery); drain excess exponentially while inflating immediately.
+      if (headroom > 2 * TICK_MS) {
+        const excess = headroom - 2 * TICK_MS;
+        const k = Math.min(1, dt / DRAIN_TAU_S);
+        this.renderDelayMs = Math.max(this.effectiveFloorMs(), this.renderDelayMs - excess * k);
+      }
     }
     this.lastAdaptNow = now;
 
     const target = now - this.renderDelayMs;
-    if (target <= buf[0].t) return buf[0].world;
+    if (target <= buf[0].t) {
+      recordInterpolation({ snapshotBuffer: buf.length, renderDelayMs: this.renderDelayMs, headroomMs: headroom, extrapolated: false });
+      return buf[0].world;
+    }
     if (target >= last.t) {
       const prev = buf[buf.length - 2];
       if (target > last.t && last.t > prev.t) {
         const over = Math.min(target - last.t, EXTRAPOLATE_MAX_MS);
         const alpha = (last.t - prev.t + over) / (last.t - prev.t);
+        recordInterpolation({ snapshotBuffer: buf.length, renderDelayMs: this.renderDelayMs, headroomMs: headroom, extrapolated: true });
         return interpolateWorld(prev.world, last.world, alpha);
       }
+      recordInterpolation({ snapshotBuffer: buf.length, renderDelayMs: this.renderDelayMs, headroomMs: headroom, extrapolated: false });
       return last.world;
     }
 
@@ -218,6 +290,7 @@ export class NetClient {
     const next = buf[prevIdx + 1];
     const span = next.t - prev.t;
     const alpha = span > 0 ? Math.min(1, Math.max(0, (target - prev.t) / span)) : 1;
+    recordInterpolation({ snapshotBuffer: buf.length, renderDelayMs: this.renderDelayMs, headroomMs: headroom, extrapolated: false });
     return interpolateWorld(prev.world, next.world, alpha);
   }
 
@@ -245,9 +318,12 @@ export class NetClient {
       this.claimedPlayerId = message.slots.find(slot => slot.claimedByYou)?.playerId ?? null;
       this.observing = message.observingByYou;
       this.isHost = this.clientId !== null && this.clientId === message.hostClientId;
+      this.predictor.reset();
     }
     if (message.type === "playback") {
       this.isHost = this.clientId !== null && this.clientId === message.hostClientId;
+      this.playing = message.state === "playing";
+      this.predictor.reset();
     }
     if (message.type === "started") {
       this.claimedPlayerId = message.yourPlayerId;
@@ -260,6 +336,8 @@ export class NetClient {
       this.claimedPlayerId = null;
       this.observing = false;
       this.isHost = false;
+      this.playing = false;
+      this.predictor.reset();
     }
 
     const handlers = this.handlers.get(message.type as MessageType);
@@ -274,6 +352,8 @@ export class NetClient {
     this.world = message.world;
     this.appliedTick = message.baseTick;
     this.simEndedSent = false;
+    this.playing = false; // re-enabled by the first frame if this pull is actually live (not a stop/late-join into a halted pull)
+    this.predictor.reset();
     for (const frame of message.frames) this.stepOne(frame);
     this.snapshots.length = 0;
     this.snapClockBase = null;
@@ -284,15 +364,20 @@ export class NetClient {
   // a resync) and detect a gap (missed frames) that warrants a full resync via rejoin.
   private applyFrames(message: Extract<ServerMessage, { type: "frames" }>): void {
     if (!this.world) return;
+    const start = performance.now();
     const offset = this.appliedTick - message.startTick;
-    if (offset < 0) { this.resumeSession(); return; } // gap: missed frames, resync from scratch
+    if (offset < 0) { recordResyncRequest(); this.resumeSession(); return; } // gap: missed frames, resync from scratch
+    this.playing = true; // frames are flowing → the pull is live; local prediction is allowed
+    let applied = 0;
     for (let i = offset; i < message.frames.length; i++) {
       this.stepOne(message.frames[i]);
       this.pushSnapshot(this.world, this.appliedTick);
       this.maybeReportHash();
       this.maybeReportSnapshot();
+      applied++;
     }
     this.maybeReportSimEnded();
+    recordApplyFrames(message.frames.length, applied, performance.now() - start);
   }
 
   // One deterministic engine step. Control is derived from the frame's intent keys (a slot is human
@@ -321,7 +406,13 @@ export class NetClient {
     // sets it on this.world just before this runs), and although JSON.stringify would drop it on send,
     // strip it here so `world` is clean.
     const { [WORLD_RENDER_KEYS]: _drop, ...world } = this.world as any;
-    this.send({ type: "snapshot", tick: this.appliedTick, world });
+    const message = { type: "snapshot", tick: this.appliedTick, world } as const;
+    if (PERF_ENABLED) {
+      const start = performance.now();
+      const bytes = JSON.stringify(message).length;
+      recordHostSnapshot(performance.now() - start, bytes);
+    }
+    this.send(message);
   }
 
   // Report on fixed tick boundaries (not a per-client delta) so every client hashes the SAME ticks.
@@ -339,9 +430,15 @@ export class NetClient {
 
   private pushSnapshot(world: World, tick: number): void {
     const wall = performance.now();
-    if (this.lastSnapshotWall && wall - this.lastSnapshotWall > SNAPSHOT_GAP_RESET_MS) {
+    const gap = this.lastSnapshotWall ? wall - this.lastSnapshotWall : TICK_MS;
+    if (this.lastSnapshotWall && gap > SNAPSHOT_GAP_RESET_MS) {
       this.snapshots.length = 0;
       this.snapClockBase = null;
+      recordBufferReset();
+    } else if (this.lastSnapshotWall) {
+      // Grow the playout floor toward the worst recent delivery gap (decays on a clean link). Skipped
+      // for the pathological >reset gap above so a one-off freeze can't pin the floor at MAX.
+      this.recentMaxGapMs = Math.max(gap, this.recentMaxGapMs * GAP_DECAY);
     }
     this.lastSnapshotWall = wall;
 
@@ -350,9 +447,15 @@ export class NetClient {
     // frames (or network jitter) can't collapse interpolation into instant skips. The base anchors
     // so the newest snapshot sits at ~now, then drifts slowly to track real clock drift.
     const desiredBase = wall - tick * TICK_MS;
-    this.snapClockBase = this.snapClockBase === null
-      ? desiredBase
-      : this.snapClockBase + (desiredBase - this.snapClockBase) * CLOCK_SMOOTH;
+    if (this.snapClockBase === null) {
+      this.snapClockBase = desiredBase;
+    } else {
+      // Weight the smoothing by elapsed wall time (gap/TICK_MS): a synchronous catch-up burst pushes
+      // several snapshots at the same wall, so the 2nd..Nth see gap≈0 and barely move the base —
+      // otherwise the per-snapshot CLOCK_SMOOTH would apply N times and drag the playout clock.
+      const alpha = Math.min(1, CLOCK_SMOOTH * (gap / TICK_MS));
+      this.snapClockBase += (desiredBase - this.snapClockBase) * alpha;
+    }
     const t = this.snapClockBase + tick * TICK_MS;
 
     if (!this.worldRenderKeys) this.worldRenderKeys = computeWorldRenderKeys(world);

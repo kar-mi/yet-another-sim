@@ -12,10 +12,18 @@ import type { SessionLog } from "./session";
 
 const DT = 1 / 60;
 const TICK_MS = 1000 / 60;
-const MAX_CATCH_UP_STEPS = 5;
+// Hard cap on sim time caught up in a single loop. We process ALL ticks due since the last loop
+// (never discarding accumulated time — dropped ticks make every client's authoritative position lag
+// real input, which then never reconciles to client prediction). This cap only bounds a pathological
+// gap (process suspension / debugger pause) so one callback can't emit a runaway burst.
+const MAX_CATCHUP_SECONDS = 0.25;
+// Poll finer than TICK_MS so due frames emit near ideal 60Hz time, reducing client buffer jitter.
+const POLL_MS = 5;
 // Defensive ceiling so a room whose host never sends `simEnded` can't relay idle frames forever.
 // Generous slack past the raid duration; the host normally ends the pull near `duration`.
 const PULL_GRACE_SECONDS = 30;
+
+let maxFrameBroadcastBatch = 0;
 
 type TickHandle = ReturnType<typeof setInterval>;
 
@@ -84,8 +92,15 @@ export class FrameRelay {
   flush(): void {
     if (this.frameBatch.length === 0) return;
     const startTick = this.inputLog.length - this.frameBatch.length;
+    const batchSize = this.frameBatch.length;
     this.onFrames(startTick, this.frameBatch);
-    metrics.framesBroadcast.inc(this.frameBatch.length);
+    metrics.framesBroadcast.inc(batchSize);
+    metrics.frameBroadcastBatchLast.set(batchSize);
+    if (batchSize > maxFrameBroadcastBatch) {
+      maxFrameBroadcastBatch = batchSize;
+      metrics.frameBroadcastBatchMax.set(batchSize);
+    }
+    if (batchSize > 1) metrics.relayCatchupBatchesTotal.inc();
     this.frameBatch = [];
   }
 
@@ -94,7 +109,7 @@ export class FrameRelay {
     this.lastTickAt = this.now();
     this.tickAccumulator = 0;
     this.stop();
-    this.tickHandle = setInterval(() => this.runDueTicks(), TICK_MS);
+    this.tickHandle = setInterval(() => this.runDueTicks(), POLL_MS);
   }
 
   stop(): void {
@@ -107,20 +122,18 @@ export class FrameRelay {
     if (!this.isRunning()) return;
 
     const now = this.now();
-    const elapsed = Math.min((now - this.lastTickAt) / 1000, 0.25);
+    const rawElapsed = (now - this.lastTickAt) / 1000;
+    const elapsed = Math.min(rawElapsed, MAX_CATCHUP_SECONDS);
+    if (rawElapsed > MAX_CATCHUP_SECONDS) metrics.catchupExhausted.inc(); // pathological gap: time clamped
+    metrics.relayTickDriftSeconds.set(Math.max(0, elapsed - DT));
     this.lastTickAt = now;
     this.tickAccumulator += Math.max(0, elapsed);
 
-    let steps = 0;
-    while (this.tickAccumulator >= DT && steps < MAX_CATCH_UP_STEPS && this.isRunning()) {
+    // Produce every tick due since the last loop (bounded only by the elapsed clamp above), so no sim
+    // time is ever dropped and the authoritative position tracks real input exactly.
+    while (this.tickAccumulator >= DT && this.isRunning()) {
       this.produceFrame();
       this.tickAccumulator -= DT;
-      steps++;
-    }
-
-    if (steps === MAX_CATCH_UP_STEPS && this.tickAccumulator >= DT) {
-      this.tickAccumulator = 0;
-      metrics.catchupExhausted.inc();
     }
 
     // Relay everything produced this loop in one message (≈1 frame per call at 60Hz; more only when
