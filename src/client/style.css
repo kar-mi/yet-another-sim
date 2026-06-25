@@ -68,6 +68,48 @@ body:focus-visible {
   outline: none;
 }
 
+/* Static boot overlay: this is in index.html so it can show while the large app bundle downloads. */
+#yas-boot-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #0a0a0f;
+  color: var(--px-text);
+  transition: opacity 0.18s ease;
+}
+
+#yas-boot-loading.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.yas-boot-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.yas-boot-title {
+  color: var(--px-accent);
+  font-size: 34px;
+  letter-spacing: 6px;
+  text-align: center;
+  text-shadow: 2px 2px 0 var(--px-shadow);
+}
+
+.yas-boot-label {
+  color: var(--px-text-dim);
+  font-size: 14px;
+  letter-spacing: 3px;
+  text-align: center;
+  text-shadow: 1px 1px 0 var(--px-shadow);
+}
+
 #yas-perf {
   position: fixed;
   left: 12px;

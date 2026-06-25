@@ -20,6 +20,13 @@ logger.configure({
   sinks: [consoleSink],
 });
 
+function hideBootLoading(): void {
+  const boot = document.getElementById("yas-boot-loading");
+  if (!boot) return;
+  boot.classList.add("is-hidden");
+  window.setTimeout(() => boot.remove(), 220);
+}
+
 async function main(): Promise<void> {
   const canvas = document.getElementById("canvas") as HTMLCanvasElement | null;
   if (!canvas) throw new Error("#canvas not found");
@@ -60,12 +67,21 @@ async function main(): Promise<void> {
 
   // Resolve the session id only after the settings handlers are wired, so the ⚙ panel
   // also works on the landing page (base URL with no ?s= param).
-  let sessionId = parsedSession?.success ? parsedSession.data : await showLanding();
+  let sessionId: string;
+  if (parsedSession?.success) {
+    sessionId = parsedSession.data;
+  } else {
+    const landing = showLanding();
+    hideBootLoading();
+    sessionId = await landing;
+  }
 
   // Each iteration is one sim session: pick a class in the lobby, play, click Home to come back.
   for (;;) {
     homeBtn.style.display = "none";
-    const lobbyResult = await showLobby(net, sessionId);
+    const lobby = showLobby(net, sessionId);
+    hideBootLoading();
+    const lobbyResult = await lobby;
     if (lobbyResult.kind === "expired") {
       sessionId = await showLanding({ notice: "Session expired" });
       continue;

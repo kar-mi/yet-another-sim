@@ -77,6 +77,12 @@ function withSecurityHeaders(response: Response): Response {
   return response;
 }
 
+function cacheControlForBundlePath(path: string): string {
+  return path === "index.html"
+    ? "no-cache"
+    : "public, max-age=31536000, immutable";
+}
+
 interface SocketData {
   clientId: string;
   ip: string;
@@ -197,7 +203,11 @@ const server = Bun.serve<SocketData>({
         // Serve bundled client
         const relPath = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
         const bundleFile = Bun.file(join(BUNDLE_DIR, relPath));
-        if (await bundleFile.exists()) return withSecurityHeaders(new Response(bundleFile));
+        if (await bundleFile.exists()) {
+          return withSecurityHeaders(new Response(bundleFile, {
+            headers: { "Cache-Control": cacheControlForBundlePath(relPath) },
+          }));
+        }
 
         // Serve static assets (effect icons, etc.) from /static/*. Validate the relative path to
         // avoid traversal; only simple file-path characters are allowed.
