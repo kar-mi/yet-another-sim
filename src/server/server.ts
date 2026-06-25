@@ -99,6 +99,7 @@ const buildResult = await Bun.build({
   target: "browser",
   sourcemap: isDevelopment ? "inline" : "none",
   env: "disable",
+  minify: true,
   // Babylon registers engine extensions, scene-loader plugins (glTF), and material shaders via
   // side-effect modules that @babylonjs/core marks as tree-shakeable (sideEffects allow-list +
   // __PURE__ annotations). Bun's DCE strips the ones it can't see referenced, and how much it
