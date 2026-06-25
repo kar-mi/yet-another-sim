@@ -129,18 +129,40 @@ export function recordHostSnapshot(durationMs: number, bytes: number): void {
 export function initPerfHud(): () => void {
   if (!PERF_ENABLED) return () => {};
 
+  const history: string[] = [];
   const root = document.createElement("div");
   root.id = "yas-perf";
+  const controls = document.createElement("div");
+  controls.className = "yas-perf-controls";
   const copy = document.createElement("button");
   copy.type = "button";
-  copy.textContent = "COPY";
+  copy.textContent = "COPY NOW";
+  const copyLog = document.createElement("button");
+  copyLog.type = "button";
+  copyLog.textContent = "COPY LOG";
+  const download = document.createElement("button");
+  download.type = "button";
+  download.textContent = "DOWNLOAD";
   const el = document.createElement("pre");
-  root.append(copy, el);
+  controls.append(copy, copyLog, download);
+  root.append(controls, el);
   document.body.appendChild(root);
 
   let latestText = "";
   copy.addEventListener("click", () => {
     void navigator.clipboard?.writeText(latestText);
+  });
+  copyLog.addEventListener("click", () => {
+    void navigator.clipboard?.writeText(history.join("\n\n"));
+  });
+  download.addEventListener("click", () => {
+    const blob = new Blob([history.join("\n\n")], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `yas-perf-${new Date().toISOString().replace(/[:.]/g, "-")}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
   });
 
   const timer = setInterval(() => {
@@ -151,6 +173,8 @@ export function initPerfHud(): () => void {
       `interp buf ${perf.snapshotBuffer} | delay ${perf.renderDelayMs.toFixed(1)}ms | headroom ${perf.headroomMs.toFixed(1)}ms | extrap ${perf.extrapolations}`,
       `resync ${perf.resyncRequests} | resets ${perf.bufferResets} | host snap ${perf.hostSnapshotMs.toFixed(2)}ms max ${perf.hostSnapshotMaxMs.toFixed(2)} bytes ${perf.hostSnapshotBytes}/${perf.hostSnapshotMaxBytes}`,
     ].join("\n");
+    history.push(`${new Date().toISOString()}\n${latestText}`);
+    if (history.length > 240) history.shift();
     el.textContent = latestText;
   }, 250);
 
