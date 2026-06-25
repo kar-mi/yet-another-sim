@@ -199,8 +199,11 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
 
     const renderLobby = (message: LobbyMessage) => {
       lastLobby = message;
+      const isDefaultLobby = message.raidId === EMPTY_RAID_ID;
       const subtitle = message.status === "lobby"
         ? `${message.raidName.toUpperCase()} — CLAIM PARTY SLOT`
+        : isDefaultLobby && message.status === "running"
+          ? `${message.raidName.toUpperCase()} — JOINABLE LOBBY`
         : message.status === "running"
           ? `${message.raidName.toUpperCase()} — IN PROGRESS, CLAIM TO JOIN`
           : message.status === "paused"
@@ -224,7 +227,9 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
       const canResume = message.status === "paused" && (claimedByMe || message.observingByYou);
       const canPlayStopped = message.status === "stopped" && (claimedByMe || message.observingByYou);
       const startLabel = message.status !== "lobby"
-        ? message.status === "running"
+        ? isDefaultLobby && message.status === "running"
+          ? "LOBBY ACTIVE"
+        : message.status === "running"
           ? "IN PROGRESS"
           : message.status === "paused"
             ? "RESUME"

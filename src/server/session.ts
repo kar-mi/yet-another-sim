@@ -375,6 +375,10 @@ export class Session {
   }
 
   claimSlot(clientId: string, playerId: string): void {
+    if (this.raidId !== EMPTY_RAID_ID && (this.status === "running" || this.status === "paused")) {
+      this.sendError(clientId, "Wait for the next pull to join");
+      return;
+    }
     if (!this.slots.has(playerId)) {
       this.sendError(clientId, "Unknown player slot");
       return;
@@ -400,7 +404,7 @@ export class Session {
     this.applySlotControlsToWorld();
     this.broadcastLobby();
 
-    if (this.status === "running" || this.status === "paused" || this.status === "stopped") {
+    if (this.status === "stopped" || (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused"))) {
       this.send(clientId, this.startedMessage(playerId));
     }
   }
@@ -418,6 +422,10 @@ export class Session {
   }
 
   claimObserver(clientId: string): void {
+    if (this.raidId !== EMPTY_RAID_ID && (this.status === "running" || this.status === "paused")) {
+      this.sendError(clientId, "Wait for the next pull to join");
+      return;
+    }
     if (this.playerForClient(clientId)) {
       this.sendError(clientId, "Release your slot before observing");
       return;
@@ -434,7 +442,7 @@ export class Session {
     this.observers.add(clientId);
     this.broadcastLobby();
 
-    if (this.status === "running" || this.status === "paused" || this.status === "stopped") {
+    if (this.status === "stopped" || (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused"))) {
       this.send(clientId, this.startedMessage(null));
     }
   }

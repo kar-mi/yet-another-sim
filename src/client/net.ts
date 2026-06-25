@@ -29,13 +29,13 @@ type Handler<T extends MessageType> = (message: Extract<ServerMessage, { type: T
 
 const DT = 1 / 60;
 const TICK_MS = 1000 / 60;
-// Floor is ~1 tick for lowest lag on clean links; ceiling caps lag under heavy jitter.
-const MIN_RENDER_DELAY_MS = 16;
-const MAX_RENDER_DELAY_MS = 80;
+// Keep a small multiplayer playout buffer so browser/network jitter does not force extrapolation.
+const MIN_RENDER_DELAY_MS = 50;
+const MAX_RENDER_DELAY_MS = 160;
 // Exponential recovery time-constant (seconds) for shrinking the render buffer after jitter spikes.
 const DRAIN_TAU_S = 2;
 const SNAPSHOT_BUFFER_MAX = 32;
-const SNAPSHOT_GAP_RESET_MS = 250;
+const SNAPSHOT_GAP_RESET_MS = 1000;
 // Cap forward extrapolation so a long stall holds rather than flinging entities.
 const EXTRAPOLATE_MAX_MS = 100;
 // How fast the snapshot playout clock tracks wall-clock drift. Small so snapshots stay spaced at a
