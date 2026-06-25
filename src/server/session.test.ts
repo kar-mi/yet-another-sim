@@ -638,6 +638,36 @@ test("host can restart after the session ends", () => {
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "playback" && entry.message.state === "playing")).toBe(true);
 });
 
+test("client can re-enter after leaving a finished session", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+  session.status = "done" as SessionStatus;
+
+  session.releaseSlot("c1", "mt");
+  session.claimSlot("c1", "mt");
+
+  expect(session.status).toBe("done");
+  expect(session.slots.get("mt")).toBe("c1");
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === "mt")).toBe(true);
+});
+
+test("observer can re-enter after leaving a finished session", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimObserver("c1");
+  session.start("c1");
+  session.status = "done" as SessionStatus;
+
+  session.releaseObserver("c1");
+  session.claimObserver("c1");
+
+  expect(session.status).toBe("done");
+  expect(session.observers.has("c1")).toBe(true);
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === null)).toBe(true);
+});
+
 test("host can stop after the session ends", () => {
   const { session, sent } = makeSession();
   session.join("c1");

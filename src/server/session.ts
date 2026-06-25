@@ -404,7 +404,7 @@ export class Session {
     this.applySlotControlsToWorld();
     this.broadcastLobby();
 
-    if (this.status === "stopped" || (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused"))) {
+    if (this.status === "stopped" || this.status === "done" || (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused"))) {
       this.send(clientId, this.startedMessage(playerId));
     }
   }
@@ -442,7 +442,7 @@ export class Session {
     this.observers.add(clientId);
     this.broadcastLobby();
 
-    if (this.status === "stopped" || (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused"))) {
+    if (this.status === "stopped" || this.status === "done" || (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused"))) {
       this.send(clientId, this.startedMessage(null));
     }
   }
