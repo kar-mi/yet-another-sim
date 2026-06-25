@@ -33,6 +33,7 @@ let controlScheme: "legacy" | "standard" = "legacy";
 let standardFacing = 0;         // client-tracked character facing for standard (char-based) scheme
 let standardFacingSynced = false;
 let keyboardCameraPan = 0;      // camera yaw delta produced by the last getIntent() call
+let oneShotSink: (() => void) | null = null;
 
 const STANDARD_TURN_RATE = 2.6; // rad/s character turn from A/D (standard)
 const CAMERA_FOLLOW_RATE = 4;   // camera auto-trail responsiveness (standard)
@@ -150,6 +151,10 @@ export function setControlScheme(scheme: "legacy" | "standard"): void {
   standardFacingSynced = false; // re-sync the character's facing to the camera on (re)entry
 }
 
+export function setOneShotSink(fn: (() => void) | null): void {
+  oneShotSink = fn;
+}
+
 // Camera yaw delta (radians) the loop applies to the renderer after sending the intent.
 export function getKeyboardCameraPan(): number {
   return keyboardCameraPan;
@@ -169,6 +174,7 @@ export function getRightStick(): { x: number; y: number } {
 
 export function toggleInvincibility(): void {
   invincibilityToggled = true;
+  oneShotSink?.();
 }
 
 export function triggerAction(actionId: ActionId): void {
@@ -193,24 +199,31 @@ export function triggerAction(actionId: ActionId): void {
 
 export function initInput(): () => void {
   const onKeyDown = (e: KeyboardEvent) => {
+    let fired = false;
     keys.add(e.code);
     if (e.code === keyBindings.jump && !e.repeat) {
       jumpPressed = true;
+      fired = true;
       e.preventDefault();
     }
     if (e.code === keyBindings.sprint && !e.repeat) {
       sprintPressed = true;
+      fired = true;
     }
     if (e.code === keyBindings.antiKnockback && !e.repeat) {
       antiKbPressed = true;
+      fired = true;
     }
     if (e.code === keyBindings.provoke && !e.repeat) {
       provokePressed = true;
+      fired = true;
     }
     if (e.code === keyBindings.swapTarget && !e.repeat) {
       swapTargetPressed = true;
+      fired = true;
       e.preventDefault(); // prevent Tab from moving browser focus
     }
+    if (fired) oneShotSink?.();
   };
   const onKeyUp = (e: KeyboardEvent) => keys.delete(e.code);
   window.addEventListener("keydown", onKeyDown);

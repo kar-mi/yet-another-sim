@@ -1,6 +1,6 @@
 import { type ClientMessage, type Frame, type ServerMessage } from "@shared/protocol";
 import type { Boss, Player, World } from "@shared/types";
-import { length, shortestAngleDelta, sub } from "@shared/math";
+import { length, shortestAngleDelta, sub, type Vec2 } from "@shared/math";
 import { tick } from "../engine/sim";
 import { computeBotIntents } from "../engine/botIntent";
 import { worldHash } from "@shared/worldHash";
@@ -21,7 +21,9 @@ type Handler<T extends MessageType> = (message: Extract<ServerMessage, { type: T
 
 const DT = 1 / 60;
 const TICK_MS = 1000 / 60;
-const RENDER_DELAY_MS = 33;
+// Floor is ~1 tick for lowest lag on clean links; ceiling caps lag under heavy jitter.
+const MIN_RENDER_DELAY_MS = 16;
+const MAX_RENDER_DELAY_MS = 80;
 const SNAPSHOT_BUFFER_MAX = 32;
 const SNAPSHOT_GAP_RESET_MS = 250;
 // Cap forward extrapolation so a long stall holds rather than flinging entities.
@@ -131,6 +133,8 @@ export class NetClient {
   private claimedPlayerId: string | null = null;
   private observing = false;
   private worldRenderKeys: WorldRenderKeys | null = null;
+  private renderDelayMs = MIN_RENDER_DELAY_MS;
+  private lastAdaptNow = 0;
   // Playout clock for the snapshot buffer: maps a tick number to a render-timeline timestamp so
   // snapshots are spaced at a steady TICK_MS apart, independent of jittery/bursty frame arrival.
   private snapClockBase: number | null = null;
@@ -184,9 +188,18 @@ export class NetClient {
     const buf = this.snapshots;
     if (buf.length === 1) return buf[0].world;
 
-    const target = now - RENDER_DELAY_MS;
-    if (target <= buf[0].t) return buf[0].world;
     const last = buf[buf.length - 1];
+    const headroom = last.t - (now - this.renderDelayMs);
+    if (headroom < TICK_MS) {
+      this.renderDelayMs = Math.min(MAX_RENDER_DELAY_MS, this.renderDelayMs + (TICK_MS - headroom));
+    } else {
+      const dt = this.lastAdaptNow ? (now - this.lastAdaptNow) / 1000 : 0;
+      if (headroom > 2 * TICK_MS) this.renderDelayMs = Math.max(MIN_RENDER_DELAY_MS, this.renderDelayMs - 2 * dt);
+    }
+    this.lastAdaptNow = now;
+
+    const target = now - this.renderDelayMs;
+    if (target <= buf[0].t) return buf[0].world;
     if (target >= last.t) {
       const prev = buf[buf.length - 2];
       if (target > last.t && last.t > prev.t) {
@@ -390,23 +403,36 @@ function lerpAngle(a: number, b: number, t: number): number {
   return a + shortestAngleDelta(a, b) * t;
 }
 
-function interpolatePlayer(prev: Player | undefined, next: Player, t: number): Player {
-  if (!prev) return next;
-  return {
-    ...next,
-    pos: { x: lerp(prev.pos.x, next.pos.x, t), z: lerp(prev.pos.z, next.pos.z, t) },
-    y: lerp(prev.y, next.y, t),
-    facing: lerpAngle(prev.facing, next.facing, t),
-  };
+function interpolatePlayerInto(out: Player, prev: Player | undefined, next: Player, t: number): Player {
+  const pos = out.pos;
+  Object.assign(out, next);
+  out.pos = pos;
+  if (!prev) {
+    out.pos.x = next.pos.x;
+    out.pos.z = next.pos.z;
+    return out;
+  }
+  out.pos.x = lerp(prev.pos.x, next.pos.x, t);
+  out.pos.z = lerp(prev.pos.z, next.pos.z, t);
+  out.y = lerp(prev.y, next.y, t);
+  out.facing = lerpAngle(prev.facing, next.facing, t);
+  return out;
 }
 
-function interpolateBoss(prev: Boss, next: Boss, t: number): Boss {
+function interpolateBossInto(out: Boss, prev: Boss, next: Boss, t: number): Boss {
   const snap = length(sub(next.pos, prev.pos)) > BOSS_SNAP_THRESHOLD;
-  return {
-    ...next,
-    pos: snap ? next.pos : { x: lerp(prev.pos.x, next.pos.x, t), z: lerp(prev.pos.z, next.pos.z, t) },
-    facing: lerpAngle(prev.facing, next.facing, t), // smooth turning (sim snaps per tick)
-  };
+  const pos = out.pos;
+  Object.assign(out, next);
+  out.pos = pos;
+  if (snap) {
+    out.pos.x = next.pos.x;
+    out.pos.z = next.pos.z;
+  } else {
+    out.pos.x = lerp(prev.pos.x, next.pos.x, t);
+    out.pos.z = lerp(prev.pos.z, next.pos.z, t);
+  }
+  out.facing = lerpAngle(prev.facing, next.facing, t); // smooth turning (sim snaps per tick)
+  return out;
 }
 
 type EntityIndex = {
@@ -428,16 +454,68 @@ function getEntityIndex(world: World): EntityIndex {
   return index;
 }
 
+type InterpolationBuffer = {
+  world: World | null;
+  players: Player[];
+  playerPositions: Vec2[];
+  bosses: Boss[];
+  bossPositions: Vec2[];
+};
+
+const interpolationBuffers: InterpolationBuffer[] = [
+  { world: null, players: [], playerPositions: [], bosses: [], bossPositions: [] },
+  { world: null, players: [], playerPositions: [], bosses: [], bossPositions: [] },
+];
+let interpolationBufferIndex = 0;
+
+function ensurePlayerBuffer(buf: InterpolationBuffer, players: Player[]): void {
+  let rebuild = buf.players.length !== players.length;
+  if (!rebuild) {
+    for (let i = 0; i < players.length; i++) {
+      if (buf.players[i].id !== players[i].id) { rebuild = true; break; }
+    }
+  }
+  if (rebuild) {
+    buf.playerPositions = players.map(() => ({ x: 0, z: 0 }));
+    buf.players = players.map((_, i) => ({ pos: buf.playerPositions[i] }) as Player);
+  }
+}
+
+function ensureBossBuffer(buf: InterpolationBuffer, bosses: Boss[]): void {
+  let rebuild = buf.bosses.length !== bosses.length;
+  if (!rebuild) {
+    for (let i = 0; i < bosses.length; i++) {
+      if (buf.bosses[i].id !== bosses[i].id) { rebuild = true; break; }
+    }
+  }
+  if (rebuild) {
+    buf.bossPositions = bosses.map(() => ({ x: 0, z: 0 }));
+    buf.bosses = bosses.map((_, i) => ({ pos: buf.bossPositions[i] }) as Boss);
+  }
+}
+
 function interpolateWorld(prev: World, next: World, t: number): World {
+  const buf = interpolationBuffers[interpolationBufferIndex];
+  interpolationBufferIndex = (interpolationBufferIndex + 1) % interpolationBuffers.length;
   const prevIndex = getEntityIndex(prev);
-  const bosses = next.bosses.map(b => interpolateBoss(prevIndex.bosses.get(b.id) ?? b, b, t));
-  const world = {
-    ...next,
-    time: lerp(prev.time, next.time, t),
-    players: next.players.map(playerB => interpolatePlayer(prevIndex.players.get(playerB.id), playerB, t)),
-    bosses,
-    boss: bosses[0]!,
-  };
+  ensurePlayerBuffer(buf, next.players);
+  ensureBossBuffer(buf, next.bosses);
+  for (let i = 0; i < next.players.length; i++) {
+    const player = next.players[i];
+    buf.players[i].pos = buf.playerPositions[i];
+    interpolatePlayerInto(buf.players[i], prevIndex.players.get(player.id), player, t);
+  }
+  for (let i = 0; i < next.bosses.length; i++) {
+    const boss = next.bosses[i];
+    buf.bosses[i].pos = buf.bossPositions[i];
+    interpolateBossInto(buf.bosses[i], prevIndex.bosses.get(boss.id) ?? boss, boss, t);
+  }
+  const world = Object.assign(buf.world ?? ({} as World), next);
+  buf.world = world;
+  world.time = lerp(prev.time, next.time, t);
+  world.players = buf.players;
+  world.bosses = buf.bosses;
+  world.boss = buf.bosses[0]!;
   const renderKeys = getWorldRenderKeys(next) ?? getWorldRenderKeys(prev);
   if (renderKeys) setWorldRenderKeys(world, renderKeys);
   return world;

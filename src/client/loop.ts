@@ -1,5 +1,5 @@
 import type { Renderer } from "./render/Renderer";
-import { getIntent, getRightStick, getKeyboardCameraPan } from "./input";
+import { getIntent, getRightStick, getKeyboardCameraPan, setOneShotSink } from "./input";
 import type { NetClient } from "./net";
 import type { Intent } from "@shared/types";
 
@@ -33,14 +33,23 @@ export function startNetLoop(renderer: Renderer, net: NetClient): () => void {
     renderer.setPlaybackState(message.state);
   });
 
+  function sendIntent(intent: Intent): void {
+    if (hasOneShotIntent(intent) || !lastSentIntent || !sameContinuousIntent(intent, lastSentIntent)) {
+      if (net.send({ type: "intent", intent })) lastSentIntent = intent;
+    }
+  }
+
+  const sendIntentNow = () => {
+    const intent = getIntent(renderer.getCameraYaw(), 0, renderer.getPanButtons());
+    sendIntent(intent);
+  };
+
   function frame(now: number): void {
     const elapsed = Math.min((now - lastTime) / 1000, 0.1);
     lastTime = now;
 
     const intent = getIntent(renderer.getCameraYaw(), elapsed, renderer.getPanButtons());
-    if (hasOneShotIntent(intent) || !lastSentIntent || !sameContinuousIntent(intent, lastSentIntent)) {
-      if (net.send({ type: "intent", intent })) lastSentIntent = intent;
-    }
+    sendIntent(intent);
     renderer.rotateCameraYaw(getKeyboardCameraPan());
 
     const rs = getRightStick();
@@ -51,8 +60,10 @@ export function startNetLoop(renderer: Renderer, net: NetClient): () => void {
     rafId = requestAnimationFrame(frame);
   }
 
+  setOneShotSink(sendIntentNow);
   rafId = requestAnimationFrame(frame);
   return () => {
+    setOneShotSink(null);
     cancelAnimationFrame(rafId);
     disposeJoined();
     disposeLobby();
