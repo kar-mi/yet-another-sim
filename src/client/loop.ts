@@ -24,6 +24,11 @@ function sameContinuousIntent(a: Intent, b: Intent): boolean {
 export function startNetLoop(renderer: Renderer, net: NetClient): () => void {
   let lastTime = performance.now();
   let lastSentIntent: Intent | null = null;
+  // One-shot flags the sink already consumed+sent (jump/sprint). The predictor runs only in the rAF
+  // frame, whose getIntent sees them as false, so replay them into the next predicted frame —
+  // otherwise the predicted local player never jumps/sprints and masks the authoritative jump.
+  let pendingJump = false;
+  let pendingSprint = false;
   let rafId = 0;
   const resetIntentCache = () => { lastSentIntent = null; };
   const disposeJoined = net.on("joined", resetIntentCache);
@@ -43,6 +48,8 @@ export function startNetLoop(renderer: Renderer, net: NetClient): () => void {
   const sendIntentNow = () => {
     const intent = getIntent(renderer.getCameraYaw(), 0, renderer.getPanButtons());
     sendIntent(intent);
+    if (intent.jump) pendingJump = true;
+    if (intent.sprint) pendingSprint = true;
   };
 
   function frame(now: number): void {
@@ -55,10 +62,17 @@ export function startNetLoop(renderer: Renderer, net: NetClient): () => void {
     sendIntent(intent);
     renderer.rotateCameraYaw(getKeyboardCameraPan());
 
+    // Replay sink-consumed one-shots into the prediction intent only (already sent, so not re-sent).
+    const predictIntent = pendingJump || pendingSprint
+      ? { ...intent, jump: intent.jump || pendingJump, sprint: intent.sprint || pendingSprint }
+      : intent;
+    pendingJump = false;
+    pendingSprint = false;
+
     const rs = getRightStick();
     renderer.applyControllerPan(rs.x, rs.y, elapsed);
     const getViewStart = performance.now();
-    const view = net.getRenderView(now, { intent, dt: elapsed });
+    const view = net.getRenderView(now, { intent: predictIntent, dt: elapsed });
     const getViewMs = performance.now() - getViewStart;
     let syncMs = 0;
     if (view) {
