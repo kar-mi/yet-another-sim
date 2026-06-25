@@ -24,6 +24,8 @@ const TICK_MS = 1000 / 60;
 // Floor is ~1 tick for lowest lag on clean links; ceiling caps lag under heavy jitter.
 const MIN_RENDER_DELAY_MS = 16;
 const MAX_RENDER_DELAY_MS = 80;
+// Exponential recovery time-constant (seconds) for shrinking the render buffer after jitter spikes.
+const DRAIN_TAU_S = 2;
 const SNAPSHOT_BUFFER_MAX = 32;
 const SNAPSHOT_GAP_RESET_MS = 250;
 // Cap forward extrapolation so a long stall holds rather than flinging entities.
@@ -194,7 +196,12 @@ export class NetClient {
       this.renderDelayMs = Math.min(MAX_RENDER_DELAY_MS, this.renderDelayMs + (TICK_MS - headroom));
     } else {
       const dt = this.lastAdaptNow ? (now - this.lastAdaptNow) / 1000 : 0;
-      if (headroom > 2 * TICK_MS) this.renderDelayMs = Math.max(MIN_RENDER_DELAY_MS, this.renderDelayMs - 2 * dt);
+      // Previously ~2ms/s (~30s recovery); drain excess exponentially while inflating immediately.
+      if (headroom > 2 * TICK_MS) {
+        const excess = headroom - 2 * TICK_MS;
+        const k = Math.min(1, dt / DRAIN_TAU_S);
+        this.renderDelayMs = Math.max(MIN_RENDER_DELAY_MS, this.renderDelayMs - excess * k);
+      }
     }
     this.lastAdaptNow = now;
 

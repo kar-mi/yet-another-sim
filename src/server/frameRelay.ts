@@ -13,6 +13,8 @@ import type { SessionLog } from "./session";
 const DT = 1 / 60;
 const TICK_MS = 1000 / 60;
 const MAX_CATCH_UP_STEPS = 5;
+// Poll finer than TICK_MS so due frames emit near ideal 60Hz time, reducing client buffer jitter.
+const POLL_MS = 5;
 // Defensive ceiling so a room whose host never sends `simEnded` can't relay idle frames forever.
 // Generous slack past the raid duration; the host normally ends the pull near `duration`.
 const PULL_GRACE_SECONDS = 30;
@@ -94,7 +96,7 @@ export class FrameRelay {
     this.lastTickAt = this.now();
     this.tickAccumulator = 0;
     this.stop();
-    this.tickHandle = setInterval(() => this.runDueTicks(), TICK_MS);
+    this.tickHandle = setInterval(() => this.runDueTicks(), POLL_MS);
   }
 
   stop(): void {
