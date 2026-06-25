@@ -30,15 +30,15 @@ type Handler<T extends MessageType> = (message: Extract<ServerMessage, { type: T
 
 const DT = 1 / 60;
 const TICK_MS = 1000 / 60;
-// Keep a small multiplayer playout buffer so browser/network jitter does not force extrapolation.
-const MIN_RENDER_DELAY_MS = 50;
-const MAX_RENDER_DELAY_MS = 160;
+// Keep a multiplayer playout buffer deep enough that normal network jitter does not force underruns.
+const MIN_RENDER_DELAY_MS = 90;
+const MAX_RENDER_DELAY_MS = 220;
 // Exponential recovery time-constant (seconds) for shrinking the render buffer after jitter spikes.
 const DRAIN_TAU_S = 2;
 const SNAPSHOT_BUFFER_MAX = 32;
 const SNAPSHOT_GAP_RESET_MS = 1000;
 // Cap forward extrapolation so a long stall holds rather than flinging entities.
-const EXTRAPOLATE_MAX_MS = 100;
+const EXTRAPOLATE_MAX_MS = 150;
 // How fast the snapshot playout clock tracks wall-clock drift. Small so snapshots stay spaced at a
 // steady TICK_MS apart (smooth interpolation) regardless of network burstiness, while still slowly
 // following genuine clock drift between the server's tick loop and this client's render clock.
