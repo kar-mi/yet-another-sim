@@ -42,6 +42,7 @@ const GenericSolverRuleSchema = z.object({
     mechanic: z.union([EventIdSchema, z.array(EventIdSchema).min(1)]).optional(),
     role: RoleSchema.optional(),
     debuff: DebuffMatchSchema.optional(),        // active effect name(s) on the bot (all required)
+    partyDebuff: DebuffMatchSchema.optional(),   // active effect name(s) anywhere in the party
     partnerDebuff: DebuffMatchSchema.optional(), // active effect name(s) on the bot's partner
     soaks: z.boolean().optional(),               // bot's group vs the matched mechanic's group
     plant: z.string().min(1).optional(),  // the bot's assigned plant combo key (e.g. "right right")
@@ -61,9 +62,9 @@ const GenericSolverRuleSchema = z.object({
   limitCutSpread: z.object({ spots: z.array(z.union([RelativeSpotSchema, PolarSpotSchema])).min(1) }).optional(),
 }).superRefine((rule, ctx) => {
   const hasCondition = rule.when.static === true || rule.when.mechanic !== undefined || rule.when.debuff !== undefined
-    || rule.when.partnerDebuff !== undefined || rule.when.plant !== undefined;
+    || rule.when.partyDebuff !== undefined || rule.when.partnerDebuff !== undefined || rule.when.plant !== undefined;
   if (!hasCondition) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["when"], message: "rule must have when.static: true or at least one of when.mechanic / when.debuff / when.partnerDebuff / when.plant" });
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["when"], message: "rule must have when.static: true or at least one of when.mechanic / when.debuff / when.partyDebuff / when.partnerDebuff / when.plant" });
   }
   // limitCutSpread computes absolute coords from each bot's number; it sources its rotation basis
   // from the limit cut named by when.mechanic, and replaces (and forbids) the usual frame/spot/spots

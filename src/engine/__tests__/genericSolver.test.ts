@@ -163,6 +163,17 @@ test("debuff condition matches only while the named effect is active", () => {
   expect(genericSolverWaypoint(player({}), w)).toBeUndefined();
 });
 
+test("partyDebuff condition matches when another live player has the named effect", () => {
+  const carrier = player({ id: "carrier", alive: true, effects: [{ name: "Dynamic Fluid Short", appliedAt: 0, duration: 5 }] as Player["effects"] });
+  const mover = player({ id: "r1", alive: true });
+  const w = world({
+    time: 2,
+    players: [carrier, mover],
+    botSolvers: { generic: [{ when: { partyDebuff: "Dynamic Fluid Short" }, spots: { r1: { x: 3, z: 4 } } }] },
+  });
+  expect(genericSolverWaypoint(mover, w)).toEqual({ x: 3, z: 4 });
+});
+
 test("startAt/endAt clamp the activation window", () => {
   const make = (time: number) => world({
     time,

@@ -68,14 +68,14 @@ solvers:
 
 
         #range go to crystal based on which debuff is the short one
-    - when: { debuff: Entropy Short }
+    - when: { partyDebuff: Entropy Short }
       startAt: 24
       endAt: 43
       frame: [{ crystal: fire }]
       spots:
         r1: { r: -5, z: 14 }
         r2: { r: 5, z: 14 }
-    - when: { debuff: Dynamic Fluid Short }
+    - when: { partyDebuff: Dynamic Fluid Short }
       startAt: 24
       endAt: 43
       frame: [{ crystal: water }]
@@ -106,7 +106,7 @@ solvers:
         m2: { r: -6, z: 16 }
         h2: { r: 6, z: 16 }
 
-    - when: { debuff: Entropy Long }
+    - when: { partyDebuff: Entropy Long }
       startAt: 53
       endAt: 60
       frame: [{ crystal: fire }]
@@ -114,7 +114,7 @@ solvers:
         r1: { r: -4, z: 14 } #adjust this, so that its in line with the south intercard of the boss if boss was at wind
         r2: { r: 4, z: 10 }
 
-    - when: { debuff: Dynamic Fluid Long }
+    - when: { partyDebuff: Dynamic Fluid Long }
       startAt: 53
       endAt: 60
       frame: [{ crystal: water }]
@@ -138,7 +138,7 @@ solvers:
 
     #  - Latitude, angle 224°, R 16→25.1 → { r: -17.4, z: -6.2 } (dist ≈18.5)
   #- Longitude, angle 226°, R 16→24.7 → { r: -17.7, z: -5.2 } (dist ≈18.5)
-    - when: { mechanic: [latitude-implosion-left, latitude-implosion-right] }
+    - when: { mechanic: [latitude-implosion-left, latitude-implosion-right], partyDebuff: Dynamic Fluid Long }
       frame: [{ boss: { id: chaos, from: facing } }]
       spots:
         mt: { r: 3.93, z: 17.98 }
@@ -148,7 +148,7 @@ solvers:
         m1: { r: -3.93, z: 17.98 }
         m2: { r: -3.93, z: 17.98 }
 
-    - when: { mechanic: [longitude-implosion-front, longitude-implosion-back] }
+    - when: { mechanic: [longitude-implosion-front, longitude-implosion-back], partyDebuff: Dynamic Fluid Long }
       frame: [{ boss: { id: chaos, from: facing } }]
       spots:
         mt: { r: 6.1, z: 15.67}
@@ -159,19 +159,56 @@ solvers:
         m2: { r: -6.1, z: 15.67}
 
 
-    - when: { mechanic: [latitude-implosion-left, latitude-implosion-right] }
+    - when: { mechanic: [latitude-implosion-left, latitude-implosion-right], partyDebuff: Dynamic Fluid Long }
       frame: [{ boss: { id: chaos, from: facing } }, { crystal : water }]
       mirrorLateral: true
       spots:
         r1:  { r: 16.350, z: -8.174 }
         r2:  { r: 7.279, z: 1.926 }
 
-    - when: { mechanic: [longitude-implosion-front, longitude-implosion-back] }
+    - when: { mechanic: [longitude-implosion-front, longitude-implosion-back], partyDebuff: Dynamic Fluid Long }
       frame: [{ boss: { id: chaos, from: facing } }, { crystal : water }]
       mirrorLateral: true
       spots:
         r1: { r: 17.945, z: -1.896 }
         r2: { r: 9.938, z: 4.780 }
+
+    - when: { mechanic: [latitude-implosion-left, latitude-implosion-right], partyDebuff: Entropy Long }
+      frame: [{ boss: { id: chaos, from: facing } }]
+      spots:
+        mt: { r: 3.93, z: 17.98 }
+        ot: { r: 3.93, z: 17.98 }
+        h1: { r: 3.93, z: 17.98 }
+        h2: { r: 3.93, z: 17.98 }
+        m1: { r: -3.93, z: 17.98 }
+        m2: { r: -3.93, z: 17.98 }
+
+    - when: { mechanic: [longitude-implosion-front, longitude-implosion-back] , partyDebuff: Entropy Long}
+      frame: [{ boss: { id: chaos, from: facing } }]
+      spots:
+        mt: { r: 6.1, z: 15.67}
+        ot: { r: 6.1, z: 15.67}
+        h1: { r: 6.1, z: 15.67}
+        h2: { r: 6.1, z: 15.67}
+        m1: { r: -6.1, z: 15.67}
+        m2: { r: -6.1, z: 15.67}
+
+
+    - when: { mechanic: [latitude-implosion-left, latitude-implosion-right] , partyDebuff: Entropy Long}
+      frame: [{ boss: { id: chaos, from: facing } }, { crystal : fire }]
+      mirrorLateral: true
+      spots:
+        r1:  { r: 16.350, z: -8.174 }
+        r2:  { r: 7.279, z: 1.926 }
+
+    - when: { mechanic: [longitude-implosion-front, longitude-implosion-back] , partyDebuff: Entropy Long}
+      frame: [{ boss: { id: chaos, from: facing } }, { crystal : fire }]
+      mirrorLateral: true
+      spots:
+        r1: { r: 17.945, z: -1.896 }
+        r2: { r: 9.938, z: 4.780 }
+
+
 
     # Pre-park Exdeath on the inner wind line so its t:81 Vacuum Wave snapshot is stable per seed.
     - when: { static: true }

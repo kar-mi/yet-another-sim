@@ -36,6 +36,7 @@ export type GenericSolverRule = {
     mechanic?: string | string[];
     role?: Role;
     debuff?: string | string[];   // active effect name(s) on the bot; an array requires all of them
+    partyDebuff?: string | string[]; // active effect name(s) anywhere in the party; an array requires all of them
     partnerDebuff?: string | string[]; // active effect name(s) on the bot's partner (world.partners)
     // Compares the bot's group (world.playerGroups) to the group of the first live matched mechanic.
     // true => equal (the bot soaks this wave); false => the mechanic has a group and the bot's differs.
