@@ -743,6 +743,17 @@ test("empty raid synthesizes the canonical eight slots", async () => {
   expect(sent).toHaveLength(0);
 });
 
+test("auth accepts Bun Headers from Colyseus websocket context", () => {
+  const { session } = makeSession();
+  const client = {} as any;
+
+  expect(session.onAuth(client, {}, {
+    headers: new Headers({ origin: "http://localhost:34567", host: "localhost:34567" }),
+    ip: "127.0.0.1",
+  } as any)).toBe(true);
+  expect(client.userData?.ip).toBe("127.0.0.1");
+});
+
 
 test("inactive lobby expires after configured timeout", () => {
   let now = 0;

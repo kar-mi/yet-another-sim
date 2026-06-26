@@ -17,7 +17,9 @@ export class ColyseusTransport implements Transport {
 
   send(message: ClientMessage): boolean {
     if (message.type === "join") {
-      void this.join(message.sessionId, message.raidId);
+      void this.join(message.sessionId, message.raidId).catch(err => {
+        this.messageHandler({ type: "error", message: err instanceof Error ? err.message : "Failed to join lobby" });
+      });
       return true;
     }
     if (!this.room) return false;

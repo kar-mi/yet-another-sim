@@ -44,6 +44,12 @@ const ipConnections = new ConnectionCounter(MAX_CONNECTIONS_PER_IP);
 let connectedClients = 0;
 let activeRooms = 0;
 
+function headerValue(headers: AuthContext["headers"], name: string): string | undefined {
+  const maybeHeaders = headers as { get?: (name: string) => string | null };
+  const value = typeof maybeHeaders.get === "function" ? maybeHeaders.get(name) : (headers as Record<string, string | string[] | undefined>)[name];
+  return Array.isArray(value) ? value[0] : value ?? undefined;
+}
+
 export function relayClientsConnected(): number {
   return connectedClients;
 }
@@ -167,13 +173,11 @@ export class RelayRoom extends Room {
   }
 
   onAuth(client: Client<RelayClientData>, _options: RelayRoomOptions, context: AuthContext): boolean {
-    const origin = context.headers.origin;
-    const host = context.headers.host ?? "localhost";
-    const hostValue = Array.isArray(host) ? host[0] : host;
-    const requestUrl = "http://" + hostValue + "/";
-    if (!isOriginAllowed(Array.isArray(origin) ? origin[0] : origin ?? null, requestUrl, ALLOWED_ORIGINS)) return false;
-    const forwarded = context.headers["x-forwarded-for"];
-    const ip = clientIpFor(Array.isArray(forwarded) ? forwarded[0] : forwarded ?? null, Array.isArray(context.ip) ? context.ip[0] : context.ip);
+    const origin = headerValue(context.headers, "origin");
+    const host = headerValue(context.headers, "host") ?? "localhost";
+    const requestUrl = "http://" + host + "/";
+    if (!isOriginAllowed(origin ?? null, requestUrl, ALLOWED_ORIGINS)) return false;
+    const ip = clientIpFor(headerValue(context.headers, "x-forwarded-for") ?? null, Array.isArray(context.ip) ? context.ip[0] : context.ip);
     if (!ipConnections.tryAcquire(ip)) return false;
     client.userData = { ip, rate: createMessageRateLimiter(MAX_WS_MSGS_PER_SEC) };
     return true;
