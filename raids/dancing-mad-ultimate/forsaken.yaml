@@ -113,8 +113,8 @@ _towerBase: &towerBase
     fallingObjectAlpha: 0.7
 
 # Deferred half-arena (180°) ending cone, stored then baited. Forsaken shuffles exactly two
-# Future/front (0) and two Past/rear (π) offsets across the four stores each run; each authored
-# directionOffset remains the off-RNG fallback. The boss only turns when the linked bait fires.
+# Future/front (0) and two Past/rear (π) offsets across the four stores each run.
+# Boss only turns when the linked bait fires.
 _endingBase: &endingBase
   type: aoe
   deferred: true
@@ -254,12 +254,11 @@ events:
     time: 30
     name: Tower 2 Recovery
 
-  # Ending 1 (seeded Future/Past; authored fallback Future) — cast 20→26, baited at 33.
+  # Ending 1 (seeded Future/Past) — cast 20→26, baited at 33.
   - <<: *endingBase
     id: ending-store-1
     time: 20.0
-    name: Future Ending
-    directionOffset: 0
+    name: Ending-Store-Placeholder
     telegraph: 6
     showCastBar: true
   - <<: *allEndingBase
@@ -310,12 +309,11 @@ events:
     time: 50
     name: Tower 4 Recovery
 
-  # Ending 2 (seeded Future/Past; authored fallback Past) — cast 40→46, baited at 53.
+  # Ending 2 (seeded Future/Past) — cast 40→46, baited at 53.
   - <<: *endingBase
     id: ending-store-2
     time: 40.0
-    name: Past Ending
-    directionOffset: 3.141592653589793
+    name: Ending-Store-Placeholder
     telegraph: 6
     showCastBar: true
   - <<: *allEndingBase
@@ -365,12 +363,11 @@ events:
     time: 70
     name: Tower 6 Recovery
 
-  # Ending 3 (seeded Future/Past; authored fallback Future) — cast 62→68, baited at 73.
+  # Ending 3 (seeded Future/Past) — cast 62→68, baited at 73.
   - <<: *endingBase
     id: ending-store-3
     time: 62.0
-    name: Future Ending
-    directionOffset: 0
+    name: Ending-Store-Placeholder
     telegraph: 6
     showCastBar: true
   - <<: *allEndingBase
@@ -421,12 +418,11 @@ events:
     time: 90
     name: Tower Recovery
 
-  # Ending 4 (seeded Future/Past; authored fallback Past) — cast 80→86, then the closing raidwide. 93
+  # Ending 4 (seeded Future/Past) — cast 80→86, then the closing raidwide at 93.
   - <<: *endingBase
     id: ending-store-4
     time: 80.0
-    name: Past Ending
-    directionOffset: 3.141592653589793
+    name: Ending-Store-Placeholder
     telegraph: 6
     showCastBar: true
   - <<: *allEndingBase

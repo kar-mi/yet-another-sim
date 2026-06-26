@@ -166,34 +166,6 @@ solvers:
       spots:
         ot: { r: 0, z: 4 }
 
-#lat safe r1
-# frame: [boss:chaos:facing, crystal:water]
-# world  { x: -6.857, z: 17.676 }
-# r/z    { r: 8.989, z: 16.694 }
-# polar  { dist: 18.960, angleDeg: 28.3 }
-
-
-
-#long safe
-# frame: [boss:chaos:facing, crystal:water]
-# world  { x: -11.742, z: 14.861 }
-# r/z    { r: 3.036, z: 18.696 }
-# polar  { dist: 18.941, angleDeg: 9.2 }
-
-
-
-#lat safe r2
-# frame: [boss:chaos:facing, crystal:water]
-# world  { x: -5.306, z: -6.636 }
-# r/z    { r: -0.279, z: 8.492 }
-# polar  { dist: 8.496, angleDeg: -1.9 }
-
-#long safe r2
-# frame: [boss:chaos:facing, crystal:water]
-# world  { x: -5.243, z: -9.635 }
-# r/z    { r: -2.275, z: 10.731 }
-# polar  { dist: 10.969, angleDeg: -12.0 }
-
     # Vacuum Wave + Umbra Smash (t:81–88): one bot baits furthest; the rest stack for knockback.
     - when: { mechanic: [vacuum-wave, umbra-smash] }
       frame: [{ crystal: wind }]
