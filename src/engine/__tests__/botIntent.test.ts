@@ -126,6 +126,16 @@ test("forsaken tower swaps alternate odd and even debuff distributions", async (
     expect(offsets.filter(offset => offset === 0)).toHaveLength(2);
     expect(offsets.filter(offset => offset === Math.PI)).toHaveLength(2);
   };
+  // The cast-bar/log name of each deferred ending must track its rolled offset, not the authored
+  // fallback (0 -> Future Ending, π -> Past Ending), so the label never lies about the cone.
+  const assertEndingNames = (world: World) => {
+    const endings = world.pending.filter(p => p.id.startsWith("ending-store-"));
+    expect(endings).toHaveLength(4);
+    for (const ending of endings) {
+      expect(ending.directionOffset).toBe(world.endingOffsets[ending.id]);
+      expect(ending.name).toBe(world.endingOffsets[ending.id] === Math.PI ? "Past Ending" : "Future Ending");
+    }
+  };
   const assertFullClear = (world: World) => {
     expect(world.log.some(entry => entry.mechanic.startsWith("Forsaken Tower") && entry.event === "hit")).toBe(false);
     expect(world.log.some(entry => entry.mechanic === "Clone Spread" && entry.event === "hit")).toBe(true);
@@ -134,6 +144,7 @@ test("forsaken tower swaps alternate odd and even debuff distributions", async (
 
   let world = createWorld(applyBotPatterns(raid, bots), 1);
   assertEndingOffsets(world);
+  assertEndingNames(world);
   // Derive each tower wave's resolve (t + telegraph) and parity from the raid itself so the
   // checks follow the authored timing — they must not need updating when the timeline shifts.
   // After an odd wave the soakers swap to the even set (0/4/4), after an even wave to the odd
@@ -165,6 +176,7 @@ test("forsaken tower swaps alternate odd and even debuff distributions", async (
   for (const seed of [2, 3, 4, 5, 6, 7, 8]) {
     const seededWorld = createWorld(applyBotPatterns(raid, bots), seed);
     assertEndingOffsets(seededWorld);
+    assertEndingNames(seededWorld);
     assertFullClear(runTicksWithComputedBotIntents(seededWorld, Math.ceil(raid.duration * 60)));
   }
 });

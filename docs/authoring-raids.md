@@ -1409,10 +1409,12 @@ optionals:
 
 ### `endings`
 
-Assigns `directionOffset` values to stored deferred AoEs at world creation. `events` lists the
-deferred AoE ids, `offsets` lists the candidate offsets, and `rng: true` shuffles the offsets per
-seed before zipping them onto the events; `rng: false` uses the listed order. The selected values are
-stored in `world.endingOffsets` for bot-solver `when.endingFacing`.
+Assigns directions to stored deferred AoEs at world creation. `events` lists the deferred AoE ids and
+`variants` lists candidate `{ offset, name? }` entries; `rng: true` shuffles the variants per seed
+before zipping them onto the events (`rng: false` uses the listed order). Each rolled variant
+overrides its event's `directionOffset` and, when `name` is set, the event's display name (cast bar /
+log) — so the label always matches the rolled direction. Offsets are stored in `world.endingOffsets`
+for bot-solver `when.endingFacing`.
 
 ## Bot patterns
 

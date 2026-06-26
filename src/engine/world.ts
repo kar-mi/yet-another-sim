@@ -126,22 +126,27 @@ type EndingCombination = NonNullable<NonNullable<RaidDef["optionals"]>["combinat
 function buildEndingPlan(
   endings: EndingCombination,
   rngState: number,
-): { endingOffsets: Record<string, number>; rngState: number } {
-  if (!endings) return { endingOffsets: {}, rngState };
+): { endingOffsets: Record<string, number>; endingNames: Record<string, string>; rngState: number } {
+  if (!endings) return { endingOffsets: {}, endingNames: {}, rngState };
 
-  const offsets = [...endings.offsets];
+  const variants = [...endings.variants];
   let nextState = rngState;
   if (endings.rng) {
-    for (let i = offsets.length - 1; i > 0; i--) {
+    for (let i = variants.length - 1; i > 0; i--) {
       const roll = randomInt(nextState, i + 1);
       nextState = roll.state;
-      [offsets[i], offsets[roll.value]] = [offsets[roll.value]!, offsets[i]!];
+      [variants[i], variants[roll.value]] = [variants[roll.value]!, variants[i]!];
     }
   }
 
   const endingOffsets: Record<string, number> = {};
-  endings.events.forEach((eventId, i) => { endingOffsets[eventId] = offsets[i]!; });
-  return { endingOffsets, rngState: nextState };
+  const endingNames: Record<string, string> = {};
+  endings.events.forEach((eventId, i) => {
+    const variant = variants[i]!;
+    endingOffsets[eventId] = variant.offset;
+    if (variant.name !== undefined) endingNames[eventId] = variant.name;
+  });
+  return { endingOffsets, endingNames, rngState: nextState };
 }
 
 // Select a pairing pattern (seeded when `rng`) and derive the generic maps any mechanic can consume:
@@ -257,9 +262,11 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const { partners, playerGroups, initialCharges, rngState: afterPairingRngState } = buildPairingPlan(raid, afterPlantRngState);
   const { crystals, rngState: afterCrystalRngState } = placeCrystals(raid.crystals, afterPairingRngState);
   const { events: rotatedEvents, rngState: afterTowerRngState } = rotateTowerWaves(raid.events, raid.optionals?.towerRng, afterCrystalRngState);
-  const { endingOffsets, rngState } = buildEndingPlan(raid.optionals?.combinations?.endings, afterTowerRngState);
+  const { endingOffsets, endingNames, rngState } = buildEndingPlan(raid.optionals?.combinations?.endings, afterTowerRngState);
   const effectiveEvents = rotatedEvents.map(e =>
-    endingOffsets[e.id] === undefined ? e : { ...e, directionOffset: endingOffsets[e.id] },
+    endingOffsets[e.id] === undefined
+      ? e
+      : { ...e, directionOffset: endingOffsets[e.id], ...(endingNames[e.id] !== undefined ? { name: endingNames[e.id] } : {}) },
   ) as RaidDef["events"];
   const plantDebuffOrder = raid.optionals?.combinations?.plant?.debuffOrder;
 

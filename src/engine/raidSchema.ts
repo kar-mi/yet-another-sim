@@ -775,7 +775,7 @@ const OptionalsSchema = z.object({
     endings: z.object({
       rng: z.boolean().default(false),
       events: z.array(EventIdSchema).min(1),
-      offsets: z.array(z.number()),
+      variants: z.array(z.object({ offset: z.number(), name: z.string().min(1).optional() })).min(1),
     }).optional(),
   }).optional(),
 }).optional();
@@ -1132,11 +1132,11 @@ export const RaidSchema = z.object({
 
   const endings = raid.optionals?.combinations?.endings;
   if (endings) {
-    if (endings.offsets.length !== endings.events.length) {
+    if (endings.variants.length !== endings.events.length) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["optionals", "combinations", "endings", "offsets"],
-        message: "endings offsets length must match events length",
+        path: ["optionals", "combinations", "endings", "variants"],
+        message: "endings variants length must match events length",
       });
     }
     endings.events.forEach((id, i) => {

@@ -62,7 +62,13 @@ optionals:
     endings:
       rng: true
       events: [ending-store-1, ending-store-2, ending-store-3, ending-store-4]
-      offsets: [0, 0, 3.141592653589793, 3.141592653589793]
+      # 2 Future + 2 Past, shuffled across the 4 slots; each rolled variant overrides the
+      # store event's directionOffset AND its cast-bar name so the label matches the cone.
+      variants:
+        - { offset: 0, name: Future Ending }
+        - { offset: 0, name: Future Ending }
+        - { offset: 3.141592653589793, name: Past Ending }
+        - { offset: 3.141592653589793, name: Past Ending }
     pairings:
       rng: true
       patterns:
