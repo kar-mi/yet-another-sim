@@ -660,6 +660,7 @@ export type PendingApplyEffect = {
   role?: Role;
   players?: string[];
   count?: number;
+  assignGroup?: string;
   rng: boolean;
   applyEffect: EffectSpec;
 };

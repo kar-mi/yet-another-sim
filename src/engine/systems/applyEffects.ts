@@ -8,6 +8,7 @@ import { applyEffect } from "./helpers";
 export function resolveApplyEffects(ctx: TickContext): PendingApplyEffect[] {
   const { players, log, time, randInt } = ctx;
   const remaining: PendingApplyEffect[] = [];
+  const assigned = new Map<string, Set<string>>();
   for (const pae of ctx.world.pendingApplyEffects) {
     if (pae.t > time) {
       remaining.push(pae);
@@ -20,6 +21,15 @@ export function resolveApplyEffects(ctx: TickContext): PendingApplyEffect[] {
     } else if (pae.role) {
       pool = pool.filter(p => p.role === pae.role);
     }
+    const assignedInGroup = pae.assignGroup
+      ? assigned.get(pae.assignGroup) ?? new Set<string>()
+      : undefined;
+    if (pae.assignGroup && assignedInGroup && !assigned.has(pae.assignGroup)) {
+      assigned.set(pae.assignGroup, assignedInGroup);
+    }
+    if (assignedInGroup) {
+      pool = pool.filter(p => !assignedInGroup.has(p.id));
+    }
     if (pae.count !== undefined && pae.count < pool.length) {
       if (pae.rng) {
         const shuffled = pool.slice();
@@ -30,6 +40,9 @@ export function resolveApplyEffects(ctx: TickContext): PendingApplyEffect[] {
         pool = shuffled;
       }
       pool = pool.slice(0, pae.count);
+    }
+    if (assignedInGroup) {
+      for (const target of pool) assignedInGroup.add(target.id);
     }
     for (const target of pool) {
       applyEffect(target, pae.applyEffect, time, `${pae.id}-${target.id}-eff`, players);
