@@ -121,6 +121,33 @@ function rotateTowerWaves(
   return { events: result as RaidDef["events"], rngState: nextState };
 }
 
+function applyOrderSwap(
+  events: RaidDef["events"],
+  orderSwap: NonNullable<RaidDef["optionals"]>["orderSwap"] | undefined,
+  rngState: number,
+): { events: RaidDef["events"]; rngState: number } {
+  if (!orderSwap?.rng) return { events, rngState };
+
+  const roll = nextRandom(rngState);
+  if (roll.value >= 0.5) return { events, rngState: roll.state };
+
+  const [groupA, groupB] = orderSwap.groups;
+  const idsA = new Set(groupA);
+  const idsB = new Set(groupB);
+  const eventA = events.find(e => e.id === groupA[0] && "telegraph" in e);
+  const eventB = events.find(e => e.id === groupB[0] && "telegraph" in e);
+  if (!eventA || !eventB || !("telegraph" in eventA) || !("telegraph" in eventB)) {
+    return { events, rngState: roll.state };
+  }
+
+  const result = events.map(e => {
+    if (idsA.has(e.id) && "telegraph" in e) return { ...e, t: eventB.t, telegraph: eventB.telegraph };
+    if (idsB.has(e.id) && "telegraph" in e) return { ...e, t: eventA.t, telegraph: eventA.telegraph };
+    return e;
+  });
+  return { events: result as RaidDef["events"], rngState: roll.state };
+}
+
 type EndingCombination = NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["endings"];
 
 function buildEndingPlan(
@@ -262,8 +289,9 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const { partners, playerGroups, initialCharges, rngState: afterPairingRngState } = buildPairingPlan(raid, afterPlantRngState);
   const { crystals, rngState: afterCrystalRngState } = placeCrystals(raid.crystals, afterPairingRngState);
   const { events: rotatedEvents, rngState: afterTowerRngState } = rotateTowerWaves(raid.events, raid.optionals?.towerRng, afterCrystalRngState);
-  const { endingOffsets, endingNames, rngState } = buildEndingPlan(raid.optionals?.combinations?.endings, afterTowerRngState);
-  const effectiveEvents = rotatedEvents.map(e =>
+  const { endingOffsets, endingNames, rngState: afterEndingRngState } = buildEndingPlan(raid.optionals?.combinations?.endings, afterTowerRngState);
+  const { events: swappedEvents, rngState } = applyOrderSwap(rotatedEvents, raid.optionals?.orderSwap, afterEndingRngState);
+  const effectiveEvents = swappedEvents.map(e =>
     endingOffsets[e.id] === undefined
       ? e
       : { ...e, directionOffset: endingOffsets[e.id], ...(endingNames[e.id] !== undefined ? { name: endingNames[e.id] } : {}) },

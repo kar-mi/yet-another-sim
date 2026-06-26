@@ -763,6 +763,10 @@ const PairingPatternSchema = z.object({
 const OptionalsSchema = z.object({
   // Seeded per-run rotation of tower-wave positions around their canonical ring (see rotateTowerWaves).
   towerRng: z.boolean().default(false),
+  orderSwap: z.object({
+    rng: z.boolean().default(false),
+    groups: z.array(z.array(EventIdSchema).min(1)).length(2),
+  }).optional(),
   combinations: z.object({
     plant: z.object({
       rng: z.boolean().default(false),
@@ -897,6 +901,39 @@ export const RaidSchema = z.object({
       return;
     }
     eventIds.set(event.id, { type: event.type, index: i });
+  });
+
+  raid.optionals?.orderSwap?.groups.forEach((group, groupIndex) => {
+    let timing: { t: number; telegraph: number } | undefined;
+    group.forEach((id, idIndex) => {
+      const event = raid.events.find(e => e.id === id);
+      if (!event) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["optionals", "orderSwap", "groups", groupIndex, idIndex],
+          message: `orderSwap references unknown event id "${id}"`,
+        });
+        return;
+      }
+      if (!("telegraph" in event)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["optionals", "orderSwap", "groups", groupIndex, idIndex],
+          message: `orderSwap event "${id}" must have a telegraph`,
+        });
+        return;
+      }
+      const current = { t: event.t, telegraph: event.telegraph };
+      if (timing === undefined) {
+        timing = current;
+      } else if (timing.t !== current.t || timing.telegraph !== current.telegraph) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["optionals", "orderSwap", "groups", groupIndex, idIndex],
+          message: `orderSwap group ${groupIndex} events must share the same time and telegraph`,
+        });
+      }
+    });
   });
 
   raid.events.forEach((event, i) => {
