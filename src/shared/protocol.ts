@@ -104,6 +104,11 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("stop"),
   }).strict(),
+  // Host returning to the lobby (Home). Stops the pull like "stop" but the server does not send the
+  // leaving host a "started" message (which the lobby would treat as a re-entry into the sim).
+  z.object({
+    type: z.literal("leave"),
+  }).strict(),
   z.object({
     type: z.literal("restart"),
   }).strict(),

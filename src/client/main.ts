@@ -138,6 +138,12 @@ async function main(): Promise<void> {
       sessionId = await showLanding({ notice: "Session expired" });
       continue;
     }
+    // Host leaving via Home stops the pull so the session is joinable again
+    // (claimSlot/claimObserver reject while running/paused). Uses `leave` rather than `stop` so the
+    // stop's "started" broadcast doesn't bounce the host straight back into the sim.
+    if (session.isHost) {
+      net.send({ type: "leave" });
+    }
     if (session.yourPlayerId) {
       net.send({ type: "releaseSlot", playerId: session.yourPlayerId });
     } else {

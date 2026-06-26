@@ -184,6 +184,34 @@ test("client can reclaim and enter a stopped session", () => {
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === "mt" && entry.message.world.time === 0)).toBe(true);
 });
 
+test("host leaving to the lobby stops the session without bouncing the host, and resets other clients", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.join("c2");
+  session.claimObserver("c2");
+  session.start("c1");
+  session.step(false);
+
+  const hostStartedBefore = sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started").length;
+  const otherStartedBefore = sent.filter(entry => entry.clientId === "c2" && entry.message.type === "started").length;
+
+  session.leave("c1");
+
+  expect(session.status).toBe("stopped");
+  // The leaving host gets no new "started" (showLobby would treat it as a re-entry and bounce it back
+  // into a stale sim); the remaining clients are reset to the frozen world.
+  expect(sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started").length).toBe(hostStartedBefore);
+  expect(sent.filter(entry => entry.clientId === "c2" && entry.message.type === "started").length).toBe(otherStartedBefore + 1);
+
+  // The host still owns its slot, so the releaseSlot that Home sends next succeeds. Regression: with a
+  // plain stop(), the host was bounced back in and the slot was freed, so this rejected with
+  // "You do not own that slot".
+  session.releaseSlot("c1", "mt");
+  expect(session.slots.get("mt")).toBeNull();
+  expect(sent.some(entry => entry.message.type === "error" && entry.message.message === "You do not own that slot")).toBe(false);
+});
+
 test("host can start again from a stopped lobby re-entry", () => {
   const { session, sent } = makeSession();
   session.join("c1");
