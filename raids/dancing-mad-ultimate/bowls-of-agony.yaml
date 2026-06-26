@@ -156,16 +156,40 @@ events:
     players: [ot, h2, r1, r2]
     applyEffect: *tailwind
   - type: apply_effect
-    id: entropy-short
+    id: entropy-support
     time: 24
     name: Entropy
-    players: [h1, m1]
+    players: [mt, ot, h1, h2]
+    count: 1
+    rng: true
+    assignGroup: ef-debuffs
     applyEffect: *entropyShort
   - type: apply_effect
-    id: dynamic-fluid-long
+    id: entropy-dps
+    time: 24
+    name: Entropy
+    players: [r1, r2, m1, m2]
+    count: 1
+    rng: true
+    assignGroup: ef-debuffs
+    applyEffect: *entropyShort
+  - type: apply_effect
+    id: dynamic-fluid-support
     time: 24
     name: Dynamic Fluid
-    players: [h2, r1]
+    players: [mt, ot, h1, h2]
+    count: 1
+    rng: true
+    assignGroup: ef-debuffs
+    applyEffect: *dynamicFluidLong
+  - type: apply_effect
+    id: dynamic-fluid-dps
+    time: 24
+    name: Dynamic Fluid
+    players: [r1, r2, m1, m2]
+    count: 1
+    rng: true
+    assignGroup: ef-debuffs
     applyEffect: *dynamicFluidLong
 
   - type: aoe

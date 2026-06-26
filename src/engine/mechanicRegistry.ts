@@ -345,6 +345,7 @@ const applyEffects: MechanicModule = {
       role: e.role,
       players: e.players,
       count: e.count,
+      assignGroup: e.assignGroup,
       rng: e.rng ?? false,
       applyEffect: e.applyEffect,
     });

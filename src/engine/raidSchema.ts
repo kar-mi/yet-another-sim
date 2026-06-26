@@ -508,7 +508,8 @@ const EffectSelectEventSchema = z.object({
 
 // Standalone "drop this effect on players now" event. No telegraph — it lands at time t.
 // Targeting: `players` ids if given, else `role` filter, else everyone alive. `count` caps how many
-// targets (random selection when `rng`, else roster order).
+// targets (random selection when `rng`, else roster order). Events sharing an `assignGroup`
+// in the same tick exclude players picked by earlier events in that group.
 const ApplyEffectEventSchema = z.object({
   type: z.literal("apply_effect"),
   id: EventIdSchema,
@@ -517,6 +518,7 @@ const ApplyEffectEventSchema = z.object({
   role: RoleSchema.optional(),
   players: z.array(z.string().min(1)).min(1).optional(),
   count: z.number().int().positive().optional(),
+  assignGroup: z.string().min(1).optional(),
   rng: z.boolean().optional(),
   applyEffect: ApplyEffectSchema,
 });
