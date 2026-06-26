@@ -143,6 +143,11 @@ function hasAllDebuffs(player: Player, debuff: string | string[], time: number):
   return names.every(name => hasActiveDebuff(player, name, time));
 }
 
+function partyHasAllDebuffs(world: World, debuff: string | string[], time: number): boolean {
+  const names = Array.isArray(debuff) ? debuff : [debuff];
+  return names.every(name => world.players.some(player => player.alive && hasActiveDebuff(player, name, time)));
+}
+
 function directionName(direction: [number, number]): "up" | "down" | "left" | "right" | undefined {
   const [x, z] = direction;
   if (x === 0 && z === 1) return "up";
@@ -185,9 +190,10 @@ function ruleMatches(rule: GenericSolverRule, player: Player, world: World, mech
   // `static: true` adds no filter, making the rule always active subject to the optional clamps
   // and any other conditions. The schema requires the explicit flag instead of allowing an
   // accidental empty-object catch-all.
-  const { mechanic, role, debuff, partnerDebuff, soaks, plant, plantSlot, endingFacing } = rule.when;
+  const { mechanic, role, debuff, partyDebuff, partnerDebuff, soaks, plant, plantSlot, endingFacing } = rule.when;
   if (role !== undefined && player.role !== role) return null;
   if (debuff !== undefined && !hasAllDebuffs(player, debuff, time)) return null;
+  if (partyDebuff !== undefined && !partyHasAllDebuffs(world, partyDebuff, time)) return null;
   if (endingFacing !== undefined && world.endingOffsets?.[endingFacing.event] !== endingFacing.offset) return null;
   if (partnerDebuff !== undefined) {
     const partner = world.players.find(p => p.id === world.partners?.[player.id]);

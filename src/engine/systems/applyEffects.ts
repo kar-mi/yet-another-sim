@@ -2,11 +2,23 @@
 // by count, optionally a random subset).
 
 import type { TickContext } from "./context";
-import type { PendingApplyEffect } from "@shared/types";
+import type { EffectSpec, PendingApplyEffect } from "@shared/types";
 import { applyEffect } from "./helpers";
 
+function selectedEffect(pae: PendingApplyEffect, groupChoices: Record<string, number>, randInt: (n: number) => number): EffectSpec {
+  if (!pae.applyEffectChoices) return pae.applyEffect!;
+  const key = pae.effectChoiceGroup ?? pae.id;
+  let idx = groupChoices[key];
+  if (idx === undefined) {
+    idx = pae.rng ? randInt(pae.applyEffectChoices.length) : 0;
+    groupChoices[key] = idx;
+  }
+  if (pae.effectChoiceComplement) idx = 1 - idx;
+  return pae.applyEffectChoices[idx]!;
+}
+
 export function resolveApplyEffects(ctx: TickContext): PendingApplyEffect[] {
-  const { players, log, time, randInt } = ctx;
+  const { players, log, time, groupChoices, randInt } = ctx;
   const remaining: PendingApplyEffect[] = [];
   const assigned = new Map<string, Set<string>>();
   for (const pae of ctx.world.pendingApplyEffects) {
@@ -44,8 +56,9 @@ export function resolveApplyEffects(ctx: TickContext): PendingApplyEffect[] {
     if (assignedInGroup) {
       for (const target of pool) assignedInGroup.add(target.id);
     }
+    const effect = selectedEffect(pae, groupChoices, randInt);
     for (const target of pool) {
-      applyEffect(target, pae.applyEffect, time, `${pae.id}-${target.id}-eff`, players);
+      applyEffect(target, effect, time, `${pae.id}-${target.id}-eff`, players);
       log.push({ t: time, mechanic: pae.name, playerId: target.id, event: "hit" });
     }
   }

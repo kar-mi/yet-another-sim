@@ -69,7 +69,7 @@ _tailwind: &tailwind
   behavior: { kind: directionalKnockback, requiredFacing: toward, distance: 8, doubledDistance: 18 }
 
 _entropyShort: &entropyShort
-  name: Entropy
+  name: Entropy Short
   kind: debuff
   duration: 18
   icon: entropy.png
@@ -90,8 +90,52 @@ _entropyShort: &entropyShort
       damage: 12
       damageType: magical
 
+_entropyLong: &entropyLong
+  name: Entropy Long
+  kind: debuff
+  duration: 45
+  icon: entropy.png
+  behavior:
+    kind: burstSpread
+    selfShape: circle
+    radius: 5
+    damage: 8
+    damageType: magical
+    knockbackDistance: 0
+    followUp:
+      mode: closest
+      count: 2
+      originCrystal: fire
+      shape: donut
+      radius: 8
+      inner: 3
+      damage: 12
+      damageType: magical
+
+_dynamicFluidShort: &dynamicFluidShort
+  name: Dynamic Fluid Short
+  kind: debuff
+  duration: 18
+  icon: dynamic_fluid.png
+  behavior:
+    kind: burstSpread
+    selfShape: donut
+    selfInner: 3
+    radius: 8
+    damage: 12
+    damageType: magical
+    knockbackDistance: 0
+    followUp:
+      mode: closest
+      count: 2
+      originCrystal: water
+      shape: circle
+      radius: 5
+      damage: 8
+      damageType: magical
+
 _dynamicFluidLong: &dynamicFluidLong
-  name: Dynamic Fluid
+  name: Dynamic Fluid Long
   kind: debuff
   duration: 45
   icon: dynamic_fluid.png
@@ -153,50 +197,62 @@ events:
     id: headwind-assign
     time: 24
     name: Headwind
-    players: [mt, h1, m1, m2]
+    players: [mt, ot, h1, h2, r1, r2, m1, m2]
+    count: 4
+    rng: true
+    assignGroup: wind-debuffs
     applyEffect: *headwind
   - type: apply_effect
     id: tailwind-assign
     time: 24
     name: Tailwind
-    players: [ot, h2, r1, r2]
+    players: [mt, ot, h1, h2, r1, r2, m1, m2]
+    count: 4
+    rng: true
+    assignGroup: wind-debuffs
     applyEffect: *tailwind
   - type: apply_effect
-    id: entropy-support
+    id: ef-short-support
     time: 24
-    name: Entropy
+    name: Entropy / Dynamic Fluid Short
     players: [mt, ot, h1, h2]
     count: 1
     rng: true
     assignGroup: ef-debuffs
-    applyEffect: *entropyShort
+    effectChoiceGroup: ef-short-kind
+    applyEffectChoices: [*entropyShort, *dynamicFluidShort]
   - type: apply_effect
-    id: entropy-dps
+    id: ef-short-dps
     time: 24
-    name: Entropy
+    name: Entropy / Dynamic Fluid Short
     players: [r1, r2, m1, m2]
     count: 1
     rng: true
     assignGroup: ef-debuffs
-    applyEffect: *entropyShort
+    effectChoiceGroup: ef-short-kind
+    applyEffectChoices: [*entropyShort, *dynamicFluidShort]
   - type: apply_effect
-    id: dynamic-fluid-support
+    id: ef-long-support
     time: 24
-    name: Dynamic Fluid
+    name: Entropy / Dynamic Fluid Long
     players: [mt, ot, h1, h2]
     count: 1
     rng: true
     assignGroup: ef-debuffs
-    applyEffect: *dynamicFluidLong
+    effectChoiceGroup: ef-short-kind
+    effectChoiceComplement: true
+    applyEffectChoices: [*entropyLong, *dynamicFluidLong]
   - type: apply_effect
-    id: dynamic-fluid-dps
+    id: ef-long-dps
     time: 24
-    name: Dynamic Fluid
+    name: Entropy / Dynamic Fluid Long
     players: [r1, r2, m1, m2]
     count: 1
     rng: true
     assignGroup: ef-debuffs
-    applyEffect: *dynamicFluidLong
+    effectChoiceGroup: ef-short-kind
+    effectChoiceComplement: true
+    applyEffectChoices: [*entropyLong, *dynamicFluidLong]
 
   - type: aoe
     id: thunder-iii-get-out
