@@ -348,7 +348,7 @@ events:
     directionFrom: bossFacing
     directionOffset: 0
     lockFacing: true
-    showCastBar: true
+    showCastBar: false
     showTelegraph: false
     flashBeforeResolve: { lead: 0.5, color: "#6699ff" }
     bossId: chaos
