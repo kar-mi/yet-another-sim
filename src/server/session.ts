@@ -181,6 +181,9 @@ export class Session {
       case "stop":
         this.stop(clientId);
         return;
+      case "leave":
+        this.leave(clientId);
+        return;
       case "restart":
         this.restart(clientId);
         return;
@@ -321,6 +324,40 @@ export class Session {
     this.broadcastStarted();
     this.broadcastPlayback();
     logger.info("session", "raid stopped", { session: this.id, raid: this.raidId });
+  }
+
+  // Host returning to the lobby via Home. Stops the pull (so the session is joinable again) exactly
+  // like stop(), except the leaving host is NOT sent a "started" message: it is headed to the lobby,
+  // where showLobby treats any "started" as a re-entry and would bounce it back into a stale sim.
+  leave(clientId: string): void {
+    if (clientId !== this.hostClientId) {
+      this.sendError(clientId, "Only the host can leave to the lobby");
+      return;
+    }
+    if (this.status === "lobby") return;
+
+    this.clearPendingStart();
+    this.status = "stopped";
+    this.relay.stop();
+    this.latestIntents.clear();
+    this.world = this.freshWorld();
+    this.applyBotsInvincible();
+    this.resetPull();
+
+    // Reset the remaining clients' local worlds to the frozen one (as stop() does); the leaver is
+    // skipped and instead receives the lobby broadcast below to land back in the menu.
+    for (const id of this.clients) {
+      if (id === clientId) continue;
+      if (this.observers.has(id)) {
+        this.send(id, this.startedMessage(null));
+        continue;
+      }
+      const playerId = this.playerForClient(id);
+      if (playerId) this.send(id, this.startedMessage(playerId));
+    }
+    this.broadcastPlayback();
+    this.broadcastLobby();
+    logger.info("session", "host returned to lobby", { session: this.id, raid: this.raidId });
   }
 
   restart(clientId: string): void {

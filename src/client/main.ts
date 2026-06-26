@@ -139,9 +139,10 @@ async function main(): Promise<void> {
       continue;
     }
     // Host leaving via Home stops the pull so the session is joinable again
-    // (claimSlot/claimObserver reject while running/paused).
+    // (claimSlot/claimObserver reject while running/paused). Uses `leave` rather than `stop` so the
+    // stop's "started" broadcast doesn't bounce the host straight back into the sim.
     if (session.isHost) {
-      net.send({ type: "stop" });
+      net.send({ type: "leave" });
     }
     if (session.yourPlayerId) {
       net.send({ type: "releaseSlot", playerId: session.yourPlayerId });
