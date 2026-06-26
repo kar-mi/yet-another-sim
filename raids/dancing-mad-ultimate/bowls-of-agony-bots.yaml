@@ -147,15 +147,15 @@ solvers:
       frame: [{ boss: { id: chaos, from: facing } }, { crystal : water }]
       mirrorLateral: true
       spots:
-        r1:   { r: 8.989, z: 16.694 }
-        r2:  { r: -0.279, z: 8.492 }
+        r1:  { r: 16.350, z: -8.174 }
+        r2:  { r: 7.279, z: 1.926 }
 
     - when: { mechanic: [longitude-implosion-front, longitude-implosion-back] }
       frame: [{ boss: { id: chaos, from: facing } }, { crystal : water }]
       mirrorLateral: true
       spots:
-        r1:  { r: 3.036, z: 18.696 }
-        r2: { r: -2.875, z: 11.331 }
+        r1: { r: 17.945, z: -1.896 }
+        r2: { r: 9.938, z: 4.780 }
 
     # Pre-park Exdeath on the inner wind line so its t:81 Vacuum Wave snapshot is stable per seed.
     - when: { static: true }

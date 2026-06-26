@@ -150,7 +150,9 @@ export function updateTowerMeshes(handle: TowerMeshes, tower: ActiveTower, time:
 
   // Falling object descends so its base meets the floor exactly at resolve.
   if (handle.fallingObject) {
-    handle.fallingObject.mesh.position.y = CYL_TOP + (handle.fallingObject.floorY - CYL_TOP) * progress;
+    const targetY = CYL_TOP + (handle.fallingObject.floorY - CYL_TOP) * progress;
+    // Clamp descent against backward render-clock corrections.
+    handle.fallingObject.mesh.position.y = Math.min(handle.fallingObject.mesh.position.y, targetY);
   }
 
   // Count circles: brighten the ones that currently have a valid soaker.
