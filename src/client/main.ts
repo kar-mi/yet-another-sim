@@ -138,6 +138,11 @@ async function main(): Promise<void> {
       sessionId = await showLanding({ notice: "Session expired" });
       continue;
     }
+    // Host leaving via Home stops the pull so the session is joinable again
+    // (claimSlot/claimObserver reject while running/paused).
+    if (session.isHost) {
+      net.send({ type: "stop" });
+    }
     if (session.yourPlayerId) {
       net.send({ type: "releaseSlot", playerId: session.yourPlayerId });
     } else {
