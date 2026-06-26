@@ -43,6 +43,7 @@ export type GenericSolverRule = {
     soaks?: boolean;
     plant?: string;    // the bot's assigned plant combo key (e.g. "right right"); active while it carries a plant debuff
     plantSlot?: number; // restrict to a specific plant slot (short/long); omit to match either
+    endingFacing?: { event: string; offset: number }; // matches world.endingOffsets[event]
   };
   startAt?: number;
   endAt?: number;
@@ -928,9 +929,11 @@ export type World = {
   // - partners: player id -> its paired player id (for when.partnerDebuff).
   // - playerGroups: player id -> its group label (for when.soaks vs a mechanic's group).
   // - initialCharges: player id -> the charge kind a `reassign` event's `initial: "plan"` deal applies.
+  // - endingOffsets: stored ending event id -> selected directionOffset.
   // - eventPositions: static positioned event id -> position (for explicit frame: [ids]).
   partners: Record<string, string>;
   playerGroups: Record<string, string>;
   initialCharges: Record<string, string>;
+  endingOffsets: Record<string, number>;
   eventPositions: Record<string, Vec2>;
 };

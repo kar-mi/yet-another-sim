@@ -46,6 +46,7 @@ const GenericSolverRuleSchema = z.object({
     soaks: z.boolean().optional(),               // bot's group vs the matched mechanic's group
     plant: z.string().min(1).optional(),  // the bot's assigned plant combo key (e.g. "right right")
     plantSlot: z.number().int().nonnegative().optional(), // restrict to a plant slot; omit to match either
+    endingFacing: z.object({ event: EventIdSchema, offset: z.number() }).optional(),
   }),
   startAt: z.number().nonnegative().optional(),
   endAt: z.number().nonnegative().optional(),
@@ -771,6 +772,11 @@ const OptionalsSchema = z.object({
       rng: z.boolean().default(false),
       patterns: z.array(PairingPatternSchema).min(1),
     }).optional(),
+    endings: z.object({
+      rng: z.boolean().default(false),
+      events: z.array(EventIdSchema).min(1),
+      offsets: z.array(z.number()),
+    }).optional(),
   }).optional(),
 }).optional();
 
@@ -1121,6 +1127,26 @@ export const RaidSchema = z.object({
           members.add(id);
         });
       });
+    });
+  }
+
+  const endings = raid.optionals?.combinations?.endings;
+  if (endings) {
+    if (endings.offsets.length !== endings.events.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["optionals", "combinations", "endings", "offsets"],
+        message: "endings offsets length must match events length",
+      });
+    }
+    endings.events.forEach((id, i) => {
+      if (!deferredAoeById.has(id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["optionals", "combinations", "endings", "events", i],
+          message: `ending event "${id}" must reference an aoe event with deferred:true`,
+        });
+      }
     });
   }
 }).transform(data => {

@@ -120,8 +120,20 @@ test("forsaken tower swaps alternate odd and even debuff distributions", async (
     }
     return counts;
   };
+  const assertEndingOffsets = (world: World) => {
+    const offsets = Object.values(world.endingOffsets);
+    expect(offsets).toHaveLength(4);
+    expect(offsets.filter(offset => offset === 0)).toHaveLength(2);
+    expect(offsets.filter(offset => offset === Math.PI)).toHaveLength(2);
+  };
+  const assertFullClear = (world: World) => {
+    expect(world.log.some(entry => entry.mechanic.startsWith("Forsaken Tower") && entry.event === "hit")).toBe(false);
+    expect(world.log.some(entry => entry.mechanic === "Clone Spread" && entry.event === "hit")).toBe(true);
+    expect(world.players.map(p => `${p.id}:${p.alive}`)).toEqual(world.players.map(p => `${p.id}:true`));
+  };
 
   let world = createWorld(applyBotPatterns(raid, bots), 1);
+  assertEndingOffsets(world);
   // Derive each tower wave's resolve (t + telegraph) and parity from the raid itself so the
   // checks follow the authored timing — they must not need updating when the timeline shifts.
   // After an odd wave the soakers swap to the even set (0/4/4), after an even wave to the odd
@@ -148,9 +160,13 @@ test("forsaken tower swaps alternate odd and even debuff distributions", async (
   // Full clear: no tower failures (failure logs a "hit" for the whole raid) and the all-bot
   // roster survives to the end — including the Clone Spread on the 4 closest at each All Ending.
   world = runTicksWithComputedBotIntents(world, Math.ceil((raid.duration - world.time) * 60));
-  expect(world.log.some(entry => entry.mechanic.startsWith("Forsaken Tower") && entry.event === "hit")).toBe(false);
-  expect(world.log.some(entry => entry.mechanic === "Clone Spread" && entry.event === "hit")).toBe(true);
-  expect(world.players.map(p => `${p.id}:${p.alive}`)).toEqual(world.players.map(p => `${p.id}:true`));
+  assertFullClear(world);
+
+  for (const seed of [2, 3, 4, 5, 6, 7, 8]) {
+    const seededWorld = createWorld(applyBotPatterns(raid, bots), seed);
+    assertEndingOffsets(seededWorld);
+    assertFullClear(runTicksWithComputedBotIntents(seededWorld, Math.ceil(raid.duration * 60)));
+  }
 });
 
 test("generic solver moves bots during a labeled tower window using a rotated frame", () => {

@@ -121,6 +121,29 @@ function rotateTowerWaves(
   return { events: result as RaidDef["events"], rngState: nextState };
 }
 
+type EndingCombination = NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["endings"];
+
+function buildEndingPlan(
+  endings: EndingCombination,
+  rngState: number,
+): { endingOffsets: Record<string, number>; rngState: number } {
+  if (!endings) return { endingOffsets: {}, rngState };
+
+  const offsets = [...endings.offsets];
+  let nextState = rngState;
+  if (endings.rng) {
+    for (let i = offsets.length - 1; i > 0; i--) {
+      const roll = randomInt(nextState, i + 1);
+      nextState = roll.state;
+      [offsets[i], offsets[roll.value]] = [offsets[roll.value]!, offsets[i]!];
+    }
+  }
+
+  const endingOffsets: Record<string, number> = {};
+  endings.events.forEach((eventId, i) => { endingOffsets[eventId] = offsets[i]!; });
+  return { endingOffsets, rngState: nextState };
+}
+
 // Select a pairing pattern (seeded when `rng`) and derive the generic maps any mechanic can consume:
 // partners (paired player), playerGroups (each pair's declared group label), and initialCharges
 // (each member's declared charge kind — the opener deal of the `reassign` event).
@@ -233,7 +256,11 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   // reassign opener.
   const { partners, playerGroups, initialCharges, rngState: afterPairingRngState } = buildPairingPlan(raid, afterPlantRngState);
   const { crystals, rngState: afterCrystalRngState } = placeCrystals(raid.crystals, afterPairingRngState);
-  const { events: effectiveEvents, rngState } = rotateTowerWaves(raid.events, raid.optionals?.towerRng, afterCrystalRngState);
+  const { events: rotatedEvents, rngState: afterTowerRngState } = rotateTowerWaves(raid.events, raid.optionals?.towerRng, afterCrystalRngState);
+  const { endingOffsets, rngState } = buildEndingPlan(raid.optionals?.combinations?.endings, afterTowerRngState);
+  const effectiveEvents = rotatedEvents.map(e =>
+    endingOffsets[e.id] === undefined ? e : { ...e, directionOffset: endingOffsets[e.id] },
+  ) as RaidDef["events"];
   const plantDebuffOrder = raid.optionals?.combinations?.plant?.debuffOrder;
 
   // One collection per World pending/resolver field; keys match the World field names exactly so the
@@ -308,6 +335,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     partners,
     playerGroups,
     initialCharges,
+    endingOffsets,
     eventPositions,
   };
 }

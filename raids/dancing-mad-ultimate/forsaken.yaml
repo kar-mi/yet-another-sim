@@ -1,5 +1,5 @@
 # Forsaken — eight two-player tower soaks with charge-debuff resolutions,
-# interleaved with stored Past/Future Ending cones baited on the closest player.
+# interleaved with seeded Past/Future Ending cones baited on the closest player.
 
 name: Forsaken
 arena:
@@ -59,6 +59,10 @@ players:
 optionals:
   towerRng: true
   combinations:
+    endings:
+      rng: true
+      events: [ending-store-1, ending-store-2, ending-store-3, ending-store-4]
+      offsets: [0, 0, 3.141592653589793, 3.141592653589793]
     pairings:
       rng: true
       patterns:
@@ -102,9 +106,9 @@ _towerBase: &towerBase
     cylinderThickness: 3.5
     fallingObjectAlpha: 0.7
 
-# Deferred half-arena (180°) ending cone, stored then baited. Each instance sets its own
-# directionOffset at store time: 0 = Future (front, toward the baited player), π = Past (rear,
-# away from the baited player). The boss only turns when the linked bait fires.
+# Deferred half-arena (180°) ending cone, stored then baited. Forsaken shuffles exactly two
+# Future/front (0) and two Past/rear (π) offsets across the four stores each run; each authored
+# directionOffset remains the off-RNG fallback. The boss only turns when the linked bait fires.
 _endingBase: &endingBase
   type: aoe
   deferred: true
@@ -244,7 +248,7 @@ events:
     time: 25
     name: Tower 2 Recovery
 
-  # Ending 1 (Future / front) — cast 15→21 (stored as the clone bait appears), baited at 28.
+  # Ending 1 (seeded Future/Past; authored fallback Future) — cast 15→21, baited at 28.
   - <<: *endingBase
     id: ending-store-1
     time: 15.0
@@ -300,7 +304,7 @@ events:
     time: 45
     name: Tower 4 Recovery
 
-  # Ending 2 (Past / rear) — cast 35→41 (stored as the clone bait appears), baited at 48.
+  # Ending 2 (seeded Future/Past; authored fallback Past) — cast 35→41, baited at 48.
   - <<: *endingBase
     id: ending-store-2
     time: 35.0
@@ -355,7 +359,7 @@ events:
     time: 65
     name: Tower 6 Recovery
 
-  # Ending 3 (Future / front) — cast 57→63 (stored as the clone bait appears), baited at 68.
+  # Ending 3 (seeded Future/Past; authored fallback Future) — cast 57→63, baited at 68.
   - <<: *endingBase
     id: ending-store-3
     time: 57.0
@@ -411,7 +415,7 @@ events:
     time: 85
     name: Tower Recovery
 
-  # Ending 4 (Past / rear) — cast 75→81 (stored as the clone bait appears), then the closing raidwide. 88
+  # Ending 4 (seeded Future/Past; authored fallback Past) — cast 75→81, then the closing raidwide. 88
   - <<: *endingBase
     id: ending-store-4
     time: 75.0

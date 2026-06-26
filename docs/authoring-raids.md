@@ -1332,8 +1332,8 @@ behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay
 ## Optional combinations
 
 The optional top-level `optionals` block holds per-mechanic pools that the engine assigns to players
-at the start of a run (seeded, so it's reproducible): **plant** and **pairings** combinations, plus
-the standalone **`towerRng`** flag (`optionals.towerRng: true` seeds a per-run rotation of tower-wave
+at the start of a run (seeded, so it's reproducible): **plant**, **pairings**, and **endings**
+combinations, plus the standalone **`towerRng`** flag (`optionals.towerRng: true` seeds a per-run rotation of tower-wave
 positions around their canonical ring). Excerpt from `raids/dancing-mad-ultimate/graven-image-3.yaml`:
 
 ```yaml
@@ -1406,6 +1406,13 @@ optionals:
   carries — must match a `kind` in the consuming `reassign` event's `charges`).
 - Validation: a player may appear in at most one pair per pattern, and all ids must exist in the
   roster. A pattern may cover a subset of the roster — unlisted players simply get no pairing.
+
+### `endings`
+
+Assigns `directionOffset` values to stored deferred AoEs at world creation. `events` lists the
+deferred AoE ids, `offsets` lists the candidate offsets, and `rng: true` shuffles the offsets per
+seed before zipping them onto the events; `rng: false` uses the listed order. The selected values are
+stored in `world.endingOffsets` for bot-solver `when.endingFacing`.
 
 ## Bot patterns
 

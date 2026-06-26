@@ -185,9 +185,10 @@ function ruleMatches(rule: GenericSolverRule, player: Player, world: World, mech
   // `static: true` adds no filter, making the rule always active subject to the optional clamps
   // and any other conditions. The schema requires the explicit flag instead of allowing an
   // accidental empty-object catch-all.
-  const { mechanic, role, debuff, partnerDebuff, soaks, plant, plantSlot } = rule.when;
+  const { mechanic, role, debuff, partnerDebuff, soaks, plant, plantSlot, endingFacing } = rule.when;
   if (role !== undefined && player.role !== role) return null;
   if (debuff !== undefined && !hasAllDebuffs(player, debuff, time)) return null;
+  if (endingFacing !== undefined && world.endingOffsets?.[endingFacing.event] !== endingFacing.offset) return null;
   if (partnerDebuff !== undefined) {
     const partner = world.players.find(p => p.id === world.partners?.[player.id]);
     if (!partner || !hasAllDebuffs(partner, partnerDebuff, time)) return null;

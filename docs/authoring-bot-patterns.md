@@ -84,6 +84,7 @@ A rule has:
     active while the bot carries a plant debuff. Add `plantSlot` (0 = short, 1 = long) to target one slot;
     omit it to match either. One `(combo, slot) → spot` rule per placement, e.g.
     `- { when: { plant: right right, plantSlot: 0 }, spot: { x: 0, z: 12 } }`.
+  - `endingFacing` — `{ event, offset }`, matched against `world.endingOffsets[event] === offset` for seeded stored-ending directions.
 - `startAt` / `endAt` — optional absolute time clamps on the activation window.
 - `frame` — optional rotated coordinate frame for the spot(s). It is either `"matched"` or a **list of
   references** whose positions are summed and normalized to set north. If a reference list contains

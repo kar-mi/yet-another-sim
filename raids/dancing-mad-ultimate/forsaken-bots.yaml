@@ -43,18 +43,23 @@ solvers:
   generic:
     # --- Endings: everyone clusters at max melee on one side so the closest baits, and the 180°
     #     stored cone fires into the empty hemisphere. The frame north is the coincident tower
-    #     wave's bisector (continued 45° rotation lands bait 4 on wave 1). Past (rear cone) baits
-    #     toward the towers (+north) so the rear cleave fires away; Future (front cone) baits on
-    #     the far side (-north) so the front cleave fires away; both then soak the tower (+north).
+    #     wave's bisector (continued 45° rotation lands bait 4 on wave 1). The rolled ending offset
+    #     chooses the side: Past/rear (π) baits toward the towers (+north), Future/front (0) baits
+    #     on the far side (-north); both then soak the tower (+north).
     # Timing: the cluster forms in the 4s before each All Ending bait picks its target at cast start
     # (all-ending-1/2/3/4 at t=28/48/68/88), gated by startAt/endAt. The whole-encounter
     # boss-facing-lock is just the always-live mechanic that keeps the rule eligible.
-    - { when: { mechanic: boss-facing-lock }, startAt: 24, endAt: 28, frame: [tower-3-left, tower-3-right], spot: { r: 0, z: -6 } } # Future, all-ending-1 @31
-    - { when: { mechanic: boss-facing-lock }, startAt: 44, endAt: 49, frame: [tower-5-left, tower-5-right], spot: { r: 0, z: 6 } }  # Past,   all-ending-2 @51
-    - { when: { mechanic: boss-facing-lock }, startAt: 64, endAt: 68, frame: [tower-7-left, tower-7-right], spot: { r: 0, z: -6 } } # Future, all-ending-3 @71
-    # Ending 4 has no following tower to hand off to, so hold the cluster through the rear cone's
-    # resolve (all-ending-4 fires at 96) instead of stopping at the bait's targeting tick.
-    - { when: { mechanic: boss-facing-lock }, startAt: 84, endAt: 93, frame: [tower-1-left, tower-1-right], spot: { r: 0, z: 6 } }  # Past,   all-ending-4 @91, cone @96
+    - { when: { mechanic: boss-facing-lock, endingFacing: { event: ending-store-1, offset: 0 } }, startAt: 24, endAt: 28, frame: [tower-3-left, tower-3-right], spot: { r: 0, z: -6 } } # Future, all-ending-1
+    - { when: { mechanic: boss-facing-lock, endingFacing: { event: ending-store-1, offset: 3.141592653589793 } }, startAt: 24, endAt: 28, frame: [tower-3-left, tower-3-right], spot: { r: 0, z: 6 } } # Past, all-ending-1
+    - { when: { mechanic: boss-facing-lock, endingFacing: { event: ending-store-2, offset: 0 } }, startAt: 44, endAt: 49, frame: [tower-5-left, tower-5-right], spot: { r: 0, z: -6 } } # Future, all-ending-2
+    - { when: { mechanic: boss-facing-lock, endingFacing: { event: ending-store-2, offset: 3.141592653589793 } }, startAt: 44, endAt: 49, frame: [tower-5-left, tower-5-right], spot: { r: 0, z: 6 } } # Past, all-ending-2
+    - { when: { mechanic: boss-facing-lock, endingFacing: { event: ending-store-3, offset: 0 } }, startAt: 64, endAt: 68, frame: [tower-7-left, tower-7-right], spot: { r: 0, z: -6 } } # Future, all-ending-3
+    - { when: { mechanic: boss-facing-lock, endingFacing: { event: ending-store-3, offset: 3.141592653589793 } }, startAt: 64, endAt: 68, frame: [tower-7-left, tower-7-right], spot: { r: 0, z: 6 } } # Past, all-ending-3
+    # Ending 4 has no following tower to hand off to: Past holds the bait side through rear-cone
+    # resolve; Future baits on the far side until target lock, then crosses away from the front cone.
+    - { when: { mechanic: boss-facing-lock, endingFacing: { event: ending-store-4, offset: 0 } }, startAt: 84, endAt: 88, frame: [tower-1-left, tower-1-right], spot: { r: 0, z: -6 } } # Future bait, all-ending-4
+    - { when: { mechanic: boss-facing-lock, endingFacing: { event: ending-store-4, offset: 0 } }, startAt: 88, endAt: 93, frame: [tower-1-left, tower-1-right], spot: { r: 0, z: 6 } } # Future dodge, all-ending-4
+    - { when: { mechanic: boss-facing-lock, endingFacing: { event: ending-store-4, offset: 3.141592653589793 } }, startAt: 84, endAt: 93, frame: [tower-1-left, tower-1-right], spot: { r: 0, z: 6 } } # Past, all-ending-4
 
     # --- Odd tower waves (one stack pair + cone + defam soak the two towers; the off-group
     #     supports the soak). Frame north = the wave's tower bisector.
