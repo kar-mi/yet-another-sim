@@ -1,5 +1,5 @@
 # Forsaken — eight two-player tower soaks with charge-debuff resolutions,
-# interleaved with stored Past/Future Ending cones baited on the closest player.
+# interleaved with seeded Past/Future Ending cones baited on the closest player.
 
 name: Forsaken
 arena:
@@ -8,7 +8,7 @@ arena:
     - kind: circle
       center: { x: 0, z: 0 }
       radius: 20
-duration: 118
+duration: 123
 boss:
   pos: { x: 0, z: 0 }
   radius: 3
@@ -59,6 +59,16 @@ players:
 optionals:
   towerRng: true
   combinations:
+    endings:
+      rng: true
+      events: [ending-store-1, ending-store-2, ending-store-3, ending-store-4]
+      # 2 Future + 2 Past, shuffled across the 4 slots; each rolled variant overrides the
+      # store event's directionOffset AND its cast-bar name so the label matches the cone.
+      variants:
+        - { offset: 0, name: Future Ending }
+        - { offset: 0, name: Future Ending }
+        - { offset: 3.141592653589793, name: Past Ending }
+        - { offset: 3.141592653589793, name: Past Ending }
     pairings:
       rng: true
       patterns:
@@ -102,9 +112,9 @@ _towerBase: &towerBase
     cylinderThickness: 3.5
     fallingObjectAlpha: 0.7
 
-# Deferred half-arena (180°) ending cone, stored then baited. Each instance sets its own
-# directionOffset at store time: 0 = Future (front, toward the baited player), π = Past (rear,
-# away from the baited player). The boss only turns when the linked bait fires.
+# Deferred half-arena (180°) ending cone, stored then baited. Forsaken shuffles exactly two
+# Future/front (0) and two Past/rear (π) offsets across the four stores each run; each authored
+# directionOffset remains the off-RNG fallback. The boss only turns when the linked bait fires.
 _endingBase: &endingBase
   type: aoe
   deferred: true
@@ -127,7 +137,7 @@ _allEndingBase: &allEndingBase
 
 # Spread the clones drop on the 4 closest players as each even tower resolves (no cast bar).
 # Each spread's t is set so its telegraph ends on its even tower's resolve tick (tower-2/4/6/8 at
-# 23/43/63/83), i.e. t = towerResolve - telegraph.
+# 28/48/68/88), i.e. t = towerResolve - telegraph.
 _cloneSpreadBase: &cloneSpreadBase
   type: targeted
   name: Clone Spread
@@ -146,7 +156,7 @@ events:
     id: boss-facing-lock
     time: 0
     name: Forsaken Boss Facing
-    telegraph: 118
+    telegraph: 123
     damage: 0
     damageType: "true"
     lockFacing: true
@@ -174,9 +184,9 @@ events:
   # Opener — raidwide plus pair/assignment distribution.
   - type: aoe
     id: forsaken-raidwide
-    time: 0
+    time: 3
     name: Forsaken
-    telegraph: 3
+    telegraph: 5
     damage: 25
     damageType: magical
     showCastBar: true
@@ -188,7 +198,7 @@ events:
   # wave's target counts, dealt to the just-resolved soakers in roster order.
   - type: reassign
     id: forsaken-charges
-    time: 0
+    time: 7 #second early , but can change to 8 with better head icons
     name: Forsaken Assignment
     initial: plan
     onResolve:
@@ -208,220 +218,220 @@ events:
   # Towers 1-2 (A side).
   - <<: *towerBase
     id: tower-1-left
-    time: 3.0
+    time: 8.0
     name: Forsaken Tower 1 Left (A)
     labels: [tower-odd]
     group: A
     pos: *posW
   - <<: *towerBase
     id: tower-1-right
-    time: 3.0
+    time: 8.0
     name: Forsaken Tower 1 Right (A)
     labels: [tower-odd]
     group: A
     pos: *posN
   - type: heal
     id: heal-after-tower-1
-    time: 15
+    time: 20
     name: Tower 1 Recovery
 
   - <<: *towerBase
     id: tower-2-left
-    time: 13.0
+    time: 18.0
     name: Forsaken Tower 2 Left (A)
     labels: [tower-even]
     group: A
     pos: *posNW
   - <<: *towerBase
     id: tower-2-right
-    time: 13.0
+    time: 18.0
     name: Forsaken Tower 2 Right (A)
     labels: [tower-even]
     group: A
     pos: *posNE
   - type: heal
     id: heal-after-tower-2
-    time: 25
+    time: 30
     name: Tower 2 Recovery
 
-  # Ending 1 (Future / front) — cast 15→21 (stored as the clone bait appears), baited at 28.
+  # Ending 1 (seeded Future/Past; authored fallback Future) — cast 20→26, baited at 33.
   - <<: *endingBase
     id: ending-store-1
-    time: 15.0
+    time: 20.0
     name: Future Ending
     directionOffset: 0
     telegraph: 6
     showCastBar: true
   - <<: *allEndingBase
     id: all-ending-1
-    time: 28.0
+    time: 33.0
     name: All Ending
     link: ending-store-1
   - <<: *cloneSpreadBase
     id: clone-spread-1
-    time: 18.0 # resolves with tower-2 @23
+    time: 23.0 # resolves with tower-2 @28
     telegraph: 5
 
   - <<: *towerBase
     id: tower-3-left
-    time: 23.0
+    time: 28.0
     name: Forsaken Tower 3 Left (A)
     labels: [tower-odd]
     group: A
     pos: *posN
   - <<: *towerBase
     id: tower-3-right
-    time: 23.0
+    time: 28.0
     name: Forsaken Tower 3 Right (A)
     labels: [tower-odd]
     group: A
     pos: *posE
   - type: heal
     id: heal-after-tower-3
-    time: 35
+    time: 40
     name: Tower 3 Recovery
 
   - <<: *towerBase
     id: tower-4-left
-    time: 33.0
+    time: 38.0
     name: Forsaken Tower 4 Left (B)
     labels: [tower-even]
     group: B
     pos: *posNE
   - <<: *towerBase
     id: tower-4-right
-    time: 33.0
+    time: 38.0
     name: Forsaken Tower 4 Right (B)
     labels: [tower-even]
     group: B
     pos: *posSE
   - type: heal
     id: heal-after-tower-4
-    time: 45
+    time: 50
     name: Tower 4 Recovery
 
-  # Ending 2 (Past / rear) — cast 35→41 (stored as the clone bait appears), baited at 48.
+  # Ending 2 (seeded Future/Past; authored fallback Past) — cast 40→46, baited at 53.
   - <<: *endingBase
     id: ending-store-2
-    time: 35.0
+    time: 40.0
     name: Past Ending
     directionOffset: 3.141592653589793
     telegraph: 6
     showCastBar: true
   - <<: *allEndingBase
     id: all-ending-2
-    time: 48.0
+    time: 53.0
     name: All Ending
     link: ending-store-2
   - <<: *cloneSpreadBase
     id: clone-spread-2
-    time: 38.0 # resolves with tower-4 @43
+    time: 43.0 # resolves with tower-4 @48
 
   - <<: *towerBase
     id: tower-5-left
-    time: 43.0
+    time: 48.0
     name: Forsaken Tower 5 Left (B)
     labels: [tower-odd]
     group: B
     pos: *posE
   - <<: *towerBase
     id: tower-5-right
-    time: 43.0
+    time: 48.0
     name: Forsaken Tower 5 Right (B)
     labels: [tower-odd]
     group: B
     pos: *posS
   - type: heal
     id: heal-after-tower-5
-    time: 55
+    time: 60
     name: Tower 5 Recovery
 
   - <<: *towerBase
     id: tower-6-left
-    time: 53.0
+    time: 58.0
     name: Forsaken Tower 6 Left (B)
     labels: [tower-even]
     group: B
     pos: *posSE
   - <<: *towerBase
     id: tower-6-right
-    time: 53.0
+    time: 58.0
     name: Forsaken Tower 6 Right (B)
     labels: [tower-even]
     group: B
     pos: *posSW
   - type: heal
     id: heal-after-tower-6
-    time: 65
+    time: 70
     name: Tower 6 Recovery
 
-  # Ending 3 (Future / front) — cast 57→63 (stored as the clone bait appears), baited at 68.
+  # Ending 3 (seeded Future/Past; authored fallback Future) — cast 62→68, baited at 73.
   - <<: *endingBase
     id: ending-store-3
-    time: 57.0
+    time: 62.0
     name: Future Ending
     directionOffset: 0
     telegraph: 6
     showCastBar: true
   - <<: *allEndingBase
     id: all-ending-3
-    time: 68.0
+    time: 73.0
     name: All Ending
     link: ending-store-3
   - <<: *cloneSpreadBase
     id: clone-spread-3
-    time: 58.0 # resolves with tower-6 @63
+    time: 63.0 # resolves with tower-6 @68
     telegraph: 5
 
   - <<: *towerBase
     id: tower-7-left
-    time: 63.0
+    time: 68.0
     name: Forsaken Tower 7 Left (B)
     labels: [tower-odd]
     group: B
     pos: *posS
   - <<: *towerBase
     id: tower-7-right
-    time: 63.0
+    time: 68.0
     name: Forsaken Tower 7 Right (B)
     labels: [tower-odd]
     group: B
     pos: *posW
   - type: heal
     id: heal-after-tower-7
-    time: 75
+    time: 80
     name: Tower 7 Recovery
 
   - <<: *towerBase
     id: tower-8-left
-    time: 73.0
+    time: 78.0
     name: Forsaken Tower 8 Left (A)
     labels: [tower-even]
     group: A
     pos: *posSW
   - <<: *towerBase
     id: tower-8-right
-    time: 73.0
+    time: 78.0
     name: Forsaken Tower 8 Right (A)
     labels: [tower-even]
     group: A
     pos: *posNW
   - type: heal
     id: heal-after-tower-8
-    time: 85
+    time: 90
     name: Tower Recovery
 
-  # Ending 4 (Past / rear) — cast 75→81 (stored as the clone bait appears), then the closing raidwide. 88
+  # Ending 4 (seeded Future/Past; authored fallback Past) — cast 80→86, then the closing raidwide. 93
   - <<: *endingBase
     id: ending-store-4
-    time: 75.0
+    time: 80.0
     name: Past Ending
     directionOffset: 3.141592653589793
     telegraph: 6
     showCastBar: true
   - <<: *allEndingBase
     id: all-ending-4
-    time: 88.0
+    time: 93.0
     name: All Ending
     # No tower follows ending 4, so the bait itself is labeled to hold the cluster (away from the
     # rear cleave) through resolve. Earlier baits hand off to their coincident tower instead.
@@ -429,11 +439,11 @@ events:
     link: ending-store-4
   - <<: *cloneSpreadBase
     id: clone-spread-4
-    time: 78.0 # resolves with tower-8 @83
+    time: 83.0 # resolves with tower-8 @88
 
   - type: aoe
     id: forsaken-end-raidwide
-    time: 103.0
+    time: 108.0
     name: Forsaken Ends
     telegraph: 3
     damage: 35
