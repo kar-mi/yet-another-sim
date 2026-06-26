@@ -23,6 +23,12 @@ crystals:
   spawnAt: 24
   spots: [{ x: -9, z: 9 }, { x: 9, z: 9 }, { x: 9, z: -9 }, { x: -9, z: -9 }]
   rng: true
+optionals:
+  orderSwap:
+    rng: true
+    groups:
+      - [latitude-implosion-left, latitude-implosion-right]
+      - [longitude-implosion-front, longitude-implosion-back]
 
 players:
   - { id: mt, role: tank,   spawn: { x: 0, z: 6 } }
@@ -286,6 +292,19 @@ events:
     damageType: magical
 
   - type: aoe
+    id: implosion-facing-hold
+    time: 60
+    name: Implosion Facing Hold
+    telegraph: 8
+    damage: 0
+    damageType: magical
+    lockFacing: true
+    bossStationary: true
+    showCastBar: false
+    showTelegraph: false
+    bossId: chaos
+    shape: { kind: circle, center: { x: 999, z: 999 }, radius: 0.1 }
+  - type: aoe
     id: latitude-implosion-left
     time: 60
     name: Latitude Implosion
@@ -320,9 +339,9 @@ events:
 
   - type: aoe
     id: longitude-implosion-front
-    time: 60
+    time: 66
     name: Longitude Implosion
-    telegraph: 8
+    telegraph: 2
     damage: 200
     damageType: magical
     anchor: boss
@@ -336,9 +355,9 @@ events:
     shape: { kind: cone, angleDeg: 90, length: 44 }
   - type: aoe
     id: longitude-implosion-back
-    time: 60
+    time: 66
     name: Longitude Implosion
-    telegraph: 8
+    telegraph: 2
     damage: 200
     damageType: magical
     anchor: boss

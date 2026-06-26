@@ -1333,8 +1333,12 @@ behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay
 
 The optional top-level `optionals` block holds per-mechanic pools that the engine assigns to players
 at the start of a run (seeded, so it's reproducible): **plant**, **pairings**, and **endings**
-combinations, plus the standalone **`towerRng`** flag (`optionals.towerRng: true` seeds a per-run rotation of tower-wave
-positions around their canonical ring). Excerpt from `raids/dancing-mad-ultimate/graven-image-3.yaml`:
+combinations, plus standalone **`towerRng`** and **`orderSwap`** helpers. `optionals.towerRng: true`
+seeds a per-run rotation of tower-wave positions around their canonical ring. `optionals.orderSwap`
+can seed a per-run swap of cast timing between exactly two groups of event ids: when it rolls, the
+groups exchange `time`/`telegraph` while keeping their ids, names, damage, and shapes. Every event
+within a group must share the same `time` and `telegraph`. Excerpt from
+`raids/dancing-mad-ultimate/graven-image-3.yaml`:
 
 ```yaml
 optionals:

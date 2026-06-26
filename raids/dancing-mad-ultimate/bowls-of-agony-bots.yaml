@@ -107,8 +107,9 @@ solvers:
         r1: { r: -4, z: 14 } #adjust this, so that its in line with the south intercard of the boss if boss was at wind
         r2: { r: 4, z: 10 }
 
-    # Latitude/Longitude is one six-second cast (starts t:60) resolving as two staggered hits:
-    # Latitude (left/right = E/W cones) at t:66, then Longitude (front/back = N/S cones) at t:68.
+    # Latitude/Longitude order is seeded RNG, authored as two staggered cast slots:
+    # first implosion resolves at t:66, then the other resolves at t:68. Only one implosion is live
+    # at a time, so the mechanic-gated rules below dodge whichever cast is currently active.
     # The cones reach length 44 (whole arena), so distance can't save you -- everyone sits ON an
     # intercardinal of Chaos and steps ~2 degrees across whichever cone edge is firing (89->91).
     # Solved in the Chaos-facing frame (north = locked facing): angle 0 = front (toward MT), 90 =
@@ -117,8 +118,8 @@ solvers:
     #   mt/ot/h1/h2 -> NE intercard (45): latitude 44, longitude 46.
     #   m1/m2       -> NW intercard (315): latitude 316, longitude 314.
     #   r1/r2       -> nearest back intercard, far out: SW(225) 224/226 or SE(135) 136/134 based on crystal
-    # Latitude (E/W) fires first -> sit off the E/W cone (44/316/224/136); Longitude (N/S) -> the
-    # other side (46/314/226/134). The 2-degree straddle is a tiny move that fits the 2s gap.
+    # Latitude (E/W) -> sit off the E/W cone (44/316/224/136); Longitude (N/S) -> the
+    # other side (46/314/226/134). The 2-degree straddle is a tiny move that fits the 2s gap in either order.
 
     #  - Latitude, angle 224°, R 16→25.1 → { r: -17.4, z: -6.2 } (dist ≈18.5)
   #- Longitude, angle 226°, R 16→24.7 → { r: -17.7, z: -5.2 } (dist ≈18.5)
