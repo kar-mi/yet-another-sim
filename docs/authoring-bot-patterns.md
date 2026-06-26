@@ -86,7 +86,9 @@ A rule has:
     `- { when: { plant: right right, plantSlot: 0 }, spot: { x: 0, z: 12 } }`.
 - `startAt` / `endAt` — optional absolute time clamps on the activation window.
 - `frame` — optional rotated coordinate frame for the spot(s). It is either `"matched"` or a **list of
-  references** whose positions are summed and normalized to set north. `"matched"` sets north to the
+  references** whose positions are summed and normalized to set north. If a reference list contains
+  `{ boss: { from: facing } }`, that facing direction sets north directly instead; the other
+  references in the same list affect only `mirrorLateral` handedness. `"matched"` sets north to the
   bisector of the live matched mechanics' positions (e.g. a wave's two towers — requires
   `when.mechanic`). Each reference in the list is one of: an **event id** (a positioned event such as a
   tower, using its **static** position); `{ crystal: wind }` (or `fire` / `water`, the resolved
@@ -102,7 +104,8 @@ A rule has:
 - `mirrorLateral` — optional for a reference-list frame that includes `{ boss: { from: facing } }`.
   When `true`, the frame's lateral axis flips if the other references lie on the boss's left. Use it
   when opposite crystal configurations should mirror the same authored `{ r, z }` spot rather than
-  merely rotate it.
+  merely rotate it. Those other references decide only the left/right handedness; they do not rotate
+  north when boss facing is present.
 - `spots` and/or `spot`; `spots[id]` wins. Unframed rules use absolute world positions `{ x, z }`.
   Framed rules require relative `{ r, z }` or polar `{ dist, angleDeg }` positions. Polar spots are
   rejected on unframed rules.

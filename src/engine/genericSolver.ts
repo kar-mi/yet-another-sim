@@ -242,6 +242,14 @@ function frameNorth(frame: NonNullable<GenericSolverRule["frame"]>, matched: Res
   if (frame === "matched") {
     for (const m of matched) if (m.pos) sum = add(sum, m.pos);
   } else {
+    const facingRef = frame.find(ref =>
+      typeof ref !== "string" && "boss" in ref && ref.boss.from === "facing");
+    if (facingRef) {
+      // Boss facing is already a direction, so it sets north directly. Other positioned refs in
+      // the list only affect mirrorLateral handedness via genericFrameRightSign.
+      const facing = refToVec(facingRef, world);
+      return facing ? normalize(facing) : undefined;
+    }
     for (const ref of frame) {
       const pos = refToVec(ref, world);
       if (pos) sum = add(sum, pos);
