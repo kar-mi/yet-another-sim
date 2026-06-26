@@ -1,3 +1,4 @@
+import { ColyseusTransport } from "./colyseusTransport";
 import { type ClientMessage, type Frame, type ServerMessage } from "@shared/protocol";
 import type { Boss, Intent, Player, World } from "@shared/types";
 import { length, shortestAngleDelta, sub, type Vec2 } from "@shared/math";
@@ -47,98 +48,12 @@ const CLOCK_SMOOTH = 0.02;
 // and ≈0.17 over 30s at 60Hz: a delivery-stall spike keeps the playout floor elevated across the
 // several-second gaps between stalls (so they don't re-underrun) before fading on a clean link.
 const GAP_DECAY = 0.999;
-const RECONNECT_INITIAL_MS = 500;
-const RECONNECT_MAX_MS = 8000;
 // Report a world hash this often (in ticks) so the server can detect cross-client desync.
 const HASH_INTERVAL = 300;
 // Host sends a world snapshot this often; replay tail on late join is bounded by this interval.
 const SNAPSHOT_INTERVAL = 600;
 const BOSS_SNAP_THRESHOLD = 3;
 
-export class WebSocketTransport implements Transport {
-  private ws: WebSocket | null = null;
-  private messageHandler: (message: ServerMessage) => void = () => {};
-  private reconnectHandler: () => void = () => {};
-  private closing = false;
-  private opened = false;
-  private reconnectDelay = RECONNECT_INITIAL_MS;
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-
-  constructor(private readonly url: string) {}
-
-  open(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const ws = this.attachSocket();
-      ws.addEventListener("open", () => {
-        this.opened = true;
-        resolve();
-      }, { once: true });
-      ws.addEventListener("error", () => reject(new Error("Failed to connect to server")), { once: true });
-    });
-  }
-
-  send(message: ClientMessage): boolean {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return false;
-    this.ws.send(JSON.stringify(message));
-    return true;
-  }
-
-  onMessage(cb: (message: ServerMessage) => void): void {
-    this.messageHandler = cb;
-  }
-
-  onReconnect(cb: () => void): void {
-    this.reconnectHandler = cb;
-  }
-
-  close(): void {
-    this.closing = true;
-    if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
-    this.ws?.close();
-    this.ws = null;
-  }
-
-  private attachSocket(): WebSocket {
-    const ws = new WebSocket(this.url);
-    this.ws = ws;
-    ws.addEventListener("message", event => {
-      if (typeof event.data !== "string") return;
-      let message: ServerMessage;
-      try {
-        message = JSON.parse(event.data) as ServerMessage;
-      } catch {
-        return;
-      }
-      if (!message || typeof message.type !== "string") return;
-      this.messageHandler(message);
-    });
-    ws.addEventListener("close", () => {
-      if (this.ws === ws) this.ws = null;
-      if (!this.closing && this.opened) this.scheduleReconnect();
-    });
-    return ws;
-  }
-
-  private scheduleReconnect(): void {
-    if (this.reconnectTimer || this.closing) return;
-    const delay = this.reconnectDelay;
-    this.reconnectDelay = Math.min(this.reconnectDelay * 2, RECONNECT_MAX_MS);
-    this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = null;
-      const ws = this.attachSocket();
-      ws.addEventListener("open", () => {
-        this.reconnectDelay = RECONNECT_INITIAL_MS;
-        this.reconnectHandler();
-      }, { once: true });
-    }, delay);
-  }
-}
-
-type Snapshot = { t: number; world: World };
-
-// Server-relayed deterministic lockstep: every client runs the engine locally. The server sends the
-// initial world plus a stream of input frames; stepping `tick()` from the same seed + frames yields
-// a byte-identical world on every client. No world snapshots are ever sent during play.
 export class NetClient {
   clientId: string | null = null;
 
@@ -490,8 +405,9 @@ export async function connect(): Promise<NetClient> {
     const { LoopbackTransport } = await import("./loopbackTransport");
     transport = new LoopbackTransport();
   } else {
+    const
     const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-    transport = new WebSocketTransport(`${protocol}//${location.host}`);
+    transport = new ColyseusTransport(`${protocol}//${location.host}`);
   }
   const client = new NetClient(transport);
   await client.open();
