@@ -153,13 +153,19 @@ events:
     id: headwind-assign
     time: 24
     name: Headwind
-    players: [mt, h1, m1, m2]
+    players: [mt, ot, h1, h2, r1, r2, m1, m2]
+    count: 4
+    rng: true
+    assignGroup: wind-debuffs
     applyEffect: *headwind
   - type: apply_effect
     id: tailwind-assign
     time: 24
     name: Tailwind
-    players: [ot, h2, r1, r2]
+    players: [mt, ot, h1, h2, r1, r2, m1, m2]
+    count: 4
+    rng: true
+    assignGroup: wind-debuffs
     applyEffect: *tailwind
   - type: apply_effect
     id: entropy-support
