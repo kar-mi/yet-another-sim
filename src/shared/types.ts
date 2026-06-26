@@ -662,7 +662,10 @@ export type PendingApplyEffect = {
   count?: number;
   assignGroup?: string;
   rng: boolean;
-  applyEffect: EffectSpec;
+  applyEffect?: EffectSpec;
+  applyEffectChoices?: [EffectSpec, EffectSpec];
+  effectChoiceGroup?: string;
+  effectChoiceComplement?: boolean;
 };
 
 export type ActiveGroupMechanic = {

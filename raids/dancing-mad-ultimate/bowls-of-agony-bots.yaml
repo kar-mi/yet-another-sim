@@ -68,10 +68,17 @@ solvers:
 
 
         #range go to crystal based on which debuff is the short one
-    - when: { static: true } # TODO: gate on entropy-short debuff when that mechanic exists
+    - when: { debuff: Entropy Short }
       startAt: 24
       endAt: 43
       frame: [{ crystal: fire }]
+      spots:
+        r1: { r: -5, z: 14 }
+        r2: { r: 5, z: 14 }
+    - when: { debuff: Dynamic Fluid Short }
+      startAt: 24
+      endAt: 43
+      frame: [{ crystal: water }]
       spots:
         r1: { r: -5, z: 14 }
         r2: { r: 5, z: 14 }
@@ -99,7 +106,15 @@ solvers:
         m2: { r: -6, z: 16 }
         h2: { r: 6, z: 16 }
 
-    - when: { static: true } # TODO: gate on fluid-long debuff when that mechanic exists, 
+    - when: { debuff: Entropy Long }
+      startAt: 53
+      endAt: 60
+      frame: [{ crystal: fire }]
+      spots:
+        r1: { r: -4, z: 14 } #adjust this, so that its in line with the south intercard of the boss if boss was at wind
+        r2: { r: 4, z: 10 }
+
+    - when: { debuff: Dynamic Fluid Long }
       startAt: 53
       endAt: 60
       frame: [{ crystal: water }]

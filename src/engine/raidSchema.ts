@@ -520,7 +520,18 @@ const ApplyEffectEventSchema = z.object({
   count: z.number().int().positive().optional(),
   assignGroup: z.string().min(1).optional(),
   rng: z.boolean().optional(),
-  applyEffect: ApplyEffectSchema,
+  applyEffect: ApplyEffectSchema.optional(),
+  applyEffectChoices: z.tuple([ApplyEffectSchema, ApplyEffectSchema]).optional(),
+  effectChoiceGroup: z.string().min(1).optional(),
+  effectChoiceComplement: z.boolean().optional(),
+}).superRefine((event, ctx) => {
+  if ((event.applyEffect === undefined) === (event.applyEffectChoices === undefined)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["applyEffect"],
+      message: "apply_effect must specify exactly one of applyEffect or applyEffectChoices",
+    });
+  }
 });
 
 const InverseEventSchema = z.object({

@@ -348,6 +348,9 @@ const applyEffects: MechanicModule = {
       assignGroup: e.assignGroup,
       rng: e.rng ?? false,
       applyEffect: e.applyEffect,
+      applyEffectChoices: e.applyEffectChoices,
+      effectChoiceGroup: e.effectChoiceGroup,
+      effectChoiceComplement: e.effectChoiceComplement,
     });
   },
   resolve: ctx => ({ pendingApplyEffects: resolveApplyEffects(ctx) }),
