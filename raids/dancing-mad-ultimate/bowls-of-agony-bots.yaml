@@ -111,16 +111,16 @@ solvers:
       endAt: 60
       frame: [{ crystal: fire }]
       spots:
-        r1: { r: -4, z: 14 } #adjust this, so that its in line with the south intercard of the boss if boss was at wind
-        r2: { r: 4, z: 10 }
+        r1: { r: 4, z: 10 } #maybe adjust this, so that its in line with the south intercard of the boss if boss was at wind
+        r2: { r: -4, z: 14 }
 
     - when: { partyDebuff: Dynamic Fluid Long }
       startAt: 53
       endAt: 60
       frame: [{ crystal: water }]
       spots:
-        r1: { r: -4, z: 14 } #adjust this, so that its in line with the south intercard of the boss if boss was at wind
-        r2: { r: 4, z: 10 }
+        r1: { r: 4, z: 10 } # maybe adjust this, so that its in line with the south intercard of the boss if boss was at wind
+        r2: { r: -4, z: 14 }
 
     # Latitude/Longitude order is seeded RNG, authored as two staggered cast slots:
     # first implosion resolves at t:66, then the other resolves at t:68. Only one implosion is live
