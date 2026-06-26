@@ -44,7 +44,7 @@ export class LoopbackTransport implements Transport {
           raid: await this.loadRaid(message.raidId),
           send: (_clientId, outbound) => this.messageHandler(this.normalize(outbound)),
         });
-        this.messageHandler({ type: "joined", sessionId: message.sessionId, clientId: this.clientId });
+        this.messageHandler({ type: "joined", clientId: this.clientId });
         this.room.join(this.clientId);
       }
       return;

@@ -54,6 +54,8 @@ const HASH_INTERVAL = 300;
 const SNAPSHOT_INTERVAL = 600;
 const BOSS_SNAP_THRESHOLD = 3;
 
+type Snapshot = { t: number; world: World };
+
 export class NetClient {
   clientId: string | null = null;
 
@@ -405,7 +407,6 @@ export async function connect(): Promise<NetClient> {
     const { LoopbackTransport } = await import("./loopbackTransport");
     transport = new LoopbackTransport();
   } else {
-    const
     const protocol = location.protocol === "https:" ? "wss:" : "ws:";
     transport = new ColyseusTransport(`${protocol}//${location.host}`);
   }

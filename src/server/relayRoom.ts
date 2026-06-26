@@ -181,7 +181,7 @@ export class RelayRoom extends Room {
 
   onJoin(client: Client<RelayClientData>): void {
     connectedClients++;
-    client.send("s", { type: "joined", sessionId: this.id, clientId: client.sessionId } satisfies ServerMessage);
+    client.send("s", { type: "joined", clientId: client.sessionId } satisfies ServerMessage);
     this.join(client.sessionId);
   }
 
@@ -227,7 +227,7 @@ export class RelayRoom extends Room {
     });
   }
 
-  private send(clientId: string, message: ServerMessage | string): void {
+  private sendTo(clientId: string, message: ServerMessage | string): void {
     if (this.testSend) {
       this.testSend(clientId, message);
       return;
@@ -439,11 +439,11 @@ export class RelayRoom extends Room {
     for (const id of this.clientIds) {
       if (id === clientId) continue;
       if (this.observers.has(id)) {
-        this.send(id, this.startedMessage(null));
+        this.sendTo(id, this.startedMessage(null));
         continue;
       }
       const playerId = this.playerForClient(id);
-      if (playerId) this.send(id, this.startedMessage(playerId));
+      if (playerId) this.sendTo(id, this.startedMessage(playerId));
     }
     this.broadcastPlayback();
     this.broadcastLobby();
@@ -532,7 +532,7 @@ export class RelayRoom extends Room {
     this.broadcastLobby();
 
     if (this.status === "stopped" || this.status === "done" || (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused"))) {
-      this.send(clientId, this.startedMessage(playerId));
+      this.sendTo(clientId, this.startedMessage(playerId));
     }
   }
 
@@ -570,7 +570,7 @@ export class RelayRoom extends Room {
     this.broadcastLobby();
 
     if (this.status === "stopped" || this.status === "done" || (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused"))) {
-      this.send(clientId, this.startedMessage(null));
+      this.sendTo(clientId, this.startedMessage(null));
     }
   }
 
@@ -713,11 +713,11 @@ export class RelayRoom extends Room {
 
   private resync(clientId: string): void {
     if (this.observers.has(clientId)) {
-      this.send(clientId, this.startedMessage(null));
+      this.sendTo(clientId, this.startedMessage(null));
       return;
     }
     const playerId = this.playerForClient(clientId);
-    if (playerId) this.send(clientId, this.startedMessage(playerId));
+    if (playerId) this.sendTo(clientId, this.startedMessage(playerId));
   }
 
   isExpired(now = this.now()): boolean {
@@ -818,7 +818,7 @@ export class RelayRoom extends Room {
   }
 
   private sendLobby(clientId: string): void {
-    this.send(clientId, this.lobbyFor(clientId));
+    this.sendTo(clientId, this.lobbyFor(clientId));
   }
 
   private broadcastLobby(): void {
@@ -833,7 +833,7 @@ export class RelayRoom extends Room {
   private broadcastStarted(): void {
     for (const connectedClientId of this.clientIds) {
       if (this.observers.has(connectedClientId)) {
-        this.send(connectedClientId, this.startedMessage(null));
+        this.sendTo(connectedClientId, this.startedMessage(null));
         continue;
       }
       const playerId = this.playerForClient(connectedClientId);
@@ -841,17 +841,17 @@ export class RelayRoom extends Room {
         this.sendError(connectedClientId, "Claim a slot to join the running session");
         continue;
       }
-      this.send(connectedClientId, this.startedMessage(playerId));
+      this.sendTo(connectedClientId, this.startedMessage(playerId));
     }
   }
 
   private broadcastAll(message: ServerMessage): void {
     const json = JSON.stringify(message);
-    for (const clientId of this.clientIds) this.send(clientId, json);
+    for (const clientId of this.clientIds) this.sendTo(clientId, json);
   }
 
   private sendError(clientId: string, message: string): void {
     logger.warn("session", "rejected", { session: this.id, clientId, reason: message });
-    this.send(clientId, { type: "error", message });
+    this.sendTo(clientId, { type: "error", message });
   }
 }
