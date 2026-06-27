@@ -46,6 +46,8 @@ export class LoopbackTransport implements Transport {
         });
         this.messageHandler({ type: "joined", clientId: this.clientId });
         this.room.join(this.clientId);
+      } else {
+        this.room.join(this.clientId);
       }
       return;
     }

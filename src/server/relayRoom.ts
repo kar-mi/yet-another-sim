@@ -217,7 +217,11 @@ export class RelayRoom extends Room {
       span.setAttribute("yas.message_type", parsed.data.type);
       addServerTraceEvent("net", "WS message", { clientId: client.sessionId, type: parsed.data.type });
       try {
-        if (parsed.data.type === "join") return;
+        if (parsed.data.type === "join") {
+          this.touch();
+          this.sendLobby(client.sessionId);
+          return;
+        }
         if (parsed.data.type === "setRaid") {
           this.setRaid(client.sessionId, parsed.data.raidId, await loadSessionRaid(parsed.data.raidId, RAIDS_DIR));
           return;

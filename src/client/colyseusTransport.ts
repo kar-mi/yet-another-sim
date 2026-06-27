@@ -7,6 +7,8 @@ export class ColyseusTransport implements Transport {
   private room: Room | null = null;
   private messageHandler: (message: ServerMessage) => void = () => {};
   private reconnectHandler: () => void = () => {};
+  private roomSessionId = "";
+  private readonly intentionalLeaves = new WeakSet<Room>();
   private closing = false;
 
   constructor(private readonly url: string) {}
@@ -39,16 +41,29 @@ export class ColyseusTransport implements Transport {
     this.closing = true;
     void this.room?.leave(true);
     this.room = null;
+    this.roomSessionId = "";
   }
 
   private async join(sessionId: string, raidId: string): Promise<void> {
     if (!this.client) return;
     this.closing = false;
-    if (this.room) await this.room.leave(true);
+    if (this.room && this.roomSessionId === sessionId) {
+      this.room.send("c", { type: "join", sessionId, raidId });
+      return;
+    }
+    if (this.room) {
+      const previousRoom = this.room;
+      this.intentionalLeaves.add(previousRoom);
+      this.room = null;
+      this.roomSessionId = "";
+      await previousRoom.leave(true);
+    }
     const room = await this.client.joinOrCreate("relay", { sessionId, raidId });
     this.room = room;
+    this.roomSessionId = sessionId;
     room.onMessage("s", message => this.messageHandler(message as ServerMessage));
     room.onLeave(() => {
+      if (this.intentionalLeaves.has(room)) return;
       if (this.room === room) this.room = null;
       if (!this.closing) this.reconnectHandler();
     });
