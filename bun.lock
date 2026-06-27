@@ -9,6 +9,8 @@
         "@babylonjs/gui": "^9.0.0",
         "@babylonjs/loaders": "^9.0.0",
         "@colyseus/bun-websockets": "0.16.5",
+        "@colyseus/redis-driver": "0.16.1",
+        "@colyseus/redis-presence": "0.16.1",
         "@opentelemetry/api": "^1.9.1",
         "@opentelemetry/exporter-trace-otlp-http": "^0.218.0",
         "@opentelemetry/resources": "^2.7.1",
@@ -50,9 +52,9 @@
 
     "@colyseus/msgpackr": ["@colyseus/msgpackr@1.11.3", "", { "optionalDependencies": { "msgpackr-extract": "^3.0.2" } }, "sha512-P86w/FrZWUaV7StxI7WuNg3wFlUrROSiBOrF378wyOgxS5+etcxUQMPe0OJZDEx+QUdu7QOPzsqE0Ziqwpjnug=="],
 
-    "@colyseus/redis-driver": ["@colyseus/redis-driver@0.17.7", "", { "dependencies": { "@colyseus/core": "^0.17.39", "ioredis": "^5.3.2" } }, "sha512-JEu8KaeGondwyu+42ZLHLzaeVO7TST2lbTietcvPvWGgaRx4EfbgkxNNKqSq5CY293DtWv/BFCXwiZxtm1AVTw=="],
+    "@colyseus/redis-driver": ["@colyseus/redis-driver@0.16.1", "", { "dependencies": { "@colyseus/core": "^0.16.4", "ioredis": "^5.3.2" } }, "sha512-dFDyyVEBemfdeHrO2fTt86803fV8iMepGi6UHD7feR7vQO9bdN6yXpAyrBWMJrfBs8EFuEEb73gM3mDUjppH/A=="],
 
-    "@colyseus/redis-presence": ["@colyseus/redis-presence@0.17.7", "", { "dependencies": { "@colyseus/core": "^0.17.39", "ioredis": "^5.3.2" } }, "sha512-N3QHKod90NidKzMbkIV2hNEnQl2GyiBzb2pQ+zGJZc87oKH6hdNmUThOqrUIN5bqqZky4HPzEsQbX/qjBDDT4A=="],
+    "@colyseus/redis-presence": ["@colyseus/redis-presence@0.16.1", "", { "dependencies": { "@colyseus/core": "^0.16.4", "ioredis": "^5.3.2" } }, "sha512-VSY10Sv1tRk9lao56+mexHGwqXjmQMweb67rn+yWyvVZGEaSNgVN63rTZxbE9yeaCzsDlgBxSI4vXnSofpcWcg=="],
 
     "@colyseus/schema": ["@colyseus/schema@3.0.76", "", { "bin": { "schema-debug": "bin/schema-debug", "schema-codegen": "bin/schema-codegen" } }, "sha512-i+ceBZyhB7lTn5+BoG/xxYfzW4dKKyLOywsGKVgXHe9fD905AS/Lk180jd1bICEJhebGeiRXEQ2YUPl/xwFg2g=="],
 
@@ -402,10 +404,6 @@
 
     "@colyseus/auth/@colyseus/core": ["@colyseus/core@0.17.44", "", { "dependencies": { "@colyseus/better-call": "^1.3.1", "@colyseus/greeting-banner": "^3.0.8", "@colyseus/msgpackr": "^1.11.3", "@colyseus/shared-types": "^0.17.6", "@colyseus/timer": "^2.0.0", "@standard-schema/spec": "^1.0.0", "debug": "^4.3.4", "nanoid": "^3.3.11" }, "peerDependencies": { "@colyseus/schema": "^4.0.7", "@colyseus/ws-transport": "^0.17.13", "@pm2/io": "^6.1.0", "express": "^4.16.0 || ^5.0.0", "zod": "^4.1.12" }, "optionalPeers": ["@colyseus/ws-transport", "@pm2/io", "express", "zod"] }, "sha512-Vu532KOBpJ4RAYdTuWmUoGU2mx9TqOCpet5c4XA4G5CJEo74cdJer8XRXhvqOO0FR6P/gtZDsSZ4eBrOwX3tsA=="],
 
-    "@colyseus/redis-driver/@colyseus/core": ["@colyseus/core@0.17.44", "", { "dependencies": { "@colyseus/better-call": "^1.3.1", "@colyseus/greeting-banner": "^3.0.8", "@colyseus/msgpackr": "^1.11.3", "@colyseus/shared-types": "^0.17.6", "@colyseus/timer": "^2.0.0", "@standard-schema/spec": "^1.0.0", "debug": "^4.3.4", "nanoid": "^3.3.11" }, "peerDependencies": { "@colyseus/schema": "^4.0.7", "@colyseus/ws-transport": "^0.17.13", "@pm2/io": "^6.1.0", "express": "^4.16.0 || ^5.0.0", "zod": "^4.1.12" }, "optionalPeers": ["@colyseus/ws-transport", "@pm2/io", "express", "zod"] }, "sha512-Vu532KOBpJ4RAYdTuWmUoGU2mx9TqOCpet5c4XA4G5CJEo74cdJer8XRXhvqOO0FR6P/gtZDsSZ4eBrOwX3tsA=="],
-
-    "@colyseus/redis-presence/@colyseus/core": ["@colyseus/core@0.17.44", "", { "dependencies": { "@colyseus/better-call": "^1.3.1", "@colyseus/greeting-banner": "^3.0.8", "@colyseus/msgpackr": "^1.11.3", "@colyseus/shared-types": "^0.17.6", "@colyseus/timer": "^2.0.0", "@standard-schema/spec": "^1.0.0", "debug": "^4.3.4", "nanoid": "^3.3.11" }, "peerDependencies": { "@colyseus/schema": "^4.0.7", "@colyseus/ws-transport": "^0.17.13", "@pm2/io": "^6.1.0", "express": "^4.16.0 || ^5.0.0", "zod": "^4.1.12" }, "optionalPeers": ["@colyseus/ws-transport", "@pm2/io", "express", "zod"] }, "sha512-Vu532KOBpJ4RAYdTuWmUoGU2mx9TqOCpet5c4XA4G5CJEo74cdJer8XRXhvqOO0FR6P/gtZDsSZ4eBrOwX3tsA=="],
-
     "@colyseus/uwebsockets-transport/@colyseus/core": ["@colyseus/core@0.17.44", "", { "dependencies": { "@colyseus/better-call": "^1.3.1", "@colyseus/greeting-banner": "^3.0.8", "@colyseus/msgpackr": "^1.11.3", "@colyseus/shared-types": "^0.17.6", "@colyseus/timer": "^2.0.0", "@standard-schema/spec": "^1.0.0", "debug": "^4.3.4", "nanoid": "^3.3.11" }, "peerDependencies": { "@colyseus/schema": "^4.0.7", "@colyseus/ws-transport": "^0.17.13", "@pm2/io": "^6.1.0", "express": "^4.16.0 || ^5.0.0", "zod": "^4.1.12" }, "optionalPeers": ["@colyseus/ws-transport", "@pm2/io", "express", "zod"] }, "sha512-Vu532KOBpJ4RAYdTuWmUoGU2mx9TqOCpet5c4XA4G5CJEo74cdJer8XRXhvqOO0FR6P/gtZDsSZ4eBrOwX3tsA=="],
 
     "@colyseus/ws-transport/@colyseus/core": ["@colyseus/core@0.17.44", "", { "dependencies": { "@colyseus/better-call": "^1.3.1", "@colyseus/greeting-banner": "^3.0.8", "@colyseus/msgpackr": "^1.11.3", "@colyseus/shared-types": "^0.17.6", "@colyseus/timer": "^2.0.0", "@standard-schema/spec": "^1.0.0", "debug": "^4.3.4", "nanoid": "^3.3.11" }, "peerDependencies": { "@colyseus/schema": "^4.0.7", "@colyseus/ws-transport": "^0.17.13", "@pm2/io": "^6.1.0", "express": "^4.16.0 || ^5.0.0", "zod": "^4.1.12" }, "optionalPeers": ["@colyseus/ws-transport", "@pm2/io", "express", "zod"] }, "sha512-Vu532KOBpJ4RAYdTuWmUoGU2mx9TqOCpet5c4XA4G5CJEo74cdJer8XRXhvqOO0FR6P/gtZDsSZ4eBrOwX3tsA=="],
@@ -430,18 +428,6 @@
 
     "@colyseus/auth/@colyseus/core/nanoid": ["nanoid@3.3.15", "", { "bin": { "nanoid": "bin/nanoid.cjs" } }, "sha512-y7Wygv/7mEOvxTuEQDB8StXdMRBWf1kR/tlhAzBRUFkB2jfcLOAxO/SHmOO2zgz1pVgK29/kyupn059/bCHdjA=="],
 
-    "@colyseus/redis-driver/@colyseus/core/@colyseus/greeting-banner": ["@colyseus/greeting-banner@3.0.8", "", {}, "sha512-k5UcCfgtxkL0nyIJPZm7CkoiCpY8afUgeYcj7Z2tJFp0Z74m7YHgv3qVhFEQYvp+BvweRiHjhEhaDxYQFTC7hA=="],
-
-    "@colyseus/redis-driver/@colyseus/core/@colyseus/timer": ["@colyseus/timer@2.0.3", "", { "dependencies": { "@colyseus/clock": "^2.0.0" } }, "sha512-75MI7LfXQncibesa7W6FKWUc8YBcVI6jwBrDXOq1TlgYQXSMRv7a5WFPBdDKkP5Pht9IWpE2hyUb8B1DPrLYqg=="],
-
-    "@colyseus/redis-driver/@colyseus/core/nanoid": ["nanoid@3.3.15", "", { "bin": { "nanoid": "bin/nanoid.cjs" } }, "sha512-y7Wygv/7mEOvxTuEQDB8StXdMRBWf1kR/tlhAzBRUFkB2jfcLOAxO/SHmOO2zgz1pVgK29/kyupn059/bCHdjA=="],
-
-    "@colyseus/redis-presence/@colyseus/core/@colyseus/greeting-banner": ["@colyseus/greeting-banner@3.0.8", "", {}, "sha512-k5UcCfgtxkL0nyIJPZm7CkoiCpY8afUgeYcj7Z2tJFp0Z74m7YHgv3qVhFEQYvp+BvweRiHjhEhaDxYQFTC7hA=="],
-
-    "@colyseus/redis-presence/@colyseus/core/@colyseus/timer": ["@colyseus/timer@2.0.3", "", { "dependencies": { "@colyseus/clock": "^2.0.0" } }, "sha512-75MI7LfXQncibesa7W6FKWUc8YBcVI6jwBrDXOq1TlgYQXSMRv7a5WFPBdDKkP5Pht9IWpE2hyUb8B1DPrLYqg=="],
-
-    "@colyseus/redis-presence/@colyseus/core/nanoid": ["nanoid@3.3.15", "", { "bin": { "nanoid": "bin/nanoid.cjs" } }, "sha512-y7Wygv/7mEOvxTuEQDB8StXdMRBWf1kR/tlhAzBRUFkB2jfcLOAxO/SHmOO2zgz1pVgK29/kyupn059/bCHdjA=="],
-
     "@colyseus/uwebsockets-transport/@colyseus/core/@colyseus/greeting-banner": ["@colyseus/greeting-banner@3.0.8", "", {}, "sha512-k5UcCfgtxkL0nyIJPZm7CkoiCpY8afUgeYcj7Z2tJFp0Z74m7YHgv3qVhFEQYvp+BvweRiHjhEhaDxYQFTC7hA=="],
 
     "@colyseus/uwebsockets-transport/@colyseus/core/@colyseus/timer": ["@colyseus/timer@2.0.3", "", { "dependencies": { "@colyseus/clock": "^2.0.0" } }, "sha512-75MI7LfXQncibesa7W6FKWUc8YBcVI6jwBrDXOq1TlgYQXSMRv7a5WFPBdDKkP5Pht9IWpE2hyUb8B1DPrLYqg=="],
@@ -457,10 +443,6 @@
     "express-session/debug/ms": ["ms@2.0.0", "", {}, "sha512-Tpp60P6IUJDTuOq/5Z8cdskzJujfwqfOTkrwIwj7IRISpnkJnT6SyJ4PCPnGMoFjC9ddhal5KVIYtAt97ix05A=="],
 
     "@colyseus/auth/@colyseus/core/@colyseus/timer/@colyseus/clock": ["@colyseus/clock@2.0.3", "", {}, "sha512-kziqG0dcGsvSfcerHLZTY1V2PmGnZAdG5DM0T5BKQDAiYBXYoMqfzA1Wxfe3KSnyeZuP99isffkUQLEwpFYF7A=="],
-
-    "@colyseus/redis-driver/@colyseus/core/@colyseus/timer/@colyseus/clock": ["@colyseus/clock@2.0.3", "", {}, "sha512-kziqG0dcGsvSfcerHLZTY1V2PmGnZAdG5DM0T5BKQDAiYBXYoMqfzA1Wxfe3KSnyeZuP99isffkUQLEwpFYF7A=="],
-
-    "@colyseus/redis-presence/@colyseus/core/@colyseus/timer/@colyseus/clock": ["@colyseus/clock@2.0.3", "", {}, "sha512-kziqG0dcGsvSfcerHLZTY1V2PmGnZAdG5DM0T5BKQDAiYBXYoMqfzA1Wxfe3KSnyeZuP99isffkUQLEwpFYF7A=="],
 
     "@colyseus/uwebsockets-transport/@colyseus/core/@colyseus/timer/@colyseus/clock": ["@colyseus/clock@2.0.3", "", {}, "sha512-kziqG0dcGsvSfcerHLZTY1V2PmGnZAdG5DM0T5BKQDAiYBXYoMqfzA1Wxfe3KSnyeZuP99isffkUQLEwpFYF7A=="],
 

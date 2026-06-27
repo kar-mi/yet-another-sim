@@ -13,6 +13,8 @@ dist/
 .bundle-static/
 src/client/staticRaids.generated.ts
 .env
+docker-compose-server.yml
+deployment/
 .mcp.json
 logs/
 monitoring/

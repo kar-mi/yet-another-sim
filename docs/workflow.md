@@ -143,22 +143,22 @@ boot (`Bun.build` in `server.ts`), so the running container is self-contained.
 
 ### Container
 
-The app ships as a Docker image (`Dockerfile`, based on `oven/bun:1`) orchestrated by
-`docker-compose.yml`:
+The app ships as a Docker image (`Dockerfile`, based on `oven/bun:1`). The tracked
+`docker-compose.yml` is the local single-worker stack.
 
-- **Windows / local:** `./scripts/up.ps1` (creates `.env` from `.env.example` with a generated
-  `METRICS_TOKEN`, then `docker compose up -d --build`). Add `-Logs` to follow logs.
-- **Linux server:** `./deploy.sh [branch]` — fetches, hard-resets to `origin/<branch>`, rebuilds,
-  and restarts the container.
+- **Windows / local:** create `.env` from `.env.example`, set `METRICS_TOKEN`, then
+  `docker compose up -d --build`.
+- **Linux server:** `./deploy.sh [branch]` — fetches, hard-resets to `origin/<branch>`, then runs
+  the gitignored server compose file.
 
 Configuration is environment-driven (see `.env.example`):
 
 | Var             | Purpose |
 |-----------------|---------|
-| `PORT`          | HTTP/WS port (default 3000). |
-| `MAX_SESSIONS`  | Per-backend room cap. Sized against RAM, not cores (a running room buffers one frame per tick; CPU per room is ~0). |
+| `PORT`          | Local single-worker HTTP/WS port (default 3000). |
+| `MAX_SESSIONS`  | Local single-worker room cap. |
 | `METRICS_TOKEN` | Required — guards the Prometheus metrics endpoint. |
-| `METRICS_PORT`  | Metrics server port (default 9100). |
+| `METRICS_PORT`  | Local single-worker metrics port (default 9100). |
 
 ### Observability
 

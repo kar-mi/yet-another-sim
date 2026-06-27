@@ -1,6 +1,8 @@
 import { join } from "path";
-import { Server } from "colyseus";
+import { Server, type ServerOptions } from "colyseus";
 import { BunWebSockets } from "@colyseus/bun-websockets";
+import { RedisDriver } from "@colyseus/redis-driver";
+import { RedisPresence } from "@colyseus/redis-presence";
 import { RelayServerRoom, MAX_SESSIONS, relayClientsConnected, relayRoomsActive } from "./relayServerRoom";
 import { capacitySnapshot } from "./relayRoom";
 import { logger } from "./logger";
@@ -29,6 +31,11 @@ const SECURITY_HEADERS: Record<string, string> = {
 
 function cacheControlForBundlePath(path: string): string {
   return path === "index.html" ? "no-cache" : "public, max-age=31536000, immutable";
+}
+
+function publicAddressForPort(port: number): string {
+  const host = Bun.env.PUBLIC_HOST || `localhost:${port}`;
+  return `${host.replace(/\/+$/, "")}/${port}`;
 }
 
 // bun-serve-express's res.end()/res.send() stringify the body via `_writes.join("")`,
@@ -75,7 +82,13 @@ if (!buildResult.success) {
 }
 
 const transport = new BunWebSockets({ maxPayloadLength: 1 << 20 });
-const gameServer = new Server({ transport });
+const serverOptions: ServerOptions = { transport };
+if (Bun.env.REDIS_URL) {
+  serverOptions.presence = new RedisPresence(Bun.env.REDIS_URL) as unknown as ServerOptions["presence"];
+  serverOptions.driver = new RedisDriver(Bun.env.REDIS_URL);
+  serverOptions.publicAddress = publicAddressForPort(PORT);
+}
+const gameServer = new Server(serverOptions);
 gameServer.define("relay", RelayServerRoom).filterBy(["sessionId"]);
 
 const app = transport.expressApp;
