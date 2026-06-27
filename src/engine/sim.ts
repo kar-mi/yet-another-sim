@@ -18,7 +18,7 @@ import { holdUntilFromResolves } from "./genericSolver";
 import { REGISTRY } from "./mechanicRegistry";
 import { BOSS_MOVE_SPEED } from "@shared/constants";
 
-const BOSS_FOLLOW_BUFFER = 2;
+const BOSS_FOLLOW_BUFFER = 1.7;
 
 export function tick(world: World, intents: Intents, dt: number): World {
   const ctx = createTickContext(world, intents, dt);
