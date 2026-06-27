@@ -4,7 +4,7 @@ import { baseRaid, roster } from "../engine/__tests__/helpers";
 import { ClientMessageSchema, EMPTY_RAID_ID, MAX_OBSERVERS } from "@shared/protocol";
 import type { ServerMessage } from "@shared/protocol";
 import { capacitySnapshot, EMPTY_LOBBY_TIMEOUT_MS, LOBBY_TIMEOUT_MS, RelayRoom, type SessionStatus } from "./relayRoom";
-import { createEmptyRaid, loadSessionRaid } from "./sessionRaid";
+import { createEmptyRaid, loadSessionRaid, type SessionLog } from "./sessionRaid";
 
 // Session test raids reuse the shared canonical roster builder (clock spots from shared/protocol) so
 // spawns stay in sync with the engine; only the arena/duration and a couple of spawn overrides differ.
@@ -27,7 +27,7 @@ function alternateRaid() {
   return loadRaid({ ...baseRaid, name: "Alternate Test", arena: sessionArena, duration: 30, players: roster() });
 }
 
-function makeSession(options: { now?: () => number; lobbyTimeoutMs?: number } = {}) {
+function makeSession(options: { now?: () => number; lobbyTimeoutMs?: number; createSessionLog?: (sessionId: string) => SessionLog } = {}) {
   const sent: Array<{ clientId: string; message: ServerMessage }> = [];
   const session = new RelayRoom();
   session.init({
@@ -38,8 +38,31 @@ function makeSession(options: { now?: () => number; lobbyTimeoutMs?: number } = 
     autoTick: false,
     now: options.now,
     lobbyTimeoutMs: options.lobbyTimeoutMs,
+    createSessionLog: options.createSessionLog,
   });
   return { session, sent };
+}
+
+function makeLogFactory() {
+  const logs: Array<{ id: string; headers: unknown[]; frames: unknown[]; closed: boolean }> = [];
+  return {
+    logs,
+    createSessionLog(id: string): SessionLog {
+      const log = { id, headers: [] as unknown[], frames: [] as unknown[], closed: false };
+      logs.push(log);
+      return {
+        header(raidId, world): void {
+          log.headers.push({ raidId, world });
+        },
+        frame(startTick, frames): void {
+          log.frames.push({ startTick, frames });
+        },
+        close(): void {
+          log.closed = true;
+        },
+      };
+    },
+  };
 }
 
 function makeDefaultLobbySession() {
@@ -81,6 +104,104 @@ test("start assigns the claimed slot to a human and leaves others as clock-spot 
   const bot = session.world.players.find(player => player.id === "h2");
   expect(bot?.control).toBe("bot");
   expect(bot?.pos).toEqual({ x: 8, z: 0 });
+});
+
+test("replay log is opened per pull and records frames", () => {
+  const logFactory = makeLogFactory();
+  const { session } = makeSession({ createSessionLog: logFactory.createSessionLog });
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+
+  session.start("c1");
+  session.step(false);
+
+  expect(logFactory.logs).toHaveLength(1);
+  expect(logFactory.logs[0].id).toBe("test-room-pull-1");
+  expect(logFactory.logs[0].headers).toHaveLength(1);
+  expect(logFactory.logs[0].frames).toHaveLength(1);
+  expect(logFactory.logs[0].closed).toBe(false);
+});
+
+test("pause and play keep the same replay log", () => {
+  const logFactory = makeLogFactory();
+  const { session } = makeSession({ createSessionLog: logFactory.createSessionLog });
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+
+  session.start("c1");
+  session.pause("c1");
+  session.play("c1");
+  session.step(false);
+
+  expect(logFactory.logs).toHaveLength(1);
+  expect(logFactory.logs[0].closed).toBe(false);
+  expect(logFactory.logs[0].frames).toHaveLength(1);
+});
+
+test("stop closes the active replay log", () => {
+  const logFactory = makeLogFactory();
+  const { session } = makeSession({ createSessionLog: logFactory.createSessionLog });
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+
+  session.start("c1");
+  session.stop("c1");
+
+  expect(logFactory.logs).toHaveLength(1);
+  expect(logFactory.logs[0].closed).toBe(true);
+});
+
+test("restart starts a new replay log", () => {
+  const logFactory = makeLogFactory();
+  const { session } = makeSession({ createSessionLog: logFactory.createSessionLog });
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+
+  session.start("c1");
+  session.restart("c1");
+  session.step(false);
+
+  expect(logFactory.logs.map(log => log.id)).toEqual(["test-room-pull-1", "test-room-pull-2"]);
+  expect(logFactory.logs[0].closed).toBe(true);
+  expect(logFactory.logs[1].closed).toBe(false);
+  expect(logFactory.logs[1].headers).toHaveLength(1);
+  expect(logFactory.logs[1].frames).toHaveLength(1);
+});
+
+test("setRaid reset closes the previous replay log and opens the new pull log", () => {
+  const logFactory = makeLogFactory();
+  const { session } = makeSession({ createSessionLog: logFactory.createSessionLog });
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+
+  session.start("c1");
+  session.pause("c1");
+  session.setRaid("c1", "alternate", alternateRaid());
+
+  expect(logFactory.logs.map(log => log.id)).toEqual(["test-room-pull-1", "test-room-pull-2"]);
+  expect(logFactory.logs[0].closed).toBe(true);
+  expect(logFactory.logs[1].closed).toBe(false);
+  expect(logFactory.logs[1].headers).toHaveLength(1);
+});
+
+test("simEnded and dispose close replay logs", () => {
+  const endedFactory = makeLogFactory();
+  const ended = makeSession({ createSessionLog: endedFactory.createSessionLog });
+  ended.session.join("c1");
+  ended.session.claimSlot("c1", "mt");
+  ended.session.start("c1");
+  ended.session.simEnded("c1", 0);
+
+  expect(endedFactory.logs[0].closed).toBe(true);
+
+  const disposedFactory = makeLogFactory();
+  const disposed = makeSession({ createSessionLog: disposedFactory.createSessionLog });
+  disposed.session.join("c1");
+  disposed.session.claimSlot("c1", "mt");
+  disposed.session.start("c1");
+  disposed.session.dispose();
+
+  expect(disposedFactory.logs[0].closed).toBe(true);
 });
 
 test("unclaimed clients do not enter the game on start", () => {

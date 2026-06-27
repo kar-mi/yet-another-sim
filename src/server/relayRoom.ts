@@ -66,7 +66,9 @@ export class RelayRoom {
   // other pull transition so a stale start can't fire late (e.g. after dispose, leaking an interval).
   private pendingStartTimer: ReturnType<typeof setTimeout> | null = null;
   private desync!: DesyncTracker;
+  private createSessionLog: ((sessionId: string) => SessionLog) | null = null;
   private sessionLog: SessionLog | null = null;
+  private pullNumber = 0;
   private botsInvincible = false;
   private latestSnapshot: { tick: number; world: unknown } | null = null;
 
@@ -83,14 +85,14 @@ export class RelayRoom {
     this.raid = options.raid;
     this.now = options.now ?? Date.now;
     this.lobbyTimeoutMs = options.lobbyTimeoutMs ?? LOBBY_TIMEOUT_MS;
-    this.sessionLog = options.createSessionLog?.(options.id) ?? null;
+    this.createSessionLog = options.createSessionLog ?? null;
     this.lastActivity = this.now();
     this.desync = new DesyncTracker({ sessionId: this.id, now: this.now, onDesync: clientId => this.resync(clientId) });
     this.autoTick = options.autoTick ?? true;
     this.relay = new FrameRelay({
       now: this.now,
       autoTick: this.autoTick,
-      sessionLog: this.sessionLog,
+      sessionLog: () => this.sessionLog,
       buildFrame: () => this.buildFrame(),
       onFrames: (startTick, frames) => this.broadcastAll({ type: "frames", startTick, frames }),
       onCeiling: () => this.endPullDefensively(),
@@ -184,6 +186,7 @@ export class RelayRoom {
       : [];
     this.raidId = raidId;
     this.raid = raid;
+    this.closePullLog();
     this.slots.clear();
     for (const player of this.raid.players) this.slots.set(player.id, preserveOwners ? previousSlots.get(player.id) ?? null : null);
     const keptOwners = new Set([...this.slots.values()].filter((ownerId): ownerId is string => ownerId !== null));
@@ -203,6 +206,7 @@ export class RelayRoom {
     }
 
     this.status = "running";
+    this.openPullLog();
     this.startRelayAfterRaidChangeDelay();
     this.broadcastPlayback();
     this.broadcastStarted();
@@ -276,6 +280,7 @@ export class RelayRoom {
     this.clearPendingStart();
     this.status = "stopped";
     this.relay.stop();
+    this.closePullLog();
     this.latestIntents.clear();
     this.world = this.freshWorld();
     this.applyBotsInvincible();
@@ -299,6 +304,7 @@ export class RelayRoom {
     this.clearPendingStart();
     this.status = "stopped";
     this.relay.stop();
+    this.closePullLog();
     this.latestIntents.clear();
     this.world = this.freshWorld();
     this.applyBotsInvincible();
@@ -336,6 +342,7 @@ export class RelayRoom {
     this.world = this.freshWorld();
     this.applyBotsInvincible();
     this.resetPull();
+    this.openPullLog();
     this.relay.start();
     this.broadcastPlayback();
     this.broadcastStarted();
@@ -470,6 +477,7 @@ export class RelayRoom {
     this.world = this.freshWorld();
     this.applyBotsInvincible();
     this.resetPull();
+    this.openPullLog();
 
     this.broadcastStarted();
 
@@ -523,10 +531,18 @@ export class RelayRoom {
     this.latestSnapshot = null;
     this.relay.reset(this.world.duration);
     this.desync.reset();
-    // On a real pull start (start/restart set status="running" before this; the constructor's
-    // lobby-time reset does not), record the tick-0 world so the session log is self-contained:
-    // its seed + this header let the relayed frames be replayed without any other state.
-    if (this.status === "running") this.sessionLog?.header(this.raidId, this.world);
+  }
+
+  private openPullLog(): void {
+    this.closePullLog();
+    this.pullNumber++;
+    this.sessionLog = this.createSessionLog?.(`${this.id}-pull-${this.pullNumber}`) ?? null;
+    this.sessionLog?.header(this.raidId, this.world);
+  }
+
+  private closePullLog(): void {
+    this.sessionLog?.close();
+    this.sessionLog = null;
   }
 
   private acceptSnapshot(clientId: string, tick: number, world: unknown): void {
@@ -562,6 +578,7 @@ export class RelayRoom {
     this.relay.flush();
     this.status = "done";
     this.relay.stop();
+    this.closePullLog();
     this.broadcastPlayback();
     logger.info("session", "sim ended", { session: this.id, raid: this.raidId, tick, ticks: this.inputLog.length });
   }
@@ -572,6 +589,7 @@ export class RelayRoom {
     this.relay.flush();
     this.status = "done";
     this.relay.stop();
+    this.closePullLog();
     this.broadcastPlayback();
     logger.warn("session", "pull hit tick ceiling without simEnded", { session: this.id, ticks: this.inputLog.length });
   }
@@ -605,7 +623,7 @@ export class RelayRoom {
   dispose(): void {
     this.clearPendingStart();
     this.relay.stop();
-    this.sessionLog?.close();
+    this.closePullLog();
   }
 
   touch(): void {

@@ -30,7 +30,7 @@ type TickHandle = ReturnType<typeof setInterval>;
 export interface FrameRelayOptions {
   now: () => number;
   autoTick: boolean;
-  sessionLog: SessionLog | null;
+  sessionLog: () => SessionLog | null;
   buildFrame: () => Frame;
   onFrames: (startTick: number, frames: Frame[]) => void;
   onCeiling: () => void;
@@ -51,7 +51,7 @@ export class FrameRelay {
 
   private readonly now: () => number;
   private readonly autoTick: boolean;
-  private readonly sessionLog: SessionLog | null;
+  private readonly sessionLog: () => SessionLog | null;
   private readonly buildFrame: () => Frame;
   private readonly onFrames: (startTick: number, frames: Frame[]) => void;
   private readonly onCeiling: () => void;
@@ -85,7 +85,7 @@ export class FrameRelay {
     const frame = this.buildFrame();
     this.inputLog.push(frame);
     this.frameBatch.push(frame);
-    this.sessionLog?.frame(this.inputLog.length - 1, [frame]);
+    this.sessionLog()?.frame(this.inputLog.length - 1, [frame]);
     if (this.inputLog.length >= this.maxPullTicks) this.onCeiling();
   }
 
