@@ -36,6 +36,7 @@ const PARTY_SLOT_INDEX = new Map<string, number>(PARTY_SLOT_ORDER.map((id, index
 type PartyRow = {
   hpFill: HTMLDivElement;
   mpFill: HTMLDivElement;
+  wrapEl: HTMLDivElement;
   rowEl: HTMLDivElement;
   statusDot: HTMLSpanElement;
   effectsEl: HTMLDivElement;
@@ -385,6 +386,9 @@ export class HudOverlay {
   }
 
   private buildPartyRow(player: Player): PartyRow {
+    const wrapEl = document.createElement("div");
+    wrapEl.className = "party-row";
+
     const rowEl = document.createElement("div");
     rowEl.className = "party-member";
 
@@ -433,8 +437,9 @@ export class HudOverlay {
     effectsEl.className = "party-effects";
 
     if (camBtn) rowEl.appendChild(camBtn);
-    rowEl.append(nameRowEl, hpTrack, mpTrack, effectsEl);
-    return { hpFill, mpFill, rowEl, statusDot, effectsEl, effectState: createEffectRenderState(), camBtn };
+    rowEl.append(nameRowEl, hpTrack, mpTrack);
+    wrapEl.append(rowEl, effectsEl);
+    return { hpFill, mpFill, wrapEl, rowEl, statusDot, effectsEl, effectState: createEffectRenderState(), camBtn };
   }
 
   private ensurePartyRows(players: Player[]): void {
@@ -442,7 +447,7 @@ export class HudOverlay {
     for (const player of orderedPartyPlayers(players, this.localPlayerId)) {
       if (this.partyRows.has(player.id)) continue;
       const row = this.buildPartyRow(player);
-      this.partyEl.appendChild(row.rowEl);
+      this.partyEl.appendChild(row.wrapEl);
       this.partyRows.set(player.id, row);
     }
   }
