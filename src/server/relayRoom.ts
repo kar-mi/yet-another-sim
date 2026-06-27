@@ -1,93 +1,94 @@
-import { dirname, join } from "path";
-import { readRaidObject } from "./raidFileReader";
-import { applyBotPatterns, loadBotPatterns, loadRaid } from "../engine/raidLoader";
-import { BOSS_REGISTRY, DEFAULT_BOSS_ID } from "../engine/bossRegistry";
-import type { RaidDef } from "../engine/raidSchema";
+import { Room, type AuthContext, type Client } from "colyseus";
 import { createWorld } from "../engine/world";
-import { CLOCK_SPOTS, EMPTY_RAID_ID, MAX_OBSERVERS, ROSTER, type ClientMessage, type Frame, type LobbySlot, type LobbyStatus, type ServerMessage } from "@shared/protocol";
+import type { RaidDef } from "../engine/raidSchema";
+import { ClientMessageSchema, EMPTY_RAID_ID, MAX_OBSERVERS, type ClientMessage, type Frame, type LobbySlot, type LobbyStatus, type ServerMessage } from "@shared/protocol";
 import type { Intent, Intents, World } from "@shared/types";
 import { RAID_CHANGE_START_DELAY_MS } from "@shared/constants";
-import { logger } from "@shared/logger";
+import { logger, createSessionLog } from "./logger";
 import { DesyncTracker } from "./desyncTracker";
 import { FrameRelay } from "./frameRelay";
-
-/**
- * Per-session sink for simulation events (the entries the engine pushes onto
- * `world.log`). Written unconditionally — independent of the global LOG_LEVEL
- * app-log filter — so a raid's event history is always captured. Injected by
- * the server entry; left undefined in tests so no files are touched.
- */
-export interface SessionLog {
-  // One-time pull header (tick-0 world + raid id) so the relayed frames are replayable on their own.
-  header(raidId: string, world: World): void;
-  frame(startTick: number, frames: Frame[]): void;
-  close(): void;
-}
+import { RAIDS_DIR } from "./raidCatalog";
+import { isOriginAllowed, parseAllowedOrigins } from "./origin";
+import { ConnectionCounter, clientIpFor, createMessageRateLimiter, type RateLimiter } from "./rateLimit";
+import { addServerTraceEvent, recordServerException, withServerSpan } from "./otel";
+import { loadSessionRaid, mergePendingIntent, type SessionLog } from "./sessionRaid";
+import { metrics } from "./metrics";
 
 export const LOBBY_TIMEOUT_MS = 10 * 60 * 1000;
-// Pristine lobbies (never started, no slot claimed) are reaped far sooner so a flood
-// of unused rooms can't squat on the per-backend cap. Never exceeds LOBBY_TIMEOUT_MS.
 export const EMPTY_LOBBY_TIMEOUT_MS = 90 * 1000;
-
-type SendMessage = (clientId: string, message: ServerMessage | string) => void;
-type RaidPlayerDef = RaidDef["players"][number];
-
-const idleIntent: Intent = { move: { x: 0, z: 0 } };
-
-
-function mergePendingIntent(previous: Intent | undefined, next: Intent): Intent {
-  return {
-    move: { x: next.move.x, z: next.move.z },
-    facing: next.facing ?? previous?.facing,
-    jump: previous?.jump || next.jump || undefined,
-    sprint: previous?.sprint || next.sprint || undefined,
-    antiKnockback: previous?.antiKnockback || next.antiKnockback || undefined,
-    provoke: previous?.provoke || next.provoke || undefined,
-    cycleTarget: previous?.cycleTarget || next.cycleTarget || undefined,
-    toggleInvincibility: previous?.toggleInvincibility || next.toggleInvincibility || undefined,
-  };
-}
-
-export function createEmptyRaid(): RaidDef {
-  const players: RaidPlayerDef[] = ROSTER.map(({ id, role }) => ({ id, role, spawn: CLOCK_SPOTS[id] }));
-  const preset = BOSS_REGISTRY[DEFAULT_BOSS_ID];
-  const boss = { pos: [0, 0] as [number, number], ...preset };
-  return {
-    name: "(empty)",
-    arena: { zones: [{ kind: "circle", center: [0, 0] as [number, number], radius: 20 }], floorPlan: "squares" },
-    duration: 30,
-    boss,
-    bosses: [{ id: "boss", targetable: true, ...boss }],
-    players,
-    events: [],
-  };
-}
-
-export async function loadSessionRaid(raidId: string, raidsDir: string): Promise<RaidDef> {
-  if (raidId === EMPTY_RAID_ID) return createEmptyRaid();
-
-  const raid = loadRaid(await readRaidObject(join(raidsDir, raidId)));
-  if (!raid.botPatterns) return raid;
-  const categoryDir = dirname(raidId);
-  return applyBotPatterns(raid, loadBotPatterns(await readRaidObject(join(raidsDir, categoryDir, raid.botPatterns))));
-}
 
 export type SessionStatus = LobbyStatus;
 
-export interface SessionOptions {
+export interface CapacitySnapshot {
+  sessions: number;
+  maxSessions: number;
+  availableSessions: number;
+}
+
+export function capacitySnapshot(sessions: number, maxSessions: number): CapacitySnapshot {
+  return { sessions, maxSessions, availableSessions: Math.max(0, maxSessions - sessions) };
+}
+
+function parsePositiveInt(name: string, raw: string | undefined, fallback: number): number {
+  if (raw === undefined || raw === "") return fallback;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value <= 0) throw new Error(`${name} must be positive integer`);
+  return value;
+}
+
+export const MAX_SESSIONS = parsePositiveInt("MAX_SESSIONS", Bun.env.MAX_SESSIONS, 10);
+export const MAX_CONNECTIONS_PER_IP = parsePositiveInt("MAX_CONNECTIONS_PER_IP", Bun.env.MAX_CONNECTIONS_PER_IP, 30);
+export const MAX_WS_MSGS_PER_SEC = parsePositiveInt("MAX_WS_MSGS_PER_SEC", Bun.env.MAX_WS_MSGS_PER_SEC, 120);
+
+const ALLOWED_ORIGINS = parseAllowedOrigins(Bun.env.ALLOWED_ORIGINS);
+const ipConnections = new ConnectionCounter(MAX_CONNECTIONS_PER_IP);
+let connectedClients = 0;
+let activeRooms = 0;
+
+function headerValue(headers: AuthContext["headers"], name: string): string | undefined {
+  const maybeHeaders = headers as { get?: (name: string) => string | null };
+  const value = typeof maybeHeaders.get === "function" ? maybeHeaders.get(name) : (headers as Record<string, string | string[] | undefined>)[name];
+  return Array.isArray(value) ? value[0] : value ?? undefined;
+}
+
+export function relayClientsConnected(): number {
+  return connectedClients;
+}
+
+export function relayRoomsActive(): number {
+  return activeRooms;
+}
+
+interface RelayClientData {
+  ip?: string;
+  counted?: boolean;
+  rate?: RateLimiter;
+}
+
+interface RelayRoomInitOptions {
   id: string;
   raidId: string;
   raid: RaidDef;
-  send: SendMessage;
   now?: () => number;
   autoTick?: boolean;
   lobbyTimeoutMs?: number;
   createSessionLog?: (sessionId: string) => SessionLog;
 }
 
-export class Session {
-  readonly id: string;
-  raidId: string;
+type TestSend = (clientId: string, message: ServerMessage | string) => void;
+const idleIntent: Intent = { move: { x: 0, z: 0 } };
+
+export interface RelayRoomOptions {
+  sessionId?: string;
+  raidId?: string;
+  autoTick?: boolean;
+  now?: () => number;
+  lobbyTimeoutMs?: number;
+}
+
+export class RelayRoom extends Room {
+  id = "";
+  raidId = "";
   readonly slots = new Map<string, string | null>();
   readonly observers = new Set<string>();
   status: SessionStatus = "lobby";
@@ -95,22 +96,22 @@ export class Session {
   raidRequestSeq = 0;
   // The pull's initial (tick-0) world. The server never ticks it — clients run the engine. It is
   // sent on `started` so a fresh/late client can rebuild the world by replaying the input log.
-  world: World;
+  world!: World;
 
-  private raid: RaidDef;
-  private readonly send: SendMessage;
-  private readonly clients = new Set<string>();
+  private raid!: RaidDef;
+  private readonly clientIds = new Set<string>();
+  private testSend: TestSend | null = null;
   private readonly latestIntents = new Map<string, Intent>();
-  private readonly now: () => number;
-  private lastActivity: number;
-  private readonly lobbyTimeoutMs: number;
-  private readonly relay: FrameRelay;
-  private readonly autoTick: boolean;
+  private now: () => number = Date.now;
+  private lastActivity = 0;
+  private lobbyTimeoutMs = LOBBY_TIMEOUT_MS;
+  private relay!: FrameRelay;
+  private autoTick = true;
   // Deferred relay start scheduled on a raid change (see RAID_CHANGE_START_DELAY_MS). Cancelled by any
   // other pull transition so a stale start can't fire late (e.g. after dispose, leaking an interval).
   private pendingStartTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly desync: DesyncTracker;
-  private readonly sessionLog: SessionLog | null;
+  private desync!: DesyncTracker;
+  private sessionLog: SessionLog | null = null;
   private botsInvincible = false;
   private latestSnapshot: { tick: number; world: unknown } | null = null;
 
@@ -120,11 +121,10 @@ export class Session {
     return this.relay.inputLog;
   }
 
-  constructor(options: SessionOptions) {
+  private initSession(options: RelayRoomInitOptions): void {
     this.id = options.id;
     this.raidId = options.raidId;
     this.raid = options.raid;
-    this.send = options.send;
     this.now = options.now ?? Date.now;
     this.lobbyTimeoutMs = options.lobbyTimeoutMs ?? LOBBY_TIMEOUT_MS;
     this.sessionLog = options.createSessionLog?.(options.id) ?? null;
@@ -136,7 +136,7 @@ export class Session {
       autoTick: this.autoTick,
       sessionLog: this.sessionLog,
       buildFrame: () => this.buildFrame(),
-      onFrames: (startTick, frames) => this.broadcast({ type: "frames", startTick, frames }),
+      onFrames: (startTick, frames) => this.broadcastAll({ type: "frames", startTick, frames }),
       onCeiling: () => this.endPullDefensively(),
       isRunning: () => this.status === "running",
     });
@@ -146,12 +146,123 @@ export class Session {
     this.resetPull();
   }
 
+  initForTest(options: RelayRoomInitOptions & { send: TestSend }): void {
+    this.testSend = options.send;
+    this.initSession(options);
+  }
+
+  async onCreate(options: RelayRoomOptions): Promise<void> {
+    const sessionId = typeof options.sessionId === "string" && options.sessionId ? options.sessionId : this.roomId;
+    const raidId = typeof options.raidId === "string" && options.raidId ? options.raidId : EMPTY_RAID_ID;
+    if (activeRooms >= MAX_SESSIONS) throw new Error("Server is full");
+    activeRooms++;
+    await this.setMetadata({ sessionId } as any);
+    this.initSession({
+      id: sessionId,
+      raidId,
+      raid: await loadSessionRaid(raidId, RAIDS_DIR),
+      autoTick: options.autoTick,
+      now: options.now,
+      lobbyTimeoutMs: options.lobbyTimeoutMs,
+      createSessionLog,
+    });
+    this.onMessage("c", (client, message) => this.handleColyseusMessage(client, message));
+    this.clock.setInterval(() => {
+      if (!this.isExpired()) return;
+      for (const client of this.clients) client.send("s", { type: "sessionExpired" } satisfies ServerMessage);
+      this.disconnect();
+    }, 60_000);
+  }
+
+  onAuth(client: Client<RelayClientData>, _options: RelayRoomOptions, context: AuthContext): boolean {
+    const origin = headerValue(context.headers, "origin");
+    const host = headerValue(context.headers, "host") ?? "localhost";
+    const requestUrl = "http://" + host + "/";
+    if (!isOriginAllowed(origin ?? null, requestUrl, ALLOWED_ORIGINS)) return false;
+    const ip = clientIpFor(headerValue(context.headers, "x-forwarded-for") ?? null, Array.isArray(context.ip) ? context.ip[0] : context.ip);
+    client.userData = { ip, rate: createMessageRateLimiter(MAX_WS_MSGS_PER_SEC) };
+    return true;
+  }
+
+  onJoin(client: Client<RelayClientData>): void {
+    const ip = client.userData?.ip ?? "unknown";
+    if (!ipConnections.tryAcquire(ip)) {
+      client.leave(4008, "Too many connections");
+      return;
+    }
+    client.userData = { ...client.userData, ip, counted: true };
+    connectedClients++;
+    client.send("s", { type: "joined", clientId: client.sessionId } satisfies ServerMessage);
+    this.join(client.sessionId);
+  }
+
+  onLeave(client: Client<RelayClientData>): void {
+    if (!client.userData?.counted) return;
+    connectedClients = Math.max(0, connectedClients - 1);
+    if (client.userData.ip) ipConnections.release(client.userData.ip);
+    this.disconnectClient(client.sessionId);
+  }
+
+  onDispose(): void {
+    activeRooms = Math.max(0, activeRooms - 1);
+    this.dispose();
+  }
+
+  private handleColyseusMessage(client: Client<RelayClientData>, raw: unknown): void {
+    withServerSpan("ws.message", { clientId: client.sessionId }, async span => {
+      metrics.wsMessagesTotal.inc();
+      const rate = client.userData?.rate;
+      if (rate && !rate.allow()) {
+        metrics.wsRateLimitedTotal.inc();
+        return;
+      }
+      const parsed = ClientMessageSchema.safeParse(raw);
+      if (!parsed.success) {
+        metrics.wsInvalidTotal.inc();
+        logger.warn("net", "invalid message", { clientId: client.sessionId });
+        client.send("s", { type: "error", message: "Invalid message" } satisfies ServerMessage);
+        return;
+      }
+      if (parsed.data.type === "debugPosition") {
+        logger.debug("hud", "player position", { clientId: client.sessionId, ...parsed.data });
+        return;
+      }
+      span.setAttribute("yas.message_type", parsed.data.type);
+      addServerTraceEvent("net", "WS message", { clientId: client.sessionId, type: parsed.data.type });
+      try {
+        if (parsed.data.type === "join") {
+          this.touch();
+          this.sendLobby(client.sessionId);
+          return;
+        }
+        if (parsed.data.type === "setRaid") {
+          this.setRaid(client.sessionId, parsed.data.raidId, await loadSessionRaid(parsed.data.raidId, RAIDS_DIR));
+          return;
+        }
+        this.handle(client.sessionId, parsed.data);
+      } catch (err) {
+        recordServerException(err, { area: "ws.message", clientId: client.sessionId, type: parsed.data.type }, span);
+        logger.error("net", "message handler failed", { clientId: client.sessionId, type: parsed.data.type, err });
+        client.send("s", { type: "error", message: "Server error" } satisfies ServerMessage);
+      }
+    });
+  }
+
+  private sendTo(clientId: string, message: ServerMessage | string): void {
+    if (this.testSend) {
+      this.testSend(clientId, message);
+      return;
+    }
+    const payload = typeof message === "string" ? JSON.parse(message) as ServerMessage : message;
+    this.clients.getById(clientId)?.send("s", payload);
+  }
+
   join(clientId: string): void {
     this.touch();
-    this.clients.add(clientId);
+    this.clientIds.add(clientId);
     if (!this.hostClientId) this.hostClientId = clientId;
     this.sendLobby(clientId);
-    logger.info("session", "client joined", { session: this.id, clientId, clients: this.clients.size });
+    logger.info("session", "client joined", { session: this.id, clientId, clients: this.clientIds.size });
   }
 
   handle(clientId: string, message: Exclude<ClientMessage, { type: "join" | "setRaid" }>): void {
@@ -346,14 +457,14 @@ export class Session {
 
     // Reset the remaining clients' local worlds to the frozen one (as stop() does); the leaver is
     // skipped and instead receives the lobby broadcast below to land back in the menu.
-    for (const id of this.clients) {
+    for (const id of this.clientIds) {
       if (id === clientId) continue;
       if (this.observers.has(id)) {
-        this.send(id, this.startedMessage(null));
+        this.sendTo(id, this.startedMessage(null));
         continue;
       }
       const playerId = this.playerForClient(id);
-      if (playerId) this.send(id, this.startedMessage(playerId));
+      if (playerId) this.sendTo(id, this.startedMessage(playerId));
     }
     this.broadcastPlayback();
     this.broadcastLobby();
@@ -382,10 +493,10 @@ export class Session {
     logger.info("session", "raid restarted", { session: this.id, raid: this.raidId });
   }
 
-  disconnect(clientId: string): boolean {
+  disconnectClient(clientId: string): boolean {
     this.touch();
-    this.clients.delete(clientId);
-    logger.info("session", "client disconnected", { session: this.id, clientId, clients: this.clients.size });
+    this.clientIds.delete(clientId);
+    logger.info("session", "client disconnected", { session: this.id, clientId, clients: this.clientIds.size });
 
     for (const [playerId, ownerId] of this.slots) {
       if (ownerId === clientId) {
@@ -397,11 +508,11 @@ export class Session {
 
     const hostChanged = this.hostClientId === clientId;
     if (hostChanged) {
-      this.hostClientId = this.clients.values().next().value ?? "";
+      this.hostClientId = this.clientIds.values().next().value ?? "";
     }
 
     this.applySlotControlsToWorld();
-    if (this.clients.size === 0) {
+    if (this.clientIds.size === 0) {
       this.dispose();
       return true;
     }
@@ -442,7 +553,7 @@ export class Session {
     this.broadcastLobby();
 
     if (this.status === "stopped" || this.status === "done" || (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused"))) {
-      this.send(clientId, this.startedMessage(playerId));
+      this.sendTo(clientId, this.startedMessage(playerId));
     }
   }
 
@@ -480,7 +591,7 @@ export class Session {
     this.broadcastLobby();
 
     if (this.status === "stopped" || this.status === "done" || (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused"))) {
-      this.send(clientId, this.startedMessage(null));
+      this.sendTo(clientId, this.startedMessage(null));
     }
   }
 
@@ -623,11 +734,11 @@ export class Session {
 
   private resync(clientId: string): void {
     if (this.observers.has(clientId)) {
-      this.send(clientId, this.startedMessage(null));
+      this.sendTo(clientId, this.startedMessage(null));
       return;
     }
     const playerId = this.playerForClient(clientId);
-    if (playerId) this.send(clientId, this.startedMessage(playerId));
+    if (playerId) this.sendTo(clientId, this.startedMessage(playerId));
   }
 
   isExpired(now = this.now()): boolean {
@@ -728,22 +839,22 @@ export class Session {
   }
 
   private sendLobby(clientId: string): void {
-    this.send(clientId, this.lobbyFor(clientId));
+    this.sendTo(clientId, this.lobbyFor(clientId));
   }
 
   private broadcastLobby(): void {
-    for (const clientId of this.clients) this.sendLobby(clientId);
+    for (const clientId of this.clientIds) this.sendLobby(clientId);
   }
 
   private broadcastPlayback(): void {
     const state = this.status === "running" ? "playing" : this.status === "paused" ? "paused" : this.status === "done" ? "done" : "stopped";
-    this.broadcast({ type: "playback", state, raidId: this.raidId, hostClientId: this.hostClientId });
+    this.broadcastAll({ type: "playback", state, raidId: this.raidId, hostClientId: this.hostClientId });
   }
 
   private broadcastStarted(): void {
-    for (const connectedClientId of this.clients) {
+    for (const connectedClientId of this.clientIds) {
       if (this.observers.has(connectedClientId)) {
-        this.send(connectedClientId, this.startedMessage(null));
+        this.sendTo(connectedClientId, this.startedMessage(null));
         continue;
       }
       const playerId = this.playerForClient(connectedClientId);
@@ -751,181 +862,17 @@ export class Session {
         this.sendError(connectedClientId, "Claim a slot to join the running session");
         continue;
       }
-      this.send(connectedClientId, this.startedMessage(playerId));
+      this.sendTo(connectedClientId, this.startedMessage(playerId));
     }
   }
 
-  private broadcast(message: ServerMessage): void {
+  private broadcastAll(message: ServerMessage): void {
     const json = JSON.stringify(message);
-    for (const clientId of this.clients) this.send(clientId, json);
+    for (const clientId of this.clientIds) this.sendTo(clientId, json);
   }
 
   private sendError(clientId: string, message: string): void {
     logger.warn("session", "rejected", { session: this.id, clientId, reason: message });
-    this.send(clientId, { type: "error", message });
-  }
-}
-
-export interface SessionManagerOptions {
-  raidsDir: string;
-  send: SendMessage;
-  now?: () => number;
-  lobbyTimeoutMs?: number;
-  createSessionLog?: (sessionId: string) => SessionLog;
-  /** Maximum allocated rooms on this backend. Defaults to unlimited. */
-  maxSessions?: number;
-  loadRaid?: (raidId: string) => Promise<RaidDef>;
-}
-
-export interface CapacitySnapshot {
-  sessions: number;
-  maxSessions: number;
-  availableSessions: number;
-}
-
-/** Point-in-time room capacity, used by the /metrics/sessions endpoint. */
-export function capacitySnapshot(sessions: number, maxSessions: number): CapacitySnapshot {
-  return { sessions, maxSessions, availableSessions: Math.max(0, maxSessions - sessions) };
-}
-
-export class SessionManager {
-  readonly sessions = new Map<string, Session>();
-
-  private readonly raidsDir: string;
-  private readonly send: SendMessage;
-  private readonly clientSessions = new Map<string, string>();
-  private readonly now?: () => number;
-  private readonly lobbyTimeoutMs?: number;
-  private readonly createSessionLog?: (sessionId: string) => SessionLog;
-  private readonly maxSessions: number;
-  private readonly loadRaid: (raidId: string) => Promise<RaidDef>;
-
-  constructor(options: SessionManagerOptions) {
-    this.raidsDir = options.raidsDir;
-    this.send = options.send;
-    this.now = options.now;
-    this.lobbyTimeoutMs = options.lobbyTimeoutMs;
-    this.createSessionLog = options.createSessionLog;
-    this.maxSessions = options.maxSessions ?? Infinity;
-    this.loadRaid = options.loadRaid ?? (raidId => loadSessionRaid(raidId, this.raidsDir));
-  }
-
-  sessionCount(): number {
-    return this.sessions.size;
-  }
-
-  async handle(clientId: string, message: ClientMessage): Promise<void> {
-    if (message.type === "join") {
-      await this.join(clientId, message.sessionId, message.raidId);
-      return;
-    }
-
-    if (message.type === "setRaid") {
-      await this.setRaid(clientId, message.raidId);
-      return;
-    }
-    if (message.type === "debugPosition") return;
-
-    const session = this.sessionFor(clientId);
-    if (!session) {
-      this.send(clientId, { type: "error", message: "Join a session first" });
-      return;
-    }
-
-    session.handle(clientId, message);
-  }
-
-  disconnect(clientId: string): void {
-    const session = this.sessionFor(clientId);
-    this.clientSessions.delete(clientId);
-    if (!session) return;
-
-    if (session.disconnect(clientId)) {
-      this.sessions.delete(session.id);
-    }
-  }
-
-  pruneExpired(): void {
-    for (const [sessionId, session] of this.sessions) {
-      if (!session.isExpired(this.now?.())) continue;
-      session.dispose();
-      this.sessions.delete(sessionId);
-
-      for (const [clientId, clientSessionId] of this.clientSessions) {
-        if (clientSessionId === sessionId) {
-          this.send(clientId, { type: "sessionExpired" });
-          this.clientSessions.delete(clientId);
-        }
-      }
-    }
-  }
-
-  private async join(clientId: string, sessionId: string, raidId: string): Promise<void> {
-    const existingSessionId = this.clientSessions.get(clientId);
-    if (existingSessionId && existingSessionId !== sessionId) {
-      this.disconnect(clientId);
-    }
-
-    let session = this.sessions.get(sessionId);
-    if (!session) {
-      // Joining an existing room is always allowed even when full; only creating a
-      // new room is gated. Prune dead lobbies first so they don't reject spuriously.
-      this.pruneExpired();
-      if (this.sessionCount() >= this.maxSessions) {
-        this.send(clientId, { type: "error", message: "Server is full" });
-        return;
-      }
-
-      const raid = await this.loadRaid(raidId);
-      session = this.sessions.get(sessionId);
-      if (!session) {
-        // Re-check after the await: a concurrent create may have filled the pool.
-        if (this.sessionCount() >= this.maxSessions) {
-          this.send(clientId, { type: "error", message: "Server is full" });
-          return;
-        }
-        session = new Session({
-          id: sessionId,
-          raidId,
-          raid,
-          send: this.send,
-          now: this.now,
-          lobbyTimeoutMs: this.lobbyTimeoutMs,
-          createSessionLog: this.createSessionLog,
-        });
-        this.sessions.set(sessionId, session);
-      }
-    }
-
-    this.clientSessions.set(clientId, sessionId);
-    session.join(clientId);
-  }
-
-  private async setRaid(clientId: string, raidId: string): Promise<void> {
-    const session = this.sessionFor(clientId);
-    if (!session) {
-      this.send(clientId, { type: "error", message: "Join a session first" });
-      return;
-    }
-
-    const seq = ++session.raidRequestSeq;
-    let raid: RaidDef;
-    try {
-      raid = await this.loadRaid(raidId);
-    } catch {
-      logger.warn("session", "raid not found", { clientId, raid: raidId });
-      this.send(clientId, { type: "error", message: "Raid not found" });
-      return;
-    }
-
-    if (session.raidRequestSeq !== seq) return;
-    if (this.sessions.get(session.id) !== session) return;
-
-    session.setRaid(clientId, raidId, raid);
-  }
-
-  private sessionFor(clientId: string): Session | undefined {
-    const sessionId = this.clientSessions.get(clientId);
-    return sessionId ? this.sessions.get(sessionId) : undefined;
+    this.sendTo(clientId, { type: "error", message });
   }
 }

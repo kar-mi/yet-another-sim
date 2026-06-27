@@ -8,7 +8,7 @@
 
 import type { Frame } from "@shared/protocol";
 import { metrics } from "./metrics";
-import type { SessionLog } from "./session";
+import type { SessionLog } from "./sessionRaid";
 
 const DT = 1 / 60;
 const TICK_MS = 1000 / 60;

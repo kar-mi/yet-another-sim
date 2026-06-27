@@ -3,7 +3,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "path";
 import { consoleSink, formatRecord, logger, parseLevel, type LogRecord, type Sink } from "@shared/logger";
-import type { SessionLog } from "./session";
+import type { SessionLog } from "./sessionRaid";
 import type { Frame } from "@shared/protocol";
 
 const ROOT = join(import.meta.dir, "..", "..");

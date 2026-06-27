@@ -3,7 +3,8 @@ import { loadRaid } from "../engine/raidLoader";
 import { baseRaid, roster } from "../engine/__tests__/helpers";
 import { ClientMessageSchema, EMPTY_RAID_ID, MAX_OBSERVERS } from "@shared/protocol";
 import type { ServerMessage } from "@shared/protocol";
-import { capacitySnapshot, createEmptyRaid, EMPTY_LOBBY_TIMEOUT_MS, loadSessionRaid, LOBBY_TIMEOUT_MS, Session, SessionManager, type SessionStatus } from "./session";
+import { capacitySnapshot, EMPTY_LOBBY_TIMEOUT_MS, LOBBY_TIMEOUT_MS, RelayRoom, type SessionStatus } from "./relayRoom";
+import { createEmptyRaid, loadSessionRaid } from "./sessionRaid";
 
 // Session test raids reuse the shared canonical roster builder (clock spots from shared/protocol) so
 // spawns stay in sync with the engine; only the arena/duration and a couple of spawn overrides differ.
@@ -28,7 +29,8 @@ function alternateRaid() {
 
 function makeSession(options: { now?: () => number; lobbyTimeoutMs?: number } = {}) {
   const sent: Array<{ clientId: string; message: ServerMessage }> = [];
-  const session = new Session({
+  const session = new RelayRoom();
+  session.initForTest({
     id: "test-room",
     raidId: "test-raid",
     raid: testRaid(),
@@ -42,7 +44,8 @@ function makeSession(options: { now?: () => number; lobbyTimeoutMs?: number } = 
 
 function makeDefaultLobbySession() {
   const sent: Array<{ clientId: string; message: ServerMessage }> = [];
-  const session = new Session({
+  const session = new RelayRoom();
+  session.initForTest({
     id: "default-room",
     raidId: EMPTY_RAID_ID,
     raid: createEmptyRaid(),
@@ -353,7 +356,7 @@ test("disconnect converts claimed slot back to bot", () => {
   session.join("c1");
   session.claimSlot("c1", "mt");
 
-  session.disconnect("c1");
+  session.disconnectClient("c1");
 
   expect(session.slots.get("mt")).toBeNull();
   expect(session.world.players.find(player => player.id === "mt")?.control).toBe("bot");
@@ -722,27 +725,12 @@ test("host can switch raid after the session ends", () => {
   expect(session.status).toBe("running");
 });
 
-test("concurrent joins to a new session id create one session", async () => {
-  const sent: Array<{ clientId: string; message: ServerMessage }> = [];
-  const manager = new SessionManager({
-    raidsDir: "",
-    send: (clientId, message) => sent.push({ clientId, message: typeof message === "string" ? JSON.parse(message) as ServerMessage : message }),
-  });
-
-  await Promise.all([
-    manager.handle("c1", { type: "join", sessionId: "room", raidId: EMPTY_RAID_ID }),
-    manager.handle("c2", { type: "join", sessionId: "room", raidId: EMPTY_RAID_ID }),
-  ]);
-
-  expect(manager.sessions.size).toBe(1);
-  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "lobby")).toBe(true);
-  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "lobby")).toBe(true);
-});
 
 test("empty raid synthesizes the canonical eight slots", async () => {
   const raid = await loadSessionRaid(EMPTY_RAID_ID, "");
   const sent: Array<{ clientId: string; message: ServerMessage }> = [];
-  const session = new Session({
+  const session = new RelayRoom();
+  session.initForTest({
     id: "empty-room",
     raidId: EMPTY_RAID_ID,
     raid,
@@ -755,22 +743,17 @@ test("empty raid synthesizes the canonical eight slots", async () => {
   expect(sent).toHaveLength(0);
 });
 
-test("existing sessions join by session id after raid changes", async () => {
-  const sent: Array<{ clientId: string; message: ServerMessage }> = [];
-  const manager = new SessionManager({
-    raidsDir: "",
-    send: (clientId, message) => sent.push({ clientId, message: typeof message === "string" ? JSON.parse(message) as ServerMessage : message }),
-  });
+test("auth accepts Bun Headers from Colyseus websocket context", () => {
+  const { session } = makeSession();
+  const client = {} as any;
 
-  await manager.handle("c1", { type: "join", sessionId: "room", raidId: EMPTY_RAID_ID });
-  const session = manager.sessions.get("room")!;
-  session.setRaid("c1", "alternate", alternateRaid());
-
-  await manager.handle("c2", { type: "join", sessionId: "room", raidId: EMPTY_RAID_ID });
-
-  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "lobby" && entry.message.raidId === "alternate")).toBe(true);
-  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Session already uses a different raid")).toBe(false);
+  expect(session.onAuth(client, {}, {
+    headers: new Headers({ origin: "http://localhost:34567", host: "localhost:34567" }),
+    ip: "127.0.0.1",
+  } as any)).toBe(true);
+  expect(client.userData?.ip).toBe("127.0.0.1");
 });
+
 
 test("inactive lobby expires after configured timeout", () => {
   let now = 0;
@@ -821,23 +804,6 @@ test("running session never expires by idle timeout", () => {
   expect(session.isExpired()).toBe(false);
 });
 
-test("pruning an expired session notifies its connected clients", async () => {
-  let now = 0;
-  const sent: Array<{ clientId: string; message: ServerMessage }> = [];
-  const manager = new SessionManager({
-    raidsDir: "",
-    now: () => now,
-    lobbyTimeoutMs: 1000,
-    send: (clientId, message) => sent.push({ clientId, message: typeof message === "string" ? JSON.parse(message) as ServerMessage : message }),
-  });
-
-  await manager.handle("c1", { type: "join", sessionId: "room", raidId: EMPTY_RAID_ID });
-  now = 1000;
-  manager.pruneExpired();
-
-  expect(manager.sessions.has("room")).toBe(false);
-  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "sessionExpired")).toBe(true);
-});
 
 test("client message schema rejects malformed intent packets", () => {
   const parsed = ClientMessageSchema.safeParse({
@@ -855,69 +821,6 @@ test("client message schema rejects out-of-range intent magnitudes", () => {
   });
 
   expect(parsed.success).toBe(false);
-});
-
-function makeManager(maxSessions?: number) {
-  const sent: Array<{ clientId: string; message: ServerMessage }> = [];
-  const manager = new SessionManager({
-    raidsDir: "",
-    send: (clientId, message) => sent.push({ clientId, message: typeof message === "string" ? JSON.parse(message) as ServerMessage : message }),
-    maxSessions,
-  });
-  return { manager, sent };
-}
-
-test("creates a new session while below capacity", async () => {
-  const { manager } = makeManager(2);
-
-  await manager.handle("c1", { type: "join", sessionId: "room-1", raidId: EMPTY_RAID_ID });
-
-  expect(manager.sessions.size).toBe(1);
-});
-
-test("rejects a new session once at capacity", async () => {
-  const { manager, sent } = makeManager(1);
-
-  await manager.handle("c1", { type: "join", sessionId: "room-1", raidId: EMPTY_RAID_ID });
-  await manager.handle("c2", { type: "join", sessionId: "room-2", raidId: EMPTY_RAID_ID });
-
-  expect(manager.sessions.size).toBe(1);
-  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Server is full")).toBe(true);
-});
-
-test("joining an existing session is allowed at capacity", async () => {
-  const { manager, sent } = makeManager(1);
-
-  await manager.handle("c1", { type: "join", sessionId: "room-1", raidId: EMPTY_RAID_ID });
-  await manager.handle("c2", { type: "join", sessionId: "room-1", raidId: EMPTY_RAID_ID });
-
-  expect(manager.sessions.size).toBe(1);
-  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "lobby")).toBe(true);
-  expect(sent.some(entry => entry.message.type === "error" && entry.message.message === "Server is full")).toBe(false);
-});
-
-test("disconnecting the last client frees capacity", async () => {
-  const { manager, sent } = makeManager(1);
-
-  await manager.handle("c1", { type: "join", sessionId: "room-1", raidId: EMPTY_RAID_ID });
-  manager.disconnect("c1");
-  expect(manager.sessions.size).toBe(0);
-
-  await manager.handle("c2", { type: "join", sessionId: "room-2", raidId: EMPTY_RAID_ID });
-
-  expect(manager.sessions.size).toBe(1);
-  expect(sent.some(entry => entry.message.type === "error" && entry.message.message === "Server is full")).toBe(false);
-});
-
-test("concurrent creation cannot exceed maxSessions", async () => {
-  const { manager } = makeManager(1);
-
-  await Promise.all([
-    manager.handle("c1", { type: "join", sessionId: "room-1", raidId: EMPTY_RAID_ID }),
-    manager.handle("c2", { type: "join", sessionId: "room-2", raidId: EMPTY_RAID_ID }),
-  ]);
-
-  expect(manager.sessions.size).toBe(1);
 });
 
 test("capacity snapshot reports availability", () => {
