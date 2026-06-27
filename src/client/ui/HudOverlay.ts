@@ -478,6 +478,7 @@ export class HudOverlay {
   setPlaybackState(state: PlaybackState): void {
     this.playbackState = state;
     this.renderTimerStatus(this.lastWorldStatus);
+    this.renderCenterStatus(this.lastWorldStatus);
   }
 
   private renderTimerStatus(worldStatus: World["status"]): void {
@@ -502,6 +503,24 @@ export class HudOverlay {
     }
     this.timerStatusEl.textContent = word;
     this.timerStatusEl.className = `yas-timer-status yas-timer-${modifier}`;
+  }
+
+  private renderCenterStatus(worldStatus: World["status"]): void {
+    if (worldStatus === "cleared") {
+      this.statusEl.textContent = "CLEARED";
+      this.statusEl.className = "yas-visible yas-cleared";
+    } else if (worldStatus === "wiped") {
+      this.statusEl.textContent = "WIPED";
+      this.statusEl.className = "yas-visible yas-wiped";
+    } else if (this.playbackState === "paused") {
+      this.statusEl.textContent = "PAUSED";
+      this.statusEl.className = "yas-visible yas-paused";
+    } else if (this.playbackState === "stopped") {
+      this.statusEl.textContent = "STOPPED";
+      this.statusEl.className = "yas-visible yas-stopped";
+    } else {
+      this.statusEl.className = "";
+    }
   }
 
   applySettings(settings: Settings): void {
@@ -584,16 +603,7 @@ export class HudOverlay {
 
     this.timerValEl.textContent = formatTime(world.time);
     this.renderTimerStatus(world.status);
-
-    if (world.status === "cleared") {
-      this.statusEl.textContent = "CLEARED";
-      this.statusEl.className = "yas-visible yas-cleared";
-    } else if (world.status === "wiped") {
-      this.statusEl.textContent = "WIPED";
-      this.statusEl.className = "yas-visible yas-wiped";
-    } else {
-      this.statusEl.className = "";
-    }
+    this.renderCenterStatus(world.status);
 
     this.ensurePartyRows(world.players);
     // Spectate camera buttons only work while the local player is dead (or has no slot).
