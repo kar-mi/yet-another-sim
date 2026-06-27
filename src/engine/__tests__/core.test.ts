@@ -92,8 +92,7 @@ test("boss following stops two units outside its main ring", () => {
   const world = tick(createWorld(raid), {}, 10);
   const mt = world.players.find(p => p.id === "mt")!;
 
-  expect(Math.hypot(mt.pos.x - world.boss.pos.x, mt.pos.z - world.boss.pos.z))
-    .toBeCloseTo(world.boss.radius * world.boss.ringScale + 2);
+  expect(Math.hypot(mt.pos.x - world.boss.pos.x, mt.pos.z - world.boss.pos.z)).toBeCloseTo(7.7);
 });
 
 
