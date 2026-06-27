@@ -1,4 +1,5 @@
 import { RegisterFullEngineExtensions } from "@babylonjs/core/Engines/engineRegistration.pure";
+import { RegisterAnimatable } from "@babylonjs/core/Animations/animatable.pure";
 import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
 import type { ArcRotateCameraPointersInput } from "@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput";
 import { Engine } from "@babylonjs/core/Engines/engine";
@@ -45,6 +46,12 @@ import { prewarmShaders } from "./shaderPrewarm";
 // the full WebGL2 extension set explicitly — the calls are idempotent and survive tree-shaking, so
 // the scene renders identically across every environment.
 RegisterFullEngineExtensions();
+// Same tree-shaking hazard, but for the animation runtime (which RegisterFullEngineExtensions does
+// not cover): without it, Scene.prototype.beginDirectAnimation is a no-op stub that returns
+// undefined, so the glTF loader's auto-start of a model's embedded animation crashes with
+// "Cannot set properties of undefined (setting 'weight')" and every animated GLB (the player
+// Hermits) fails to load. Register it explicitly so the call survives DCE.
+RegisterAnimatable();
 
 const playerBarId = (id: string) => `player:${id}`;
 
