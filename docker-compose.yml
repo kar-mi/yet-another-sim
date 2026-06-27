@@ -22,9 +22,9 @@ services:
       nofile:
         soft: 65535
         hard: 65535
-    # Persist per-session replay logs (logs/sessions/*.jsonl) + the app log so they survive
-    # restarts and can be rotated host-side (logrotate/cron). Each pull appends a tick-0 world
-    # header plus every frame batch, so this dir grows continuously and needs age/size retention.
+    # Persist per-pull replay logs (logs/sessions/*.jsonl) + the app log so they survive restarts
+    # and can be rotated host-side (logrotate/cron). Each pull writes a tick-0 world header plus
+    # every frame batch, so this dir grows continuously and needs age/size retention.
     volumes:
       - ./logs:/app/logs
 

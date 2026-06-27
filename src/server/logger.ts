@@ -11,7 +11,7 @@ const LOG_DIR = join(ROOT, "logs");
 const LOG_FILE = join(LOG_DIR, "sim.log");
 const SESSION_LOG_DIR = join(LOG_DIR, "sessions");
 
-// Per-session replay logs still open, flushed/closed on shutdown so buffered
+// Per-pull replay logs still open, flushed/closed on shutdown so buffered
 // input frames aren't lost when sessions are active at exit.
 const activeSessionLogs = new Set<SessionLog>();
 let flushFileSink: () => void = () => {};
@@ -64,9 +64,9 @@ logger.configure({
   sinks: [consoleSink, createFileSink()],
 });
 
-// Per-session input replay log: one batched JSONL file per session at logs/sessions/<id>.jsonl,
+// Per-pull input replay log: one batched JSONL file per pull at logs/sessions/<id>.jsonl,
 // written regardless of LOG_LEVEL. In server-relayed lockstep the server no longer simulates, so
-// the input frames it relays ARE the session. Each pull opens with a header line carrying the
+// the input frames it relays ARE the pull. Each pull opens with a header line carrying the
 // tick-0 world (seed included) + raid id; replaying the subsequent frame lines against that world
 // reproduces the entire pull deterministically.
 export function createSessionLog(sessionId: string): SessionLog {
