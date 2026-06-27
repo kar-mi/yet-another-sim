@@ -1,4 +1,3 @@
-import { Buffer } from "node:buffer";
 import { join } from "path";
 import { Server } from "colyseus";
 import { BunWebSockets } from "@colyseus/bun-websockets";
@@ -31,11 +30,22 @@ function cacheControlForBundlePath(path: string): string {
   return path === "index.html" ? "no-cache" : "public, max-age=31536000, immutable";
 }
 
+// bun-serve-express's res.end()/res.send() stringify the body via `_writes.join("")`,
+// which UTF-8-corrupts every byte > 0x7F and destroys binary files (GLB models, PNGs).
+// Set the binary body directly; getBunResponse() wraps it in `new Response(body)`, and
+// Bun streams an ArrayBuffer verbatim. (Pinned dep: @colyseus/bun-websockets 0.16.5.)
+function endBinary(res: any, body: ArrayBuffer): void {
+  res.statusCode = res.statusCode ?? 200;
+  res._body = body;
+  res.finished = true;
+  res.emit("finish");
+}
+
 async function sendFile(res: any, file: Bun.BunFile, cacheControl: string): Promise<void> {
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) res.setHeader(name, value);
   res.setHeader("Cache-Control", cacheControl);
   if (file.type) res.setHeader("Content-Type", file.type);
-  res.end(Buffer.from(await file.arrayBuffer()));
+  endBinary(res, await file.arrayBuffer());
 }
 
 async function sendBundlePath(res: any, relPath: string): Promise<boolean> {
