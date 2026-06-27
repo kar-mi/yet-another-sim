@@ -73,7 +73,7 @@ if (!buildResult.success) {
   process.exit(1);
 }
 
-const transport = new BunWebSockets();
+const transport = new BunWebSockets({ maxPayloadLength: 1 << 20 });
 const gameServer = new Server({ transport });
 gameServer.define("relay", RelayRoom).filterBy(["sessionId"]);
 
