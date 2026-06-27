@@ -12,10 +12,10 @@ git reset --hard "origin/$BRANCH"
 
 echo "==> Rebuilding and restarting container"
 rm -rf .bundle
-docker compose up -d --build
+docker compose -f docker-compose-server.yml up -d --build --remove-orphans
 
 echo "==> Pruning dangling images"
 docker image prune -f
 
 echo "==> Done. Status:"
-docker compose ps
+docker compose -f docker-compose-server.yml ps

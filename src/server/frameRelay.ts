@@ -25,7 +25,27 @@ const PULL_GRACE_SECONDS = 30;
 
 let maxFrameBroadcastBatch = 0;
 
-type TickHandle = ReturnType<typeof setInterval>;
+const activeRelays = new Set<FrameRelay>();
+let sharedTickHandle: ReturnType<typeof setInterval> | null = null;
+
+function ensureSharedScheduler(): void {
+  if (sharedTickHandle) return;
+  sharedTickHandle = setInterval(() => {
+    for (const relay of [...activeRelays]) {
+      if (activeRelays.has(relay)) relay.runDueTicks();
+    }
+  }, POLL_MS);
+}
+
+function stopSharedSchedulerIfIdle(): void {
+  if (activeRelays.size > 0 || !sharedTickHandle) return;
+  clearInterval(sharedTickHandle);
+  sharedTickHandle = null;
+}
+
+export function frameRelaySchedulerSnapshot(): { activeRelays: number; running: boolean } {
+  return { activeRelays: activeRelays.size, running: sharedTickHandle !== null };
+}
 
 export interface FrameRelayOptions {
   now: () => number;
@@ -44,7 +64,6 @@ export class FrameRelay {
   readonly inputLog: Frame[] = [];
 
   private frameBatch: Frame[] = [];
-  private tickHandle: TickHandle | null = null;
   private tickAccumulator = 0;
   private lastTickAt = 0;
   private maxPullTicks = Infinity;
@@ -108,17 +127,16 @@ export class FrameRelay {
     if (!this.autoTick) return;
     this.lastTickAt = this.now();
     this.tickAccumulator = 0;
-    this.stop();
-    this.tickHandle = setInterval(() => this.runDueTicks(), POLL_MS);
+    activeRelays.add(this);
+    ensureSharedScheduler();
   }
 
   stop(): void {
-    if (!this.tickHandle) return;
-    clearInterval(this.tickHandle);
-    this.tickHandle = null;
+    activeRelays.delete(this);
+    stopSharedSchedulerIfIdle();
   }
 
-  private runDueTicks(): void {
+  runDueTicks(): void {
     if (!this.isRunning()) return;
 
     const now = this.now();
