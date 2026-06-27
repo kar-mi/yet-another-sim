@@ -10,6 +10,7 @@ const ROOT = join(import.meta.dir, "..", "..");
 const LOG_DIR = join(ROOT, "logs");
 const LOG_FILE = join(LOG_DIR, "sim.log");
 const SESSION_LOG_DIR = join(LOG_DIR, "sessions");
+const SESSION_FRAME_LOG_INTERVAL_MS = 250;
 
 // Per-pull replay logs still open, flushed/closed on shutdown so buffered
 // input frames aren't lost when sessions are active at exit.
@@ -75,22 +76,33 @@ export function createSessionLog(sessionId: string): SessionLog {
   const writer = Bun.file(join(SESSION_LOG_DIR, `${safeId}.jsonl`)).writer();
 
   let dirty = false;
+  let pendingStartTick: number | null = null;
+  const pendingFrames: Frame[] = [];
+  const writePendingFrames = () => {
+    if (pendingStartTick === null || pendingFrames.length === 0) return;
+    writer.write(JSON.stringify({ startTick: pendingStartTick, frames: pendingFrames }) + "\n");
+    pendingStartTick = null;
+    pendingFrames.length = 0;
+    dirty = true;
+  };
   const flush = () => {
+    writePendingFrames();
     if (!dirty) return;
     dirty = false;
     writer.flush();
   };
-  const timer = setInterval(flush, 1000);
+  const timer = setInterval(flush, SESSION_FRAME_LOG_INTERVAL_MS);
   timer.unref();
 
   const sessionLog: SessionLog = {
     header(raidId, world): void {
+      writePendingFrames();
       writer.write(JSON.stringify({ header: true, raidId, world }) + "\n");
       dirty = true;
     },
     frame(startTick: number, frames: Frame[]): void {
-      writer.write(JSON.stringify({ startTick, frames }) + "\n");
-      dirty = true;
+      if (pendingStartTick === null) pendingStartTick = startTick;
+      pendingFrames.push(...frames);
     },
     close(): void {
       clearInterval(timer);
