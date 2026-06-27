@@ -1,6 +1,6 @@
 {
   "name": "yet-another-sim",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "scripts": {
     "dev": "bun src/server/server.ts",
     "build": "rm -rf .bundle && bun build ./index.html --outdir .bundle --sourcemap=none --env=disable --minify --ignore-dce-annotations --define __YAS_STATIC__=false --define __YAS_DEBUG__=false",

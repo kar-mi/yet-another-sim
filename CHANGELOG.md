@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-27
+
+### Added
+
+- Colyseus-backed multiplayer transport with reconnect support.
+- Static build path with generated raid data and loopback single-player transport.
+- RNG variants for Bowls of Agony debuffs and swap order.
+
+### Changed
+
+- Split relay room logic so multiplayer and static single-player modes share the core message flow.
+- Improved animation rendering, asset loading, and boss ring placement.
+
+### Fixed
+
+- Fixed static build and single-player interaction regressions.
+- Fixed Bowls bot positions and debuff RNG behavior.
+
 ## [0.4.0] - 2026-06-24
 
 ### Added
