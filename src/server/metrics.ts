@@ -94,8 +94,6 @@ export const metrics = {
   wsMessagesTotal: registry.register(new Counter("ws_messages_received_total", "WebSocket messages received.")),
   wsInvalidTotal: registry.register(new Counter("ws_invalid_messages_total", "WebSocket messages that failed validation/JSON parse.")),
   wsRateLimitedTotal: registry.register(new Counter("ws_rate_limited_messages_total", "Inbound WebSocket messages dropped by the per-connection rate limit.")),
-  wsOutboundPayloadBytesLast: registry.register(new Gauge("sim_ws_outbound_payload_bytes_last", "Bytes in the most recent outbound WebSocket payload.")),
-  wsOutboundPayloadBytesMax: registry.register(new Gauge("sim_ws_outbound_payload_bytes_max", "Largest outbound WebSocket payload observed since process start.")),
 
   // Process runtime (sampled by the metrics server).
   residentMemoryBytes: registry.register(new Gauge("process_resident_memory_bytes", "Resident set size in bytes.")),

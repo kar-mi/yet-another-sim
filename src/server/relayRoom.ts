@@ -12,6 +12,7 @@ import { isOriginAllowed, parseAllowedOrigins } from "./origin";
 import { ConnectionCounter, clientIpFor, createMessageRateLimiter, type RateLimiter } from "./rateLimit";
 import { addServerTraceEvent, recordServerException, withServerSpan } from "./otel";
 import { loadSessionRaid, mergePendingIntent, type SessionLog } from "./sessionRaid";
+import { metrics } from "./metrics";
 
 export const LOBBY_TIMEOUT_MS = 10 * 60 * 1000;
 export const EMPTY_LOBBY_TIMEOUT_MS = 90 * 1000;
@@ -60,6 +61,7 @@ export function relayRoomsActive(): number {
 
 interface RelayClientData {
   ip?: string;
+  counted?: boolean;
   rate?: RateLimiter;
 }
 
@@ -178,20 +180,26 @@ export class RelayRoom extends Room {
     const requestUrl = "http://" + host + "/";
     if (!isOriginAllowed(origin ?? null, requestUrl, ALLOWED_ORIGINS)) return false;
     const ip = clientIpFor(headerValue(context.headers, "x-forwarded-for") ?? null, Array.isArray(context.ip) ? context.ip[0] : context.ip);
-    if (!ipConnections.tryAcquire(ip)) return false;
     client.userData = { ip, rate: createMessageRateLimiter(MAX_WS_MSGS_PER_SEC) };
     return true;
   }
 
   onJoin(client: Client<RelayClientData>): void {
+    const ip = client.userData?.ip ?? "unknown";
+    if (!ipConnections.tryAcquire(ip)) {
+      client.leave(4008, "Too many connections");
+      return;
+    }
+    client.userData = { ...client.userData, ip, counted: true };
     connectedClients++;
     client.send("s", { type: "joined", clientId: client.sessionId } satisfies ServerMessage);
     this.join(client.sessionId);
   }
 
   onLeave(client: Client<RelayClientData>): void {
+    if (!client.userData?.counted) return;
     connectedClients = Math.max(0, connectedClients - 1);
-    if (client.userData?.ip) ipConnections.release(client.userData.ip);
+    if (client.userData.ip) ipConnections.release(client.userData.ip);
     this.disconnectClient(client.sessionId);
   }
 
@@ -202,10 +210,15 @@ export class RelayRoom extends Room {
 
   private handleColyseusMessage(client: Client<RelayClientData>, raw: unknown): void {
     withServerSpan("ws.message", { clientId: client.sessionId }, async span => {
+      metrics.wsMessagesTotal.inc();
       const rate = client.userData?.rate;
-      if (rate && !rate.allow()) return;
+      if (rate && !rate.allow()) {
+        metrics.wsRateLimitedTotal.inc();
+        return;
+      }
       const parsed = ClientMessageSchema.safeParse(raw);
       if (!parsed.success) {
+        metrics.wsInvalidTotal.inc();
         logger.warn("net", "invalid message", { clientId: client.sessionId });
         client.send("s", { type: "error", message: "Invalid message" } satisfies ServerMessage);
         return;
