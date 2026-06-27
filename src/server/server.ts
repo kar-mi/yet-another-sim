@@ -1,7 +1,8 @@
 import { join } from "path";
 import { Server } from "colyseus";
 import { BunWebSockets } from "@colyseus/bun-websockets";
-import { RelayRoom, MAX_SESSIONS, capacitySnapshot, relayClientsConnected, relayRoomsActive } from "./relayRoom";
+import { RelayServerRoom, MAX_SESSIONS, relayClientsConnected, relayRoomsActive } from "./relayServerRoom";
+import { capacitySnapshot } from "./relayRoom";
 import { logger } from "./logger";
 import { startMetricsServer } from "./metricsServer";
 import { getRaidCategories, raidCatalogCacheControl } from "./raidCatalog";
@@ -75,7 +76,7 @@ if (!buildResult.success) {
 
 const transport = new BunWebSockets({ maxPayloadLength: 1 << 20 });
 const gameServer = new Server({ transport });
-gameServer.define("relay", RelayRoom).filterBy(["sessionId"]);
+gameServer.define("relay", RelayServerRoom).filterBy(["sessionId"]);
 
 const app = transport.expressApp;
 

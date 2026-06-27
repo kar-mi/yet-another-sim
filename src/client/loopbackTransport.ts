@@ -38,7 +38,7 @@ export class LoopbackTransport implements Transport {
         this.room?.disconnectClient(this.clientId);
         this.room = new RelayRoom();
         this.roomSessionId = message.sessionId;
-        this.room.initForTest({
+        this.room.init({
           id: message.sessionId,
           raidId: message.raidId,
           raid: await this.loadRaid(message.raidId),

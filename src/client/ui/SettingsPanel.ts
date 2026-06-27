@@ -88,12 +88,14 @@ export function initSettingsPanel(
     hudLayout.setHudHidden(hidden);
   };
 
-  editHudBtn.addEventListener("click", () => {
+  const openHudEditor = () => {
     if (!hudLayout.hasGroups()) return;
     settingsPanel.style.display = "none";
     setHudHidden(false);
     hudLayout.enterEditMode();
-  });
+  };
+  editHudBtn.addEventListener("click", openHudEditor);
+  document.getElementById("hud-edit-btn")!.addEventListener("click", openHudEditor);
 
   // A slider that persists a numeric setting and live-applies it to the renderer.
   const bindSlider = (input: HTMLInputElement, valEl: HTMLElement, apply: (value: number) => void) => {

@@ -153,13 +153,14 @@ body:focus-visible {
 
 /* ===== UI SCALE (accessibility) ===== */
 /* Zoom each overlay container by --ui-scale; leaves the 3D #canvas untouched. */
-#yas-status, #yas-session-id, #settings-panel, #home-btn, #settings-btn, #info-btn, #info-panel, #yas-menu, #yas-raid-modal {
+#yas-status, #yas-session-id, #settings-panel, #home-btn, #settings-btn, #hud-edit-btn, #info-btn, #info-panel, #yas-menu, #yas-raid-modal {
   zoom: var(--ui-scale, 1);
 }
 
 /* ===== TOP BUTTONS (home / settings / info) ===== */
 #home-btn,
 #settings-btn,
+#hud-edit-btn,
 #info-btn {
   position: fixed;
   top: 12px;
@@ -182,8 +183,9 @@ body:focus-visible {
   transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
 }
 
-#home-btn   { display: none; right: 92px; z-index: 10; }
-#info-btn   { right: 52px; }
+#home-btn   { display: none; right: 132px; z-index: 10; }
+#info-btn   { right: 92px; }
+#hud-edit-btn { right: 52px; }
 #settings-btn { right: 12px; }
 
 #settings-btn::before,
@@ -200,6 +202,7 @@ body:focus-visible {
 
 #home-btn:hover,
 #settings-btn:hover,
+#hud-edit-btn:hover,
 #info-btn:hover {
   border-color: var(--px-accent);
   color: var(--px-accent);

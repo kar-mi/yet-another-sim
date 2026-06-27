@@ -30,7 +30,7 @@ function alternateRaid() {
 function makeSession(options: { now?: () => number; lobbyTimeoutMs?: number } = {}) {
   const sent: Array<{ clientId: string; message: ServerMessage }> = [];
   const session = new RelayRoom();
-  session.initForTest({
+  session.init({
     id: "test-room",
     raidId: "test-raid",
     raid: testRaid(),
@@ -45,7 +45,7 @@ function makeSession(options: { now?: () => number; lobbyTimeoutMs?: number } = 
 function makeDefaultLobbySession() {
   const sent: Array<{ clientId: string; message: ServerMessage }> = [];
   const session = new RelayRoom();
-  session.initForTest({
+  session.init({
     id: "default-room",
     raidId: EMPTY_RAID_ID,
     raid: createEmptyRaid(),
@@ -730,7 +730,7 @@ test("empty raid synthesizes the canonical eight slots", async () => {
   const raid = await loadSessionRaid(EMPTY_RAID_ID, "");
   const sent: Array<{ clientId: string; message: ServerMessage }> = [];
   const session = new RelayRoom();
-  session.initForTest({
+  session.init({
     id: "empty-room",
     raidId: EMPTY_RAID_ID,
     raid,
@@ -742,18 +742,6 @@ test("empty raid synthesizes the canonical eight slots", async () => {
   expect([...session.slots.values()]).toHaveLength(8);
   expect(sent).toHaveLength(0);
 });
-
-test("auth accepts Bun Headers from Colyseus websocket context", () => {
-  const { session } = makeSession();
-  const client = {} as any;
-
-  expect(session.onAuth(client, {}, {
-    headers: new Headers({ origin: "http://localhost:34567", host: "localhost:34567" }),
-    ip: "127.0.0.1",
-  } as any)).toBe(true);
-  expect(client.userData?.ip).toBe("127.0.0.1");
-});
-
 
 test("inactive lobby expires after configured timeout", () => {
   let now = 0;

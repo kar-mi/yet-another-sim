@@ -1,18 +1,12 @@
-import { Room, type AuthContext, type Client } from "colyseus";
 import { createWorld } from "../engine/world";
 import type { RaidDef } from "../engine/raidSchema";
-import { ClientMessageSchema, EMPTY_RAID_ID, MAX_OBSERVERS, type ClientMessage, type Frame, type LobbySlot, type LobbyStatus, type ServerMessage } from "@shared/protocol";
+import { EMPTY_RAID_ID, MAX_OBSERVERS, type ClientMessage, type Frame, type LobbySlot, type LobbyStatus, type ServerMessage } from "@shared/protocol";
 import type { Intent, Intents, World } from "@shared/types";
 import { RAID_CHANGE_START_DELAY_MS } from "@shared/constants";
-import { logger, createSessionLog } from "./logger";
+import { logger } from "@shared/logger";
 import { DesyncTracker } from "./desyncTracker";
 import { FrameRelay } from "./frameRelay";
-import { RAIDS_DIR } from "./raidCatalog";
-import { isOriginAllowed, parseAllowedOrigins } from "./origin";
-import { ConnectionCounter, clientIpFor, createMessageRateLimiter, type RateLimiter } from "./rateLimit";
-import { addServerTraceEvent, recordServerException, withServerSpan } from "./otel";
-import { loadSessionRaid, mergePendingIntent, type SessionLog } from "./sessionRaid";
-import { metrics } from "./metrics";
+import { mergePendingIntent, type SessionLog } from "./sessionRaid";
 
 export const LOBBY_TIMEOUT_MS = 10 * 60 * 1000;
 export const EMPTY_LOBBY_TIMEOUT_MS = 90 * 1000;
@@ -29,43 +23,7 @@ export function capacitySnapshot(sessions: number, maxSessions: number): Capacit
   return { sessions, maxSessions, availableSessions: Math.max(0, maxSessions - sessions) };
 }
 
-function parsePositiveInt(name: string, raw: string | undefined, fallback: number): number {
-  if (raw === undefined || raw === "") return fallback;
-  const value = Number(raw);
-  if (!Number.isInteger(value) || value <= 0) throw new Error(`${name} must be positive integer`);
-  return value;
-}
-
-export const MAX_SESSIONS = parsePositiveInt("MAX_SESSIONS", Bun.env.MAX_SESSIONS, 10);
-export const MAX_CONNECTIONS_PER_IP = parsePositiveInt("MAX_CONNECTIONS_PER_IP", Bun.env.MAX_CONNECTIONS_PER_IP, 30);
-export const MAX_WS_MSGS_PER_SEC = parsePositiveInt("MAX_WS_MSGS_PER_SEC", Bun.env.MAX_WS_MSGS_PER_SEC, 120);
-
-const ALLOWED_ORIGINS = parseAllowedOrigins(Bun.env.ALLOWED_ORIGINS);
-const ipConnections = new ConnectionCounter(MAX_CONNECTIONS_PER_IP);
-let connectedClients = 0;
-let activeRooms = 0;
-
-function headerValue(headers: AuthContext["headers"], name: string): string | undefined {
-  const maybeHeaders = headers as { get?: (name: string) => string | null };
-  const value = typeof maybeHeaders.get === "function" ? maybeHeaders.get(name) : (headers as Record<string, string | string[] | undefined>)[name];
-  return Array.isArray(value) ? value[0] : value ?? undefined;
-}
-
-export function relayClientsConnected(): number {
-  return connectedClients;
-}
-
-export function relayRoomsActive(): number {
-  return activeRooms;
-}
-
-interface RelayClientData {
-  ip?: string;
-  counted?: boolean;
-  rate?: RateLimiter;
-}
-
-interface RelayRoomInitOptions {
+export interface RelayRoomInitOptions {
   id: string;
   raidId: string;
   raid: RaidDef;
@@ -75,18 +33,15 @@ interface RelayRoomInitOptions {
   createSessionLog?: (sessionId: string) => SessionLog;
 }
 
-type TestSend = (clientId: string, message: ServerMessage | string) => void;
+// Outbound sink: routes a server message to one client. The colyseus adapter wires this to the
+// socket; tests and the static loopback client inject their own delivery. Keeping the relay free of
+// any transport means the static client can reuse it without bundling colyseus into the browser.
+type Send = (clientId: string, message: ServerMessage | string) => void;
 const idleIntent: Intent = { move: { x: 0, z: 0 } };
 
-export interface RelayRoomOptions {
-  sessionId?: string;
-  raidId?: string;
-  autoTick?: boolean;
-  now?: () => number;
-  lobbyTimeoutMs?: number;
-}
-
-export class RelayRoom extends Room {
+// Transport-agnostic relay: owns lobby/pull state and the authoritative input log, and emits server
+// messages through the injected `send` sink. The colyseus integration lives in RelayServerRoom.
+export class RelayRoom {
   id = "";
   raidId = "";
   readonly slots = new Map<string, string | null>();
@@ -100,7 +55,7 @@ export class RelayRoom extends Room {
 
   private raid!: RaidDef;
   private readonly clientIds = new Set<string>();
-  private testSend: TestSend | null = null;
+  private send!: Send;
   private readonly latestIntents = new Map<string, Intent>();
   private now: () => number = Date.now;
   private lastActivity = 0;
@@ -121,7 +76,8 @@ export class RelayRoom extends Room {
     return this.relay.inputLog;
   }
 
-  private initSession(options: RelayRoomInitOptions): void {
+  init(options: RelayRoomInitOptions & { send: Send }): void {
+    this.send = options.send;
     this.id = options.id;
     this.raidId = options.raidId;
     this.raid = options.raid;
@@ -146,115 +102,8 @@ export class RelayRoom extends Room {
     this.resetPull();
   }
 
-  initForTest(options: RelayRoomInitOptions & { send: TestSend }): void {
-    this.testSend = options.send;
-    this.initSession(options);
-  }
-
-  async onCreate(options: RelayRoomOptions): Promise<void> {
-    const sessionId = typeof options.sessionId === "string" && options.sessionId ? options.sessionId : this.roomId;
-    const raidId = typeof options.raidId === "string" && options.raidId ? options.raidId : EMPTY_RAID_ID;
-    if (activeRooms >= MAX_SESSIONS) throw new Error("Server is full");
-    activeRooms++;
-    await this.setMetadata({ sessionId } as any);
-    this.initSession({
-      id: sessionId,
-      raidId,
-      raid: await loadSessionRaid(raidId, RAIDS_DIR),
-      autoTick: options.autoTick,
-      now: options.now,
-      lobbyTimeoutMs: options.lobbyTimeoutMs,
-      createSessionLog,
-    });
-    this.onMessage("c", (client, message) => this.handleColyseusMessage(client, message));
-    this.clock.setInterval(() => {
-      if (!this.isExpired()) return;
-      for (const client of this.clients) client.send("s", { type: "sessionExpired" } satisfies ServerMessage);
-      this.disconnect();
-    }, 60_000);
-  }
-
-  onAuth(client: Client<RelayClientData>, _options: RelayRoomOptions, context: AuthContext): boolean {
-    const origin = headerValue(context.headers, "origin");
-    const host = headerValue(context.headers, "host") ?? "localhost";
-    const requestUrl = "http://" + host + "/";
-    if (!isOriginAllowed(origin ?? null, requestUrl, ALLOWED_ORIGINS)) return false;
-    const ip = clientIpFor(headerValue(context.headers, "x-forwarded-for") ?? null, Array.isArray(context.ip) ? context.ip[0] : context.ip);
-    client.userData = { ip, rate: createMessageRateLimiter(MAX_WS_MSGS_PER_SEC) };
-    return true;
-  }
-
-  onJoin(client: Client<RelayClientData>): void {
-    const ip = client.userData?.ip ?? "unknown";
-    if (!ipConnections.tryAcquire(ip)) {
-      client.leave(4008, "Too many connections");
-      return;
-    }
-    client.userData = { ...client.userData, ip, counted: true };
-    connectedClients++;
-    client.send("s", { type: "joined", clientId: client.sessionId } satisfies ServerMessage);
-    this.join(client.sessionId);
-  }
-
-  onLeave(client: Client<RelayClientData>): void {
-    if (!client.userData?.counted) return;
-    connectedClients = Math.max(0, connectedClients - 1);
-    if (client.userData.ip) ipConnections.release(client.userData.ip);
-    this.disconnectClient(client.sessionId);
-  }
-
-  onDispose(): void {
-    activeRooms = Math.max(0, activeRooms - 1);
-    this.dispose();
-  }
-
-  private handleColyseusMessage(client: Client<RelayClientData>, raw: unknown): void {
-    withServerSpan("ws.message", { clientId: client.sessionId }, async span => {
-      metrics.wsMessagesTotal.inc();
-      const rate = client.userData?.rate;
-      if (rate && !rate.allow()) {
-        metrics.wsRateLimitedTotal.inc();
-        return;
-      }
-      const parsed = ClientMessageSchema.safeParse(raw);
-      if (!parsed.success) {
-        metrics.wsInvalidTotal.inc();
-        logger.warn("net", "invalid message", { clientId: client.sessionId });
-        client.send("s", { type: "error", message: "Invalid message" } satisfies ServerMessage);
-        return;
-      }
-      if (parsed.data.type === "debugPosition") {
-        logger.debug("hud", "player position", { clientId: client.sessionId, ...parsed.data });
-        return;
-      }
-      span.setAttribute("yas.message_type", parsed.data.type);
-      addServerTraceEvent("net", "WS message", { clientId: client.sessionId, type: parsed.data.type });
-      try {
-        if (parsed.data.type === "join") {
-          this.touch();
-          this.sendLobby(client.sessionId);
-          return;
-        }
-        if (parsed.data.type === "setRaid") {
-          this.setRaid(client.sessionId, parsed.data.raidId, await loadSessionRaid(parsed.data.raidId, RAIDS_DIR));
-          return;
-        }
-        this.handle(client.sessionId, parsed.data);
-      } catch (err) {
-        recordServerException(err, { area: "ws.message", clientId: client.sessionId, type: parsed.data.type }, span);
-        logger.error("net", "message handler failed", { clientId: client.sessionId, type: parsed.data.type, err });
-        client.send("s", { type: "error", message: "Server error" } satisfies ServerMessage);
-      }
-    });
-  }
-
   private sendTo(clientId: string, message: ServerMessage | string): void {
-    if (this.testSend) {
-      this.testSend(clientId, message);
-      return;
-    }
-    const payload = typeof message === "string" ? JSON.parse(message) as ServerMessage : message;
-    this.clients.getById(clientId)?.send("s", payload);
+    this.send(clientId, message);
   }
 
   join(clientId: string): void {
@@ -759,7 +608,7 @@ export class RelayRoom extends Room {
     this.sessionLog?.close();
   }
 
-  private touch(): void {
+  touch(): void {
     this.lastActivity = this.now();
   }
 
@@ -838,7 +687,7 @@ export class RelayRoom extends Room {
     };
   }
 
-  private sendLobby(clientId: string): void {
+  sendLobby(clientId: string): void {
     this.sendTo(clientId, this.lobbyFor(clientId));
   }
 
