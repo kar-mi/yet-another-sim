@@ -166,7 +166,7 @@ solvers:
       origin: { boss: chaos }
       mirrorLateral: true
       spots:
-        r1:  { r: 17.37, z: -18.04 }
+        r1:  { r: 15.60, z: -16.20 }
         r2:  { r: 7.00, z: -7.96 }
 
     - when: { mechanic: [longitude-implosion-front, longitude-implosion-back], partyDebuff: Dynamic Fluid Long }
@@ -174,7 +174,7 @@ solvers:
       origin: { boss: chaos }
       mirrorLateral: true
       spots:
-        r1: { r: 18.96, z: -11.84 }
+        r1: { r: 17.10, z: -10.66 }
         r2: { r: 8.31, z: -7.96 }
 
     - when: { mechanic: [latitude-implosion-left, latitude-implosion-right], partyDebuff: Entropy Long }
@@ -205,7 +205,7 @@ solvers:
       origin: { boss: chaos }
       mirrorLateral: true
       spots:
-        r1:  { r: 17.37, z: -18.04 }
+        r1:  { r: 15.60, z: -16.20 }
         r2:  { r: 7.00, z: -7.96 }
 
     - when: { mechanic: [longitude-implosion-front, longitude-implosion-back] , partyDebuff: Entropy Long}
@@ -213,7 +213,7 @@ solvers:
       origin: { boss: chaos }
       mirrorLateral: true
       spots:
-        r1: { r: 18.96, z: -11.84 }
+        r1: { r: 17.10, z: -10.66 }
         r2: { r: 8.31, z: -7.96 }
 
 
