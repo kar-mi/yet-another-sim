@@ -63,21 +63,27 @@ async function sendBundlePath(res: any, relPath: string): Promise<boolean> {
   return true;
 }
 
-logger.info("build", "building client bundle");
-const buildResult = await Bun.build({
-  entrypoints: [join(ROOT, "index.html")],
-  outdir: BUNDLE_DIR,
-  sourcemap: "none",
-  env: "disable",
-  minify: !Bun.env.YAS_DEBUG_BUNDLE,
-  define: {
-    __YAS_STATIC__: "false",
-    __YAS_DEBUG__: Bun.env.YAS_DEBUG_CLIENT === "1" ? "true" : "false",
-  },
-});
+if (Bun.env.BUILD_ON_START === "1") {
+  logger.info("build", "building client bundle");
+  const buildResult = await Bun.build({
+    entrypoints: [join(ROOT, "index.html")],
+    outdir: BUNDLE_DIR,
+    sourcemap: "none",
+    env: "disable",
+    minify: !Bun.env.YAS_DEBUG_BUNDLE,
+    ignoreDCEAnnotations: true,
+    define: {
+      __YAS_STATIC__: "false",
+      __YAS_DEBUG__: Bun.env.YAS_DEBUG_CLIENT === "1" ? "true" : "false",
+    },
+  });
 
-if (!buildResult.success) {
-  for (const log of buildResult.logs) logger.error("build", log.message);
+  if (!buildResult.success) {
+    for (const log of buildResult.logs) logger.error("build", log.message);
+    process.exit(1);
+  }
+} else if (!(await Bun.file(join(BUNDLE_DIR, "index.html")).exists())) {
+  logger.error("build", "missing .bundle/index.html; run `bun run build` or set BUILD_ON_START=1");
   process.exit(1);
 }
 

@@ -20,7 +20,7 @@ of it.
 
 ```sh
 bun install        # install dependencies (uses bun.lock)
-bun run dev        # start the server + build the client bundle
+bun run dev        # build the client bundle, then start the server
 ```
 
 Then open <http://localhost:3000>. Create or join a session, claim a player slot in the lobby, and
@@ -30,11 +30,11 @@ press play.
 
 | Command            | What it does |
 |--------------------|--------------|
-| `bun run dev`      | Runs `src/server/server.ts`. On boot the server calls `Bun.build()` on `index.html` to produce the client bundle, then serves it. |
+| `bun run dev`      | Runs `src/server/server.ts` with `BUILD_ON_START=1`, building the client bundle before serving it. |
 | `bun run typecheck`| `bunx tsc --noEmit` — strict type checking across `src/**` and `scripts/**`. |
 | `bun test`         | Runs the engine + server test suites (`*.test.ts`). |
 | `bun run build`    | Produces a standalone client bundle in `.bundle/` (the production path). |
-| `bun run start`    | Same entrypoint as `dev` (no watch). |
+| `bun run start`    | Runs `src/server/server.ts` and serves the prebuilt `.bundle/`. |
 
 A typical change cycle:
 
@@ -138,8 +138,8 @@ after any engine change.
 
 ### Production bundle
 
-`bun run build` writes the browser bundle to `.bundle/`. In production the server builds this on
-boot (`Bun.build` in `server.ts`), so the running container is self-contained.
+`bun run build` writes the browser bundle to `.bundle/`. In production the Docker image builds this
+once, so each worker only serves the prebuilt bundle.
 
 ### Container
 
@@ -178,7 +178,7 @@ offline. This directory grows continuously — rotate it host-side.
   tree-shakeable. Bun's dead-code elimination would otherwise strip the ones it can't see
   referenced — and *how much* it strips varies by Bun version, so a build can silently lose
   rendering in one environment but not another (no player models, opaque "transparent" materials).
-  Both build paths (`Bun.build` in `src/server/server.ts` and the `build` script) set
+  Both build paths (`BUILD_ON_START=1` in `src/server/server.ts` and the `build` script) set
   `ignoreDCEAnnotations: true` / `--ignore-dce-annotations`, which keeps every side-effect
   registration while still eliminating genuinely-unreachable code (~2% larger bundle). **This is the
   single switch that avoids per-feature registration whack-a-mole** — prefer it over patching each
