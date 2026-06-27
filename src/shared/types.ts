@@ -56,6 +56,9 @@ export type GenericSolverRule = {
   // the lateral frame coordinate r in Vec2.x for the frame transform.
   // A rule whose frame can't be computed yields no spot (falls through).
   frame?: "matched" | FrameRef[];
+  // Optional origin for framed spots. Defaults to arena center; boss origin makes spots local to
+  // that boss position while still using the rule's frame for rotation.
+  origin?: { boss: string };
   // For a mixed boss-facing frame, flip the lateral axis when the other references are on the
   // boss's left. This lets one authored spot mirror across east/west mechanic configurations.
   mirrorLateral?: boolean;

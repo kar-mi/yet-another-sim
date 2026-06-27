@@ -5,9 +5,9 @@ import type { Scene } from "@babylonjs/core/scene";
 import type { Boss } from "@shared/types";
 
 const RING_Y = 0.04;         // just above the floor (slightly higher than BossRingLayer at 0.03)
-const RING_SCALE = 1.12;      // diameter multiplier relative to boss.radius * boss.ringScale
+const RING_SCALE = 1.03;      // diameter multiplier relative to boss.radius * boss.ringScale
 const RING_THICKNESS = 0.07; // tube diameter
-const COLOR = new Color3(1, 0.9, 0); // yellow
+const COLOR = new Color3(1, 0.96, 0.55); // soft yellow
 
 export class TargetRingLayer {
   private mesh?: ReturnType<typeof CreateTorus>;

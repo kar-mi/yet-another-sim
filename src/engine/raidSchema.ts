@@ -54,6 +54,7 @@ const GenericSolverRuleSchema = z.object({
   // Rotated spot frame: "matched" (north = bisector of the live matched mechanics) or a list of
   // references (positioned event ids, { crystal }, { boss }) whose positions are summed for north.
   frame: GenericSolverFrameSchema.optional(),
+  origin: z.object({ boss: z.string().min(1) }).optional(),
   mirrorLateral: z.boolean().optional(),
   spots: z.record(z.string().min(1), SolverSpotSchema).optional(),
   spot: SolverSpotSchema.optional(),
@@ -80,6 +81,9 @@ const GenericSolverRuleSchema = z.object({
   }
   if ((rule.when.soaks !== undefined || rule.frame === "matched") && rule.when.mechanic === undefined) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["when"], message: "when.soaks and frame: \"matched\" require when.mechanic" });
+  }
+  if (rule.origin !== undefined && rule.frame === undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["origin"], message: "origin requires a frame" });
   }
   if (rule.mirrorLateral && !Array.isArray(rule.frame)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["mirrorLateral"], message: "mirrorLateral requires a reference-list frame" });
@@ -888,6 +892,13 @@ export const RaidSchema = z.object({
     }
   });
   raid.botSolvers?.generic?.forEach((rule, i) => {
+    if (rule.origin?.boss !== undefined && !bossIds.has(rule.origin.boss)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["botSolvers", "generic", i, "origin", "boss"],
+        message: `solver origin boss id "${rule.origin.boss}" does not match any declared boss id (${[...bossIds].join(", ")})`,
+      });
+    }
     if (!Array.isArray(rule.frame)) return;
     rule.frame.forEach((ref, j) => {
       const bossId = typeof ref === "object" && "boss" in ref ? ref.boss.id : undefined;

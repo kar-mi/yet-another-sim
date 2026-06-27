@@ -18,6 +18,8 @@ import { holdUntilFromResolves } from "./genericSolver";
 import { REGISTRY } from "./mechanicRegistry";
 import { BOSS_MOVE_SPEED } from "@shared/constants";
 
+const BOSS_FOLLOW_BUFFER = 1.7;
+
 export function tick(world: World, intents: Intents, dt: number): World {
   const ctx = createTickContext(world, intents, dt);
   const { players, bosses, time } = ctx;
@@ -56,7 +58,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
       boss.facing = atan2(toTarget.x, toTarget.z);
       if (!movementLocked) {
         const dist = length(toTarget);
-        const stopRange = boss.radius * boss.ringScale;
+        const stopRange = boss.radius * boss.ringScale + BOSS_FOLLOW_BUFFER;
         if (dist > stopRange) {
           boss.pos = add(boss.pos, scale(normalize(toTarget), Math.min(BOSS_MOVE_SPEED * dt, dist - stopRange)));
         }

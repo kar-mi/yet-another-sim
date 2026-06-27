@@ -98,10 +98,12 @@ A rule has:
   primary boss). Kinds may be mixed in one list, e.g. `frame: [{ boss: { from: position } }, { crystal: wind }]`
   points north toward the midpoint of the boss and the wind crystal; `frame: [tower-3-left, tower-3-right]`
   is the towers' bisector. A frame coordinate `{ r, z }` maps to world `r · right + z · north`, with
-  `right = { x: north.z, z: -north.x }` and the arena centre as origin. Polar `{ dist, angleDeg }` is
+  `right = { x: north.z, z: -north.x }` and the arena centre as origin by default. Polar `{ dist, angleDeg }` is
   also accepted, with degrees measured clockwise from frame north. One spot set then serves every wave
   of a rotating mechanic. A rule whose frame can't be computed yields no spot (falls through). See
   [Rotated frames](#rotated-frames) for the geometry.
+- `origin` — optional for framed rules. `{ boss: chaos }` makes framed spots local to that boss:
+  `world = boss.pos + r · right + z · north`. Omit it to keep the arena centre as origin.
 - `mirrorLateral` — optional for a reference-list frame that includes `{ boss: { from: facing } }`.
   When `true`, the frame's lateral axis flips if the other references lie on the boss's left. Use it
   when opposite crystal configurations should mirror the same authored `{ r, z }` spot rather than
@@ -185,7 +187,7 @@ A `frame` lets one spot set serve every wave of a mechanic that rotates around t
 don't author the same formation eight times at eight angles. A spot like `{ r: 5.1265, z: 5.1265 }` is **not**
 a world position — it's a coordinate in a local frame whose:
 
-- **origin** is the arena centre `(0, 0)`,
+- **origin** is the arena centre `(0, 0)` by default,
 - **+z axis ("north")** is the direction the solver computes (the bisector for `frame: matched`, or
   the normalized sum of the listed references' positions — event ids, crystals, and/or bosses),
 - **+x axis ("right")** is north rotated 90° clockwise: `right = { x: north.z, z: -north.x }`.
@@ -193,6 +195,9 @@ a world position — it's a coordinate in a local frame whose:
 The world position is `spot.r · right + spot.z · north`. Intuitively, **`z` pushes the bot along the
 frame's north (toward the matched mechanics), `r` slides it sideways** (positive `r` = clockwise / to
 the right when facing north). Both are in yalms from centre.
+
+Set `origin: { boss: <id> }` on a framed rule to make that same local coordinate relative to a boss
+instead of the arena centre.
 
 Alternatively, a framed spot can use polar coordinates: `{ dist, angleDeg }`. `dist` is the distance
 from the arena centre and `angleDeg` is measured clockwise from frame north in degrees. At load time
