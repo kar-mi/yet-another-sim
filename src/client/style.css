@@ -701,6 +701,12 @@ body:focus-visible {
   z-index: 100;
 }
 
+.party-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .party-member {
   position: relative;
   background: var(--px-bg-1);
@@ -805,9 +811,13 @@ body:focus-visible {
 .party-effects {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
   gap: 3px;
-  min-height: 0;
-  padding: 2px 0 0;
+  width: 180px;
+  height: 40px;
+  padding: 0;
+  overflow: visible;
 }
 
 .party-effect {
@@ -834,6 +844,7 @@ img.party-effect-icon {
 .party-effect-timer {
   margin-left: 4px;
   font-size: 12px;
+  font-weight: 300;
   opacity: 0.72;
 }
 
