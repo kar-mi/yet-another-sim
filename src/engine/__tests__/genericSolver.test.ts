@@ -457,6 +457,24 @@ test("frame: [{ boss: { from: facing } }] rotates using the primary boss facing"
   expect(spot.z).toBeCloseTo(0);
 });
 
+test("origin: { boss } makes a framed spot relative to that boss position", () => {
+  const w = world({
+    time: 2,
+    active: [{ id: "bait", telegraphStart: 0, resolveAt: 5, resolved: false }],
+    boss: { id: "primary", pos: { x: 10, z: 20 }, facing: Math.PI / 2 },
+    bosses: [{ id: "primary", pos: { x: 10, z: 20 }, facing: Math.PI / 2 }],
+    botSolvers: { generic: [{
+      when: { mechanic: "bait" },
+      frame: [{ boss: { from: "facing" } }],
+      origin: { boss: "primary" },
+      spot: { x: 0, z: 5 },
+    }] },
+  });
+  const spot = genericSolverWaypoint(player({}), w)!;
+  expect(spot.x).toBeCloseTo(15);
+  expect(spot.z).toBeCloseTo(20);
+});
+
 test("frame: [{ boss: { from: position } }] can select a named boss", () => {
   const w = world({
     time: 2,

@@ -4,7 +4,7 @@ import { INITIAL_TANK_THREAT } from "@shared/constants";
 import { createWorld } from "../world";
 import { loadRaid as loadRaidRaw } from "../raidLoader";
 import { TANK_HP } from "./constants";
-import { HUMAN, baseRaid, human, loadRaid, runTicks } from "./helpers";
+import { HUMAN, baseRaid, human, loadRaid, roster, runTicks } from "./helpers";
 
 test("raid events require globally unique authored ids", () => {
   const event = {
@@ -82,6 +82,18 @@ test("boss facing snaps to point at its current target each tick", () => {
   const mt = next.players.find(p => p.id === "mt")!;
   expect(next.boss.facing).toBeCloseTo(Math.atan2(mt.pos.x - 0, mt.pos.z - 0));
   expect(next.boss.currentTarget).toBe("mt");
+});
+
+test("boss following stops two units outside its main ring", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 12] } }),
+  });
+  const world = tick(createWorld(raid), {}, 10);
+  const mt = world.players.find(p => p.id === "mt")!;
+
+  expect(Math.hypot(mt.pos.x - world.boss.pos.x, mt.pos.z - world.boss.pos.z))
+    .toBeCloseTo(world.boss.radius * world.boss.ringScale + 2);
 });
 
 

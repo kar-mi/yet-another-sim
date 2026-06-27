@@ -315,6 +315,12 @@ function frameToWorld(spot: Vec2, north: Vec2, rightSign: 1 | -1 = 1): Vec2 {
   };
 }
 
+function originOffset(rule: GenericSolverRule, world: World): Vec2 | undefined {
+  const bossId = rule.origin?.boss;
+  if (bossId === undefined) return { x: 0, z: 0 };
+  return world.bosses.find(boss => boss.id === bossId)?.pos;
+}
+
 // Generic, data-driven bot solver: iterate world.botSolvers.generic in order; the first rule whose
 // conditions all match and that yields a spot for this bot wins. Returns undefined when no rule
 // applies, letting the caller fall back to authored waypoints.
@@ -347,7 +353,9 @@ export function genericSolverWaypoint(
     const rightSign = rule.mirrorLateral && rule.frame !== "matched"
       ? genericFrameRightSign(rule.frame, world)
       : 1;
-    return frameToWorld(spot, north, rightSign);
+    const origin = originOffset(rule, world);
+    if (!origin) continue;
+    return add(origin, frameToWorld(spot, north, rightSign));
   }
   return undefined;
 }

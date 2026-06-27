@@ -140,73 +140,81 @@ solvers:
   #- Longitude, angle 226°, R 16→24.7 → { r: -17.7, z: -5.2 } (dist ≈18.5)
     - when: { mechanic: [latitude-implosion-left, latitude-implosion-right], partyDebuff: Dynamic Fluid Long }
       frame: [{ boss: { id: chaos, from: facing } }]
+      origin: { boss: chaos }
       spots:
-        mt: { r: 3.93, z: 17.98 }
-        ot: { r: 3.93, z: 17.98 }
-        h1: { r: 3.93, z: 17.98 }
-        h2: { r: 3.93, z: 17.98 }
-        m1: { r: -3.93, z: 17.98 }
-        m2: { r: -3.93, z: 17.98 }
+        mt: { r: 2.91, z: 8.08 }
+        ot: { r: 2.91, z: 8.08 }
+        h1: { r: 2.91, z: 8.08 }
+        h2: { r: 2.91, z: 8.08 }
+        m1: { r: -4.98, z: 8.06 }
+        m2: { r: -4.98, z: 8.06 }
 
     - when: { mechanic: [longitude-implosion-front, longitude-implosion-back], partyDebuff: Dynamic Fluid Long }
       frame: [{ boss: { id: chaos, from: facing } }]
+      origin: { boss: chaos }
       spots:
-        mt: { r: 6.1, z: 15.67}
-        ot: { r: 6.1, z: 15.67}
-        h1: { r: 6.1, z: 15.67}
-        h2: { r: 6.1, z: 15.67}
-        m1: { r: -6.1, z: 15.67}
-        m2: { r: -6.1, z: 15.67}
+        mt: { r: 6.06, z: 5.78}
+        ot: { r: 6.06, z: 5.78}
+        h1: { r: 6.06, z: 5.78}
+        h2: { r: 6.06, z: 5.78}
+        m1: { r: -7.11, z: 5.81}
+        m2: { r: -7.11, z: 5.81}
 
 
     - when: { mechanic: [latitude-implosion-left, latitude-implosion-right], partyDebuff: Dynamic Fluid Long }
       frame: [{ boss: { id: chaos, from: facing } }, { crystal : water }]
+      origin: { boss: chaos }
       mirrorLateral: true
       spots:
-        r1:  { r: 16.350, z: -8.174 }
-        r2:  { r: 7.279, z: 1.926 }
+        r1:  { r: 17.37, z: -18.04 }
+        r2:  { r: 7.00, z: -7.96 }
 
     - when: { mechanic: [longitude-implosion-front, longitude-implosion-back], partyDebuff: Dynamic Fluid Long }
       frame: [{ boss: { id: chaos, from: facing } }, { crystal : water }]
+      origin: { boss: chaos }
       mirrorLateral: true
       spots:
-        r1: { r: 17.945, z: -1.896 }
-        r2: { r: 9.938, z: 4.780 }
+        r1: { r: 18.96, z: -11.84 }
+        r2: { r: 8.31, z: -7.96 }
 
     - when: { mechanic: [latitude-implosion-left, latitude-implosion-right], partyDebuff: Entropy Long }
       frame: [{ boss: { id: chaos, from: facing } }]
+      origin: { boss: chaos }
       spots:
-        mt: { r: 3.93, z: 17.98 }
-        ot: { r: 3.93, z: 17.98 }
-        h1: { r: 3.93, z: 17.98 }
-        h2: { r: 3.93, z: 17.98 }
-        m1: { r: -3.93, z: 17.98 }
-        m2: { r: -3.93, z: 17.98 }
+        mt: { r: 2.91, z: 8.08 }
+        ot: { r: 2.91, z: 8.08 }
+        h1: { r: 2.91, z: 8.08 }
+        h2: { r: 2.91, z: 8.08 }
+        m1: { r: -4.98, z: 8.06 }
+        m2: { r: -4.98, z: 8.06 }
 
     - when: { mechanic: [longitude-implosion-front, longitude-implosion-back] , partyDebuff: Entropy Long}
       frame: [{ boss: { id: chaos, from: facing } }]
+      origin: { boss: chaos }
       spots:
-        mt: { r: 6.1, z: 15.67}
-        ot: { r: 6.1, z: 15.67}
-        h1: { r: 6.1, z: 15.67}
-        h2: { r: 6.1, z: 15.67}
-        m1: { r: -6.1, z: 15.67}
-        m2: { r: -6.1, z: 15.67}
+        mt: { r: 6.06, z: 5.78}
+        ot: { r: 6.06, z: 5.78}
+        h1: { r: 6.06, z: 5.78}
+        h2: { r: 6.06, z: 5.78}
+        m1: { r: -7.11, z: 5.81}
+        m2: { r: -7.11, z: 5.81}
 
 
     - when: { mechanic: [latitude-implosion-left, latitude-implosion-right] , partyDebuff: Entropy Long}
       frame: [{ boss: { id: chaos, from: facing } }, { crystal : fire }]
+      origin: { boss: chaos }
       mirrorLateral: true
       spots:
-        r1:  { r: 16.350, z: -8.174 }
-        r2:  { r: 7.279, z: 1.926 }
+        r1:  { r: 17.37, z: -18.04 }
+        r2:  { r: 7.00, z: -7.96 }
 
     - when: { mechanic: [longitude-implosion-front, longitude-implosion-back] , partyDebuff: Entropy Long}
       frame: [{ boss: { id: chaos, from: facing } }, { crystal : fire }]
+      origin: { boss: chaos }
       mirrorLateral: true
       spots:
-        r1: { r: 17.945, z: -1.896 }
-        r2: { r: 9.938, z: 4.780 }
+        r1: { r: 18.96, z: -11.84 }
+        r2: { r: 8.31, z: -7.96 }
 
 
 
