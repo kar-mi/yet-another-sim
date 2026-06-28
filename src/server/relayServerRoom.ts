@@ -27,7 +27,7 @@ let activeRooms = 0;
 
 function headerValue(headers: AuthContext["headers"], name: string): string | undefined {
   const maybeHeaders = headers as { get?: (name: string) => string | null };
-  const value = typeof maybeHeaders.get === "function" ? maybeHeaders.get(name) : (headers as Record<string, string | string[] | undefined>)[name];
+  const value = typeof maybeHeaders.get === "function" ? maybeHeaders.get(name) : (headers as unknown as Record<string, string | string[] | undefined>)[name];
   return Array.isArray(value) ? value[0] : value ?? undefined;
 }
 
@@ -86,7 +86,7 @@ export class RelayServerRoom extends Room {
     }, 60_000);
   }
 
-  onAuth(client: Client<RelayClientData>, _options: RelayRoomOptions, context: AuthContext): boolean {
+  onAuth(client: Client<{ userData: RelayClientData }>, _options: RelayRoomOptions, context: AuthContext): boolean {
     const origin = headerValue(context.headers, "origin");
     const host = headerValue(context.headers, "host") ?? "localhost";
     const requestUrl = "http://" + host + "/";
@@ -96,7 +96,7 @@ export class RelayServerRoom extends Room {
     return true;
   }
 
-  onJoin(client: Client<RelayClientData>): void {
+  onJoin(client: Client<{ userData: RelayClientData }>): void {
     const ip = client.userData?.ip ?? "unknown";
     if (!ipConnections.tryAcquire(ip)) {
       client.leave(4008, "Too many connections");
@@ -108,7 +108,7 @@ export class RelayServerRoom extends Room {
     this.relay.join(client.sessionId);
   }
 
-  onLeave(client: Client<RelayClientData>): void {
+  onLeave(client: Client<{ userData: RelayClientData }>): void {
     if (!client.userData?.counted) return;
     connectedClients = Math.max(0, connectedClients - 1);
     if (client.userData.ip) ipConnections.release(client.userData.ip);
@@ -120,7 +120,7 @@ export class RelayServerRoom extends Room {
     this.relay.dispose();
   }
 
-  private handleColyseusMessage(client: Client<RelayClientData>, raw: unknown): void {
+  private handleColyseusMessage(client: Client<{ userData: RelayClientData }>, raw: unknown): void {
     withServerSpan("ws.message", { clientId: client.sessionId }, async span => {
       metrics.wsMessagesTotal.inc();
       const rate = client.userData?.rate;
