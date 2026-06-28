@@ -4,7 +4,7 @@ import { BOSS_REGISTRY, BOSS_REGISTRY_IDS, DEFAULT_BOSS_ID, isBossRegistryId, ty
 
 const Vec2Schema = z.preprocess(
   value => Array.isArray(value) && value.length === 2 ? { x: value[0], z: value[1] } : value,
-  z.object({ x: z.number(), z: z.number() }).strict(),
+  z.strictObject({ x: z.number(), z: z.number() }),
 ).transform(({ x, z }) => [x, z] as [number, number]);
 const WaypointSchema = z.preprocess(
   value => typeof value === "object" && value !== null && "t" in value && !("time" in value)
@@ -15,9 +15,9 @@ const WaypointSchema = z.preprocess(
 const EventIdSchema = z.string().min(1);
 const RoleSchema = z.enum(["tank", "healer", "dps"]);
 const DebuffMatchSchema = z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]);
-const AbsoluteSpotSchema = z.object({ x: z.number(), z: z.number() }).strict();
-const RelativeSpotSchema = z.object({ r: z.number(), z: z.number() }).strict();
-const PolarSpotSchema = z.object({ dist: z.number(), angleDeg: z.number() }).strict();
+const AbsoluteSpotSchema = z.strictObject({ x: z.number(), z: z.number() });
+const RelativeSpotSchema = z.strictObject({ r: z.number(), z: z.number() });
+const PolarSpotSchema = z.strictObject({ dist: z.number(), angleDeg: z.number() });
 const SolverSpotSchema = z.union([AbsoluteSpotSchema, RelativeSpotSchema, PolarSpotSchema]);
 // A single positioned reference summed into a frame's north vector: a positioned event id (tower),
 // a resolved elemental crystal, or a boss (its facing direction or position).
@@ -65,31 +65,31 @@ const GenericSolverRuleSchema = z.object({
   const hasCondition = rule.when.static === true || rule.when.mechanic !== undefined || rule.when.debuff !== undefined
     || rule.when.partyDebuff !== undefined || rule.when.partnerDebuff !== undefined || rule.when.plant !== undefined;
   if (!hasCondition) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["when"], message: "rule must have when.static: true or at least one of when.mechanic / when.debuff / when.partyDebuff / when.partnerDebuff / when.plant" });
+    ctx.addIssue({ code: "custom", path: ["when"], message: "rule must have when.static: true or at least one of when.mechanic / when.debuff / when.partyDebuff / when.partnerDebuff / when.plant" });
   }
   // limitCutSpread computes absolute coords from each bot's number; it sources its rotation basis
   // from the limit cut named by when.mechanic, and replaces (and forbids) the usual frame/spot/spots
   // placement, so skip those requirements once it's validated.
   if (rule.limitCutSpread !== undefined) {
     if (rule.when.mechanic === undefined) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["limitCutSpread"], message: "limitCutSpread requires when.mechanic naming the limit cut" });
+      ctx.addIssue({ code: "custom", path: ["limitCutSpread"], message: "limitCutSpread requires when.mechanic naming the limit cut" });
     }
     if (rule.frame !== undefined || rule.spot !== undefined || rule.spots !== undefined) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["limitCutSpread"], message: "limitCutSpread returns absolute coords; do not also set frame / spot / spots" });
+      ctx.addIssue({ code: "custom", path: ["limitCutSpread"], message: "limitCutSpread returns absolute coords; do not also set frame / spot / spots" });
     }
     return;
   }
   if ((rule.when.soaks !== undefined || rule.frame === "matched") && rule.when.mechanic === undefined) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["when"], message: "when.soaks and frame: \"matched\" require when.mechanic" });
+    ctx.addIssue({ code: "custom", path: ["when"], message: "when.soaks and frame: \"matched\" require when.mechanic" });
   }
   if (rule.origin !== undefined && rule.frame === undefined) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["origin"], message: "origin requires a frame" });
+    ctx.addIssue({ code: "custom", path: ["origin"], message: "origin requires a frame" });
   }
   if (rule.mirrorLateral && !Array.isArray(rule.frame)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["mirrorLateral"], message: "mirrorLateral requires a reference-list frame" });
+    ctx.addIssue({ code: "custom", path: ["mirrorLateral"], message: "mirrorLateral requires a reference-list frame" });
   }
   if (rule.spots === undefined && rule.spot === undefined) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["spot"], message: "rule must have at least one of spot / spots" });
+    ctx.addIssue({ code: "custom", path: ["spot"], message: "rule must have at least one of spot / spots" });
   }
   const spots = [rule.spot, ...Object.values(rule.spots ?? {})]
     .filter((spot): spot is NonNullable<typeof spot> => spot !== undefined);
@@ -98,7 +98,7 @@ const GenericSolverRuleSchema = z.object({
     : spots.some(spot => !("r" in spot) && !("angleDeg" in spot));
   if (hasInvalidSpot) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: "custom",
       path: ["spot"],
       message: rule.frame === undefined
         ? "unframed rule requires absolute { x, z } spots"
@@ -142,10 +142,10 @@ const AOEShapeSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("rect"), origin: Vec2Schema.default([0, 0]), direction: Vec2Schema.default([0, 1]), width: z.number().positive(), length: z.number().positive() }),
 ]).superRefine((shape, ctx) => {
   if (shape.kind === "donut" && shape.inner >= shape.outer) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "donut inner must be less than outer" });
+    ctx.addIssue({ code: "custom", message: "donut inner must be less than outer" });
   }
   if (shape.kind === "cone" && shape.direction[0] === 0 && shape.direction[1] === 0) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "cone direction must be a non-zero vector" });
+    ctx.addIssue({ code: "custom", message: "cone direction must be a non-zero vector" });
   }
 });
 
@@ -213,16 +213,16 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
 ]).superRefine((b, ctx) => {
   if (b.kind !== "burstSpread") return;
   if (b.selfShape === "donut" && b.selfInner === undefined) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["selfInner"], message: "selfInner is required when selfShape is \"donut\"" });
+    ctx.addIssue({ code: "custom", path: ["selfInner"], message: "selfInner is required when selfShape is \"donut\"" });
   }
   if (b.selfShape === "donut" && b.selfInner !== undefined && b.selfInner >= b.radius) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["selfInner"], message: "selfInner must be less than radius" });
+    ctx.addIssue({ code: "custom", path: ["selfInner"], message: "selfInner must be less than radius" });
   }
   if (b.followUp?.shape === "donut" && b.followUp.inner === undefined) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["followUp", "inner"], message: "followUp.inner is required when followUp.shape is \"donut\"" });
+    ctx.addIssue({ code: "custom", path: ["followUp", "inner"], message: "followUp.inner is required when followUp.shape is \"donut\"" });
   }
   if (b.followUp?.shape === "donut" && b.followUp.inner !== undefined && b.followUp.inner >= b.followUp.radius) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["followUp", "inner"], message: "followUp.inner must be less than followUp.radius" });
+    ctx.addIssue({ code: "custom", path: ["followUp", "inner"], message: "followUp.inner must be less than followUp.radius" });
   }
 });
 
@@ -352,9 +352,9 @@ const DashEventSchema = z.object({
   telegraph: z.number().positive(),
   link: z.string().min(1),
   destination: z.union([
-    z.object({ to: Vec2Schema }).strict(),
-    z.object({ debuff: z.string().min(1) }).strict(),
-    z.object({ bait: z.enum(["closest", "furthest", "random", "aggro"]), role: RoleSchema.optional() }).strict(),
+    z.strictObject({ to: Vec2Schema }),
+    z.strictObject({ debuff: z.string().min(1) }),
+    z.strictObject({ bait: z.enum(["closest", "furthest", "random", "aggro"]), role: RoleSchema.optional() }),
   ]),
   showCastBar: z.boolean().optional(),
 });
@@ -532,7 +532,7 @@ const ApplyEffectEventSchema = z.object({
 }).superRefine((event, ctx) => {
   if ((event.applyEffect === undefined) === (event.applyEffectChoices === undefined)) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: "custom",
       path: ["applyEffect"],
       message: "apply_effect must specify exactly one of applyEffect or applyEffectChoices",
     });
@@ -562,7 +562,7 @@ const InverseEventSchema = z.object({
   showCastBar: z.boolean().optional(),
 }).superRefine((ev, ctx) => {
   if (ev.variantRng && (!ev.shownShapesB || !ev.hiddenShapesB)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "variantRng requires both shownShapesB and hiddenShapesB" });
+    ctx.addIssue({ code: "custom", message: "variantRng requires both shownShapesB and hiddenShapesB" });
   }
 });
 
@@ -631,7 +631,7 @@ const ForcedMarchEventSchema = z.object({
   postDelay: z.number().nonnegative().default(0.3), // frozen at the destination after the teleport
 }).superRefine((ev, ctx) => {
   if (ev.direction[0] === 0 && ev.direction[1] === 0) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["direction"], message: "forced_march direction must be a non-zero vector" });
+    ctx.addIssue({ code: "custom", path: ["direction"], message: "forced_march direction must be a non-zero vector" });
   }
 });
 
@@ -652,7 +652,7 @@ const DivebombEventSchema = z.object({
   hitInterval: z.number().positive().optional(),
 }).superRefine((ev, ctx) => {
   if (ev.from[0] === ev.to[0] && ev.from[1] === ev.to[1]) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["to"], message: "divebomb endpoints must be distinct" });
+    ctx.addIssue({ code: "custom", path: ["to"], message: "divebomb endpoints must be distinct" });
   }
 });
 
@@ -712,7 +712,7 @@ const ReassignEventSchema = z.object({
   for (const [label, counts] of Object.entries(ev.onResolve ?? {})) {
     for (const kind of Object.keys(counts)) {
       if (!kinds.has(kind)) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["onResolve", label, kind], message: `onResolve references unknown charge kind "${kind}"` });
+        ctx.addIssue({ code: "custom", path: ["onResolve", label, kind], message: `onResolve references unknown charge kind "${kind}"` });
       }
     }
   }
@@ -807,7 +807,7 @@ export const BOSS_MODEL_NAMES = ["skeith", "kefka", "chaos", "exdeath"] as const
 export type BossModelName = (typeof BOSS_MODEL_NAMES)[number];
 const BossModelSchema = z.enum(BOSS_MODEL_NAMES);
 
-const BossSchema = z.object({
+const BossSchema = z.strictObject({
   id: z.enum(BOSS_REGISTRY_IDS).optional(),
   pos: Vec2Schema.default([0, 0]),
   radius: z.number().positive().optional(),
@@ -816,12 +816,12 @@ const BossSchema = z.object({
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   }).optional(),
   model: BossModelSchema.optional(),
-}).strict().default({ pos: [0, 0] });
+}).default({ pos: [0, 0] });
 
 // Boss entry in a multi-boss `bosses:` list. Same fields as BossSchema plus a required id slug
 // and an optional aggro seed (player id whose threat is pre-seeded to the top so this boss
 // faces a specific tank from the start).
-const BossWithIdSchema = z.object({
+const BossWithIdSchema = z.strictObject({
   id: RaidIdSchema,
   pos: Vec2Schema.default([0, 0]),
   radius: z.number().positive().optional(),
@@ -832,7 +832,7 @@ const BossWithIdSchema = z.object({
   model: BossModelSchema.optional(),
   aggro: z.string().min(1).optional(),
   targetable: z.boolean().default(true),
-}).strict();
+});
 
 type BossIdentityOverrides = {
   model?: BossModelName;
@@ -873,7 +873,7 @@ export const RaidSchema = z.object({
     const seenBossIds = new Set<string>();
     raid.bosses.forEach((boss, i) => {
       if (seenBossIds.has(boss.id)) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["bosses", i, "id"], message: `duplicate boss id "${boss.id}"` });
+        ctx.addIssue({ code: "custom", path: ["bosses", i, "id"], message: `duplicate boss id "${boss.id}"` });
       }
       seenBossIds.add(boss.id);
     });
@@ -885,7 +885,7 @@ export const RaidSchema = z.object({
     const bossId = (event as { bossId?: string }).bossId;
     if (bossId !== undefined && !bossIds.has(bossId)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["events", i, "bossId"],
         message: `event bossId "${bossId}" does not match any declared boss id (${[...bossIds].join(", ")})`,
       });
@@ -894,7 +894,7 @@ export const RaidSchema = z.object({
   raid.botSolvers?.generic?.forEach((rule, i) => {
     if (rule.origin?.boss !== undefined && !bossIds.has(rule.origin.boss)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["botSolvers", "generic", i, "origin", "boss"],
         message: `solver origin boss id "${rule.origin.boss}" does not match any declared boss id (${[...bossIds].join(", ")})`,
       });
@@ -904,7 +904,7 @@ export const RaidSchema = z.object({
       const bossId = typeof ref === "object" && "boss" in ref ? ref.boss.id : undefined;
       if (bossId !== undefined && !bossIds.has(bossId)) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["botSolvers", "generic", i, "frame", j, "boss", "id"],
           message: `solver frame boss id "${bossId}" does not match any declared boss id (${[...bossIds].join(", ")})`,
         });
@@ -917,7 +917,7 @@ export const RaidSchema = z.object({
     const prior = eventIds.get(event.id);
     if (prior) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["events", i, "id"],
         message: `duplicate event id "${event.id}" also used by ${prior.type} at events[${prior.index}]`,
       });
@@ -932,7 +932,7 @@ export const RaidSchema = z.object({
       const event = raid.events.find(e => e.id === id);
       if (!event) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["optionals", "orderSwap", "groups", groupIndex, idIndex],
           message: `orderSwap references unknown event id "${id}"`,
         });
@@ -940,7 +940,7 @@ export const RaidSchema = z.object({
       }
       if (!("telegraph" in event)) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["optionals", "orderSwap", "groups", groupIndex, idIndex],
           message: `orderSwap event "${id}" must have a telegraph`,
         });
@@ -951,7 +951,7 @@ export const RaidSchema = z.object({
         timing = current;
       } else if (timing.t !== current.t || timing.telegraph !== current.telegraph) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["optionals", "orderSwap", "groups", groupIndex, idIndex],
           message: `orderSwap group ${groupIndex} events must share the same time and telegraph`,
         });
@@ -965,13 +965,13 @@ export const RaidSchema = z.object({
       const target = eventIds.get(id);
       if (!target) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["events", i, "resolveEventIds", j],
           message: `tower resolveEventIds references unknown event id "${id}"`,
         });
       } else if (target.type !== "effect_resolver") {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["events", i, "resolveEventIds", j],
           message: `tower resolveEventIds "${id}" must reference an effect_resolver event, not ${target.type}`,
         });
@@ -983,7 +983,7 @@ export const RaidSchema = z.object({
   raid.waymarks?.forEach((waymark, i) => {
     if (seenMarks.has(waymark.mark)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["waymarks", i],
         message: `duplicate waymark "${waymark.mark}"; each mark may be placed at most once`,
       });
@@ -996,7 +996,7 @@ export const RaidSchema = z.object({
     if (!player) return; // length() already reported the count mismatch
     if (player.id !== expected.id || player.role !== expected.role) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["players", i],
         message: `player ${i} must be "${expected.id}" (${expected.role}); roster order is ${ROSTER.map(r => `${r.id}:${r.role}`).join(", ")}`,
       });
@@ -1010,7 +1010,7 @@ export const RaidSchema = z.object({
       for (const id of pair) {
         if (!playerIds.has(id)) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: "custom",
             path: ["events", i, "pairs", j],
             message: `chain pair references unknown player id "${id}"`,
           });
@@ -1024,7 +1024,7 @@ export const RaidSchema = z.object({
     event.target.playerIds.forEach((id, j) => {
       if (!playerIds.has(id)) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["events", i, "target", "playerIds", j],
           message: `line_link target references unknown player id "${id}"`,
         });
@@ -1046,20 +1046,20 @@ export const RaidSchema = z.object({
     const source = lineLinkEventsById.get(event.link);
     if (!source) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["events", i, "link"],
         message: `link references unknown line_link id "${event.link}"`,
       });
     } else if (source.t > event.t || (source.t === event.t && source.index >= i)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["events", i, "link"],
         message: `linked line_link "${event.link}" must occur earlier, or appear earlier when t is the same`,
       });
     }
     if (event.target.roleGroups?.length !== 2 || (source && source.groupCount !== 2)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["events", i, "link"],
         message: `linked line_link events must both define exactly 2 target.roleGroups so the complement is well-defined`,
       });
@@ -1079,7 +1079,7 @@ export const RaidSchema = z.object({
       group.forEach(id => {
         if (!playerIds.has(id)) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: "custom",
             path: ["events", i, "groups", g],
             message: `${event.type} references unknown player id "${id}"`,
           });
@@ -1090,20 +1090,20 @@ export const RaidSchema = z.object({
       const source = groupEventsById.get(event.link);
       if (!source) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["events", i, "link"],
           message: `link references unknown group event id "${event.link}"`,
         });
       } else if (source.t >= event.t) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["events", i, "link"],
           message: `linked group event "${event.link}" must occur earlier (t < ${event.t})`,
         });
       }
       if (event.groups.length !== 2 || (source && source.groupCount !== 2)) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["events", i, "link"],
           message: `linked group events must have exactly 2 groups so the complement is well-defined`,
         });
@@ -1118,7 +1118,7 @@ export const RaidSchema = z.object({
       group.forEach(id => {
         if (!playerIds.has(id)) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: "custom",
             path: ["events", i, "stack", "groups", g],
             message: `spread_stack references unknown player id "${id}"`,
           });
@@ -1137,13 +1137,13 @@ export const RaidSchema = z.object({
     const source = deferredAoeById.get(event.link);
     if (!source) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["events", i, "link"],
         message: `${event.type} link "${event.link}" must reference an aoe event with deferred:true`,
       });
     } else if (source.t > event.t || (source.t === event.t && source.index >= i)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["events", i, "link"],
         message: `linked stored cleave "${event.link}" must occur earlier than the ${event.type}`,
       });
@@ -1157,7 +1157,7 @@ export const RaidSchema = z.object({
       plant[key].members.forEach((id, j) => {
         if (!playerIds.has(id)) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: "custom",
             path: ["optionals", "combinations", "plant", key, "members", j],
             message: `plant ${key} references unknown player id "${id}"`,
           });
@@ -1174,14 +1174,14 @@ export const RaidSchema = z.object({
         pair.members.forEach((id, memberIndex) => {
           if (!playerIds.has(id)) {
             ctx.addIssue({
-              code: z.ZodIssueCode.custom,
+              code: "custom",
               path: ["optionals", "combinations", "pairings", "patterns", patternIndex, "pairs", pairIndex, "members", memberIndex],
               message: `pairing pattern references unknown player id "${id}"`,
             });
           }
           if (members.has(id)) {
             ctx.addIssue({
-              code: z.ZodIssueCode.custom,
+              code: "custom",
               path: ["optionals", "combinations", "pairings", "patterns", patternIndex, "pairs", pairIndex, "members", memberIndex],
               message: `pairing pattern assigns player "${id}" more than once`,
             });
@@ -1196,7 +1196,7 @@ export const RaidSchema = z.object({
   if (endings) {
     if (endings.variants.length !== endings.events.length) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["optionals", "combinations", "endings", "variants"],
         message: "endings variants length must match events length",
       });
@@ -1204,7 +1204,7 @@ export const RaidSchema = z.object({
     endings.events.forEach((id, i) => {
       if (!deferredAoeById.has(id)) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["optionals", "combinations", "endings", "events", i],
           message: `ending event "${id}" must reference an aoe event with deferred:true`,
         });

@@ -52,12 +52,12 @@ export const RaidIdSchema = z.string().regex(RAID_ID_REGEX);
 export const SessionIdSchema = z.string().regex(RAID_SEGMENT_REGEX);
 export const PlayerIdSchema = z.string().min(1).max(64);
 
-const IntentVec2Schema = z.object({
+const IntentVec2Schema = z.strictObject({
   x: z.number().min(-1).max(1),
   z: z.number().min(-1).max(1),
-}).strict();
+});
 
-export const IntentSchema = z.object({
+export const IntentSchema = z.strictObject({
   move: IntentVec2Schema,
   facing: z.number().optional(),
   jump: z.boolean().optional(),
@@ -66,87 +66,87 @@ export const IntentSchema = z.object({
   provoke: z.boolean().optional(),
   cycleTarget: z.boolean().optional(),
   toggleInvincibility: z.boolean().optional(),
-}).strict() satisfies z.ZodType<Intent>;
+}) satisfies z.ZodType<Intent>;
 
 export const ClientMessageSchema = z.discriminatedUnion("type", [
-  z.object({
+  z.strictObject({
     type: z.literal("join"),
     sessionId: SessionIdSchema,
     raidId: RaidIdSchema,
-  }).strict(),
-  z.object({
+  }),
+  z.strictObject({
     type: z.literal("setRaid"),
     raidId: RaidIdSchema,
-  }).strict(),
-  z.object({
+  }),
+  z.strictObject({
     type: z.literal("claimSlot"),
     playerId: PlayerIdSchema,
-  }).strict(),
-  z.object({
+  }),
+  z.strictObject({
     type: z.literal("releaseSlot"),
     playerId: PlayerIdSchema,
-  }).strict(),
-  z.object({
+  }),
+  z.strictObject({
     type: z.literal("claimObserver"),
-  }).strict(),
-  z.object({
+  }),
+  z.strictObject({
     type: z.literal("releaseObserver"),
-  }).strict(),
-  z.object({
+  }),
+  z.strictObject({
     type: z.literal("start"),
-  }).strict(),
-  z.object({
+  }),
+  z.strictObject({
     type: z.literal("play"),
-  }).strict(),
-  z.object({
+  }),
+  z.strictObject({
     type: z.literal("pause"),
-  }).strict(),
-  z.object({
+  }),
+  z.strictObject({
     type: z.literal("stop"),
-  }).strict(),
+  }),
   // Host returning to the lobby (Home). Stops the pull like "stop" but the server does not send the
   // leaving host a "started" message (which the lobby would treat as a re-entry into the sim).
-  z.object({
+  z.strictObject({
     type: z.literal("leave"),
-  }).strict(),
-  z.object({
+  }),
+  z.strictObject({
     type: z.literal("restart"),
-  }).strict(),
-  z.object({
+  }),
+  z.strictObject({
     type: z.literal("setBotsInvincible"),
     enabled: z.boolean(),
-  }).strict(),
-  z.object({
+  }),
+  z.strictObject({
     type: z.literal("debugPosition"),
     playerId: PlayerIdSchema,
     x: z.number(),
     y: z.number(),
     z: z.number(),
-  }).strict(),
-  z.object({
+  }),
+  z.strictObject({
     type: z.literal("intent"),
     intent: IntentSchema,
-  }).strict(),
+  }),
   // Lockstep: the host signals that its local sim reached a terminal state (wiped/cleared) so the
   // server can stop relaying and mark the pull done.
-  z.object({
+  z.strictObject({
     type: z.literal("simEnded"),
     tick: z.number().int().nonnegative(),
-  }).strict(),
+  }),
   // Lockstep: clients periodically report a hash of their local world for desync detection.
-  z.object({
+  z.strictObject({
     type: z.literal("worldHash"),
     tick: z.number().int().nonnegative(),
     hash: z.number().int(),
-  }).strict(),
+  }),
   // Lockstep: host-only periodic world snapshot for late-join anchoring. The server stores and
   // relays this opaquely — it never interprets it. Trust note: the host is already canonical via
   // DesyncTracker; accepting its world snapshot adds no new trust surface.
-  z.object({
+  z.strictObject({
     type: z.literal("snapshot"),
     tick: z.number().int().nonnegative(),
     world: z.unknown(),
-  }).strict(),
+  }),
 ]);
 
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
