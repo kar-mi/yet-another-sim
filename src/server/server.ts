@@ -38,22 +38,15 @@ function publicAddressForPort(port: number): string {
   return `${host.replace(/\/+$/, "")}/${port}`;
 }
 
-// bun-serve-express's res.end()/res.send() stringify the body via `_writes.join("")`,
-// which UTF-8-corrupts every byte > 0x7F and destroys binary files (GLB models, PNGs).
-// Set the binary body directly; getBunResponse() wraps it in `new Response(body)`, and
-// Bun streams an ArrayBuffer verbatim. (Pinned dep: @colyseus/bun-websockets 0.16.5.)
-function endBinary(res: any, body: ArrayBuffer): void {
-  res.statusCode = res.statusCode ?? 200;
-  res._body = body;
-  res.finished = true;
-  res.emit("finish");
-}
-
+// @colyseus/bun-websockets 0.17 ships bun-serve-express 2.x, whose res.send() concatenates Buffer
+// chunks with Buffer.concat (binary-safe), so we serve files as a Buffer with an explicit
+// Content-Type. (0.16 stringified the body via `_writes.join("")`, corrupting bytes > 0x7F, which
+// forced a manual workaround — no longer needed.)
 async function sendFile(res: any, file: Bun.BunFile, cacheControl: string): Promise<void> {
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) res.setHeader(name, value);
   res.setHeader("Cache-Control", cacheControl);
   if (file.type) res.setHeader("Content-Type", file.type);
-  endBinary(res, await file.arrayBuffer());
+  res.status(200).send(Buffer.from(await file.arrayBuffer()));
 }
 
 async function sendBundlePath(res: any, relPath: string): Promise<boolean> {
@@ -88,7 +81,38 @@ if (Bun.env.BUILD_ON_START === "1") {
 }
 
 const transport = new BunWebSockets({ maxPayloadLength: 1 << 20 });
-const serverOptions: ServerOptions = { transport };
+// Register HTTP routes via the `express` option (not `transport.getExpressApp()` after construction):
+// in 0.17 this both (a) tells Colyseus to detect our root route so it skips its default `GET /`
+// version-string handler, and (b) registers the routes before the matchmaking router is bound, so
+// the transport falls through to express for every non-matchmaking path.
+const serverOptions: ServerOptions = {
+  transport,
+  express: (app: any) => {
+    app.get("/health", (_req: any, res: any) => res.status(200).send("OK"));
+    app.get("/metrics/sessions", (_req: any, res: any) => {
+      res.setHeader("Cache-Control", "no-store");
+      res.json(capacitySnapshot(relayRoomsActive(), MAX_SESSIONS));
+    });
+    app.get("/api/raids", async (_req: any, res: any) => {
+      res.setHeader("Cache-Control", raidCatalogCacheControl);
+      res.json(await getRaidCategories());
+    });
+    app.get("/static/*splat", async (req: any, res: any) => {
+      const rel = String(req.path ?? "").slice("/static/".length);
+      if (!/^[A-Za-z0-9_\-./]+$/.test(rel) || rel.includes("..")) return res.status(404).send("Not found");
+      const file = Bun.file(join(STATIC_DIR, rel));
+      if (!(await file.exists())) return res.status(404).send("Not found");
+      await sendFile(res, file, "public, max-age=3600");
+    });
+    app.get("/{*splat}", async (req: any, res: any) => {
+      const path = String(req.path ?? "/");
+      const relPath = path === "/" ? "index.html" : path.slice(1);
+      if (await sendBundlePath(res, relPath)) return;
+      if (await sendBundlePath(res, "index.html")) return;
+      res.status(404).send("Not found");
+    });
+  },
+};
 if (Bun.env.REDIS_URL) {
   serverOptions.presence = new RedisPresence(Bun.env.REDIS_URL) as unknown as ServerOptions["presence"];
   serverOptions.driver = new RedisDriver(Bun.env.REDIS_URL);
@@ -96,32 +120,6 @@ if (Bun.env.REDIS_URL) {
 }
 const gameServer = new Server(serverOptions);
 gameServer.define("relay", RelayServerRoom).filterBy(["sessionId"]);
-
-const app = transport.expressApp;
-
-app.get("/health", (_req: any, res: any) => res.status(200).send("OK"));
-app.get("/metrics/sessions", (_req: any, res: any) => {
-  res.setHeader("Cache-Control", "no-store");
-  res.json(capacitySnapshot(relayRoomsActive(), MAX_SESSIONS));
-});
-app.get("/api/raids", async (_req: any, res: any) => {
-  res.setHeader("Cache-Control", raidCatalogCacheControl);
-  res.json(await getRaidCategories());
-});
-app.get("/static/*", async (req: any, res: any) => {
-  const rel = String(req.path ?? "").slice("/static/".length);
-  if (!/^[A-Za-z0-9_\-./]+$/.test(rel) || rel.includes("..")) return res.status(404).send("Not found");
-  const file = Bun.file(join(STATIC_DIR, rel));
-  if (!(await file.exists())) return res.status(404).send("Not found");
-  await sendFile(res, file, "public, max-age=3600");
-});
-app.get("*", async (req: any, res: any) => {
-  const path = String(req.path ?? "/");
-  const relPath = path === "/" ? "index.html" : path.slice(1);
-  if (await sendBundlePath(res, relPath)) return;
-  if (await sendBundlePath(res, "index.html")) return;
-  res.status(404).send("Not found");
-});
 
 startMetricsServer({
   sessionsActive: relayRoomsActive,
