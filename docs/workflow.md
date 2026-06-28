@@ -58,7 +58,7 @@ The codebase is split into four layers by trust boundary and runtime:
 src/
   shared/   # types, protocol (zod), deterministic math, RNG, constants — imported by both sides
   engine/   # the pure deterministic simulation (tick), mechanic systems, raid loading/schema
-  server/   # Bun.serve host: sessions, frame relay, WebSocket transport, metrics, otel
+  server/   # Bun.serve host: sessions, frame relay, WebSocket transport, metrics
   client/   # browser: Babylon renderer, input, netcode, prediction, UI
 raids/      # YAML-authored encounters, grouped by category folder
 docs/       # this folder
@@ -162,8 +162,8 @@ Configuration is environment-driven (see `.env.example`):
 
 ### Observability
 
-The server emits OpenTelemetry traces (`src/server/otel.ts`) and Prometheus metrics
-(`src/server/metrics.ts`, served by `metricsServer.ts`). Per-session replay logs are written to
+The server emits Prometheus metrics (`src/server/metrics.ts`, served by `metricsServer.ts`).
+Per-session replay logs are written to
 `logs/sessions/*.jsonl` (a tick-0 world header plus every frame batch), so any pull can be replayed
 offline. This directory grows continuously — rotate it host-side.
 

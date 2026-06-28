@@ -4,7 +4,6 @@ import { logger, createSessionLog } from "./logger";
 import { RAIDS_DIR } from "./raidCatalog";
 import { isOriginAllowed, parseAllowedOrigins } from "./origin";
 import { ConnectionCounter, clientIpFor, createMessageRateLimiter, type RateLimiter } from "./rateLimit";
-import { addServerTraceEvent, recordServerException, withServerSpan } from "./otel";
 import { loadSessionRaid } from "./sessionRaid";
 import { metrics } from "./metrics";
 import { RelayRoom } from "./relayRoom";
@@ -119,7 +118,7 @@ export class RelayServerRoom extends Room {
   }
 
   private handleColyseusMessage(client: Client<{ userData: RelayClientData }>, raw: unknown): void {
-    withServerSpan("ws.message", { clientId: client.sessionId }, async span => {
+    void (async () => {
       metrics.wsMessagesTotal.inc();
       const rate = client.userData?.rate;
       if (rate && !rate.allow()) {
@@ -137,8 +136,6 @@ export class RelayServerRoom extends Room {
         logger.debug("hud", "player position", { clientId: client.sessionId, ...parsed.data });
         return;
       }
-      span.setAttribute("yas.message_type", parsed.data.type);
-      addServerTraceEvent("net", "WS message", { clientId: client.sessionId, type: parsed.data.type });
       try {
         if (parsed.data.type === "join") {
           this.relay.touch();
@@ -151,7 +148,6 @@ export class RelayServerRoom extends Room {
         }
         this.relay.handle(client.sessionId, parsed.data);
       } catch (err) {
-        recordServerException(err, { area: "ws.message", clientId: client.sessionId, type: parsed.data.type }, span);
         logger.error("net", "message handler failed", { clientId: client.sessionId, type: parsed.data.type, err });
         client.send("s", { type: "error", message: "Server error" } satisfies ServerMessage);
       }
