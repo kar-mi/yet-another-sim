@@ -51,7 +51,7 @@ export interface RelayRoomOptions {
 }
 
 // Colyseus room adapter: owns a transport-agnostic RelayRoom and wires colyseus lifecycle, auth,
-// rate limiting, telemetry, and message routing into it. Keeping the relay logic out of this class
+// rate limiting, and message routing into it. Keeping the relay logic out of this class
 // is what lets the static (loopback) client reuse RelayRoom without pulling colyseus into the browser.
 export class RelayServerRoom extends Room {
   private readonly relay = new RelayRoom();
@@ -151,6 +151,6 @@ export class RelayServerRoom extends Room {
         logger.error("net", "message handler failed", { clientId: client.sessionId, type: parsed.data.type, err });
         client.send("s", { type: "error", message: "Server error" } satisfies ServerMessage);
       }
-    });
+    })();
   }
 }
