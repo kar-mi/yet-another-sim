@@ -26,9 +26,7 @@ let connectedClients = 0;
 let activeRooms = 0;
 
 function headerValue(headers: AuthContext["headers"], name: string): string | undefined {
-  const maybeHeaders = headers as { get?: (name: string) => string | null };
-  const value = typeof maybeHeaders.get === "function" ? maybeHeaders.get(name) : (headers as unknown as Record<string, string | string[] | undefined>)[name];
-  return Array.isArray(value) ? value[0] : value ?? undefined;
+  return headers.get(name) ?? undefined;
 }
 
 export function relayClientsConnected(): number {
