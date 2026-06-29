@@ -36,7 +36,7 @@ export function createEmptyRaid(): RaidDef {
     arena: { zones: [{ kind: "circle", center: [0, 0] as [number, number], radius: 20 }], floorPlan: "squares" },
     duration: 30,
     boss,
-    bosses: [{ id: "boss", targetable: true, ...boss }],
+    bosses: [{ id: "boss", targetable: true, hidden: false, ...boss }],
     players,
     events: [],
   };

@@ -873,6 +873,7 @@ const BossWithIdSchema = z.strictObject({
   model: BossModelSchema.optional(),
   aggro: z.string().min(1).optional(),
   targetable: z.boolean().default(true),
+  hidden: z.boolean().default(false),  // start with the model not drawn (a divebomb teleportBoss can reveal it)
 });
 
 type BossIdentityOverrides = {
@@ -1253,16 +1254,18 @@ export const RaidSchema = z.object({
     });
   }
 }).transform(data => {
-  const bosses = data.bosses?.map(({ id, pos, aggro, targetable, ...overrides }) => ({
+  const bosses = data.bosses?.map(({ id, pos, aggro, targetable, hidden, ...overrides }) => ({
     id,
     pos,
     targetable,
+    hidden,
     ...resolveBossIdentity(overrides, isBossRegistryId(id) ? id : DEFAULT_BOSS_ID),
     ...(aggro !== undefined ? { aggro } : {}),
   })) ?? [{
     id: "boss",
     pos: data.boss.pos,
     targetable: true,
+    hidden: false,
     ...resolveBossIdentity(data.boss, data.boss.id ?? DEFAULT_BOSS_ID),
   }];
 

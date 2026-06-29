@@ -18,6 +18,7 @@ bosses:
   - id: kefka
     pos: { x: 0, z: 18 }
     targetable: false
+    hidden: true   # not drawn until dash #1 reveals it (teleportBoss), then re-hidden after
 
 crystals:
   spawnAt: 24
@@ -107,7 +108,6 @@ events:
     showCastBar: false
     showTelegraph: false
     shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
-    hideBoss: kefka
 
 
   - type: aoe

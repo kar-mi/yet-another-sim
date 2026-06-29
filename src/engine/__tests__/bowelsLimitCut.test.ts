@@ -49,7 +49,7 @@ test("kefka teleports to the first dash start, then hides after the initial dash
     const w0 = await bowelsWorld(seed);
     const d1 = w0.pendingDivebombs.find(d => d.id === "kefka-divebomb-1")!;
     const kefka0 = w0.bosses.find(b => b.id === "kefka")!;
-    expect(kefka0.hidden).toBe(false);
+    expect(kefka0.hidden).toBe(true);  // hidden for the whole fight until the dash reveals it
 
     let w = w0;
     // Just after the first dash fires (t:81): Kefka sits on its rolled start and is visible.

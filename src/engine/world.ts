@@ -328,7 +328,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       model: bossDef.model,
       modelScale: bossDef.modelScale,
       targetable: bossDef.targetable,
-      hidden: false,
+      hidden: bossDef.hidden,
     };
   });
   const boss = bosses.find(b => b.targetable !== false) ?? bosses[0]!;
