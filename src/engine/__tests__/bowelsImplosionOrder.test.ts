@@ -9,9 +9,9 @@ import { createWorld } from "../world";
 const RAIDS = join(import.meta.dir, "..", "..", "..", "raids", "dancing-mad-ultimate");
 const DT = 1 / 60;
 
-async function bowlsWorld(seed: number) {
-  const raidObj = await parseRaidFile(join(RAIDS, "bowls-of-agony.yaml"));
-  const botObj = await parseRaidFile(join(RAIDS, "bowls-of-agony-bots.yaml"));
+async function bowelsWorld(seed: number) {
+  const raidObj = await parseRaidFile(join(RAIDS, "bowels-of-agony.yaml"));
+  const botObj = await parseRaidFile(join(RAIDS, "bowels-of-agony-bots.yaml"));
   const raid = applyBotPatterns(loadRaid(raidObj), loadBotPatterns(botObj));
   return createWorld(raid, seed);
 }
@@ -22,11 +22,11 @@ function pendingTiming(world: ReturnType<typeof createWorld>, id: string) {
   return { start: event.t, resolve: event.t + event.telegraph };
 }
 
-test("bowls implosions roll both staggered orders and bots survive them", async () => {
+test("bowels implosions roll both staggered orders and bots survive them", async () => {
   const orders = new Set<string>();
 
   for (let seed = 1; seed <= 40; seed++) {
-    let world = await bowlsWorld(seed);
+    let world = await bowelsWorld(seed);
     const latitude = pendingTiming(world, "latitude-implosion-left");
     const longitude = pendingTiming(world, "longitude-implosion-front");
     const latitudeFirst = latitude.resolve < longitude.resolve;

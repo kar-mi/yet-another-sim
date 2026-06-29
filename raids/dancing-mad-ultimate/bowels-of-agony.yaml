@@ -1,4 +1,4 @@
-name: Bowls of Agony
+name: Bowels of Agony
 arena:
   floorPlan: dmu-p1
   zones:
@@ -6,11 +6,11 @@ arena:
       center: { x: 0, z: 0 }
       radius: 20
 duration: 106
-botPatterns: bowls-of-agony-bots
+botPatterns: bowels-of-agony-bots
 
 bosses:
   - id: chaos
-    pos: { x: 0, z: 0 }
+    pos: { x: -8, z: 0 }
     aggro: mt
   - id: exdeath
     pos: { x: 8, z: 0 }
@@ -182,9 +182,9 @@ events:
     applyEffect: *heroFated
 
   - type: aoe
-    id: bowls-of-agony-cast
+    id: bowels-of-agony-cast
     time: 19
-    name: Bowls of Agony
+    name: Bowels of Agony
     telegraph: 5
     damage: 0
     damageType: magical
@@ -308,45 +308,6 @@ events:
     bossId: kefka
     shape: { kind: circle, center: { x: -8, z: 0 }, radius: 20 }
 
-  - type: divebomb
-    id: trance-divebomb-n
-    time: 64
-    name: Trance
-    from: { x: 0, z: 20 }
-    to: { x: 0, z: -20 }
-    speed: 30
-    size: 14
-    gap: 10
-    color: "#7722aa"
-    damage: 5
-    damageType: magical
-
-  - type: divebomb
-    id: trance-divebomb-nw
-    time: 67
-    name: Trance
-    from: { x: -20, z: 20 }
-    to: { x: 20, z: -20 }
-    speed: 30
-    size: 14
-    gap: 10
-    color: "#7722aa"
-    damage: 5
-    damageType: magical
-
-  - type: divebomb
-    id: trance-divebomb-w
-    time: 70
-    name: Trance
-    from: { x: -20, z: 0 }
-    to: { x: 20, z: 0 }
-    speed: 30
-    size: 14
-    gap: 10
-    color: "#7722aa"
-    damage: 5
-    damageType: magical
-
   - type: aoe
     id: implosion-facing-hold
     time: 60
@@ -464,6 +425,17 @@ events:
     showTelegraph: false
     bossId: kefka
     shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
+
+  - type: apply_effect
+    id: tank-lb-mit
+    time: 80
+    name: Tank Limit Break
+    players: [mt, ot, h1, h2, r1, r2, m1, m2]
+    applyEffect:
+      name: Tank Limit Break
+      kind: buff
+      duration: 10
+      behavior: { kind: mitigation, multiplier: 0.1 }
   - type: aoe
     id: ultima-blaster-4
     time: 82
@@ -550,23 +522,127 @@ events:
     shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
     knockback: { distance: 8 }
 
+  - type: divebomb
+    id: kefka-divebomb-n
+    time: 81
+    name: Kefka Dive
+    from: { x: 0, z: 20 }
+    to: { x: 0, z: -20 }
+    speed: 30
+    size: 14
+    gap: 10
+    color: "#7722aa"
+    damage: 5
+    damageType: magical
+
+  - type: divebomb
+    id: kefka-divebomb-nw
+    time: 82
+    name: Kefka Dive
+    from: { x: -20, z: 20 }
+    to: { x: 20, z: -20 }
+    speed: 30
+    size: 14
+    gap: 10
+    color: "#7722aa"
+    damage: 5
+    damageType: magical
+
+  - type: divebomb
+    id: kefka-divebomb-w
+    time: 83
+    name: Kefka Dive
+    from: { x: -20, z: 0 }
+    to: { x: 20, z: 0 }
+    speed: 30
+    size: 14
+    gap: 10
+    color: "#7722aa"
+    damage: 5
+    damageType: magical
+
+  - type: divebomb
+    id: kefka-divebomb-sw
+    time: 84
+    name: Kefka Dive
+    from: { x: -20, z: -20 }
+    to: { x: 20, z: 20 }
+    speed: 30
+    size: 14
+    gap: 10
+    color: "#7722aa"
+    damage: 5
+    damageType: magical
+
+  - type: divebomb
+    id: kefka-divebomb-s
+    time: 85
+    name: Kefka Dive
+    from: { x: 0, z: -20 }
+    to: { x: 0, z: 20 }
+    speed: 30
+    size: 14
+    gap: 10
+    color: "#7722aa"
+    damage: 5
+    damageType: magical
+
+  - type: divebomb
+    id: kefka-divebomb-se
+    time: 86
+    name: Kefka Dive
+    from: { x: 20, z: -20 }
+    to: { x: -20, z: 20 }
+    speed: 30
+    size: 14
+    gap: 10
+    color: "#7722aa"
+    damage: 5
+    damageType: magical
+
+  - type: divebomb
+    id: kefka-divebomb-e
+    time: 87
+    name: Kefka Dive
+    from: { x: 20, z: 0 }
+    to: { x: -20, z: 0 }
+    speed: 30
+    size: 14
+    gap: 10
+    color: "#7722aa"
+    damage: 5
+    damageType: magical
+
+  - type: divebomb
+    id: kefka-divebomb-ne
+    time: 88
+    name: Kefka Dive
+    from: { x: 20, z: 20 }
+    to: { x: -20, z: -20 }
+    speed: 30
+    size: 14
+    gap: 10
+    color: "#7722aa"
+    damage: 5
+    damageType: magical
+
   - type: group
-    id: bowls-stack
+    id: bowels-stack
     time: 90
-    name: Bowls of Agony Stack
-    groups: [[mt, ot, h1, h2, r1, r2, m1, m2]]
+    name: Bowels of Agony Stack
+    groups: [[mt, m1], [ot, m2], [h1, r1], [h2, r2]]
     telegraph: 3
     radius: 5
-    requiredCount: 4
+    requiredCount: 2
     damage: 80
     damageType: magical
     showCastBar: true
 
   - type: limit_cut
-    id: bowls-limit-cut
+    id: bowels-limit-cut
     time: 91
     name: Limit Cut
-    # Mirrors the trance divebombs (first sweep from N, sequence rotates CCW). Relative-north is the
+    # Mirrors the Kefka divebombs (first sweep from N, sequence rotates CCW). Relative-north is the
     # opposite (S) and bots place clockwise. RNG-ready: roll kefkaStart/kefkaClockwise here later.
     rotation: { kefkaStart: { x: 0, z: 20 }, kefkaClockwise: false }
     effect:
@@ -578,11 +654,11 @@ events:
       markerIconScale: 2.5
 
 waymarks:
-  - { mark: A, pos: { x: 0, z: 16 } }
-  - { mark: B, pos: { x: 16, z: 0 } }
-  - { mark: C, pos: { x: 0, z: -16 } }
-  - { mark: D, pos: { x: -16, z: 0 } }
-  - { mark: "1", pos: { x: -11.31, z: 11.31 } }
-  - { mark: "2", pos: { x: 11.31, z: 11.31 } }
-  - { mark: "3", pos: { x: 11.31, z: -11.31 } }
-  - { mark: "4", pos: { x: -11.31, z: -11.31 } }
+  - { mark: A, pos: { x: 0, z: 12 } }
+  - { mark: B, pos: { x: 12, z: 0 } }
+  - { mark: C, pos: { x: 0, z: -12 } }
+  - { mark: D, pos: { x: -12, z: 0 } }
+  - { mark: "1", pos: { x: 6, z: 6 } }
+  - { mark: "2", pos: { x: -6, z: 6 } }
+  - { mark: "3", pos: { x: -6, z: -6 } }
+  - { mark: "4", pos: { x: 6, z: -6 } }
