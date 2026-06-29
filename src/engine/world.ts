@@ -223,10 +223,15 @@ function buildEndingPlan(
 
   const endingOffsets: Record<string, number> = {};
   const endingNames: Record<string, string> = {};
-  endings.events.forEach((eventId, i) => {
+  endings.events.forEach((slot, i) => {
     const variant = variants[i]!;
-    endingOffsets[eventId] = variant.offset;
-    if (variant.name !== undefined) endingNames[eventId] = variant.name;
+    // A slot is one event (forsaken) or a group sharing a variant (e.g. an implosion's cone pair).
+    // A variant offset is one angle for all events in the slot, or one angle per event.
+    const ids = Array.isArray(slot) ? slot : [slot];
+    ids.forEach((id, j) => {
+      endingOffsets[id] = Array.isArray(variant.offset) ? variant.offset[j]! : variant.offset;
+      if (variant.name !== undefined) endingNames[id] = variant.name;
+    });
   });
   return { endingOffsets, endingNames, rngState: nextState };
 }

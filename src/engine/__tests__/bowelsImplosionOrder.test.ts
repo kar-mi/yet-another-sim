@@ -9,6 +9,10 @@ import { createWorld } from "../world";
 const RAIDS = join(import.meta.dir, "..", "..", "..", "raids", "dancing-mad-ultimate");
 const DT = 1 / 60;
 
+// Axis offsets injected onto each slot's -a cone by optionals.combinations.endings.
+const LATITUDE_OFFSET = -1.5707963267948966;
+const LONGITUDE_OFFSET = 0;
+
 async function bowelsWorld(seed: number) {
   const raidObj = await parseRaidFile(join(RAIDS, "bowels-of-agony.yaml"));
   const botObj = await parseRaidFile(join(RAIDS, "bowels-of-agony-bots.yaml"));
@@ -26,22 +30,32 @@ function visibleImplosionCasts(world: ReturnType<typeof createWorld>) {
   return world.pending.filter(e => e.id.includes("implosion") && e.showCastBar);
 }
 
-test("bowels implosions roll both staggered orders and bots survive them", async () => {
+test("bowels implosions roll both axis orders and bots survive them", async () => {
   const orders = new Set<string>();
 
   for (let seed = 1; seed <= 40; seed++) {
     let world = await bowelsWorld(seed);
-    const latitude = pendingTiming(world, "latitude-implosion-left");
-    const longitude = pendingTiming(world, "longitude-implosion-front");
-    const latitudeFirst = latitude.resolve < longitude.resolve;
+
+    // Slot timing is fixed (slot 1 resolves 66, slot 2 resolves 68); the axis assigned to each slot
+    // is the seeded part. endings injects the axis offset + cast-bar name onto each slot's cone pair.
+    const slot1 = pendingTiming(world, "implosion-1-a");
+    const slot2 = pendingTiming(world, "implosion-2-a");
+    expect(slot1.resolve).toBe(66);
+    expect(slot2.resolve).toBe(68);
+    expect(slot1.resolve).toBeLessThanOrEqual(slot2.start);
+
+    const slot1Offset = world.endingOffsets?.["implosion-1-a"];
+    const latitudeFirst = slot1Offset === LATITUDE_OFFSET;
+    expect(latitudeFirst || slot1Offset === LONGITUDE_OFFSET).toBe(true);
+    // The two slots carry opposite axes.
+    expect(world.endingOffsets?.["implosion-2-a"]).toBe(latitudeFirst ? LONGITUDE_OFFSET : LATITUDE_OFFSET);
     orders.add(latitudeFirst ? "latitude-first" : "longitude-first");
 
-    expect(latitudeFirst ? latitude.resolve : longitude.resolve).toBe(66);
-    expect(latitudeFirst ? longitude.resolve : latitude.resolve).toBe(68);
-    expect(latitudeFirst ? latitude.resolve : longitude.resolve).toBeLessThanOrEqual(latitudeFirst ? longitude.start : latitude.start);
+    // The single visible cast is slot 1's -a cone, labeled with its injected axis name.
     const visibleCasts = visibleImplosionCasts(world);
-    expect(visibleCasts.map(e => e.id)).toEqual([latitudeFirst ? "latitude-implosion-left" : "longitude-implosion-front"]);
+    expect(visibleCasts.map(e => e.id)).toEqual(["implosion-1-a"]);
     expect(visibleCasts[0]!.t + visibleCasts[0]!.telegraph).toBe(66);
+    expect(visibleCasts[0]!.name).toBe(latitudeFirst ? "Latitude Implosion" : "Longitude Implosion");
 
     let lockedFacing: number | undefined;
     for (let i = 0; i < Math.ceil(69 * 60); i++) {
