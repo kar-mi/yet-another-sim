@@ -503,6 +503,8 @@ const divebomb: MechanicModule = {
       damageType: e.damageType,
       applyEffect: e.applyEffect,
       hitInterval: e.hitInterval ?? gap / e.speed,
+      teleportBoss: e.teleportBoss,
+      hideBoss: e.hideBoss,
     });
   },
   resolve: ctx => resolveDivebombs(ctx),

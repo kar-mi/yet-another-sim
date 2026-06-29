@@ -43,6 +43,28 @@ test("the fired bowels limit cut derives its basis from the rolled dash sweep", 
   }
 });
 
+// Kefka rides onto the (seeded) origin of the first dash, then ducks under the map for the rest.
+test("kefka teleports to the first dash start, then hides after the initial dash", async () => {
+  for (const seed of [1, 4, 11]) {
+    const w0 = await bowelsWorld(seed);
+    const d1 = w0.pendingDivebombs.find(d => d.id === "kefka-divebomb-1")!;
+    const kefka0 = w0.bosses.find(b => b.id === "kefka")!;
+    expect(kefka0.hidden).toBe(false);
+
+    let w = w0;
+    // Just after the first dash fires (t:81): Kefka sits on its rolled start and is visible.
+    for (let i = 0; i < Math.ceil(82 * 60); i++) w = tick(w, computeBotIntents(w, 1 / 60), 1 / 60);
+    const kAfter1 = w.bosses.find(b => b.id === "kefka")!;
+    expect(kAfter1.hidden).toBe(false);
+    expect(kAfter1.pos.x).toBeCloseTo(d1.from.x, 5);
+    expect(kAfter1.pos.z).toBeCloseTo(d1.from.z, 5);
+
+    // After the second dash fires (t:83): Kefka is hidden for the remainder of the sweep.
+    for (let i = 0; i < Math.ceil(2 * 60); i++) w = tick(w, computeBotIntents(w, 1 / 60), 1 / 60);
+    expect(w.bosses.find(b => b.id === "kefka")!.hidden).toBe(true);
+  }
+});
+
 // The seeded sweep must actually exercise its space: both spin directions and varied dash #1 starts.
 test("the bowels dash sweep rolls both spin directions and multiple starts across seeds", async () => {
   const starts = new Set<string>();

@@ -107,6 +107,7 @@ events:
     showCastBar: false
     showTelegraph: false
     shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+    hideBoss: kefka
 
 
   - type: aoe
@@ -485,6 +486,7 @@ events:
     color: "#7722aa"
     damage: 5
     damageType: magical
+    teleportBoss: kefka   # drag Kefka onto the (seeded) start of the first dash
 
   - type: divebomb
     id: kefka-divebomb-2
@@ -498,6 +500,7 @@ events:
     color: "#7722aa"
     damage: 5
     damageType: magical
+    hideBoss: kefka   # initial dash done — duck Kefka under the map for the rest of the sweep
 
   - type: divebomb
     id: kefka-divebomb-3

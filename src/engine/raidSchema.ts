@@ -681,6 +681,8 @@ const DivebombEventSchema = z.object({
   damageType: z.enum(["physical", "magical", "true"]).default("physical"),
   applyEffect: ApplyEffectSchema.optional(),
   hitInterval: z.number().positive().optional(),
+  teleportBoss: z.string().min(1).optional(),  // on cast start, move this boss to `from` (facing `to`) and unhide it
+  hideBoss: z.string().min(1).optional(),       // on cast start, hide this boss's model
 }).superRefine((ev, ctx) => {
   if (ev.from[0] === ev.to[0] && ev.from[1] === ev.to[1]) {
     ctx.addIssue({ code: "custom", path: ["to"], message: "divebomb endpoints must be distinct" });

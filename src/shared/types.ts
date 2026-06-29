@@ -239,6 +239,7 @@ export type Boss = {
   model: string;                   // glb filename stem under /static/model/ (without extension)
   modelScale: number;              // multiplier applied on top of the base model scale
   targetable: boolean;
+  hidden: boolean;                 // when true, the model is not drawn (e.g. boss ducked under the map)
 };
 
 export type AOEShape =
@@ -864,6 +865,8 @@ export type PendingDivebomb = {
   damageType: DamageType;
   applyEffect?: EffectSpec;
   hitInterval: number;
+  teleportBoss?: string; // on cast start, move this boss to `from` (facing `to`) and unhide it
+  hideBoss?: string;     // on cast start, hide this boss's model
 };
 
 export type ActiveDivebomb = Omit<PendingDivebomb, "t"> & {
