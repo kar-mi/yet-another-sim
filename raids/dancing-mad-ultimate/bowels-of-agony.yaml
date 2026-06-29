@@ -258,12 +258,13 @@ events:
     showTelegraph: false
     bossId: chaos
     shape: { kind: circle, center: { x: 999, z: 999 }, radius: 0.1 }
+
   - type: aoe
     id: latitude-implosion-left
     time: 60
     name: Latitude Implosion
     telegraph: 6
-    damage: 200
+    damage: 40
     damageType: magical
     anchor: boss
     directionFrom: bossFacing
@@ -274,12 +275,13 @@ events:
     flashBeforeResolve: { lead: 0.5, color: "#6699ff" }
     bossId: chaos
     shape: { kind: cone, angleDeg: 90, length: 44 }
+    
   - type: aoe
     id: latitude-implosion-right
     time: 60
     name: Latitude Implosion
     telegraph: 6
-    damage: 200
+    damage: 40
     damageType: magical
     anchor: boss
     directionFrom: bossFacing
@@ -296,7 +298,7 @@ events:
     time: 66
     name: Longitude Implosion
     telegraph: 2
-    damage: 200
+    damage: 40
     damageType: magical
     anchor: boss
     directionFrom: bossFacing
@@ -312,7 +314,7 @@ events:
     time: 66
     name: Longitude Implosion
     telegraph: 2
-    damage: 200
+    damage: 40
     damageType: magical
     anchor: boss
     directionFrom: bossFacing
