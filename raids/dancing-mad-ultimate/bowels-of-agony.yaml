@@ -484,8 +484,9 @@ events:
     size: 10
     gap: 10
     color: "#7722aa"
-    damage: 5
+    damage: 0
     damageType: magical
+    visual: line
     teleportBoss: kefka   # drag Kefka onto the (seeded) start of the first dash
 
   - type: divebomb
@@ -498,8 +499,9 @@ events:
     size: 10
     gap: 10
     color: "#7722aa"
-    damage: 5
+    damage: 0
     damageType: magical
+    visual: line
     hideBoss: kefka   # initial dash done — duck Kefka under the map for the rest of the sweep
 
   - type: divebomb
@@ -512,8 +514,9 @@ events:
     size: 10
     gap: 10
     color: "#7722aa"
-    damage: 5
+    damage: 0
     damageType: magical
+    visual: line
 
   - type: divebomb
     id: kefka-divebomb-4
@@ -525,8 +528,9 @@ events:
     size: 10
     gap: 10
     color: "#7722aa"
-    damage: 5
+    damage: 0
     damageType: magical
+    visual: line
 
   - type: divebomb
     id: kefka-divebomb-5
@@ -538,8 +542,9 @@ events:
     size: 10
     gap: 10
     color: "#7722aa"
-    damage: 5
+    damage: 0
     damageType: magical
+    visual: line
 
   - type: divebomb
     id: kefka-divebomb-6
@@ -551,8 +556,9 @@ events:
     size: 10
     gap: 10
     color: "#7722aa"
-    damage: 5
+    damage: 0
     damageType: magical
+    visual: line
 
   - type: divebomb
     id: kefka-divebomb-7
@@ -564,8 +570,9 @@ events:
     size: 10
     gap: 10
     color: "#7722aa"
-    damage: 5
+    damage: 0
     damageType: magical
+    visual: line
 
   - type: divebomb
     id: kefka-divebomb-8
@@ -577,8 +584,9 @@ events:
     size: 10
     gap: 10
     color: "#7722aa"
-    damage: 5
+    damage: 0
     damageType: magical
+    visual: line
 
   - type: group
     id: bowels-stack

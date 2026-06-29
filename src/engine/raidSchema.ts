@@ -683,6 +683,9 @@ const DivebombEventSchema = z.object({
   hitInterval: z.number().positive().optional(),
   teleportBoss: z.string().min(1).optional(),  // on cast start, move this boss to `from` (facing `to`) and unhide it
   hideBoss: z.string().min(1).optional(),       // on cast start, hide this boss's model
+  // "step" (default): one sphere advancing slot-by-slot. "line": a sphere per slot that pops in
+  // sequentially from `from` to `to`, building a line (purely visual — pair with damage: 0).
+  visual: z.enum(["step", "line"]).default("step"),
 }).superRefine((ev, ctx) => {
   if (ev.from[0] === ev.to[0] && ev.from[1] === ev.to[1]) {
     ctx.addIssue({ code: "custom", path: ["to"], message: "divebomb endpoints must be distinct" });

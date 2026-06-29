@@ -867,6 +867,7 @@ export type PendingDivebomb = {
   hitInterval: number;
   teleportBoss?: string; // on cast start, move this boss to `from` (facing `to`) and unhide it
   hideBoss?: string;     // on cast start, hide this boss's model
+  visual: "step" | "line"; // render style: single stepping sphere, or a sphere-per-slot exploding line
 };
 
 export type ActiveDivebomb = Omit<PendingDivebomb, "t"> & {

@@ -959,6 +959,9 @@ path, `gap`, and `speed`. Only players inside the currently visible circle are h
 | `damageType` | no | `physical`, `magical`, or `true`; defaults to `physical`. |
 | `applyEffect` | no | Status effect applied to surviving players on each hit. |
 | `hitInterval` | no | Minimum seconds between applications per player; defaults to `gap / speed`. |
+| `teleportBoss` | no | Boss id to move onto `from` (facing `to`) and reveal when the dash starts. |
+| `hideBoss` | no | Boss id to hide (model not drawn) when the dash starts. |
+| `visual` | no | `"step"` (default): one sphere advancing slot-by-slot. `"line"`: a sphere per slot popping in sequentially from `from` to `to`, building a line — purely visual, pair with `damage: 0`. |
 
 ```yaml
 - type: divebomb
