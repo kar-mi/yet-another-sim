@@ -25,11 +25,20 @@ crystals:
   spots: [{ x: -9, z: 9 }, { x: 9, z: 9 }, { x: 9, z: -9 }, { x: -9, z: -9 }]
   rng: true
 optionals:
-  orderSwap:
-    rng: true
-    groups:
-      - [latitude-implosion-left, latitude-implosion-right]
-      - [longitude-implosion-front, longitude-implosion-back]
+  # Seeded per-run assignment of the two implosion axes across the two cast slots below. Each
+  # variant carries one axis's cone offsets + cast-bar name (Latitude = E/W cones at ∓π/2,
+  # Longitude = N/S cones at 0/π) and is shuffled onto a slot's placeholder cone pair, so which
+  # axis resolves first — and its cast-bar label — is purely the rolled RNG path (no hardcoded
+  # order/direction on the events). Bots read the rolled axis via the endingFacing solver predicate.
+  combinations:
+    endings:
+      rng: true
+      events:
+        - [implosion-1-a, implosion-1-b]
+        - [implosion-2-a, implosion-2-b]
+      variants:
+        - { name: Latitude Implosion,  offset: [-1.5707963267948966, 1.5707963267948966] }
+        - { name: Longitude Implosion, offset: [0, 3.141592653589793] }
   # Seeded Kefka dash sweep: dash #1 starts at any card/intercard and the sequence rotates CW or CCW.
   # The events list is the canonical N→CCW order (index = dash number); the limit cut derives its
   # placement basis from the rolled sweep.
@@ -275,33 +284,35 @@ events:
     bossId: chaos
     shape: { kind: circle, center: { x: 999, z: 999 }, radius: 0.1 }
 
+  # Two implosion cast slots, each a placeholder pair of opposing 90° cones. The axis (offsets +
+  # cast-bar name) is injected per seed by optionals.combinations.endings, which shuffles the
+  # Latitude/Longitude variants across the two slots. Slot 1 (t60) shows the cast bar and resolves
+  # at 66; slot 2 (t66) is silent and resolves at 68. `directionOffset` is omitted on purpose.
   - type: aoe
-    id: latitude-implosion-left
+    id: implosion-1-a
     time: 60
-    name: Latitude Implosion
+    name: Implosion
     telegraph: 6
     damage: 40
     damageType: magical
     anchor: boss
     directionFrom: bossFacing
-    directionOffset: -1.5707963267948966
     lockFacing: true
     showCastBar: true
     showTelegraph: false
     flashBeforeResolve: { lead: 0.5, color: "#6699ff" }
     bossId: chaos
     shape: { kind: cone, angleDeg: 90, length: 44 }
-    
+
   - type: aoe
-    id: latitude-implosion-right
+    id: implosion-1-b
     time: 60
-    name: Latitude Implosion
+    name: Implosion
     telegraph: 6
     damage: 40
     damageType: magical
     anchor: boss
     directionFrom: bossFacing
-    directionOffset: 1.5707963267948966
     lockFacing: true
     showCastBar: false
     showTelegraph: false
@@ -310,15 +321,14 @@ events:
     shape: { kind: cone, angleDeg: 90, length: 44 }
 
   - type: aoe
-    id: longitude-implosion-front
+    id: implosion-2-a
     time: 66
-    name: Longitude Implosion
+    name: Implosion
     telegraph: 2
     damage: 40
     damageType: magical
     anchor: boss
     directionFrom: bossFacing
-    directionOffset: 0
     lockFacing: true
     showCastBar: false
     showTelegraph: false
@@ -326,15 +336,14 @@ events:
     bossId: chaos
     shape: { kind: cone, angleDeg: 90, length: 44 }
   - type: aoe
-    id: longitude-implosion-back
+    id: implosion-2-b
     time: 66
-    name: Longitude Implosion
+    name: Implosion
     telegraph: 2
     damage: 40
     damageType: magical
     anchor: boss
     directionFrom: bossFacing
-    directionOffset: 3.141592653589793
     lockFacing: true
     showCastBar: false
     showTelegraph: false

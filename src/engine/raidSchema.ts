@@ -840,8 +840,14 @@ const OptionalsSchema = z.object({
     }).optional(),
     endings: z.object({
       rng: z.boolean().default(false),
-      events: z.array(EventIdSchema).min(1),
-      variants: z.array(z.object({ offset: z.number(), name: z.string().min(1).optional() })).min(1),
+      // Each entry is one slot: a single event id, or a group of ids that share one variant
+      // (e.g. a pair of opposing implosion cones). Variants shuffle across the slots per seed.
+      events: z.array(z.union([EventIdSchema, z.array(EventIdSchema).min(1)])).min(1),
+      // `offset` is a single angle, or one angle per event when the slot is a group.
+      variants: z.array(z.object({
+        offset: z.union([z.number(), z.array(z.number())]),
+        name: z.string().min(1).optional(),
+      })).min(1),
     }).optional(),
   }).optional(),
 }).optional();
@@ -1246,12 +1252,25 @@ export const RaidSchema = z.object({
         message: "endings variants length must match events length",
       });
     }
-    endings.events.forEach((id, i) => {
-      if (!deferredAoeById.has(id)) {
+    endings.events.forEach((slot, i) => {
+      const ids = Array.isArray(slot) ? slot : [slot];
+      ids.forEach((id, j) => {
+        if (eventIds.get(id)?.type !== "aoe") {
+          ctx.addIssue({
+            code: "custom",
+            path: Array.isArray(slot)
+              ? ["optionals", "combinations", "endings", "events", i, j]
+              : ["optionals", "combinations", "endings", "events", i],
+            message: `ending event "${id}" must reference an aoe event`,
+          });
+        }
+      });
+      const variant = endings.variants[i];
+      if (variant && Array.isArray(variant.offset) && variant.offset.length !== ids.length) {
         ctx.addIssue({
           code: "custom",
-          path: ["optionals", "combinations", "endings", "events", i],
-          message: `ending event "${id}" must reference an aoe event with deferred:true`,
+          path: ["optionals", "combinations", "endings", "variants", i, "offset"],
+          message: `endings variant ${i} offset array length must match its event group length`,
         });
       }
     });

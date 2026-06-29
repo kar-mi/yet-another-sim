@@ -1421,12 +1421,30 @@ optionals:
 
 ### `endings`
 
-Assigns directions to stored deferred AoEs at world creation. `events` lists the deferred AoE ids and
-`variants` lists candidate `{ offset, name? }` entries; `rng: true` shuffles the variants per seed
-before zipping them onto the events (`rng: false` uses the listed order). Each rolled variant
-overrides its event's `directionOffset` and, when `name` is set, the event's display name (cast bar /
-log) — so the label always matches the rolled direction. Offsets are stored in `world.endingOffsets`
-for bot-solver `when.endingFacing`.
+Assigns directions to AoE events at world creation. `events` lists the AoE ids and `variants` lists
+candidate `{ offset, name? }` entries; `rng: true` shuffles the variants per seed before zipping them
+onto the events (`rng: false` uses the listed order). Each rolled variant overrides its event's
+`directionOffset` and, when `name` is set, the event's display name (cast bar / log) — so the label
+always matches the rolled direction. Offsets are stored in `world.endingOffsets` for bot-solver
+`when.endingFacing`. The events may be direct casts or stored/baited deferred AoEs.
+
+An `events` entry may also be a **group** of ids (an array) that share one variant — useful when a
+single seeded choice drives several cones at once, e.g. an implosion's pair of opposing cones. For a
+grouped slot the variant's `offset` is an array (one angle per id in the group), or a single number
+broadcast to every id; the variant `name` applies to all. `raids/dancing-mad-ultimate/bowels-of-agony.yaml`
+shuffles two such groups (Latitude / Longitude) across two cast slots:
+
+```yaml
+combinations:
+  endings:
+    rng: true
+    events:
+      - [implosion-1-a, implosion-1-b]
+      - [implosion-2-a, implosion-2-b]
+    variants:
+      - { name: Latitude Implosion,  offset: [-1.5707963267948966, 1.5707963267948966] }
+      - { name: Longitude Implosion, offset: [0, 3.141592653589793] }
+```
 
 ## Bot patterns
 

@@ -141,9 +141,11 @@ solvers:
         r1: { r: 4, z: 10 } # maybe adjust this, so that its in line with the south intercard of the boss if boss was at wind
         r2: { r: -4, z: 14 }
 
-    # Latitude/Longitude order is seeded RNG, authored as two staggered cast slots:
-    # first implosion resolves at t:66, then the other resolves at t:68. Only one implosion is live
-    # at a time, so the mechanic-gated rules below dodge whichever cast is currently active.
+    # Latitude/Longitude axis is seeded RNG: optionals.combinations.endings shuffles the two axes
+    # across two staggered cast slots (slot 1 resolves t:66, slot 2 resolves t:68). The live slot is
+    # whichever implosion pair is casting (mechanic gate); its axis is read via endingFacing on the
+    # slot's -a cone (offset -π/2 = Latitude E/W, offset 0 = Longitude N/S). Safe spots depend only
+    # on the axis, so each axis rule is authored once per slot (identical spots).
     # The cones reach length 44 (whole arena), so distance can't save you -- everyone sits ON an
     # intercardinal of Chaos and steps ~2 degrees across whichever cone edge is firing (89->91).
     # Solved in the Chaos-facing frame (north = locked facing): angle 0 = front (toward MT), 90 =
@@ -155,85 +157,105 @@ solvers:
     # Latitude (E/W) -> sit off the E/W cone (44/316/224/136); Longitude (N/S) -> the
     # other side (46/314/226/134). The 2-degree straddle is a tiny move that fits the 2s gap in either order.
 
-    #  - Latitude, angle 224°, R 16→25.1 → { r: -17.4, z: -6.2 } (dist ≈18.5)
-  #- Longitude, angle 226°, R 16→24.7 → { r: -17.7, z: -5.2 } (dist ≈18.5)
-    - when: { mechanic: [latitude-implosion-left, latitude-implosion-right], partyDebuff: Dynamic Fluid Long }
+    # Latitude support — slot 1 / slot 2 × Dynamic Fluid Long / Entropy Long.
+    - when: { mechanic: [implosion-1-a, implosion-1-b], endingFacing: { event: implosion-1-a, offset: -1.5707963267948966 }, partyDebuff: Dynamic Fluid Long }
       frame: [{ boss: { id: chaos, from: facing } }]
       origin: { boss: chaos }
-      spots:
+      spots: &latSupport
         mt: { r: 2.91, z: 8.08 }
         ot: { r: 2.91, z: 8.08 }
         h1: { r: 2.91, z: 8.08 }
         h2: { r: 2.91, z: 8.08 }
         m1: { r: -4.98, z: 8.06 }
         m2: { r: -4.98, z: 8.06 }
-
-    - when: { mechanic: [longitude-implosion-front, longitude-implosion-back], partyDebuff: Dynamic Fluid Long }
+    - when: { mechanic: [implosion-2-a, implosion-2-b], endingFacing: { event: implosion-2-a, offset: -1.5707963267948966 }, partyDebuff: Dynamic Fluid Long }
       frame: [{ boss: { id: chaos, from: facing } }]
       origin: { boss: chaos }
-      spots:
+      spots: *latSupport
+      
+    - when: { mechanic: [implosion-1-a, implosion-1-b], endingFacing: { event: implosion-1-a, offset: -1.5707963267948966 }, partyDebuff: Entropy Long }
+      frame: [{ boss: { id: chaos, from: facing } }]
+      origin: { boss: chaos }
+      spots: *latSupport
+    - when: { mechanic: [implosion-2-a, implosion-2-b], endingFacing: { event: implosion-2-a, offset: -1.5707963267948966 }, partyDebuff: Entropy Long }
+      frame: [{ boss: { id: chaos, from: facing } }]
+      origin: { boss: chaos }
+      spots: *latSupport
+
+    # Longitude support — slot 1 / slot 2 × Dynamic Fluid Long / Entropy Long.
+    - when: { mechanic: [implosion-1-a, implosion-1-b], endingFacing: { event: implosion-1-a, offset: 0 }, partyDebuff: Dynamic Fluid Long }
+      frame: [{ boss: { id: chaos, from: facing } }]
+      origin: { boss: chaos }
+      spots: &lonSupport
         mt: { r: 6.06, z: 5.78}
         ot: { r: 6.06, z: 5.78}
         h1: { r: 6.06, z: 5.78}
         h2: { r: 6.06, z: 5.78}
         m1: { r: -7.11, z: 5.81}
         m2: { r: -7.11, z: 5.81}
+    - when: { mechanic: [implosion-2-a, implosion-2-b], endingFacing: { event: implosion-2-a, offset: 0 }, partyDebuff: Dynamic Fluid Long }
+      frame: [{ boss: { id: chaos, from: facing } }]
+      origin: { boss: chaos }
+      spots: *lonSupport
 
+    - when: { mechanic: [implosion-1-a, implosion-1-b], endingFacing: { event: implosion-1-a, offset: 0 }, partyDebuff: Entropy Long }
+      frame: [{ boss: { id: chaos, from: facing } }]
+      origin: { boss: chaos }
+      spots: *lonSupport
+    - when: { mechanic: [implosion-2-a, implosion-2-b], endingFacing: { event: implosion-2-a, offset: 0 }, partyDebuff: Entropy Long }
+      frame: [{ boss: { id: chaos, from: facing } }]
+      origin: { boss: chaos }
+      spots: *lonSupport
 
-    - when: { mechanic: [latitude-implosion-left, latitude-implosion-right], partyDebuff: Dynamic Fluid Long }
+    # Latitude ranged — Dynamic Fluid Long baits the water crystal, Entropy Long the fire crystal.
+    - when: { mechanic: [implosion-1-a, implosion-1-b], endingFacing: { event: implosion-1-a, offset: -1.5707963267948966 }, partyDebuff: Dynamic Fluid Long }
       frame: [{ boss: { id: chaos, from: facing } }, { crystal : water }]
       origin: { boss: chaos }
       mirrorLateral: true
-      spots:
+      spots: &latRanged
         r1:  { r: 15.60, z: -16.20 }
         r2:  { r: 7.00, z: -7.96 }
-
-    - when: { mechanic: [longitude-implosion-front, longitude-implosion-back], partyDebuff: Dynamic Fluid Long }
+    - when: { mechanic: [implosion-2-a, implosion-2-b], endingFacing: { event: implosion-2-a, offset: -1.5707963267948966 }, partyDebuff: Dynamic Fluid Long }
       frame: [{ boss: { id: chaos, from: facing } }, { crystal : water }]
       origin: { boss: chaos }
       mirrorLateral: true
-      spots:
-        r1: { r: 17.10, z: -10.66 }
-        r2: { r: 8.31, z: -7.96 }
+      spots: *latRanged
 
-    - when: { mechanic: [latitude-implosion-left, latitude-implosion-right], partyDebuff: Entropy Long }
-      frame: [{ boss: { id: chaos, from: facing } }]
-      origin: { boss: chaos }
-      spots:
-        mt: { r: 2.91, z: 8.08 }
-        ot: { r: 2.91, z: 8.08 }
-        h1: { r: 2.91, z: 8.08 }
-        h2: { r: 2.91, z: 8.08 }
-        m1: { r: -4.98, z: 8.06 }
-        m2: { r: -4.98, z: 8.06 }
-
-    - when: { mechanic: [longitude-implosion-front, longitude-implosion-back] , partyDebuff: Entropy Long}
-      frame: [{ boss: { id: chaos, from: facing } }]
-      origin: { boss: chaos }
-      spots:
-        mt: { r: 6.06, z: 5.78}
-        ot: { r: 6.06, z: 5.78}
-        h1: { r: 6.06, z: 5.78}
-        h2: { r: 6.06, z: 5.78}
-        m1: { r: -7.11, z: 5.81}
-        m2: { r: -7.11, z: 5.81}
-
-
-    - when: { mechanic: [latitude-implosion-left, latitude-implosion-right] , partyDebuff: Entropy Long}
+    - when: { mechanic: [implosion-1-a, implosion-1-b], endingFacing: { event: implosion-1-a, offset: -1.5707963267948966 }, partyDebuff: Entropy Long }
       frame: [{ boss: { id: chaos, from: facing } }, { crystal : fire }]
       origin: { boss: chaos }
       mirrorLateral: true
-      spots:
-        r1:  { r: 15.60, z: -16.20 }
-        r2:  { r: 7.00, z: -7.96 }
-
-    - when: { mechanic: [longitude-implosion-front, longitude-implosion-back] , partyDebuff: Entropy Long}
+      spots: *latRanged
+    - when: { mechanic: [implosion-2-a, implosion-2-b], endingFacing: { event: implosion-2-a, offset: -1.5707963267948966 }, partyDebuff: Entropy Long }
       frame: [{ boss: { id: chaos, from: facing } }, { crystal : fire }]
       origin: { boss: chaos }
       mirrorLateral: true
-      spots:
+      spots: *latRanged
+
+    # Longitude ranged — Dynamic Fluid Long baits the water crystal, Entropy Long the fire crystal.
+    - when: { mechanic: [implosion-1-a, implosion-1-b], endingFacing: { event: implosion-1-a, offset: 0 }, partyDebuff: Dynamic Fluid Long }
+      frame: [{ boss: { id: chaos, from: facing } }, { crystal : water }]
+      origin: { boss: chaos }
+      mirrorLateral: true
+      spots: &lonRanged
         r1: { r: 17.10, z: -10.66 }
         r2: { r: 8.31, z: -7.96 }
+    - when: { mechanic: [implosion-2-a, implosion-2-b], endingFacing: { event: implosion-2-a, offset: 0 }, partyDebuff: Dynamic Fluid Long }
+      frame: [{ boss: { id: chaos, from: facing } }, { crystal : water }]
+      origin: { boss: chaos }
+      mirrorLateral: true
+      spots: *lonRanged
+
+    - when: { mechanic: [implosion-1-a, implosion-1-b], endingFacing: { event: implosion-1-a, offset: 0 }, partyDebuff: Entropy Long }
+      frame: [{ boss: { id: chaos, from: facing } }, { crystal : fire }]
+      origin: { boss: chaos }
+      mirrorLateral: true
+      spots: *lonRanged
+    - when: { mechanic: [implosion-2-a, implosion-2-b], endingFacing: { event: implosion-2-a, offset: 0 }, partyDebuff: Entropy Long }
+      frame: [{ boss: { id: chaos, from: facing } }, { crystal : fire }]
+      origin: { boss: chaos }
+      mirrorLateral: true
+      spots: *lonRanged
 
 
 
