@@ -3,6 +3,8 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { CreatePolyhedron } from "@babylonjs/core/Meshes/Builders/polyhedronBuilder.pure";
+import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
+import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Crystal, CrystalElement } from "@shared/types";
 
@@ -12,11 +14,26 @@ const CRYSTAL_COLORS: Record<CrystalElement, Color3> = {
   water: new Color3(0.2, 0.5, 1),
 };
 
+// Per-element shape: water = square (box), fire = triangle (3-sided pyramid with its base flat on
+// the floor plane), wind = diamond (octahedron).
+function createShape(scene: Scene, crystal: Crystal): Mesh {
+  const name = `crystal-${crystal.element}`;
+  switch (crystal.element) {
+    case "water":
+      return CreateBox(name, { size: 1.6 }, scene);
+    case "fire":
+      return CreateCylinder(name, { height: 1.8, diameterTop: 0, diameterBottom: 2, tessellation: 3 }, scene);
+    case "wind":
+      return CreatePolyhedron(name, { type: 1, size: 1.1 }, scene);
+  }
+}
+
 export function createCrystalMesh(scene: Scene, crystal: Crystal): Mesh {
-  const mesh = CreatePolyhedron(`crystal-${crystal.element}`, { type: 1, size: 1.1 }, scene);
+  const mesh = createShape(scene, crystal);
   mesh.position = new Vector3(crystal.pos.x, 1.3, crystal.pos.z);
   mesh.scaling.y = 1;
-  mesh.rotation.y = Math.PI / 4;
+  // Keep the 45° flair for the diamond/triangle; the box stays axis-aligned so it reads as a square.
+  if (crystal.element !== "water") mesh.rotation.y = Math.PI / 4;
   mesh.isPickable = false;
 
   const color = CRYSTAL_COLORS[crystal.element];
