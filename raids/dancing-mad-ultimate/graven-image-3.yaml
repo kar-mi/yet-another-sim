@@ -8,7 +8,7 @@ arena:
     - kind: circle
       center: { x: 0, z: 0 }
       radius: 20
-duration: 55
+duration: 47
 boss:
   pos: { x: 0, z: 0 }
   radius: 3
@@ -167,7 +167,7 @@ events:
   # Mystery Magic 3 — rng lightning rects (A/B variants) + fire flip.
   - type: inverse
     id: lightning-1
-    time: 43
+    time: 37
     name: Mystery Magic 3 (Lightning)
     telegraph: 5
     damage: 60
@@ -192,7 +192,7 @@ events:
       - { kind: rect, origin: { x: 11.032235, z: -17.415225 }, direction: { x: -0.724049, z: 0.689749 }, width: 10, length: 40 }
   - type: spread_stack
     id: fire-1
-    time: 43
+    time: 37
     name: Mystery Magic 3 (Fire)
     telegraph: 5
     shown: random
