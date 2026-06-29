@@ -25,10 +25,16 @@ solvers:
 
     #ot moves exdeath to middle after decisive battle
     - when: { static: true }
-      startAt: 6
+      startAt: 5
       endAt: 9
       spots:
-        ot: { x: -4.5, z: 0 }
+        ot: { x: -6.5, z: 0 }
+
+    - when: { static: true }
+      startAt: 5
+      endAt: 9
+      spots:
+        mt: { x: 7.5, z: 0 }
 
 
     # After crystals spawn, OT holds in the Wind frame between Chaos and Exdeath.

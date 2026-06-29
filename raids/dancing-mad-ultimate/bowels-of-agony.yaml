@@ -157,6 +157,35 @@ _dynamicFluidLong: &dynamicFluidLong
       damageType: magical
 
 events:
+  # Lock the boss at the start
+  - type: aoe
+    id: boss-facing-lock-chaos
+    time: 0
+    name: Forsaken Boss Facing
+    telegraph: 6
+    damage: 0
+    damageType: "true"
+    bossId: chaos
+    lockFacing: true
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+
+  # Lock the boss at the start
+  - type: aoe
+    id: boss-facing-lock-exdeath
+    time: 0
+    name: Forsaken Boss Facing
+    telegraph: 6
+    damage: 0
+    damageType: "true"
+    bossId: exdeath
+    lockFacing: true
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+
+
   - type: aoe
     id: decisive-battle
     time: 2
