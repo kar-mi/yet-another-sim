@@ -557,7 +557,7 @@ events:
     name: Kefka Dive
     from: { x: 0, z: 20 }
     to: { x: 0, z: -20 }
-    speed: 30
+    speed: 20
     size: 14
     gap: 10
     color: "#7722aa"
@@ -570,7 +570,7 @@ events:
     name: Kefka Dive
     from: { x: -20, z: 20 }
     to: { x: 20, z: -20 }
-    speed: 30
+    speed: 20
     size: 14
     gap: 10
     color: "#7722aa"
@@ -583,7 +583,7 @@ events:
     name: Kefka Dive
     from: { x: -20, z: 0 }
     to: { x: 20, z: 0 }
-    speed: 30
+    speed: 20
     size: 14
     gap: 10
     color: "#7722aa"
@@ -596,7 +596,7 @@ events:
     name: Kefka Dive
     from: { x: -20, z: -20 }
     to: { x: 20, z: 20 }
-    speed: 30
+    speed: 20
     size: 14
     gap: 10
     color: "#7722aa"
@@ -609,7 +609,7 @@ events:
     name: Kefka Dive
     from: { x: 0, z: -20 }
     to: { x: 0, z: 20 }
-    speed: 30
+    speed: 20
     size: 14
     gap: 10
     color: "#7722aa"
@@ -622,7 +622,7 @@ events:
     name: Kefka Dive
     from: { x: 20, z: -20 }
     to: { x: -20, z: 20 }
-    speed: 30
+    speed: 20
     size: 14
     gap: 10
     color: "#7722aa"
@@ -635,7 +635,7 @@ events:
     name: Kefka Dive
     from: { x: 20, z: 0 }
     to: { x: -20, z: 0 }
-    speed: 30
+    speed: 20
     size: 14
     gap: 10
     color: "#7722aa"
@@ -648,7 +648,7 @@ events:
     name: Kefka Dive
     from: { x: 20, z: 20 }
     to: { x: -20, z: -20 }
-    speed: 30
+    speed: 20
     size: 14
     gap: 10
     color: "#7722aa"
