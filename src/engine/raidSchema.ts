@@ -152,6 +152,7 @@ const AOEShapeSchema = z.discriminatedUnion("kind", [
 const EffectBehaviorSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("none") }),
   z.object({ kind: z.literal("vuln"), damageType: z.enum(["physical", "magical"]), multiplier: z.number().positive() }),
+  z.object({ kind: z.literal("mitigation"), damageType: z.enum(["physical", "magical", "true"]).optional(), multiplier: z.number().positive() }),
   z.object({ kind: z.literal("dot"), dps: z.number().nonnegative(), condition: z.enum(["always", "moving", "idle"]).default("always") }),
   z.object({ kind: z.literal("confusion"), damage: z.number().nonnegative(), damageType: z.enum(["physical", "magical", "true"]), radius: z.number().positive() }),
   z.object({ kind: z.literal("sleep") }),
@@ -498,6 +499,7 @@ const GroupEventSchema = z.object({
   damageType: z.enum(["physical", "magical", "true"]),
   applyEffect: ApplyEffectSchema.optional(),
   showCastBar: z.boolean().optional(),
+  showMarker: z.boolean().default(true),
 });
 
 const EffectSelectEventSchema = z.object({

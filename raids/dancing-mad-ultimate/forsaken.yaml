@@ -450,9 +450,9 @@ events:
 
 waymarks:
   - { mark: A, pos: { x: 0, z: 12 } }
-  - { mark: B, pos: { x: -12, z: 0 } }
+  - { mark: B, pos: { x: 12, z: 0 } }
   - { mark: C, pos: { x: 0, z: -12 } }
-  - { mark: D, pos: { x: 12, z: 0 } }
+  - { mark: D, pos: { x: -12, z: 0 } }
   - { mark: "1", pos: { x: 6, z: 6 } }
   - { mark: "2", pos: { x: -6, z: 6 } }
   - { mark: "3", pos: { x: -6, z: -6 } }

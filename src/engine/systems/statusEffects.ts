@@ -32,8 +32,32 @@ function applyShapeHit(
   }
 }
 
+function resolveFollowUp(ctx: TickContext, id: string, name: string, fu: NonNullable<Extract<EffectBehavior, { kind: "burstSpread" }>["followUp"]>, origin: { x: number; z: number }, excludeId?: string): void {
+  const candidates = excludeId === undefined
+    ? ctx.players.filter(p => p.alive)
+    : ctx.players.filter(p => p.alive && p.id !== excludeId);
+  const fuTargets = selectTargetPlayers(candidates, origin, fu.mode, fu.count);
+  for (const fuTarget of fuTargets) {
+    const fuShape: AOEShape = fu.shape === "donut"
+      ? { kind: "donut", center: fuTarget.pos, inner: fu.inner!, outer: fu.radius }
+      : { kind: "circle", center: fuTarget.pos, radius: fu.radius };
+    applyShapeHit(ctx.players, ctx.log, ctx.time, fuShape, fuTarget.pos, fu.damage, fu.damageType, fu.knockbackDistance, undefined, name);
+    addResolvedAoeVisual(ctx, `${id}-fu-${fuTarget.id}`, name, fuShape);
+  }
+}
+
 export function applyStatusEffects(ctx: TickContext): void {
   const { players, log, time, previousTime, actedByPlayer, forcedMarches } = ctx;
+  const remainingFollowUps = [];
+  for (const pending of ctx.pendingBurstSpreadFollowUps) {
+    if (pending.t > time) {
+      remainingFollowUps.push(pending);
+      continue;
+    }
+    const origin = ctx.world.crystals.find(crystal => crystal.element === pending.originCrystal)?.pos ?? { x: 0, z: 0 };
+    resolveFollowUp(ctx, pending.id, pending.name, pending.followUp, origin);
+  }
+  ctx.pendingBurstSpreadFollowUps = remainingFollowUps;
   // Crystal-origin follow-ups share one origin across all carriers of a mechanic, so they resolve
   // once per tick (keyed by mechanic + element) rather than once per carrier — otherwise N carriers
   // each fire `count` overlapping AOEs from the same crystal.
@@ -81,23 +105,19 @@ export function applyStatusEffects(ctx: TickContext): void {
             // Crystal-origin: every carrier shares the crystal as origin, so resolve once for the
             // whole mechanic (all alive players are eligible targets, carriers included). Self-origin:
             // per-carrier, excluding the carrier.
-            let fuTargets: typeof players;
             if (fu.originCrystal !== undefined) {
               const key = `${effect.name}:${fu.originCrystal}`;
               if (resolvedCrystalFollowUps.has(key)) { continue; }
               resolvedCrystalFollowUps.add(key);
-              const origin = ctx.world.crystals.find(crystal => crystal.element === fu.originCrystal)?.pos ?? player.pos;
-              fuTargets = selectTargetPlayers(players.filter(p => p.alive), origin, fu.mode, fu.count);
+              ctx.pendingBurstSpreadFollowUps.push({
+                id: effect.id,
+                t: time + 1,
+                name: effect.name,
+                originCrystal: fu.originCrystal,
+                followUp: fu,
+              });
             } else {
-              const others = players.filter(p => p.alive && p.id !== player.id);
-              fuTargets = selectTargetPlayers(others, player.pos, fu.mode, fu.count);
-            }
-            for (const fuTarget of fuTargets) {
-              const fuShape: AOEShape = fu.shape === "donut"
-                ? { kind: "donut", center: fuTarget.pos, inner: fu.inner!, outer: fu.radius }
-                : { kind: "circle", center: fuTarget.pos, radius: fu.radius };
-              applyShapeHit(players, log, time, fuShape, fuTarget.pos, fu.damage, fu.damageType, fu.knockbackDistance, undefined, effect.name);
-              addResolvedAoeVisual(ctx, `${effect.id}-fu-${fuTarget.id}`, effect.name, fuShape);
+              resolveFollowUp(ctx, effect.id, effect.name, fu, player.pos, player.id);
             }
           }
           continue;

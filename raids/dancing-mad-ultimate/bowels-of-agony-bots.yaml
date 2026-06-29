@@ -1,4 +1,4 @@
-# Bot patterns for Bowls of Agony — survival, not perfect strategy.
+# Bot patterns for Bowels of Agony — survival, not perfect strategy.
 # Bots spread at time:24 to dodge Entropy/Dynamic Fluid pops and Thunder III get-out,
 # then use diagonal safe zones for both Implosions, stack for Vacuum Wave + group stack.
 
@@ -25,10 +25,29 @@ solvers:
 
     #ot moves exdeath to middle after decisive battle
     - when: { static: true }
-      startAt: 6
+      startAt: 5
       endAt: 9
       spots:
-        ot: { x: -4.5, z: 0 }
+        ot: { x: -6.5, z: 0 }
+
+    - when: { static: true }
+      startAt: 5
+      endAt: 9
+      spots:
+        mt: { x: 7.5, z: 0 }
+
+    - when: { static: true }
+      startAt: 13
+      endAt: 16
+      spots:
+        ot: { x: 0, z: 0.2 }
+
+    - when: { static: true }
+      startAt: 14
+      endAt: 16
+      spots:
+        mt: { x: 0, z: 0.2 }
+
 
 
     # After crystals spawn, OT holds in the Wind frame between Chaos and Exdeath.
@@ -245,19 +264,19 @@ solvers:
       frame: [{ crystal: wind }]
       spot: { r: 0, z: 8 }
 
-    # Bowls stack (t:90–93): converge so requiredCount:4 is met; 80 dmg split 8 ways.
-    - when: { mechanic: bowls-stack }
+    # Bowels stack (t:90–93): Part C still needs retune for partner stacks.
+    - when: { mechanic: bowels-stack }
       frame: [{ crystal: wind }]
       spot: { r: 0, z: 6 }
 
-    # Limit Cut (gated on the bowls-limit-cut mechanic, live t:91–100): each bot fans out to its
+    # Limit Cut (gated on the bowels-limit-cut mechanic, live t:91–100): each bot fans out to its
     # numbered inter-inter-cardinal at radius 18. Spots are authored relative to relative-north
     # (clockwise polar: #1 is one inter-inter step clockwise of N); the solver rotates them by the
     # matched limit cut's basis (relative-north = opposite Kefka's first divebomb, handedness = opposite
-    # Kefka's dash direction). With the bowls config (Kefka N/CCW), relative-north resolves to S and bots
+    # Kefka's dash direction). With the bowels config (Kefka N/CCW), relative-north resolves to S and bots
     # place clockwise, so #1 lands SSW … #8 SSE. One rule covers all 8 bots; it only yields a spot for
     # bots currently carrying a limit-cut number.
-    - when: { mechanic: bowls-limit-cut }
+    - when: { mechanic: bowels-limit-cut }
       limitCutSpread:
         spots:
           - { dist: 18, angleDeg: 22.5 }   # #1
@@ -270,4 +289,4 @@ solvers:
           - { dist: 18, angleDeg: 337.5 }  # #8
 
   holds:
-    - { mechanic: bowls-stack, duration: 1 }
+    - { mechanic: bowels-stack, duration: 1 }

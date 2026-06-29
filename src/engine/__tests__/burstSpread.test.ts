@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { createWorld } from "../world";
+import { tick } from "../sim";
 import { TANK_HP, HEALER_HP, DPS_HP } from "./constants";
 import { baseRaid, byId, loadRaid, noMove, roster, runTicks } from "./helpers";
 
@@ -141,10 +142,40 @@ test("burstSpread followUp originCrystal targets by crystal distance", () => {
       },
     }],
   });
-  const world = runTicks(createWorld(raid), noMove, 45);
+  const world = runTicks(createWorld(raid), noMove, 90);
 
   expect(byId(world, "ot").hp).toBe(TANK_HP);          // closest to carrier, but not fire
   expect(byId(world, "h1").hp).toBe(HEALER_HP - 50);   // closest to fire crystal
+});
+
+test("burstSpread originCrystal followUp resolves one second after the self burst", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0] }, h1: { spawn: [10, 0] } }),
+    crystals: { rng: false, spots: [[0, 10], [10, 0], [0, -10], [-10, 0]] },
+    events: [{
+      type: "apply_effect", t: 0, name: "DT", players: ["mt"],
+      applyEffect: {
+        name: "DT", kind: "debuff", duration: 0.1,
+        behavior: {
+          kind: "burstSpread",
+          radius: 0.1, damage: 1, damageType: "magical", knockbackDistance: 0,
+          followUp: { mode: "closest", count: 1, originCrystal: "fire", shape: "circle", radius: 0.5, damage: 50, damageType: "magical" },
+        },
+      },
+    }],
+  });
+  let world = createWorld(raid);
+  for (let i = 0; i < 30; i++) world = tick(world, noMove, 1 / 60);
+
+  expect(byId(world, "mt").hp).toBe(TANK_HP - 1);
+  expect(byId(world, "h1").hp).toBe(HEALER_HP);
+  expect(world.pendingBurstSpreadFollowUps).toHaveLength(1);
+
+  for (let i = 0; i < 70; i++) world = tick(world, noMove, 1 / 60);
+
+  expect(byId(world, "h1").hp).toBe(HEALER_HP - 50);
+  expect(world.pendingBurstSpreadFollowUps).toHaveLength(0);
 });
 
 test("burstSpread followUp originCrystal: two carriers fire one shared set of count AOEs", () => {
@@ -171,7 +202,7 @@ test("burstSpread followUp originCrystal: two carriers fire one shared set of co
       },
     }],
   });
-  const world = runTicks(createWorld(raid), noMove, 20);
+  const world = runTicks(createWorld(raid), noMove, 90);
 
   const fuVisuals = world.active.filter(m => m.id.includes("-fu-") && m.resolved);
   expect(fuVisuals).toHaveLength(2);

@@ -7,7 +7,7 @@
 // `randInt`/`randFloat` call advances `rngState`, so reordering systems changes which mechanic gets
 // which random value and breaks reproducibility. Do not reorder the calls in the orchestrator.
 
-import type { World, Intents, Player, Boss, LogEntry, ActiveForcedMarch, ActiveMechanic } from "@shared/types";
+import type { World, Intents, Player, Boss, LogEntry, ActiveForcedMarch, ActiveMechanic, PendingBurstSpreadFollowUp } from "@shared/types";
 import { nextRandom, randomInt } from "@shared/rng";
 
 export interface TickContext {
@@ -36,6 +36,7 @@ export interface TickContext {
   // Shared accumulator for instant resolved AOE visuals emitted by systems that do not own the
   // normal AOE active list.
   resolvedAoeVisuals: ActiveMechanic[];
+  pendingBurstSpreadFollowUps: PendingBurstSpreadFollowUp[];
   // Towers that resolved this tick with a consumed charge debuff: each entry is the tower's labels +
   // the ids of the players whose debuff a resolver consumed. The reassign system (running after
   // towers in the same tick) reads this to re-balance charges onto those players.
@@ -60,6 +61,7 @@ export function createTickContext(world: World, intents: Intents, dt: number): T
     rngState: world.rngState,
     forcedMarches: [] as ActiveForcedMarch[],
     resolvedAoeVisuals: [] as ActiveMechanic[],
+    pendingBurstSpreadFollowUps: world.pendingBurstSpreadFollowUps.slice(),
     resolvedTowers: [] as { labels: string[]; playerIds: string[] }[],
     // Closures capture `ctx` so a bare reference (e.g. passed to effectsForMechanic) still advances
     // the shared rngState.

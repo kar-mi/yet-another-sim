@@ -190,6 +190,48 @@ test("zero-damage matching mechanic does not consume vuln", () => {
   expect(human(world).effects).toHaveLength(0);
 });
 
+test("mitigation reduces repeated matching hits without being consumed", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [
+      {
+        t: 0.1,
+        name: "Tank LB",
+        telegraph: 0.01,
+        damage: 0,
+        damageType: "magical" as const,
+        applyEffect: {
+          name: "Tank LB",
+          kind: "buff" as const,
+          duration: 10,
+          behavior: { kind: "mitigation" as const, damageType: "magical" as const, multiplier: 0.1 },
+        },
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
+      },
+      {
+        t: 0.3,
+        name: "Magical Hit 1",
+        telegraph: 0.01,
+        damage: 20,
+        damageType: "magical" as const,
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
+      },
+      {
+        t: 0.5,
+        name: "Magical Hit 2",
+        telegraph: 0.01,
+        damage: 20,
+        damageType: "magical" as const,
+        shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
+      },
+    ],
+  });
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.7 * 60));
+
+  expect(human(world).hp).toBeCloseTo(96);
+  expect(human(world).effects.some(e => e.behavior.kind === "mitigation")).toBe(true);
+});
+
 test("pyretic damages player actions", () => {
   const pyretic = effect({ name: "Pyretic", behavior: { kind: "dot", dps: 10, condition: "moving" } });
   const cases: Intents[] = [

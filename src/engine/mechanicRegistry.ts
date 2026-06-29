@@ -42,7 +42,8 @@ export type Collections = Pick<World,
   | "pending" | "pendingTethers" | "pendingLineLinks" | "pendingTargeted" | "pendingBaits" | "pendingDashes"
   | "pendingTowers" | "pendingChains" | "pendingGroups" | "pendingEffectSelects"
   | "pendingApplyEffects" | "pendingLimitCuts" | "pendingInversions" | "pendingSpreadStacks" | "pendingGazes"
-  | "pendingForcedMarches" | "pendingDivebombs" | "pendingEffectBursts" | "pendingHeals" | "pendingSetHps" | "reassigns"
+  | "pendingForcedMarches" | "pendingDivebombs" | "pendingEffectBursts" | "pendingHeals" | "pendingSetHps"
+  | "pendingBurstSpreadFollowUps" | "reassigns"
   | "effectResolvers"
 >;
 
@@ -312,6 +313,7 @@ const groups: MechanicModule = {
       damageType: e.damageType,
       applyEffect: e.applyEffect,
       showCastBar: e.showCastBar ?? false,
+      showMarker: e.showMarker,
     });
   },
   resolve: ctx => resolveGroups(ctx),

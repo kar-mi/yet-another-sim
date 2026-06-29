@@ -44,6 +44,7 @@ export function resolveGroups(ctx: TickContext): {
         applyEffect: pg.applyEffect,
         resolved: false,
         showCastBar: pg.showCastBar,
+        showMarker: pg.showMarker,
       });
     } else {
       remainingPendingGroups.push(pg);

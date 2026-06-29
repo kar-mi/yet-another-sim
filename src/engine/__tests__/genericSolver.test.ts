@@ -85,7 +85,7 @@ test("gaze resolves to normal/reverse", () => {
 
 test("group mechanic resolves to .g<chosen index>", () => {
   const w = world({
-    groupMechanics: [{ id: "stack-1", telegraphStart: 0, resolveAt: 5, resolved: false }],
+    groupMechanics: [{ id: "stack-1", telegraphStart: 0, resolveAt: 5, resolved: false, showMarker: true }],
     groupChoices: { "stack-1": 1 },
   });
   expect(ids(w)).toEqual(["stack-1.g1"]);
