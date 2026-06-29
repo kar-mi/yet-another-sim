@@ -499,6 +499,7 @@ const GroupEventSchema = z.object({
   damageType: z.enum(["physical", "magical", "true"]),
   applyEffect: ApplyEffectSchema.optional(),
   showCastBar: z.boolean().optional(),
+  showMarker: z.boolean().default(true),
 });
 
 const EffectSelectEventSchema = z.object({

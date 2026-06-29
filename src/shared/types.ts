@@ -621,6 +621,7 @@ export type PendingGroupEvent = {
   damageType: DamageType;
   applyEffect?: EffectSpec;
   showCastBar: boolean;
+  showMarker: boolean;
 };
 
 export type PendingEffectSelect = {
@@ -694,6 +695,7 @@ export type ActiveGroupMechanic = {
   applyEffect?: EffectSpec;
   resolved: boolean;
   showCastBar: boolean;
+  showMarker: boolean;
   outcome?: "success" | "failure"; // set at resolve, drives the post-resolve flash
 };
 

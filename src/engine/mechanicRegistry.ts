@@ -313,6 +313,7 @@ const groups: MechanicModule = {
       damageType: e.damageType,
       applyEffect: e.applyEffect,
       showCastBar: e.showCastBar ?? false,
+      showMarker: e.showMarker,
     });
   },
   resolve: ctx => resolveGroups(ctx),

@@ -76,6 +76,15 @@ test("group marks a member of the chosen group", () => {
   expect(gm.radius).toBe(6);
 });
 
+test("group can hide the overhead stack marker", () => {
+  const raid = groupRaid([{
+    type: "group", t: 0, name: "Stack", groups: [["mt"]],
+    telegraph: 2, radius: 6, damage: 100, damageType: "magical", showMarker: false,
+  }]);
+  const w = runTicks(createWorld(raid), noMove, 6);
+  expect(w.groupMechanics[0]?.showMarker).toBe(false);
+});
+
 test("linked group event takes the complementary group", () => {
   const raid = groupRaid([
     { type: "group", id: "a", t: 0, name: "First", rng: true,

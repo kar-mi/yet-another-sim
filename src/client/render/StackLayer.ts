@@ -39,15 +39,21 @@ export class StackLayer {
       const player = playerMap.get(group.markedPlayerId);
       if (!player) continue;
 
-      let icon = this.icons.get(group.id);
-      if (!icon) {
-        icon = CreatePlane(`stack-icon-${group.id}`, { size: 1.3 }, this.scene);
-        icon.billboardMode = BabylonMesh.BILLBOARDMODE_ALL;
-        icon.isPickable = false;
-        icon.material = this.getIconMaterial();
-        this.icons.set(group.id, icon);
+      const existingIcon = this.icons.get(group.id);
+      if (!group.showMarker) {
+        existingIcon?.dispose();
+        this.icons.delete(group.id);
+      } else {
+        let icon = existingIcon;
+        if (!icon) {
+          icon = CreatePlane(`stack-icon-${group.id}`, { size: 1.3 }, this.scene);
+          icon.billboardMode = BabylonMesh.BILLBOARDMODE_ALL;
+          icon.isPickable = false;
+          icon.material = this.getIconMaterial();
+          this.icons.set(group.id, icon);
+        }
+        icon.position.set(player.pos.x, ICON_Y, player.pos.z);
       }
-      icon.position.set(player.pos.x, ICON_Y, player.pos.z);
 
       let circle = this.circles.get(group.id);
       if (!circle) {
