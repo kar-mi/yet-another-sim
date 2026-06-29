@@ -21,7 +21,7 @@ import type { Vec2 } from "@shared/math";
 import { sub, scale, normalize, length, dot } from "@shared/math";
 import { GRAVITY, KNOCKBACK_FRICTION, INTERCEPT_THRESHOLD } from "@shared/constants";
 import { sin, cos, acos } from "@shared/dmath";
-import { BEHAVIOR_REGISTRY } from "../status/behaviors";
+import { COMBAT_LIFECYCLE_REGISTRY } from "../status/combatLifecycle";
 
 export function topThreatTarget(players: Player[], threat: Record<string, number>): string | null {
   let best: string | null = null;
@@ -100,7 +100,7 @@ export function applyMechanicDamage(player: Player, damage: number, damageType: 
   let dealt = damage;
   for (const effect of player.effects) {
     if (!isEffectActiveAt(effect, time)) continue;
-    const result = BEHAVIOR_REGISTRY[effect.behavior.kind].modifyDamage?.(effect, dealt, damageType);
+    const result = COMBAT_LIFECYCLE_REGISTRY[effect.behavior.kind].modifyDamage?.(effect, dealt, damageType);
     if (!result) continue;
     dealt = result.dealt;
     if (result.consume) matchingVulnIds.add(effect.id);
@@ -111,7 +111,7 @@ export function applyMechanicDamage(player: Player, damage: number, damageType: 
   if (!player.invincible) {
     player.hp = Math.max(0, player.hp - dealt);
     if (player.hp <= 0) {
-      const survivor = player.effects.find(e => isEffectActiveAt(e, time) && BEHAVIOR_REGISTRY[e.behavior.kind].onLethal?.(e, player) === true);
+      const survivor = player.effects.find(e => isEffectActiveAt(e, time) && COMBAT_LIFECYCLE_REGISTRY[e.behavior.kind].onLethal?.(e, player) === true);
       if (survivor) {
         player.hp = 1;
         player.effects = player.effects.filter(e => e !== survivor);
@@ -187,9 +187,9 @@ export function applyKnockback(player: Player, knockback: Knockback, origin: Vec
   const dir = length(away) > 0 ? normalize(away) : { x: 1, z: 0 }; // player on origin: arbitrary dir
   let { distance, height } = knockback;
 
-  const modifier = player.effects.find(e => isEffectActiveAt(e, time) && BEHAVIOR_REGISTRY[e.behavior.kind].modifyKnockback !== undefined);
+  const modifier = player.effects.find(e => isEffectActiveAt(e, time) && COMBAT_LIFECYCLE_REGISTRY[e.behavior.kind].modifyKnockback !== undefined);
   if (modifier) {
-    ({ distance, height } = BEHAVIOR_REGISTRY[modifier.behavior.kind].modifyKnockback!(modifier, player, knockback, origin, time));
+    ({ distance, height } = COMBAT_LIFECYCLE_REGISTRY[modifier.behavior.kind].modifyKnockback!(modifier, player, knockback, origin, time));
     player.effects = player.effects.filter(e => e !== modifier);
   }
   if (height > 0) {
@@ -224,7 +224,7 @@ export function applyEffect(player: Player, spec: EffectSpec, time: number, id: 
     ...player.effects,
     {
       ...effect,
-      ...BEHAVIOR_REGISTRY[spec.behavior.kind].onApply?.(effect, player, players, spec),
+      ...COMBAT_LIFECYCLE_REGISTRY[spec.behavior.kind].onApply?.(effect, player, players, spec),
     },
   ];
 }

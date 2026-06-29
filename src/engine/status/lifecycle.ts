@@ -1,8 +1,6 @@
 import type { TickContext } from "../systems/context";
-import type { AOEShape, DamageType, EffectBehavior, Knockback, Player, StatusEffect } from "@shared/types";
+import type { AOEShape, DamageType, EffectBehavior, Player, StatusEffect } from "@shared/types";
 import type { Vec2 } from "@shared/math";
-import { dot, length, sub } from "@shared/math";
-import { sin, cos } from "@shared/dmath";
 import { pointInShape } from "../shapes";
 import { addResolvedAoeVisual } from "../systems/effectResolvers";
 import { applyKnockback, applyMechanicDamage, effectActiveDt, selectTargetPlayers } from "../systems/helpers";
@@ -11,7 +9,28 @@ export type ExpiryScratch = {
   resolvedCrystalFollowUps: Set<string>;
 };
 
+type StatusLifecycleModule = {
+  onTick?: (effect: StatusEffect, player: Player, ctx: TickContext, acted: boolean) => void;
+  cleanseOnFullHp?: boolean;
+  onExpiry?: (effect: StatusEffect, player: Player, ctx: TickContext, scratch: ExpiryScratch) => void;
+};
+
 type BurstSpread = Extract<EffectBehavior, { kind: "burstSpread" }>;
+
+export const STATUS_LIFECYCLE_REGISTRY: Record<EffectBehavior["kind"], StatusLifecycleModule> = {
+  none: {},
+  vuln: {},
+  mitigation: {},
+  dot: { onTick: dotOnTick },
+  confusion: {},
+  sleep: {},
+  burstSpread: { onExpiry: burstSpreadOnExpiry },
+  plant: { onExpiry: plantOnExpiry },
+  directionalKnockback: {},
+  primordialCrust: { onExpiry: expiryDamageOnExpiry },
+  accretion: { cleanseOnFullHp: true, onExpiry: expiryDamageOnExpiry },
+  assignment: { onExpiry: expiryDamageOnExpiry },
+};
 
 export function dotOnTick(effect: StatusEffect, player: Player, ctx: TickContext, acted: boolean): void {
   const behavior = effect.behavior as Extract<EffectBehavior, { kind: "dot" }>;
@@ -79,35 +98,6 @@ export function expiryDamageOnExpiry(effect: StatusEffect, player: Player, ctx: 
   if (!player.alive) ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: player.id, event: "hit" });
 }
 
-export function modifyMitigation(effect: StatusEffect, dealt: number, damageType: DamageType): { dealt: number } {
-  const behavior = effect.behavior as Extract<EffectBehavior, { kind: "mitigation" }>;
-  return { dealt: behavior.damageType === undefined || behavior.damageType === damageType ? dealt * behavior.multiplier : dealt };
-}
-
-export function modifyVuln(effect: StatusEffect, dealt: number, damageType: DamageType): { dealt: number; consume?: boolean } {
-  const behavior = effect.behavior as Extract<EffectBehavior, { kind: "vuln" }>;
-  if (behavior.damageType !== damageType) return { dealt };
-  return { dealt: dealt * behavior.multiplier, consume: true };
-}
-
-export function primordialCrustOnLethal(): boolean {
-  return true;
-}
-
-export function directionalKnockback(effect: StatusEffect, player: Player, knockback: Knockback, origin: Vec2): Knockback {
-  const behavior = effect.behavior as Extract<EffectBehavior, { kind: "directionalKnockback" }>;
-  const away = sub(player.pos, origin);
-  const dir = length(away) > 0 ? { x: away.x / length(away), z: away.z / length(away) } : { x: 1, z: 0 };
-  const facingDir = { x: sin(player.facing), z: cos(player.facing) };
-  const isFacingAway = dot(facingDir, dir) > 0;
-  const correct = behavior.requiredFacing === "away" ? isFacingAway : !isFacingAway;
-  return { ...knockback, distance: correct ? behavior.distance : behavior.doubledDistance };
-}
-
-export function confusionOnApply(_effect: StatusEffect, player: Player, players: Player[]): Partial<StatusEffect> {
-  return { lockedTargetId: closestOtherPlayer(player, players)?.id };
-}
-
 export function applyPendingBurstSpreadFollowUp(ctx: TickContext, pending: TickContext["pendingBurstSpreadFollowUps"][number]): void {
   const origin = ctx.world.crystals.find(crystal => crystal.element === pending.originCrystal)?.pos ?? { x: 0, z: 0 };
   resolveFollowUp(ctx, pending.id, pending.name, pending.followUp, origin);
@@ -147,18 +137,4 @@ function resolveFollowUp(ctx: TickContext, id: string, name: string, followUp: N
     applyShapeHit(ctx.players, ctx.log, ctx.time, shape, target.pos, followUp.damage, followUp.damageType, followUp.knockbackDistance, undefined, name);
     addResolvedAoeVisual(ctx, `${id}-fu-${target.id}`, name, shape);
   }
-}
-
-function closestOtherPlayer(self: Player, players: Player[]): Player | null {
-  let best: Player | null = null;
-  let bestDist = Infinity;
-  for (const player of players) {
-    if (player === self || player.id === self.id || !player.alive) continue;
-    const dist = length(sub(player.pos, self.pos));
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = player;
-    }
-  }
-  return best;
 }
