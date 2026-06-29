@@ -99,6 +99,9 @@ export function applyMechanicDamage(player: Player, damage: number, damageType: 
   let dealt = damage;
   for (const effect of player.effects) {
     if (!isEffectActiveAt(effect, time)) continue;
+    if (effect.behavior.kind === "mitigation" && (effect.behavior.damageType === undefined || effect.behavior.damageType === damageType)) {
+      dealt *= effect.behavior.multiplier;
+    }
     if (effect.behavior.kind === "vuln" && effect.behavior.damageType === damageType) {
       dealt *= effect.behavior.multiplier;
       matchingVulnIds.add(effect.id);

@@ -102,6 +102,7 @@ export type FlashBeforeResolve = { lead: number; color?: string };
 export type EffectBehavior =
   | { kind: "none" }
   | { kind: "vuln"; damageType: "physical" | "magical"; multiplier: number }
+  | { kind: "mitigation"; damageType?: DamageType; multiplier: number }
   // Generic damage-over-time. `condition` gates when a tick deals damage: "always" every tick,
   // "moving" only when the player acted this tick (old "pyretic"), "idle" only when they didn't
   // (old "freeze").
@@ -672,6 +673,14 @@ export type PendingApplyEffect = {
   effectChoiceComplement?: boolean;
 };
 
+export type PendingBurstSpreadFollowUp = {
+  id: string;
+  t: number;
+  name: string;
+  originCrystal: CrystalElement;
+  followUp: NonNullable<Extract<EffectBehavior, { kind: "burstSpread" }>["followUp"]>;
+};
+
 export type ActiveGroupMechanic = {
   id: string;
   name: string;
@@ -922,6 +931,7 @@ export type World = {
   reassigns: Reassign[];
   pendingEffectSelects: PendingEffectSelect[];
   pendingApplyEffects: PendingApplyEffect[];
+  pendingBurstSpreadFollowUps: PendingBurstSpreadFollowUp[];
   pendingLimitCuts: PendingLimitCut[];
   // Fired limit cuts, live for their effect duration (bot-solver when.mechanic gates on these).
   limitCuts: ActiveLimitCut[];
