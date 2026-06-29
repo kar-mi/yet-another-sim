@@ -36,6 +36,19 @@ solvers:
       spots:
         mt: { x: 7.5, z: 0 }
 
+    - when: { static: true }
+      startAt: 13
+      endAt: 16
+      spots:
+        ot: { x: 0, z: 0.2 }
+
+    - when: { static: true }
+      startAt: 14
+      endAt: 16
+      spots:
+        mt: { x: 0, z: 0.2 }
+
+
 
     # After crystals spawn, OT holds in the Wind frame between Chaos and Exdeath.
     - when: { static: true }
