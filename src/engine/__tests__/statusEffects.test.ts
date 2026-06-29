@@ -410,6 +410,20 @@ test("apply_effect with explicit players lands assignment on exactly those playe
   expect(withMark.map(p => p.id).sort()).toEqual(["mt", "ot"]);
 });
 
+test("applyEffect ref resolves with nested behavior overrides", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{
+      type: "apply_effect", t: 0, name: "Vuln", players: [HUMAN],
+      applyEffect: { ref: "Magic Vulnerability", duration: 6, behavior: { multiplier: 1.25 } },
+    }],
+  });
+  const event = raid.events.find(e => e.type === "apply_effect")!;
+  const behavior = event.applyEffect!.behavior;
+  expect(event.applyEffect!.duration).toBe(6);
+  expect(behavior).toEqual({ kind: "vuln", damageType: "magical", multiplier: 1.25 });
+});
+
 test("assignment-test demo raid loads without error", async () => {
   const text = await Bun.file(`${import.meta.dir}/../../../raids/debug/assignment-test.yaml`).text();
   const yaml = Bun.YAML.parse(text);

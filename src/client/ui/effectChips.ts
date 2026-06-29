@@ -4,6 +4,7 @@
 // otherwise just ticks the countdown timers. Extracted from HudOverlay.
 
 import type { Player } from "@shared/types";
+import { effectIcon } from "../../engine/debuffs/behaviors";
 import { STATIC_ROOT } from "../staticBase";
 
 const EFFECT_TIMER_STEP = 0.25;
@@ -14,35 +15,6 @@ export type EffectRenderState = { ids: string[]; timerBucket: number; chips: Eff
 
 export function createEffectRenderState(): EffectRenderState {
   return { ids: [], timerBucket: -1, chips: [] };
-}
-
-function teleportentIcon([x, z]: [number, number]): string {
-  if (Math.abs(x) > Math.abs(z)) {
-    return x >= 0 ? "teleportent_right.png" : "teleportent_left.png";
-  }
-  return z >= 0 ? "teleportent_up.png" : "teleportent_down.png";
-}
-
-// Map a status effect to a compact image or glyph. Static debuff images are preferred for
-// raid-specific statuses; generic effects keep the old glyph fallback.
-function effectIcon(effect: Player["effects"][number]): { glyph?: string; src?: string; rotate?: number } {
-  switch (effect.behavior.kind) {
-    case "plant": {
-      return { src: `${STATIC_ROOT}/debuffs/${teleportentIcon(effect.behavior.direction)}` };
-    }
-    case "sleep": return { src: `${STATIC_ROOT}/debuffs/sleep.png` };
-    case "confusion": return { src: `${STATIC_ROOT}/debuffs/confuse.png` };
-    case "directionalKnockback":
-      return { src: `${STATIC_ROOT}/debuffs/${effect.behavior.requiredFacing === "toward" ? "headwind" : "tailwind"}.png` };
-    case "primordialCrust": return { src: `${STATIC_ROOT}/debuffs/primoridial_crust.png` };
-    case "accretion": return { src: `${STATIC_ROOT}/debuffs/accretion.png` };
-    case "vuln": return { glyph: "▼" };
-    case "dot": {
-      const c = effect.behavior.condition;
-      return { glyph: c === "moving" ? "🔥" : c === "idle" ? "❄" : "🩸" };
-    }
-    default: return { glyph: effect.kind === "buff" ? "▲" : "●" };
-  }
 }
 
 function isActiveVisibleEffect(effect: Player["effects"][number], time: number, kind: EffectKind | null = null): boolean {
@@ -114,7 +86,7 @@ function buildEffectChip(
     iconEl = img;
   } else if (icon.src) {
     const img = document.createElement("img");
-    img.src = icon.src;
+    img.src = `${STATIC_ROOT}/debuffs/${icon.src}`;
     img.alt = effect.name;
     iconEl = img;
   } else {

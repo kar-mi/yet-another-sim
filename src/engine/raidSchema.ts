@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ROSTER, RaidIdSchema } from "@shared/protocol";
 import { BOSS_REGISTRY, BOSS_REGISTRY_IDS, DEFAULT_BOSS_ID, isBossRegistryId, type BossRegistryId } from "./bossRegistry";
+import { resolveEffectRef } from "./debuffs/registry";
 
 const Vec2Schema = z.preprocess(
   value => Array.isArray(value) && value.length === 2 ? { x: value[0], z: value[1] } : value,
@@ -227,7 +228,7 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
   }
 });
 
-const ApplyEffectSchema = z.object({
+const InlineApplyEffectSchema = z.object({
   name: z.string().min(1),
   kind: z.enum(["buff", "debuff"]),
   duration: z.number().positive(),
@@ -237,6 +238,34 @@ const ApplyEffectSchema = z.object({
   marker: z.string().min(1).max(8).optional(), // short above-head marker shown while active
   markerIcon: z.string().min(1).optional(), // above-head marker image filename, served from /static/head_markers/
   markerIconScale: z.number().positive().optional(), // per-icon size multiplier (default 4)
+});
+
+const EffectRefSchema = z.object({
+  ref: z.string().min(1),
+  name: z.string().min(1).optional(),
+  kind: z.enum(["buff", "debuff"]).optional(),
+  duration: z.number().positive().optional(),
+  behavior: z.record(z.string(), z.unknown()).optional(),
+  visibility: z.enum(["visible", "invisible"]).optional(),
+  icon: z.string().min(1).optional(),
+  marker: z.string().min(1).max(8).optional(),
+  markerIcon: z.string().min(1).optional(),
+  markerIconScale: z.number().positive().optional(),
+});
+
+const ApplyEffectSchema = z.union([InlineApplyEffectSchema, EffectRefSchema]).transform((effect, ctx) => {
+  if (!("ref" in effect)) return effect;
+  const resolved = resolveEffectRef(effect);
+  if (!resolved) {
+    ctx.addIssue({ code: "custom", path: ["ref"], message: `unknown debuff ref "${effect.ref}"` });
+    return z.NEVER;
+  }
+  const parsed = InlineApplyEffectSchema.safeParse(resolved);
+  if (!parsed.success) {
+    ctx.addIssue({ code: "custom", message: parsed.error.message });
+    return z.NEVER;
+  }
+  return parsed.data;
 });
 
 const ApplyEffectsSchema = z.object({
