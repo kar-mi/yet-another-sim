@@ -41,120 +41,28 @@ players:
   - { id: m2, role: dps,    spawn: { x: 4, z: -8 } }
 
 _heroEpic: &heroEpic
-  name: Epic Hero
-  kind: debuff
-  duration: 31
-  icon: alpha.png
-  behavior: { kind: assignment, expiryDamage: 0, expiryDamageType: "true" }
+  ref: epic_hero
 
 _heroFated: &heroFated
-  name: Fated Hero
-  kind: debuff
-  duration: 31
-  icon: beta.png
-  behavior: { kind: assignment, expiryDamage: 0, expiryDamageType: "true" }
+  ref: fated_hero
 
 _headwind: &headwind
-  name: Headwind
-  kind: debuff
-  duration: 70
-  icon: headwind.png
-  behavior: { kind: directionalKnockback, requiredFacing: away, distance: 8, doubledDistance: 18 }
+  ref: bowels_headwind
 
 _tailwind: &tailwind
-  name: Tailwind
-  kind: debuff
-  duration: 70
-  icon: tailwind.png
-  behavior: { kind: directionalKnockback, requiredFacing: toward, distance: 8, doubledDistance: 18 }
+  ref: bowels_tailwind
 
 _entropyShort: &entropyShort
-  name: Entropy Short
-  kind: debuff
-  duration: 18
-  icon: entropy.png
-  behavior:
-    kind: burstSpread
-    selfShape: circle
-    radius: 5
-    damage: 8
-    damageType: magical
-    knockbackDistance: 0
-    followUp:
-      mode: closest
-      count: 2
-      originCrystal: fire
-      shape: donut
-      radius: 8
-      inner: 3
-      damage: 12
-      damageType: magical
+  ref: entropy_short
 
 _entropyLong: &entropyLong
-  name: Entropy Long
-  kind: debuff
-  duration: 45
-  icon: entropy.png
-  behavior:
-    kind: burstSpread
-    selfShape: circle
-    radius: 5
-    damage: 8
-    damageType: magical
-    knockbackDistance: 0
-    followUp:
-      mode: closest
-      count: 2
-      originCrystal: fire
-      shape: donut
-      radius: 8
-      inner: 3
-      damage: 12
-      damageType: magical
+  ref: entropy_long
 
 _dynamicFluidShort: &dynamicFluidShort
-  name: Dynamic Fluid Short
-  kind: debuff
-  duration: 18
-  icon: dynamic_fluid.png
-  behavior:
-    kind: burstSpread
-    selfShape: donut
-    selfInner: 3
-    radius: 8
-    damage: 12
-    damageType: magical
-    knockbackDistance: 0
-    followUp:
-      mode: closest
-      count: 2
-      originCrystal: water
-      shape: circle
-      radius: 5
-      damage: 8
-      damageType: magical
+  ref: dynamic_fluid_short
 
 _dynamicFluidLong: &dynamicFluidLong
-  name: Dynamic Fluid Long
-  kind: debuff
-  duration: 45
-  icon: dynamic_fluid.png
-  behavior:
-    kind: burstSpread
-    selfShape: donut
-    selfInner: 3
-    radius: 8
-    damage: 12
-    damageType: magical
-    knockbackDistance: 0
-    followUp:
-      mode: closest
-      count: 2
-      originCrystal: water
-      shape: circle
-      radius: 5
-      damage: 8
-      damageType: magical
+  ref: dynamic_fluid_long
 
 events:
   # Lock the boss at the start
@@ -461,10 +369,7 @@ events:
     name: Tank Limit Break
     players: [mt, ot, h1, h2, r1, r2, m1, m2]
     applyEffect:
-      name: Tank Limit Break
-      kind: buff
-      duration: 10
-      behavior: { kind: mitigation, multiplier: 0.1 }
+      ref: tank_limit_break
   - type: aoe
     id: ultima-blaster-4
     time: 82

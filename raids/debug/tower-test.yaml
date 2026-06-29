@@ -93,13 +93,7 @@ events:
     requiredRoles: [tank, healer]
     wrongRoleLethal: true
     applyEffect:
-      name: Magic Vulnerability
-      kind: debuff
-      duration: 8
-      behavior:
-        kind: vuln
-        damageType: magical
-        multiplier: 1.5
+      ref: magic_vulnerability
     knockback:
       distance: 8
     visual:

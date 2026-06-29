@@ -74,11 +74,7 @@ events:
     name: Mark Healer
     players: [h1]
     applyEffect:
-      name: Dash Target
-      kind: debuff
-      duration: 8
-      behavior: { kind: none }
-      marker: DASH
+      ref: dash_target
 
   - type: dash
     id: marked-dash

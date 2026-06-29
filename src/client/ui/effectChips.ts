@@ -4,7 +4,7 @@
 // otherwise just ticks the countdown timers. Extracted from HudOverlay.
 
 import type { Player } from "@shared/types";
-import { effectIcon } from "../../engine/debuffs/behaviors";
+import { effectIcon } from "../../engine/status/behaviors";
 import { STATIC_ROOT } from "../staticBase";
 
 const EFFECT_TIMER_STEP = 0.25;

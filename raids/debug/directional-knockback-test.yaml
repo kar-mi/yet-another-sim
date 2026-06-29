@@ -40,24 +40,10 @@ players:
     spawn: { x: 7, z: -7 }
 
 _headwind: &headwind
-  name: Headwind
-  kind: debuff
-  duration: 9
-  behavior:
-    kind: directionalKnockback
-    requiredFacing: toward
-    distance: 10
-    doubledDistance: 22
+  ref: headwind
 
 _tailwind: &tailwind
-  name: Tailwind
-  kind: debuff
-  duration: 9
-  behavior:
-    kind: directionalKnockback
-    requiredFacing: away
-    distance: 10
-    doubledDistance: 22
+  ref: tailwind
 
 _shockwave: &shockwave
   name: Shockwave

@@ -49,10 +49,7 @@ events:
     damage: 0
     damageType: physical
     applyEffect:
-      name: Physical Vulnerability
-      kind: debuff
-      duration: 8
-      behavior: { kind: vuln, damageType: physical, multiplier: 1.5 }
+      ref: physical_vulnerability
 
   - <<: *hitBase
     id: typed-strike
@@ -69,10 +66,7 @@ events:
     damage: 0
     damageType: magical
     applyEffect:
-      name: Pyretic
-      kind: debuff
-      duration: 8
-      behavior: { kind: dot, dps: 8, condition: moving }
+      ref: pyretic
 
   # Deep Freeze — ticks while idle.
   - <<: *hitBase
@@ -82,7 +76,4 @@ events:
     damage: 0
     damageType: magical
     applyEffect:
-      name: Freeze
-      kind: debuff
-      duration: 8
-      behavior: { kind: dot, dps: 8, condition: idle }
+      ref: freeze

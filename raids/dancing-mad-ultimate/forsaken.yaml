@@ -206,14 +206,14 @@ events:
       tower-even: { stack: 2, cone: 3, defamation: 3 }
     charges:
       - kind: stack
-        effect: { name: Stack Charge, kind: debuff, duration: 120, visibility: invisible, behavior: { kind: none } }
-        marker: { name: Stack Charge Marker, kind: debuff, duration: 5, visibility: invisible, markerIcon: stack_processed.png, behavior: { kind: none } }
+        effect: { ref: stack_charge }
+        marker: { ref: stack_charge_marker }
       - kind: cone
-        effect: { name: Cone Charge, kind: debuff, duration: 120, visibility: invisible, behavior: { kind: none } }
-        marker: { name: Cone Charge Marker, kind: debuff, duration: 5, visibility: invisible, markerIcon: cone_processed.png, behavior: { kind: none } }
+        effect: { ref: cone_charge }
+        marker: { ref: cone_charge_marker }
       - kind: defamation
-        effect: { name: Defamation Charge, kind: debuff, duration: 120, visibility: invisible, behavior: { kind: none } }
-        marker: { name: Defamation Charge Marker, kind: debuff, duration: 5, visibility: invisible, markerIcon: defam_processed.png, behavior: { kind: none } }
+        effect: { ref: defamation_charge }
+        marker: { ref: defamation_charge_marker }
 
   # Towers 1-2 (A side).
   - <<: *towerBase

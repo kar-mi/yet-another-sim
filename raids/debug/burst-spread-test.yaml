@@ -28,46 +28,10 @@ players:
 
 # Shared debuff behaviors.
 _entropy: &entropy
-  name: Entropy
-  kind: debuff
-  duration: 18
-  icon: entropy.png
-  behavior:
-    kind: burstSpread
-    selfShape: circle
-    radius: 6
-    damage: 80
-    damageType: magical
-    knockbackDistance: 6
-    followUp:
-      mode: closest
-      count: 2
-      shape: donut
-      radius: 8
-      inner: 3
-      damage: 120
-      damageType: magical
+  ref: debug_entropy
 
 _dynamicFluid: &dynamicFluid
-  name: Dynamic Fluid
-  kind: debuff
-  duration: 18
-  icon: dynamic_fluid.png
-  behavior:
-    kind: burstSpread
-    selfShape: donut
-    selfInner: 3
-    radius: 8
-    damage: 120
-    damageType: magical
-    knockbackDistance: 6
-    followUp:
-      mode: closest
-      count: 2
-      shape: circle
-      radius: 6
-      damage: 80
-      damageType: magical
+  ref: debug_dynamic_fluid
 
 events:
   # Opening raidwide to prime HP.

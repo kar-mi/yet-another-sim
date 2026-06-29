@@ -89,14 +89,8 @@ events:
     applyEffects:
       order: shuffleBalanced
       effects:
-        - name: Plant (short)
-          kind: debuff
-          duration: 7
-          behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay: 3, duration: 20, tpDelay: 1.25 }
-        - name: Plant (long)
-          kind: debuff
-          duration: 10
-          behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay: 3, duration: 20, tpDelay: 1.25 }
+        - ref: plant_short
+        - ref: plant_long
     shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
 
   - id: graven-image
@@ -121,10 +115,7 @@ events:
     target: { roleGroups: [[dps], [tank, healer]], count: 4, mode: closest }
     hiddenDebuffName: Sleep Tether
     applyEffect:
-      name: Sleep
-      kind: debuff
-      duration: 6
-      behavior: { kind: sleep }
+      ref: sleep
     visual: { kind: statue, width: 3, height: 6, depth: 1 }
   - type: line_link
     id: confuse-statue
@@ -137,10 +128,7 @@ events:
     target: { roleGroups: [[dps], [tank, healer]], count: 4, mode: closest }
     hiddenDebuffName: Confuse Tether
     applyEffect:
-      name: Confusion
-      kind: debuff
-      duration: 6
-      behavior: { kind: confusion, damage: 50, damageType: "true", radius: 1.5 }
+      ref: confusion
     visual: { kind: statue, width: 3, height: 6, depth: 1 }
 
   # Double Trouble — one random member per group carries the debuff.
@@ -150,22 +138,14 @@ events:
     name: Double Trouble (DPS)
     groups: [[r1, r2, m1, m2]]
     applyEffect:
-      name: Double Trouble
-      kind: debuff
-      duration: 24
-      icon: double-trouble.png
-      behavior: { kind: burstSpread, radius: 5, damage: 10, damageType: magical, knockbackDistance: 14 }
+      ref: double_trouble
   - type: effect_select
     id: double-trouble-support
     time: 0
     name: Double Trouble (Support)
     groups: [[mt, ot, h1, h2]]
     applyEffect:
-      name: Double Trouble
-      kind: debuff
-      duration: 24
-      icon: double-trouble.png
-      behavior: { kind: burstSpread, radius: 5, damage: 10, damageType: magical, knockbackDistance: 14 }
+      ref: double_trouble
 
   # Sleepers burst if still asleep when this fires.
   - type: effect_burst

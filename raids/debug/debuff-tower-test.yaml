@@ -64,12 +64,6 @@ _towerBase: &towerBase
   requiredCount: 2
   failureDamage: 5
 
-# Shared invisible charge-debuff defaults (behavior comes from the resolver).
-_chargeBase: &chargeBase
-  kind: debuff
-  visibility: invisible
-  behavior: { kind: none }
-
 events:
   # Resolvers — triggered by towers via resolveEventIds.
   - type: effect_resolver
@@ -94,10 +88,7 @@ events:
     time: 1
     name: Spread Charge
     applyEffect:
-      <<: *chargeBase
-      name: Spread Charge
-      duration: 12
-      markerIcon: defam_processed.png
+      ref: spread_charge
   - <<: *towerBase
     id: spread-tower
     time: 3
@@ -113,8 +104,7 @@ events:
     time: 10
     name: Stack Charge
     applyEffect:
-      <<: *chargeBase
-      name: Stack Charge
+      ref: stack_charge
       duration: 10
       markerIcon: stack_processed.png
   - <<: *towerBase
@@ -132,8 +122,7 @@ events:
     time: 20
     name: Cone Charge
     applyEffect:
-      <<: *chargeBase
-      name: Cone Charge
+      ref: cone_charge
       duration: 10
       markerIcon: cone_processed.png
   - <<: *towerBase

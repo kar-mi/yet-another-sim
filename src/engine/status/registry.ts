@@ -1,13 +1,11 @@
 import type { EffectSpec } from "@shared/types";
+import { BUFF_REGISTRY } from "./buffs";
+import { DEBUFF_REGISTRY } from "./debuffs";
 
-export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
-  "Magic Vulnerability": {
-    name: "Magic Vulnerability",
-    kind: "debuff",
-    duration: 8,
-    behavior: { kind: "vuln", damageType: "magical", multiplier: 1.5 },
-  },
-} satisfies Record<string, EffectSpec>;
+const STATUS_REGISTRY: Record<string, EffectSpec> = {
+  ...BUFF_REGISTRY,
+  ...DEBUFF_REGISTRY,
+};
 
 type EffectRefOverrides = Partial<Omit<EffectSpec, "behavior">> & {
   behavior?: Partial<EffectSpec["behavior"]>;
@@ -16,7 +14,7 @@ type EffectRefOverrides = Partial<Omit<EffectSpec, "behavior">> & {
 export type EffectRef = EffectRefOverrides & { ref: string };
 
 export function resolveEffectRef({ ref, ...overrides }: EffectRef): EffectSpec | undefined {
-  const base = DEBUFF_REGISTRY[ref];
+  const base = STATUS_REGISTRY[ref];
   if (!base) return undefined;
   return {
     ...base,

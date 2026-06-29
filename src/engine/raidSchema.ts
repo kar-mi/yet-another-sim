@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ROSTER, RaidIdSchema } from "@shared/protocol";
 import { BOSS_REGISTRY, BOSS_REGISTRY_IDS, DEFAULT_BOSS_ID, isBossRegistryId, type BossRegistryId } from "./bossRegistry";
-import { resolveEffectRef } from "./debuffs/registry";
+import { resolveEffectRef } from "./status/registry";
 
 const Vec2Schema = z.preprocess(
   value => Array.isArray(value) && value.length === 2 ? { x: value[0], z: value[1] } : value,
@@ -241,7 +241,7 @@ const InlineApplyEffectSchema = z.object({
 });
 
 const EffectRefSchema = z.object({
-  ref: z.string().min(1),
+  ref: z.string().regex(/^[a-z][a-z0-9_]*$/, "status ref must be a snake_case id"),
   name: z.string().min(1).optional(),
   kind: z.enum(["buff", "debuff"]).optional(),
   duration: z.number().positive().optional(),
@@ -257,7 +257,7 @@ const ApplyEffectSchema = z.union([InlineApplyEffectSchema, EffectRefSchema]).tr
   if (!("ref" in effect)) return effect;
   const resolved = resolveEffectRef(effect);
   if (!resolved) {
-    ctx.addIssue({ code: "custom", path: ["ref"], message: `unknown debuff ref "${effect.ref}"` });
+    ctx.addIssue({ code: "custom", path: ["ref"], message: `unknown status ref "${effect.ref}"` });
     return z.NEVER;
   }
   const parsed = InlineApplyEffectSchema.safeParse(resolved);
