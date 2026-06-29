@@ -53,7 +53,6 @@ events:
     damage: 20
     damageType: magical
     applyEffect:
-      name: Magic Vulnerability
-      kind: debuff
+      ref: magic_vulnerability
       duration: 6
-      behavior: { kind: vuln, damageType: magical, multiplier: 1.25 }
+      behavior: { multiplier: 1.25 }

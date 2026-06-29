@@ -410,6 +410,47 @@ test("apply_effect with explicit players lands assignment on exactly those playe
   expect(withMark.map(p => p.id).sort()).toEqual(["mt", "ot"]);
 });
 
+test("applyEffect ref resolves with nested behavior overrides", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{
+      type: "apply_effect", t: 0, name: "Vuln", players: [HUMAN],
+      applyEffect: { ref: "magic_vulnerability", duration: 6, behavior: { multiplier: 1.25 } },
+    }],
+  });
+  const event = raid.events.find(e => e.type === "apply_effect")!;
+  const behavior = event.applyEffect!.behavior;
+  expect(event.applyEffect!.duration).toBe(6);
+  expect(behavior).toEqual({ kind: "vuln", damageType: "magical", multiplier: 1.25 });
+});
+
+test("applyEffect ref resolves buffs", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{
+      type: "apply_effect", t: 0, name: "Tank LB", players: [HUMAN],
+      applyEffect: { ref: "tank_limit_break" },
+    }],
+  });
+  const event = raid.events.find(e => e.type === "apply_effect")!;
+  expect(event.applyEffect).toMatchObject({
+    name: "Tank Limit Break",
+    kind: "buff",
+    duration: 10,
+    behavior: { kind: "mitigation", multiplier: 0.1 },
+  });
+});
+
+test("applyEffect ref must be a snake_case id", () => {
+  expect(() => loadRaid({
+    ...baseRaid,
+    events: [{
+      type: "apply_effect", t: 0, name: "Vuln",
+      applyEffect: { ref: "Magic Vulnerability" },
+    }],
+  })).toThrow(/snake_case/);
+});
+
 test("assignment-test demo raid loads without error", async () => {
   const text = await Bun.file(`${import.meta.dir}/../../../raids/debug/assignment-test.yaml`).text();
   const yaml = Bun.YAML.parse(text);

@@ -9,7 +9,7 @@ import type { Intent, Player, ZoneShape } from "@shared/types";
 import { add, sub, scale, normalize, length } from "@shared/math";
 import { atan2 } from "@shared/dmath";
 import { MOVE_SPEED, SPRINT_MULTIPLIER, JUMP_SPEED, GRAVITY, SPRINT_DURATION, SPRINT_COOLDOWN } from "@shared/constants";
-import { activeEffectOfKind } from "../engine/systems/helpers";
+import { hasInputDisablingEffect } from "../engine/status/behaviors";
 import { isOnFloor } from "../engine/shapes";
 
 const SNAP_THRESHOLD = 3;  // yalms: divergence past this hard-resets (teleport, forced march, respawn)
@@ -36,8 +36,7 @@ export class LocalPredictor {
     const forced =
       !authLocal.alive ||
       length(authLocal.knockbackVelocity) > 1e-6 ||
-      activeEffectOfKind(authLocal, time, "sleep") !== null ||
-      activeEffectOfKind(authLocal, time, "confusion") !== null;
+      hasInputDisablingEffect(authLocal, time);
     if (forced) {
       this.seed(authLocal);
       return authLocal;

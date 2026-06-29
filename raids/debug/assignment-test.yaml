@@ -40,11 +40,7 @@ events:
     name: First in Line
     players: [mt]
     applyEffect:
-      name: First in Line
-      kind: debuff
-      duration: 18
-      behavior: { kind: assignment, expiryDamage: 20, expiryDamageType: "true" }
-      icon: first_in_line.png
+      ref: first_in_line
 
   - type: apply_effect
     id: assign-second
@@ -52,11 +48,7 @@ events:
     name: Second in Line
     players: [ot]
     applyEffect:
-      name: Second in Line
-      kind: debuff
-      duration: 18
-      behavior: { kind: assignment, expiryDamage: 20, expiryDamageType: "true" }
-      icon: second_in_line.png
+      ref: second_in_line
 
   - type: apply_effect
     id: assign-third
@@ -64,11 +56,7 @@ events:
     name: Third in Line
     players: [h1]
     applyEffect:
-      name: Third in Line
-      kind: debuff
-      duration: 18
-      behavior: { kind: assignment, expiryDamage: 20, expiryDamageType: "true" }
-      icon: third_in_line.png
+      ref: third_in_line
 
   # Alpha / Beta — group split across all eight players.
   - type: apply_effect
@@ -77,11 +65,7 @@ events:
     name: Alpha
     players: [mt, ot, r1, r2]
     applyEffect:
-      name: Alpha
-      kind: debuff
-      duration: 20
-      behavior: { kind: assignment, expiryDamage: 20, expiryDamageType: "true" }
-      icon: alpha.png
+      ref: alpha
 
   - type: apply_effect
     id: assign-beta
@@ -89,8 +73,4 @@ events:
     name: Beta
     players: [h1, h2, m1, m2]
     applyEffect:
-      name: Beta
-      kind: debuff
-      duration: 20
-      behavior: { kind: assignment, expiryDamage: 20, expiryDamageType: "true" }
-      icon: beta.png
+      ref: beta

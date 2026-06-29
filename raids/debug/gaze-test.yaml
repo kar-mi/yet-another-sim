@@ -69,10 +69,7 @@ events:
     rng: true
     knockback: { distance: 6, height: 0 }
     applyEffect:
-      name: Magic Vulnerability
-      kind: debuff
-      duration: 8
-      behavior: { kind: vuln, damageType: magical, multiplier: 1.5 }
+      ref: magic_vulnerability
 
 waymarks:
   - { mark: A, pos: { x: 0, z: 16 } }

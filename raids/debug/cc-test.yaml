@@ -54,10 +54,8 @@ events:
     damage: 0
     damageType: magical
     applyEffect:
-      name: Sleep
-      kind: debuff
+      ref: sleep
       duration: 22
-      behavior: { kind: sleep }
     shape: { kind: circle, center: { x: 0, z: 0 }, radius: 9 }
 
   # Confuse the dps standing in the outer donut.
@@ -68,10 +66,8 @@ events:
     damage: 0
     damageType: magical
     applyEffect:
-      name: Confusion
-      kind: debuff
+      ref: confusion
       duration: 25
-      behavior: { kind: confusion, damage: 50, damageType: "true", radius: 1.5 }
     shape: { kind: donut, center: { x: 0, z: 0 }, inner: 12, outer: 25 }
 
   # Forced-march traps on the four cardinals.

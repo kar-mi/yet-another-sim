@@ -71,10 +71,7 @@ events:
     damage: 60
     damageType: magical
     applyEffect:
-      name: Magic Vulnerability Up
-      kind: debuff
-      duration: 10
-      behavior: { kind: vuln, damageType: magical, multiplier: 2 }
+      ref: magic_vulnerability_up
 
   - <<: *baitBase
     id: tank-buster-closest-tank

@@ -21,6 +21,7 @@ import type { Vec2 } from "@shared/math";
 import { sub, scale, normalize, length, dot } from "@shared/math";
 import { GRAVITY, KNOCKBACK_FRICTION, INTERCEPT_THRESHOLD } from "@shared/constants";
 import { sin, cos, acos } from "@shared/dmath";
+import { COMBAT_LIFECYCLE_REGISTRY } from "../status/combatLifecycle";
 
 export function topThreatTarget(players: Player[], threat: Record<string, number>): string | null {
   let best: string | null = null;
@@ -99,13 +100,10 @@ export function applyMechanicDamage(player: Player, damage: number, damageType: 
   let dealt = damage;
   for (const effect of player.effects) {
     if (!isEffectActiveAt(effect, time)) continue;
-    if (effect.behavior.kind === "mitigation" && (effect.behavior.damageType === undefined || effect.behavior.damageType === damageType)) {
-      dealt *= effect.behavior.multiplier;
-    }
-    if (effect.behavior.kind === "vuln" && effect.behavior.damageType === damageType) {
-      dealt *= effect.behavior.multiplier;
-      matchingVulnIds.add(effect.id);
-    }
+    const result = COMBAT_LIFECYCLE_REGISTRY[effect.behavior.kind].modifyDamage?.(effect, dealt, damageType);
+    if (!result) continue;
+    dealt = result.dealt;
+    if (result.consume) matchingVulnIds.add(effect.id);
   }
   if (matchingVulnIds.size > 0 && damage > 0) {
     player.effects = player.effects.filter(effect => !matchingVulnIds.has(effect.id));
@@ -113,10 +111,10 @@ export function applyMechanicDamage(player: Player, damage: number, damageType: 
   if (!player.invincible) {
     player.hp = Math.max(0, player.hp - dealt);
     if (player.hp <= 0) {
-      const crust = player.effects.find(e => isEffectActiveAt(e, time) && e.behavior.kind === "primordialCrust");
-      if (crust) {
+      const survivor = player.effects.find(e => isEffectActiveAt(e, time) && COMBAT_LIFECYCLE_REGISTRY[e.behavior.kind].onLethal?.(e, player) === true);
+      if (survivor) {
         player.hp = 1;
-        player.effects = player.effects.filter(e => e !== crust);
+        player.effects = player.effects.filter(e => e !== survivor);
       } else {
         player.alive = false;
       }
@@ -189,16 +187,10 @@ export function applyKnockback(player: Player, knockback: Knockback, origin: Vec
   const dir = length(away) > 0 ? normalize(away) : { x: 1, z: 0 }; // player on origin: arbitrary dir
   let { distance, height } = knockback;
 
-  const dirKb = player.effects.find(
-    e => e.behavior.kind === "directionalKnockback" && isEffectActiveAt(e, time)
-  );
-  if (dirKb) {
-    const b = dirKb.behavior as Extract<EffectBehavior, { kind: "directionalKnockback" }>;
-    const facingDir = { x: sin(player.facing), z: cos(player.facing) };
-    const isFacingAway = dot(facingDir, dir) > 0;
-    const correct = b.requiredFacing === "away" ? isFacingAway : !isFacingAway;
-    distance = correct ? b.distance : b.doubledDistance;
-    player.effects = player.effects.filter(e => e !== dirKb);
+  const modifier = player.effects.find(e => isEffectActiveAt(e, time) && COMBAT_LIFECYCLE_REGISTRY[e.behavior.kind].modifyKnockback !== undefined);
+  if (modifier) {
+    ({ distance, height } = COMBAT_LIFECYCLE_REGISTRY[modifier.behavior.kind].modifyKnockback!(modifier, player, knockback, origin, time));
+    player.effects = player.effects.filter(e => e !== modifier);
   }
   if (height > 0) {
     // Projectile arc: rise to peak `height`, travel `distance` horizontally over the flight.
@@ -213,13 +205,7 @@ export function applyKnockback(player: Player, knockback: Knockback, origin: Vec
 }
 
 export function applyEffect(player: Player, spec: EffectSpec, time: number, id: string, players: Player[], plantSlot?: number, limitCutNumber?: number): void {
-  // A confusion debuff locks onto the closest other living player at apply time.
-  let lockedTargetId: string | undefined;
-  if (spec.behavior.kind === "confusion") {
-    const target = closestOtherPlayer(player, players);
-    lockedTargetId = target?.id;
-  }
-  player.effects = [...player.effects, {
+  const effect: StatusEffect = {
     id,
     name: spec.name,
     kind: spec.kind,
@@ -231,10 +217,16 @@ export function applyEffect(player: Player, spec: EffectSpec, time: number, id: 
     marker: spec.marker,
     markerIcon: spec.markerIcon,
     markerIconScale: spec.markerIconScale,
-    lockedTargetId,
     plantSlot,
     limitCutNumber,
-  }];
+  };
+  player.effects = [
+    ...player.effects,
+    {
+      ...effect,
+      ...COMBAT_LIFECYCLE_REGISTRY[spec.behavior.kind].onApply?.(effect, player, players, spec),
+    },
+  ];
 }
 
 function shuffledEffects(specs: EffectSpec[], randInt: (n: number) => number): EffectSpec[] {
@@ -265,18 +257,6 @@ export function effectsForMechanic(mechanic: ActiveMechanic, randInt: (n: number
   const specs = mechanic.applyEffects.effects.slice();
   if (mechanic.applyEffects.order === "shuffle") return shuffledEffects(specs, randInt);
   return specs;
-}
-
-// Closest living player other than `self` (used to lock a confusion target).
-function closestOtherPlayer(self: Player, players: Player[]): Player | null {
-  let best: Player | null = null;
-  let bestDist = Infinity;
-  for (const p of players) {
-    if (p === self || p.id === self.id || !p.alive) continue;
-    const d = length(sub(p.pos, self.pos));
-    if (d < bestDist) { bestDist = d; best = p; }
-  }
-  return best;
 }
 
 // First active effect of a given behavior kind, or null.

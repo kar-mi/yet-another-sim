@@ -57,14 +57,7 @@ events:
     name: Apply Primordial Crust
     role: tank
     applyEffect:
-      name: Primordial Crust
-      kind: debuff
-      duration: 15
-      icon: primoridial_crust.png
-      behavior:
-        kind: primordialCrust
-        expiryDamage: 999999
-        expiryDamageType: "true"
+      ref: primordial_crust
 
   # 2b. Accretion on healers — cleansed by being healed to full.
   - type: apply_effect
@@ -73,13 +66,7 @@ events:
     name: Apply Accretion
     role: healer
     applyEffect:
-      name: Accretion
-      kind: debuff
-      duration: 11
-      behavior:
-        kind: accretion
-        expiryDamage: 999999
-        expiryDamageType: "true"
+      ref: accretion
 
   # 3. Full-raid heal — cleanses Accretion on the healers (hp → maxHp before expiry).
   - type: heal
