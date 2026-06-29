@@ -135,6 +135,9 @@ function applyOrderSwap(
   const [groupA, groupB] = orderSwap.groups;
   const idsA = new Set(groupA);
   const idsB = new Set(groupB);
+  const swapA = new Map(groupA.map((id, i) => [id, groupB[i]]));
+  const swapB = new Map(groupB.map((id, i) => [id, groupA[i]]));
+  const byId = new Map(events.map(e => [e.id, e]));
   const eventA = events.find(e => e.id === groupA[0] && "telegraph" in e);
   const eventB = events.find(e => e.id === groupB[0] && "telegraph" in e);
   if (!eventA || !eventB || !("telegraph" in eventA) || !("telegraph" in eventB)) {
@@ -142,8 +145,10 @@ function applyOrderSwap(
   }
 
   const result = events.map(e => {
-    if (idsA.has(e.id) && "telegraph" in e) return { ...e, t: eventB.t, telegraph: eventB.telegraph };
-    if (idsB.has(e.id) && "telegraph" in e) return { ...e, t: eventA.t, telegraph: eventA.telegraph };
+    const paired = byId.get(swapA.get(e.id) ?? swapB.get(e.id) ?? "");
+    const showCastBar = paired && "showCastBar" in paired ? { showCastBar: paired.showCastBar } : {};
+    if (idsA.has(e.id) && "telegraph" in e) return { ...e, t: eventB.t, telegraph: eventB.telegraph, ...showCastBar };
+    if (idsB.has(e.id) && "telegraph" in e) return { ...e, t: eventA.t, telegraph: eventA.telegraph, ...showCastBar };
     return e;
   });
   return { events: result as RaidDef["events"], rngState: roll.state };

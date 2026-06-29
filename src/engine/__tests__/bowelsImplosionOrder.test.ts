@@ -22,6 +22,10 @@ function pendingTiming(world: ReturnType<typeof createWorld>, id: string) {
   return { start: event.t, resolve: event.t + event.telegraph };
 }
 
+function visibleImplosionCasts(world: ReturnType<typeof createWorld>) {
+  return world.pending.filter(e => e.id.includes("implosion") && e.showCastBar);
+}
+
 test("bowels implosions roll both staggered orders and bots survive them", async () => {
   const orders = new Set<string>();
 
@@ -35,6 +39,9 @@ test("bowels implosions roll both staggered orders and bots survive them", async
     expect(latitudeFirst ? latitude.resolve : longitude.resolve).toBe(66);
     expect(latitudeFirst ? longitude.resolve : latitude.resolve).toBe(68);
     expect(latitudeFirst ? latitude.resolve : longitude.resolve).toBeLessThanOrEqual(latitudeFirst ? longitude.start : latitude.start);
+    const visibleCasts = visibleImplosionCasts(world);
+    expect(visibleCasts.map(e => e.id)).toEqual([latitudeFirst ? "latitude-implosion-left" : "longitude-implosion-front"]);
+    expect(visibleCasts[0]!.t + visibleCasts[0]!.telegraph).toBe(66);
 
     let lockedFacing: number | undefined;
     for (let i = 0; i < Math.ceil(69 * 60); i++) {
