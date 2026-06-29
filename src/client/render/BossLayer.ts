@@ -72,7 +72,7 @@ export class BossLayer {
     this.mesh.position.set(boss.pos.x, this.modelTopY, boss.pos.z);
     this.mesh.rotation.y = boss.facing;
     if (this.modelRoots) {
-      for (const root of this.modelRoots) root.setEnabled(boss.hp > 0);
+      for (const root of this.modelRoots) root.setEnabled(boss.hp > 0 && !boss.hidden);
     }
   }
 

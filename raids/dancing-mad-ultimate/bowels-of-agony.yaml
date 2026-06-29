@@ -18,6 +18,7 @@ bosses:
   - id: kefka
     pos: { x: 0, z: 18 }
     targetable: false
+    hidden: true   # not drawn until dash #1 reveals it (teleportBoss), then re-hidden after
 
 crystals:
   spawnAt: 24
@@ -29,6 +30,21 @@ optionals:
     groups:
       - [latitude-implosion-left, latitude-implosion-right]
       - [longitude-implosion-front, longitude-implosion-back]
+  # Seeded Kefka dash sweep: dash #1 starts at any card/intercard and the sequence rotates CW or CCW.
+  # The events list is the canonical N→CCW order (index = dash number); the limit cut derives its
+  # placement basis from the rolled sweep.
+  divebombSweep:
+    rng: true
+    events:
+      - kefka-divebomb-1
+      - kefka-divebomb-2
+      - kefka-divebomb-3
+      - kefka-divebomb-4
+      - kefka-divebomb-5
+      - kefka-divebomb-6
+      - kefka-divebomb-7
+      - kefka-divebomb-8
+    limitCut: bowels-limit-cut
 
 players:
   - { id: mt, role: tank,   spawn: { x: 0, z: 6 } }
@@ -258,12 +274,13 @@ events:
     showTelegraph: false
     bossId: chaos
     shape: { kind: circle, center: { x: 999, z: 999 }, radius: 0.1 }
+
   - type: aoe
     id: latitude-implosion-left
     time: 60
     name: Latitude Implosion
     telegraph: 6
-    damage: 200
+    damage: 40
     damageType: magical
     anchor: boss
     directionFrom: bossFacing
@@ -274,12 +291,13 @@ events:
     flashBeforeResolve: { lead: 0.5, color: "#6699ff" }
     bossId: chaos
     shape: { kind: cone, angleDeg: 90, length: 44 }
+    
   - type: aoe
     id: latitude-implosion-right
     time: 60
     name: Latitude Implosion
     telegraph: 6
-    damage: 200
+    damage: 40
     damageType: magical
     anchor: boss
     directionFrom: bossFacing
@@ -296,7 +314,7 @@ events:
     time: 66
     name: Longitude Implosion
     telegraph: 2
-    damage: 200
+    damage: 40
     damageType: magical
     anchor: boss
     directionFrom: bossFacing
@@ -312,7 +330,7 @@ events:
     time: 66
     name: Longitude Implosion
     telegraph: 2
-    damage: 200
+    damage: 40
     damageType: magical
     anchor: boss
     directionFrom: bossFacing
@@ -457,108 +475,118 @@ events:
     knockback: { distance: 8 }
 
   - type: divebomb
-    id: kefka-divebomb-n
+    id: kefka-divebomb-1
     time: 81
     name: Kefka Dive
     from: { x: 0, z: 20 }
     to: { x: 0, z: -20 }
-    speed: 20
-    size: 14
+    speed: 26.67
+    size: 10
     gap: 10
     color: "#7722aa"
-    damage: 5
+    damage: 0
     damageType: magical
+    visual: line
+    teleportBoss: kefka   # drag Kefka onto the (seeded) start of the first dash
 
   - type: divebomb
-    id: kefka-divebomb-nw
+    id: kefka-divebomb-2
     time: 83
     name: Kefka Dive
     from: { x: -20, z: 20 }
     to: { x: 20, z: -20 }
-    speed: 20
-    size: 14
+    speed: 26.67
+    size: 10
     gap: 10
     color: "#7722aa"
-    damage: 5
+    damage: 0
     damageType: magical
+    visual: line
+    hideBoss: kefka   # initial dash done — duck Kefka under the map for the rest of the sweep
 
   - type: divebomb
-    id: kefka-divebomb-w
+    id: kefka-divebomb-3
     time: 85
     name: Kefka Dive
     from: { x: -20, z: 0 }
     to: { x: 20, z: 0 }
-    speed: 20
-    size: 14
+    speed: 26.67
+    size: 10
     gap: 10
     color: "#7722aa"
-    damage: 5
+    damage: 0
     damageType: magical
+    visual: line
 
   - type: divebomb
-    id: kefka-divebomb-sw
+    id: kefka-divebomb-4
     time: 87
     name: Kefka Dive
     from: { x: -20, z: -20 }
     to: { x: 20, z: 20 }
-    speed: 20
-    size: 14
+    speed: 26.67
+    size: 10
     gap: 10
     color: "#7722aa"
-    damage: 5
+    damage: 0
     damageType: magical
+    visual: line
 
   - type: divebomb
-    id: kefka-divebomb-s
+    id: kefka-divebomb-5
     time: 89
     name: Kefka Dive
     from: { x: 0, z: -20 }
     to: { x: 0, z: 20 }
-    speed: 20
-    size: 14
+    speed: 26.67
+    size: 10
     gap: 10
     color: "#7722aa"
-    damage: 5
+    damage: 0
     damageType: magical
+    visual: line
 
   - type: divebomb
-    id: kefka-divebomb-se
+    id: kefka-divebomb-6
     time: 91
     name: Kefka Dive
     from: { x: 20, z: -20 }
     to: { x: -20, z: 20 }
-    speed: 20
-    size: 14
+    speed: 26.67
+    size: 10
     gap: 10
     color: "#7722aa"
-    damage: 5
+    damage: 0
     damageType: magical
+    visual: line
 
   - type: divebomb
-    id: kefka-divebomb-e
+    id: kefka-divebomb-7
     time: 93
     name: Kefka Dive
     from: { x: 20, z: 0 }
     to: { x: -20, z: 0 }
-    speed: 20
-    size: 14
+    speed: 26.67
+    size: 10
     gap: 10
     color: "#7722aa"
-    damage: 5
+    damage: 0
     damageType: magical
+    visual: line
 
   - type: divebomb
-    id: kefka-divebomb-ne
+    id: kefka-divebomb-8
     time: 95
     name: Kefka Dive
     from: { x: 20, z: 20 }
     to: { x: -20, z: -20 }
-    speed: 20
-    size: 14
+    speed: 26.67
+    size: 10
     gap: 10
     color: "#7722aa"
-    damage: 5
+    damage: 0
     damageType: magical
+    visual: line
 
   - type: group
     id: bowels-stack
@@ -577,9 +605,9 @@ events:
     id: bowels-limit-cut
     time: 91
     name: Limit Cut
-    # Mirrors the Kefka divebombs (first sweep from N, sequence rotates CCW). Relative-north is the
-    # opposite (S) and bots place clockwise. RNG-ready: roll kefkaStart/kefkaClockwise here later.
-    rotation: { kefkaStart: { x: 0, z: 20 }, kefkaClockwise: false }
+    # Placement basis (relative-north + handedness) is derived from the rolled Kefka divebomb sweep
+    # via optionals.divebombSweep — relative-north = opposite dash #1's start, handedness = opposite
+    # the sweep direction. No hardcoded rotation here; the seeded sweep fills it in.
     effect:
       name: Limit Cut
       kind: debuff
@@ -594,6 +622,6 @@ waymarks:
   - { mark: C, pos: { x: 0, z: -12 } }
   - { mark: D, pos: { x: -12, z: 0 } }
   - { mark: "1", pos: { x: 6, z: 6 } }
-  - { mark: "2", pos: { x: -6, z: 6 } }
+  - { mark: "2", pos: { x: 6, z: -6 } }
   - { mark: "3", pos: { x: -6, z: -6 } }
-  - { mark: "4", pos: { x: 6, z: -6 } }
+  - { mark: "4", pos: { x: -6, z: 6 } }

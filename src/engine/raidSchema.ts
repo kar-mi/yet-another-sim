@@ -681,6 +681,11 @@ const DivebombEventSchema = z.object({
   damageType: z.enum(["physical", "magical", "true"]).default("physical"),
   applyEffect: ApplyEffectSchema.optional(),
   hitInterval: z.number().positive().optional(),
+  teleportBoss: z.string().min(1).optional(),  // on cast start, move this boss to `from` (facing `to`) and unhide it
+  hideBoss: z.string().min(1).optional(),       // on cast start, hide this boss's model
+  // "step" (default): one sphere advancing slot-by-slot. "line": a sphere per slot that pops in
+  // sequentially from `from` to `to`, building a line (purely visual — pair with damage: 0).
+  visual: z.enum(["step", "line"]).default("step"),
 }).superRefine((ev, ctx) => {
   if (ev.from[0] === ev.to[0] && ev.from[1] === ev.to[1]) {
     ctx.addIssue({ code: "custom", path: ["to"], message: "divebomb endpoints must be distinct" });
@@ -814,6 +819,14 @@ const OptionalsSchema = z.object({
     rng: z.boolean().default(false),
     groups: z.array(z.array(EventIdSchema).min(1)).length(2),
   }).optional(),
+  // Seeded per-run rotation of a divebomb sweep around its canonical ring (see rotateDivebombSweep).
+  // `events` lists the divebomb ids in canonical sweep order (the list index is each dash's number).
+  // `limitCut` (optional) names a limit cut whose placement basis is derived from the rolled sweep.
+  divebombSweep: z.object({
+    rng: z.boolean().default(false),
+    events: z.array(EventIdSchema).min(2),
+    limitCut: EventIdSchema.optional(),
+  }).optional(),
   combinations: z.object({
     plant: z.object({
       rng: z.boolean().default(false),
@@ -863,6 +876,7 @@ const BossWithIdSchema = z.strictObject({
   model: BossModelSchema.optional(),
   aggro: z.string().min(1).optional(),
   targetable: z.boolean().default(true),
+  hidden: z.boolean().default(false),  // start with the model not drawn (a divebomb teleportBoss can reveal it)
 });
 
 type BossIdentityOverrides = {
@@ -1243,16 +1257,18 @@ export const RaidSchema = z.object({
     });
   }
 }).transform(data => {
-  const bosses = data.bosses?.map(({ id, pos, aggro, targetable, ...overrides }) => ({
+  const bosses = data.bosses?.map(({ id, pos, aggro, targetable, hidden, ...overrides }) => ({
     id,
     pos,
     targetable,
+    hidden,
     ...resolveBossIdentity(overrides, isBossRegistryId(id) ? id : DEFAULT_BOSS_ID),
     ...(aggro !== undefined ? { aggro } : {}),
   })) ?? [{
     id: "boss",
     pos: data.boss.pos,
     targetable: true,
+    hidden: false,
     ...resolveBossIdentity(data.boss, data.boss.id ?? DEFAULT_BOSS_ID),
   }];
 

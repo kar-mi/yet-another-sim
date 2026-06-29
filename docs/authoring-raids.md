@@ -959,6 +959,9 @@ path, `gap`, and `speed`. Only players inside the currently visible circle are h
 | `damageType` | no | `physical`, `magical`, or `true`; defaults to `physical`. |
 | `applyEffect` | no | Status effect applied to surviving players on each hit. |
 | `hitInterval` | no | Minimum seconds between applications per player; defaults to `gap / speed`. |
+| `teleportBoss` | no | Boss id to move onto `from` (facing `to`) and reveal when the dash starts. |
+| `hideBoss` | no | Boss id to hide (model not drawn) when the dash starts. |
+| `visual` | no | `"step"` (default): one sphere advancing slot-by-slot. `"line"`: a sphere per slot popping in sequentially from `from` to `to`, building a line — purely visual, pair with `damage: 0`. |
 
 ```yaml
 - type: divebomb
@@ -1337,7 +1340,12 @@ combinations, plus standalone **`towerRng`** and **`orderSwap`** helpers. `optio
 seeds a per-run rotation of tower-wave positions around their canonical ring. `optionals.orderSwap`
 can seed a per-run swap of cast timing between exactly two groups of event ids: when it rolls, the
 groups exchange `time`/`telegraph` while keeping their ids, names, damage, and shapes. Every event
-within a group must share the same `time` and `telegraph`. Excerpt from
+within a group must share the same `time` and `telegraph`. `optionals.divebombSweep` seeds a per-run
+rotation of a divebomb sweep around its canonical ring: `events` lists the divebomb ids in canonical
+sweep order (the index is each dash's number), and each pull picks a random start slot + spin
+direction, remapping which `from`/`to` pair each numbered dash fires. An optional `limitCut` id
+derives that limit cut's placement basis from the rolled sweep (relative-north = opposite dash #1's
+start, handedness = the sweep direction), so it stays in sync with the dashes. Excerpt from
 `raids/dancing-mad-ultimate/graven-image-3.yaml`:
 
 ```yaml

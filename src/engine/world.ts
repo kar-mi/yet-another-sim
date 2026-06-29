@@ -135,6 +135,9 @@ function applyOrderSwap(
   const [groupA, groupB] = orderSwap.groups;
   const idsA = new Set(groupA);
   const idsB = new Set(groupB);
+  const swapA = new Map(groupA.map((id, i) => [id, groupB[i]]));
+  const swapB = new Map(groupB.map((id, i) => [id, groupA[i]]));
+  const byId = new Map(events.map(e => [e.id, e]));
   const eventA = events.find(e => e.id === groupA[0] && "telegraph" in e);
   const eventB = events.find(e => e.id === groupB[0] && "telegraph" in e);
   if (!eventA || !eventB || !("telegraph" in eventA) || !("telegraph" in eventB)) {
@@ -142,11 +145,62 @@ function applyOrderSwap(
   }
 
   const result = events.map(e => {
-    if (idsA.has(e.id) && "telegraph" in e) return { ...e, t: eventB.t, telegraph: eventB.telegraph };
-    if (idsB.has(e.id) && "telegraph" in e) return { ...e, t: eventA.t, telegraph: eventA.telegraph };
+    const paired = byId.get(swapA.get(e.id) ?? swapB.get(e.id) ?? "");
+    const showCastBar = paired && "showCastBar" in paired ? { showCastBar: paired.showCastBar } : {};
+    if (idsA.has(e.id) && "telegraph" in e) return { ...e, t: eventB.t, telegraph: eventB.telegraph, ...showCastBar };
+    if (idsB.has(e.id) && "telegraph" in e) return { ...e, t: eventA.t, telegraph: eventA.telegraph, ...showCastBar };
     return e;
   });
   return { events: result as RaidDef["events"], rngState: roll.state };
+}
+
+// Seeded per-run rotation of a divebomb sweep around its canonical ring: each numbered dash (its
+// index in `divebombSweep.events`) is remapped to a different canonical from/to pair by a random
+// start offset + direction. When `limitCut` is set, that limit cut's placement basis is derived
+// from the rolled sweep (relative-north = opposite dash #1's start; handedness = sweep direction),
+// so it never drifts out of sync with the dashes. Off (identity = canonical order) unless `rng`.
+function rotateDivebombSweep(
+  events: RaidDef["events"],
+  divebombSweep: NonNullable<RaidDef["optionals"]>["divebombSweep"] | undefined,
+  rngState: number,
+): { events: RaidDef["events"]; rngState: number } {
+  if (!divebombSweep) return { events, rngState };
+
+  const order = divebombSweep.events;
+  const n = order.length;
+  const byId = new Map(events.map(e => [e.id, e]));
+  const canonicalPairs = order.map(id => {
+    const ev = byId.get(id);
+    if (!ev || ev.type !== "divebomb") throw new Error(`divebombSweep.events references non-divebomb id "${id}"`);
+    return { from: ev.from, to: ev.to };
+  });
+
+  let startOffset = 0;
+  let direction = 1;
+  let nextState = rngState;
+  if (divebombSweep.rng) {
+    const roll1 = randomInt(rngState, n);
+    startOffset = roll1.value;
+    const roll2 = randomInt(roll1.state, 2);
+    direction = roll2.value === 0 ? 1 : -1;
+    nextState = roll2.state;
+  }
+
+  const slotForDash = new Map(order.map((id, k) => [id, ((startOffset + direction * k) % n + n) % n]));
+
+  const result = events.map(e => {
+    if (e.type === "divebomb") {
+      const slot = slotForDash.get(e.id);
+      if (slot === undefined) return e;
+      const pair = canonicalPairs[slot]!;
+      return { ...e, from: pair.from, to: pair.to };
+    }
+    if (e.type === "limit_cut" && e.id === divebombSweep.limitCut) {
+      return { ...e, rotation: { kefkaStart: canonicalPairs[startOffset]!.from, kefkaClockwise: direction === -1 } };
+    }
+    return e;
+  });
+  return { events: result as RaidDef["events"], rngState: nextState };
 }
 
 type EndingCombination = NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["endings"];
@@ -279,6 +333,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
       model: bossDef.model,
       modelScale: bossDef.modelScale,
       targetable: bossDef.targetable,
+      hidden: bossDef.hidden,
     };
   });
   const boss = bosses.find(b => b.targetable !== false) ?? bosses[0]!;
@@ -291,8 +346,9 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const { crystals, rngState: afterCrystalRngState } = placeCrystals(raid.crystals, afterPairingRngState);
   const { events: rotatedEvents, rngState: afterTowerRngState } = rotateTowerWaves(raid.events, raid.optionals?.towerRng, afterCrystalRngState);
   const { endingOffsets, endingNames, rngState: afterEndingRngState } = buildEndingPlan(raid.optionals?.combinations?.endings, afterTowerRngState);
-  const { events: swappedEvents, rngState } = applyOrderSwap(rotatedEvents, raid.optionals?.orderSwap, afterEndingRngState);
-  const effectiveEvents = swappedEvents.map(e =>
+  const { events: swappedEvents, rngState: afterOrderSwapRngState } = applyOrderSwap(rotatedEvents, raid.optionals?.orderSwap, afterEndingRngState);
+  const { events: sweptEvents, rngState } = rotateDivebombSweep(swappedEvents, raid.optionals?.divebombSweep, afterOrderSwapRngState);
+  const effectiveEvents = sweptEvents.map(e =>
     endingOffsets[e.id] === undefined
       ? e
       : { ...e, directionOffset: endingOffsets[e.id], ...(endingNames[e.id] !== undefined ? { name: endingNames[e.id] } : {}) },

@@ -1,6 +1,7 @@
 import type { ActiveDivebomb, PendingDivebomb } from "@shared/types";
 import { DIVEBOMB_LINGER } from "@shared/constants";
 import { length, sub } from "@shared/math";
+import { atan2 } from "@shared/dmath";
 import { divebombLifetime, divebombPosition } from "@shared/divebomb";
 import type { TickContext } from "./context";
 import { applyEffect, applyMechanicDamage } from "./helpers";
@@ -9,13 +10,26 @@ export function resolveDivebombs(ctx: TickContext): {
   divebombs: ActiveDivebomb[];
   pendingDivebombs: PendingDivebomb[];
 } {
-  const { players, log, time } = ctx;
+  const { players, bosses, log, time } = ctx;
   const pendingDivebombs: PendingDivebomb[] = [];
   const divebombs = ctx.world.divebombs.map(db => ({ ...db, hits: { ...db.hits } }));
 
   for (const pending of ctx.world.pendingDivebombs) {
     if (pending.t <= time) {
-      const { t, ...fields } = pending;
+      const { t, teleportBoss, hideBoss, ...fields } = pending;
+      // On cast start, optionally drag a boss onto the dash origin (the seeded `from`) or hide it.
+      if (teleportBoss) {
+        const b = bosses.find(boss => boss.id === teleportBoss);
+        if (b) {
+          b.pos = { ...pending.from };
+          b.facing = atan2(pending.to.x - pending.from.x, pending.to.z - pending.from.z);
+          b.hidden = false;
+        }
+      }
+      if (hideBoss) {
+        const b = bosses.find(boss => boss.id === hideBoss);
+        if (b) b.hidden = true;
+      }
       divebombs.push({
         ...fields,
         startedAt: t,
