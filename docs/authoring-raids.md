@@ -1337,7 +1337,12 @@ combinations, plus standalone **`towerRng`** and **`orderSwap`** helpers. `optio
 seeds a per-run rotation of tower-wave positions around their canonical ring. `optionals.orderSwap`
 can seed a per-run swap of cast timing between exactly two groups of event ids: when it rolls, the
 groups exchange `time`/`telegraph` while keeping their ids, names, damage, and shapes. Every event
-within a group must share the same `time` and `telegraph`. Excerpt from
+within a group must share the same `time` and `telegraph`. `optionals.divebombSweep` seeds a per-run
+rotation of a divebomb sweep around its canonical ring: `events` lists the divebomb ids in canonical
+sweep order (the index is each dash's number), and each pull picks a random start slot + spin
+direction, remapping which `from`/`to` pair each numbered dash fires. An optional `limitCut` id
+derives that limit cut's placement basis from the rolled sweep (relative-north = opposite dash #1's
+start, handedness = the sweep direction), so it stays in sync with the dashes. Excerpt from
 `raids/dancing-mad-ultimate/graven-image-3.yaml`:
 
 ```yaml

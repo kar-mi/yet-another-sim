@@ -814,6 +814,14 @@ const OptionalsSchema = z.object({
     rng: z.boolean().default(false),
     groups: z.array(z.array(EventIdSchema).min(1)).length(2),
   }).optional(),
+  // Seeded per-run rotation of a divebomb sweep around its canonical ring (see rotateDivebombSweep).
+  // `events` lists the divebomb ids in canonical sweep order (the list index is each dash's number).
+  // `limitCut` (optional) names a limit cut whose placement basis is derived from the rolled sweep.
+  divebombSweep: z.object({
+    rng: z.boolean().default(false),
+    events: z.array(EventIdSchema).min(2),
+    limitCut: EventIdSchema.optional(),
+  }).optional(),
   combinations: z.object({
     plant: z.object({
       rng: z.boolean().default(false),

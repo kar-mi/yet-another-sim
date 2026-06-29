@@ -29,6 +29,21 @@ optionals:
     groups:
       - [latitude-implosion-left, latitude-implosion-right]
       - [longitude-implosion-front, longitude-implosion-back]
+  # Seeded Kefka dash sweep: dash #1 starts at any card/intercard and the sequence rotates CW or CCW.
+  # The events list is the canonical N→CCW order (index = dash number); the limit cut derives its
+  # placement basis from the rolled sweep.
+  divebombSweep:
+    rng: true
+    events:
+      - kefka-divebomb-1
+      - kefka-divebomb-2
+      - kefka-divebomb-3
+      - kefka-divebomb-4
+      - kefka-divebomb-5
+      - kefka-divebomb-6
+      - kefka-divebomb-7
+      - kefka-divebomb-8
+    limitCut: bowels-limit-cut
 
 players:
   - { id: mt, role: tank,   spawn: { x: 0, z: 6 } }
@@ -459,104 +474,104 @@ events:
     knockback: { distance: 8 }
 
   - type: divebomb
-    id: kefka-divebomb-n
+    id: kefka-divebomb-1
     time: 81
     name: Kefka Dive
     from: { x: 0, z: 20 }
     to: { x: 0, z: -20 }
-    speed: 20
-    size: 14
+    speed: 30
+    size: 10
     gap: 10
     color: "#7722aa"
     damage: 5
     damageType: magical
 
   - type: divebomb
-    id: kefka-divebomb-nw
+    id: kefka-divebomb-2
     time: 83
     name: Kefka Dive
     from: { x: -20, z: 20 }
     to: { x: 20, z: -20 }
-    speed: 20
-    size: 14
+    speed: 30
+    size: 10
     gap: 10
     color: "#7722aa"
     damage: 5
     damageType: magical
 
   - type: divebomb
-    id: kefka-divebomb-w
+    id: kefka-divebomb-3
     time: 85
     name: Kefka Dive
     from: { x: -20, z: 0 }
     to: { x: 20, z: 0 }
-    speed: 20
-    size: 14
+    speed: 30
+    size: 10
     gap: 10
     color: "#7722aa"
     damage: 5
     damageType: magical
 
   - type: divebomb
-    id: kefka-divebomb-sw
+    id: kefka-divebomb-4
     time: 87
     name: Kefka Dive
     from: { x: -20, z: -20 }
     to: { x: 20, z: 20 }
-    speed: 20
-    size: 14
+    speed: 30
+    size: 10
     gap: 10
     color: "#7722aa"
     damage: 5
     damageType: magical
 
   - type: divebomb
-    id: kefka-divebomb-s
+    id: kefka-divebomb-5
     time: 89
     name: Kefka Dive
     from: { x: 0, z: -20 }
     to: { x: 0, z: 20 }
-    speed: 20
-    size: 14
+    speed: 30
+    size: 10
     gap: 10
     color: "#7722aa"
     damage: 5
     damageType: magical
 
   - type: divebomb
-    id: kefka-divebomb-se
+    id: kefka-divebomb-6
     time: 91
     name: Kefka Dive
     from: { x: 20, z: -20 }
     to: { x: -20, z: 20 }
-    speed: 20
-    size: 14
+    speed: 30
+    size: 10
     gap: 10
     color: "#7722aa"
     damage: 5
     damageType: magical
 
   - type: divebomb
-    id: kefka-divebomb-e
+    id: kefka-divebomb-7
     time: 93
     name: Kefka Dive
     from: { x: 20, z: 0 }
     to: { x: -20, z: 0 }
-    speed: 20
-    size: 14
+    speed: 30
+    size: 10
     gap: 10
     color: "#7722aa"
     damage: 5
     damageType: magical
 
   - type: divebomb
-    id: kefka-divebomb-ne
+    id: kefka-divebomb-8
     time: 95
     name: Kefka Dive
     from: { x: 20, z: 20 }
     to: { x: -20, z: -20 }
-    speed: 20
-    size: 14
+    speed: 30
+    size: 10
     gap: 10
     color: "#7722aa"
     damage: 5
@@ -579,9 +594,9 @@ events:
     id: bowels-limit-cut
     time: 91
     name: Limit Cut
-    # Mirrors the Kefka divebombs (first sweep from N, sequence rotates CCW). Relative-north is the
-    # opposite (S) and bots place clockwise. RNG-ready: roll kefkaStart/kefkaClockwise here later.
-    rotation: { kefkaStart: { x: 0, z: 20 }, kefkaClockwise: false }
+    # Placement basis (relative-north + handedness) is derived from the rolled Kefka divebomb sweep
+    # via optionals.divebombSweep — relative-north = opposite dash #1's start, handedness = opposite
+    # the sweep direction. No hardcoded rotation here; the seeded sweep fills it in.
     effect:
       name: Limit Cut
       kind: debuff
