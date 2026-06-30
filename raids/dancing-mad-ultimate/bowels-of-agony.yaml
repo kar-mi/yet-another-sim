@@ -356,40 +356,6 @@ events:
     time: 70
     name: Recovery
 
-  - type: aoe
-    id: ultima-blaster-1
-    time: 76
-    name: Ultima Blaster
-    telegraph: 1.5
-    damage: 6
-    damageType: magical
-    showCastBar: true
-    showTelegraph: false
-    bossId: kefka
-    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
-  - type: aoe
-    id: ultima-blaster-2
-    time: 78
-    name: Ultima Blaster
-    telegraph: 1.5
-    damage: 6
-    damageType: magical
-    showCastBar: false
-    showTelegraph: false
-    bossId: kefka
-    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
-  - type: aoe
-    id: ultima-blaster-3
-    time: 80
-    name: Ultima Blaster
-    telegraph: 1.5
-    damage: 6
-    damageType: magical
-    showCastBar: false
-    showTelegraph: false
-    bossId: kefka
-    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
-
   - type: apply_effect
     id: tank-lb-mit
     time: 80
@@ -397,56 +363,11 @@ events:
     players: [mt, ot, h1, h2, r1, r2, m1, m2]
     applyEffect:
       ref: tank_limit_break
-  - type: aoe
-    id: ultima-blaster-4
-    time: 82
-    name: Ultima Blaster
-    telegraph: 1.5
-    damage: 6
-    damageType: magical
-    showCastBar: false
-    showTelegraph: false
-    bossId: kefka
-    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
-  - type: aoe
-    id: ultima-blaster-5
-    time: 84
-    name: Ultima Blaster
-    telegraph: 1.5
-    damage: 6
-    damageType: magical
-    showCastBar: false
-    showTelegraph: false
-    bossId: kefka
-    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
-  - type: aoe
-    id: ultima-blaster-6
-    time: 86
-    name: Ultima Blaster
-    telegraph: 1.5
-    damage: 6
-    damageType: magical
-    showCastBar: false
-    showTelegraph: false
-    bossId: kefka
-    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
 
   - type: heal
     id: recovery-before-vacuum
     time: 87
     name: Recovery
-
-  - type: aoe
-    id: ultima-blaster-7
-    time: 88
-    name: Ultima Blaster
-    telegraph: 1.5
-    damage: 6
-    damageType: magical
-    showCastBar: false
-    showTelegraph: false
-    bossId: kefka
-    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
 
   - type: aoe
     id: umbra-smash-landing
@@ -468,6 +389,7 @@ events:
     destination: { bait: furthest }
     link: umbra-smash-landing
     showCastBar: true
+    showTelegraph: false
     bossId: chaos
 
   - type: aoe
