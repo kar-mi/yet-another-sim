@@ -69,7 +69,6 @@ The simulator currently supports the base loop for FFXIV-style raid mechanics:
 ## Credits
 
 - `3d-crabz`: https://sovietshnuckums.itch.io/3d-crabz
-- "Skeith - dotHack//IMOQ Minecraft" (https://skfb.ly/6XxtB) by AzureDoomC is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/). 
 
 Status images from https://v2.xivapi.com/
 

@@ -10,7 +10,7 @@ import type { Boss } from "@shared/types";
 import { STATIC_ROOT } from "../staticBase";
 
 export const BOSS_MODEL_ROOT = `${STATIC_ROOT}/model/boss/`;
-export const BOSS_MODEL_FILE = "kefka.glb"; // default model; kept for preloadAssets
+export const BOSS_MODEL_FILE = "chaos.glb"; // default model; kept for preloadAssets
 const BOSS_MODEL_SCALE = 0.08;
 const BOSS_MODEL_RAISE = 0.2;
 const BOSS_MODEL_YAW_OFFSET = Math.PI;
