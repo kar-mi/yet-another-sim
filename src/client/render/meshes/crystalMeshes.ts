@@ -12,7 +12,7 @@ const CRYSTAL_COLORS: Record<CrystalElement, Color3> = {
   wind: new Color3(0.25, 0.9, 0.45),
   fire: new Color3(0.95, 0.2, 0.15),
   water: new Color3(0.2, 0.5, 1),
-  earth: new Color3(0.5, 0.32, 0.12),
+  earth: new Color3(1, 0.9, 0.18),
 };
 
 // Per-element shape: water = square (box), fire = triangle (3-sided pyramid with its base flat on
