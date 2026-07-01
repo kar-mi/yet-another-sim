@@ -122,11 +122,24 @@ const WaymarkSchema = z.object({
   pos: Vec2Schema,
 });
 
-const CrystalsSchema = z.object({
+const CrystalSpawnSchema = z.object({
+  kind: z.literal("single").default("single"),
+  element: z.enum(["wind", "fire", "water", "earth"]),
+  pos: Vec2Schema,
   spawnAt: z.number().nonnegative().optional(),
+});
+const CrystalRotationSchema = z.object({
+  kind: z.literal("rotatingTrio"),
   spots: z.array(Vec2Schema).length(4),
-  rng: z.boolean().default(true),
-}).optional();
+  spawnAt: z.number().nonnegative().optional(),
+});
+const CrystalEntrySchema = z.preprocess(
+  value => typeof value === "object" && value !== null && !Array.isArray(value) && !("kind" in value)
+    ? { kind: "single", ...value }
+    : value,
+  z.discriminatedUnion("kind", [CrystalSpawnSchema, CrystalRotationSchema]),
+);
+const CrystalsSchema = z.array(CrystalEntrySchema).optional();
 
 const FloorPlanSchema = z.enum(["squares", "dmu-p1", "dmu-p2"]).default("squares");
 
@@ -406,7 +419,11 @@ const TetherSourceEventSchema = z.object({
   id: EventIdSchema,
   time: z.number().nonnegative(),
   name: z.string().min(1),
-  pos: Vec2Schema,
+  pos: Vec2Schema.optional(),
+  fromBlackHoleOrb: z.object({
+    hazardId: EventIdSchema,
+    tetherIndex: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+  }).optional(),
   finalizeAfter: z.number().positive(),
   tetherKind: z.enum(["buff", "debuff"]),
   buffName: z.string().min(1),
@@ -422,6 +439,14 @@ const TetherSourceEventSchema = z.object({
     applyEffect: ApplyEffectSchema.optional(),
     pointing: Vec2Schema.optional(),
   }).optional(),
+}).superRefine((ev, ctx) => {
+  if ((ev.pos !== undefined) === (ev.fromBlackHoleOrb !== undefined)) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["pos"],
+      message: "tether_source must specify exactly one of pos or fromBlackHoleOrb",
+    });
+  }
 });
 
 const LineLinkTargetSchema = z.object({
@@ -550,6 +575,7 @@ const GroupEventSchema = z.object({
   applyEffect: ApplyEffectSchema.optional(),
   showCastBar: z.boolean().optional(),
   showMarker: z.boolean().default(true),
+  showTelegraph: z.boolean().default(true),
 });
 
 const EffectSelectEventSchema = z.object({
@@ -687,23 +713,30 @@ const ForcedMarchEventSchema = z.object({
   }
 });
 
+const BlackHoleOrbSchema = z.object({
+  pos: Vec2Schema,
+  tether: z.boolean(),
+});
+
 const HazardEventSchema = z.object({
   type: z.literal("hazard"),
   id: EventIdSchema,
   time: z.number().nonnegative(),
   name: z.string().min(1),
   spots: z.array(Vec2Schema).min(1).optional(),
-  blackHole: z.boolean().default(false),
+  blackHole: z.object({
+    combos: z.array(z.array(BlackHoleOrbSchema).min(1)).min(1),
+  }).optional(),
   radius: z.number().positive(),
   duration: z.number().positive(),
   applyEffect: ApplyEffectSchema,
 }).superRefine((ev, ctx) => {
   const hasSpots = ev.spots !== undefined && ev.spots.length > 0;
-  if ((ev.blackHole) === hasSpots) {
+  if ((ev.blackHole !== undefined) === hasSpots) {
     ctx.addIssue({
       code: "custom",
       path: ["spots"],
-      message: "hazard must specify exactly one of spots or blackHole: true",
+      message: "hazard must specify exactly one of spots or blackHole",
     });
   }
 });

@@ -21,9 +21,9 @@ bosses:
     hidden: true   # not drawn until dash #1 reveals it (teleportBoss), then re-hidden after
 
 crystals:
-  spawnAt: 24
-  spots: [{ x: -9, z: 9 }, { x: 9, z: 9 }, { x: 9, z: -9 }, { x: -9, z: -9 }]
-  rng: true
+  - kind: rotatingTrio
+    spawnAt: 24
+    spots: [{ x: -9, z: 9 }, { x: 9, z: 9 }, { x: 9, z: -9 }, { x: -9, z: -9 }]
 optionals:
   # Seeded per-run assignment of the two implosion axes across the two cast slots below. Each
   # variant carries one axis's cone offsets + cast-bar name (Latitude = E/W cones at ∓π/2,

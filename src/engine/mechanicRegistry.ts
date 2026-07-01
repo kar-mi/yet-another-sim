@@ -107,7 +107,7 @@ const tethers: MechanicModule = {
     c.pendingTethers.push({
       id: e.id,
       t: e.t,
-      pos: toVec2(e.pos),
+      pos: toVec2(e.pos!),
       finalizeAfter: e.finalizeAfter,
       tetherKind: e.tetherKind,
       buffName: e.buffName,
@@ -337,6 +337,7 @@ const groups: MechanicModule = {
       applyEffect: e.applyEffect,
       showCastBar: e.showCastBar ?? false,
       showMarker: e.showMarker,
+      showTelegraph: e.showTelegraph,
     });
   },
   resolve: ctx => resolveGroups(ctx),

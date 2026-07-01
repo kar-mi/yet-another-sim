@@ -129,7 +129,12 @@ test("burstSpread followUp originCrystal targets by crystal distance", () => {
   const raid = loadRaid({
     ...baseRaid,
     players: roster({ mt: { spawn: [0, 0] }, ot: { spawn: [1, 0] }, h1: { spawn: [10, 0] }, h2: { spawn: [14, 0] } }),
-    crystals: { rng: false, spots: [[0, 10], [10, 0], [0, -10], [-10, 0]] },
+    crystals: [
+      { kind: "single", element: "wind", pos: [0, 10] },
+      { kind: "single", element: "fire", pos: [10, 0] },
+      { kind: "single", element: "water", pos: [0, -10] },
+      { kind: "single", element: "earth", pos: [-10, 0] },
+    ],
     events: [{
       type: "apply_effect", t: 0, name: "DT", players: ["mt"],
       applyEffect: {
@@ -152,7 +157,12 @@ test("burstSpread originCrystal followUp resolves one second after the self burs
   const raid = loadRaid({
     ...baseRaid,
     players: roster({ mt: { spawn: [0, 0] }, h1: { spawn: [10, 0] } }),
-    crystals: { rng: false, spots: [[0, 10], [10, 0], [0, -10], [-10, 0]] },
+    crystals: [
+      { kind: "single", element: "wind", pos: [0, 10] },
+      { kind: "single", element: "fire", pos: [10, 0] },
+      { kind: "single", element: "water", pos: [0, -10] },
+      { kind: "single", element: "earth", pos: [-10, 0] },
+    ],
     events: [{
       type: "apply_effect", t: 0, name: "DT", players: ["mt"],
       applyEffect: {
@@ -189,7 +199,12 @@ test("burstSpread followUp originCrystal: two carriers fire one shared set of co
       mt: { spawn: [0, -9] }, ot: { spawn: [10, 0] }, h1: { spawn: [0, -8] },
       h2: { spawn: [12, 0] }, r1: { spawn: [0, 12] }, r2: { spawn: [-12, 0] },
     }),
-    crystals: { rng: false, spots: [[0, 10], [10, 0], [0, -10], [-10, 0]] },
+    crystals: [
+      { kind: "single", element: "wind", pos: [0, 10] },
+      { kind: "single", element: "fire", pos: [10, 0] },
+      { kind: "single", element: "water", pos: [0, -10] },
+      { kind: "single", element: "earth", pos: [-10, 0] },
+    ],
     events: [{
       type: "apply_effect", t: 0, name: "DT", players: ["mt", "ot"],
       applyEffect: {

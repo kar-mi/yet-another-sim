@@ -625,6 +625,7 @@ export type PendingGroupEvent = {
   applyEffect?: EffectSpec;
   showCastBar: boolean;
   showMarker: boolean;
+  showTelegraph: boolean;
 };
 
 export type PendingEffectSelect = {
@@ -699,6 +700,7 @@ export type ActiveGroupMechanic = {
   resolved: boolean;
   showCastBar: boolean;
   showMarker: boolean;
+  showTelegraph: boolean;
   outcome?: "success" | "failure"; // set at resolve, drives the post-resolve flash
 };
 

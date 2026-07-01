@@ -55,7 +55,14 @@ export class StackLayer {
         icon.position.set(player.pos.x, ICON_Y, player.pos.z);
       }
 
-      let circle = this.circles.get(group.id);
+      const existingCircle = this.circles.get(group.id);
+      if (!group.showTelegraph) {
+        existingCircle?.dispose(false, true);
+        this.circles.delete(group.id);
+        continue;
+      }
+
+      let circle = existingCircle;
       if (!circle) {
         circle = CreateDisc(`stack-circle-${group.id}`, { radius: group.radius, tessellation: 64 }, this.scene);
         circle.rotation.x = Math.PI / 2;

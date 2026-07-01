@@ -39,7 +39,19 @@ events:
     id: black-hole
     time: 1
     name: Black Hole
-    blackHole: true
+    blackHole:
+      combos:
+        - - { pos: { x: 0, z: 17 }, tether: true }
+          - { pos: { x: 17, z: 0 }, tether: true }
+          - { pos: { x: 0, z: -17 }, tether: true }
+          - { pos: { x: 5, z: 13 }, tether: false }
+          - { pos: { x: -7, z: 7 }, tether: false }
+          - { pos: { x: 7, z: 7 }, tether: false }
+          - { pos: { x: -13, z: 5 }, tether: false }
+          - { pos: { x: 13, z: -5 }, tether: false }
+          - { pos: { x: -7, z: -7 }, tether: false }
+          - { pos: { x: 6, z: -7 }, tether: false }
+          - { pos: { x: -6, z: -13 }, tether: false }
     radius: 1.4
     duration: 12
     applyEffect:
