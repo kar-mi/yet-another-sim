@@ -254,6 +254,7 @@ export type AOEShape =
 // bearing from the boss is within `width/2` of `center`. center is measured clockwise from the
 // facing direction: 0 = front, π = rear, π/2 = boss's right, -π/2 = left, π/4 = front-right, etc.
 export type PositionalArc = { center: number; width: number };
+export type BossRelativeCenter = { lateral: number; forward: number };
 
 export type ActiveMechanic = {
   id: string;
@@ -330,6 +331,7 @@ export type PendingEvent = {
   showCastBar: boolean;
   showTelegraph: boolean;
   telegraphMode: TelegraphMode;
+  bossRelativeCenter?: BossRelativeCenter;
   flashBeforeResolve?: FlashBeforeResolve;
 };
 

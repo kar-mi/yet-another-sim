@@ -304,6 +304,10 @@ const KnockbackSchema = z.object({
   origin: Vec2Schema.optional(),               // defaults to the AOE shape's center/origin
 });
 const TelegraphModeSchema = z.enum(["cast", "resolve"]);
+const BossRelativeCenterSchema = z.object({
+  lateral: z.number(),
+  forward: z.number(),
+});
 
 const AOEEventSchema = z.object({
   type: z.literal("aoe").default("aoe"),
@@ -342,6 +346,7 @@ const AOEEventSchema = z.object({
   showCastBar: z.boolean().optional(),
   showTelegraph: z.boolean().optional(),
   telegraphMode: TelegraphModeSchema.optional(),
+  bossRelativeCenter: BossRelativeCenterSchema.optional(),
   // Render-only: during the final `lead` seconds before resolve, flash the AoE footprint
   // in `color` (hex; defaults to light blue). Drawn even when showTelegraph is false.
   flashBeforeResolve: z.object({

@@ -1,5 +1,6 @@
 import type { ActiveMechanic, AOEShape, Boss, PendingEvent } from "@shared/types";
 import { sin, cos } from "@shared/dmath";
+import { normalize, scale, add } from "@shared/math";
 
 function bossForEvent(event: PendingEvent, bosses: Boss[]): Boss {
   const b = event.bossId ? bosses.find(b => b.id === event.bossId) : undefined;
@@ -35,6 +36,13 @@ export function anchorShape(
 }
 
 function resolveAnchoredShape(event: PendingEvent, boss: Boss): AOEShape {
+  if (event.bossRelativeCenter && (event.shape.kind === "circle" || event.shape.kind === "donut")) {
+    const forward = normalize({ x: -boss.pos.x, z: -boss.pos.z });
+    const relativeNorth = forward.x === 0 && forward.z === 0 ? { x: 0, z: -1 } : forward;
+    const right = { x: relativeNorth.z, z: -relativeNorth.x };
+    const center = add(scale(right, event.bossRelativeCenter.lateral), scale(relativeNorth, event.bossRelativeCenter.forward));
+    return { ...event.shape, center };
+  }
   return anchorShape(boss, event.shape, event);
 }
 

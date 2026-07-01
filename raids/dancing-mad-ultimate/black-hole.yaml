@@ -17,7 +17,6 @@ bosses:
   - id: kefka
     pos: { x: 0, z: 18 }
     targetable: false
-    hidden: true
 
 crystals:
   - kind: single
@@ -75,7 +74,7 @@ events:
     id: boss-facing-lock-chaos
     time: 0
     name: Black Hole Boss Facing
-    telegraph: 150
+    telegraph: 3
     damage: 0
     damageType: "true"
     bossId: chaos
@@ -88,7 +87,7 @@ events:
     id: boss-facing-lock-exdeath
     time: 0
     name: Black Hole Boss Facing
-    telegraph: 150
+    telegraph: 3
     damage: 0
     damageType: "true"
     bossId: exdeath
@@ -159,6 +158,7 @@ events:
     applyEffect:
       ref: primordial_crust
       duration: 180
+
   - type: apply_effect
     id: accretion-healer
     time: 9
@@ -166,6 +166,7 @@ events:
     players: [h1]
     applyEffect:
       ref: accretion
+
   - type: apply_effect
     id: accretion-dps
     time: 9
@@ -213,8 +214,10 @@ events:
     damageType: physical
     showCastBar: true
     telegraphMode: resolve
+    bossRelativeCenter: { lateral: 8, forward: -8 }
     bossId: kefka
-    shape: { kind: circle, center: { x: 8, z: 8 }, radius: 8 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 8 }
+
   - type: aoe
     id: slap-happy-1-hit-2
     time: 21
@@ -224,8 +227,10 @@ events:
     damageType: physical
     showCastBar: false
     telegraphMode: resolve
+    bossRelativeCenter: { lateral: 8, forward: 0 }
     bossId: kefka
-    shape: { kind: circle, center: { x: 8, z: 0 }, radius: 8 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 8 }
+
   - type: aoe
     id: slap-happy-1-hit-3
     time: 22
@@ -235,14 +240,15 @@ events:
     damageType: physical
     showCastBar: false
     telegraphMode: resolve
+    bossRelativeCenter: { lateral: 8, forward: 8 }
     bossId: kefka
-    shape: { kind: circle, center: { x: 8, z: -8 }, radius: 8 }
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 8 }
 
   - type: group
     id: slap-happy-1-party-stack
     time: 28
     name: Party Stack
-    groups: [[h1], [h2]]
+    groups: [[h1]]
     telegraph: 4
     radius: 5
     requiredCount: 8

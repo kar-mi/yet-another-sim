@@ -199,6 +199,7 @@ const aoe: MechanicModule = {
           showCastBar: e.showCastBar ?? false,
           showTelegraph: e.showTelegraph ?? true,
           telegraphMode: e.telegraphMode ?? "cast",
+          bossRelativeCenter: e.bossRelativeCenter,
           flashBeforeResolve: e.flashBeforeResolve,
         });
         break;
