@@ -1,0 +1,66 @@
+name: Escalating Debuff Test
+arena:
+  zones:
+    - kind: circle
+      center: { x: 0, z: 0 }
+      radius: 20
+duration: 12
+
+players:
+  - id: mt
+    role: tank
+    spawn: { x: 0, z: 8 }
+  - id: ot
+    role: tank
+    spawn: { x: 0, z: -8 }
+  - id: h1
+    role: healer
+    spawn: { x: -8, z: 0 }
+  - id: h2
+    role: healer
+    spawn: { x: 8, z: 0 }
+  - id: r1
+    role: dps
+    spawn: { x: -5.66, z: 5.66 }
+  - id: r2
+    role: dps
+    spawn: { x: 5.66, z: 5.66 }
+  - id: m1
+    role: dps
+    spawn: { x: -5.66, z: -5.66 }
+  - id: m2
+    role: dps
+    spawn: { x: 5.66, z: -5.66 }
+
+events:
+  - type: apply_effect
+    id: apply-crust
+    time: 0.5
+    name: Apply Primordial Crust
+    players: [m1]
+    applyEffect:
+      ref: primordial_crust
+
+  - type: apply_effect
+    id: laser-1
+    time: 1
+    name: Laser 1
+    players: [m1]
+    applyEffect:
+      ref: unbecoming
+
+  - type: apply_effect
+    id: laser-2
+    time: 3
+    name: Laser 2
+    players: [m1]
+    applyEffect:
+      ref: unbecoming
+
+  - type: apply_effect
+    id: laser-3
+    time: 5
+    name: Laser 3
+    players: [m1]
+    applyEffect:
+      ref: unbecoming

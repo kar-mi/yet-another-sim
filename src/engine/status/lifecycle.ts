@@ -27,6 +27,7 @@ export const STATUS_LIFECYCLE_REGISTRY: Record<EffectBehavior["kind"], StatusLif
   burstSpread: { onExpiry: burstSpreadOnExpiry },
   plant: { onExpiry: plantOnExpiry },
   directionalKnockback: {},
+  escalating: {},
   primordialCrust: { onExpiry: expiryDamageOnExpiry },
   accretion: { cleanseOnFullHp: true, onExpiry: expiryDamageOnExpiry },
   assignment: { onExpiry: expiryDamageOnExpiry },

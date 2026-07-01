@@ -20,6 +20,7 @@ export const COMBAT_LIFECYCLE_REGISTRY: Record<EffectBehavior["kind"], CombatLif
   burstSpread: {},
   plant: {},
   directionalKnockback: { modifyKnockback: directionalKnockback },
+  escalating: {},
   primordialCrust: { onLethal: primordialCrustOnLethal },
   accretion: {},
   assignment: {},

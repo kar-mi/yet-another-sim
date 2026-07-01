@@ -22,6 +22,7 @@ import { sub, scale, normalize, length, dot } from "@shared/math";
 import { GRAVITY, KNOCKBACK_FRICTION, INTERCEPT_THRESHOLD } from "@shared/constants";
 import { sin, cos, acos } from "@shared/dmath";
 import { COMBAT_LIFECYCLE_REGISTRY } from "../status/combatLifecycle";
+import { resolveEffectRef } from "../status/registry";
 
 export function topThreatTarget(players: Player[], threat: Record<string, number>): string | null {
   let best: string | null = null;
@@ -205,6 +206,26 @@ export function applyKnockback(player: Player, knockback: Knockback, origin: Vec
 }
 
 export function applyEffect(player: Player, spec: EffectSpec, time: number, id: string, players: Player[], plantSlot?: number, limitCutNumber?: number): void {
+  if (spec.behavior.kind === "escalating") {
+    const incoming = spec.behavior;
+    const existing = player.effects.find(effect =>
+      isEffectActiveAt(effect, time)
+      && effect.behavior.kind === "escalating"
+      && effect.behavior.escalationKey === incoming.escalationKey
+    );
+    if (existing?.behavior.kind === "escalating") {
+      player.effects = player.effects.filter(effect => effect !== existing);
+      if (existing.behavior.escalateDamage !== undefined) {
+        applyMechanicDamage(player, existing.behavior.escalateDamage, existing.behavior.escalateDamageType ?? "true", time);
+      }
+      if (existing.behavior.escalateTo !== undefined) {
+        const next = resolveEffectRef({ ref: existing.behavior.escalateTo });
+        if (next) applyEffect(player, next, time, id, players, plantSlot, limitCutNumber);
+      }
+      return;
+    }
+  }
+
   const effect: StatusEffect = {
     id,
     name: spec.name,

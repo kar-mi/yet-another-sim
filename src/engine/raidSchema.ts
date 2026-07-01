@@ -198,6 +198,13 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     doubledDistance: z.number().nonnegative(),
   }),
   z.object({
+    kind: z.literal("escalating"),
+    escalationKey: z.string().min(1),
+    escalateTo: z.string().regex(/^[a-z][a-z0-9_]*$/, "escalateTo must be a snake_case status ref").optional(),
+    escalateDamage: z.number().nonnegative().optional(),
+    escalateDamageType: z.enum(["physical", "magical", "true"]).default("true"),
+  }),
+  z.object({
     kind: z.literal("primordialCrust"),
     expiryDamage: z.number().nonnegative(),
     expiryDamageType: z.enum(["physical", "magical", "true"]).default("true"),
@@ -213,17 +220,22 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     expiryDamageType: z.enum(["physical", "magical", "true"]).default("true"),
   }),
 ]).superRefine((b, ctx) => {
-  if (b.kind !== "burstSpread") return;
-  if (b.selfShape === "donut" && b.selfInner === undefined) {
+  if (b.kind === "escalating") {
+    if (b.escalateTo === undefined && b.escalateDamage === undefined) {
+      ctx.addIssue({ code: "custom", message: "escalating requires escalateTo or escalateDamage" });
+    }
+    return;
+  }
+  if (b.kind === "burstSpread" && b.selfShape === "donut" && b.selfInner === undefined) {
     ctx.addIssue({ code: "custom", path: ["selfInner"], message: "selfInner is required when selfShape is \"donut\"" });
   }
-  if (b.selfShape === "donut" && b.selfInner !== undefined && b.selfInner >= b.radius) {
+  if (b.kind === "burstSpread" && b.selfShape === "donut" && b.selfInner !== undefined && b.selfInner >= b.radius) {
     ctx.addIssue({ code: "custom", path: ["selfInner"], message: "selfInner must be less than radius" });
   }
-  if (b.followUp?.shape === "donut" && b.followUp.inner === undefined) {
+  if (b.kind === "burstSpread" && b.followUp?.shape === "donut" && b.followUp.inner === undefined) {
     ctx.addIssue({ code: "custom", path: ["followUp", "inner"], message: "followUp.inner is required when followUp.shape is \"donut\"" });
   }
-  if (b.followUp?.shape === "donut" && b.followUp.inner !== undefined && b.followUp.inner >= b.followUp.radius) {
+  if (b.kind === "burstSpread" && b.followUp?.shape === "donut" && b.followUp.inner !== undefined && b.followUp.inner >= b.followUp.radius) {
     ctx.addIssue({ code: "custom", path: ["followUp", "inner"], message: "followUp.inner must be less than followUp.radius" });
   }
 });
