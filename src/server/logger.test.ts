@@ -8,6 +8,10 @@ const SESSION_LOG_DIR = join(import.meta.dir, "..", "..", "logs", "sessions");
 afterEach(() => {
   const file = join(SESSION_LOG_DIR, "logger-batch-test.jsonl");
   if (existsSync(file)) rmSync(file);
+  for (const name of ["logger-existing-pull-pull-1.jsonl", "logger-existing-pull-pull-2.jsonl"]) {
+    const pullFile = join(SESSION_LOG_DIR, name);
+    if (existsSync(pullFile)) rmSync(pullFile);
+  }
 });
 
 test("session replay log batches adjacent frame writes", async () => {
@@ -25,4 +29,15 @@ test("session replay log batches adjacent frame writes", async () => {
       { intents: {}, botsInvincible: false },
     ],
   });
+});
+
+test("session replay log does not overwrite an existing pull file", async () => {
+  await Bun.write(join(SESSION_LOG_DIR, "logger-existing-pull-pull-1.jsonl"), "existing\n");
+
+  const log = createSessionLog("logger-existing-pull-pull-1");
+  log.frame(0, [{ intents: {}, botsInvincible: false }]);
+  log.close();
+
+  expect(await Bun.file(join(SESSION_LOG_DIR, "logger-existing-pull-pull-1.jsonl")).text()).toBe("existing\n");
+  expect(await Bun.file(join(SESSION_LOG_DIR, "logger-existing-pull-pull-2.jsonl")).exists()).toBe(true);
 });
