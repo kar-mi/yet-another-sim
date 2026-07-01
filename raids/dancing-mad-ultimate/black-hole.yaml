@@ -69,6 +69,33 @@ _blackHoleCombos: &blackHoleCombos
     - { pos: { x: 0, z: -9 }, tether: false }
     - { pos: { x: -5, z: -13 }, tether: false }
 
+_slapHappyCircle: &slapHappyCircle
+  type: aoe
+  name: Slap Happy
+  telegraph: 4
+  damage: 20
+  damageType: physical
+  telegraphMode: resolve
+  bossId: kefka
+  shape: { kind: circle, center: { x: 0, z: 0 }, radius: 8 }
+
+_blackHoleLaserBeam: &blackHoleLaserBeam
+  width: 4
+  length: 40
+  damage: 10
+  damageType: "true"
+  applyEffect:
+    ref: unbecoming
+
+_blackHoleLaser: &blackHoleLaser
+  type: tether_source
+  name: Black Hole Laser
+  tetherKind: debuff
+  buffName: Unbecoming
+  applyTetherEffect: false
+  showSource: false
+  beam: *blackHoleLaserBeam
+
 events:
   - type: aoe
     id: boss-facing-lock-chaos
@@ -205,44 +232,23 @@ events:
     time: 18
     name: Earthquake Recovery
 
-  - type: aoe
+  - <<: *slapHappyCircle
     id: slap-happy-1-hit-1
     time: 20
-    name: Slap Happy
-    telegraph: 4
-    damage: 20
-    damageType: physical
     showCastBar: true
-    telegraphMode: resolve
     bossRelativeCenter: { lateral: 8, forward: -8 }
-    bossId: kefka
-    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 8 }
 
-  - type: aoe
+  - <<: *slapHappyCircle
     id: slap-happy-1-hit-2
     time: 21
-    name: Slap Happy
-    telegraph: 4
-    damage: 20
-    damageType: physical
     showCastBar: false
-    telegraphMode: resolve
     bossRelativeCenter: { lateral: 8, forward: 0 }
-    bossId: kefka
-    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 8 }
 
-  - type: aoe
+  - <<: *slapHappyCircle
     id: slap-happy-1-hit-3
     time: 22
-    name: Slap Happy
-    telegraph: 4
-    damage: 20
-    damageType: physical
     showCastBar: false
-    telegraphMode: resolve
     bossRelativeCenter: { lateral: 8, forward: 8 }
-    bossId: kefka
-    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 8 }
 
   - type: group
     id: slap-happy-1-party-stack
@@ -282,59 +288,23 @@ events:
     duration: 14
     applyEffect: *blackHole
 
-  - type: tether_source
+  - <<: *blackHoleLaser
     id: black-hole-1-laser-1
     time: 29
-    name: Black Hole Laser
     fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 0 }
     finalizeAfter: 7
-    tetherKind: debuff
-    buffName: Unbecoming
-    applyTetherEffect: false
-    showSource: false
-    beam:
-      width: 2
-      length: 40
-      damage: 10
-      damageType: "true"
-      applyEffect:
-        ref: unbecoming
 
-  - type: tether_source
+  - <<: *blackHoleLaser
     id: black-hole-1-laser-2
     time: 36
-    name: Black Hole Laser
     fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 1 }
     finalizeAfter: 7
-    tetherKind: debuff
-    buffName: Unbecoming
-    applyTetherEffect: false
-    showSource: false
-    beam:
-      width: 2
-      length: 40
-      damage: 10
-      damageType: "true"
-      applyEffect:
-        ref: unbecoming
 
-  - type: tether_source
+  - <<: *blackHoleLaser
     id: black-hole-1-laser-3
     time: 36
-    name: Black Hole Laser
     fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 2 }
     finalizeAfter: 7
-    tetherKind: debuff
-    buffName: Unbecoming
-    applyTetherEffect: false
-    showSource: false
-    beam:
-      width: 2
-      length: 40
-      damage: 10
-      damageType: "true"
-      applyEffect:
-        ref: unbecoming
 
 waymarks:
   - { mark: A, pos: { x: 0, z: 12 } }
