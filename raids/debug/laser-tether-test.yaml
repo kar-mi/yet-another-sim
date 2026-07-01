@@ -1,0 +1,93 @@
+name: Laser Tether Test
+arena:
+  zones:
+    - kind: circle
+      center: { x: 0, z: 0 }
+      radius: 20
+duration: 12
+
+players:
+  - id: mt
+    role: tank
+    spawn: { x: 0, z: -10 }
+  - id: ot
+    role: tank
+    spawn: { x: 8, z: -8 }
+  - id: h1
+    role: healer
+    spawn: { x: 0, z: 2 }
+  - id: h2
+    role: healer
+    spawn: { x: 8, z: 2 }
+  - id: r1
+    role: dps
+    spawn: { x: -7, z: 6 }
+  - id: r2
+    role: dps
+    spawn: { x: 7, z: 6 }
+  - id: m1
+    role: dps
+    spawn: { x: 0, z: 0 }
+  - id: m2
+    role: dps
+    spawn: { x: 5, z: -5 }
+
+events:
+  - type: apply_effect
+    id: apply-crust
+    time: 0.5
+    name: Apply Primordial Crust
+    players: [m1]
+    applyEffect:
+      ref: primordial_crust
+
+  - type: tether_source
+    id: north-laser-1
+    time: 1
+    name: Black Hole Laser 1
+    pos: { x: 0, z: -18 }
+    finalizeAfter: 0.5
+    tetherKind: debuff
+    buffName: Laser Marker
+    applyTetherEffect: false
+    beam:
+      width: 2
+      length: 40
+      damage: 10
+      pointing: { x: 0, z: 1 }
+      applyEffect:
+        ref: unbecoming
+
+  - type: tether_source
+    id: north-laser-2
+    time: 3
+    name: Black Hole Laser 2
+    pos: { x: 0, z: -18 }
+    finalizeAfter: 0.5
+    tetherKind: debuff
+    buffName: Laser Marker
+    applyTetherEffect: false
+    beam:
+      width: 2
+      length: 40
+      damage: 10
+      pointing: { x: 0, z: 1 }
+      applyEffect:
+        ref: unbecoming
+
+  - type: tether_source
+    id: north-laser-3
+    time: 5
+    name: Black Hole Laser 3
+    pos: { x: 0, z: -18 }
+    finalizeAfter: 0.5
+    tetherKind: debuff
+    buffName: Laser Marker
+    applyTetherEffect: false
+    beam:
+      width: 2
+      length: 40
+      damage: 10
+      pointing: { x: 0, z: 1 }
+      applyEffect:
+        ref: unbecoming
