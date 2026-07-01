@@ -24,6 +24,8 @@ const LOBBY_SLOT_ORDER = ["mt", "ot", "h1", "h2", "m1", "m2", "r1", "r2"] as con
 type LobbyMessage = Extract<ServerMessage, { type: "lobby" }>;
 type ReplaySummary = { pull: number; raidId: string; ticks: number };
 type ReplayData = { raidId: string; world: World; frames: Frame[] };
+const replayCache = new Map<string, ReplayData>();
+const REPLAY_CACHE_MAX = 5;
 
 function normalizeRaidEntry(value: unknown): RaidEntry | null {
   if (!value || typeof value !== "object") return null;
@@ -91,9 +93,16 @@ async function loadReplayList(sessionId: string): Promise<ReplaySummary[]> {
 }
 
 async function loadReplay(sessionId: string, pull: number): Promise<ReplayData> {
+  const key = `${sessionId}:${pull}`;
+  const cached = replayCache.get(key);
+  if (cached) return cached;
+
   const res = await fetch(`/api/replays/${encodeURIComponent(sessionId)}/${pull}`);
   if (!res.ok) throw new Error(`Failed to load replay: ${res.status}`);
-  return await res.json() as ReplayData;
+  const replay = await res.json() as ReplayData;
+  replayCache.set(key, replay);
+  if (replayCache.size > REPLAY_CACHE_MAX) replayCache.delete(replayCache.keys().next().value!);
+  return replay;
 }
 
 export function showLanding(options?: { notice?: string }): Promise<string> {
