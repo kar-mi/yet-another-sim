@@ -270,7 +270,7 @@ events:
     bossId: chaos
     anchor: boss
     aimAtPlayer: h1
-    shape: { kind: cone, angleDeg: 70, length: 30 }
+    shape: { kind: cone, angleDeg: 50, length: 30 }
 
   - type: hazard
     id: black-hole-1
