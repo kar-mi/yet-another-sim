@@ -8,7 +8,7 @@ test("crystals default to empty when omitted", () => {
   expect(createWorld(loadRaid(baseRaid)).crystals).toEqual([]);
 });
 
-test("crystals block parses and deterministic mode uses the first three spots", () => {
+test("crystals block parses and deterministic mode uses all four spots", () => {
   const world = createWorld(loadRaid({
     ...baseRaid,
     crystals: { spawnAt: 24, spots, rng: false },
@@ -18,6 +18,7 @@ test("crystals block parses and deterministic mode uses the first three spots", 
     { id: "crystal-wind", element: "wind", pos: { x: -14, z: 14 }, spawnAt: 24 },
     { id: "crystal-fire", element: "fire", pos: { x: 14, z: 14 }, spawnAt: 24 },
     { id: "crystal-water", element: "water", pos: { x: 14, z: -14 }, spawnAt: 24 },
+    { id: "crystal-earth", element: "earth", pos: { x: -14, z: -14 }, spawnAt: 24 },
   ]);
 });
 
