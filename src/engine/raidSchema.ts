@@ -413,6 +413,7 @@ const TetherSourceEventSchema = z.object({
   behavior: EffectBehaviorSchema.default({ kind: "none" }),
   effectDuration: z.number().positive().default(15),
   icon: z.string().min(1).optional(),   // HUD icon filename for the tether buff, served from /static/debuffs/
+  applyTetherEffect: z.boolean().default(true),
   beam: z.object({
     width: z.number().positive(),
     length: z.number().positive(),

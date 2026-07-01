@@ -49,6 +49,7 @@ events:
     finalizeAfter: 0.5
     tetherKind: debuff
     buffName: Laser Marker
+    applyTetherEffect: false
     beam:
       width: 2
       length: 40
@@ -65,6 +66,7 @@ events:
     finalizeAfter: 0.5
     tetherKind: debuff
     buffName: Laser Marker
+    applyTetherEffect: false
     beam:
       width: 2
       length: 40
@@ -81,6 +83,7 @@ events:
     finalizeAfter: 0.5
     tetherKind: debuff
     buffName: Laser Marker
+    applyTetherEffect: false
     beam:
       width: 2
       length: 40

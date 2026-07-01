@@ -16,6 +16,7 @@ test("laser tether beam hits players inside the rect and misses players outside"
     finalizeAfter: 0.1,
     tetherKind: "debuff",
     buffName: "Laser Marker",
+    applyTetherEffect: false,
     beam: { width: 2, length: 40, damage: 10, applyEffect: { ref: "unbecoming" } },
   }], roster({
     mt: { spawn: [0, -10] },
@@ -29,6 +30,7 @@ test("laser tether beam hits players inside the rect and misses players outside"
   expect(byId(world, "mt").effects.some(e => e.name === "Unbecoming")).toBe(true);
   expect(byId(world, "h1").effects.some(e => e.name === "Unbecoming")).toBe(true);
   expect(byId(world, "m1").effects.some(e => e.name === "Unbecoming")).toBe(false);
+  expect(byId(world, "mt").effects.some(e => e.name === "Laser Marker")).toBe(false);
 });
 
 test("third laser on a Primordial Crust carrier leaves them at 1 HP and cleansed", () => {
@@ -43,6 +45,7 @@ test("third laser on a Primordial Crust carrier leaves them at 1 HP and cleansed
       finalizeAfter: 0.05,
       tetherKind: "debuff",
       buffName: "Laser Marker",
+      applyTetherEffect: false,
       beam: { width: 2, length: 40, damage: 10, pointing: [0, 1], applyEffect: { ref: "unbecoming" } },
     })),
   ], roster({ mt: { spawn: [0, -10] }, m1: { spawn: [0, 0] } }));

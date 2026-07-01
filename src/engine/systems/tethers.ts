@@ -30,6 +30,7 @@ export function resolveTethers(ctx: TickContext): {
         behavior: pt.behavior,
         effectDuration: pt.effectDuration,
         icon: pt.icon,
+        applyTetherEffect: pt.applyTetherEffect,
         beam: pt.beam,
         tetheredPlayerId: nearest?.id ?? null,
         finalized: false,
@@ -61,7 +62,7 @@ export function resolveTethers(ctx: TickContext): {
     if (time >= ts.finalizeAt) {
       ts.finalized = true;
       const target = players.find(p => p.id === ts.tetheredPlayerId);
-      if (target) {
+      if (target && ts.applyTetherEffect) {
         applyEffect(target, {
           name: ts.buffName,
           kind: ts.tetherKind,
