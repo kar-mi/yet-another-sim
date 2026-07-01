@@ -109,8 +109,8 @@ solvers:
       endAt: 53
       frame: [{ crystal: wind }]
       spots:
-        r1: { r: 0, z: -14 }
-        r2: { r: 0, z: -14 }
+        r1: { r: 0, z: 14 }
+        r2: { r: 0, z: 14 }
 
     # Post-tankbuster: preposition for Chaos's outward-facing implosions and drag Exdeath to Wind.
     - when: { static: true }
