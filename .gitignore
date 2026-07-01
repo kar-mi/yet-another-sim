@@ -20,3 +20,5 @@ logs/
 monitoring/
 scripts/*
 !scripts/generate-static-raids.ts
+
+deploy.sh
