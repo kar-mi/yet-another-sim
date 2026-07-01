@@ -115,6 +115,7 @@ const tethers: MechanicModule = {
       effectDuration: e.effectDuration,
       icon: e.icon,
       applyTetherEffect: e.applyTetherEffect,
+      showSource: e.showSource,
       beam: e.beam && { ...e.beam, pointing: e.beam.pointing && toVec2(e.beam.pointing) },
     });
   },

@@ -725,6 +725,7 @@ export type TetherSource = {
   effectDuration: number;
   icon?: string;
   applyTetherEffect: boolean;
+  showSource: boolean;
   beam?: TetherBeam;
   tetheredPlayerId: string | null;
   finalized: boolean;
@@ -750,6 +751,7 @@ export type PendingTether = {
   effectDuration: number;
   icon?: string;
   applyTetherEffect: boolean;
+  showSource: boolean;
   beam?: TetherBeam;
 };
 

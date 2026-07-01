@@ -278,7 +278,7 @@ events:
     name: Black Hole
     blackHole:
       combos: *blackHoleCombos
-    radius: 1.4
+    radius: 1.68
     duration: 14
     applyEffect: *blackHole
 
@@ -291,6 +291,7 @@ events:
     tetherKind: debuff
     buffName: Unbecoming
     applyTetherEffect: false
+    showSource: false
     beam:
       width: 2
       length: 40
@@ -308,6 +309,7 @@ events:
     tetherKind: debuff
     buffName: Unbecoming
     applyTetherEffect: false
+    showSource: false
     beam:
       width: 2
       length: 40
@@ -325,6 +327,7 @@ events:
     tetherKind: debuff
     buffName: Unbecoming
     applyTetherEffect: false
+    showSource: false
     beam:
       width: 2
       length: 40
