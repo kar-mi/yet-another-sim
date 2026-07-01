@@ -3,7 +3,7 @@ import { tick } from "../sim";
 import { createWorld } from "../world";
 import { DPS_HP, HEALER_HP, TANK_HP } from "./constants";
 import type { Intents } from "@shared/types";
-import { HUMAN, baseRaid, byId, effect, human, loadRaid, roster, runTicks, withEffect } from "./helpers";
+import { HUMAN, baseRaid, byId, effect, human, loadRaid, noMove, roster, runTicks, withEffect } from "./helpers";
 import type { Vec } from "./helpers";
 
 test("toggleInvincibility intent flips the flag", () => {
@@ -490,6 +490,18 @@ test("applyEffect ref resolves with nested behavior overrides", () => {
   const behavior = event.applyEffect!.behavior;
   expect(event.applyEffect!.duration).toBe(6);
   expect(behavior).toEqual({ kind: "vuln", damageType: "magical", multiplier: 1.25 });
+});
+
+test("applyEffect can hide its HUD timer", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{
+      type: "apply_effect", t: 0, name: "No Timer", players: [HUMAN],
+      applyEffect: { name: "No Timer", kind: "debuff", duration: 5, showTimer: false, behavior: { kind: "none" } },
+    }],
+  });
+  const world = runTicks(createWorld(raid), noMove, 1);
+  expect(human(world).effects[0]?.showTimer).toBe(false);
 });
 
 test("applyEffect ref resolves buffs", () => {

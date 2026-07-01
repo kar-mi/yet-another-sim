@@ -259,6 +259,7 @@ const InlineApplyEffectSchema = z.object({
   duration: z.number().positive(),
   behavior: EffectBehaviorSchema,
   visibility: z.enum(["visible", "invisible"]).optional(),
+  showTimer: z.boolean().optional(),
   icon: z.string().min(1).optional(),   // HUD icon filename, served from /static/debuffs/
   marker: z.string().min(1).max(8).optional(), // short above-head marker shown while active
   markerIcon: z.string().min(1).optional(), // above-head marker image filename, served from /static/head_markers/
@@ -272,6 +273,7 @@ const EffectRefSchema = z.object({
   duration: z.number().positive().optional(),
   behavior: z.record(z.string(), z.unknown()).optional(),
   visibility: z.enum(["visible", "invisible"]).optional(),
+  showTimer: z.boolean().optional(),
   icon: z.string().min(1).optional(),
   marker: z.string().min(1).max(8).optional(),
   markerIcon: z.string().min(1).optional(),

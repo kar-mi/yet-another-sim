@@ -298,7 +298,8 @@ events:
     players: [mt, ot, h1, h2, r1, r2, m1, m2]
     applyEffect:
       ref: primordial_crust
-      duration: 180
+      duration: 200
+      showTimer: false
 
   - type: apply_effect
     id: accretion-healer
@@ -522,6 +523,70 @@ events:
   - <<: *roleConeM1
     id: slap-happy-2-role-cone-m1
     time: 67
+
+  - type: hazard
+    id: black-hole-2
+    time: 68
+    name: Black Hole
+    blackHole:
+      combos: *blackHoleCombos
+    radius: 1.68
+    duration: 17
+    applyEffect: *blackHole
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-1
+    time: 68
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 0 }
+    finalizeAfter: 7
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-2
+    time: 68
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 1 }
+    finalizeAfter: 7
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-3
+    time: 68
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 2 }
+    finalizeAfter: 7
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-4
+    time: 75
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 0 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-5
+    time: 75
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 1 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-6
+    time: 75
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 2 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-7
+    time: 80
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 0 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-8
+    time: 80
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 1 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-9
+    time: 80
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 2 }
+    finalizeAfter: 5
 
 waymarks:
   - { mark: A, pos: { x: 0, z: 12 } }

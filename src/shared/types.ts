@@ -136,6 +136,7 @@ export type EffectSpec = {
   duration: number;
   behavior: EffectBehavior;
   visibility?: "visible" | "invisible";
+  showTimer?: boolean;
   // Optional HUD icon: a bare filename served from /static/debuffs/. Falls back to a behavior glyph.
   icon?: string;
   // Optional short marker rendered above the player while the effect is active.
@@ -158,6 +159,7 @@ export type StatusEffect = {
   duration: number;
   behavior: EffectBehavior;
   visibility?: "visible" | "invisible";
+  showTimer?: boolean;
   // Optional HUD icon: a bare filename served from /static/effects/. Falls back to a behavior glyph.
   icon?: string;
   // Optional short marker rendered above the player while the effect is active.
