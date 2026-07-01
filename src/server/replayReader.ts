@@ -2,6 +2,7 @@ import { readdir } from "node:fs/promises";
 import { join } from "path";
 import { RaidIdSchema, SessionIdSchema, type Frame } from "@shared/protocol";
 import type { World } from "@shared/types";
+import { sanitizeSessionId } from "./logger";
 
 const SESSION_LOG_DIR = join(import.meta.dir, "..", "..", "logs", "sessions");
 
@@ -10,7 +11,7 @@ export type ReplayData = { raidId: string; world: World; frames: Frame[] };
 
 function safeSessionId(sessionId: string): string | null {
   const parsed = SessionIdSchema.safeParse(sessionId);
-  return parsed.success ? parsed.data.replace(/[^a-zA-Z0-9_-]/g, "_") : null;
+  return parsed.success ? sanitizeSessionId(parsed.data) : null;
 }
 
 function isFrame(value: unknown): value is Frame {

@@ -70,9 +70,13 @@ logger.configure({
 // the input frames it relays ARE the pull. Each pull opens with a header line carrying the
 // tick-0 world (seed included) + raid id; replaying the subsequent frame lines against that world
 // reproduces the entire pull deterministically.
+export function sanitizeSessionId(sessionId: string): string {
+  return sessionId.replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
 export function createSessionLog(sessionId: string): SessionLog {
   mkdirSync(SESSION_LOG_DIR, { recursive: true });
-  let safeId = sessionId.replace(/[^a-zA-Z0-9_-]/g, "_");
+  let safeId = sanitizeSessionId(sessionId);
   const pullMatch = safeId.match(/^(.*-pull-)(\d+)$/);
   if (pullMatch) {
     let pull = Number(pullMatch[2]);
