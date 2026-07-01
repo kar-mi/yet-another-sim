@@ -1,11 +1,10 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
-import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
+import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveHazard } from "@shared/types";
 
-const Y = 0.025;
 const HAZARD_COLOR = new Color3(0.05, 0.02, 0.08);
 
 export type HazardMeshes = {
@@ -18,16 +17,14 @@ export function createHazardMeshes(scene: Scene, hazard: ActiveHazard): HazardMe
   mat.diffuseColor = HAZARD_COLOR;
   mat.emissiveColor = new Color3(0.4, 0.1, 0.8);
   mat.specularColor = new Color3(0, 0, 0);
-  mat.backFaceCulling = false;
-  mat.alpha = 0.4;
+  mat.alpha = 0.85;
 
   const all = hazard.spots.map((spot, i) => {
-    const disc = CreateDisc(`hazard-${hazard.id}-${i}`, { radius: hazard.radius, tessellation: 64 }, scene);
-    disc.rotation.x = Math.PI / 2;
-    disc.position.set(spot.x, Y, spot.z);
-    disc.isPickable = false;
-    disc.material = mat;
-    return disc;
+    const sphere = CreateSphere(`hazard-${hazard.id}-${i}`, { diameter: hazard.radius * 2, segments: 32 }, scene);
+    sphere.position.set(spot.x, hazard.radius, spot.z);
+    sphere.isPickable = false;
+    sphere.material = mat;
+    return sphere;
   });
 
   return { all, mat };
@@ -35,5 +32,5 @@ export function createHazardMeshes(scene: Scene, hazard: ActiveHazard): HazardMe
 
 export function updateHazardMeshes(handle: HazardMeshes, hazard: ActiveHazard, time: number): void {
   const remaining = Math.max(0, hazard.expireAt - time);
-  handle.mat.alpha = Math.min(0.45, 0.2 + remaining * 0.08);
+  handle.mat.alpha = Math.min(0.9, 0.35 + remaining * 0.08);
 }
