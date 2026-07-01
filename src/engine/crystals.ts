@@ -6,7 +6,7 @@ import type { RaidDef } from "./raidSchema";
 
 type CrystalConfig = NonNullable<RaidDef["crystals"]>;
 
-const ELEMENTS: CrystalElement[] = ["wind", "fire", "water"];
+const ELEMENTS: CrystalElement[] = ["wind", "fire", "water", "earth"];
 
 function crystal(element: CrystalElement, pos: Vec2, spawnAt: number): Crystal {
   return { id: `crystal-${element}`, element, pos, spawnAt };

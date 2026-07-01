@@ -18,7 +18,7 @@ export type Arena = { zones: ZoneShape[]; floorPlan: FloorPlan };
 export type WaymarkId = "A" | "B" | "C" | "D" | "1" | "2" | "3" | "4";
 export type Waymark = { mark: WaymarkId; pos: Vec2 };
 
-export type CrystalElement = "wind" | "fire" | "water";
+export type CrystalElement = "wind" | "fire" | "water" | "earth";
 export type Crystal = { id: string; element: CrystalElement; pos: Vec2; spawnAt: number };
 
 export type Waypoint = { t: number; pos: Vec2 };

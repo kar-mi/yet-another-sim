@@ -24,7 +24,7 @@ const SolverSpotSchema = z.union([AbsoluteSpotSchema, RelativeSpotSchema, PolarS
 // a resolved elemental crystal, or a boss (its facing direction or position).
 const FrameRefSchema = z.union([
   EventIdSchema,
-  z.object({ crystal: z.enum(["wind", "fire", "water"]) }),
+  z.object({ crystal: z.enum(["wind", "fire", "water", "earth"]) }),
   z.object({ boss: z.object({
     id: z.string().min(1).optional(),
     from: z.enum(["facing", "position"]),
@@ -168,7 +168,7 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     followUp: z.object({
       mode: z.enum(["closest", "furthest"]).default("closest"),
       count: z.number().int().positive().default(2),
-      originCrystal: z.enum(["wind", "fire", "water"]).optional(),
+      originCrystal: z.enum(["wind", "fire", "water", "earth"]).optional(),
       shape: z.enum(["circle", "donut"]).default("circle"),
       radius: z.number().positive(),
       inner: z.number().positive().optional(),

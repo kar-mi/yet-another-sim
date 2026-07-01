@@ -12,10 +12,11 @@ const CRYSTAL_COLORS: Record<CrystalElement, Color3> = {
   wind: new Color3(0.25, 0.9, 0.45),
   fire: new Color3(0.95, 0.2, 0.15),
   water: new Color3(0.2, 0.5, 1),
+  earth: new Color3(0.5, 0.32, 0.12),
 };
 
 // Per-element shape: water = square (box), fire = triangle (3-sided pyramid with its base flat on
-// the floor plane), wind = diamond (octahedron).
+// the floor plane), wind = diamond (octahedron), earth = rock (dodecahedron).
 function createShape(scene: Scene, crystal: Crystal): Mesh {
   const name = `crystal-${crystal.element}`;
   switch (crystal.element) {
@@ -25,6 +26,8 @@ function createShape(scene: Scene, crystal: Crystal): Mesh {
       return CreateCylinder(name, { height: 1.8, diameterTop: 0, diameterBottom: 2, tessellation: 3 }, scene);
     case "wind":
       return CreatePolyhedron(name, { type: 1, size: 1.1 }, scene);
+    case "earth":
+      return CreatePolyhedron(name, { type: 2, size: 1.25 }, scene);
   }
 }
 
