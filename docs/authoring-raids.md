@@ -72,7 +72,6 @@ when it matches a registry id; unknown slugs fall back to `kefka`.
 | `kefka`     | Kefka   | `30` |
 | `chaos`     | Chaos   | `20` |
 | `exdeath`   | Exdeath | `20` |
-| `skeith`    | Skeith  | `1` |
 
 | Field        | Default        | Notes |
 |--------------|----------------|-------|

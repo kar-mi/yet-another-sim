@@ -121,6 +121,8 @@ export type EffectBehavior =
   // expires `duration` seconds after it arms.
   | { kind: "plant"; direction: [number, number]; distance: number; radius: number; armDelay: number; duration: number; tpDelay: number }
   | { kind: "directionalKnockback"; requiredFacing: "away" | "toward"; distance: number; doubledDistance: number }
+  // Reapplying any active effect with the same key removes it, then upgrades or deals terminal damage.
+  | { kind: "escalating"; escalationKey: string; escalateTo?: string; escalateDamage?: number; escalateDamageType?: DamageType }
   // Would-be-lethal hit leaves carrier at 1 HP and cleanses the debuff. Uncleansed expiry is lethal.
   | { kind: "primordialCrust"; expiryDamage: number; expiryDamageType: DamageType }
   // Cleansed by healing carrier to full HP. Uncleansed expiry is lethal.

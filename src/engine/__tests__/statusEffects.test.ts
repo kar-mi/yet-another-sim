@@ -301,6 +301,74 @@ test("apply_effect narrows by role and count", () => {
   expect(marked.every(p => p.role === "dps")).toBe(true);
 });
 
+function escalatingRaid(events: unknown[]) {
+  return loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [0, 0] } }),
+    events,
+  });
+}
+
+test("one Unbecoming application leaves the player alive with Unbecoming", () => {
+  const raid = escalatingRaid([{
+    type: "apply_effect", t: 0, name: "Laser 1", players: [HUMAN],
+    applyEffect: { ref: "unbecoming" },
+  }]);
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 2);
+  expect(human(world).alive).toBe(true);
+  expect(human(world).effects.map(e => e.name)).toEqual(["Unbecoming"]);
+});
+
+test("two Unbecoming applications upgrade to Meanest Existence", () => {
+  const raid = escalatingRaid([
+    { type: "apply_effect", t: 0, name: "Laser 1", players: [HUMAN], applyEffect: { ref: "unbecoming" } },
+    { type: "apply_effect", t: 0.1, name: "Laser 2", players: [HUMAN], applyEffect: { ref: "unbecoming" } },
+  ]);
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.2 * 60));
+  expect(human(world).alive).toBe(true);
+  expect(human(world).effects.map(e => e.name)).toEqual(["Meanest Existence"]);
+});
+
+test("three Unbecoming applications KO without Crust", () => {
+  const raid = escalatingRaid([
+    { type: "apply_effect", t: 0, name: "Laser 1", players: [HUMAN], applyEffect: { ref: "unbecoming" } },
+    { type: "apply_effect", t: 0.1, name: "Laser 2", players: [HUMAN], applyEffect: { ref: "unbecoming" } },
+    { type: "apply_effect", t: 0.2, name: "Laser 3", players: [HUMAN], applyEffect: { ref: "unbecoming" } },
+  ]);
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.3 * 60));
+  expect(human(world).alive).toBe(false);
+});
+
+test("three Unbecoming applications cleanse Primordial Crust and leave 1 HP", () => {
+  const raid = escalatingRaid([
+    { type: "apply_effect", t: 0, name: "Crust", players: [HUMAN], applyEffect: { ref: "primordial_crust" } },
+    { type: "apply_effect", t: 0.1, name: "Laser 1", players: [HUMAN], applyEffect: { ref: "unbecoming" } },
+    { type: "apply_effect", t: 0.2, name: "Laser 2", players: [HUMAN], applyEffect: { ref: "unbecoming" } },
+    { type: "apply_effect", t: 0.3, name: "Laser 3", players: [HUMAN], applyEffect: { ref: "unbecoming" } },
+  ]);
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.4 * 60));
+  expect(human(world).alive).toBe(true);
+  expect(human(world).hp).toBe(1);
+  expect(human(world).effects.map(e => e.name)).toEqual([]);
+});
+
+test("escalating keys are scoped", () => {
+  const raid = escalatingRaid([
+    {
+      type: "apply_effect", t: 0, name: "Other", players: [HUMAN],
+      applyEffect: {
+        name: "Other Escalation",
+        kind: "debuff",
+        duration: 30,
+        behavior: { kind: "escalating", escalationKey: "other", escalateDamage: 1 },
+      },
+    },
+    { type: "apply_effect", t: 0.1, name: "Laser 1", players: [HUMAN], applyEffect: { ref: "unbecoming" } },
+  ]);
+  const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.2 * 60));
+  expect(human(world).effects.map(e => e.name).sort()).toEqual(["Other Escalation", "Unbecoming"]);
+});
+
 test("continuous effects respect tick timing boundaries", () => {
   const newlyAppliedRaid = loadRaid({
     ...baseRaid,
@@ -453,6 +521,12 @@ test("applyEffect ref must be a snake_case id", () => {
 
 test("assignment-test demo raid loads without error", async () => {
   const text = await Bun.file(`${import.meta.dir}/../../../raids/debug/assignment-test.yaml`).text();
+  const yaml = Bun.YAML.parse(text);
+  expect(() => loadRaid(yaml)).not.toThrow();
+});
+
+test("escalating-test demo raid loads without error", async () => {
+  const text = await Bun.file(`${import.meta.dir}/../../../raids/debug/escalating-test.yaml`).text();
   const yaml = Bun.YAML.parse(text);
   expect(() => loadRaid(yaml)).not.toThrow();
 });

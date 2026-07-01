@@ -43,6 +43,20 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     duration: 6,
     behavior: { kind: "confusion", damage: 50, damageType: "true", radius: 1.5 },
   },
+  unbecoming: {
+    name: "Unbecoming",
+    kind: "debuff",
+    duration: 30,
+    icon: "unbecoming.png",
+    behavior: { kind: "escalating", escalationKey: "unbecoming", escalateTo: "meanest_existence" },
+  },
+  meanest_existence: {
+    name: "Meanest Existence",
+    kind: "debuff",
+    duration: 30,
+    icon: "meanest_existence.png",
+    behavior: { kind: "escalating", escalationKey: "unbecoming", escalateDamage: 999999, escalateDamageType: "true" },
+  },
   primordial_crust: {
     name: "Primordial Crust",
     kind: "debuff",

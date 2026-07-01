@@ -10,7 +10,7 @@ import { STATIC_ROOT } from "../staticBase";
 import { glyphBillboardMaterial, imageBillboardMaterial } from "./meshes/billboardMaterials";
 
 const PLAYER_CENTER_Y = 0.4;
-export const PLAYER_MODEL_ROOT = `${STATIC_ROOT}/model/`;
+export const PLAYER_MODEL_ROOT = `${STATIC_ROOT}/model/player/`;
 export const DEFAULT_PLAYER_MODEL_FILE = "DefaultHermit.glb";
 export const PLAYER_MODEL_FILES: Record<string, string> = {
   mt: "MTHermit.glb",
