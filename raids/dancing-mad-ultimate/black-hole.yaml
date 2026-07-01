@@ -22,7 +22,7 @@ crystals:
   - kind: single
     element: earth
     pos: { x: 0, z: -18 }
-    spawnAt: 9
+    spawnAt: 17
 
 players:
   - { id: mt, role: tank,   spawn: { x: 0, z: 6 } }
@@ -78,6 +78,17 @@ _slapHappyCircle: &slapHappyCircle
   telegraphMode: resolve
   bossId: kefka
   shape: { kind: circle, center: { x: 0, z: 0 }, radius: 8 }
+
+_thunderIII: &thunderIII
+  type: targeted
+  name: Thunder III
+  targetMode: closest
+  radius: 4
+  telegraph: 4
+  damage: 55
+  damageType: magical
+  showCastBar: true
+  bossId: exdeath
 
 _roleStack: &roleStack
   type: group
@@ -155,6 +166,28 @@ _partyCone: &partyCone
   aimAtPlayer: h1
   shape: { kind: cone, angleDeg: 70, length: 30 }
 
+_damningEdictStore: &damningEdictStore
+  type: aoe
+  name: Damning Edict
+  deferred: true
+  anchor: boss
+  directionFrom: bossFacing
+  telegraph: 5
+  damage: 90
+  damageType: magical
+  shape: { kind: cone, angleDeg: 180, length: 24 }
+  telegraphMode: resolve
+  showCastBar: false
+  bossId: chaos
+
+_damningEdictBait: &damningEdictBait
+  type: bait
+  name: Damning Edict
+  targetMode: random
+  telegraph: 5
+  showCastBar: true
+  bossId: chaos
+
 _blackHoleLaserBeam: &blackHoleLaserBeam
   width: 4
   length: 40
@@ -180,6 +213,11 @@ optionals:
         sets:
           - [slap-happy-1-right-hit-1, slap-happy-1-right-hit-2, slap-happy-1-right-hit-3, slap-happy-1-party-stack, visual-chaos-cone-at-party-stack]
           - [slap-happy-1-left-hit-1, slap-happy-1-left-hit-2, slap-happy-1-left-hit-3, slap-happy-1-role-stack-mt, slap-happy-1-role-stack-h1, slap-happy-1-role-stack-m1, slap-happy-1-role-cone-mt, slap-happy-1-role-cone-h1, slap-happy-1-role-cone-m1]
+      slap-happy-2:
+        rng: true
+        sets:
+          - [slap-happy-2-right-hit-1, slap-happy-2-right-hit-2, slap-happy-2-right-hit-3, slap-happy-2-party-stack, visual-chaos-cone-at-party-stack-2]
+          - [slap-happy-2-left-hit-1, slap-happy-2-left-hit-2, slap-happy-2-left-hit-3, slap-happy-2-role-stack-mt, slap-happy-2-role-stack-h1, slap-happy-2-role-stack-m1, slap-happy-2-role-cone-mt, slap-happy-2-role-cone-h1, slap-happy-2-role-cone-m1]
 
 events:
   - type: aoe
@@ -212,7 +250,7 @@ events:
     id: decisive-battle
     time: 0
     name: Decisive Battle
-    telegraph: 3
+    telegraph: 5
     damage: 0
     damageType: magical
     showCastBar: true
@@ -221,33 +259,24 @@ events:
 
   - type: apply_effect
     id: epic-hero
-    time: 3
+    time: 5
     name: Epic Hero
     players: [mt, h1, m1, m2]
     applyEffect: *heroEpic
   - type: apply_effect
     id: fated-hero
-    time: 3
+    time: 5
     name: Fated Hero
     players: [ot, h2, r1, r2]
     applyEffect: *heroFated
 
-  - type: targeted
+  - <<: *thunderIII
     id: thunder-iii-tb-3
-    time: 0
-    name: Thunder III
-    targetMode: aggro
-    role: tank
-    radius: 4
-    telegraph: 4
-    damage: 55
-    damageType: magical
-    showCastBar: true
-    bossId: exdeath
+    time: 8
 
   - type: aoe
     id: earthquake-cast
-    time: 5
+    time: 13
     name: Earthquake
     telegraph: 4
     damage: 0
@@ -259,12 +288,12 @@ events:
 
   - type: set_hp
     id: earthquake-hp-1
-    time: 9
+    time: 17
     name: Earthquake
     amount: 1
   - type: apply_effect
     id: primordial-crust
-    time: 9
+    time: 17
     name: Primordial Crust
     players: [mt, ot, h1, h2, r1, r2, m1, m2]
     applyEffect:
@@ -273,7 +302,7 @@ events:
 
   - type: apply_effect
     id: accretion-healer
-    time: 9
+    time: 17
     name: Accretion
     players: [h1]
     applyEffect:
@@ -281,28 +310,28 @@ events:
 
   - type: apply_effect
     id: accretion-dps
-    time: 9
+    time: 17
     name: Accretion
     players: [m1]
     applyEffect:
       ref: accretion
   - type: apply_effect
     id: first-in-line
-    time: 9
+    time: 17
     name: First in Line
     players: [r1, m1, mt]
     applyEffect:
       ref: first_in_line
   - type: apply_effect
     id: second-in-line
-    time: 9
+    time: 17
     name: Second in Line
     players: [r2, ot, h2]
     applyEffect:
       ref: second_in_line
   - type: apply_effect
     id: third-in-line
-    time: 9
+    time: 17
     name: Third in Line
     players: [h1, m2]
     applyEffect:
@@ -310,84 +339,84 @@ events:
 
   - type: heal
     id: recovery-after-earthquake-1
-    time: 15
+    time: 23
     name: Earthquake Recovery
   - type: heal
     id: recovery-after-earthquake-2
-    time: 18
+    time: 26
     name: Earthquake Recovery
 
   - <<: *slapHappyCircle
     id: slap-happy-1-right-hit-1
-    time: 20
+    time: 28
     showCastBar: true
     bossRelativeCenter: { lateral: 8, forward: -8 }
 
   - <<: *slapHappyCircle
     id: slap-happy-1-right-hit-2
-    time: 21
+    time: 29
     showCastBar: false
     bossRelativeCenter: { lateral: 8, forward: 0 }
 
   - <<: *slapHappyCircle
     id: slap-happy-1-right-hit-3
-    time: 22
+    time: 30
     showCastBar: false
     bossRelativeCenter: { lateral: 8, forward: 8 }
 
   - <<: *slapHappyCircle
     id: slap-happy-1-left-hit-1
-    time: 20
+    time: 28
     showCastBar: true
     bossRelativeCenter: { lateral: -8, forward: -8 }
 
   - <<: *slapHappyCircle
     id: slap-happy-1-left-hit-2
-    time: 21
+    time: 29
     showCastBar: false
     bossRelativeCenter: { lateral: -8, forward: 0 }
 
   - <<: *slapHappyCircle
     id: slap-happy-1-left-hit-3
-    time: 22
+    time: 30
     showCastBar: false
     bossRelativeCenter: { lateral: -8, forward: 8 }
 
   - <<: *partyStack
     id: slap-happy-1-party-stack
-    time: 28
+    time: 36
 
   - <<: *partyCone
     id: visual-chaos-cone-at-party-stack
-    time: 28
+    time: 36
 
   - <<: *roleStackMt
     id: slap-happy-1-role-stack-mt
-    time: 28
+    time: 36
 
   - <<: *roleStackH1
     id: slap-happy-1-role-stack-h1
-    time: 28
+    time: 36
 
   - <<: *roleStackM1
     id: slap-happy-1-role-stack-m1
-    time: 28
+    time: 36
 
   - <<: *roleConeMt
     id: slap-happy-1-role-cone-mt
-    time: 28
+    time: 36
 
   - <<: *roleConeH1
     id: slap-happy-1-role-cone-h1
-    time: 28
+    time: 36
 
   - <<: *roleConeM1
     id: slap-happy-1-role-cone-m1
-    time: 28
+    time: 36
 
   - type: hazard
     id: black-hole-1
-    time: 29
+    time: 37
     name: Black Hole
     blackHole:
       combos: *blackHoleCombos
@@ -397,21 +426,102 @@ events:
 
   - <<: *blackHoleLaser
     id: black-hole-1-laser-1
-    time: 29
+    time: 37
     fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 0 }
     finalizeAfter: 7
 
   - <<: *blackHoleLaser
     id: black-hole-1-laser-2
-    time: 36
+    time: 44
     fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 1 }
     finalizeAfter: 7
 
   - <<: *blackHoleLaser
     id: black-hole-1-laser-3
-    time: 36
+    time: 44
     fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 2 }
     finalizeAfter: 7
+
+  - <<: *thunderIII
+    id: thunder-iii-tb-4
+    time: 49
+
+  - <<: *damningEdictStore
+    id: damning-edict-1-store
+    time: 57
+
+  - <<: *damningEdictBait
+    id: damning-edict-1
+    time: 57
+    link: damning-edict-1-store
+
+  - <<: *slapHappyCircle
+    id: slap-happy-2-right-hit-1
+    time: 58
+    showCastBar: true
+    bossRelativeCenter: { lateral: 8, forward: -8 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-2-right-hit-2
+    time: 59
+    showCastBar: false
+    bossRelativeCenter: { lateral: 8, forward: 0 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-2-right-hit-3
+    time: 60
+    showCastBar: false
+    bossRelativeCenter: { lateral: 8, forward: 8 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-2-left-hit-1
+    time: 58
+    showCastBar: true
+    bossRelativeCenter: { lateral: -8, forward: -8 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-2-left-hit-2
+    time: 59
+    showCastBar: false
+    bossRelativeCenter: { lateral: -8, forward: 0 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-2-left-hit-3
+    time: 60
+    showCastBar: false
+    bossRelativeCenter: { lateral: -8, forward: 8 }
+
+  - <<: *partyStack
+    id: slap-happy-2-party-stack
+    time: 67
+
+  - <<: *partyCone
+    id: visual-chaos-cone-at-party-stack-2
+    time: 67
+
+  - <<: *roleStackMt
+    id: slap-happy-2-role-stack-mt
+    time: 67
+
+  - <<: *roleStackH1
+    id: slap-happy-2-role-stack-h1
+    time: 67
+
+  - <<: *roleStackM1
+    id: slap-happy-2-role-stack-m1
+    time: 67
+
+  - <<: *roleConeMt
+    id: slap-happy-2-role-cone-mt
+    time: 67
+
+  - <<: *roleConeH1
+    id: slap-happy-2-role-cone-h1
+    time: 67
+
+  - <<: *roleConeM1
+    id: slap-happy-2-role-cone-m1
+    time: 67
 
 waymarks:
   - { mark: A, pos: { x: 0, z: 12 } }
