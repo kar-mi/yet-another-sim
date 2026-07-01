@@ -5,7 +5,7 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveHazard } from "@shared/types";
 
-const HAZARD_COLOR = new Color3(0.05, 0.02, 0.08);
+const HAZARD_COLOR = new Color3(0.01, 0.04, 0.12);
 
 export type HazardMeshes = {
   all: Mesh[];
@@ -15,7 +15,7 @@ export type HazardMeshes = {
 export function createHazardMeshes(scene: Scene, hazard: ActiveHazard): HazardMeshes {
   const mat = new StandardMaterial(`hazard-mat-${hazard.id}`, scene);
   mat.diffuseColor = HAZARD_COLOR;
-  mat.emissiveColor = new Color3(0.4, 0.1, 0.8);
+  mat.emissiveColor = new Color3(0.02, 0.18, 0.55);
   mat.specularColor = new Color3(0, 0, 0);
   mat.alpha = 0.85;
 
