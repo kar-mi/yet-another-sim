@@ -79,6 +79,82 @@ _slapHappyCircle: &slapHappyCircle
   bossId: kefka
   shape: { kind: circle, center: { x: 0, z: 0 }, radius: 8 }
 
+_roleStack: &roleStack
+  type: group
+  name: Role Stack
+  telegraph: 0.1
+  radius: 4
+  damage: 120
+  damageType: magical
+  showCastBar: false
+  showMarker: false
+  showTelegraph: false
+
+_roleStackMt: &roleStackMt
+  <<: *roleStack
+  groups: [[mt]]
+  requiredCount: 2
+
+_roleStackH1: &roleStackH1
+  <<: *roleStack
+  groups: [[h1]]
+  requiredCount: 2
+
+_roleStackM1: &roleStackM1
+  <<: *roleStack
+  groups: [[m1]]
+  requiredCount: 4
+
+_roleCone: &roleCone
+  type: aoe
+  name: Chaos Cone
+  telegraph: 0.1
+  damage: 0
+  damageType: magical
+  showCastBar: false
+  telegraphMode: resolve
+  bossId: chaos
+  anchor: boss
+  shape: { kind: cone, angleDeg: 60, length: 30 }
+
+_roleConeMt: &roleConeMt
+  <<: *roleCone
+  aimAtPlayer: mt
+
+_roleConeH1: &roleConeH1
+  <<: *roleCone
+  aimAtPlayer: h1
+
+_roleConeM1: &roleConeM1
+  <<: *roleCone
+  aimAtPlayer: m1
+
+_partyStack: &partyStack
+  type: group
+  name: Party Stack
+  groups: [[h1]]
+  telegraph: 0.1
+  radius: 4
+  requiredCount: 8
+  damage: 120
+  damageType: magical
+  showCastBar: false
+  showMarker: false
+  showTelegraph: false
+
+_partyCone: &partyCone
+  type: aoe
+  name: Chaos Cone
+  telegraph: 0.1
+  damage: 0
+  damageType: magical
+  showCastBar: false
+  telegraphMode: resolve
+  bossId: chaos
+  anchor: boss
+  aimAtPlayer: h1
+  shape: { kind: cone, angleDeg: 70, length: 30 }
+
 _blackHoleLaserBeam: &blackHoleLaserBeam
   width: 4
   length: 40
@@ -95,6 +171,15 @@ _blackHoleLaser: &blackHoleLaser
   applyTetherEffect: false
   showSource: false
   beam: *blackHoleLaserBeam
+
+optionals:
+  combinations:
+    eventSets:
+      slap-happy-1:
+        rng: true
+        sets:
+          - [slap-happy-1-right-hit-1, slap-happy-1-right-hit-2, slap-happy-1-right-hit-3, slap-happy-1-party-stack, visual-chaos-cone-at-party-stack]
+          - [slap-happy-1-left-hit-1, slap-happy-1-left-hit-2, slap-happy-1-left-hit-3, slap-happy-1-role-stack-mt, slap-happy-1-role-stack-h1, slap-happy-1-role-stack-m1, slap-happy-1-role-cone-mt, slap-happy-1-role-cone-h1, slap-happy-1-role-cone-m1]
 
 events:
   - type: aoe
@@ -233,50 +318,72 @@ events:
     name: Earthquake Recovery
 
   - <<: *slapHappyCircle
-    id: slap-happy-1-hit-1
+    id: slap-happy-1-right-hit-1
     time: 20
     showCastBar: true
     bossRelativeCenter: { lateral: 8, forward: -8 }
 
   - <<: *slapHappyCircle
-    id: slap-happy-1-hit-2
+    id: slap-happy-1-right-hit-2
     time: 21
     showCastBar: false
     bossRelativeCenter: { lateral: 8, forward: 0 }
 
   - <<: *slapHappyCircle
-    id: slap-happy-1-hit-3
+    id: slap-happy-1-right-hit-3
     time: 22
     showCastBar: false
     bossRelativeCenter: { lateral: 8, forward: 8 }
 
-  - type: group
+  - <<: *slapHappyCircle
+    id: slap-happy-1-left-hit-1
+    time: 20
+    showCastBar: true
+    bossRelativeCenter: { lateral: -8, forward: -8 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-1-left-hit-2
+    time: 21
+    showCastBar: false
+    bossRelativeCenter: { lateral: -8, forward: 0 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-1-left-hit-3
+    time: 22
+    showCastBar: false
+    bossRelativeCenter: { lateral: -8, forward: 8 }
+
+  - <<: *partyStack
     id: slap-happy-1-party-stack
     time: 28
-    name: Party Stack
-    groups: [[h1]]
-    telegraph: 0.1
-    radius: 4
-    requiredCount: 8
-    damage: 120
-    damageType: magical
-    showCastBar: false
-    showMarker: false
-    showTelegraph: false
 
-  - type: aoe
+  - <<: *partyCone
     id: visual-chaos-cone-at-party-stack
     time: 28
-    name: Chaos Cone
-    telegraph: 0.1
-    damage: 0
-    damageType: magical
-    showCastBar: false
-    telegraphMode: resolve
-    bossId: chaos
-    anchor: boss
-    aimAtPlayer: h1
-    shape: { kind: cone, angleDeg: 50, length: 30 }
+
+  - <<: *roleStackMt
+    id: slap-happy-1-role-stack-mt
+    time: 28
+
+  - <<: *roleStackH1
+    id: slap-happy-1-role-stack-h1
+    time: 28
+
+  - <<: *roleStackM1
+    id: slap-happy-1-role-stack-m1
+    time: 28
+
+  - <<: *roleConeMt
+    id: slap-happy-1-role-cone-mt
+    time: 28
+
+  - <<: *roleConeH1
+    id: slap-happy-1-role-cone-h1
+    time: 28
+
+  - <<: *roleConeM1
+    id: slap-happy-1-role-cone-m1
+    time: 28
 
   - type: hazard
     id: black-hole-1

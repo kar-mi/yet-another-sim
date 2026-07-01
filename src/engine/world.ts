@@ -237,6 +237,36 @@ function buildEndingPlan(
   return { endingOffsets, endingNames, rngState: nextState };
 }
 
+type EventSets = NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["eventSets"];
+
+function applyEventSets(
+  events: RaidDef["events"],
+  eventSets: EventSets,
+  rngState: number,
+): { events: RaidDef["events"]; rngState: number } {
+  if (!eventSets) return { events, rngState };
+
+  let nextState = rngState;
+  const keep = new Set<string>();
+  const drop = new Set<string>();
+  for (const setConfig of Object.values(eventSets)) {
+    let selected = 0;
+    if (setConfig.rng && setConfig.sets.length > 1) {
+      const roll = randomInt(nextState, setConfig.sets.length);
+      selected = roll.value;
+      nextState = roll.state;
+    }
+    setConfig.sets.forEach((set, i) => {
+      for (const id of set) (i === selected ? keep : drop).add(id);
+    });
+  }
+
+  return {
+    events: events.filter(e => keep.has(e.id) || !drop.has(e.id)) as RaidDef["events"],
+    rngState: nextState,
+  };
+}
+
 function applyBlackHoleSpots(
   events: RaidDef["events"],
   rngState: number,
@@ -385,7 +415,8 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const { endingOffsets, endingNames, rngState: afterEndingRngState } = buildEndingPlan(raid.optionals?.combinations?.endings, afterTowerRngState);
   const { events: swappedEvents, rngState: afterOrderSwapRngState } = applyOrderSwap(rotatedEvents, raid.optionals?.orderSwap, afterEndingRngState);
   const { events: sweptEvents, rngState: afterDivebombSweepRngState } = rotateDivebombSweep(swappedEvents, raid.optionals?.divebombSweep, afterOrderSwapRngState);
-  const { events: hazardEvents, rngState, tetherSpots } = applyBlackHoleSpots(sweptEvents, afterDivebombSweepRngState);
+  const { events: selectedEvents, rngState: afterEventSetRngState } = applyEventSets(sweptEvents, raid.optionals?.combinations?.eventSets, afterDivebombSweepRngState);
+  const { events: hazardEvents, rngState, tetherSpots } = applyBlackHoleSpots(selectedEvents, afterEventSetRngState);
   const tetherEvents = applyBlackHoleTetherSources(hazardEvents, tetherSpots);
   const effectiveEvents = tetherEvents.map(e =>
     endingOffsets[e.id] === undefined

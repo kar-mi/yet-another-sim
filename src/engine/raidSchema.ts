@@ -931,6 +931,10 @@ const OptionalsSchema = z.object({
         name: z.string().min(1).optional(),
       })).min(1),
     }).optional(),
+    eventSets: z.record(z.string().min(1), z.object({
+      rng: z.boolean().default(false),
+      sets: z.array(z.array(EventIdSchema).min(1)).min(1),
+    })).optional(),
   }).optional(),
 }).optional();
 
@@ -1355,6 +1359,23 @@ export const RaidSchema = z.object({
           message: `endings variant ${i} offset array length must match its event group length`,
         });
       }
+    });
+  }
+
+  const eventSets = raid.optionals?.combinations?.eventSets;
+  if (eventSets) {
+    Object.entries(eventSets).forEach(([key, setConfig]) => {
+      setConfig.sets.forEach((set, setIndex) => {
+        set.forEach((id, idIndex) => {
+          if (!eventIds.has(id)) {
+            ctx.addIssue({
+              code: "custom",
+              path: ["optionals", "combinations", "eventSets", key, "sets", setIndex, idIndex],
+              message: `event set "${key}" references unknown event id "${id}"`,
+            });
+          }
+        });
+      });
     });
   }
 }).transform(data => {
