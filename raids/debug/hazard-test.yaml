@@ -1,0 +1,61 @@
+# Black Hole hazard test. Real Dancing Mad wiring belongs in graven-image-3.yaml later.
+
+name: Black Hole Hazard Test
+arena:
+  zones:
+    - kind: circle
+      center: { x: 0, z: 0 }
+      radius: 20
+duration: 20
+
+players:
+  - id: mt
+    role: tank
+    spawn: { x: 0, z: 8 }
+  - id: ot
+    role: tank
+    spawn: { x: 0, z: -8 }
+  - id: h1
+    role: healer
+    spawn: { x: -8, z: 0 }
+  - id: h2
+    role: healer
+    spawn: { x: 8, z: 0 }
+  - id: r1
+    role: dps
+    spawn: { x: -5.66, z: 5.66 }
+  - id: r2
+    role: dps
+    spawn: { x: 5.66, z: 5.66 }
+  - id: m1
+    role: dps
+    spawn: { x: -5.66, z: -5.66 }
+  - id: m2
+    role: dps
+    spawn: { x: 5.66, z: -5.66 }
+
+events:
+  - type: hazard
+    id: black-hole
+    time: 1
+    name: Black Hole
+    blackHole: true
+    radius: 1.4
+    duration: 12
+    applyEffect:
+      name: Black Hole
+      kind: debuff
+      duration: 3
+      behavior:
+        kind: mitigation
+        multiplier: 0.5
+
+waymarks:
+  - { mark: A, pos: { x: 0, z: 12 } }
+  - { mark: B, pos: { x: 12, z: 0 } }
+  - { mark: C, pos: { x: 0, z: -12 } }
+  - { mark: D, pos: { x: -12, z: 0 } }
+  - { mark: "1", pos: { x: 6, z: 6 } }
+  - { mark: "2", pos: { x: 6, z: -6 } }
+  - { mark: "3", pos: { x: -6, z: -6 } }
+  - { mark: "4", pos: { x: -6, z: 6 } }

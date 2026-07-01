@@ -1,0 +1,88 @@
+import { expect, test } from "bun:test";
+import { createWorld } from "../world";
+import { baseRaid, byId, human, loadRaid, noMove, roster, runTicks } from "./helpers";
+import type { World } from "@shared/types";
+
+const blackHole = {
+  name: "Black Hole",
+  kind: "debuff" as const,
+  duration: 0.5,
+  behavior: { kind: "mitigation" as const, multiplier: 0.5 },
+};
+
+function movePlayer(world: World, playerId: string, pos: { x: number; z: number }): World {
+  return {
+    ...world,
+    players: world.players.map(player => player.id === playerId ? { ...player, pos } : player),
+  };
+}
+
+test("hazard applies its debuff to players standing in explicit spots", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [0, 0] }, m2: { spawn: [5, 0] } }),
+    events: [{ type: "hazard", id: "black-hole", t: 0, name: "Black Hole", spots: [[0, 0]], radius: 1, duration: 2, applyEffect: blackHole }],
+  });
+
+  const world = runTicks(createWorld(raid), noMove, 1);
+
+  expect(human(world).effects.some(effect => effect.id === "black-hole-m1")).toBe(true);
+  expect(byId(world, "m2").effects.some(effect => effect.id === "black-hole-m2")).toBe(false);
+});
+
+test("hazard refreshes its debuff without stacking, then lets it decay after leaving", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [0, 0] } }),
+    events: [{ type: "hazard", id: "black-hole", t: 0, name: "Black Hole", spots: [[0, 0]], radius: 1, duration: 3, applyEffect: blackHole }],
+  });
+
+  const refreshed = runTicks(createWorld(raid), noMove, 60);
+  const active = human(refreshed).effects.filter(effect => effect.id === "black-hole-m1");
+  expect(active).toHaveLength(1);
+  expect(active[0]!.appliedAt).toBeCloseTo(refreshed.time);
+
+  const outside = movePlayer(refreshed, "m1", { x: 10, z: 0 });
+  const decayed = runTicks(outside, noMove, 40);
+  expect(human(decayed).effects.some(effect => effect.id === "black-hole-m1")).toBe(false);
+});
+
+test("hazard expires after its own duration", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [5, 0] } }),
+    events: [{ type: "hazard", id: "black-hole", t: 0, name: "Black Hole", spots: [[0, 0]], radius: 1, duration: 1, applyEffect: blackHole }],
+  });
+
+  const armed = runTicks(createWorld(raid), noMove, 30);
+  expect(armed.hazards).toHaveLength(1);
+  expect(armed.pendingHazards).toHaveLength(0);
+
+  const expired = runTicks(createWorld(raid), noMove, 80);
+  expect(expired.hazards).toHaveLength(0);
+});
+
+test("blackHole hazards seed eleven deterministic spots", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{ type: "hazard", id: "black-hole", t: 0, name: "Black Hole", blackHole: true, radius: 1, duration: 2, applyEffect: blackHole }],
+  });
+
+  const a = createWorld(raid, 123);
+  const b = createWorld(raid, 123);
+
+  expect(a.pendingHazards[0]!.spots).toHaveLength(11);
+  expect(a.pendingHazards[0]!.spots).toEqual(b.pendingHazards[0]!.spots);
+});
+
+test("schema requires exactly one hazard spot source", () => {
+  expect(() => loadRaid({
+    ...baseRaid,
+    events: [{ type: "hazard", id: "missing-spots", t: 0, name: "Black Hole", radius: 1, duration: 2, applyEffect: blackHole }],
+  })).toThrow();
+
+  expect(() => loadRaid({
+    ...baseRaid,
+    events: [{ type: "hazard", id: "both-spots", t: 0, name: "Black Hole", spots: [[0, 0]], blackHole: true, radius: 1, duration: 2, applyEffect: blackHole }],
+  })).toThrow();
+});

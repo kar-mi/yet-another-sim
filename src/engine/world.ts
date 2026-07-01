@@ -8,6 +8,7 @@ import { toVec2 } from "./eventTransforms";
 import { bucketEvent, type Collections } from "./mechanicRegistry";
 import { placeCrystals } from "./crystals";
 import { cos, sin } from "@shared/dmath";
+import { selectOrbLayout } from "./blackHoleOrbs";
 
 export const ROLE_HP: Record<Player["role"], number> = { tank: 160, healer: 100, dps: 100 };
 
@@ -236,6 +237,20 @@ function buildEndingPlan(
   return { endingOffsets, endingNames, rngState: nextState };
 }
 
+function applyBlackHoleSpots(
+  events: RaidDef["events"],
+  rngState: number,
+): { events: RaidDef["events"]; rngState: number } {
+  let nextState = rngState;
+  const result = events.map(e => {
+    if (e.type !== "hazard" || !e.blackHole) return e;
+    const layout = selectOrbLayout(nextState);
+    nextState = layout.rngState;
+    return { ...e, spots: layout.orbs.map(orb => [orb.pos.x, orb.pos.z] as [number, number]) };
+  });
+  return { events: result as RaidDef["events"], rngState: nextState };
+}
+
 // Select a pairing pattern (seeded when `rng`) and derive the generic maps any mechanic can consume:
 // partners (paired player), playerGroups (each pair's declared group label), and initialCharges
 // (each member's declared charge kind — the opener deal of the `reassign` event).
@@ -352,8 +367,9 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const { events: rotatedEvents, rngState: afterTowerRngState } = rotateTowerWaves(raid.events, raid.optionals?.towerRng, afterCrystalRngState);
   const { endingOffsets, endingNames, rngState: afterEndingRngState } = buildEndingPlan(raid.optionals?.combinations?.endings, afterTowerRngState);
   const { events: swappedEvents, rngState: afterOrderSwapRngState } = applyOrderSwap(rotatedEvents, raid.optionals?.orderSwap, afterEndingRngState);
-  const { events: sweptEvents, rngState } = rotateDivebombSweep(swappedEvents, raid.optionals?.divebombSweep, afterOrderSwapRngState);
-  const effectiveEvents = sweptEvents.map(e =>
+  const { events: sweptEvents, rngState: afterDivebombSweepRngState } = rotateDivebombSweep(swappedEvents, raid.optionals?.divebombSweep, afterOrderSwapRngState);
+  const { events: hazardEvents, rngState } = applyBlackHoleSpots(sweptEvents, afterDivebombSweepRngState);
+  const effectiveEvents = hazardEvents.map(e =>
     endingOffsets[e.id] === undefined
       ? e
       : { ...e, directionOffset: endingOffsets[e.id], ...(endingNames[e.id] !== undefined ? { name: endingNames[e.id] } : {}) },
@@ -380,6 +396,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     pendingSpreadStacks: [],
     pendingGazes: [],
     pendingForcedMarches: [],
+    pendingHazards: [],
     pendingDivebombs: [],
     pendingEffectBursts: [],
     pendingHeals: [],
@@ -424,6 +441,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     spreadStacks: [],
     gazes: [],
     forcedMarches: [],
+    hazards: [],
     divebombs: [],
     limitCuts: [],
     ...collections,

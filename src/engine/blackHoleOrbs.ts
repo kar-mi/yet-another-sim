@@ -4,31 +4,31 @@ import { randomInt } from "@shared/rng";
 export type BlackHoleOrb = { pos: Vec2; tether: boolean };
 
 export const COMBO_A: readonly BlackHoleOrb[] = [
-  { pos: { x: 0, z: 18 }, tether: true },
-  { pos: { x: 18, z: 0 }, tether: true },
-  { pos: { x: 0, z: -18 }, tether: true },
-  { pos: { x: -9, z: 11 }, tether: false },
-  { pos: { x: 8, z: 10 }, tether: false },
-  { pos: { x: -13, z: 2 }, tether: false },
-  { pos: { x: 12, z: -4 }, tether: false },
-  { pos: { x: -7, z: -10 }, tether: false },
-  { pos: { x: 5, z: -12 }, tether: false },
-  { pos: { x: 0, z: 5 }, tether: false },
-  { pos: { x: 3, z: -2 }, tether: false },
+  { pos: { x: 0, z: 17 }, tether: true },
+  { pos: { x: 17, z: 0 }, tether: true },
+  { pos: { x: 0, z: -17 }, tether: true },
+  { pos: { x: 5, z: 13 }, tether: false },
+  { pos: { x: -7, z: 7 }, tether: false },
+  { pos: { x: 7, z: 7 }, tether: false },
+  { pos: { x: -13, z: 5 }, tether: false },
+  { pos: { x: 13, z: -5 }, tether: false },
+  { pos: { x: -7, z: -7 }, tether: false },
+  { pos: { x: 6, z: -7 }, tether: false },
+  { pos: { x: -6, z: -13 }, tether: false },
 ];
 
 export const COMBO_B: readonly BlackHoleOrb[] = [
-  { pos: { x: 0, z: 18 }, tether: true },
-  { pos: { x: 18, z: 0 }, tether: true },
-  { pos: { x: 0, z: -18 }, tether: true },
-  { pos: { x: -11, z: 9 }, tether: false },
-  { pos: { x: 11, z: 8 }, tether: false },
-  { pos: { x: -14, z: -2 }, tether: false },
-  { pos: { x: 14, z: 2 }, tether: false },
-  { pos: { x: -5, z: -12 }, tether: false },
-  { pos: { x: 8, z: -9 }, tether: false },
-  { pos: { x: -2, z: 4 }, tether: false },
-  { pos: { x: 4, z: -3 }, tether: false },
+  { pos: { x: 0, z: 17 }, tether: true },
+  { pos: { x: 17, z: 0 }, tether: true },
+  { pos: { x: 0, z: -17 }, tether: true },
+  { pos: { x: -13, z: 5 }, tether: false },
+  { pos: { x: -9, z: 0 }, tether: false },
+  { pos: { x: 0, z: 9 }, tether: false },
+  { pos: { x: 6, z: 13 }, tether: false },
+  { pos: { x: 9, z: 0 }, tether: false },
+  { pos: { x: 13, z: -6 }, tether: false },
+  { pos: { x: 0, z: -9 }, tether: false },
+  { pos: { x: -5, z: -13 }, tether: false },
 ];
 
 export function rotate90(pos: Vec2, k: number): Vec2 {

@@ -866,6 +866,26 @@ export type ActiveForcedMarch = {
   teleported: boolean;         // whether the teleport (after preDelay) has happened yet
 };
 
+export type PendingHazard = {
+  id: string;
+  t: number;
+  name: string;
+  spots: Vec2[];
+  radius: number;
+  duration: number;
+  applyEffect: EffectSpec;
+};
+
+export type ActiveHazard = {
+  id: string;
+  name: string;
+  spots: Vec2[];
+  radius: number;
+  spawnedAt: number;
+  expireAt: number;
+  applyEffect: EffectSpec;
+};
+
 export type PendingDivebomb = {
   id: string;
   t: number;
@@ -942,8 +962,10 @@ export type World = {
   gazes: ActiveGaze[];
   pendingGazes: PendingGaze[];
   forcedMarches: ActiveForcedMarch[];
+  hazards: ActiveHazard[];
   divebombs: ActiveDivebomb[];
   pendingForcedMarches: PendingForcedMarch[];
+  pendingHazards: PendingHazard[];
   pendingDivebombs: PendingDivebomb[];
   pendingEffectBursts: PendingEffectBurst[];
   effectResolvers: Record<string, EffectResolver>;
