@@ -8,6 +8,7 @@ import { toVec2 } from "./eventTransforms";
 import { bucketEvent, type Collections } from "./mechanicRegistry";
 import { placeCrystals } from "./crystals";
 import { cos, sin } from "@shared/dmath";
+import { selectOrbLayout } from "./blackHoleOrbs";
 
 export const ROLE_HP: Record<Player["role"], number> = { tank: 160, healer: 100, dps: 100 };
 
@@ -236,6 +237,21 @@ function buildEndingPlan(
   return { endingOffsets, endingNames, rngState: nextState };
 }
 
+function buildHazardOrbPlan(
+  events: RaidDef["events"],
+  rngState: number,
+): { hazardOrbPlan: Record<string, [number, number][]>; rngState: number } {
+  const hazardOrbPlan: Record<string, [number, number][]> = {};
+  let nextState = rngState;
+  for (const event of events) {
+    if (event.type !== "hazard" || !event.blackHole) continue;
+    const layout = selectOrbLayout(nextState);
+    nextState = layout.rngState;
+    hazardOrbPlan[event.id] = layout.orbs.map(orb => [orb.pos.x, orb.pos.z]);
+  }
+  return { hazardOrbPlan, rngState: nextState };
+}
+
 // Select a pairing pattern (seeded when `rng`) and derive the generic maps any mechanic can consume:
 // partners (paired player), playerGroups (each pair's declared group label), and initialCharges
 // (each member's declared charge kind — the opener deal of the `reassign` event).
@@ -352,12 +368,17 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const { events: rotatedEvents, rngState: afterTowerRngState } = rotateTowerWaves(raid.events, raid.optionals?.towerRng, afterCrystalRngState);
   const { endingOffsets, endingNames, rngState: afterEndingRngState } = buildEndingPlan(raid.optionals?.combinations?.endings, afterTowerRngState);
   const { events: swappedEvents, rngState: afterOrderSwapRngState } = applyOrderSwap(rotatedEvents, raid.optionals?.orderSwap, afterEndingRngState);
-  const { events: sweptEvents, rngState } = rotateDivebombSweep(swappedEvents, raid.optionals?.divebombSweep, afterOrderSwapRngState);
-  const effectiveEvents = sweptEvents.map(e =>
-    endingOffsets[e.id] === undefined
-      ? e
-      : { ...e, directionOffset: endingOffsets[e.id], ...(endingNames[e.id] !== undefined ? { name: endingNames[e.id] } : {}) },
-  ) as RaidDef["events"];
+  const { events: sweptEvents, rngState: afterDivebombSweepRngState } = rotateDivebombSweep(swappedEvents, raid.optionals?.divebombSweep, afterOrderSwapRngState);
+  const { hazardOrbPlan, rngState } = buildHazardOrbPlan(sweptEvents, afterDivebombSweepRngState);
+  const effectiveEvents = sweptEvents.map(e => {
+    const patch: Record<string, unknown> = {};
+    if (endingOffsets[e.id] !== undefined) {
+      patch.directionOffset = endingOffsets[e.id];
+      if (endingNames[e.id] !== undefined) patch.name = endingNames[e.id];
+    }
+    if (hazardOrbPlan[e.id] !== undefined) patch.spots = hazardOrbPlan[e.id];
+    return Object.keys(patch).length ? { ...e, ...patch } : e;
+  }) as RaidDef["events"];
   const plantDebuffOrder = raid.optionals?.combinations?.plant?.debuffOrder;
 
   // One collection per World pending/resolver field; keys match the World field names exactly so the
@@ -380,6 +401,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     pendingSpreadStacks: [],
     pendingGazes: [],
     pendingForcedMarches: [],
+    pendingHazards: [],
     pendingDivebombs: [],
     pendingEffectBursts: [],
     pendingHeals: [],
@@ -424,6 +446,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     spreadStacks: [],
     gazes: [],
     forcedMarches: [],
+    hazards: [],
     divebombs: [],
     limitCuts: [],
     ...collections,

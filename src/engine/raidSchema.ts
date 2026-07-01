@@ -687,6 +687,27 @@ const ForcedMarchEventSchema = z.object({
   }
 });
 
+const HazardEventSchema = z.object({
+  type: z.literal("hazard"),
+  id: EventIdSchema,
+  time: z.number().nonnegative(),
+  name: z.string().min(1),
+  spots: z.array(Vec2Schema).min(1).optional(),
+  blackHole: z.boolean().default(false),
+  radius: z.number().positive(),
+  duration: z.number().positive(),
+  applyEffect: ApplyEffectSchema,
+}).superRefine((ev, ctx) => {
+  const hasSpots = ev.spots !== undefined && ev.spots.length > 0;
+  if ((ev.blackHole) === hasSpots) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["spots"],
+      message: "hazard must specify exactly one of spots or blackHole: true",
+    });
+  }
+});
+
 const DivebombEventSchema = z.object({
   type: z.literal("divebomb"),
   id: EventIdSchema,
@@ -795,7 +816,7 @@ export const EventSchema = z.preprocess(
   value => typeof value === "object" && value !== null && "t" in value && !("time" in value)
     ? { ...value, time: value.t }
     : value,
-  z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, DashEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, DivebombEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema]),
+  z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, DashEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, HazardEventSchema, DivebombEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema]),
 ).transform(event => {
     if (!("time" in event)) return event;
     const { time, ...rest } = event;

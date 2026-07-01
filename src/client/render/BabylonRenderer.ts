@@ -29,6 +29,7 @@ import { InverseLayer } from "./InverseLayer";
 import { SpreadStackLayer } from "./SpreadStackLayer";
 import { GazeLayer } from "./GazeLayer";
 import { ForcedMarchLayer } from "./ForcedMarchLayer";
+import { HazardLayer } from "./HazardLayer";
 import { DivebombLayer } from "./DivebombLayer";
 import { WaymarkLayer } from "./WaymarkLayer";
 import { CrystalLayer } from "./CrystalLayer";
@@ -79,6 +80,7 @@ export class BabylonRenderer implements Renderer {
   private spreadStacks!: SpreadStackLayer;
   private gaze!: GazeLayer;
   private forcedMarches!: ForcedMarchLayer;
+  private hazards!: HazardLayer;
   private divebombs!: DivebombLayer;
   private waymarks!: WaymarkLayer;
   private crystals!: CrystalLayer;
@@ -208,6 +210,7 @@ export class BabylonRenderer implements Renderer {
     this.spreadStacks = new SpreadStackLayer(this.scene);
     this.gaze = new GazeLayer(this.scene);
     this.forcedMarches = new ForcedMarchLayer(this.scene);
+    this.hazards = new HazardLayer(this.scene);
     this.divebombs = new DivebombLayer(this.scene);
     this.hud = new HudOverlay(
       sessionId,
@@ -308,6 +311,7 @@ export class BabylonRenderer implements Renderer {
     this.spreadStacks.sync(world.spreadStacks, world.boss, world.players, world.time);
     this.gaze.sync(world.gazes, world.time);
     this.forcedMarches.sync(world.forcedMarches, world.time);
+    this.hazards.sync(world.hazards, world.time);
     this.divebombs.sync(world.divebombs, world.time);
     this.hud.sync(world);
   }
@@ -386,6 +390,7 @@ export class BabylonRenderer implements Renderer {
     this.spreadStacks.dispose();
     this.gaze.dispose();
     this.forcedMarches.dispose();
+    this.hazards.dispose();
     this.divebombs.dispose();
     this.waymarks.dispose();
     this.crystals.dispose();

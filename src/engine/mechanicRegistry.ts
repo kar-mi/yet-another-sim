@@ -33,6 +33,7 @@ import { resolveGazes } from "./systems/gaze";
 import { resolveLimitCuts } from "./systems/limitCut";
 import { resolveSetHps } from "./systems/setHp";
 import { resolveDivebombs } from "./systems/divebombs";
+import { resolveHazards } from "./systems/hazard";
 
 type RaidEvent = RaidDef["events"][number];
 export type EventType = RaidEvent["type"];
@@ -42,7 +43,7 @@ export type Collections = Pick<World,
   | "pending" | "pendingTethers" | "pendingLineLinks" | "pendingTargeted" | "pendingBaits" | "pendingDashes"
   | "pendingTowers" | "pendingChains" | "pendingGroups" | "pendingEffectSelects"
   | "pendingApplyEffects" | "pendingLimitCuts" | "pendingInversions" | "pendingSpreadStacks" | "pendingGazes"
-  | "pendingForcedMarches" | "pendingDivebombs" | "pendingEffectBursts" | "pendingHeals" | "pendingSetHps"
+  | "pendingForcedMarches" | "pendingHazards" | "pendingDivebombs" | "pendingEffectBursts" | "pendingHeals" | "pendingSetHps"
   | "pendingBurstSpreadFollowUps" | "reassigns"
   | "effectResolvers"
 >;
@@ -78,6 +79,26 @@ const forcedMarch: MechanicModule = {
   // later), so the active forcedMarches are read from ctx after all systems run — see tick.
   resolve: ctx => ({ pendingForcedMarches: resolveForcedMarches(ctx) }),
   isResolved: w => w.pendingForcedMarches.length === 0 && w.forcedMarches.every(fm => fm.triggered),
+};
+
+const hazard: MechanicModule = {
+  fromEvent(e, c) {
+    if (e.type !== "hazard") return;
+    if (!e.spots || e.spots.length === 0) {
+      throw new Error(`hazard event "${e.id}" resolved with no spots`);
+    }
+    c.pendingHazards.push({
+      id: e.id,
+      t: e.t,
+      name: e.name,
+      spots: e.spots.map(toVec2),
+      radius: e.radius,
+      duration: e.duration,
+      applyEffect: e.applyEffect,
+    });
+  },
+  resolve: ctx => resolveHazards(ctx),
+  isResolved: w => w.pendingHazards.length === 0 && w.hazards.length === 0,
 };
 
 const tethers: MechanicModule = {
@@ -569,6 +590,7 @@ const MODULE_FOR_TYPE = {
   inverse: inverse,
   spread_stack: spreadStack,
   gaze: gaze,
+  hazard: hazard,
   set_hp: setHp,
   heal: heal,
   effect_resolver: effectResolver,
@@ -580,7 +602,7 @@ const MODULE_FOR_TYPE = {
 export const REGISTRY: readonly MechanicModule[] = [
   forcedMarch, tethers, lineLinks, chains, aoe, towers, groups,
   effectSelect, applyEffects, reassign, inverse, spreadStack, gaze, limitCut,
-  setHp, heal, effectResolver, divebomb,
+  hazard, setHp, heal, effectResolver, divebomb,
 ];
 
 // Invariant: every owning module participates in the REGISTRY loop (so its resolve/isResolved run).
