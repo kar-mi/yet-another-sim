@@ -249,8 +249,8 @@ events:
     time: 28
     name: Party Stack
     groups: [[h1]]
-    telegraph: 4
-    radius: 5
+    telegraph: 0.1
+    radius: 4
     requiredCount: 8
     damage: 120
     damageType: magical
@@ -259,11 +259,11 @@ events:
     showTelegraph: false
 
   - type: aoe
-    id: chaos-cone-at-h1-1
+    id: visual-chaos-cone-at-party-stack
     time: 28
     name: Chaos Cone
-    telegraph: 4
-    damage: 40
+    telegraph: 0.1
+    damage: 0
     damageType: magical
     showCastBar: false
     telegraphMode: resolve
