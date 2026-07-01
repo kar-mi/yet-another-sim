@@ -237,19 +237,18 @@ function buildEndingPlan(
   return { endingOffsets, endingNames, rngState: nextState };
 }
 
-function buildHazardOrbPlan(
+function applyBlackHoleSpots(
   events: RaidDef["events"],
   rngState: number,
-): { hazardOrbPlan: Record<string, [number, number][]>; rngState: number } {
-  const hazardOrbPlan: Record<string, [number, number][]> = {};
+): { events: RaidDef["events"]; rngState: number } {
   let nextState = rngState;
-  for (const event of events) {
-    if (event.type !== "hazard" || !event.blackHole) continue;
+  const result = events.map(e => {
+    if (e.type !== "hazard" || !e.blackHole) return e;
     const layout = selectOrbLayout(nextState);
     nextState = layout.rngState;
-    hazardOrbPlan[event.id] = layout.orbs.map(orb => [orb.pos.x, orb.pos.z]);
-  }
-  return { hazardOrbPlan, rngState: nextState };
+    return { ...e, spots: layout.orbs.map(orb => [orb.pos.x, orb.pos.z] as [number, number]) };
+  });
+  return { events: result as RaidDef["events"], rngState: nextState };
 }
 
 // Select a pairing pattern (seeded when `rng`) and derive the generic maps any mechanic can consume:
@@ -369,16 +368,12 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const { endingOffsets, endingNames, rngState: afterEndingRngState } = buildEndingPlan(raid.optionals?.combinations?.endings, afterTowerRngState);
   const { events: swappedEvents, rngState: afterOrderSwapRngState } = applyOrderSwap(rotatedEvents, raid.optionals?.orderSwap, afterEndingRngState);
   const { events: sweptEvents, rngState: afterDivebombSweepRngState } = rotateDivebombSweep(swappedEvents, raid.optionals?.divebombSweep, afterOrderSwapRngState);
-  const { hazardOrbPlan, rngState } = buildHazardOrbPlan(sweptEvents, afterDivebombSweepRngState);
-  const effectiveEvents = sweptEvents.map(e => {
-    const patch: Record<string, unknown> = {};
-    if (endingOffsets[e.id] !== undefined) {
-      patch.directionOffset = endingOffsets[e.id];
-      if (endingNames[e.id] !== undefined) patch.name = endingNames[e.id];
-    }
-    if (hazardOrbPlan[e.id] !== undefined) patch.spots = hazardOrbPlan[e.id];
-    return Object.keys(patch).length ? { ...e, ...patch } : e;
-  }) as RaidDef["events"];
+  const { events: hazardEvents, rngState } = applyBlackHoleSpots(sweptEvents, afterDivebombSweepRngState);
+  const effectiveEvents = hazardEvents.map(e =>
+    endingOffsets[e.id] === undefined
+      ? e
+      : { ...e, directionOffset: endingOffsets[e.id], ...(endingNames[e.id] !== undefined ? { name: endingNames[e.id] } : {}) },
+  ) as RaidDef["events"];
   const plantDebuffOrder = raid.optionals?.combinations?.plant?.debuffOrder;
 
   // One collection per World pending/resolver field; keys match the World field names exactly so the
