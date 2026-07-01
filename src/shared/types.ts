@@ -323,6 +323,7 @@ export type PendingEvent = {
   anchor?: "boss";
   directionFrom?: "bossFacing";
   directionOffset?: number;
+  aimAtPlayer?: string;
   lockFacing?: boolean;
   bossStationary?: boolean;
   // When true, this cleave is stored: it does not resolve at its own cast end; a linked bait arms it.

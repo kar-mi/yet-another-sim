@@ -193,6 +193,24 @@ test("bossRelativeCenter resolves circle offsets from boss position", () => {
   expect(byId(afterLeft, "m2").hp).toBe(DPS_HP - 10);
 });
 
+test("aimAtPlayer points cone geometry without turning the boss", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    boss: { pos: [0, 0] },
+    players: roster({ h1: { spawn: [-8, 2] }, m1: { spawn: [-8, 2] }, m2: { spawn: [8, 0] } }),
+    events: [{
+      t: 0, name: "Aimed Cone", telegraph: 1, damage: 10, damageType: "physical" as const,
+      anchor: "boss", aimAtPlayer: "h1",
+      shape: { kind: "cone", angleDeg: 20, length: 20 },
+    }],
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(1.1 * 60));
+
+  expect(world.boss.facing).toBeCloseTo(0);
+  expect(byId(world, "m1").hp).toBe(DPS_HP - 10);
+  expect(byId(world, "m2").hp).toBe(DPS_HP);
+});
+
 function positionalRaid(positional: { center: number; width: number }, over = facingNorthRoster) {
   return loadRaid({
     ...baseRaid,

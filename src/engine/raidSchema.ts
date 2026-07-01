@@ -327,6 +327,7 @@ const AOEEventSchema = z.object({
   anchor: z.literal("boss").optional(),            // origin = boss.pos
   directionFrom: z.literal("bossFacing").optional(), // shape direction = boss.facing
   directionOffset: z.number().optional(),          // rotate the bossFacing direction (radians, clockwise)
+  aimAtPlayer: z.string().min(1).optional(),       // cone/rect direction snapshots toward this player id
   // The boss freezes its facing for the duration of the cast (telegraph), then resumes.
   // Defaults to true; set false to let the boss keep tracking its target mid-cast.
   lockFacing: z.boolean().default(true),

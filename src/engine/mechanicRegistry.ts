@@ -192,6 +192,7 @@ const aoe: MechanicModule = {
           anchor: e.anchor,
           directionFrom: e.directionFrom,
           directionOffset: e.directionOffset,
+          aimAtPlayer: e.aimAtPlayer,
           lockFacing: e.lockFacing,
           bossStationary: e.bossStationary,
           deferred: e.deferred,

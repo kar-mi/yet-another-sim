@@ -1,6 +1,6 @@
-import type { ActiveMechanic, AOEShape, Boss, PendingEvent } from "@shared/types";
+import type { ActiveMechanic, AOEShape, Boss, PendingEvent, Player } from "@shared/types";
 import { sin, cos } from "@shared/dmath";
-import { normalize, scale, add } from "@shared/math";
+import { normalize, scale, add, sub } from "@shared/math";
 
 function bossForEvent(event: PendingEvent, bosses: Boss[]): Boss {
   const b = event.bossId ? bosses.find(b => b.id === event.bossId) : undefined;
@@ -35,7 +35,12 @@ export function anchorShape(
   };
 }
 
-function resolveAnchoredShape(event: PendingEvent, boss: Boss): AOEShape {
+function shapeAimOrigin(shape: AOEShape) {
+  if (shape.kind === "cone" || shape.kind === "rect") return shape.origin;
+  return undefined;
+}
+
+function resolveAnchoredShape(event: PendingEvent, boss: Boss, players: Player[]): AOEShape {
   if (event.bossRelativeCenter && (event.shape.kind === "circle" || event.shape.kind === "donut")) {
     const forward = normalize({ x: -boss.pos.x, z: -boss.pos.z });
     const relativeNorth = forward.x === 0 && forward.z === 0 ? { x: 0, z: -1 } : forward;
@@ -43,13 +48,20 @@ function resolveAnchoredShape(event: PendingEvent, boss: Boss): AOEShape {
     const center = add(scale(right, event.bossRelativeCenter.lateral), scale(relativeNorth, event.bossRelativeCenter.forward));
     return { ...event.shape, center };
   }
-  return anchorShape(boss, event.shape, event);
+  const shape = anchorShape(boss, event.shape, event);
+  if (event.aimAtPlayer && (shape.kind === "cone" || shape.kind === "rect")) {
+    const target = players.find(player => player.id === event.aimAtPlayer && player.alive);
+    const origin = shapeAimOrigin(shape);
+    if (target && origin) return { ...shape, direction: normalize(sub(target.pos, origin)) };
+  }
+  return shape;
 }
 
 export function promotePending(
   pending: PendingEvent[],
   time: number,
   bosses: Boss[],
+  players: Player[],
 ): { promoted: ActiveMechanic[]; remaining: PendingEvent[] } {
   const promoted: ActiveMechanic[] = [];
   const remaining: PendingEvent[] = [];
@@ -65,7 +77,7 @@ export function promotePending(
         bossId: event.bossId,
         // Deferred (stored) cleaves don't snapshot geometry now; a linked bait recomputes it from the
         // boss's locked facing at arm time, so keep the raw shape as a hidden placeholder until then.
-        shape: event.deferred ? event.shape : resolveAnchoredShape(event, boss),
+        shape: event.deferred ? event.shape : resolveAnchoredShape(event, boss, players),
         telegraphStart: event.t,
         resolveAt: event.t + event.telegraph,
         damage: event.damage,

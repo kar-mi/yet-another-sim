@@ -87,7 +87,7 @@ export function resolveAoe(ctx: TickContext): {
   const { players, bosses, boss, log, time, dt, randInt } = ctx;
 
   // 3. Promote pending events whose t <= time (boss snapshots facing-anchored shapes)
-  const { promoted, remaining: pending } = promotePending(ctx.world.pending, time, bosses);
+  const { promoted, remaining: pending } = promotePending(ctx.world.pending, time, bosses, players);
   const active: ActiveMechanic[] = [...ctx.world.active.map(m => ({ ...m })), ...promoted];
 
   // 3b. Promote targeted events into casts. The near/far target (and circle center) is

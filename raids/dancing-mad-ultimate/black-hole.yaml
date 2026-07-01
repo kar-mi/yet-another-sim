@@ -9,7 +9,7 @@ duration: 150
 
 bosses:
   - id: chaos
-    pos: { x: -8, z: 0 }
+    pos: { x: 0, z: 0 }
     aggro: mt
   - id: exdeath
     pos: { x: 8, z: 0 }
@@ -254,9 +254,23 @@ events:
     requiredCount: 8
     damage: 120
     damageType: magical
-    showCastBar: true
+    showCastBar: false
     showMarker: false
     showTelegraph: false
+
+  - type: aoe
+    id: chaos-cone-at-h1-1
+    time: 28
+    name: Chaos Cone
+    telegraph: 4
+    damage: 40
+    damageType: magical
+    showCastBar: false
+    telegraphMode: resolve
+    bossId: chaos
+    anchor: boss
+    aimAtPlayer: h1
+    shape: { kind: cone, angleDeg: 70, length: 30 }
 
   - type: hazard
     id: black-hole-1
