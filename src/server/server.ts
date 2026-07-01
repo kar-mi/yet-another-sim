@@ -8,6 +8,7 @@ import { capacitySnapshot } from "./relayRoom";
 import { logger } from "./logger";
 import { startMetricsServer } from "./metricsServer";
 import { getRaidCategories, raidCatalogCacheControl } from "./raidCatalog";
+import { listReplays, loadReplay } from "./replayReader";
 
 const ROOT = join(import.meta.dir, "..", "..");
 const BUNDLE_DIR = join(ROOT, ".bundle");
@@ -96,6 +97,26 @@ const serverOptions: ServerOptions = {
     app.get("/api/raids", async (_req: any, res: any) => {
       res.setHeader("Cache-Control", raidCatalogCacheControl);
       res.json(await getRaidCategories());
+    });
+    app.get("/api/replays/:sessionId", async (req: any, res: any) => {
+      res.setHeader("Cache-Control", "no-store");
+      try {
+        res.json(await listReplays(String(req.params.sessionId ?? "")));
+      } catch {
+        res.status(400).send("Invalid session id");
+      }
+    });
+    app.get("/api/replays/:sessionId/:pull", async (req: any, res: any) => {
+      res.setHeader("Cache-Control", "no-store");
+      const pull = Number(req.params.pull);
+      if (!Number.isInteger(pull) || pull < 0) return res.status(400).send("Invalid pull");
+      try {
+        const replay = await loadReplay(String(req.params.sessionId ?? ""), pull);
+        if (!replay) return res.status(404).send("Not found");
+        res.json(replay);
+      } catch {
+        res.status(400).send("Invalid session id");
+      }
     });
     app.get("/static/*splat", async (req: any, res: any) => {
       const rel = String(req.path ?? "").slice("/static/".length);

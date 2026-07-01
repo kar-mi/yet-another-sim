@@ -1795,6 +1795,14 @@ img.yas-debuff-icon {
   margin-bottom: 18px;
 }
 
+.yas-lobby-replays {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  margin-bottom: 18px;
+}
+
 .yas-lobby-slot {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 72px 82px;
@@ -2176,6 +2184,10 @@ img.yas-debuff-icon {
 .yas-playback-controls button:not(:disabled):hover {
   border-color: var(--px-accent);
   color: var(--px-accent);
+}
+
+.yas-replay-seek {
+  width: 190px;
 }
 
 /* ===== SESSION ID BADGE ===== */

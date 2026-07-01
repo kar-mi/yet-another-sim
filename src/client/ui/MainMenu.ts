@@ -10,6 +10,7 @@ import {
   type PlaybackState,
   type RaidCategory,
   type RaidEntry,
+  type Frame,
   type ServerMessage,
 } from "@shared/protocol";
 import type { World } from "@shared/types";
@@ -21,6 +22,8 @@ declare const __YAS_STATIC__: boolean | undefined;
 const LOBBY_SLOT_ORDER = ["mt", "ot", "h1", "h2", "m1", "m2", "r1", "r2"] as const;
 
 type LobbyMessage = Extract<ServerMessage, { type: "lobby" }>;
+type ReplaySummary = { pull: number; raidId: string; ticks: number };
+type ReplayData = { raidId: string; world: World; frames: Frame[] };
 
 function normalizeRaidEntry(value: unknown): RaidEntry | null {
   if (!value || typeof value !== "object") return null;
@@ -75,6 +78,24 @@ export async function loadRaidCategories(): Promise<RaidCategory[]> {
   return categories;
 }
 
+async function loadReplayList(sessionId: string): Promise<ReplaySummary[]> {
+  if (typeof __YAS_STATIC__ !== "undefined" && __YAS_STATIC__) return [];
+  const res = await fetch(`/api/replays/${encodeURIComponent(sessionId)}`);
+  if (!res.ok) return [];
+  const json: unknown = await res.json();
+  if (!Array.isArray(json)) return [];
+  return json.filter((row): row is ReplaySummary => {
+    const replay = row as Partial<ReplaySummary>;
+    return Number.isInteger(replay.pull) && typeof replay.raidId === "string" && Number.isInteger(replay.ticks);
+  });
+}
+
+async function loadReplay(sessionId: string, pull: number): Promise<ReplayData> {
+  const res = await fetch(`/api/replays/${encodeURIComponent(sessionId)}/${pull}`);
+  if (!res.ok) throw new Error(`Failed to load replay: ${res.status}`);
+  return await res.json() as ReplayData;
+}
+
 export function showLanding(options?: { notice?: string }): Promise<string> {
   return new Promise((resolve) => {
     const landingNote = typeof __YAS_STATIC__ !== "undefined" && __YAS_STATIC__
@@ -125,6 +146,7 @@ function playbackStateForLobby(status: LobbyStatus): PlaybackState {
 
 type LobbyResult =
   | { kind: "started"; world: World; yourPlayerId: string | null; sessionId: string; raidId: string; isHost: boolean; playbackState: PlaybackState }
+  | { kind: "replay"; pull: number; raidId: string; world: World; frames: Frame[] }
   | { kind: "expired" };
 
 export async function showLobby(net: NetClient, sessionId: string): Promise<LobbyResult> {
@@ -146,6 +168,7 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
     };
 
     const cleanup = () => {
+      closed = true;
       for (const dispose of disposers) dispose();
       overlay.remove();
     };
@@ -155,6 +178,38 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
         createElement("div", "yas-menu-title", "YET ANOTHER SIM"),
         createElement("div", "yas-menu-subtitle", subtitle),
       );
+    };
+
+    const renderReplays = (): HTMLElement => {
+      const section = createElement("div", "yas-lobby-replays");
+      section.appendChild(createElement("div", "yas-menu-subtitle", "REPLAYS"));
+      if (!replays || replays.length === 0) {
+        section.appendChild(createElement("div", "yas-menu-note", "No saved pulls"));
+        return section;
+      }
+      for (const replay of replays) {
+        const row = createElement("div", "yas-lobby-slot");
+        const meta = createElement("div", "yas-lobby-slot-meta");
+        meta.append(
+          createElement("span", "yas-lobby-slot-id", `PULL ${replay.pull}`),
+          createElement("span", "yas-lobby-slot-role", `${Math.round(replay.ticks / 60)}S`),
+        );
+        const action = createElement("button", "yas-lobby-slot-action", "WATCH");
+        action.addEventListener("click", async () => {
+          action.disabled = true;
+          try {
+            const loaded = await loadReplay(sessionId, replay.pull);
+            cleanup();
+            resolve({ kind: "replay", pull: replay.pull, raidId: loaded.raidId, world: loaded.world, frames: loaded.frames });
+          } catch {
+            action.disabled = false;
+            showError("Failed to load replay");
+          }
+        });
+        row.append(meta, createElement("div", "yas-lobby-slot-status", replay.raidId), action);
+        section.appendChild(row);
+      }
+      return section;
     };
 
     const renderSlot = (slot: LobbySlot, claimedByMe: boolean, observingByMe: boolean): HTMLElement => {
@@ -250,13 +305,15 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
       );
 
       if (message.status === "lobby") {
-        panel.append(sessionEl, slotList, startBtn);
+        panel.append(sessionEl, slotList, renderReplays(), startBtn);
       } else {
-        panel.append(slotList, sessionEl, startBtn);
+        panel.append(slotList, sessionEl, renderReplays(), startBtn);
       }
     };
 
     let lastLobby: LobbyMessage | null = null;
+    let replays: ReplaySummary[] | null = null;
+    let closed = false;
 
     const disposers = [
       net.on("lobby", renderLobby),
@@ -275,6 +332,11 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
     ];
 
     renderHeader("WAITING FOR LOBBY");
+    void loadReplayList(sessionId).catch(() => []).then(list => {
+      if (closed) return;
+      replays = list;
+      if (lastLobby) renderLobby(lastLobby);
+    });
     net.send({ type: "join", sessionId, raidId: EMPTY_RAID_ID });
   });
 }

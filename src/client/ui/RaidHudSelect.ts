@@ -10,7 +10,14 @@ import type { HudLayoutManager } from "./HudLayoutManager";
  * In-sim HUD: raid picker modal + playback controls.
  * Returns a disposer that tears down listeners and DOM.
  */
-export async function createRaidHudSelect(net: NetClient, initialRaidId: string, initialIsHost: boolean, initialPlaybackState: PlaybackState, hudLayout: HudLayoutManager): Promise<() => void> {
+export async function createRaidHudSelect(
+  net: NetClient,
+  initialRaidId: string,
+  initialIsHost: boolean,
+  initialPlaybackState: PlaybackState,
+  hudLayout: HudLayoutManager,
+  replay?: { duration: () => number; currentTick: () => number; play: () => void; pause: () => void; restart: () => void; seek: (tick: number) => void },
+): Promise<() => void> {
   let isHost = initialIsHost;
   let lastState: PlaybackState = initialPlaybackState;
   const defaultLobbyCategory: RaidCategory = {
@@ -185,19 +192,44 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
   document.body.appendChild(modal);
 
   const controls = el("div", { className: "yas-playback-controls" });
+  const canControl = () => !!replay || isHost;
   const makePlaybackBtn = (labelText: string, onClick: () => void) => {
-    const btn = el("button", { type: "button", textContent: labelText, disabled: !isHost });
+    const btn = el("button", { type: "button", textContent: labelText, disabled: !canControl() });
     btn.addEventListener("click", () => {
       btn.blur();
       onClick();
     });
     return btn;
   };
-  const playBtn = makePlaybackBtn("PLAY", () => net.send({ type: "play" }));
-  const pauseBtn = makePlaybackBtn("PAUSE", () => net.send({ type: "pause" }));
+  const playBtn = makePlaybackBtn("PLAY", () => replay ? replay.play() : net.send({ type: "play" }));
+  const pauseBtn = makePlaybackBtn("PAUSE", () => replay ? replay.pause() : net.send({ type: "pause" }));
   const stopBtn = makePlaybackBtn("STOP", () => net.send({ type: "stop" }));
-  const restartBtn = makePlaybackBtn("RESTART", () => net.send({ type: "restart" }));
-  controls.append(playBtn, pauseBtn, stopBtn, restartBtn);
+  const restartBtn = makePlaybackBtn("RESTART", () => replay ? replay.restart() : net.send({ type: "restart" }));
+  if (replay) {
+    controls.append(playBtn, pauseBtn, restartBtn);
+  } else {
+    controls.append(playBtn, pauseBtn, stopBtn, restartBtn);
+  }
+
+  let draggingSeek = false;
+  const seek = replay ? el("input", {
+    className: "yas-replay-seek",
+    type: "range",
+    min: "0",
+    max: String(replay.duration()),
+    value: "0",
+    step: "1",
+    ariaLabel: "Replay seek",
+  }) : null;
+  seek?.addEventListener("input", () => {
+    draggingSeek = true;
+    replay?.seek(Number(seek.value));
+  });
+  seek?.addEventListener("change", () => { draggingSeek = false; });
+  const seekTimer = replay && seek ? setInterval(() => {
+    seek.max = String(replay.duration());
+    if (!draggingSeek) seek.value = String(replay.currentTick());
+  }, 100) : null;
 
   syncPlayback = (state: PlaybackState) => {
     lastState = state;
@@ -205,14 +237,14 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
     raidBtn.disabled = locked;
     if (locked) closeModal(false);
     // Play can't resume a finished pull (the server rejects it) — steer the host to RESTART instead.
-    playBtn.disabled = raidChangePending || !isHost || state === "playing" || state === "done";
-    pauseBtn.disabled = raidChangePending || !isHost || state !== "playing";
-    stopBtn.disabled = raidChangePending || !isHost || state === "stopped";
-    restartBtn.disabled = raidChangePending || !isHost;
+    playBtn.disabled = raidChangePending || !canControl() || state === "playing" || state === "done";
+    pauseBtn.disabled = raidChangePending || !canControl() || state !== "playing";
+    stopBtn.disabled = raidChangePending || !canControl() || state === "stopped";
+    restartBtn.disabled = raidChangePending || !canControl();
   };
 
   const disposePlayback = net.on("playback", message => {
-    isHost = net.clientId === message.hostClientId;
+    isHost = replay ? false : net.clientId === message.hostClientId;
     if (message.raidId !== activeRaidId) showLoadingOverlay(RAID_CHANGE_START_DELAY_MS);
     const wasRaidChangePending = raidChangePending;
     activeRaidId = message.raidId;
@@ -246,11 +278,13 @@ export async function createRaidHudSelect(net: NetClient, initialRaidId: string,
   const selectRow = el("div", { className: "yas-raid-select-row" });
   selectRow.append(raidBtn);
   wrapper.append(label, selectRow, controls);
+  if (seek) wrapper.appendChild(seek);
   document.body.appendChild(wrapper);
   hudLayout.register("raidselector", wrapper);
   return () => {
     disposePlayback();
     disposeError();
+    if (seekTimer) clearInterval(seekTimer);
     document.removeEventListener("keydown", onKeydown);
     modal.remove();
     hudLayout.unregister("raidselector");
