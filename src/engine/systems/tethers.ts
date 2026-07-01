@@ -2,8 +2,11 @@
 // living player, allow interception before finalization, then finalize into a buff/debuff effect.
 
 import type { TickContext } from "./context";
-import type { TetherSource, PendingTether } from "@shared/types";
-import { selectTargetPlayer, findInterceptor, applyEffect } from "./helpers";
+import type { AOEShape, TetherSource, PendingTether } from "@shared/types";
+import { length, normalize, sub } from "@shared/math";
+import { pointInShape } from "../shapes";
+import { selectTargetPlayer, findInterceptor, applyEffect, applyMechanicDamage } from "./helpers";
+import { addResolvedAoeVisual } from "./effectResolvers";
 
 const TETHER_LINGER = 2;
 
@@ -27,6 +30,7 @@ export function resolveTethers(ctx: TickContext): {
         behavior: pt.behavior,
         effectDuration: pt.effectDuration,
         icon: pt.icon,
+        beam: pt.beam,
         tetheredPlayerId: nearest?.id ?? null,
         finalized: false,
       });
@@ -66,6 +70,25 @@ export function resolveTethers(ctx: TickContext): {
           icon: ts.icon,
         }, time, `${ts.id}-effect`, players);
         log.push({ t: time, mechanic: ts.buffName, playerId: target.id, event: ts.tetherKind === "buff" ? "cleared" : "hit" });
+      }
+      if (ts.beam) {
+        const aim = ts.beam.pointing ?? (target && sub(target.pos, ts.pos));
+        if (aim && length(aim) > 0) {
+          const shape: AOEShape = {
+            kind: "rect",
+            origin: ts.pos,
+            direction: normalize(aim),
+            width: ts.beam.width,
+            length: ts.beam.length,
+          };
+          addResolvedAoeVisual(ctx, `${ts.id}-beam`, ts.buffName, shape);
+          for (const player of players) {
+            if (!player.alive || !pointInShape(shape, player.pos)) continue;
+            applyMechanicDamage(player, ts.beam.damage, ts.beam.damageType, time);
+            log.push({ t: time, mechanic: ts.buffName, playerId: player.id, event: "hit" });
+            if (player.alive && ts.beam.applyEffect) applyEffect(player, ts.beam.applyEffect, time, `${ts.id}-beam-${player.id}`, players);
+          }
+        }
       }
     }
   }

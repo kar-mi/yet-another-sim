@@ -413,6 +413,14 @@ const TetherSourceEventSchema = z.object({
   behavior: EffectBehaviorSchema.default({ kind: "none" }),
   effectDuration: z.number().positive().default(15),
   icon: z.string().min(1).optional(),   // HUD icon filename for the tether buff, served from /static/debuffs/
+  beam: z.object({
+    width: z.number().positive(),
+    length: z.number().positive(),
+    damage: z.number().nonnegative(),
+    damageType: z.enum(["physical", "magical", "true"]).default("true"),
+    applyEffect: ApplyEffectSchema.optional(),
+    pointing: Vec2Schema.optional(),
+  }).optional(),
 });
 
 const LineLinkTargetSchema = z.object({

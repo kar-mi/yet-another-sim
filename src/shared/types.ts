@@ -719,8 +719,18 @@ export type TetherSource = {
   behavior: EffectBehavior;
   effectDuration: number;
   icon?: string;
+  beam?: TetherBeam;
   tetheredPlayerId: string | null;
   finalized: boolean;
+};
+
+export type TetherBeam = {
+  width: number;
+  length: number;
+  damage: number;
+  damageType: DamageType;
+  applyEffect?: EffectSpec;
+  pointing?: Vec2;
 };
 
 export type PendingTether = {
@@ -733,6 +743,7 @@ export type PendingTether = {
   behavior: EffectBehavior;
   effectDuration: number;
   icon?: string;
+  beam?: TetherBeam;
 };
 
 export type LineLinkTarget = {
