@@ -5,7 +5,8 @@ import { loadSettings, saveSettings } from "./settings";
 import { showLanding, showLobby } from "./ui/MainMenu";
 import { initSettingsPanel } from "./ui/SettingsPanel";
 import { createRaidHudSelect } from "./ui/RaidHudSelect";
-import { connect } from "./net";
+import { NetClient, connect } from "./net";
+import { ReplayTransport } from "./replayTransport";
 import { preloadAssets } from "./render/preloadAssets";
 import { SessionIdSchema } from "@shared/protocol";
 import { consoleSink, logger, parseLevel } from "@shared/logger";
@@ -84,6 +85,53 @@ async function main(): Promise<void> {
     const lobbyResult = await lobby;
     if (lobbyResult.kind === "expired") {
       sessionId = await showLanding({ notice: "Session expired" });
+      continue;
+    }
+    if (lobbyResult.kind === "replay") {
+      const transport = new ReplayTransport(lobbyResult);
+      const replayNet = new NetClient(transport);
+      await replayNet.open();
+      replayNet.send({ type: "join", sessionId, raidId: lobbyResult.raidId });
+
+      let resolveSessionEnd!: () => void;
+      const sessionEnd = new Promise<void>(resolve => { resolveSessionEnd = resolve; });
+      resolveHome = resolveSessionEnd;
+
+      renderer = new BabylonRenderer(canvas, nextSettings => {
+        Object.assign(settings, nextSettings);
+        saveSettings(settings);
+      }, position => {
+        replayNet.send({ type: "debugPosition", ...position });
+      }, enabled => {
+        replayNet.send({ type: "setBotsInvincible", enabled });
+      }, hudLayout);
+      renderer.init(lobbyResult.world, sessionId);
+      renderer.applySettings(settings);
+      renderer.setPlaybackState("paused");
+      syncKeybindLabels();
+      updateController();
+
+      const disposeRaidSelect = await createRaidHudSelect(replayNet, lobbyResult.raidId, false, "paused", hudLayout, transport);
+      const disposeInput = initInput();
+      const disposePerfHud = initPerfHud();
+      const stopLoop = startNetLoop(renderer, replayNet);
+      const activeRenderer = renderer;
+      currentTeardown = () => {
+        stopLoop();
+        disposePerfHud();
+        disposeInput();
+        disposeRaidSelect();
+        replayNet.close();
+        activeRenderer.dispose();
+      };
+
+      homeBtn.style.display = "block";
+      await sessionEnd;
+      resolveHome = null;
+      homeBtn.style.display = "none";
+      currentTeardown();
+      currentTeardown = () => {};
+      renderer = null;
       continue;
     }
     const session = lobbyResult;

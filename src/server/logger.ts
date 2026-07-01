@@ -1,6 +1,6 @@
 // Server-side logger setup: console + batched append to logs/sim.log.
 // Importing this module for its side effect configures the shared `logger`.
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { join } from "path";
 import { consoleSink, formatRecord, logger, parseLevel, type LogRecord, type Sink } from "@shared/logger";
 import type { SessionLog } from "./sessionRaid";
@@ -70,9 +70,21 @@ logger.configure({
 // the input frames it relays ARE the pull. Each pull opens with a header line carrying the
 // tick-0 world (seed included) + raid id; replaying the subsequent frame lines against that world
 // reproduces the entire pull deterministically.
+export function sanitizeSessionId(sessionId: string): string {
+  return sessionId.replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
 export function createSessionLog(sessionId: string): SessionLog {
   mkdirSync(SESSION_LOG_DIR, { recursive: true });
-  const safeId = sessionId.replace(/[^a-zA-Z0-9_-]/g, "_");
+  let safeId = sanitizeSessionId(sessionId);
+  const pullMatch = safeId.match(/^(.*-pull-)(\d+)$/);
+  if (pullMatch) {
+    let pull = Number(pullMatch[2]);
+    while (existsSync(join(SESSION_LOG_DIR, `${safeId}.jsonl`))) {
+      pull++;
+      safeId = `${pullMatch[1]}${pull}`;
+    }
+  }
   const writer = Bun.file(join(SESSION_LOG_DIR, `${safeId}.jsonl`)).writer();
 
   let dirty = false;

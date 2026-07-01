@@ -300,12 +300,13 @@ test("client can reclaim and enter a stopped session", () => {
   session.step(false);
 
   session.stop("c1");
+  const startedBeforeClaim = sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started").length;
   session.releaseSlot("c1", "mt");
   session.claimSlot("c1", "mt");
 
   expect(session.status).toBe("stopped");
   expect(session.world.time).toBe(0);
-  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === "mt" && entry.message.world.time === 0)).toBe(true);
+  expect(sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started")).toHaveLength(startedBeforeClaim);
 });
 
 test("host leaving to the lobby stops the session without bouncing the host, and resets other clients", () => {
@@ -344,11 +345,13 @@ test("host can start again from a stopped lobby re-entry", () => {
   session.stop("c1");
   session.releaseSlot("c1", "mt");
   session.claimObserver("c1");
+  const startedBeforePlay = sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started").length;
 
   session.play("c1");
 
   expect(session.status).toBe("running");
   expect(session.world.time).toBe(0);
+  expect(sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started")).toHaveLength(startedBeforePlay + 1);
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === null)).toBe(true);
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "playback" && entry.message.state === "playing")).toBe(true);
 });
@@ -797,12 +800,13 @@ test("client can re-enter after leaving a finished session", () => {
   session.start("c1");
   session.status = "done" as SessionStatus;
 
+  const startedBeforeClaim = sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started").length;
   session.releaseSlot("c1", "mt");
   session.claimSlot("c1", "mt");
 
   expect(session.status).toBe("done");
   expect(session.slots.get("mt")).toBe("c1");
-  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === "mt")).toBe(true);
+  expect(sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started")).toHaveLength(startedBeforeClaim);
 });
 
 test("observer can re-enter after leaving a finished session", () => {
@@ -812,12 +816,13 @@ test("observer can re-enter after leaving a finished session", () => {
   session.start("c1");
   session.status = "done" as SessionStatus;
 
+  const startedBeforeClaim = sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started").length;
   session.releaseObserver("c1");
   session.claimObserver("c1");
 
   expect(session.status).toBe("done");
   expect(session.observers.has("c1")).toBe(true);
-  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === null)).toBe(true);
+  expect(sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started")).toHaveLength(startedBeforeClaim);
 });
 
 test("host can stop after the session ends", () => {

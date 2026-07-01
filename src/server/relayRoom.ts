@@ -248,9 +248,11 @@ export class RelayRoom {
       return;
     }
 
+    const wasStopped = this.status === "stopped";
     // Clients resume stepping from the frames that follow; the local world held while paused.
     this.status = "running";
     this.relay.start();
+    if (wasStopped) this.broadcastStarted();
     this.broadcastPlayback();
     logger.info("session", "resumed", { session: this.id, raid: this.raidId });
   }
@@ -408,7 +410,7 @@ export class RelayRoom {
     this.applySlotControlsToWorld();
     this.broadcastLobby();
 
-    if (this.status === "stopped" || this.status === "done" || (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused"))) {
+    if (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused")) {
       this.sendTo(clientId, this.startedMessage(playerId));
     }
   }
@@ -446,7 +448,7 @@ export class RelayRoom {
     this.observers.add(clientId);
     this.broadcastLobby();
 
-    if (this.status === "stopped" || this.status === "done" || (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused"))) {
+    if (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused")) {
       this.sendTo(clientId, this.startedMessage(null));
     }
   }
