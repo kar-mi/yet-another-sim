@@ -74,7 +74,7 @@ _slapHappyCircle: &slapHappyCircle
   type: aoe
   name: Slap Happy
   telegraph: 4
-  damage: 20
+  damage: 200
   damageType: physical
   telegraphMode: resolve
   bossId: kefka
@@ -86,7 +86,7 @@ _thunderIII: &thunderIII
   targetMode: closest
   radius: 4
   telegraph: 4
-  damage: 55
+  damage: 100
   damageType: magical
   showCastBar: true
   bossId: exdeath
@@ -174,7 +174,7 @@ _damningEdictStore: &damningEdictStore
   anchor: boss
   directionFrom: bossFacing
   telegraph: 5
-  damage: 90
+  damage: 200
   damageType: magical
   shape: { kind: cone, angleDeg: 180, length: 24 }
   telegraphMode: resolve
@@ -193,7 +193,7 @@ _lookUponMe: &lookUponMe
   type: aoe
   name: Look Upon Me
   telegraph: 4
-  damage: 60
+  damage: 200
   damageType: physical
   showCastBar: true
   bossId: kefka

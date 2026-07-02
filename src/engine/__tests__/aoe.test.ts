@@ -58,9 +58,9 @@ test("targeted mechanic respects the role filter when selecting furthest", () =>
     ...baseRaid,
     // mt is furthest overall, but the bait is dps-only; m2 is the furthest dps.
     players: roster({ mt: { spawn: [0, 14] }, m1: { spawn: [0, 5] }, m2: { spawn: [0, 9] } }),
-    events: [{ t: 1, name: "Far Bait", type: "targeted", targetMode: "furthest", role: "dps", radius: 2, telegraph: 1, damage: 50, damageType: "physical" }],
+    events: [{ t: 0, name: "Far Bait", type: "targeted", targetMode: "furthest", role: "dps", radius: 2, telegraph: 0.1, damage: 50, damageType: "physical" }],
   });
-  const world = runTicks(createWorld(raid), {}, Math.ceil(2.1 * 60));
+  const world = runTicks(createWorld(raid), {}, Math.ceil(0.2 * 60));
   expect(world.players.find(p => p.id === "m2")!.hp).toBeLessThan(100);
   expect(world.players.find(p => p.id === "m1")!.hp).toBe(DPS_HP);
   expect(world.players.find(p => p.id === "mt")!.hp).toBe(TANK_HP); // tank, unhit

@@ -284,7 +284,8 @@ export function resolveAoe(ctx: TickContext): {
       if (mechanic.targeting && mechanic.shape.kind === "circle" && mechanic.targeting.mode !== "aggro"
         && (mechanic.targeting.count ?? 1) > 1) {
         const radius = mechanic.shape.radius;
-        const targets = selectTargetPlayers(players, mechanic.targeting.origin, mechanic.targeting.mode, mechanic.targeting.count!, mechanic.targeting.role);
+        const mBoss = bossFor(bosses, mechanic.bossId);
+        const targets = selectTargetPlayers(players, mBoss.pos, mechanic.targeting.mode, mechanic.targeting.count!, mechanic.targeting.role);
         for (const target of targets) {
           const circle: AOEShape = { kind: "circle", center: { x: target.pos.x, z: target.pos.z }, radius };
           addResolvedAoeVisual(ctx, `${mechanic.id}-${target.id}-visual`, mechanic.name, circle);
@@ -302,7 +303,7 @@ export function resolveAoe(ctx: TickContext): {
         const mBoss = bossFor(bosses, mechanic.bossId);
         const target = mechanic.targeting.mode === "aggro"
           ? players.find(p => p.alive && p.id === mBoss.currentTarget) ?? null
-          : selectTargetPlayer(players, mechanic.targeting.origin, mechanic.targeting.mode, mechanic.targeting.role);
+          : selectTargetPlayer(players, mBoss.pos, mechanic.targeting.mode, mechanic.targeting.role);
         if (!target) { mechanic.resolved = true; continue; } // no valid target: fizzle, no telegraph flash
         mechanic.shape = { kind: "circle", center: { x: target.pos.x, z: target.pos.z }, radius: mechanic.shape.radius };
       }
