@@ -11,44 +11,44 @@ _fallback: &fallback
   m2: { x: 2, z: -5 }
 
 _partySafeEast: &partySafeEast
-  mt: { r: 14, z: 0 }
-  ot: { r: 14, z: 0 }
-  h1: { r: 14, z: 0 }
-  h2: { r: 14, z: 0 }
-  r1: { r: 14, z: 0 }
-  r2: { r: 14, z: 0 }
-  m1: { r: 14, z: 0 }
-  m2: { r: 14, z: 0 }
+  mt: { r: 7, z: 0 }
+  ot: { r: 7, z: 0 }
+  h1: { r: 7, z: 0 }
+  h2: { r: 7, z: 0 }
+  r1: { r: 7, z: 0 }
+  r2: { r: 7, z: 0 }
+  m1: { r: 7, z: 0 }
+  m2: { r: 7, z: 0 }
 
 _roleSafeWest: &roleSafeWest
-  mt: { r: -14, z: 5 }
-  ot: { r: -14, z: 5 }
-  h1: { r: -14, z: 0 }
-  h2: { r: -14, z: 0 }
-  r1: { r: -14, z: -5 }
-  r2: { r: -14, z: -5 }
-  m1: { r: -14, z: -5 }
-  m2: { r: -14, z: -5 }
+  mt: { r: -7, z: 10 }
+  ot: { r: -7, z: 10 }
+  h1: { r: -7, z: 0 }
+  h2: { r: -7, z: 0 }
+  r1: { r: -7, z: -10 }
+  r2: { r: -7, z: -10 }
+  m1: { r: -7, z: -10 }
+  m2: { r: -7, z: -10 }
 
 _baitUnsafeWest: &baitUnsafeWest
-  mt: { r: -14, z: 0 }
-  ot: { r: -14, z: 0 }
-  h1: { r: -14, z: 0 }
-  h2: { r: -14, z: 0 }
-  r1: { r: -14, z: 0 }
-  r2: { r: -14, z: 0 }
-  m1: { r: -14, z: 0 }
-  m2: { r: -14, z: 0 }
+  mt: { r: -7, z: 0 }
+  ot: { r: -7, z: 0 }
+  h1: { r: -7, z: 0 }
+  h2: { r: -7, z: 0 }
+  r1: { r: -7, z: 0 }
+  r2: { r: -7, z: 0 }
+  m1: { r: -7, z: 0 }
+  m2: { r: -7, z: 0 }
 
 _baitUnsafeEast: &baitUnsafeEast
-  mt: { r: 14, z: 0 }
-  ot: { r: 14, z: 0 }
-  h1: { r: 14, z: 0 }
-  h2: { r: 14, z: 0 }
-  r1: { r: 14, z: 0 }
-  r2: { r: 14, z: 0 }
-  m1: { r: 14, z: 0 }
-  m2: { r: 14, z: 0 }
+  mt: { r: 7, z: 0 }
+  ot: { r: 7, z: 0 }
+  h1: { r: 7, z: 0 }
+  h2: { r: 7, z: 0 }
+  r1: { r: 7, z: 0 }
+  r2: { r: 7, z: 0 }
+  m1: { r: 7, z: 0 }
+  m2: { r: 7, z: 0 }
 
 _behindChaos: &behindChaos
   mt: { r: -3, z: -8 }
@@ -60,7 +60,7 @@ _behindChaos: &behindChaos
   m1: { r: -1, z: -14 }
   m2: { r: 1, z: -14 }
 
-_clockwiseSoak: &clockwiseSoak { r: 7.44, z: 10.44 }
+_clockwiseSoak: &clockwiseSoak { r: 10.44, z: 5.44 }
 _stackMiddle: &stackMiddle { x: 0, z: 0 }
 
 _thunderBait: &thunderBait
