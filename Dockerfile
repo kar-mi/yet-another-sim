@@ -1,4 +1,4 @@
-FROM oven/bun:1
+FROM oven/bun:1.3.14
 
 WORKDIR /app
 
@@ -9,5 +9,8 @@ RUN bun install --frozen-lockfile
 # Copy the rest of the source
 COPY . .
 RUN bun run build
+
+RUN chown -R bun:bun /app
+USER bun
 
 CMD ["bun", "src/server/server.ts"]

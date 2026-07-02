@@ -128,7 +128,8 @@ const serverOptions: ServerOptions = {
     app.get("/{*splat}", async (req: any, res: any) => {
       const path = String(req.path ?? "/");
       const relPath = path === "/" ? "index.html" : path.slice(1);
-      if (await sendBundlePath(res, relPath)) return;
+      const relPathSafe = /^[A-Za-z0-9_\-./]+$/.test(relPath) && !relPath.includes("..");
+      if (relPathSafe && (await sendBundlePath(res, relPath))) return;
       if (await sendBundlePath(res, "index.html")) return;
       res.status(404).send("Not found");
     });

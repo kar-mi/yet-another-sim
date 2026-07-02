@@ -12,6 +12,16 @@ test("auth accepts Bun Headers from Colyseus websocket context", () => {
   expect(client.userData?.ip).toBe("127.0.0.1");
 });
 
+test("onCreate rejects a path-traversal raidId", async () => {
+  const room = new RelayServerRoom() as any;
+  room.roomId = "test-room";
+  room.setMetadata = async () => {};
+  room.clock = { setInterval: () => 0 };
+
+  await expect(room.onCreate({ sessionId: "test-room", raidId: "../../etc/passwd", autoTick: false }))
+    .rejects.toThrow();
+});
+
 test("colyseus messages reach the relay", async () => {
   const sent: any[] = [];
   const room = new RelayServerRoom() as any;
