@@ -78,10 +78,15 @@ export function resolveTethers(ctx: TickContext): {
   for (const ts of tetherSources) {
     if (ts.finalized) continue;
 
-    ts.tetheredPlayerId = selectTargetPlayer(players, ts.pos, "closest")?.id ?? null;
+    // Sticky targeting: keep the same target unless they die (or there's none yet). Persistent
+    // tethers keep hitting the same locked target across all of their scheduled fires.
+    if (!ts.tetheredPlayerId || !players.find(p => p.id === ts.tetheredPlayerId)?.alive) {
+      ts.tetheredPlayerId = selectTargetPlayer(players, ts.pos, "closest")?.id ?? null;
+    }
 
-    // Check for interceptions (only before finalization)
-    if (ts.tetheredPlayerId && time < ts.finalizeAt) {
+    // Check for interceptions before each upcoming scheduled fire (not just the first) - someone
+    // can walk the source->target line to steal the tether ahead of any of its hits.
+    if (ts.tetheredPlayerId && ts.nextFireIndex < ts.fireTimes.length && time < ts.fireTimes[ts.nextFireIndex]!) {
       const target = players.find(p => p.id === ts.tetheredPlayerId)!;
       const interceptor = findInterceptor(players, ts.pos, target.pos, ts.tetheredPlayerId);
       if (interceptor) ts.tetheredPlayerId = interceptor.id;
