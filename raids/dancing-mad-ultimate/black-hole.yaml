@@ -188,6 +188,17 @@ _damningEdictBait: &damningEdictBait
   showCastBar: true
   bossId: chaos
 
+_lookUponMe: &lookUponMe
+  type: aoe
+  name: Look Upon Me
+  telegraph: 4
+  damage: 60
+  damageType: physical
+  showCastBar: true
+  bossId: kefka
+  anchor: boss
+  shape: { kind: rect, direction: { x: 0, z: -1 }, width: 13.3333333333, length: 40 }
+
 _blackHoleLaserBeam: &blackHoleLaserBeam
   width: 4
   length: 40
@@ -586,6 +597,87 @@ events:
     id: black-hole-2-laser-9
     time: 80
     fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 2 }
+    finalizeAfter: 5
+
+  - <<: *damningEdictStore
+    id: damning-edict-2-store
+    time: 84
+
+  - <<: *damningEdictBait
+    id: damning-edict-2
+    time: 84
+    link: damning-edict-2-store
+
+  - <<: *lookUponMe
+    id: look-upon-me-1
+    time: 86
+
+  - <<: *thunderIII
+    id: thunder-iii-tb-5
+    time: 90
+
+  - type: hazard
+    id: black-hole-3
+    time: 102
+    name: Black Hole
+    blackHole:
+      combos: *blackHoleCombos
+    radius: 1.68
+    duration: 17
+    applyEffect: *blackHole
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-1
+    time: 102
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 0 }
+    finalizeAfter: 7
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-2
+    time: 102
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 1 }
+    finalizeAfter: 7
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-3
+    time: 102
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 2 }
+    finalizeAfter: 7
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-4
+    time: 109
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 0 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-5
+    time: 109
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 1 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-6
+    time: 109
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 2 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-7
+    time: 114
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 0 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-8
+    time: 114
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 1 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-9
+    time: 114
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 2 }
     finalizeAfter: 5
 
 waymarks:
