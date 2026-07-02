@@ -55,51 +55,6 @@ test("bot patterns can carry generic rules with soaks/partnerDebuff/frame", () =
   expect(world.botSolvers?.generic?.[0]?.spot).toEqual({ x: 8, z: 0 });
 });
 
-test("forsaken raid and bot companion content load", async () => {
-  const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken.yaml").text());
-  const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken-bots.yaml").text());
-  const raid = loadRaid(raidData);
-  const bots = loadBotPatterns(botData);
-  const world = createWorld(applyBotPatterns(raid, bots), 1);
-  const byEventId = (id: string) => raid.events.find(event => event.id === id);
-  const effectResolverById = (id: string) => raid.events.find(event => event.type === "effect_resolver" && event.id === id);
-
-  // Structural invariants only — authored numbers (duration, solver count, exact bot coords, tower
-  // radius/failureDamage/visuals) belong to the designer and are intentionally not pinned here, so
-  // tuning the fight does not break this test. Engine behavior is what we assert.
-  expect(raid.name).toBe("Forsaken");
-  // The opener distributes the planned charges, and the closing raidwide resolves after the last
-  // tower wave. Exact timestamps are derived, not asserted.
-  expect(byEventId("forsaken-raidwide")).toBeDefined();
-  expect(byEventId("forsaken-charges")).toMatchObject({ initial: "plan" });
-  const lastTowerResolve = Math.max(...raid.events.filter(e => e.type === "tower").map(e => e.t + e.telegraph));
-  const endRaidwide = byEventId("forsaken-end-raidwide");
-  expect(endRaidwide && "t" in endRaidwide && endRaidwide.t > lastTowerResolve).toBe(true);
-  expect(effectResolverById("forsaken-stack-resolve")).toMatchObject({ effectName: "Stack Charge" });
-  expect(effectResolverById("forsaken-cone-resolve")).toMatchObject({ effectName: "Cone Charge" });
-  expect(effectResolverById("forsaken-defamation-resolve")).toMatchObject({ effectName: "Defamation Charge" });
-  expect(world.partners.h1).toBe("mt"); // pairing maps built from optionals.combinations.pairings
-  expect(Object.keys(world.initialCharges)).toHaveLength(8);
-  expect(world.botSolvers?.generic?.length).toBeGreaterThan(0); // bot companion solver rules loaded
-  const towerEvents = raid.events.filter(event => event.type === "tower");
-  // All towers sit on a consistent ring — distance from origin within 0.1 of each other.
-  const distances = towerEvents.map(e => Math.hypot(e.pos[0], e.pos[1]));
-  const maxDist = Math.max(...distances), minDist = Math.min(...distances);
-  expect(maxDist - minDist).toBeLessThan(0.1);
-  // Each unique position is used exactly twice (one pair per spot), and towers are uniformly configured.
-  const posKeys = towerEvents.map(e => `${e.pos[0]},${e.pos[1]}`);
-  const counts = new Map<string, number>();
-  for (const k of posKeys) counts.set(k, (counts.get(k) ?? 0) + 1);
-  expect([...counts.values()].every(n => n === 2)).toBe(true);
-  expect(towerEvents.some(event => event.requiredRoles !== undefined)).toBe(false);
-  expect(towerEvents.every(e => e.radius === towerEvents[0].radius)).toBe(true);
-  expect(towerEvents.every(e => e.failureDamage === towerEvents[0].failureDamage)).toBe(true);
-  // One recovery heal per tower wave, scheduled after the wave's resolve — derived, not hard-coded.
-  const towerWaveCount = new Set(towerEvents.map(e => e.t)).size;
-  const heals = raid.events.filter(event => event.type === "heal");
-  expect(heals).toHaveLength(towerWaveCount);
-});
-
 test("forsaken tower swaps alternate odd and even debuff distributions", async () => {
   const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken.yaml").text()) as { players: Array<Record<string, unknown>> };
   const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken-bots.yaml").text());

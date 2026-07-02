@@ -433,6 +433,8 @@ const TetherSourceEventSchema = z.object({
     tetherIndex: z.union([z.literal(0), z.literal(1), z.literal(2)]),
   }).optional(),
   finalizeAfter: z.number().positive(),
+  fireOffsets: z.array(z.number().nonnegative()).min(1).optional(),
+  despawnAfter: z.number().positive().optional(),
   tetherKind: z.enum(["buff", "debuff"]),
   buffName: z.string().min(1),
   behavior: EffectBehaviorSchema.default({ kind: "none" }),
@@ -454,6 +456,20 @@ const TetherSourceEventSchema = z.object({
       code: "custom",
       path: ["pos"],
       message: "tether_source must specify exactly one of pos or fromBlackHoleOrb",
+    });
+  }
+  if (ev.fireOffsets !== undefined && ev.despawnAfter === undefined) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["despawnAfter"],
+      message: "despawnAfter is required when fireOffsets is set",
+    });
+  }
+  if (ev.fireOffsets !== undefined && ev.despawnAfter !== undefined && Math.max(...ev.fireOffsets) > ev.despawnAfter) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["fireOffsets"],
+      message: "fireOffsets must resolve before despawnAfter",
     });
   }
 });

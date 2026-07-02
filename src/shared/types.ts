@@ -721,6 +721,9 @@ export type TetherSource = {
   pos: Vec2;
   spawnAt: number;
   finalizeAt: number;
+  fireTimes: number[];
+  nextFireIndex: number;
+  expireAt?: number;
   tetherKind: "buff" | "debuff";
   buffName: string;
   behavior: EffectBehavior;
@@ -747,6 +750,8 @@ export type PendingTether = {
   t: number;
   pos: Vec2;
   finalizeAfter: number;
+  fireOffsets?: number[];
+  despawnAfter?: number;
   tetherKind: "buff" | "debuff";
   buffName: string;
   behavior: EffectBehavior;

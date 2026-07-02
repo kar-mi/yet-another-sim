@@ -6,6 +6,7 @@ arena:
       center: { x: 0, z: 0 }
       radius: 20
 duration: 158
+botPatterns: black-hole-bots
 
 bosses:
   - id: chaos
@@ -495,18 +496,16 @@ events:
     time: 37
     fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 0 }
     finalizeAfter: 7
+    fireOffsets: [7]
+    despawnAfter: 14
 
   - <<: *blackHoleLaser
     id: black-hole-1-laser-2
     time: 44
     fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 1 }
     finalizeAfter: 7
-
-  - <<: *blackHoleLaser
-    id: black-hole-1-laser-3
-    time: 44
-    fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 2 }
-    finalizeAfter: 7
+    fireOffsets: [7]
+    despawnAfter: 7
 
   - <<: *thunderIII
     id: thunder-iii-tb-4
@@ -608,54 +607,24 @@ events:
     time: 68
     fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 0 }
     finalizeAfter: 7
+    fireOffsets: [7, 12, 17]
+    despawnAfter: 17
 
   - <<: *blackHoleLaser
     id: black-hole-2-laser-2
     time: 68
     fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 1 }
     finalizeAfter: 7
+    fireOffsets: [7, 12, 17]
+    despawnAfter: 17
 
   - <<: *blackHoleLaser
     id: black-hole-2-laser-3
     time: 68
     fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 2 }
     finalizeAfter: 7
-
-  - <<: *blackHoleLaser
-    id: black-hole-2-laser-4
-    time: 75
-    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 0 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-2-laser-5
-    time: 75
-    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 1 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-2-laser-6
-    time: 75
-    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 2 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-2-laser-7
-    time: 80
-    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 0 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-2-laser-8
-    time: 80
-    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 1 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-2-laser-9
-    time: 80
-    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 2 }
-    finalizeAfter: 5
+    fireOffsets: [7, 12, 17]
+    despawnAfter: 17
 
   - <<: *kefkaTeleport
     id: kefka-teleport-2
@@ -693,54 +662,29 @@ events:
     time: 102
     fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 0 }
     finalizeAfter: 7
+    fireOffsets: [7, 12, 17]
+    despawnAfter: 17
 
   - <<: *blackHoleLaser
     id: black-hole-3-laser-2
     time: 102
     fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 1 }
     finalizeAfter: 7
+    fireOffsets: [7, 12, 17]
+    despawnAfter: 17
 
   - <<: *blackHoleLaser
     id: black-hole-3-laser-3
     time: 102
     fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 2 }
     finalizeAfter: 7
+    fireOffsets: [7, 12, 17]
+    despawnAfter: 17
 
-  - <<: *blackHoleLaser
-    id: black-hole-3-laser-4
-    time: 109
-    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 0 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-3-laser-5
-    time: 109
-    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 1 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-3-laser-6
-    time: 109
-    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 2 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-3-laser-7
-    time: 114
-    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 0 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-3-laser-8
-    time: 114
-    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 1 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-3-laser-9
-    time: 114
-    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 2 }
-    finalizeAfter: 5
+  - type: heal
+    id: recovery-before-white-hole
+    time: 124
+    name: White Hole Recovery
 
   - <<: *whiteHole
     id: white-hole-1
@@ -853,12 +797,16 @@ events:
     time: 135
     fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 0 }
     finalizeAfter: 7
+    fireOffsets: [7]
+    despawnAfter: 15
 
   - <<: *blackHoleLaser
     id: black-hole-4-laser-2
     time: 142
     fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 1 }
     finalizeAfter: 8
+    fireOffsets: [8]
+    despawnAfter: 8
 
   - <<: *kefkaTeleport
     id: kefka-teleport-3

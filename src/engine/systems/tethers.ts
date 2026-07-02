@@ -10,6 +10,37 @@ import { addResolvedAoeVisual } from "./effectResolvers";
 
 const TETHER_LINGER = 2;
 
+function fireTetherBeam(ctx: TickContext, ts: TetherSource, target: TickContext["players"][number] | undefined): void {
+  const { players, log, time } = ctx;
+  if (target && ts.applyTetherEffect) {
+    applyEffect(target, {
+      name: ts.buffName,
+      kind: ts.tetherKind,
+      duration: ts.effectDuration,
+      behavior: ts.behavior,
+      icon: ts.icon,
+    }, time, `${ts.id}-effect`, players);
+    log.push({ t: time, mechanic: ts.buffName, playerId: target.id, event: ts.tetherKind === "buff" ? "cleared" : "hit" });
+  }
+  if (!ts.beam) return;
+  const aim = ts.beam.pointing ?? (target && sub(target.pos, ts.pos));
+  if (!aim || length(aim) === 0) return;
+  const shape: AOEShape = {
+    kind: "rect",
+    origin: ts.pos,
+    direction: normalize(aim),
+    width: ts.beam.width,
+    length: ts.beam.length,
+  };
+  addResolvedAoeVisual(ctx, `${ts.id}-beam-${ts.nextFireIndex}`, ts.buffName, shape);
+  for (const player of players) {
+    if (!player.alive || !pointInShape(shape, player.pos)) continue;
+    applyMechanicDamage(player, ts.beam.damage, ts.beam.damageType, time);
+    log.push({ t: time, mechanic: ts.buffName, playerId: player.id, event: "hit" });
+    if (player.alive && ts.beam.applyEffect) applyEffect(player, ts.beam.applyEffect, time, `${ts.id}-beam-${ts.nextFireIndex}-${player.id}`, players);
+  }
+}
+
 export function resolveTethers(ctx: TickContext): {
   tetherSources: TetherSource[];
   pendingTethers: PendingTether[];
@@ -25,6 +56,9 @@ export function resolveTethers(ctx: TickContext): {
         pos: pt.pos,
         spawnAt: pt.t,
         finalizeAt: pt.t + pt.finalizeAfter,
+        fireTimes: (pt.fireOffsets ?? [pt.finalizeAfter]).map(offset => pt.t + offset),
+        nextFireIndex: 0,
+        expireAt: pt.despawnAfter === undefined ? undefined : pt.t + pt.despawnAfter,
         tetherKind: pt.tetherKind,
         buffName: pt.buffName,
         behavior: pt.behavior,
@@ -44,13 +78,7 @@ export function resolveTethers(ctx: TickContext): {
   for (const ts of tetherSources) {
     if (ts.finalized) continue;
 
-    // Re-attach if current target is dead
-    if (ts.tetheredPlayerId) {
-      const target = players.find(p => p.id === ts.tetheredPlayerId);
-      if (!target?.alive) ts.tetheredPlayerId = selectTargetPlayer(players, ts.pos, "closest")?.id ?? null;
-    } else {
-      ts.tetheredPlayerId = selectTargetPlayer(players, ts.pos, "closest")?.id ?? null;
-    }
+    ts.tetheredPlayerId = selectTargetPlayer(players, ts.pos, "closest")?.id ?? null;
 
     // Check for interceptions (only before finalization)
     if (ts.tetheredPlayerId && time < ts.finalizeAt) {
@@ -59,40 +87,15 @@ export function resolveTethers(ctx: TickContext): {
       if (interceptor) ts.tetheredPlayerId = interceptor.id;
     }
 
-    // Finalize
-    if (time >= ts.finalizeAt) {
-      ts.finalized = true;
+    // Fire each scheduled laser once. Single-shot tethers finalize on their only fire; persistent
+    // tethers stay interceptable until expireAt.
+    while (ts.nextFireIndex < ts.fireTimes.length && time >= ts.fireTimes[ts.nextFireIndex]!) {
       const target = players.find(p => p.id === ts.tetheredPlayerId);
-      if (target && ts.applyTetherEffect) {
-        applyEffect(target, {
-          name: ts.buffName,
-          kind: ts.tetherKind,
-          duration: ts.effectDuration,
-          behavior: ts.behavior,
-          icon: ts.icon,
-        }, time, `${ts.id}-effect`, players);
-        log.push({ t: time, mechanic: ts.buffName, playerId: target.id, event: ts.tetherKind === "buff" ? "cleared" : "hit" });
-      }
-      if (ts.beam) {
-        const aim = ts.beam.pointing ?? (target && sub(target.pos, ts.pos));
-        if (aim && length(aim) > 0) {
-          const shape: AOEShape = {
-            kind: "rect",
-            origin: ts.pos,
-            direction: normalize(aim),
-            width: ts.beam.width,
-            length: ts.beam.length,
-          };
-          addResolvedAoeVisual(ctx, `${ts.id}-beam`, ts.buffName, shape);
-          for (const player of players) {
-            if (!player.alive || !pointInShape(shape, player.pos)) continue;
-            applyMechanicDamage(player, ts.beam.damage, ts.beam.damageType, time);
-            log.push({ t: time, mechanic: ts.buffName, playerId: player.id, event: "hit" });
-            if (player.alive && ts.beam.applyEffect) applyEffect(player, ts.beam.applyEffect, time, `${ts.id}-beam-${player.id}`, players);
-          }
-        }
-      }
+      fireTetherBeam(ctx, ts, target);
+      ts.nextFireIndex++;
+      if (ts.expireAt === undefined) ts.finalized = true;
     }
+    if (ts.expireAt !== undefined && time >= ts.expireAt) ts.finalized = true;
   }
 
   // Cull sources finalized more than 2s ago
