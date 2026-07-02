@@ -199,6 +199,31 @@ _lookUponMe: &lookUponMe
   anchor: boss
   shape: { kind: rect, direction: { x: 0, z: -1 }, width: 13.3333333333, length: 40 }
 
+_whiteHole: &whiteHole
+  type: aoe
+  name: White Hole
+  telegraph: 4
+  damage: 9999
+  damageType: "true"
+  requireFullHp: true
+  showCastBar: true
+  showTelegraph: false
+  bossId: exdeath
+  shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+
+_implosion: &implosion
+  type: aoe
+  name: Implosion
+  damage: 40
+  damageType: magical
+  anchor: boss
+  directionFrom: bossFacing
+  lockFacing: true
+  showTelegraph: false
+  flashBeforeResolve: { lead: 0.5, color: "#6699ff" }
+  bossId: chaos
+  shape: { kind: cone, angleDeg: 90, length: 44 }
+
 _blackHoleLaserBeam: &blackHoleLaserBeam
   width: 4
   length: 40
@@ -218,6 +243,14 @@ _blackHoleLaser: &blackHoleLaser
 
 optionals:
   combinations:
+    endings:
+      rng: true
+      events:
+        - [latlong-1-a, latlong-1-b]
+        - [latlong-2-a, latlong-2-b]
+      variants:
+        - { name: Latitude Implosion,  offset: [-1.5707963267948966, 1.5707963267948966] }
+        - { name: Longitude Implosion, offset: [0, 3.141592653589793] }
     eventSets:
       slap-happy-1:
         rng: true
@@ -229,6 +262,11 @@ optionals:
         sets:
           - [slap-happy-2-right-hit-1, slap-happy-2-right-hit-2, slap-happy-2-right-hit-3, slap-happy-2-party-stack, visual-chaos-cone-at-party-stack-2]
           - [slap-happy-2-left-hit-1, slap-happy-2-left-hit-2, slap-happy-2-left-hit-3, slap-happy-2-role-stack-mt, slap-happy-2-role-stack-h1, slap-happy-2-role-stack-m1, slap-happy-2-role-cone-mt, slap-happy-2-role-cone-h1, slap-happy-2-role-cone-m1]
+      slap-happy-3:
+        rng: true
+        sets:
+          - [slap-happy-3-right-hit-1, slap-happy-3-right-hit-2, slap-happy-3-right-hit-3, slap-happy-3-party-stack, visual-chaos-cone-at-party-stack-3]
+          - [slap-happy-3-left-hit-1, slap-happy-3-left-hit-2, slap-happy-3-left-hit-3, slap-happy-3-role-stack-mt, slap-happy-3-role-stack-h1, slap-happy-3-role-stack-m1, slap-happy-3-role-cone-mt, slap-happy-3-role-cone-h1, slap-happy-3-role-cone-m1]
 
 events:
   - type: aoe
@@ -679,6 +717,102 @@ events:
     time: 114
     fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 2 }
     finalizeAfter: 5
+
+  - <<: *whiteHole
+    id: white-hole-1
+    time: 125
+
+  - <<: *implosion
+    id: latlong-1-a
+    time: 125
+    telegraph: 5
+    showCastBar: true
+
+  - <<: *implosion
+    id: latlong-1-b
+    time: 125
+    telegraph: 5
+    showCastBar: false
+
+  - <<: *slapHappyCircle
+    id: slap-happy-3-right-hit-1
+    time: 127
+    showCastBar: true
+    bossRelativeCenter: { lateral: 8, forward: -8 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-3-right-hit-2
+    time: 128
+    showCastBar: false
+    bossRelativeCenter: { lateral: 8, forward: 0 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-3-right-hit-3
+    time: 129
+    showCastBar: false
+    bossRelativeCenter: { lateral: 8, forward: 8 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-3-left-hit-1
+    time: 127
+    showCastBar: true
+    bossRelativeCenter: { lateral: -8, forward: -8 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-3-left-hit-2
+    time: 128
+    showCastBar: false
+    bossRelativeCenter: { lateral: -8, forward: 0 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-3-left-hit-3
+    time: 129
+    showCastBar: false
+    bossRelativeCenter: { lateral: -8, forward: 8 }
+
+  - <<: *implosion
+    id: latlong-2-a
+    time: 130
+    telegraph: 2
+    showCastBar: false
+
+  - <<: *implosion
+    id: latlong-2-b
+    time: 130
+    telegraph: 2
+    showCastBar: false
+
+  - <<: *partyStack
+    id: slap-happy-3-party-stack
+    time: 135
+
+  - <<: *partyCone
+    id: visual-chaos-cone-at-party-stack-3
+    time: 135
+
+  - <<: *roleStackMt
+    id: slap-happy-3-role-stack-mt
+    time: 135
+
+  - <<: *roleStackH1
+    id: slap-happy-3-role-stack-h1
+    time: 135
+
+  - <<: *roleStackM1
+    id: slap-happy-3-role-stack-m1
+    time: 135
+
+  - <<: *roleConeMt
+    id: slap-happy-3-role-cone-mt
+    time: 135
+
+  - <<: *roleConeH1
+    id: slap-happy-3-role-cone-h1
+    time: 135
+
+  - <<: *roleConeM1
+    id: slap-happy-3-role-cone-m1
+    time: 135
 
 waymarks:
   - { mark: A, pos: { x: 0, z: 12 } }
