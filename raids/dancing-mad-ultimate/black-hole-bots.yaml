@@ -10,27 +10,7 @@ _fallback: &fallback
   m1: { x: -2, z: -5 }
   m2: { x: 2, z: -5 }
 
-_partySafeLeft: &partySafeLeft
-  mt: { r: -14, z: 0 }
-  ot: { r: -14, z: 0 }
-  h1: { r: -14, z: 0 }
-  h2: { r: -14, z: 0 }
-  r1: { r: -14, z: 0 }
-  r2: { r: -14, z: 0 }
-  m1: { r: -14, z: 0 }
-  m2: { r: -14, z: 0 }
-
-_roleSafeRight: &roleSafeRight
-  mt: { r: 14, z: 5 }
-  ot: { r: 14, z: 5 }
-  h1: { r: 14, z: 0 }
-  h2: { r: 14, z: 0 }
-  r1: { r: 14, z: -5 }
-  r2: { r: 14, z: -5 }
-  m1: { r: 14, z: -5 }
-  m2: { r: 14, z: -5 }
-
-_baitUnsafeRight: &baitUnsafeRight
+_partySafeEast: &partySafeEast
   mt: { r: 14, z: 0 }
   ot: { r: 14, z: 0 }
   h1: { r: 14, z: 0 }
@@ -40,7 +20,17 @@ _baitUnsafeRight: &baitUnsafeRight
   m1: { r: 14, z: 0 }
   m2: { r: 14, z: 0 }
 
-_baitUnsafeLeft: &baitUnsafeLeft
+_roleSafeWest: &roleSafeWest
+  mt: { r: -14, z: 5 }
+  ot: { r: -14, z: 5 }
+  h1: { r: -14, z: 0 }
+  h2: { r: -14, z: 0 }
+  r1: { r: -14, z: -5 }
+  r2: { r: -14, z: -5 }
+  m1: { r: -14, z: -5 }
+  m2: { r: -14, z: -5 }
+
+_baitUnsafeWest: &baitUnsafeWest
   mt: { r: -14, z: 0 }
   ot: { r: -14, z: 0 }
   h1: { r: -14, z: 0 }
@@ -49,6 +39,16 @@ _baitUnsafeLeft: &baitUnsafeLeft
   r2: { r: -14, z: 0 }
   m1: { r: -14, z: 0 }
   m2: { r: -14, z: 0 }
+
+_baitUnsafeEast: &baitUnsafeEast
+  mt: { r: 14, z: 0 }
+  ot: { r: 14, z: 0 }
+  h1: { r: 14, z: 0 }
+  h2: { r: 14, z: 0 }
+  r1: { r: 14, z: 0 }
+  r2: { r: 14, z: 0 }
+  m1: { r: 14, z: 0 }
+  m2: { r: 14, z: 0 }
 
 _behindChaos: &behindChaos
   mt: { r: -3, z: -8 }
@@ -77,30 +77,30 @@ solvers:
     - { when: { mechanic: thunder-iii-tb-5 }, spots: *thunderBait }
 
     # Damning Edict bait goes into the side Slap Happy will make unsafe, then the hit rules below move safe.
-    - { when: { mechanic: slap-happy-2-right-edict-bait }, frame: [{ boss: { id: kefka, from: position } }], spots: *baitUnsafeRight }
-    - { when: { mechanic: slap-happy-2-left-edict-bait }, frame: [{ boss: { id: kefka, from: position } }], spots: *baitUnsafeLeft }
+    - { when: { mechanic: slap-happy-2-right-edict-bait }, frame: [{ boss: { id: kefka, from: position } }], spots: *baitUnsafeWest }
+    - { when: { mechanic: slap-happy-2-left-edict-bait }, frame: [{ boss: { id: kefka, from: position } }], spots: *baitUnsafeEast }
 
     # Slap Happy right-side cleave rolls party stack: all middle relative in the safe quadrant.
-    - { when: { mechanic: slap-happy-1-right-hit-1 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeLeft }
-    - { when: { mechanic: slap-happy-1-right-hit-2 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeLeft }
-    - { when: { mechanic: slap-happy-1-right-hit-3 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeLeft }
-    - { when: { mechanic: slap-happy-2-right-hit-1 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeLeft }
-    - { when: { mechanic: slap-happy-2-right-hit-2 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeLeft }
-    - { when: { mechanic: slap-happy-2-right-hit-3 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeLeft }
-    - { when: { mechanic: slap-happy-3-right-hit-1 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeLeft }
-    - { when: { mechanic: slap-happy-3-right-hit-2 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeLeft }
-    - { when: { mechanic: slap-happy-3-right-hit-3 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeLeft }
+    - { when: { mechanic: slap-happy-1-right-hit-1 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-1-right-hit-2 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-1-right-hit-3 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-2-right-hit-1 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-2-right-hit-2 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-2-right-hit-3 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-3-right-hit-1 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-3-right-hit-2 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-3-right-hit-3 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeEast }
 
     # Slap Happy left-side cleave rolls role stacks: tanks north, healers mid, DPS south.
-    - { when: { mechanic: slap-happy-1-left-hit-1 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeRight }
-    - { when: { mechanic: slap-happy-1-left-hit-2 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeRight }
-    - { when: { mechanic: slap-happy-1-left-hit-3 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeRight }
-    - { when: { mechanic: slap-happy-2-left-hit-1 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeRight }
-    - { when: { mechanic: slap-happy-2-left-hit-2 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeRight }
-    - { when: { mechanic: slap-happy-2-left-hit-3 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeRight }
-    - { when: { mechanic: slap-happy-3-left-hit-1 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeRight }
-    - { when: { mechanic: slap-happy-3-left-hit-2 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeRight }
-    - { when: { mechanic: slap-happy-3-left-hit-3 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeRight }
+    - { when: { mechanic: slap-happy-1-left-hit-1 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-1-left-hit-2 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-1-left-hit-3 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-2-left-hit-1 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-2-left-hit-2 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-2-left-hit-3 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-3-left-hit-1 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-3-left-hit-2 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-3-left-hit-3 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeWest }
 
     - { when: { mechanic: damning-edict-1 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spots: *behindChaos }
     - { when: { mechanic: damning-edict-2 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spots: *behindChaos }
