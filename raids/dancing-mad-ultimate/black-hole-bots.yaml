@@ -30,6 +30,26 @@ _roleSafeRight: &roleSafeRight
   m1: { r: 14, z: -5 }
   m2: { r: 14, z: -5 }
 
+_baitUnsafeRight: &baitUnsafeRight
+  mt: { r: 14, z: 0 }
+  ot: { r: 14, z: 0 }
+  h1: { r: 14, z: 0 }
+  h2: { r: 14, z: 0 }
+  r1: { r: 14, z: 0 }
+  r2: { r: 14, z: 0 }
+  m1: { r: 14, z: 0 }
+  m2: { r: 14, z: 0 }
+
+_baitUnsafeLeft: &baitUnsafeLeft
+  mt: { r: -14, z: 0 }
+  ot: { r: -14, z: 0 }
+  h1: { r: -14, z: 0 }
+  h2: { r: -14, z: 0 }
+  r1: { r: -14, z: 0 }
+  r2: { r: -14, z: 0 }
+  m1: { r: -14, z: 0 }
+  m2: { r: -14, z: 0 }
+
 _behindChaos: &behindChaos
   mt: { r: -3, z: -8 }
   ot: { r: 3, z: -8 }
@@ -56,8 +76,9 @@ solvers:
     - { when: { mechanic: thunder-iii-tb-4 }, spots: *thunderBait }
     - { when: { mechanic: thunder-iii-tb-5 }, spots: *thunderBait }
 
-    - { when: { mechanic: damning-edict-1 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spots: *behindChaos }
-    - { when: { mechanic: damning-edict-2 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spots: *behindChaos }
+    # Damning Edict bait goes into the side Slap Happy will make unsafe, then the hit rules below move safe.
+    - { when: { mechanic: slap-happy-2-right-edict-bait }, frame: [{ boss: { id: kefka, from: position } }], spots: *baitUnsafeRight }
+    - { when: { mechanic: slap-happy-2-left-edict-bait }, frame: [{ boss: { id: kefka, from: position } }], spots: *baitUnsafeLeft }
 
     # Slap Happy right-side cleave rolls party stack: all middle relative in the safe quadrant.
     - { when: { mechanic: slap-happy-1-right-hit-1 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeLeft }
@@ -81,6 +102,9 @@ solvers:
     - { when: { mechanic: slap-happy-3-left-hit-2 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeRight }
     - { when: { mechanic: slap-happy-3-left-hit-3 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeRight }
 
+    - { when: { mechanic: damning-edict-1 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spots: *behindChaos }
+    - { when: { mechanic: damning-edict-2 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spots: *behindChaos }
+
     # Tether soakers stand just outside the resolved orb, so each laser points out and clips only them.
     - { when: { static: true }, startAt: 37, endAt: 44, frame: [black-hole-1-laser-1], spots: { r1: { r: 0, z: 19 } } }
     - { when: { static: true }, startAt: 44, endAt: 51, frame: [black-hole-1-laser-2], spots: { mt: { r: 0, z: 19 } } }
@@ -103,4 +127,4 @@ solvers:
     - { when: { static: true }, spots: *fallback }
 
   holds:
-    - { mechanic: [slap-happy-1-right-hit-3, slap-happy-1-left-hit-3, slap-happy-2-right-hit-3, slap-happy-2-left-hit-3, slap-happy-3-right-hit-3, slap-happy-3-left-hit-3], duration: 3 }
+    - { mechanic: [slap-happy-1-right-hit-3, slap-happy-1-left-hit-3, slap-happy-2-right-hit-3, slap-happy-2-left-hit-3, slap-happy-3-right-hit-3, slap-happy-3-left-hit-3], duration: 4 }

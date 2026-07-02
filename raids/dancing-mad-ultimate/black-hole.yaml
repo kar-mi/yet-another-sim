@@ -200,6 +200,16 @@ _lookUponMe: &lookUponMe
   anchor: boss
   shape: { kind: rect, direction: { x: 0, z: -1 }, width: 13.3333333333, length: 40 }
 
+_botTell: &botTell
+  type: aoe
+  name: Bot Tell
+  telegraph: 1
+  damage: 0
+  damageType: "true"
+  showCastBar: false
+  showTelegraph: false
+  shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+
 _kefkaTeleport: &kefkaTeleport
   type: teleport_boss
   name: Kefka Teleport
@@ -277,8 +287,8 @@ optionals:
       slap-happy-2:
         rng: true
         sets:
-          - [slap-happy-2-right-hit-1, slap-happy-2-right-hit-2, slap-happy-2-right-hit-3, slap-happy-2-party-stack, visual-chaos-cone-at-party-stack-2]
-          - [slap-happy-2-left-hit-1, slap-happy-2-left-hit-2, slap-happy-2-left-hit-3, slap-happy-2-role-stack-mt, slap-happy-2-role-stack-h1, slap-happy-2-role-stack-m1, slap-happy-2-role-cone-mt, slap-happy-2-role-cone-h1, slap-happy-2-role-cone-m1]
+          - [slap-happy-2-right-edict-bait, slap-happy-2-right-hit-1, slap-happy-2-right-hit-2, slap-happy-2-right-hit-3, slap-happy-2-party-stack, visual-chaos-cone-at-party-stack-2]
+          - [slap-happy-2-left-edict-bait, slap-happy-2-left-hit-1, slap-happy-2-left-hit-2, slap-happy-2-left-hit-3, slap-happy-2-role-stack-mt, slap-happy-2-role-stack-h1, slap-happy-2-role-stack-m1, slap-happy-2-role-cone-mt, slap-happy-2-role-cone-h1, slap-happy-2-role-cone-m1]
       slap-happy-3:
         rng: true
         sets:
@@ -518,6 +528,14 @@ events:
   - <<: *damningEdictStore
     id: damning-edict-1-store
     time: 57
+
+  - <<: *botTell
+    id: slap-happy-2-right-edict-bait
+    time: 56
+
+  - <<: *botTell
+    id: slap-happy-2-left-edict-bait
+    time: 56
 
   - <<: *damningEdictBait
     id: damning-edict-1
