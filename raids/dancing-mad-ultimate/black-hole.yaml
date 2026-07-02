@@ -199,6 +199,21 @@ _lookUponMe: &lookUponMe
   anchor: boss
   shape: { kind: rect, direction: { x: 0, z: -1 }, width: 13.3333333333, length: 40 }
 
+_kefkaTeleport: &kefkaTeleport
+  type: teleport_boss
+  name: Kefka Teleport
+  bossId: kefka
+  rng: true
+  spots:
+    - { x: 0, z: 18 }
+    - { x: 12.727922, z: 12.727922 }
+    - { x: 18, z: 0 }
+    - { x: 12.727922, z: -12.727922 }
+    - { x: 0, z: -18 }
+    - { x: -12.727922, z: -12.727922 }
+    - { x: -18, z: 0 }
+    - { x: -12.727922, z: 12.727922 }
+
 _whiteHole: &whiteHole
   type: aoe
   name: White Hole
@@ -496,6 +511,10 @@ events:
     id: thunder-iii-tb-4
     time: 49
 
+  - <<: *kefkaTeleport
+    id: kefka-teleport-1
+    time: 56
+
   - <<: *damningEdictStore
     id: damning-edict-1-store
     time: 57
@@ -636,6 +655,10 @@ events:
     time: 80
     fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 2 }
     finalizeAfter: 5
+
+  - <<: *kefkaTeleport
+    id: kefka-teleport-2
+    time: 84
 
   - <<: *damningEdictStore
     id: damning-edict-2-store
@@ -835,6 +858,10 @@ events:
     time: 142
     fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 1 }
     finalizeAfter: 8
+
+  - <<: *kefkaTeleport
+    id: kefka-teleport-3
+    time: 142
 
   - <<: *lookUponMe
     id: look-upon-me-2

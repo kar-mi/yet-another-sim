@@ -447,6 +447,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     pendingForcedMarches: [],
     pendingHazards: [],
     pendingDivebombs: [],
+    pendingBossTeleports: [],
     pendingEffectBursts: [],
     pendingHeals: [],
     pendingSetHps: [],

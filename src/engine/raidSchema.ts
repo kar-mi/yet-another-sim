@@ -776,6 +776,16 @@ const DivebombEventSchema = z.object({
   }
 });
 
+const BossTeleportEventSchema = z.object({
+  type: z.literal("teleport_boss"),
+  id: EventIdSchema,
+  time: z.number().nonnegative(),
+  name: z.string().min(1),
+  bossId: z.string().min(1),
+  spots: z.array(Vec2Schema).min(1),
+  rng: z.boolean().default(false),
+});
+
 const EffectBurstEventSchema = z.object({
   type: z.literal("effect_burst"),
   id: EventIdSchema,
@@ -858,7 +868,7 @@ export const EventSchema = z.preprocess(
   value => typeof value === "object" && value !== null && "t" in value && !("time" in value)
     ? { ...value, time: value.t }
     : value,
-  z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, DashEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, HazardEventSchema, DivebombEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema]),
+  z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, DashEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, HazardEventSchema, DivebombEventSchema, BossTeleportEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema]),
 ).transform(event => {
     if (!("time" in event)) return event;
     const { time, ...rest } = event;

@@ -914,6 +914,15 @@ export type PendingDivebomb = {
   visual: "step" | "line"; // render style: single stepping sphere, or a sphere-per-slot exploding line
 };
 
+export type PendingBossTeleport = {
+  id: string;
+  t: number;
+  name: string;
+  bossId: string;
+  spots: Vec2[];
+  rng: boolean;
+};
+
 export type ActiveDivebomb = Omit<PendingDivebomb, "t"> & {
   startedAt: number;
   expireAt: number;
@@ -976,6 +985,7 @@ export type World = {
   pendingForcedMarches: PendingForcedMarch[];
   pendingHazards: PendingHazard[];
   pendingDivebombs: PendingDivebomb[];
+  pendingBossTeleports: PendingBossTeleport[];
   pendingEffectBursts: PendingEffectBurst[];
   effectResolvers: Record<string, EffectResolver>;
   pendingHeals: PendingHeal[];

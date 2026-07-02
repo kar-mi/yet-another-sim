@@ -34,6 +34,7 @@ import { resolveLimitCuts } from "./systems/limitCut";
 import { resolveSetHps } from "./systems/setHp";
 import { resolveDivebombs } from "./systems/divebombs";
 import { resolveHazards } from "./systems/hazard";
+import { resolveBossTeleports } from "./systems/bossTeleport";
 
 type RaidEvent = RaidDef["events"][number];
 export type EventType = RaidEvent["type"];
@@ -44,6 +45,7 @@ export type Collections = Pick<World,
   | "pendingTowers" | "pendingChains" | "pendingGroups" | "pendingEffectSelects"
   | "pendingApplyEffects" | "pendingLimitCuts" | "pendingInversions" | "pendingSpreadStacks" | "pendingGazes"
   | "pendingForcedMarches" | "pendingHazards" | "pendingDivebombs" | "pendingEffectBursts" | "pendingHeals" | "pendingSetHps"
+  | "pendingBossTeleports"
   | "pendingBurstSpreadFollowUps" | "reassigns"
   | "effectResolvers"
 >;
@@ -121,6 +123,22 @@ const tethers: MechanicModule = {
   },
   resolve: ctx => resolveTethers(ctx),
   isResolved: w => w.pendingTethers.length === 0 && w.tetherSources.every(ts => ts.finalized),
+};
+
+const bossTeleport: MechanicModule = {
+  fromEvent(e, c) {
+    if (e.type !== "teleport_boss") return;
+    c.pendingBossTeleports.push({
+      id: e.id,
+      t: e.t,
+      name: e.name,
+      bossId: e.bossId,
+      spots: e.spots.map(toVec2),
+      rng: e.rng,
+    });
+  },
+  resolve: ctx => ({ pendingBossTeleports: resolveBossTeleports(ctx) }),
+  isResolved: w => w.pendingBossTeleports.length === 0,
 };
 
 const lineLinks: MechanicModule = {
@@ -578,6 +596,7 @@ const effectResolver: MechanicModule = {
 const MODULE_FOR_TYPE = {
   forced_march: forcedMarch,
   tether_source: tethers,
+  teleport_boss: bossTeleport,
   line_link: lineLinks,
   chain: chains,
   aoe: aoe,
@@ -604,7 +623,7 @@ const MODULE_FOR_TYPE = {
 // Resolve/clear-detection order — RNG-critical (see header). Resolve-bearing modules in the fixed
 // legacy order; the data-only modules (heal, effect_resolver) follow.
 export const REGISTRY: readonly MechanicModule[] = [
-  forcedMarch, tethers, lineLinks, chains, aoe, towers, groups,
+  forcedMarch, tethers, bossTeleport, lineLinks, chains, aoe, towers, groups,
   effectSelect, applyEffects, reassign, inverse, spreadStack, gaze, limitCut,
   hazard, setHp, heal, effectResolver, divebomb,
 ];
