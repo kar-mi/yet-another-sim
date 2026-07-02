@@ -40,8 +40,22 @@ _behindChaos: &behindChaos
   m1: { r: -1, z: -14 }
   m2: { r: 1, z: -14 }
 
+_thunderBait: &thunderBait
+  mt: { x: 8, z: 0 }
+  ot: { x: 8, z: 0 }
+  h1: { x: -6, z: 6 }
+  h2: { x: -6, z: 2 }
+  r1: { x: -8, z: -2 }
+  r2: { x: -8, z: -6 }
+  m1: { x: -3, z: -8 }
+  m2: { x: -1, z: -10 }
+
 solvers:
   generic:
+    - { when: { mechanic: thunder-iii-tb-3 }, spots: *thunderBait }
+    - { when: { mechanic: thunder-iii-tb-4 }, spots: *thunderBait }
+    - { when: { mechanic: thunder-iii-tb-5 }, spots: *thunderBait }
+
     - { when: { mechanic: damning-edict-1 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spots: *behindChaos }
     - { when: { mechanic: damning-edict-2 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spots: *behindChaos }
 
