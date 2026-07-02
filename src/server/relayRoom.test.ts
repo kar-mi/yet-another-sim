@@ -346,6 +346,7 @@ test("host can start again from a stopped lobby re-entry", () => {
   session.releaseSlot("c1", "mt");
   session.claimObserver("c1");
   const startedBeforePlay = sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started").length;
+  const sentBeforePlay = sent.length;
 
   session.play("c1");
 
@@ -354,6 +355,15 @@ test("host can start again from a stopped lobby re-entry", () => {
   expect(sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started")).toHaveLength(startedBeforePlay + 1);
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === null)).toBe(true);
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "playback" && entry.message.state === "playing")).toBe(true);
+
+  // Regression: lastLobby.status must be refreshed to "running" before "started" arrives, or the
+  // lobby screen seeds the HUD's playback state from the stale "stopped" snapshot (bug: "STOPPED"
+  // text persists after restarting from the lobby).
+  const fromPlay = sent.slice(sentBeforePlay).filter(entry => entry.clientId === "c1");
+  const lobbyRunningIndex = fromPlay.findIndex(entry => entry.message.type === "lobby" && entry.message.status === "running");
+  const startedIndex = fromPlay.findIndex(entry => entry.message.type === "started");
+  expect(lobbyRunningIndex).toBeGreaterThanOrEqual(0);
+  expect(lobbyRunningIndex).toBeLessThan(startedIndex);
 });
 
 test("observers cannot enter running sessions", () => {
@@ -785,12 +795,22 @@ test("host can restart after the session ends", () => {
   session.claimSlot("c1", "mt");
   session.start("c1");
   session.status = "done" as SessionStatus;
+  const sentBeforeRestart = sent.length;
 
   session.restart("c1");
 
   expect(session.status).toBe("running");
   expect(session.world.time).toBe(0);
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "playback" && entry.message.state === "playing")).toBe(true);
+
+  // Regression: lastLobby.status must be refreshed to "running" before "started" arrives, or the
+  // lobby screen seeds the HUD's playback state from the stale "done" snapshot (bug: stale status
+  // text persists after restarting from the lobby).
+  const fromRestart = sent.slice(sentBeforeRestart).filter(entry => entry.clientId === "c1");
+  const lobbyRunningIndex = fromRestart.findIndex(entry => entry.message.type === "lobby" && entry.message.status === "running");
+  const startedIndex = fromRestart.findIndex(entry => entry.message.type === "started");
+  expect(lobbyRunningIndex).toBeGreaterThanOrEqual(0);
+  expect(lobbyRunningIndex).toBeLessThan(startedIndex);
 });
 
 test("client can re-enter after leaving a finished session", () => {
