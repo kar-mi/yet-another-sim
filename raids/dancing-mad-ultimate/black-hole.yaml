@@ -1,0 +1,879 @@
+name: P3 - Black Hole
+arena:
+  floorPlan: dmu-p1
+  zones:
+    - kind: circle
+      center: { x: 0, z: 0 }
+      radius: 20
+duration: 158
+
+bosses:
+  - id: chaos
+    pos: { x: 0, z: 0 }
+    aggro: mt
+  - id: exdeath
+    pos: { x: 8, z: 0 }
+    aggro: ot
+  - id: kefka
+    pos: { x: 0, z: 18 }
+    targetable: false
+
+crystals:
+  - kind: single
+    element: earth
+    pos: { x: 0, z: -18 }
+    spawnAt: 17
+
+players:
+  - { id: mt, role: tank,   spawn: { x: 0, z: 6 } }
+  - { id: ot, role: tank,   spawn: { x: 4, z: 8 } }
+  - { id: h1, role: healer, spawn: { x: -8, z: 2 } }
+  - { id: h2, role: healer, spawn: { x: 8, z: 2 } }
+  - { id: r1, role: dps,    spawn: { x: -8, z: -4 } }
+  - { id: r2, role: dps,    spawn: { x: 8, z: -4 } }
+  - { id: m1, role: dps,    spawn: { x: -4, z: -8 } }
+  - { id: m2, role: dps,    spawn: { x: 4, z: -8 } }
+
+_heroEpic: &heroEpic
+  ref: epic_hero
+_heroFated: &heroFated
+  ref: fated_hero
+_blackHole: &blackHole
+  name: Black Hole
+  kind: debuff
+  duration: 3
+  behavior:
+    kind: mitigation
+    multiplier: 0.5
+_blackHoleCombos: &blackHoleCombos
+  - - { pos: { x: 0, z: 17 }, tether: true }
+    - { pos: { x: 17, z: 0 }, tether: true }
+    - { pos: { x: 0, z: -17 }, tether: true }
+    - { pos: { x: 5, z: 13 }, tether: false }
+    - { pos: { x: -7, z: 7 }, tether: false }
+    - { pos: { x: 7, z: 7 }, tether: false }
+    - { pos: { x: -13, z: 5 }, tether: false }
+    - { pos: { x: 13, z: -5 }, tether: false }
+    - { pos: { x: -7, z: -7 }, tether: false }
+    - { pos: { x: 6, z: -7 }, tether: false }
+    - { pos: { x: -6, z: -13 }, tether: false }
+  - - { pos: { x: 0, z: 17 }, tether: true }
+    - { pos: { x: 17, z: 0 }, tether: true }
+    - { pos: { x: 0, z: -17 }, tether: true }
+    - { pos: { x: -13, z: 5 }, tether: false }
+    - { pos: { x: -9, z: 0 }, tether: false }
+    - { pos: { x: 0, z: 9 }, tether: false }
+    - { pos: { x: 6, z: 13 }, tether: false }
+    - { pos: { x: 9, z: 0 }, tether: false }
+    - { pos: { x: 13, z: -6 }, tether: false }
+    - { pos: { x: 0, z: -9 }, tether: false }
+    - { pos: { x: -5, z: -13 }, tether: false }
+
+_slapHappyCircle: &slapHappyCircle
+  type: aoe
+  name: Slap Happy
+  telegraph: 4
+  damage: 20
+  damageType: physical
+  telegraphMode: resolve
+  bossId: kefka
+  shape: { kind: circle, center: { x: 0, z: 0 }, radius: 8 }
+
+_thunderIII: &thunderIII
+  type: targeted
+  name: Thunder III
+  targetMode: closest
+  radius: 4
+  telegraph: 4
+  damage: 55
+  damageType: magical
+  showCastBar: true
+  bossId: exdeath
+
+_roleStack: &roleStack
+  type: group
+  name: Role Stack
+  telegraph: 0.1
+  radius: 4
+  damage: 120
+  damageType: magical
+  showCastBar: false
+  showMarker: false
+  showTelegraph: false
+
+_roleStackMt: &roleStackMt
+  <<: *roleStack
+  groups: [[mt]]
+  requiredCount: 2
+
+_roleStackH1: &roleStackH1
+  <<: *roleStack
+  groups: [[h1]]
+  requiredCount: 2
+
+_roleStackM1: &roleStackM1
+  <<: *roleStack
+  groups: [[m1]]
+  requiredCount: 4
+
+_roleCone: &roleCone
+  type: aoe
+  name: Chaos Cone
+  telegraph: 0.1
+  damage: 0
+  damageType: magical
+  showCastBar: false
+  telegraphMode: resolve
+  bossId: chaos
+  anchor: boss
+  shape: { kind: cone, angleDeg: 60, length: 30 }
+
+_roleConeMt: &roleConeMt
+  <<: *roleCone
+  aimAtPlayer: mt
+
+_roleConeH1: &roleConeH1
+  <<: *roleCone
+  aimAtPlayer: h1
+
+_roleConeM1: &roleConeM1
+  <<: *roleCone
+  aimAtPlayer: m1
+
+_partyStack: &partyStack
+  type: group
+  name: Party Stack
+  groups: [[h1]]
+  telegraph: 0.1
+  radius: 4
+  requiredCount: 8
+  damage: 120
+  damageType: magical
+  showCastBar: false
+  showMarker: false
+  showTelegraph: false
+
+_partyCone: &partyCone
+  type: aoe
+  name: Chaos Cone
+  telegraph: 0.1
+  damage: 0
+  damageType: magical
+  showCastBar: false
+  telegraphMode: resolve
+  bossId: chaos
+  anchor: boss
+  aimAtPlayer: h1
+  shape: { kind: cone, angleDeg: 70, length: 30 }
+
+_damningEdictStore: &damningEdictStore
+  type: aoe
+  name: Damning Edict
+  deferred: true
+  anchor: boss
+  directionFrom: bossFacing
+  telegraph: 5
+  damage: 90
+  damageType: magical
+  shape: { kind: cone, angleDeg: 180, length: 24 }
+  telegraphMode: resolve
+  showCastBar: false
+  bossId: chaos
+
+_damningEdictBait: &damningEdictBait
+  type: bait
+  name: Damning Edict
+  targetMode: random
+  telegraph: 5
+  showCastBar: true
+  bossId: chaos
+
+_lookUponMe: &lookUponMe
+  type: aoe
+  name: Look Upon Me
+  telegraph: 4
+  damage: 60
+  damageType: physical
+  showCastBar: true
+  bossId: kefka
+  anchor: boss
+  shape: { kind: rect, direction: { x: 0, z: -1 }, width: 13.3333333333, length: 40 }
+
+_kefkaTeleport: &kefkaTeleport
+  type: teleport_boss
+  name: Kefka Teleport
+  bossId: kefka
+  rng: true
+  spots:
+    - { x: 0, z: 18 }
+    - { x: 12.727922, z: 12.727922 }
+    - { x: 18, z: 0 }
+    - { x: 12.727922, z: -12.727922 }
+    - { x: 0, z: -18 }
+    - { x: -12.727922, z: -12.727922 }
+    - { x: -18, z: 0 }
+    - { x: -12.727922, z: 12.727922 }
+
+_whiteHole: &whiteHole
+  type: aoe
+  name: White Hole
+  telegraph: 4
+  damage: 9999
+  damageType: "true"
+  requireFullHp: true
+  showCastBar: true
+  showTelegraph: false
+  bossId: exdeath
+  shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+
+_implosion: &implosion
+  type: aoe
+  name: Implosion
+  damage: 40
+  damageType: magical
+  anchor: boss
+  directionFrom: bossFacing
+  lockFacing: true
+  showTelegraph: false
+  flashBeforeResolve: { lead: 0.5, color: "#6699ff" }
+  bossId: chaos
+  shape: { kind: cone, angleDeg: 90, length: 44 }
+
+_blackHoleLaserBeam: &blackHoleLaserBeam
+  width: 4
+  length: 40
+  damage: 10
+  damageType: "true"
+  applyEffect:
+    ref: unbecoming
+    showTimer: false
+
+_blackHoleLaser: &blackHoleLaser
+  type: tether_source
+  name: Black Hole Laser
+  tetherKind: debuff
+  buffName: Unbecoming
+  applyTetherEffect: false
+  showSource: false
+  beam: *blackHoleLaserBeam
+
+optionals:
+  combinations:
+    endings:
+      rng: true
+      events:
+        - [latlong-1-a, latlong-1-b]
+        - [latlong-2-a, latlong-2-b]
+      variants:
+        - { name: Latitude Implosion,  offset: [-1.5707963267948966, 1.5707963267948966] }
+        - { name: Longitude Implosion, offset: [0, 3.141592653589793] }
+    eventSets:
+      slap-happy-1:
+        rng: true
+        sets:
+          - [slap-happy-1-right-hit-1, slap-happy-1-right-hit-2, slap-happy-1-right-hit-3, slap-happy-1-party-stack, visual-chaos-cone-at-party-stack]
+          - [slap-happy-1-left-hit-1, slap-happy-1-left-hit-2, slap-happy-1-left-hit-3, slap-happy-1-role-stack-mt, slap-happy-1-role-stack-h1, slap-happy-1-role-stack-m1, slap-happy-1-role-cone-mt, slap-happy-1-role-cone-h1, slap-happy-1-role-cone-m1]
+      slap-happy-2:
+        rng: true
+        sets:
+          - [slap-happy-2-right-hit-1, slap-happy-2-right-hit-2, slap-happy-2-right-hit-3, slap-happy-2-party-stack, visual-chaos-cone-at-party-stack-2]
+          - [slap-happy-2-left-hit-1, slap-happy-2-left-hit-2, slap-happy-2-left-hit-3, slap-happy-2-role-stack-mt, slap-happy-2-role-stack-h1, slap-happy-2-role-stack-m1, slap-happy-2-role-cone-mt, slap-happy-2-role-cone-h1, slap-happy-2-role-cone-m1]
+      slap-happy-3:
+        rng: true
+        sets:
+          - [slap-happy-3-right-hit-1, slap-happy-3-right-hit-2, slap-happy-3-right-hit-3, slap-happy-3-party-stack, visual-chaos-cone-at-party-stack-3]
+          - [slap-happy-3-left-hit-1, slap-happy-3-left-hit-2, slap-happy-3-left-hit-3, slap-happy-3-role-stack-mt, slap-happy-3-role-stack-h1, slap-happy-3-role-stack-m1, slap-happy-3-role-cone-mt, slap-happy-3-role-cone-h1, slap-happy-3-role-cone-m1]
+
+events:
+  - type: aoe
+    id: boss-facing-lock-chaos
+    time: 0
+    name: Black Hole Boss Facing
+    telegraph: 3
+    damage: 0
+    damageType: "true"
+    bossId: chaos
+    lockFacing: true
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+
+  - type: aoe
+    id: boss-facing-lock-exdeath
+    time: 0
+    name: Black Hole Boss Facing
+    telegraph: 3
+    damage: 0
+    damageType: "true"
+    bossId: exdeath
+    lockFacing: true
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+
+  - type: aoe
+    id: decisive-battle
+    time: 0
+    name: Decisive Battle
+    telegraph: 5
+    damage: 0
+    damageType: magical
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
+
+  - type: apply_effect
+    id: epic-hero
+    time: 5
+    name: Epic Hero
+    players: [mt, h1, m1, m2]
+    applyEffect: *heroEpic
+  - type: apply_effect
+    id: fated-hero
+    time: 5
+    name: Fated Hero
+    players: [ot, h2, r1, r2]
+    applyEffect: *heroFated
+
+  - <<: *thunderIII
+    id: thunder-iii-tb-3
+    time: 8
+
+  - type: aoe
+    id: earthquake-cast
+    time: 13
+    name: Earthquake
+    telegraph: 4
+    damage: 0
+    damageType: magical
+    showCastBar: true
+    showTelegraph: false
+    bossId: kefka
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
+
+  - type: set_hp
+    id: earthquake-hp-1
+    time: 17
+    name: Earthquake
+    amount: 1
+  - type: apply_effect
+    id: primordial-crust
+    time: 17
+    name: Primordial Crust
+    players: [mt, ot, h1, h2, r1, r2, m1, m2]
+    applyEffect:
+      ref: primordial_crust
+      duration: 200
+      showTimer: false
+
+  - type: apply_effect
+    id: accretion-healer
+    time: 17
+    name: Accretion
+    players: [h1]
+    applyEffect:
+      ref: accretion
+
+  - type: apply_effect
+    id: accretion-dps
+    time: 17
+    name: Accretion
+    players: [m1]
+    applyEffect:
+      ref: accretion
+  - type: apply_effect
+    id: first-in-line
+    time: 17
+    name: First in Line
+    players: [r1, m1, mt]
+    applyEffect:
+      ref: first_in_line
+  - type: apply_effect
+    id: second-in-line
+    time: 17
+    name: Second in Line
+    players: [r2, ot, h2]
+    applyEffect:
+      ref: second_in_line
+  - type: apply_effect
+    id: third-in-line
+    time: 17
+    name: Third in Line
+    players: [h1, m2]
+    applyEffect:
+      ref: third_in_line
+
+  - type: heal
+    id: recovery-after-earthquake-1
+    time: 23
+    name: Earthquake Recovery
+  - type: heal
+    id: recovery-after-earthquake-2
+    time: 26
+    name: Earthquake Recovery
+
+  - <<: *slapHappyCircle
+    id: slap-happy-1-right-hit-1
+    time: 28
+    showCastBar: true
+    bossRelativeCenter: { lateral: 8, forward: -8 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-1-right-hit-2
+    time: 29
+    showCastBar: false
+    bossRelativeCenter: { lateral: 8, forward: 0 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-1-right-hit-3
+    time: 30
+    showCastBar: false
+    bossRelativeCenter: { lateral: 8, forward: 8 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-1-left-hit-1
+    time: 28
+    showCastBar: true
+    bossRelativeCenter: { lateral: -8, forward: -8 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-1-left-hit-2
+    time: 29
+    showCastBar: false
+    bossRelativeCenter: { lateral: -8, forward: 0 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-1-left-hit-3
+    time: 30
+    showCastBar: false
+    bossRelativeCenter: { lateral: -8, forward: 8 }
+
+  - <<: *partyStack
+    id: slap-happy-1-party-stack
+    time: 36
+
+  - <<: *partyCone
+    id: visual-chaos-cone-at-party-stack
+    time: 36
+
+  - <<: *roleStackMt
+    id: slap-happy-1-role-stack-mt
+    time: 36
+
+  - <<: *roleStackH1
+    id: slap-happy-1-role-stack-h1
+    time: 36
+
+  - <<: *roleStackM1
+    id: slap-happy-1-role-stack-m1
+    time: 36
+
+  - <<: *roleConeMt
+    id: slap-happy-1-role-cone-mt
+    time: 36
+
+  - <<: *roleConeH1
+    id: slap-happy-1-role-cone-h1
+    time: 36
+
+  - <<: *roleConeM1
+    id: slap-happy-1-role-cone-m1
+    time: 36
+
+  - type: hazard
+    id: black-hole-1
+    time: 37
+    name: Black Hole
+    blackHole:
+      combos: *blackHoleCombos
+    radius: 1.68
+    duration: 14
+    applyEffect: *blackHole
+
+  - <<: *blackHoleLaser
+    id: black-hole-1-laser-1
+    time: 37
+    fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 0 }
+    finalizeAfter: 7
+
+  - <<: *blackHoleLaser
+    id: black-hole-1-laser-2
+    time: 44
+    fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 1 }
+    finalizeAfter: 7
+
+  - <<: *blackHoleLaser
+    id: black-hole-1-laser-3
+    time: 44
+    fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 2 }
+    finalizeAfter: 7
+
+  - <<: *thunderIII
+    id: thunder-iii-tb-4
+    time: 49
+
+  - <<: *kefkaTeleport
+    id: kefka-teleport-1
+    time: 56
+
+  - <<: *damningEdictStore
+    id: damning-edict-1-store
+    time: 57
+
+  - <<: *damningEdictBait
+    id: damning-edict-1
+    time: 57
+    link: damning-edict-1-store
+
+  - <<: *slapHappyCircle
+    id: slap-happy-2-right-hit-1
+    time: 58
+    showCastBar: true
+    bossRelativeCenter: { lateral: 8, forward: -8 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-2-right-hit-2
+    time: 59
+    showCastBar: false
+    bossRelativeCenter: { lateral: 8, forward: 0 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-2-right-hit-3
+    time: 60
+    showCastBar: false
+    bossRelativeCenter: { lateral: 8, forward: 8 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-2-left-hit-1
+    time: 58
+    showCastBar: true
+    bossRelativeCenter: { lateral: -8, forward: -8 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-2-left-hit-2
+    time: 59
+    showCastBar: false
+    bossRelativeCenter: { lateral: -8, forward: 0 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-2-left-hit-3
+    time: 60
+    showCastBar: false
+    bossRelativeCenter: { lateral: -8, forward: 8 }
+
+  - <<: *partyStack
+    id: slap-happy-2-party-stack
+    time: 67
+
+  - <<: *partyCone
+    id: visual-chaos-cone-at-party-stack-2
+    time: 67
+
+  - <<: *roleStackMt
+    id: slap-happy-2-role-stack-mt
+    time: 67
+
+  - <<: *roleStackH1
+    id: slap-happy-2-role-stack-h1
+    time: 67
+
+  - <<: *roleStackM1
+    id: slap-happy-2-role-stack-m1
+    time: 67
+
+  - <<: *roleConeMt
+    id: slap-happy-2-role-cone-mt
+    time: 67
+
+  - <<: *roleConeH1
+    id: slap-happy-2-role-cone-h1
+    time: 67
+
+  - <<: *roleConeM1
+    id: slap-happy-2-role-cone-m1
+    time: 67
+
+  - type: hazard
+    id: black-hole-2
+    time: 68
+    name: Black Hole
+    blackHole:
+      combos: *blackHoleCombos
+    radius: 1.68
+    duration: 17
+    applyEffect: *blackHole
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-1
+    time: 68
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 0 }
+    finalizeAfter: 7
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-2
+    time: 68
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 1 }
+    finalizeAfter: 7
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-3
+    time: 68
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 2 }
+    finalizeAfter: 7
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-4
+    time: 75
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 0 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-5
+    time: 75
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 1 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-6
+    time: 75
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 2 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-7
+    time: 80
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 0 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-8
+    time: 80
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 1 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-2-laser-9
+    time: 80
+    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 2 }
+    finalizeAfter: 5
+
+  - <<: *kefkaTeleport
+    id: kefka-teleport-2
+    time: 84
+
+  - <<: *damningEdictStore
+    id: damning-edict-2-store
+    time: 84
+
+  - <<: *damningEdictBait
+    id: damning-edict-2
+    time: 84
+    link: damning-edict-2-store
+
+  - <<: *lookUponMe
+    id: look-upon-me-1
+    time: 86
+
+  - <<: *thunderIII
+    id: thunder-iii-tb-5
+    time: 90
+
+  - type: hazard
+    id: black-hole-3
+    time: 102
+    name: Black Hole
+    blackHole:
+      combos: *blackHoleCombos
+    radius: 1.68
+    duration: 17
+    applyEffect: *blackHole
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-1
+    time: 102
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 0 }
+    finalizeAfter: 7
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-2
+    time: 102
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 1 }
+    finalizeAfter: 7
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-3
+    time: 102
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 2 }
+    finalizeAfter: 7
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-4
+    time: 109
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 0 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-5
+    time: 109
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 1 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-6
+    time: 109
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 2 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-7
+    time: 114
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 0 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-8
+    time: 114
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 1 }
+    finalizeAfter: 5
+
+  - <<: *blackHoleLaser
+    id: black-hole-3-laser-9
+    time: 114
+    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 2 }
+    finalizeAfter: 5
+
+  - <<: *whiteHole
+    id: white-hole-1
+    time: 125
+
+  - <<: *implosion
+    id: latlong-1-a
+    time: 125
+    telegraph: 5
+    showCastBar: true
+
+  - <<: *implosion
+    id: latlong-1-b
+    time: 125
+    telegraph: 5
+    showCastBar: false
+
+  - <<: *slapHappyCircle
+    id: slap-happy-3-right-hit-1
+    time: 127
+    showCastBar: true
+    bossRelativeCenter: { lateral: 8, forward: -8 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-3-right-hit-2
+    time: 128
+    showCastBar: false
+    bossRelativeCenter: { lateral: 8, forward: 0 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-3-right-hit-3
+    time: 129
+    showCastBar: false
+    bossRelativeCenter: { lateral: 8, forward: 8 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-3-left-hit-1
+    time: 127
+    showCastBar: true
+    bossRelativeCenter: { lateral: -8, forward: -8 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-3-left-hit-2
+    time: 128
+    showCastBar: false
+    bossRelativeCenter: { lateral: -8, forward: 0 }
+
+  - <<: *slapHappyCircle
+    id: slap-happy-3-left-hit-3
+    time: 129
+    showCastBar: false
+    bossRelativeCenter: { lateral: -8, forward: 8 }
+
+  - <<: *implosion
+    id: latlong-2-a
+    time: 130
+    telegraph: 2
+    showCastBar: false
+
+  - <<: *implosion
+    id: latlong-2-b
+    time: 130
+    telegraph: 2
+    showCastBar: false
+
+  - <<: *partyStack
+    id: slap-happy-3-party-stack
+    time: 135
+
+  - <<: *partyCone
+    id: visual-chaos-cone-at-party-stack-3
+    time: 135
+
+  - <<: *roleStackMt
+    id: slap-happy-3-role-stack-mt
+    time: 135
+
+  - <<: *roleStackH1
+    id: slap-happy-3-role-stack-h1
+    time: 135
+
+  - <<: *roleStackM1
+    id: slap-happy-3-role-stack-m1
+    time: 135
+
+  - <<: *roleConeMt
+    id: slap-happy-3-role-cone-mt
+    time: 135
+
+  - <<: *roleConeH1
+    id: slap-happy-3-role-cone-h1
+    time: 135
+
+  - <<: *roleConeM1
+    id: slap-happy-3-role-cone-m1
+    time: 135
+
+  - type: hazard
+    id: black-hole-4
+    time: 135
+    name: Black Hole
+    blackHole:
+      combos: *blackHoleCombos
+    radius: 1.68
+    duration: 15
+    applyEffect: *blackHole
+
+  - <<: *blackHoleLaser
+    id: black-hole-4-laser-1
+    time: 135
+    fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 0 }
+    finalizeAfter: 7
+
+  - <<: *blackHoleLaser
+    id: black-hole-4-laser-2
+    time: 142
+    fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 1 }
+    finalizeAfter: 8
+
+  - <<: *kefkaTeleport
+    id: kefka-teleport-3
+    time: 142
+
+  - <<: *lookUponMe
+    id: look-upon-me-2
+    time: 144
+
+waymarks:
+  - { mark: A, pos: { x: 0, z: 12 } }
+  - { mark: B, pos: { x: 12, z: 0 } }
+  - { mark: C, pos: { x: 0, z: -12 } }
+  - { mark: D, pos: { x: -12, z: 0 } }
+  - { mark: "1", pos: { x: 6, z: 6 } }
+  - { mark: "2", pos: { x: 6, z: -6 } }
+  - { mark: "3", pos: { x: -6, z: -6 } }
+  - { mark: "4", pos: { x: -6, z: 6 } }

@@ -78,6 +78,26 @@ test("schema: event bossId referencing a valid boss is accepted", () => {
   })).not.toThrow();
 });
 
+test("teleport_boss moves the named boss to an authored spot", () => {
+  const raid = loadRaidRaw({
+    ...baseRaid,
+    bosses: [{ id: "chaos", pos: [0, 0] }, { id: "kefka", pos: [0, 18], targetable: false }],
+    events: [{
+      id: "kefka-tp",
+      type: "teleport_boss",
+      t: 0,
+      name: "Kefka Teleport",
+      bossId: "kefka",
+      rng: false,
+      spots: [[18, 0], [0, -18]],
+    }],
+  });
+
+  const world = runTicks(createWorld(raid), {}, 1);
+  expect(world.bosses.find(b => b.id === "kefka")!.pos).toEqual({ x: 18, z: 0 });
+  expect(world.pendingBossTeleports).toEqual([]);
+});
+
 test("schema: rejects a solver frame that references an undeclared boss", () => {
   expect(() => loadRaidRaw({
     ...baseRaid,

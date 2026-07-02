@@ -165,6 +165,52 @@ test("boss-anchored circle and donut snapshot the boss position", () => {
   expect(byId(world, "r1").hp).toBe(DPS_HP);      // would be hit if either stayed centered at [0,0]
 });
 
+test("bossRelativeCenter resolves circle offsets from boss position", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    boss: { pos: [0, 18] },
+    players: roster({ m1: { spawn: [-8, 0] }, m2: { spawn: [8, 0] } }),
+    events: [
+      {
+        t: 0, name: "Right Hand", telegraph: 1, damage: 10, damageType: "physical" as const,
+        bossId: "boss", bossRelativeCenter: { lateral: 8, forward: 0 },
+        shape: { kind: "circle", center: [0, 0], radius: 6 },
+      },
+      {
+        t: 2, name: "Left Hand", telegraph: 1, damage: 10, damageType: "physical" as const,
+        bossId: "boss", bossRelativeCenter: { lateral: -8, forward: 0 },
+        shape: { kind: "circle", center: [0, 0], radius: 6 },
+      },
+    ],
+  });
+
+  const afterRight = runTicks(createWorld(raid), {}, Math.ceil(1.1 * 60));
+  expect(byId(afterRight, "m1").hp).toBe(DPS_HP - 10);
+  expect(byId(afterRight, "m2").hp).toBe(DPS_HP);
+
+  const afterLeft = runTicks(afterRight, {}, Math.ceil(2 * 60));
+  expect(byId(afterLeft, "m1").hp).toBe(DPS_HP - 10);
+  expect(byId(afterLeft, "m2").hp).toBe(DPS_HP - 10);
+});
+
+test("aimAtPlayer points cone geometry without turning the boss", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    boss: { pos: [0, 0] },
+    players: roster({ h1: { spawn: [-8, 2] }, m1: { spawn: [-8, 2] }, m2: { spawn: [8, 0] } }),
+    events: [{
+      t: 0, name: "Aimed Cone", telegraph: 1, damage: 10, damageType: "physical" as const,
+      anchor: "boss", aimAtPlayer: "h1",
+      shape: { kind: "cone", angleDeg: 20, length: 20 },
+    }],
+  });
+  const world = runTicks(createWorld(raid), {}, Math.ceil(1.1 * 60));
+
+  expect(world.boss.facing).toBeCloseTo(0);
+  expect(byId(world, "m1").hp).toBe(DPS_HP - 10);
+  expect(byId(world, "m2").hp).toBe(DPS_HP);
+});
+
 function positionalRaid(positional: { center: number; width: number }, over = facingNorthRoster) {
   return loadRaid({
     ...baseRaid,

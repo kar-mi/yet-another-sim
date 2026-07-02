@@ -31,6 +31,7 @@ export function resolveTethers(ctx: TickContext): {
         effectDuration: pt.effectDuration,
         icon: pt.icon,
         applyTetherEffect: pt.applyTetherEffect,
+        showSource: pt.showSource,
         beam: pt.beam,
         tetheredPlayerId: nearest?.id ?? null,
         finalized: false,

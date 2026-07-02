@@ -237,18 +237,65 @@ function buildEndingPlan(
   return { endingOffsets, endingNames, rngState: nextState };
 }
 
+type EventSets = NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["eventSets"];
+
+function applyEventSets(
+  events: RaidDef["events"],
+  eventSets: EventSets,
+  rngState: number,
+): { events: RaidDef["events"]; rngState: number } {
+  if (!eventSets) return { events, rngState };
+
+  let nextState = rngState;
+  const keep = new Set<string>();
+  const drop = new Set<string>();
+  for (const setConfig of Object.values(eventSets)) {
+    let selected = 0;
+    if (setConfig.rng && setConfig.sets.length > 1) {
+      const roll = randomInt(nextState, setConfig.sets.length);
+      selected = roll.value;
+      nextState = roll.state;
+    }
+    setConfig.sets.forEach((set, i) => {
+      for (const id of set) (i === selected ? keep : drop).add(id);
+    });
+  }
+
+  return {
+    events: events.filter(e => keep.has(e.id) || !drop.has(e.id)) as RaidDef["events"],
+    rngState: nextState,
+  };
+}
+
 function applyBlackHoleSpots(
   events: RaidDef["events"],
   rngState: number,
-): { events: RaidDef["events"]; rngState: number } {
+): { events: RaidDef["events"]; rngState: number; tetherSpots: Map<string, Vec2[]> } {
   let nextState = rngState;
+  const tetherSpots = new Map<string, Vec2[]>();
   const result = events.map(e => {
     if (e.type !== "hazard" || !e.blackHole) return e;
-    const layout = selectOrbLayout(nextState);
+    const combos = e.blackHole.combos.map(combo =>
+      combo.map(orb => ({ pos: toVec2(orb.pos), tether: orb.tether })),
+    );
+    const layout = selectOrbLayout(combos, nextState);
     nextState = layout.rngState;
+    tetherSpots.set(e.id, layout.orbs.filter(orb => orb.tether).map(orb => orb.pos));
     return { ...e, spots: layout.orbs.map(orb => [orb.pos.x, orb.pos.z] as [number, number]) };
   });
-  return { events: result as RaidDef["events"], rngState: nextState };
+  return { events: result as RaidDef["events"], rngState: nextState, tetherSpots };
+}
+
+function applyBlackHoleTetherSources(
+  events: RaidDef["events"],
+  tetherSpots: Map<string, Vec2[]>,
+): RaidDef["events"] {
+  return events.map(e => {
+    if (e.type !== "tether_source" || !e.fromBlackHoleOrb) return e;
+    const pos = tetherSpots.get(e.fromBlackHoleOrb.hazardId)?.[e.fromBlackHoleOrb.tetherIndex];
+    if (!pos) throw new Error(`tether_source "${e.id}" references unresolved black-hole orb "${e.fromBlackHoleOrb.hazardId}"[${e.fromBlackHoleOrb.tetherIndex}]`);
+    return { ...e, pos: [pos.x, pos.z] as [number, number] };
+  }) as RaidDef["events"];
 }
 
 // Select a pairing pattern (seeded when `rng`) and derive the generic maps any mechanic can consume:
@@ -368,8 +415,10 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const { endingOffsets, endingNames, rngState: afterEndingRngState } = buildEndingPlan(raid.optionals?.combinations?.endings, afterTowerRngState);
   const { events: swappedEvents, rngState: afterOrderSwapRngState } = applyOrderSwap(rotatedEvents, raid.optionals?.orderSwap, afterEndingRngState);
   const { events: sweptEvents, rngState: afterDivebombSweepRngState } = rotateDivebombSweep(swappedEvents, raid.optionals?.divebombSweep, afterOrderSwapRngState);
-  const { events: hazardEvents, rngState } = applyBlackHoleSpots(sweptEvents, afterDivebombSweepRngState);
-  const effectiveEvents = hazardEvents.map(e =>
+  const { events: selectedEvents, rngState: afterEventSetRngState } = applyEventSets(sweptEvents, raid.optionals?.combinations?.eventSets, afterDivebombSweepRngState);
+  const { events: hazardEvents, rngState, tetherSpots } = applyBlackHoleSpots(selectedEvents, afterEventSetRngState);
+  const tetherEvents = applyBlackHoleTetherSources(hazardEvents, tetherSpots);
+  const effectiveEvents = tetherEvents.map(e =>
     endingOffsets[e.id] === undefined
       ? e
       : { ...e, directionOffset: endingOffsets[e.id], ...(endingNames[e.id] !== undefined ? { name: endingNames[e.id] } : {}) },
@@ -398,6 +447,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
     pendingForcedMarches: [],
     pendingHazards: [],
     pendingDivebombs: [],
+    pendingBossTeleports: [],
     pendingEffectBursts: [],
     pendingHeals: [],
     pendingSetHps: [],

@@ -136,6 +136,7 @@ export type EffectSpec = {
   duration: number;
   behavior: EffectBehavior;
   visibility?: "visible" | "invisible";
+  showTimer?: boolean;
   // Optional HUD icon: a bare filename served from /static/debuffs/. Falls back to a behavior glyph.
   icon?: string;
   // Optional short marker rendered above the player while the effect is active.
@@ -158,6 +159,7 @@ export type StatusEffect = {
   duration: number;
   behavior: EffectBehavior;
   visibility?: "visible" | "invisible";
+  showTimer?: boolean;
   // Optional HUD icon: a bare filename served from /static/effects/. Falls back to a behavior glyph.
   icon?: string;
   // Optional short marker rendered above the player while the effect is active.
@@ -254,6 +256,7 @@ export type AOEShape =
 // bearing from the boss is within `width/2` of `center`. center is measured clockwise from the
 // facing direction: 0 = front, π = rear, π/2 = boss's right, -π/2 = left, π/4 = front-right, etc.
 export type PositionalArc = { center: number; width: number };
+export type BossRelativeCenter = { lateral: number; forward: number };
 
 export type ActiveMechanic = {
   id: string;
@@ -322,6 +325,7 @@ export type PendingEvent = {
   anchor?: "boss";
   directionFrom?: "bossFacing";
   directionOffset?: number;
+  aimAtPlayer?: string;
   lockFacing?: boolean;
   bossStationary?: boolean;
   // When true, this cleave is stored: it does not resolve at its own cast end; a linked bait arms it.
@@ -330,6 +334,7 @@ export type PendingEvent = {
   showCastBar: boolean;
   showTelegraph: boolean;
   telegraphMode: TelegraphMode;
+  bossRelativeCenter?: BossRelativeCenter;
   flashBeforeResolve?: FlashBeforeResolve;
 };
 
@@ -625,6 +630,7 @@ export type PendingGroupEvent = {
   applyEffect?: EffectSpec;
   showCastBar: boolean;
   showMarker: boolean;
+  showTelegraph: boolean;
 };
 
 export type PendingEffectSelect = {
@@ -699,6 +705,7 @@ export type ActiveGroupMechanic = {
   resolved: boolean;
   showCastBar: boolean;
   showMarker: boolean;
+  showTelegraph: boolean;
   outcome?: "success" | "failure"; // set at resolve, drives the post-resolve flash
 };
 
@@ -720,6 +727,7 @@ export type TetherSource = {
   effectDuration: number;
   icon?: string;
   applyTetherEffect: boolean;
+  showSource: boolean;
   beam?: TetherBeam;
   tetheredPlayerId: string | null;
   finalized: boolean;
@@ -745,6 +753,7 @@ export type PendingTether = {
   effectDuration: number;
   icon?: string;
   applyTetherEffect: boolean;
+  showSource: boolean;
   beam?: TetherBeam;
 };
 
@@ -905,6 +914,15 @@ export type PendingDivebomb = {
   visual: "step" | "line"; // render style: single stepping sphere, or a sphere-per-slot exploding line
 };
 
+export type PendingBossTeleport = {
+  id: string;
+  t: number;
+  name: string;
+  bossId: string;
+  spots: Vec2[];
+  rng: boolean;
+};
+
 export type ActiveDivebomb = Omit<PendingDivebomb, "t"> & {
   startedAt: number;
   expireAt: number;
@@ -967,6 +985,7 @@ export type World = {
   pendingForcedMarches: PendingForcedMarch[];
   pendingHazards: PendingHazard[];
   pendingDivebombs: PendingDivebomb[];
+  pendingBossTeleports: PendingBossTeleport[];
   pendingEffectBursts: PendingEffectBurst[];
   effectResolvers: Record<string, EffectResolver>;
   pendingHeals: PendingHeal[];

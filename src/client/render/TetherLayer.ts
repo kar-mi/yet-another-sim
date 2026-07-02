@@ -31,7 +31,13 @@ export class TetherLayer {
 
     for (const ts of tetherSources) {
       // Sphere mesh for the tether source entity
-      if (!this.spheres.has(ts.id)) {
+      if (!ts.showSource) {
+        const existing = this.spheres.get(ts.id);
+        if (existing) {
+          existing.dispose(false, true);
+          this.spheres.delete(ts.id);
+        }
+      } else if (!this.spheres.has(ts.id)) {
         const sphere = CreateSphere(ts.id, { diameter: 1.5, segments: 8 }, this.scene);
         const mat = new StandardMaterial(`mat-${ts.id}`, this.scene);
         const color = ts.tetherKind === "buff" ? new Color3(0.2, 0.9, 0.3) : new Color3(0.9, 0.15, 0.15);
@@ -41,13 +47,15 @@ export class TetherLayer {
         this.spheres.set(ts.id, sphere);
       }
 
-      const sphere = this.spheres.get(ts.id)!;
-      sphere.position.set(ts.pos.x, 0.75, ts.pos.z);
-      const mat = sphere.material as StandardMaterial;
-      if (ts.finalized) {
-        mat.alpha = Math.max(0, 1 - (time - ts.finalizeAt) / 2);
-      } else {
-        mat.alpha = 1;
+      const sphere = this.spheres.get(ts.id);
+      if (sphere) {
+        sphere.position.set(ts.pos.x, 0.75, ts.pos.z);
+        const mat = sphere.material as StandardMaterial;
+        if (ts.finalized) {
+          mat.alpha = Math.max(0, 1 - (time - ts.finalizeAt) / 2);
+        } else {
+          mat.alpha = 1;
+        }
       }
 
       const tethered = ts.tetheredPlayerId ? playerMap.get(ts.tetheredPlayerId) : null;

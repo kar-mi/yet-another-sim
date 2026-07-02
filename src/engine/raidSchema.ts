@@ -122,11 +122,24 @@ const WaymarkSchema = z.object({
   pos: Vec2Schema,
 });
 
-const CrystalsSchema = z.object({
+const CrystalSpawnSchema = z.object({
+  kind: z.literal("single").default("single"),
+  element: z.enum(["wind", "fire", "water", "earth"]),
+  pos: Vec2Schema,
   spawnAt: z.number().nonnegative().optional(),
+});
+const CrystalRotationSchema = z.object({
+  kind: z.literal("rotatingTrio"),
   spots: z.array(Vec2Schema).length(4),
-  rng: z.boolean().default(true),
-}).optional();
+  spawnAt: z.number().nonnegative().optional(),
+});
+const CrystalEntrySchema = z.preprocess(
+  value => typeof value === "object" && value !== null && !Array.isArray(value) && !("kind" in value)
+    ? { kind: "single", ...value }
+    : value,
+  z.discriminatedUnion("kind", [CrystalSpawnSchema, CrystalRotationSchema]),
+);
+const CrystalsSchema = z.array(CrystalEntrySchema).optional();
 
 const FloorPlanSchema = z.enum(["squares", "dmu-p1", "dmu-p2"]).default("squares");
 
@@ -246,6 +259,7 @@ const InlineApplyEffectSchema = z.object({
   duration: z.number().positive(),
   behavior: EffectBehaviorSchema,
   visibility: z.enum(["visible", "invisible"]).optional(),
+  showTimer: z.boolean().optional(),
   icon: z.string().min(1).optional(),   // HUD icon filename, served from /static/debuffs/
   marker: z.string().min(1).max(8).optional(), // short above-head marker shown while active
   markerIcon: z.string().min(1).optional(), // above-head marker image filename, served from /static/head_markers/
@@ -259,6 +273,7 @@ const EffectRefSchema = z.object({
   duration: z.number().positive().optional(),
   behavior: z.record(z.string(), z.unknown()).optional(),
   visibility: z.enum(["visible", "invisible"]).optional(),
+  showTimer: z.boolean().optional(),
   icon: z.string().min(1).optional(),
   marker: z.string().min(1).max(8).optional(),
   markerIcon: z.string().min(1).optional(),
@@ -291,6 +306,10 @@ const KnockbackSchema = z.object({
   origin: Vec2Schema.optional(),               // defaults to the AOE shape's center/origin
 });
 const TelegraphModeSchema = z.enum(["cast", "resolve"]);
+const BossRelativeCenterSchema = z.object({
+  lateral: z.number(),
+  forward: z.number(),
+});
 
 const AOEEventSchema = z.object({
   type: z.literal("aoe").default("aoe"),
@@ -310,6 +329,7 @@ const AOEEventSchema = z.object({
   anchor: z.literal("boss").optional(),            // origin = boss.pos
   directionFrom: z.literal("bossFacing").optional(), // shape direction = boss.facing
   directionOffset: z.number().optional(),          // rotate the bossFacing direction (radians, clockwise)
+  aimAtPlayer: z.string().min(1).optional(),       // cone/rect direction snapshots toward this player id
   // The boss freezes its facing for the duration of the cast (telegraph), then resumes.
   // Defaults to true; set false to let the boss keep tracking its target mid-cast.
   lockFacing: z.boolean().default(true),
@@ -329,6 +349,7 @@ const AOEEventSchema = z.object({
   showCastBar: z.boolean().optional(),
   showTelegraph: z.boolean().optional(),
   telegraphMode: TelegraphModeSchema.optional(),
+  bossRelativeCenter: BossRelativeCenterSchema.optional(),
   // Render-only: during the final `lead` seconds before resolve, flash the AoE footprint
   // in `color` (hex; defaults to light blue). Drawn even when showTelegraph is false.
   flashBeforeResolve: z.object({
@@ -406,7 +427,11 @@ const TetherSourceEventSchema = z.object({
   id: EventIdSchema,
   time: z.number().nonnegative(),
   name: z.string().min(1),
-  pos: Vec2Schema,
+  pos: Vec2Schema.optional(),
+  fromBlackHoleOrb: z.object({
+    hazardId: EventIdSchema,
+    tetherIndex: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+  }).optional(),
   finalizeAfter: z.number().positive(),
   tetherKind: z.enum(["buff", "debuff"]),
   buffName: z.string().min(1),
@@ -414,6 +439,7 @@ const TetherSourceEventSchema = z.object({
   effectDuration: z.number().positive().default(15),
   icon: z.string().min(1).optional(),   // HUD icon filename for the tether buff, served from /static/debuffs/
   applyTetherEffect: z.boolean().default(true),
+  showSource: z.boolean().default(true),
   beam: z.object({
     width: z.number().positive(),
     length: z.number().positive(),
@@ -422,6 +448,14 @@ const TetherSourceEventSchema = z.object({
     applyEffect: ApplyEffectSchema.optional(),
     pointing: Vec2Schema.optional(),
   }).optional(),
+}).superRefine((ev, ctx) => {
+  if ((ev.pos !== undefined) === (ev.fromBlackHoleOrb !== undefined)) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["pos"],
+      message: "tether_source must specify exactly one of pos or fromBlackHoleOrb",
+    });
+  }
 });
 
 const LineLinkTargetSchema = z.object({
@@ -550,6 +584,7 @@ const GroupEventSchema = z.object({
   applyEffect: ApplyEffectSchema.optional(),
   showCastBar: z.boolean().optional(),
   showMarker: z.boolean().default(true),
+  showTelegraph: z.boolean().default(true),
 });
 
 const EffectSelectEventSchema = z.object({
@@ -687,23 +722,30 @@ const ForcedMarchEventSchema = z.object({
   }
 });
 
+const BlackHoleOrbSchema = z.object({
+  pos: Vec2Schema,
+  tether: z.boolean(),
+});
+
 const HazardEventSchema = z.object({
   type: z.literal("hazard"),
   id: EventIdSchema,
   time: z.number().nonnegative(),
   name: z.string().min(1),
   spots: z.array(Vec2Schema).min(1).optional(),
-  blackHole: z.boolean().default(false),
+  blackHole: z.object({
+    combos: z.array(z.array(BlackHoleOrbSchema).min(1)).min(1),
+  }).optional(),
   radius: z.number().positive(),
   duration: z.number().positive(),
   applyEffect: ApplyEffectSchema,
 }).superRefine((ev, ctx) => {
   const hasSpots = ev.spots !== undefined && ev.spots.length > 0;
-  if ((ev.blackHole) === hasSpots) {
+  if ((ev.blackHole !== undefined) === hasSpots) {
     ctx.addIssue({
       code: "custom",
       path: ["spots"],
-      message: "hazard must specify exactly one of spots or blackHole: true",
+      message: "hazard must specify exactly one of spots or blackHole",
     });
   }
 });
@@ -732,6 +774,16 @@ const DivebombEventSchema = z.object({
   if (ev.from[0] === ev.to[0] && ev.from[1] === ev.to[1]) {
     ctx.addIssue({ code: "custom", path: ["to"], message: "divebomb endpoints must be distinct" });
   }
+});
+
+const BossTeleportEventSchema = z.object({
+  type: z.literal("teleport_boss"),
+  id: EventIdSchema,
+  time: z.number().nonnegative(),
+  name: z.string().min(1),
+  bossId: z.string().min(1),
+  spots: z.array(Vec2Schema).min(1),
+  rng: z.boolean().default(false),
 });
 
 const EffectBurstEventSchema = z.object({
@@ -816,7 +868,7 @@ export const EventSchema = z.preprocess(
   value => typeof value === "object" && value !== null && "t" in value && !("time" in value)
     ? { ...value, time: value.t }
     : value,
-  z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, DashEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, HazardEventSchema, DivebombEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema]),
+  z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, DashEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, HazardEventSchema, DivebombEventSchema, BossTeleportEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema]),
 ).transform(event => {
     if (!("time" in event)) return event;
     const { time, ...rest } = event;
@@ -891,6 +943,10 @@ const OptionalsSchema = z.object({
         name: z.string().min(1).optional(),
       })).min(1),
     }).optional(),
+    eventSets: z.record(z.string().min(1), z.object({
+      rng: z.boolean().default(false),
+      sets: z.array(z.array(EventIdSchema).min(1)).min(1),
+    })).optional(),
   }).optional(),
 }).optional();
 
@@ -1315,6 +1371,23 @@ export const RaidSchema = z.object({
           message: `endings variant ${i} offset array length must match its event group length`,
         });
       }
+    });
+  }
+
+  const eventSets = raid.optionals?.combinations?.eventSets;
+  if (eventSets) {
+    Object.entries(eventSets).forEach(([key, setConfig]) => {
+      setConfig.sets.forEach((set, setIndex) => {
+        set.forEach((id, idIndex) => {
+          if (!eventIds.has(id)) {
+            ctx.addIssue({
+              code: "custom",
+              path: ["optionals", "combinations", "eventSets", key, "sets", setIndex, idIndex],
+              message: `event set "${key}" references unknown event id "${id}"`,
+            });
+          }
+        });
+      });
     });
   }
 }).transform(data => {

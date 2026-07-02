@@ -10,7 +10,7 @@ import { STATIC_ROOT } from "../staticBase";
 const EFFECT_TIMER_STEP = 0.25;
 
 type EffectKind = Player["effects"][number]["kind"];
-type EffectChipHandle = { expiresAt: number; timerEl: HTMLSpanElement };
+type EffectChipHandle = { expiresAt: number; timerEl?: HTMLSpanElement };
 export type EffectRenderState = { ids: string[]; timerBucket: number; chips: EffectChipHandle[] };
 
 export function createEffectRenderState(): EffectRenderState {
@@ -95,9 +95,13 @@ function buildEffectChip(
   }
   iconEl.className = `${className}-icon`;
   if (icon.rotate !== undefined) iconEl.style.transform = `rotate(${icon.rotate}deg)`;
+  const expiresAt = effect.appliedAt + effect.duration;
+  if (effect.showTimer === false) {
+    effectEl.append(iconEl);
+    return { element: effectEl, handle: { expiresAt } };
+  }
   const timerEl = document.createElement("span");
   timerEl.className = `${className}-timer`;
-  const expiresAt = effect.appliedAt + effect.duration;
   timerEl.textContent = formatEffectTime(expiresAt, time);
   effectEl.append(iconEl, timerEl);
   return { element: effectEl, handle: { expiresAt, timerEl } };
@@ -129,6 +133,6 @@ export function syncEffectChips(
   if (state.timerBucket === bucket) return;
   state.timerBucket = bucket;
   for (const chip of state.chips) {
-    chip.timerEl.textContent = formatEffectTime(chip.expiresAt, time);
+    if (chip.timerEl) chip.timerEl.textContent = formatEffectTime(chip.expiresAt, time);
   }
 }

@@ -234,6 +234,7 @@ export function applyEffect(player: Player, spec: EffectSpec, time: number, id: 
     duration: spec.duration,
     behavior: spec.behavior,
     visibility: spec.visibility,
+    showTimer: spec.showTimer,
     icon: spec.icon,
     marker: spec.marker,
     markerIcon: spec.markerIcon,
