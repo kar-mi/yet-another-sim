@@ -517,6 +517,14 @@ events:
     fireOffsets: [7]
     despawnAfter: 7
 
+  - <<: *blackHoleLaser
+    id: black-hole-1-laser-3
+    time: 44
+    fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 2 }
+    finalizeAfter: 7
+    fireOffsets: [7]
+    despawnAfter: 7
+
   - <<: *thunderIII
     id: thunder-iii-tb-4
     time: 49
@@ -814,6 +822,14 @@ events:
     id: black-hole-4-laser-1
     time: 135
     fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 0 }
+    finalizeAfter: 7
+    fireOffsets: [7]
+    despawnAfter: 15
+
+  - <<: *blackHoleLaser
+    id: black-hole-4-laser-3
+    time: 135
+    fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 2 }
     finalizeAfter: 7
     fireOffsets: [7]
     despawnAfter: 15

@@ -60,6 +60,9 @@ _behindChaos: &behindChaos
   m1: { r: -1, z: -14 }
   m2: { r: 1, z: -14 }
 
+_clockwiseSoak: &clockwiseSoak { r: 7.44, z: 10.44 }
+_stackMiddle: &stackMiddle { x: 0, z: 0 }
+
 _thunderBait: &thunderBait
   mt: { x: 8, z: 0 }
   ot: { x: 8, z: 0 }
@@ -105,24 +108,37 @@ solvers:
     - { when: { mechanic: damning-edict-1 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spots: *behindChaos }
     - { when: { mechanic: damning-edict-2 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spots: *behindChaos }
 
-    # Tether soakers stand just outside the resolved orb, so each laser points out and clips only them.
-    - { when: { static: true }, startAt: 37, endAt: 44, frame: [black-hole-1-laser-1], spots: { r1: { r: 0, z: 19 } } }
-    - { when: { static: true }, startAt: 44, endAt: 51, frame: [black-hole-1-laser-2], spots: { mt: { r: 0, z: 19 } } }
+    # Tether soakers move 45 degrees clockwise off the orb's own radial line, so the beam (which
+    # fires from the orb toward whoever is closest to it) redirects onto the next cardinal waymark
+    # over - an east orb's soaker sits SE, clipping C; a south orb's soaker sits SW, clipping D.
+    # Real-log-derived: raids/dancing-mad-ultimate/black-hole.yaml orbs sit at cardinal +/-17;
+    # r=z=13.44 keeps the old radius-19 soak distance, just rotated 45 degrees.
+    - { when: { static: true }, startAt: 37, endAt: 44, frame: [black-hole-1-laser-1], spots: { r1: *clockwiseSoak } }
+    - { when: { static: true }, startAt: 44, endAt: 51, frame: [black-hole-1-laser-2], spots: { mt: *clockwiseSoak } }
+    - { when: { static: true }, startAt: 44, endAt: 51, frame: [black-hole-1-laser-3], spots: { m1: *clockwiseSoak } }
 
-    - { when: { static: true }, startAt: 68, endAt: 75, frame: [black-hole-2-laser-1], spots: { r1: { r: 0, z: 19 } } }
-    - { when: { static: true }, startAt: 68, endAt: 80, frame: [black-hole-2-laser-2], spots: { mt: { r: 0, z: 19 } } }
-    - { when: { static: true }, startAt: 68, endAt: 85, frame: [black-hole-2-laser-3], spots: { m1: { r: 0, z: 19 } } }
-    - { when: { static: true }, startAt: 75, endAt: 85, frame: [black-hole-2-laser-1], spots: { r2: { r: 0, z: 19 } } }
-    - { when: { static: true }, startAt: 80, endAt: 85, frame: [black-hole-2-laser-2], spots: { ot: { r: 0, z: 19 } } }
+    - { when: { static: true }, startAt: 68, endAt: 75, frame: [black-hole-2-laser-1], spots: { r1: *clockwiseSoak } }
+    - { when: { static: true }, startAt: 68, endAt: 80, frame: [black-hole-2-laser-2], spots: { mt: *clockwiseSoak } }
+    - { when: { static: true }, startAt: 68, endAt: 85, frame: [black-hole-2-laser-3], spots: { m1: *clockwiseSoak } }
+    - { when: { static: true }, startAt: 75, endAt: 85, frame: [black-hole-2-laser-1], spots: { r2: *clockwiseSoak } }
+    - { when: { static: true }, startAt: 80, endAt: 85, frame: [black-hole-2-laser-2], spots: { ot: *clockwiseSoak } }
 
-    - { when: { static: true }, startAt: 102, endAt: 109, frame: [black-hole-3-laser-1], spots: { r2: { r: 0, z: 19 } } }
-    - { when: { static: true }, startAt: 102, endAt: 114, frame: [black-hole-3-laser-2], spots: { ot: { r: 0, z: 19 } } }
-    - { when: { static: true }, startAt: 102, endAt: 119, frame: [black-hole-3-laser-3], spots: { h1: { r: 0, z: 19 } } }
-    - { when: { static: true }, startAt: 109, endAt: 119, frame: [black-hole-3-laser-1], spots: { m2: { r: 0, z: 19 } } }
-    - { when: { static: true }, startAt: 114, endAt: 119, frame: [black-hole-3-laser-2], spots: { h2: { r: 0, z: 19 } } }
+    - { when: { static: true }, startAt: 102, endAt: 109, frame: [black-hole-3-laser-1], spots: { r2: *clockwiseSoak } }
+    - { when: { static: true }, startAt: 102, endAt: 114, frame: [black-hole-3-laser-2], spots: { ot: *clockwiseSoak } }
+    - { when: { static: true }, startAt: 102, endAt: 119, frame: [black-hole-3-laser-3], spots: { h1: *clockwiseSoak } }
+    - { when: { static: true }, startAt: 109, endAt: 119, frame: [black-hole-3-laser-1], spots: { m2: *clockwiseSoak } }
+    - { when: { static: true }, startAt: 114, endAt: 119, frame: [black-hole-3-laser-2], spots: { h2: *clockwiseSoak } }
 
-    - { when: { static: true }, startAt: 136, endAt: 142, frame: [black-hole-4-laser-1], spots: { m2: { r: 0, z: 19 } } }
+    - { when: { static: true }, startAt: 136, endAt: 142, frame: [black-hole-4-laser-1], spots: { m2: *clockwiseSoak } }
+    - { when: { static: true }, startAt: 136, endAt: 142, frame: [black-hole-4-laser-3], spots: { h1: *clockwiseSoak } }
+    # Last laser of the encounter kept as a plain outward soak for now - not yet redirected.
     - { when: { static: true }, startAt: 142, endAt: 150, frame: [black-hole-4-laser-2], spots: { h2: { r: 0, z: 19 } } }
+
+    # Everyone not already soaking a tether just stacks arena center, out of every beam's path.
+    - { when: { static: true }, startAt: 37, endAt: 51, spot: *stackMiddle }
+    - { when: { static: true }, startAt: 68, endAt: 85, spot: *stackMiddle }
+    - { when: { static: true }, startAt: 102, endAt: 119, spot: *stackMiddle }
+    - { when: { static: true }, startAt: 135, endAt: 150, spot: *stackMiddle }
 
     - { when: { static: true }, spots: *fallback }
 
