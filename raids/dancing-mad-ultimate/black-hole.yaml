@@ -251,7 +251,7 @@ _implosion: &implosion
   shape: { kind: cone, angleDeg: 90, length: 44 }
 
 _blackHoleLaserBeam: &blackHoleLaserBeam
-  width: 4
+  width: 6
   length: 40
   damage: 10
   damageType: "true"
@@ -507,7 +507,7 @@ events:
     fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 0 }
     finalizeAfter: 7
     fireOffsets: [7]
-    despawnAfter: 14
+    despawnAfter: 7
 
   - <<: *blackHoleLaser
     id: black-hole-1-laser-2
@@ -824,7 +824,7 @@ events:
     fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 0 }
     finalizeAfter: 7
     fireOffsets: [7]
-    despawnAfter: 15
+    despawnAfter: 7
 
   - <<: *blackHoleLaser
     id: black-hole-4-laser-3
@@ -832,7 +832,7 @@ events:
     fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 2 }
     finalizeAfter: 7
     fireOffsets: [7]
-    despawnAfter: 15
+    despawnAfter: 7
 
   - <<: *blackHoleLaser
     id: black-hole-4-laser-2
