@@ -246,6 +246,7 @@ _blackHoleLaserBeam: &blackHoleLaserBeam
   damageType: "true"
   applyEffect:
     ref: unbecoming
+    showTimer: false
 
 _blackHoleLaser: &blackHoleLaser
   type: tether_source
