@@ -1,5 +1,5 @@
 import { Room, type AuthContext, type Client } from "colyseus";
-import { ClientMessageSchema, EMPTY_RAID_ID, type ServerMessage } from "@shared/protocol";
+import { ClientMessageSchema, EMPTY_RAID_ID, RaidIdSchema, SessionIdSchema, type ServerMessage } from "@shared/protocol";
 import { logger, createSessionLog } from "./logger";
 import { RAIDS_DIR } from "./raidCatalog";
 import { isOriginAllowed, parseAllowedOrigins } from "./origin";
@@ -59,6 +59,8 @@ export class RelayServerRoom extends Room {
   async onCreate(options: RelayRoomOptions): Promise<void> {
     const sessionId = typeof options.sessionId === "string" && options.sessionId ? options.sessionId : this.roomId;
     const raidId = typeof options.raidId === "string" && options.raidId ? options.raidId : EMPTY_RAID_ID;
+    if (options.sessionId && !SessionIdSchema.safeParse(sessionId).success) throw new Error("Invalid sessionId");
+    if (!RaidIdSchema.safeParse(raidId).success) throw new Error("Invalid raidId");
     if (activeRooms >= MAX_SESSIONS) throw new Error("Server is full");
     activeRooms++;
     await this.setMetadata({ sessionId } as any);
