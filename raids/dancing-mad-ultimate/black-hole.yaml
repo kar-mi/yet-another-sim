@@ -5,7 +5,7 @@ arena:
     - kind: circle
       center: { x: 0, z: 0 }
       radius: 20
-duration: 150
+duration: 158
 
 bosses:
   - id: chaos
@@ -813,6 +813,32 @@ events:
   - <<: *roleConeM1
     id: slap-happy-3-role-cone-m1
     time: 135
+
+  - type: hazard
+    id: black-hole-4
+    time: 135
+    name: Black Hole
+    blackHole:
+      combos: *blackHoleCombos
+    radius: 1.68
+    duration: 15
+    applyEffect: *blackHole
+
+  - <<: *blackHoleLaser
+    id: black-hole-4-laser-1
+    time: 135
+    fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 0 }
+    finalizeAfter: 7
+
+  - <<: *blackHoleLaser
+    id: black-hole-4-laser-2
+    time: 142
+    fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 1 }
+    finalizeAfter: 8
+
+  - <<: *lookUponMe
+    id: look-upon-me-2
+    time: 144
 
 waymarks:
   - { mark: A, pos: { x: 0, z: 12 } }
