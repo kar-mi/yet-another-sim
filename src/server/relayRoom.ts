@@ -252,7 +252,12 @@ export class RelayRoom {
     // Clients resume stepping from the frames that follow; the local world held while paused.
     this.status = "running";
     this.relay.start();
-    if (wasStopped) this.broadcastStarted();
+    if (wasStopped) {
+      // Refresh clients still on the lobby screen before "started", so their stale lastLobby.status
+      // ("stopped") doesn't get read as the initial playback state for the resumed session.
+      this.broadcastLobby();
+      this.broadcastStarted();
+    }
     this.broadcastPlayback();
     logger.info("session", "resumed", { session: this.id, raid: this.raidId });
   }
@@ -347,6 +352,9 @@ export class RelayRoom {
     this.openPullLog();
     this.relay.start();
     this.broadcastPlayback();
+    // Refresh clients still on the lobby screen before "started", so their stale lastLobby.status
+    // (e.g. "done") doesn't get read as the initial playback state for the restarted session.
+    this.broadcastLobby();
     this.broadcastStarted();
     logger.info("session", "raid restarted", { session: this.id, raid: this.raidId });
   }
