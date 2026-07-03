@@ -244,6 +244,7 @@ export type Boss = {
   modelScale: number;              // multiplier applied on top of the base model scale
   targetable: boolean;
   hidden: boolean;                 // when true, the model is not drawn (e.g. boss ducked under the map)
+  sinkFraction: number;             // 0..1 fraction of model body height sunk below the ground (e.g. boss positioned under the map)
 };
 
 export type AOEShape =
