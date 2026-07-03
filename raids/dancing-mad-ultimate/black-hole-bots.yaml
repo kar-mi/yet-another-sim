@@ -33,7 +33,7 @@ _roleSafeWest: &roleSafeWest
 _pixelBehindChaos: &pixelBehindChaos { r: 0, z: -0.1 }
 
 _clockwiseSoak: &clockwiseSoak { r: 7.44, z: 2.44 }
-_preclockwiseSoak: &clockwiseSoak { r: 5.44, z: 2.44 }
+_preclockwiseSoak: &preclockwiseSoak { r: 5.44, z: 2.44 }
 _atOrb: &atOrb { r: 0, z: 3 }
 _stackMiddle: &stackMiddle { x: 0, z: 0 }
 
