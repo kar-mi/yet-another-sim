@@ -33,19 +33,19 @@ _roleSafeWest: &roleSafeWest
 _pixelBehindChaos: &pixelBehindChaos { r: 0, z: -0.1 }
 
 _clockwiseSoak: &clockwiseSoak { r: 7.44, z: 2.44 }
-_preclockwiseSoak: &preclockwiseSoak { r: 5.44, z: 2.44 }
-_atOrb: &atOrb { r: 0, z: 3 }
+_preclockwiseSoak: &preclockwiseSoak { r: 6.44, z: 2.44 }
+_atOrb: &atOrb { r: 0, z: 4 }
 _stackMiddle: &stackMiddle { x: 0, z: 0 }
 
 _thunderBait: &thunderBait
   mt: { x: 7, z: 0 }
   ot: { x: 7, z: 0 }
-  h1: { x: -6, z: 6 }
-  h2: { x: -6, z: 2 }
-  r1: { x: -8, z: -2 }
-  r2: { x: -8, z: -6 }
-  m1: { x: -3, z: -8 }
-  m2: { x: -1, z: -10 }
+  h1: { x: 0, z: 0 }
+  h2: { x: 0, z: 0 }
+  r1: { x: 0, z: 0 }
+  r2: { x: 0, z: 0 }
+  m1: { x: 0, z: 0 }
+  m2: { x: 0, z: 0 }
 
 solvers:
   generic:
@@ -88,23 +88,23 @@ solvers:
     # rest spot), so walking it is a genuine line interception, not a proximity trick.
     # Real-log-derived: raids/dancing-mad-ultimate/black-hole.yaml orbs sit at cardinal +/-17;
     # r=z=13.44 keeps the old radius-19 soak distance, just rotated 45 degrees.
-    - { when: { static: true }, startAt: 34, endAt: 38, frame: [black-hole-1-laser-1], spots: { r1: *atOrb } }
-    - { when: { static: true }, startAt: 34, endAt: 41, frame: [black-hole-1-laser-1], spots: { r1: *preclockwiseSoak } }
+    - { when: { static: true }, startAt: 34, endAt: 40, frame: [black-hole-1-laser-1], spots: { r1: *atOrb } }
+    - { when: { static: true }, startAt: 34, endAt: 42, frame: [black-hole-1-laser-1], spots: { r1: *preclockwiseSoak } }
     - { when: { static: true }, startAt: 37, endAt: 44, frame: [black-hole-1-laser-1], spots: { r1: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 41, endAt: 46, frame: [black-hole-1-laser-2], spots: { mt: *atOrb } }
+    - { when: { static: true }, startAt: 41, endAt: 47, frame: [black-hole-1-laser-2], spots: { mt: *atOrb } }
     - { when: { static: true }, startAt: 41, endAt: 49, frame: [black-hole-1-laser-2], spots: { mt: *preclockwiseSoak } }
     - { when: { static: true }, startAt: 44, endAt: 51, frame: [black-hole-1-laser-2], spots: { mt: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 41, endAt: 46, frame: [black-hole-1-laser-3], spots: { m1: *atOrb } }
+    - { when: { static: true }, startAt: 41, endAt: 47, frame: [black-hole-1-laser-3], spots: { m1: *atOrb } }
     - { when: { static: true }, startAt: 41, endAt: 49, frame: [black-hole-1-laser-3], spots: { m1: *preclockwiseSoak } }
     - { when: { static: true }, startAt: 44, endAt: 51, frame: [black-hole-1-laser-3], spots: { m1: *clockwiseSoak } }
 
-    - { when: { static: true }, startAt: 65, endAt: 70, frame: [black-hole-2-laser-1], spots: { r1: *atOrb } }
+    - { when: { static: true }, startAt: 65, endAt: 71, frame: [black-hole-2-laser-1], spots: { r1: *atOrb } }
     - { when: { static: true }, startAt: 65, endAt: 73, frame: [black-hole-2-laser-1], spots: { r1: *preclockwiseSoak } }
     - { when: { static: true }, startAt: 68, endAt: 75, frame: [black-hole-2-laser-1], spots: { r1: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 65, endAt: 70, frame: [black-hole-2-laser-2], spots: { mt: *atOrb } }
+    - { when: { static: true }, startAt: 65, endAt: 71, frame: [black-hole-2-laser-2], spots: { mt: *atOrb } }
     - { when: { static: true }, startAt: 65, endAt: 73, frame: [black-hole-2-laser-2], spots: { mt: *preclockwiseSoak } }
     - { when: { static: true }, startAt: 68, endAt: 80, frame: [black-hole-2-laser-2], spots: { mt: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 65, endAt: 70, frame: [black-hole-2-laser-3], spots: { m1: *atOrb } }
+    - { when: { static: true }, startAt: 65, endAt: 71, frame: [black-hole-2-laser-3], spots: { m1: *atOrb } }
     - { when: { static: true }, startAt: 65, endAt: 73, frame: [black-hole-2-laser-3], spots: { m1: *preclockwiseSoak } }
     - { when: { static: true }, startAt: 68, endAt: 85, frame: [black-hole-2-laser-3], spots: { m1: *clockwiseSoak } }
     - { when: { static: true }, startAt: 72, endAt: 77, frame: [black-hole-2-laser-1], spots: { r2: *atOrb } }
