@@ -30,37 +30,9 @@ _roleSafeWest: &roleSafeWest
   m1: { r: -4.5, z: -4 }
   m2: { r: -4.5, z: -4 }
 
-_baitUnsafeWest: &baitUnsafeWest
-  mt: { r: -7, z: 0 }
-  ot: { r: -7, z: 0 }
-  h1: { r: -7, z: 0 }
-  h2: { r: -7, z: 0 }
-  r1: { r: -7, z: 0 }
-  r2: { r: -7, z: 0 }
-  m1: { r: -7, z: 0 }
-  m2: { r: -7, z: 0 }
+_pixelBehindChaos: &pixelBehindChaos { r: 0, z: -0.1 }
 
-_baitUnsafeEast: &baitUnsafeEast
-  mt: { r: 7, z: 0 }
-  ot: { r: 7, z: 0 }
-  h1: { r: 7, z: 0 }
-  h2: { r: 7, z: 0 }
-  r1: { r: 7, z: 0 }
-  r2: { r: 7, z: 0 }
-  m1: { r: 7, z: 0 }
-  m2: { r: 7, z: 0 }
-
-_behindChaos: &behindChaos
-  mt: { r: -3, z: -8 }
-  ot: { r: 3, z: -8 }
-  h1: { r: -2, z: -10 }
-  h2: { r: 2, z: -10 }
-  r1: { r: -5, z: -12 }
-  r2: { r: 5, z: -12 }
-  m1: { r: -1, z: -14 }
-  m2: { r: 1, z: -14 }
-
-_clockwiseSoak: &clockwiseSoak { r: 8.44, z: 2.44 }
+_clockwiseSoak: &clockwiseSoak { r: 7.44, z: 2.44 }
 _atOrb: &atOrb { r: 0, z: 7 }
 _stackMiddle: &stackMiddle { x: 0, z: 0 }
 
@@ -80,9 +52,15 @@ solvers:
     - { when: { mechanic: thunder-iii-tb-4 }, spots: *thunderBait }
     - { when: { mechanic: thunder-iii-tb-5 }, spots: *thunderBait }
 
-    # Damning Edict bait goes into the side Slap Happy will make unsafe, then the hit rules below move safe.
-    - { when: { mechanic: slap-happy-2-right-edict-bait }, frame: [{ boss: { id: kefka, from: position } }], spots: *baitUnsafeWest }
-    - { when: { mechanic: slap-happy-2-left-edict-bait }, frame: [{ boss: { id: kefka, from: position } }], spots: *baitUnsafeEast }
+    # Damning Edict doesn't bait: the party just stacks tight behind Chaos through the tell and
+    # the cast; the hit rules below then move safe for Slap Happy once those go live.
+    - { when: { mechanic: slap-happy-2-right-edict-bait }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *pixelBehindChaos }
+    - { when: { mechanic: slap-happy-2-left-edict-bait }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *pixelBehindChaos }
+
+    # ...and stays there until the cast actually resolves - these two are listed ahead of the Slap
+    # Happy hit rules below so they keep winning for the whole cast even while a hit window is also live.
+    - { when: { mechanic: damning-edict-1 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *pixelBehindChaos }
+    - { when: { mechanic: damning-edict-2 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *pixelBehindChaos }
 
     # Slap Happy right-side cleave rolls party stack: all middle relative in the safe quadrant.
     - { when: { mechanic: slap-happy-1-right-hit-1 }, frame: [{ boss: { id: kefka, from: position } }], spots: *partySafeEast }
@@ -105,9 +83,6 @@ solvers:
     - { when: { mechanic: slap-happy-3-left-hit-1 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeWest }
     - { when: { mechanic: slap-happy-3-left-hit-2 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeWest }
     - { when: { mechanic: slap-happy-3-left-hit-3 }, frame: [{ boss: { id: kefka, from: position } }], spots: *roleSafeWest }
-
-    - { when: { mechanic: damning-edict-1 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spots: *behindChaos }
-    - { when: { mechanic: damning-edict-2 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spots: *behindChaos }
 
     # Tether soakers first move onto the orb itself (guaranteeing they're the nearest player when
     # the tether spawns), then transition to the clockwise bait spot 45 degrees off the orb's own
