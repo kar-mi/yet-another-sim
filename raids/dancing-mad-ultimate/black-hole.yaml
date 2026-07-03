@@ -6,6 +6,7 @@ arena:
       center: { x: 0, z: 0 }
       radius: 20
 duration: 158
+botPatterns: black-hole-bots
 
 bosses:
   - id: chaos
@@ -21,7 +22,7 @@ bosses:
 crystals:
   - kind: single
     element: earth
-    pos: { x: 0, z: -18 }
+    pos: { x: 0, z: -10 }
     spawnAt: 17
 
 players:
@@ -73,7 +74,7 @@ _slapHappyCircle: &slapHappyCircle
   type: aoe
   name: Slap Happy
   telegraph: 4
-  damage: 20
+  damage: 200
   damageType: physical
   telegraphMode: resolve
   bossId: kefka
@@ -85,7 +86,7 @@ _thunderIII: &thunderIII
   targetMode: closest
   radius: 4
   telegraph: 4
-  damage: 55
+  damage: 100
   damageType: magical
   showCastBar: true
   bossId: exdeath
@@ -173,7 +174,7 @@ _damningEdictStore: &damningEdictStore
   anchor: boss
   directionFrom: bossFacing
   telegraph: 5
-  damage: 90
+  damage: 200
   damageType: magical
   shape: { kind: cone, angleDeg: 180, length: 24 }
   telegraphMode: resolve
@@ -192,12 +193,22 @@ _lookUponMe: &lookUponMe
   type: aoe
   name: Look Upon Me
   telegraph: 4
-  damage: 60
+  damage: 200
   damageType: physical
   showCastBar: true
   bossId: kefka
   anchor: boss
   shape: { kind: rect, direction: { x: 0, z: -1 }, width: 13.3333333333, length: 40 }
+
+_botTell: &botTell
+  type: aoe
+  name: Bot Tell
+  telegraph: 1
+  damage: 0
+  damageType: "true"
+  showCastBar: false
+  showTelegraph: false
+  shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
 
 _kefkaTeleport: &kefkaTeleport
   type: teleport_boss
@@ -240,7 +251,7 @@ _implosion: &implosion
   shape: { kind: cone, angleDeg: 90, length: 44 }
 
 _blackHoleLaserBeam: &blackHoleLaserBeam
-  width: 4
+  width: 6
   length: 40
   damage: 10
   damageType: "true"
@@ -276,8 +287,8 @@ optionals:
       slap-happy-2:
         rng: true
         sets:
-          - [slap-happy-2-right-hit-1, slap-happy-2-right-hit-2, slap-happy-2-right-hit-3, slap-happy-2-party-stack, visual-chaos-cone-at-party-stack-2]
-          - [slap-happy-2-left-hit-1, slap-happy-2-left-hit-2, slap-happy-2-left-hit-3, slap-happy-2-role-stack-mt, slap-happy-2-role-stack-h1, slap-happy-2-role-stack-m1, slap-happy-2-role-cone-mt, slap-happy-2-role-cone-h1, slap-happy-2-role-cone-m1]
+          - [slap-happy-2-right-edict-bait, slap-happy-2-right-hit-1, slap-happy-2-right-hit-2, slap-happy-2-right-hit-3, slap-happy-2-party-stack, visual-chaos-cone-at-party-stack-2]
+          - [slap-happy-2-left-edict-bait, slap-happy-2-left-hit-1, slap-happy-2-left-hit-2, slap-happy-2-left-hit-3, slap-happy-2-role-stack-mt, slap-happy-2-role-stack-h1, slap-happy-2-role-stack-m1, slap-happy-2-role-cone-mt, slap-happy-2-role-cone-h1, slap-happy-2-role-cone-m1]
       slap-happy-3:
         rng: true
         sets:
@@ -495,18 +506,24 @@ events:
     time: 37
     fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 0 }
     finalizeAfter: 7
+    fireOffsets: [7]
+    despawnAfter: 7
 
   - <<: *blackHoleLaser
     id: black-hole-1-laser-2
     time: 44
     fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 1 }
     finalizeAfter: 7
+    fireOffsets: [7]
+    despawnAfter: 7
 
   - <<: *blackHoleLaser
     id: black-hole-1-laser-3
     time: 44
     fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 2 }
     finalizeAfter: 7
+    fireOffsets: [7]
+    despawnAfter: 7
 
   - <<: *thunderIII
     id: thunder-iii-tb-4
@@ -519,6 +536,14 @@ events:
   - <<: *damningEdictStore
     id: damning-edict-1-store
     time: 57
+
+  - <<: *botTell
+    id: slap-happy-2-right-edict-bait
+    time: 56
+
+  - <<: *botTell
+    id: slap-happy-2-left-edict-bait
+    time: 56
 
   - <<: *damningEdictBait
     id: damning-edict-1
@@ -608,54 +633,24 @@ events:
     time: 68
     fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 0 }
     finalizeAfter: 7
+    fireOffsets: [7, 12, 17]
+    despawnAfter: 17
 
   - <<: *blackHoleLaser
     id: black-hole-2-laser-2
     time: 68
     fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 1 }
     finalizeAfter: 7
+    fireOffsets: [7, 12, 17]
+    despawnAfter: 17
 
   - <<: *blackHoleLaser
     id: black-hole-2-laser-3
     time: 68
     fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 2 }
     finalizeAfter: 7
-
-  - <<: *blackHoleLaser
-    id: black-hole-2-laser-4
-    time: 75
-    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 0 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-2-laser-5
-    time: 75
-    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 1 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-2-laser-6
-    time: 75
-    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 2 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-2-laser-7
-    time: 80
-    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 0 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-2-laser-8
-    time: 80
-    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 1 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-2-laser-9
-    time: 80
-    fromBlackHoleOrb: { hazardId: black-hole-2, tetherIndex: 2 }
-    finalizeAfter: 5
+    fireOffsets: [7, 12, 17]
+    despawnAfter: 17
 
   - <<: *kefkaTeleport
     id: kefka-teleport-2
@@ -693,54 +688,29 @@ events:
     time: 102
     fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 0 }
     finalizeAfter: 7
+    fireOffsets: [7, 12, 17]
+    despawnAfter: 17
 
   - <<: *blackHoleLaser
     id: black-hole-3-laser-2
     time: 102
     fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 1 }
     finalizeAfter: 7
+    fireOffsets: [7, 12, 17]
+    despawnAfter: 17
 
   - <<: *blackHoleLaser
     id: black-hole-3-laser-3
     time: 102
     fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 2 }
     finalizeAfter: 7
+    fireOffsets: [7, 12, 17]
+    despawnAfter: 17
 
-  - <<: *blackHoleLaser
-    id: black-hole-3-laser-4
-    time: 109
-    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 0 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-3-laser-5
-    time: 109
-    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 1 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-3-laser-6
-    time: 109
-    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 2 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-3-laser-7
-    time: 114
-    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 0 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-3-laser-8
-    time: 114
-    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 1 }
-    finalizeAfter: 5
-
-  - <<: *blackHoleLaser
-    id: black-hole-3-laser-9
-    time: 114
-    fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 2 }
-    finalizeAfter: 5
+  - type: heal
+    id: recovery-before-white-hole
+    time: 124
+    name: White Hole Recovery
 
   - <<: *whiteHole
     id: white-hole-1
@@ -853,12 +823,24 @@ events:
     time: 135
     fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 0 }
     finalizeAfter: 7
+    fireOffsets: [7]
+    despawnAfter: 7
+
+  - <<: *blackHoleLaser
+    id: black-hole-4-laser-3
+    time: 135
+    fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 2 }
+    finalizeAfter: 7
+    fireOffsets: [7]
+    despawnAfter: 7
 
   - <<: *blackHoleLaser
     id: black-hole-4-laser-2
     time: 142
     fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 1 }
     finalizeAfter: 8
+    fireOffsets: [8]
+    despawnAfter: 8
 
   - <<: *kefkaTeleport
     id: kefka-teleport-3

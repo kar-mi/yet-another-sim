@@ -104,13 +104,16 @@ const hazard: MechanicModule = {
 };
 
 const tethers: MechanicModule = {
-  fromEvent(e, c) {
+  fromEvent(e, c, eventPositions) {
     if (e.type !== "tether_source") return;
+    eventPositions[e.id] = toVec2(e.pos!);
     c.pendingTethers.push({
       id: e.id,
       t: e.t,
       pos: toVec2(e.pos!),
       finalizeAfter: e.finalizeAfter,
+      fireOffsets: e.fireOffsets,
+      despawnAfter: e.despawnAfter,
       tetherKind: e.tetherKind,
       buffName: e.buffName,
       behavior: e.behavior,

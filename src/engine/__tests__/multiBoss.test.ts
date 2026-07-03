@@ -3,7 +3,7 @@ import { tick } from "../sim";
 import { createWorld } from "../world";
 import { loadRaid as loadRaidRaw } from "../raidLoader";
 import { INITIAL_TANK_THREAT } from "@shared/constants";
-import { baseRaid, loadRaid, roster, runTicks } from "./helpers";
+import { baseRaid, byId, loadRaid, roster, runTicks } from "./helpers";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -279,4 +279,35 @@ test("tick: targeted aggro with bossId hits that boss's current target", () => {
   // ot should have taken damage from exdeath's buster; mt should not.
   expect(ot.hp).toBeLessThan(ot.maxHp);
   expect(mt.hp).toBe(mt.maxHp);
+});
+
+test("tick: targeted closest with bossId measures from that boss", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    bosses: [
+      { id: "chaos", pos: [0, 0] },
+      { id: "exdeath", pos: [10, 0] },
+    ],
+    players: roster({
+      mt: { spawn: [0, 0] },
+      ot: { spawn: [10, 1] },
+    }),
+    events: [{
+      type: "targeted",
+      id: "closest-exdeath",
+      t: 0,
+      name: "Closest Exdeath",
+      bossId: "exdeath",
+      targetMode: "closest",
+      radius: 1,
+      telegraph: 0.1,
+      damage: 50,
+      damageType: "magical",
+    }],
+  });
+
+  const world = runTicks(createWorld(raid), {}, 20);
+
+  expect(byId(world, "mt").hp).toBe(160);
+  expect(byId(world, "ot").hp).toBe(110);
 });
