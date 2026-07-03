@@ -351,6 +351,11 @@ events:
     id: thunder-iii-tb-3
     time: 8
 
+  - type: heal
+    id: recovery-after-tb-1
+    time: 9
+    name: TB Recovery
+
   - type: aoe
     id: earthquake-cast
     time: 13
@@ -419,6 +424,7 @@ events:
     id: recovery-after-earthquake-1
     time: 23
     name: Earthquake Recovery
+
   - type: heal
     id: recovery-after-earthquake-2
     time: 26
@@ -492,6 +498,11 @@ events:
     id: slap-happy-1-role-cone-m1
     time: 36
 
+  - type: heal
+    id: recovery-after-stack-1
+    time: 37
+    name: Stack Recovery
+
   - type: hazard
     id: black-hole-1
     time: 37
@@ -529,6 +540,11 @@ events:
   - <<: *thunderIII
     id: thunder-iii-tb-4
     time: 49
+
+  - type: heal
+    id: recovery-after-tb-4
+    time: 50
+    name: TB Recovery
 
   - <<: *kefkaTeleport
     id: kefka-teleport-1
@@ -619,6 +635,11 @@ events:
     id: slap-happy-2-role-cone-m1
     time: 67
 
+  - type: heal
+    id: recovery-after-stack-2
+    time: 68
+    name: Stack Recovery
+
   - type: hazard
     id: black-hole-2
     time: 68
@@ -673,6 +694,11 @@ events:
   - <<: *thunderIII
     id: thunder-iii-tb-5
     time: 90
+
+  - type: heal
+    id: recovery-after-tb-5
+    time: 91
+    name: TB Recovery
 
   - type: hazard
     id: black-hole-3
@@ -808,6 +834,11 @@ events:
   - <<: *roleConeM1
     id: slap-happy-3-role-cone-m1
     time: 135
+
+  - type: heal
+    id: recovery-after-stack-3
+    time: 136
+    name: Stack Recovery
 
   - type: hazard
     id: black-hole-4
