@@ -15,7 +15,7 @@ bosses:
   - id: exdeath
     pos: { x: 8, z: 0 }
     aggro: ot
-  - id: big-kefka
+  - id: bigkefka
     pos: { x: 0, z: 18 }
     targetable: false
     sink: 0.5
@@ -78,7 +78,7 @@ _slapHappyCircle: &slapHappyCircle
   damage: 200
   damageType: physical
   telegraphMode: resolve
-  bossId: big-kefka
+  bossId: bigkefka
   shape: { kind: circle, center: { x: 0, z: 0 }, radius: 8 }
 
 _thunderIII: &thunderIII
@@ -197,7 +197,7 @@ _lookUponMe: &lookUponMe
   damage: 200
   damageType: physical
   showCastBar: true
-  bossId: big-kefka
+  bossId: bigkefka
   anchor: boss
   shape: { kind: rect, direction: { x: 0, z: -1 }, width: 13.3333333333, length: 40 }
 
@@ -214,7 +214,7 @@ _botTell: &botTell
 _kefkaTeleport: &kefkaTeleport
   type: teleport_boss
   name: Kefka Teleport
-  bossId: big-kefka
+  bossId: bigkefka
   rng: true
   spots:
     - { x: 0, z: 18 }
@@ -360,7 +360,7 @@ events:
     damageType: magical
     showCastBar: true
     showTelegraph: false
-    bossId: big-kefka
+    bossId: bigkefka
     shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
 
   - type: set_hp

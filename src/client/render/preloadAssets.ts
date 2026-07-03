@@ -1,6 +1,7 @@
 import { BOSS_MODEL_FILE, BOSS_MODEL_ROOT } from "./BossLayer";
 import { DEFAULT_PLAYER_MODEL_FILE, PLAYER_MODEL_FILES, PLAYER_MODEL_ROOT } from "./PlayerLayer";
 import { FLOOR_PLAN_IMAGES } from "./meshes/arenaMeshes";
+import { HAND_IMAGE_URL } from "./meshes/handMeshes";
 import { STATIC_ROOT } from "../staticBase";
 
 // Above-head marker icons (PlayerLayer.syncMarkers) and HUD debuff icons (effectChips) load lazily
@@ -42,7 +43,7 @@ export function preloadAssets(): void {
 
   // Floor plans, markers and debuff icons load through the browser's image cache (<img> / Babylon
   // DOM-image textures), which an Image() request warms directly.
-  for (const url of [...Object.values(FLOOR_PLAN_IMAGES), ...HEAD_MARKER_ICONS, ...DEBUFF_ICONS]) {
+  for (const url of [...Object.values(FLOOR_PLAN_IMAGES), ...HEAD_MARKER_ICONS, ...DEBUFF_ICONS, HAND_IMAGE_URL]) {
     new Image().src = url;
   }
 }

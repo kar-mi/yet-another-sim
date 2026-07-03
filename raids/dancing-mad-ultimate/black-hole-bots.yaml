@@ -64,26 +64,26 @@ solvers:
     - { when: { mechanic: damning-edict-2 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *pixelBehindChaos }
 
     # Slap Happy right-side cleave rolls party stack: all middle relative in the safe quadrant.
-    - { when: { mechanic: slap-happy-1-right-hit-1 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-1-right-hit-2 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-1-right-hit-3 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-2-right-hit-1 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-2-right-hit-2 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-2-right-hit-3 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-3-right-hit-1 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-3-right-hit-2 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-3-right-hit-3 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-1-right-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-1-right-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-1-right-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-2-right-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-2-right-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-2-right-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-3-right-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-3-right-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-3-right-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
 
     # Slap Happy left-side cleave rolls role stacks: tanks north, healers mid, DPS south.
-    - { when: { mechanic: slap-happy-1-left-hit-1 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-1-left-hit-2 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-1-left-hit-3 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-2-left-hit-1 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-2-left-hit-2 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-2-left-hit-3 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-3-left-hit-1 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-3-left-hit-2 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-3-left-hit-3 }, frame: [{ boss: { id: big-kefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-1-left-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-1-left-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-1-left-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-2-left-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-2-left-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-2-left-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-3-left-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-3-left-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-3-left-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
 
     # Tether soakers first move onto the orb itself (guaranteeing they're the nearest player when
     # the tether spawns), then transition to the clockwise bait spot 45 degrees off the orb's own
