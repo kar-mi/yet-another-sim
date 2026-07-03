@@ -22,7 +22,7 @@ bosses:
 crystals:
   - kind: single
     element: earth
-    pos: { x: 0, z: -18 }
+    pos: { x: 0, z: -10 }
     spawnAt: 17
 
 players:

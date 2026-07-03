@@ -1,14 +1,14 @@
 players: {}
 
 _fallback: &fallback
-  mt: { x: 0, z: 5 }
-  ot: { x: 4, z: 2 }
-  h1: { x: -4, z: 0 }
-  h2: { x: 4, z: 0 }
-  r1: { x: -5, z: -3 }
-  r2: { x: 5, z: -3 }
-  m1: { x: -2, z: -5 }
-  m2: { x: 2, z: -5 }
+  mt: { x: 0, z: 0 }
+  ot: { x: 0, z: 0 }
+  h1: { x: 0, z: 0 }
+  h2: { x: 0, z: 0 }
+  r1: { x: 0, z: 0 }
+  r2: { x: 0, z: 0 }
+  m1: { x: 0, z: 0 }
+  m2: { x: 0, z: 0 }
 
 _partySafeEast: &partySafeEast
   mt: { r: 7, z: 0 }
@@ -21,14 +21,14 @@ _partySafeEast: &partySafeEast
   m2: { r: 7, z: 0 }
 
 _roleSafeWest: &roleSafeWest
-  mt: { r: -2, z: 10 }
-  ot: { r: -2, z: 10 }
+  mt: { r: -4.5, z: 4 }
+  ot: { r: -4.5, z: 4 }
   h1: { r: -7, z: 0 }
   h2: { r: -7, z: 0 }
-  r1: { r: -2, z: -10 }
-  r2: { r: -2, z: -10 }
-  m1: { r: -2, z: -10 }
-  m2: { r: -2, z: -10 }
+  r1: { r: -4.5, z: -4 }
+  r2: { r: -4.5, z: -4 }
+  m1: { r: -4.5, z: -4 }
+  m2: { r: -4.5, z: -4 }
 
 _baitUnsafeWest: &baitUnsafeWest
   mt: { r: -7, z: 0 }
@@ -60,7 +60,7 @@ _behindChaos: &behindChaos
   m1: { r: -1, z: -14 }
   m2: { r: 1, z: -14 }
 
-_clockwiseSoak: &clockwiseSoak { r: 10.44, z: 3.44 }
+_clockwiseSoak: &clockwiseSoak { r: 8.44, z: 2.44 }
 _atOrb: &atOrb { r: 0, z: 7 }
 _stackMiddle: &stackMiddle { x: 0, z: 0 }
 
@@ -116,41 +116,41 @@ solvers:
     # rest spot), so walking it is a genuine line interception, not a proximity trick.
     # Real-log-derived: raids/dancing-mad-ultimate/black-hole.yaml orbs sit at cardinal +/-17;
     # r=z=13.44 keeps the old radius-19 soak distance, just rotated 45 degrees.
-    - { when: { static: true }, startAt: 34, endAt: 37, frame: [black-hole-1-laser-1], spots: { r1: *atOrb } }
+    - { when: { static: true }, startAt: 34, endAt: 41, frame: [black-hole-1-laser-1], spots: { r1: *atOrb } }
     - { when: { static: true }, startAt: 37, endAt: 44, frame: [black-hole-1-laser-1], spots: { r1: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 41, endAt: 44, frame: [black-hole-1-laser-2], spots: { mt: *atOrb } }
+    - { when: { static: true }, startAt: 41, endAt: 46, frame: [black-hole-1-laser-2], spots: { mt: *atOrb } }
     - { when: { static: true }, startAt: 44, endAt: 51, frame: [black-hole-1-laser-2], spots: { mt: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 41, endAt: 44, frame: [black-hole-1-laser-3], spots: { m1: *atOrb } }
+    - { when: { static: true }, startAt: 41, endAt: 46, frame: [black-hole-1-laser-3], spots: { m1: *atOrb } }
     - { when: { static: true }, startAt: 44, endAt: 51, frame: [black-hole-1-laser-3], spots: { m1: *clockwiseSoak } }
 
-    - { when: { static: true }, startAt: 65, endAt: 68, frame: [black-hole-2-laser-1], spots: { r1: *atOrb } }
+    - { when: { static: true }, startAt: 65, endAt: 70, frame: [black-hole-2-laser-1], spots: { r1: *atOrb } }
     - { when: { static: true }, startAt: 68, endAt: 75, frame: [black-hole-2-laser-1], spots: { r1: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 65, endAt: 68, frame: [black-hole-2-laser-2], spots: { mt: *atOrb } }
+    - { when: { static: true }, startAt: 65, endAt: 70, frame: [black-hole-2-laser-2], spots: { mt: *atOrb } }
     - { when: { static: true }, startAt: 68, endAt: 80, frame: [black-hole-2-laser-2], spots: { mt: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 65, endAt: 68, frame: [black-hole-2-laser-3], spots: { m1: *atOrb } }
+    - { when: { static: true }, startAt: 65, endAt: 70, frame: [black-hole-2-laser-3], spots: { m1: *atOrb } }
     - { when: { static: true }, startAt: 68, endAt: 85, frame: [black-hole-2-laser-3], spots: { m1: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 72, endAt: 75, frame: [black-hole-2-laser-1], spots: { r2: *atOrb } }
+    - { when: { static: true }, startAt: 72, endAt: 77, frame: [black-hole-2-laser-1], spots: { r2: *atOrb } }
     - { when: { static: true }, startAt: 75, endAt: 85, frame: [black-hole-2-laser-1], spots: { r2: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 77, endAt: 80, frame: [black-hole-2-laser-2], spots: { ot: *atOrb } }
+    - { when: { static: true }, startAt: 77, endAt: 82, frame: [black-hole-2-laser-2], spots: { ot: *atOrb } }
     - { when: { static: true }, startAt: 80, endAt: 85, frame: [black-hole-2-laser-2], spots: { ot: *clockwiseSoak } }
 
-    - { when: { static: true }, startAt: 99, endAt: 102, frame: [black-hole-3-laser-1], spots: { r2: *atOrb } }
+    - { when: { static: true }, startAt: 99, endAt: 104, frame: [black-hole-3-laser-1], spots: { r2: *atOrb } }
     - { when: { static: true }, startAt: 102, endAt: 109, frame: [black-hole-3-laser-1], spots: { r2: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 99, endAt: 102, frame: [black-hole-3-laser-2], spots: { ot: *atOrb } }
+    - { when: { static: true }, startAt: 99, endAt: 104, frame: [black-hole-3-laser-2], spots: { ot: *atOrb } }
     - { when: { static: true }, startAt: 102, endAt: 114, frame: [black-hole-3-laser-2], spots: { ot: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 99, endAt: 102, frame: [black-hole-3-laser-3], spots: { h1: *atOrb } }
+    - { when: { static: true }, startAt: 99, endAt: 104, frame: [black-hole-3-laser-3], spots: { h1: *atOrb } }
     - { when: { static: true }, startAt: 102, endAt: 119, frame: [black-hole-3-laser-3], spots: { h1: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 106, endAt: 109, frame: [black-hole-3-laser-1], spots: { m2: *atOrb } }
+    - { when: { static: true }, startAt: 106, endAt: 111, frame: [black-hole-3-laser-1], spots: { m2: *atOrb } }
     - { when: { static: true }, startAt: 109, endAt: 119, frame: [black-hole-3-laser-1], spots: { m2: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 111, endAt: 114, frame: [black-hole-3-laser-2], spots: { h2: *atOrb } }
+    - { when: { static: true }, startAt: 111, endAt: 116, frame: [black-hole-3-laser-2], spots: { h2: *atOrb } }
     - { when: { static: true }, startAt: 114, endAt: 119, frame: [black-hole-3-laser-2], spots: { h2: *clockwiseSoak } }
 
-    - { when: { static: true }, startAt: 133, endAt: 136, frame: [black-hole-4-laser-1], spots: { m2: *atOrb } }
+    - { when: { static: true }, startAt: 133, endAt: 138, frame: [black-hole-4-laser-1], spots: { m2: *atOrb } }
     - { when: { static: true }, startAt: 136, endAt: 142, frame: [black-hole-4-laser-1], spots: { m2: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 133, endAt: 136, frame: [black-hole-4-laser-3], spots: { h1: *atOrb } }
+    - { when: { static: true }, startAt: 133, endAt: 138, frame: [black-hole-4-laser-3], spots: { h1: *atOrb } }
     - { when: { static: true }, startAt: 136, endAt: 142, frame: [black-hole-4-laser-3], spots: { h1: *clockwiseSoak } }
-    # Last laser of the encounter kept as a plain outward soak for now - not yet redirected.
-    - { when: { static: true }, startAt: 142, endAt: 150, frame: [black-hole-4-laser-2], spots: { h2: { r: 0, z: 19 } } }
+    - { when: { static: true }, startAt: 139, endAt: 144, frame: [black-hole-4-laser-2], spots: { h2: *atOrb } }
+    - { when: { static: true }, startAt: 142, endAt: 150, frame: [black-hole-4-laser-2], spots: { h2: *clockwiseSoak } }
 
     # Everyone not already soaking a tether just stacks arena center, out of every beam's path.
     - { when: { static: true }, startAt: 37, endAt: 51, spot: *stackMiddle }
