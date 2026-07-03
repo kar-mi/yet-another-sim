@@ -21,14 +21,14 @@ _partySafeEast: &partySafeEast
   m2: { r: 7, z: 0 }
 
 _roleSafeWest: &roleSafeWest
-  mt: { r: -4, z: 10 }
-  ot: { r: -4, z: 10 }
+  mt: { r: -2, z: 10 }
+  ot: { r: -2, z: 10 }
   h1: { r: -7, z: 0 }
   h2: { r: -7, z: 0 }
-  r1: { r: -7, z: -10 }
-  r2: { r: -7, z: -10 }
-  m1: { r: -4, z: -10 }
-  m2: { r: -4, z: -10 }
+  r1: { r: -2, z: -10 }
+  r2: { r: -2, z: -10 }
+  m1: { r: -2, z: -10 }
+  m2: { r: -2, z: -10 }
 
 _baitUnsafeWest: &baitUnsafeWest
   mt: { r: -7, z: 0 }
@@ -60,8 +60,8 @@ _behindChaos: &behindChaos
   m1: { r: -1, z: -14 }
   m2: { r: 1, z: -14 }
 
-_clockwiseSoak: &clockwiseSoak { r: 10.44, z: 5.44 }
-_atOrb: &atOrb { r: 0, z: 17 }
+_clockwiseSoak: &clockwiseSoak { r: 10.44, z: 3.44 }
+_atOrb: &atOrb { r: 0, z: 7 }
 _stackMiddle: &stackMiddle { x: 0, z: 0 }
 
 _thunderBait: &thunderBait
