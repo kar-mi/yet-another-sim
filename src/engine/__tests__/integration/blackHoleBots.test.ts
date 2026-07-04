@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { add, scale } from "@shared/math";
+import { add, dot, length, normalize, scale } from "@shared/math";
 import { cos, sin } from "@shared/dmath";
 import { genericFrameNorth, genericSolverWaypoint } from "../../genericSolver";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../../raidLoader";
@@ -106,4 +106,38 @@ test("everyone regroups at arena centre for ~2s right after each Black Hole spaw
   const afterWorld = runTicksWithComputedBotIntents(createWorld(raid, 1), Math.ceil(70.5 * 60));
   const mtTarget = genericSolverWaypoint(byId(afterWorld, "mt"), afterWorld);
   expect(mtTarget).not.toEqual({ x: 0, z: 0 });
+});
+
+test("Look Upon Me beams from bigkefka toward arena centre, and the party dodges both it and Damning Edict 2 for any teleport/bait outcome", async () => {
+  for (const seed of [1, 2, 3, 4, 5]) {
+    const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
+    const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
+    const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
+    const world = runTicksWithComputedBotIntents(createWorld(raid, seed), Math.ceil(87 * 60));
+
+    // Look Upon Me's telegraphed direction should point from bigkefka's (teleported) position
+    // toward arena centre, not the old hardcoded south vector.
+    const kefka = world.bosses.find(b => b.id === "bigkefka")!;
+    const lookUponMe = world.active.find(m => m.id === "look-upon-me-1")!;
+    const shape = lookUponMe.shape;
+    if (shape.kind !== "rect") throw new Error("expected look-upon-me-1 to be a rect shape");
+    const expectedDirection = normalize(scale(kefka.pos, -1));
+    expect(shape.direction.x).toBeCloseTo(expectedDirection.x, 6);
+    expect(shape.direction.z).toBeCloseTo(expectedDirection.z, 6);
+
+    // Every dodge spot is purely lateral to Kefka's beam (zero component along his facing) at
+    // exactly dist 7 (party) or 10 (ot) from arena centre - clear of the beam's 6.67 half-width
+    // regardless of bearing, and (since chaos sits at arena centre) mirrorLateral guarantees it's
+    // also on the side away from Damning Edict 2's cone for whichever random target got baited.
+    const chaos = world.bosses.find(b => b.id === "chaos")!;
+    const kefkaFacing = { x: sin(kefka.facing), z: cos(kefka.facing) };
+    const chaosFacing = { x: sin(chaos.facing), z: cos(chaos.facing) };
+    for (const [id, dist] of [["mt", 7], ["h1", 7], ["r2", 7], ["ot", 10]] as const) {
+      const target = genericSolverWaypoint(byId(world, id), world)!;
+      expect(target).toBeDefined();
+      expect(length(target)).toBeCloseTo(dist, 6);
+      expect(dot(target, kefkaFacing)).toBeCloseTo(0, 6); // purely lateral to the beam
+      expect(dot(target, chaosFacing)).toBeLessThan(0); // safe half of the Edict's cone
+    }
+  }
 });

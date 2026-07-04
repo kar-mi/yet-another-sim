@@ -65,10 +65,11 @@ solvers:
     - { when: { mechanic: slap-happy-2-right-edict-bait }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *pixelBehindChaos }
     - { when: { mechanic: slap-happy-2-left-edict-bait }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *pixelBehindChaos }
 
-    # ...and stays there until the cast actually resolves - these two are listed ahead of the Slap
-    # Happy hit rules below so they keep winning for the whole cast even while a hit window is also live.
+    # ...and stays there until the cast actually resolves - listed ahead of the Slap Happy hit rules
+    # below so it keeps winning for the whole cast even while a hit window is also live. (Damning
+    # Edict 2 no longer uses this spot - see the combined Edict/Look Upon Me dodge further down,
+    # since pixelBehindChaos sits inside Look Upon Me 1's beam once its direction is fixed.)
     - { when: { mechanic: damning-edict-1 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *pixelBehindChaos }
-    - { when: { mechanic: damning-edict-2 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *pixelBehindChaos }
 
     # Slap Happy right-side cleave rolls party stack: all middle relative in the safe quadrant.
     - { when: { mechanic: slap-happy-1-right-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
@@ -137,10 +138,17 @@ solvers:
     - { when: { static: true }, startAt: 77, endAt: 82, frame: [black-hole-2-laser-2], spots: { ot: *preclockwiseSoak } }
     - { when: { static: true }, startAt: 80, endAt: 85, frame: [black-hole-2-laser-2], spots: { ot: *clockwiseSoak } }
 
-    # Same tb-drag pattern as Black Hole 1, now off Black Hole 2's 2nd tether ahead of tb-5. ot only
-    # frees up from its laser-2 hand-off at 85, five seconds before tb-5's 90s telegraph. ot again
-    # holds the fixed absolute point through tb-5's resolve (94) - see the tb-4 comment above for why.
-    - { when: { static: true }, startAt: 88, endAt: 90, frame: [black-hole-2-laser-3], spots: { ot: { dist: 12, angleDeg: 240 } } }
+    # Damning Edict 2 (84-89) and Look Upon Me 1 (86-90) overlap: Look Upon Me is a beam from
+    # bigkefka straight through arena centre (width 13.33, so +/-6.67 either side is unsafe), and
+    # the Edict's safe/unsafe halves are split by a line through the origin perpendicular to
+    # chaos's facing (chaos sits exactly at centre). A spot purely lateral to Kefka's beam axis
+    # (z:0, i.e. measured from arena centre) is automatically safe from Look Upon Me at +/-7 (party)
+    # or +/-10 (ot); mirrorLateral picks whichever of those two lateral sides is NOT where chaos's
+    # cone is currently facing, so this is safe for any Kefka teleport bearing / any randomly-baited
+    # Edict target, not just this pull's roll. ot's dodge spot doubles as its tb-5 drag-out approach
+    # (same window it needs anyway, since exdeath - unlocked, no active mechanic of its own here -
+    # follows ot there); the mechanic-gated tb-5 formation rule below takes over once tb-5 goes live.
+    - { when: { static: true }, startAt: 84.1, endAt: 90, frame: [{ boss: { id: bigkefka, from: facing } }, { boss: { id: chaos, from: facing } }], mirrorLateral: true, spots: { mt: { r: -7, z: 0 }, h1: { r: -7, z: 0 }, h2: { r: -7, z: 0 }, r1: { r: -7, z: 0 }, r2: { r: -7, z: 0 }, m1: { r: -7, z: 0 }, m2: { r: -7, z: 0 }, ot: { r: -10, z: 0 } } }
 
     - { when: { static: true }, startAt: 99, endAt: 104, frame: [black-hole-3-laser-1], spots: { r2: *atOrb } }
     - { when: { static: true }, startAt: 99, endAt: 107, frame: [black-hole-3-laser-1], spots: { r2: *preclockwiseSoak } }
