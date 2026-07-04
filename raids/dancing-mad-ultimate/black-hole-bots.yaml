@@ -53,6 +53,13 @@ _thunderRelativeBait: &thunderRelativeBait
 
 solvers:
   generic:
+    # Everyone regroups at arena centre for ~2s right after each Black Hole spawns (even soakers -
+    # they resume their orb pre-positioning immediately after via the rules below).
+    - { when: { static: true }, startAt: 37.1, endAt: 39, spot: *stackMiddle }
+    - { when: { static: true }, startAt: 68.1, endAt: 70, spot: *stackMiddle }
+    - { when: { static: true }, startAt: 102.1, endAt: 104, spot: *stackMiddle }
+    - { when: { static: true }, startAt: 135.1, endAt: 137, spot: *stackMiddle }
+
     # Damning Edict doesn't bait: the party just stacks tight behind Chaos through the tell and
     # the cast; the hit rules below then move safe for Slap Happy once those go live.
     - { when: { mechanic: slap-happy-2-right-edict-bait }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *pixelBehindChaos }
@@ -133,7 +140,7 @@ solvers:
     # Same tb-drag pattern as Black Hole 1, now off Black Hole 2's 2nd tether ahead of tb-5. ot only
     # frees up from its laser-2 hand-off at 85, five seconds before tb-5's 90s telegraph. ot again
     # holds the fixed absolute point through tb-5's resolve (94) - see the tb-4 comment above for why.
-    - { when: { static: true }, startAt: 88, endAt: 90, frame: [black-hole-2-laser-2], spots: { ot: { dist: 12, angleDeg: 240 } } }
+    - { when: { static: true }, startAt: 88, endAt: 90, frame: [black-hole-2-laser-3], spots: { ot: { dist: 12, angleDeg: 240 } } }
 
     - { when: { static: true }, startAt: 99, endAt: 104, frame: [black-hole-3-laser-1], spots: { r2: *atOrb } }
     - { when: { static: true }, startAt: 99, endAt: 107, frame: [black-hole-3-laser-1], spots: { r2: *preclockwiseSoak } }

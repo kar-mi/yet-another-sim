@@ -48,13 +48,11 @@ test("a tank mid laser-soak keeps soaking through tb-4 instead of baiting the ta
   const mtTarget = genericSolverWaypoint(byId(world, "mt"), world);
   expect(mtTarget).toBeDefined();
 
-  // ot isn't soaking a laser at t=49.1, so it holds its fixed drag-out point (10 out, 184deg cw of
-  // Black Hole 1's 2nd tether bearing - i.e. the empty side opposite the tether) straight through
-  // tb-4's resolve - not exdeath's current position (that would create a feedback loop, since
-  // exdeath is chasing ot).
-  const north = genericFrameNorth(["black-hole-1-laser-2"], world)!;
+  // ot isn't soaking a laser at t=49.1 and tb-4's formation puts both tanks exactly on exdeath's
+  // current position (dist:0 in *thunderRelativeBait*), so ot should be standing on the boss.
+  const exdeath = world.bosses.find(b => b.id === "exdeath")!;
   const otTarget = genericSolverWaypoint(byId(world, "ot"), world);
-  expect(otTarget).toEqual(polarWorld({ x: 0, z: 0 }, north, 10, 184));
+  expect(otTarget).toEqual(exdeath.pos);
   expect(otTarget).not.toEqual({ x: 7, z: 0 });
 });
 
@@ -62,13 +60,13 @@ test("ot drags exdeath out toward Black Hole 1's 2nd tether ahead of tb-4", asyn
   const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
   const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
   const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
-  const world = runTicksWithComputedBotIntents(createWorld(raid, 1), Math.ceil(45 * 60));
+  const world = runTicksWithComputedBotIntents(createWorld(raid, 1), Math.ceil(42 * 60));
 
-  // Mid Black Hole 1's window (t=45): ot should be walking toward the approach spot (10 out,
-  // 184deg cw of the 2nd tether's bearing), not the stack-middle fallback or the old {7,0} bait.
+  // Mid the ot drag-out window (40-45): ot should be walking toward the approach spot (12 out,
+  // 240deg cw of the 2nd tether's bearing), not the stack-middle fallback or the old {7,0} bait.
   const north = genericFrameNorth(["black-hole-1-laser-2"], world)!;
   const otTarget = genericSolverWaypoint(byId(world, "ot"), world)!;
-  expect(otTarget).toEqual(polarWorld({ x: 0, z: 0 }, north, 10, 184));
+  expect(otTarget).toEqual(polarWorld({ x: 0, z: 0 }, north, 12, 240));
   expect(otTarget).not.toEqual({ x: 0, z: 0 });
   expect(otTarget).not.toEqual({ x: 7, z: 0 });
 
@@ -77,16 +75,35 @@ test("ot drags exdeath out toward Black Hole 1's 2nd tether ahead of tb-4", asyn
   expect(h1Target).toEqual({ x: 0, z: 0 });
 });
 
-test("tb-5's mt formation rotates off Black Hole 2's 2nd tether at exdeath's dragged position, ot holds its fixed drag point", async () => {
+test("tb-5's tank formation stands both tanks on exdeath's dragged position", async () => {
   const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
   const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
   const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
   const world = runTicksWithComputedBotIntents(createWorld(raid, 1), Math.ceil(91 * 60));
 
-  const north = genericFrameNorth(["black-hole-2-laser-2"], world)!;
+  // tb-5's formation is framed on black-hole-2-laser-3 (not laser-2) with *thunderRelativeBait*
+  // (dist:0 for both tanks), so both mt and ot should resolve to exdeath's exact current position
+  // regardless of the frame's north direction.
   const exdeath = world.bosses.find(b => b.id === "exdeath")!;
   const mtTarget = genericSolverWaypoint(byId(world, "mt"), world);
   const otTarget = genericSolverWaypoint(byId(world, "ot"), world);
-  expect(mtTarget).toEqual(polarWorld(exdeath.pos, north, 7, 184));
-  expect(otTarget).toEqual(polarWorld({ x: 0, z: 0 }, north, 10, 184));
+  expect(mtTarget).toEqual(exdeath.pos);
+  expect(otTarget).toEqual(exdeath.pos);
+});
+
+test("everyone regroups at arena centre for ~2s right after each Black Hole spawns, even soakers", async () => {
+  const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
+  const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
+  const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
+
+  // Mid the Black Hole 2 override window (68.1-70): mt/r1/m1 would otherwise be at their orbs.
+  const duringWorld = runTicksWithComputedBotIntents(createWorld(raid, 1), Math.ceil(68.5 * 60));
+  for (const id of ["mt", "r1", "m1", "h1"]) {
+    expect(genericSolverWaypoint(byId(duringWorld, id), duringWorld)).toEqual({ x: 0, z: 0 });
+  }
+
+  // Right after the override window ends, mt resumes its Black Hole 2 laser-2 orb soak.
+  const afterWorld = runTicksWithComputedBotIntents(createWorld(raid, 1), Math.ceil(70.5 * 60));
+  const mtTarget = genericSolverWaypoint(byId(afterWorld, "mt"), afterWorld);
+  expect(mtTarget).not.toEqual({ x: 0, z: 0 });
 });
