@@ -48,6 +48,7 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     kind: "debuff",
     duration: 999,
     icon: "unbecoming.png",
+    showTimer: false,
     behavior: { kind: "escalating", escalationKey: "unbecoming", escalateTo: "meanest_existence" },
   },
   meanest_existence: {

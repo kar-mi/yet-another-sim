@@ -807,6 +807,11 @@ events:
     id: look-upon-me-1
     time: 86
 
+  - type: heal
+    id: recovery-after-bh-2
+    time: 87
+    name: Black hole cleanse recovery
+
   - <<: *thunderIII
     id: thunder-iii-tb-5
     time: 90

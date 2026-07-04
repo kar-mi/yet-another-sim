@@ -180,7 +180,7 @@ solvers:
     # Edict target, not just this pull's roll. ot's dodge spot doubles as its tb-5 drag-out approach
     # (same window it needs anyway, since exdeath - unlocked, no active mechanic of its own here -
     # follows ot there); the mechanic-gated tb-5 formation rule below takes over once tb-5 goes live.
-    - { when: { static: true }, startAt: 84.1, endAt: 90, frame: [{ boss: { id: bigkefka, from: facing } }, { boss: { id: chaos, from: facing } }], mirrorLateral: true, spots: { mt: { r: -7, z: 0 }, h1: { r: -7, z: 0 }, h2: { r: -7, z: 0 }, r1: { r: -7, z: 0 }, r2: { r: -7, z: 0 }, m1: { r: -7, z: 0 }, m2: { r: -7, z: 0 }, ot: { r: -10, z: 0 } } }
+    - { when: { static: true }, startAt: 85.3, endAt: 94.1, frame: [{ boss: { id: bigkefka, from: facing } }, { boss: { id: chaos, from: facing } }], mirrorLateral: true, spots: { mt: { r: -7, z: 0 }, h1: { r: -7, z: 0 }, h2: { r: -7, z: 0 }, r1: { r: -7, z: 0 }, r2: { r: -7, z: 0 }, m1: { r: -7, z: 0 }, m2: { r: -7, z: 0 }, ot: { r: -14, z: 0 } } }
 
     # waves 6-8 (Black Hole 3's 3rd tether, fires t=109/114/119): Accretion carrier #2
     # (second_in_line's healer) solos - no hand-off. (This is the swap found during review: today's
