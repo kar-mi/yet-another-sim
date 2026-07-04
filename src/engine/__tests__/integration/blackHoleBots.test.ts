@@ -3,6 +3,7 @@ import { add, dot, length, normalize, scale } from "@shared/math";
 import { cos, sin } from "@shared/dmath";
 import { genericFrameNorth, genericSolverWaypoint } from "../../genericSolver";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../../raidLoader";
+import { pointInShape } from "../../shapes";
 import { createWorld } from "../../world";
 import { byId, runTicksWithComputedBotIntents } from "../helpers";
 
@@ -125,19 +126,46 @@ test("Look Upon Me beams from bigkefka toward arena centre, and the party dodges
     expect(shape.direction.x).toBeCloseTo(expectedDirection.x, 6);
     expect(shape.direction.z).toBeCloseTo(expectedDirection.z, 6);
 
-    // Every dodge spot is purely lateral to Kefka's beam (zero component along his facing) at
-    // exactly dist 7 (party) or 10 (ot) from arena centre - clear of the beam's 6.67 half-width
-    // regardless of bearing, and (since chaos sits at arena centre) mirrorLateral guarantees it's
-    // also on the side away from Damning Edict 2's cone for whichever random target got baited.
-    const chaos = world.bosses.find(b => b.id === "chaos")!;
-    const kefkaFacing = { x: sin(kefka.facing), z: cos(kefka.facing) };
-    const chaosFacing = { x: sin(chaos.facing), z: cos(chaos.facing) };
-    for (const [id, dist] of [["mt", 7], ["h1", 7], ["r2", 7], ["ot", 10]] as const) {
+    // Every dodge spot is r:-7 (party) or r:-14 (ot) lateral to Kefka's beam, z:-7 along it, so
+    // its distance from arena centre is hypot(r,7); mirrorLateral/mirrorForward guarantee it's
+    // also outside both Look Upon Me's rect and Damning Edict 2's cone for whichever random
+    // target got baited, verified directly against the engine's own containment check rather
+    // than re-deriving the geometry by hand.
+    const edict = world.active.find(m => m.id === "damning-edict-2-store")!;
+    expect(edict.shape.kind).toBe("cone");
+    const expectedDist: Record<string, number> = { mt: Math.hypot(7, 7), h1: Math.hypot(7, 7), r2: Math.hypot(7, 7), ot: Math.hypot(14, 7) };
+    for (const id of Object.keys(expectedDist)) {
       const target = genericSolverWaypoint(byId(world, id), world)!;
       expect(target).toBeDefined();
-      expect(length(target)).toBeCloseTo(dist, 6);
-      expect(dot(target, kefkaFacing)).toBeCloseTo(0, 6); // purely lateral to the beam
-      expect(dot(target, chaosFacing)).toBeLessThan(0); // safe half of the Edict's cone
+      expect(length(target)).toBeCloseTo(expectedDist[id], 6);
+      expect(pointInShape(shape, target)).toBe(false); // safe from Look Upon Me
+      expect(pointInShape(edict.shape, target)).toBe(false); // safe from Damning Edict 2
+    }
+  }
+});
+
+test("Damning Edict 2 dodge survives chaos's facing landing parallel/antiparallel to bigkefka's", async () => {
+  const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
+  const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
+  const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
+
+  // This is exactly the configuration the old z:0 spots failed on: right.chaosFacing collapses to
+  // 0 whenever chaos's locked facing is parallel/antiparallel to bigkefka's, so mirrorLateral alone
+  // gives zero margin - only mirrorForward's z term keeps these spots Edict-safe here.
+  for (const chaosFacing of [0, Math.PI]) {
+    const base = createWorld(raid, 1);
+    base.time = 87; // inside the dodge rule's 85.3-94.1 window
+    base.bosses = base.bosses.map(b =>
+      b.id === "bigkefka" ? { ...b, facing: 0 }
+      : b.id === "chaos" ? { ...b, facing: chaosFacing }
+      : b);
+    const chaosFacingVec = { x: sin(chaosFacing), z: cos(chaosFacing) };
+
+    for (const id of ["mt", "h1", "h2", "r1", "r2", "m1", "m2", "ot"]) {
+      const target = genericSolverWaypoint(byId(base, id), base)!;
+      expect(target).toBeDefined();
+      // A real safety margin, not the boundary the cone's inclusive dot>=0 test requires.
+      expect(dot(target, chaosFacingVec)).toBeLessThan(-1);
     }
   }
 });

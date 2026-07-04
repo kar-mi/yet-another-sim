@@ -55,6 +55,7 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     name: "Meanest Existence",
     kind: "debuff",
     duration: 999,
+    showTimer: false,
     icon: "meanest_existence.png",
     behavior: { kind: "escalating", escalationKey: "unbecoming", escalateDamage: 999999, escalateDamageType: "true" },
   },

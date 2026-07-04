@@ -274,15 +274,14 @@ export function genericFrameNorth(frame: Exclude<GenericFrame, "matched">, world
   return frameNorth(frame, [], world);
 }
 
-// Preserve handedness for frames that combine a boss-facing direction with another positioned
-// reference. The normal clockwise right axis is used when that reference is on the boss's right;
-// it is flipped when the reference is on the boss's left.
-export function genericFrameRightSign(frame: Exclude<GenericFrame, "matched">, world: World): 1 | -1 {
+// Shared by genericFrameRightSign/genericFrameForwardSign: the primary boss-facing ref's vector
+// plus the summed "other" refs' vectors, or undefined when no facing ref is present/resolvable.
+function facingAndOthers(frame: Exclude<GenericFrame, "matched">, world: World): { facing: Vec2; others: Vec2 } | undefined {
   const facingIndex = frame.findIndex(ref =>
     typeof ref !== "string" && "boss" in ref && ref.boss.from === "facing");
-  if (facingIndex < 0) return 1;
+  if (facingIndex < 0) return undefined;
   const facing = refToVec(frame[facingIndex]!, world);
-  if (!facing) return 1;
+  if (!facing) return undefined;
 
   let others: Vec2 = { x: 0, z: 0 };
   for (const [index, ref] of frame.entries()) {
@@ -290,8 +289,30 @@ export function genericFrameRightSign(frame: Exclude<GenericFrame, "matched">, w
     const pos = refToVec(ref, world);
     if (pos) others = add(others, pos);
   }
+  return { facing, others };
+}
+
+// Preserve handedness for frames that combine a boss-facing direction with another positioned
+// reference. The normal clockwise right axis is used when that reference is on the boss's right;
+// it is flipped when the reference is on the boss's left.
+export function genericFrameRightSign(frame: Exclude<GenericFrame, "matched">, world: World): 1 | -1 {
+  const resolved = facingAndOthers(frame, world);
+  if (!resolved) return 1;
+  const { facing, others } = resolved;
   const bossRight = { x: facing.z, z: -facing.x };
   return others.x * bossRight.x + others.z * bossRight.z < 0 ? -1 : 1;
+}
+
+// Analogous to genericFrameRightSign, but mirrors the frame's forward/north axis instead of its
+// lateral one: flips when the other references point behind the boss's own facing, rather than to
+// its left. Combined with mirrorLateral, this lets a single authored spot stay safe against a
+// second boss-facing-anchored hazard for any relative angle between the two facings (see
+// GenericSolverRule.mirrorForward).
+export function genericFrameForwardSign(frame: Exclude<GenericFrame, "matched">, world: World): 1 | -1 {
+  const resolved = facingAndOthers(frame, world);
+  if (!resolved) return 1;
+  const { facing, others } = resolved;
+  return others.x * facing.x + others.z * facing.z < 0 ? -1 : 1;
 }
 
 export function genericRuleFrameNorth(
@@ -307,11 +328,11 @@ export function genericRuleFrameNorth(
 }
 
 // Map a runtime frame coordinate to world space: x stores authored r (right/lateral), z is north.
-function frameToWorld(spot: Vec2, north: Vec2, rightSign: 1 | -1 = 1): Vec2 {
+function frameToWorld(spot: Vec2, north: Vec2, rightSign: 1 | -1 = 1, forwardSign: 1 | -1 = 1): Vec2 {
   const right: Vec2 = { x: rightSign * north.z, z: rightSign * -north.x };
   return {
-    x: spot.x * right.x + spot.z * north.x,
-    z: spot.x * right.z + spot.z * north.z,
+    x: spot.x * right.x + forwardSign * spot.z * north.x,
+    z: spot.x * right.z + forwardSign * spot.z * north.z,
   };
 }
 
@@ -353,9 +374,12 @@ export function genericSolverWaypoint(
     const rightSign = rule.mirrorLateral && rule.frame !== "matched"
       ? genericFrameRightSign(rule.frame, world)
       : 1;
+    const forwardSign = rule.mirrorForward && rule.frame !== "matched"
+      ? genericFrameForwardSign(rule.frame, world)
+      : 1;
     const origin = originOffset(rule, world);
     if (!origin) continue;
-    return add(origin, frameToWorld(spot, north, rightSign));
+    return add(origin, frameToWorld(spot, north, rightSign, forwardSign));
   }
   return undefined;
 }

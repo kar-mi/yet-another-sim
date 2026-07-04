@@ -37,6 +37,7 @@ function toBotSolvers(raid: RaidDef): World["botSolvers"] {
       frame: rule.frame,
       origin: rule.origin,
       mirrorLateral: rule.mirrorLateral,
+      mirrorForward: rule.mirrorForward,
       spots: rule.spots && toSpots(rule.spots),
       spot: rule.spot && toSpot(rule.spot),
       limitCutSpread: rule.limitCutSpread && { spots: rule.limitCutSpread.spots.map(toSpot) },

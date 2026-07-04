@@ -1,6 +1,6 @@
 import type { FrameRef, GenericSolverRule, Player, World } from "@shared/types";
 import type { Vec2 } from "@shared/math";
-import { genericFrameNorth, genericFrameRightSign, genericRuleFrameNorth, resolvedMechanics } from "../engine/genericSolver";
+import { genericFrameForwardSign, genericFrameNorth, genericFrameRightSign, genericRuleFrameNorth, resolvedMechanics } from "../engine/genericSolver";
 
 export type PositionFrameOption = {
   key: string;
@@ -8,6 +8,7 @@ export type PositionFrameOption = {
   descriptor?: string;
   north?: Vec2;
   rightSign?: 1 | -1;
+  forwardSign?: 1 | -1;
   refs?: FrameRef[];
 };
 
@@ -95,12 +96,14 @@ export function positionFrameOptions(world: World, player: Player): PositionFram
       });
     } else if (Array.isArray(frame)) {
       const labels = frame.map(frameRefLabel);
+      const mirrorNote = `${rule.mirrorLateral ? "\nmirrorLateral: true" : ""}${rule.mirrorForward ? "\nmirrorForward: true" : ""}`;
       push({
-        key: `refs:${labels.join("|")}:${rule.mirrorLateral ? "mirrored" : "fixed"}`,
+        key: `refs:${labels.join("|")}:${rule.mirrorLateral ? "mirrored" : "fixed"}${rule.mirrorForward ? "-forward" : ""}`,
         label: `Frame: ${labels.join(" + ")}`,
-        descriptor: `frame: [${labels.join(", ")}]${rule.mirrorLateral ? "\nmirrorLateral: true" : ""}`,
+        descriptor: `frame: [${labels.join(", ")}]${mirrorNote}`,
         north: genericFrameNorth(frame, world),
         rightSign: rule.mirrorLateral ? genericFrameRightSign(frame, world) : 1,
+        forwardSign: rule.mirrorForward ? genericFrameForwardSign(frame, world) : 1,
         refs: frame,
       });
     }
@@ -118,12 +121,14 @@ export function combinePositionFrames(
   if (refs.length === 0) return undefined;
   const labels = refs.map(frameRefLabel);
   const mirrorLateral = canMirrorLateral(refs);
+  const mirrorNote = mirrorLateral ? "\nmirrorLateral: true\nmirrorForward: true" : "";
   return {
     key: `combined:${labels.join("|")}`,
     label: `Frame: ${labels.join(" + ")}`,
-    descriptor: `frame: [${labels.join(", ")}]${mirrorLateral ? "\nmirrorLateral: true" : ""}`,
+    descriptor: `frame: [${labels.join(", ")}]${mirrorNote}`,
     north: genericFrameNorth(refs, world),
     rightSign: mirrorLateral ? genericFrameRightSign(refs, world) : 1,
+    forwardSign: mirrorLateral ? genericFrameForwardSign(refs, world) : 1,
     refs,
   };
 }

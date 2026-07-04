@@ -109,6 +109,16 @@ A rule has:
   when opposite crystal configurations should mirror the same authored `{ r, z }` spot rather than
   merely rotate it. Those other references decide only the left/right handedness; they do not rotate
   north when boss facing is present.
+- `mirrorForward` — same reference-list-frame requirement as `mirrorLateral`, but flips the frame's
+  forward/north axis instead: `true` flips `z` if the other references point behind the boss's own
+  facing (dot product against facing itself, rather than its right vector). Combine it with
+  `mirrorLateral` (and author a spot with a genuine nonzero `z`) when a single lateral mirror can't
+  guarantee safety against a second boss-facing-anchored hazard for every possible relative facing
+  between the two bosses: each axis independently forces its own term of the safety dot product
+  negative, and since right/north are orthonormal, at least one of them keeps real margin for any
+  relative facing — including the degenerate case where the two bosses' facings end up parallel or
+  antiparallel, which is exactly where a lateral-only mirror has none. See
+  `raids/dancing-mad-ultimate/black-hole-bots.yaml`'s Damning Edict 2 / Look Upon Me dodge.
 - `spots` and/or `spot`; `spots[id]` wins. Unframed rules use absolute world positions `{ x, z }`.
   Framed rules require relative `{ r, z }` or polar `{ dist, angleDeg }` positions. Polar spots are
   rejected on unframed rules.

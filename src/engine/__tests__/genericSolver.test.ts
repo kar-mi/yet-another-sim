@@ -419,6 +419,26 @@ test("mirrorLateral reflects one local spot across left/right crystal configurat
   expect(west.z).toBeCloseTo(east.z);
 });
 
+test("mirrorForward reflects one local spot across north/south crystal configurations", () => {
+  const withWaterAt = (z: number) => world({
+    time: 2,
+    active: [{ id: "bait", telegraphStart: 0, resolveAt: 5, resolved: false }],
+    boss: { id: "primary", pos: { x: 0, z: 0 }, facing: 0 },
+    crystals: [{ id: "crystal-water", element: "water", pos: { x: 0, z }, spawnAt: 0 }],
+    botSolvers: { generic: [{
+      when: { mechanic: "bait" },
+      frame: [{ boss: { from: "facing" } }, { crystal: "water" }],
+      mirrorForward: true,
+      spot: { x: 3, z: 4 },
+    }] },
+  });
+
+  const north = genericSolverWaypoint(player({}), withWaterAt(9))!;
+  const south = genericSolverWaypoint(player({}), withWaterAt(-9))!;
+  expect(south.x).toBeCloseTo(north.x);
+  expect(south.z).toBeCloseTo(-north.z);
+});
+
 test("boss-facing frame north ignores positioned refs with matching handedness", () => {
   const withWaterAt = (pos: { x: number; z: number }) => world({
     time: 2,
