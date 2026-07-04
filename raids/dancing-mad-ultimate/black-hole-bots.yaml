@@ -100,15 +100,35 @@ solvers:
     # rest spot), so walking it is a genuine line interception, not a proximity trick.
     # Real-log-derived: raids/dancing-mad-ultimate/black-hole.yaml orbs sit at cardinal +/-17;
     # r=z=13.44 keeps the old radius-19 soak distance, just rotated 45 degrees.
-    - { when: { static: true }, startAt: 34, endAt: 40, frame: [black-hole-1-laser-1], spots: { r1: *atOrb } }
-    - { when: { static: true }, startAt: 34, endAt: 42, frame: [black-hole-1-laser-1], spots: { r1: *preclockwiseSoak } }
-    - { when: { static: true }, startAt: 37, endAt: 44, frame: [black-hole-1-laser-1], spots: { r1: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 41, endAt: 47, frame: [black-hole-1-laser-2], spots: { mt: *atOrb } }
-    - { when: { static: true }, startAt: 41, endAt: 49, frame: [black-hole-1-laser-2], spots: { mt: *preclockwiseSoak } }
-    - { when: { static: true }, startAt: 44, endAt: 51, frame: [black-hole-1-laser-2], spots: { mt: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 41, endAt: 47, frame: [black-hole-1-laser-3], spots: { m1: *atOrb } }
-    - { when: { static: true }, startAt: 41, endAt: 49, frame: [black-hole-1-laser-3], spots: { m1: *preclockwiseSoak } }
-    - { when: { static: true }, startAt: 44, endAt: 51, frame: [black-hole-1-laser-3], spots: { m1: *clockwiseSoak } }
+    #
+    # Assignments are driven by the First/Second/Third in Line debuffs + role (never a hardcoded
+    # player id), so they stay correct however those debuffs end up grouped. Where a line group has
+    # two members of the same role (first_in_line has 2 dps), the Accretion Duty marker (an inert,
+    # invisible tag applied alongside real Accretion - see black-hole.yaml) disambiguates: the
+    # marked-variant rule is listed first so it claims that specific player, and the plain-role rule
+    # then only matches the *other* same-role member.
+
+    # wave 2 (Black Hole 1's 2nd/3rd tethers, fire t=51): Accretion carrier #1 (first_in_line's
+    # spare dps) solos the 3rd tether. Listed before wave 1's rule below (priority ordering, not
+    # chronological) so it claims the marked player first. atOrb starts at 34, not 41 - laser-1
+    # spawns earlier (t=37) than laser-2/3 (t=44), so wave 1's "First in Line dps" rule is already
+    # live from 34; without this earlier claim, the Accretion-tagged dps would also match that rule
+    # (both dps have "First in Line") and shadow the real hand-off player at laser-1's orb.
+    - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 34, endAt: 47, frame: [black-hole-1-laser-3], spot: *atOrb }
+    - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 41, endAt: 49, frame: [black-hole-1-laser-3], spot: *preclockwiseSoak }
+    - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 44, endAt: 51, frame: [black-hole-1-laser-3], spot: *clockwiseSoak }
+
+    # wave 1 (Black Hole 1's 1st tether, fires t=44): DPS hand-off chain starts here - first_in_line's
+    # other dps (no Accretion Duty marker).
+    - { when: { debuff: "First in Line", role: dps }, startAt: 34, endAt: 40, frame: [black-hole-1-laser-1], spot: *atOrb }
+    - { when: { debuff: "First in Line", role: dps }, startAt: 34, endAt: 42, frame: [black-hole-1-laser-1], spot: *preclockwiseSoak }
+    - { when: { debuff: "First in Line", role: dps }, startAt: 37, endAt: 44, frame: [black-hole-1-laser-1], spot: *clockwiseSoak }
+
+    # wave 2 (Black Hole 1's 2nd tether, fires t=51): Support hand-off chain starts here -
+    # first_in_line's tank.
+    - { when: { debuff: "First in Line", role: tank }, startAt: 41, endAt: 47, frame: [black-hole-1-laser-2], spot: *atOrb }
+    - { when: { debuff: "First in Line", role: tank }, startAt: 41, endAt: 49, frame: [black-hole-1-laser-2], spot: *preclockwiseSoak }
+    - { when: { debuff: "First in Line", role: tank }, startAt: 44, endAt: 51, frame: [black-hole-1-laser-2], spot: *clockwiseSoak }
 
     # Drag exdeath (ot holds its aggro) out to the empty spot on the far side of Black Hole 1's 2nd
     # tether ahead of tb-4: exdeath is unlocked (no active mechanic of its own) through this whole
@@ -122,21 +142,29 @@ solvers:
     # mt doesn't drive exdeath's position, so it can safely target "7 out from exdeath's current spot,
     # same bearing it was dragged to" for tb-4 itself - it lands correctly wherever exdeath settled.
 
-    - { when: { static: true }, startAt: 65, endAt: 71, frame: [black-hole-2-laser-1], spots: { r1: *atOrb } }
-    - { when: { static: true }, startAt: 65, endAt: 73, frame: [black-hole-2-laser-1], spots: { r1: *preclockwiseSoak } }
-    - { when: { static: true }, startAt: 68, endAt: 75, frame: [black-hole-2-laser-1], spots: { r1: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 65, endAt: 71, frame: [black-hole-2-laser-2], spots: { mt: *atOrb } }
-    - { when: { static: true }, startAt: 65, endAt: 73, frame: [black-hole-2-laser-2], spots: { mt: *preclockwiseSoak } }
-    - { when: { static: true }, startAt: 68, endAt: 80, frame: [black-hole-2-laser-2], spots: { mt: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 65, endAt: 71, frame: [black-hole-2-laser-3], spots: { m1: *atOrb } }
-    - { when: { static: true }, startAt: 65, endAt: 73, frame: [black-hole-2-laser-3], spots: { m1: *preclockwiseSoak } }
-    - { when: { static: true }, startAt: 68, endAt: 85, frame: [black-hole-2-laser-3], spots: { m1: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 72, endAt: 77, frame: [black-hole-2-laser-1], spots: { r2: *atOrb } }
-    - { when: { static: true }, startAt: 72, endAt: 80, frame: [black-hole-2-laser-1], spots: { r2: *preclockwiseSoak } }
-    - { when: { static: true }, startAt: 75, endAt: 85, frame: [black-hole-2-laser-1], spots: { r2: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 77, endAt: 79, frame: [black-hole-2-laser-2], spots: { ot: *atOrb } }
-    - { when: { static: true }, startAt: 77, endAt: 82, frame: [black-hole-2-laser-2], spots: { ot: *preclockwiseSoak } }
-    - { when: { static: true }, startAt: 80, endAt: 85, frame: [black-hole-2-laser-2], spots: { ot: *clockwiseSoak } }
+    # waves 3-5 (Black Hole 2's 3rd tether, fires t=75/80/85): Accretion carrier #1 continues
+    # soloing - no hand-off.
+    - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 65, endAt: 71, frame: [black-hole-2-laser-3], spot: *atOrb }
+    - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 65, endAt: 73, frame: [black-hole-2-laser-3], spot: *preclockwiseSoak }
+    - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 68, endAt: 85, frame: [black-hole-2-laser-3], spot: *clockwiseSoak }
+
+    # waves 3-5 (Black Hole 2's 1st tether, fires t=75/80/85): DPS hand-off, wave 3 = first_in_line,
+    # waves 4-5 = second_in_line.
+    - { when: { debuff: "First in Line", role: dps }, startAt: 65, endAt: 71, frame: [black-hole-2-laser-1], spot: *atOrb }
+    - { when: { debuff: "First in Line", role: dps }, startAt: 65, endAt: 73, frame: [black-hole-2-laser-1], spot: *preclockwiseSoak }
+    - { when: { debuff: "First in Line", role: dps }, startAt: 68, endAt: 75, frame: [black-hole-2-laser-1], spot: *clockwiseSoak }
+    - { when: { debuff: "Second in Line", role: dps }, startAt: 72, endAt: 77, frame: [black-hole-2-laser-1], spot: *atOrb }
+    - { when: { debuff: "Second in Line", role: dps }, startAt: 72, endAt: 80, frame: [black-hole-2-laser-1], spot: *preclockwiseSoak }
+    - { when: { debuff: "Second in Line", role: dps }, startAt: 75, endAt: 85, frame: [black-hole-2-laser-1], spot: *clockwiseSoak }
+
+    # waves 3-5 (Black Hole 2's 2nd tether, fires t=75/80/85): Support hand-off, waves 3-4 =
+    # first_in_line's tank, wave 5 = second_in_line's tank.
+    - { when: { debuff: "First in Line", role: tank }, startAt: 65, endAt: 71, frame: [black-hole-2-laser-2], spot: *atOrb }
+    - { when: { debuff: "First in Line", role: tank }, startAt: 65, endAt: 73, frame: [black-hole-2-laser-2], spot: *preclockwiseSoak }
+    - { when: { debuff: "First in Line", role: tank }, startAt: 68, endAt: 80, frame: [black-hole-2-laser-2], spot: *clockwiseSoak }
+    - { when: { debuff: "Second in Line", role: tank }, startAt: 77, endAt: 79, frame: [black-hole-2-laser-2], spot: *atOrb }
+    - { when: { debuff: "Second in Line", role: tank }, startAt: 77, endAt: 82, frame: [black-hole-2-laser-2], spot: *preclockwiseSoak }
+    - { when: { debuff: "Second in Line", role: tank }, startAt: 80, endAt: 85, frame: [black-hole-2-laser-2], spot: *clockwiseSoak }
 
     # Damning Edict 2 (84-89) and Look Upon Me 1 (86-90) overlap: Look Upon Me is a beam from
     # bigkefka straight through arena centre (width 13.33, so +/-6.67 either side is unsafe), and
@@ -150,31 +178,47 @@ solvers:
     # follows ot there); the mechanic-gated tb-5 formation rule below takes over once tb-5 goes live.
     - { when: { static: true }, startAt: 84.1, endAt: 90, frame: [{ boss: { id: bigkefka, from: facing } }, { boss: { id: chaos, from: facing } }], mirrorLateral: true, spots: { mt: { r: -7, z: 0 }, h1: { r: -7, z: 0 }, h2: { r: -7, z: 0 }, r1: { r: -7, z: 0 }, r2: { r: -7, z: 0 }, m1: { r: -7, z: 0 }, m2: { r: -7, z: 0 }, ot: { r: -10, z: 0 } } }
 
-    - { when: { static: true }, startAt: 99, endAt: 104, frame: [black-hole-3-laser-1], spots: { r2: *atOrb } }
-    - { when: { static: true }, startAt: 99, endAt: 107, frame: [black-hole-3-laser-1], spots: { r2: *preclockwiseSoak } }
-    - { when: { static: true }, startAt: 102, endAt: 109, frame: [black-hole-3-laser-1], spots: { r2: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 99, endAt: 104, frame: [black-hole-3-laser-2], spots: { ot: *atOrb } }
-    - { when: { static: true }, startAt: 99, endAt: 107, frame: [black-hole-3-laser-2], spots: { ot: *preclockwiseSoak } }
-    - { when: { static: true }, startAt: 102, endAt: 114, frame: [black-hole-3-laser-2], spots: { ot: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 99, endAt: 104, frame: [black-hole-3-laser-3], spots: { h1: *atOrb } }
-    - { when: { static: true }, startAt: 99, endAt: 107, frame: [black-hole-3-laser-3], spots: { h1: *preclockwiseSoak } }
-    - { when: { static: true }, startAt: 102, endAt: 119, frame: [black-hole-3-laser-3], spots: { h1: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 106, endAt: 111, frame: [black-hole-3-laser-1], spots: { m2: *atOrb } }
-    - { when: { static: true }, startAt: 106, endAt: 114, frame: [black-hole-3-laser-1], spots: { m2: *preclockwiseSoak } }
-    - { when: { static: true }, startAt: 109, endAt: 119, frame: [black-hole-3-laser-1], spots: { m2: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 111, endAt: 113, frame: [black-hole-3-laser-2], spots: { h2: *atOrb } }
-    - { when: { static: true }, startAt: 111, endAt: 116, frame: [black-hole-3-laser-2], spots: { h2: *preclockwiseSoak } }
-    - { when: { static: true }, startAt: 114, endAt: 119, frame: [black-hole-3-laser-2], spots: { h2: *clockwiseSoak } }
+    # waves 6-8 (Black Hole 3's 3rd tether, fires t=109/114/119): Accretion carrier #2
+    # (second_in_line's healer) solos - no hand-off. (This is the swap found during review: today's
+    # file had this as h1 solo/h2 hand-off, backwards.)
+    - { when: { debuff: "Second in Line", role: healer }, startAt: 99, endAt: 104, frame: [black-hole-3-laser-3], spot: *atOrb }
+    - { when: { debuff: "Second in Line", role: healer }, startAt: 99, endAt: 107, frame: [black-hole-3-laser-3], spot: *preclockwiseSoak }
+    - { when: { debuff: "Second in Line", role: healer }, startAt: 102, endAt: 119, frame: [black-hole-3-laser-3], spot: *clockwiseSoak }
 
-    - { when: { static: true }, startAt: 133, endAt: 138, frame: [black-hole-4-laser-1], spots: { m2: *atOrb } }
-    - { when: { static: true }, startAt: 133, endAt: 141, frame: [black-hole-4-laser-1], spots: { m2: *preclockwiseSoak } }
-    - { when: { static: true }, startAt: 136, endAt: 142, frame: [black-hole-4-laser-1], spots: { m2: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 133, endAt: 138, frame: [black-hole-4-laser-3], spots: { h1: *atOrb } }
-    - { when: { static: true }, startAt: 133, endAt: 141, frame: [black-hole-4-laser-3], spots: { h1: *preclockwiseSoak } }
-    - { when: { static: true }, startAt: 136, endAt: 142, frame: [black-hole-4-laser-3], spots: { h1: *clockwiseSoak } }
-    - { when: { static: true }, startAt: 139, endAt: 144, frame: [black-hole-4-laser-2], spots: { h2: *atOrb } }
-    - { when: { static: true }, startAt: 139, endAt: 147, frame: [black-hole-4-laser-2], spots: { h2: *preclockwiseSoak } }
-    - { when: { static: true }, startAt: 142, endAt: 150, frame: [black-hole-4-laser-2], spots: { h2: *clockwiseSoak } }
+    # waves 6-8 (Black Hole 3's 1st tether, fires t=109/114/119): DPS hand-off, wave 6 =
+    # second_in_line, waves 7-8 = third_in_line.
+    - { when: { debuff: "Second in Line", role: dps }, startAt: 99, endAt: 104, frame: [black-hole-3-laser-1], spot: *atOrb }
+    - { when: { debuff: "Second in Line", role: dps }, startAt: 99, endAt: 107, frame: [black-hole-3-laser-1], spot: *preclockwiseSoak }
+    - { when: { debuff: "Second in Line", role: dps }, startAt: 102, endAt: 109, frame: [black-hole-3-laser-1], spot: *clockwiseSoak }
+    - { when: { debuff: "Third in Line", role: dps }, startAt: 106, endAt: 111, frame: [black-hole-3-laser-1], spot: *atOrb }
+    - { when: { debuff: "Third in Line", role: dps }, startAt: 106, endAt: 114, frame: [black-hole-3-laser-1], spot: *preclockwiseSoak }
+    - { when: { debuff: "Third in Line", role: dps }, startAt: 109, endAt: 119, frame: [black-hole-3-laser-1], spot: *clockwiseSoak }
+
+    # waves 6-8 (Black Hole 3's 2nd tether, fires t=109/114/119): Support hand-off, waves 6-7 =
+    # second_in_line's tank, wave 8 = third_in_line's healer (its only non-dps member).
+    - { when: { debuff: "Second in Line", role: tank }, startAt: 99, endAt: 104, frame: [black-hole-3-laser-2], spot: *atOrb }
+    - { when: { debuff: "Second in Line", role: tank }, startAt: 99, endAt: 107, frame: [black-hole-3-laser-2], spot: *preclockwiseSoak }
+    - { when: { debuff: "Second in Line", role: tank }, startAt: 102, endAt: 114, frame: [black-hole-3-laser-2], spot: *clockwiseSoak }
+    - { when: { debuff: "Third in Line", role: healer }, startAt: 111, endAt: 113, frame: [black-hole-3-laser-2], spot: *atOrb }
+    - { when: { debuff: "Third in Line", role: healer }, startAt: 111, endAt: 116, frame: [black-hole-3-laser-2], spot: *preclockwiseSoak }
+    - { when: { debuff: "Third in Line", role: healer }, startAt: 114, endAt: 119, frame: [black-hole-3-laser-2], spot: *clockwiseSoak }
+
+    # wave 9 (Black Hole 4's 1st tether, fires t=142): DPS chain ends at third_in_line - solos alone,
+    # no further hand-off.
+    - { when: { debuff: "Third in Line", role: dps }, startAt: 133, endAt: 138, frame: [black-hole-4-laser-1], spot: *atOrb }
+    - { when: { debuff: "Third in Line", role: dps }, startAt: 133, endAt: 141, frame: [black-hole-4-laser-1], spot: *preclockwiseSoak }
+    - { when: { debuff: "Third in Line", role: dps }, startAt: 136, endAt: 142, frame: [black-hole-4-laser-1], spot: *clockwiseSoak }
+
+    # wave 9 (Black Hole 4's 3rd tether, fires t=142) then wave 10 (its 2nd/delayed tether, fires
+    # t=150): Support chain ends at third_in_line's healer, who solos the 3rd tether then continues
+    # straight onto the delayed 2nd tether once it resolves (2 tethers collapsing into 1 soloed by
+    # the same player, since there's no fourth line to hand off to).
+    - { when: { debuff: "Third in Line", role: healer }, startAt: 133, endAt: 138, frame: [black-hole-4-laser-3], spot: *atOrb }
+    - { when: { debuff: "Third in Line", role: healer }, startAt: 133, endAt: 141, frame: [black-hole-4-laser-3], spot: *preclockwiseSoak }
+    - { when: { debuff: "Third in Line", role: healer }, startAt: 136, endAt: 142, frame: [black-hole-4-laser-3], spot: *clockwiseSoak }
+    - { when: { debuff: "Third in Line", role: healer }, startAt: 139, endAt: 144, frame: [black-hole-4-laser-2], spot: *atOrb }
+    - { when: { debuff: "Third in Line", role: healer }, startAt: 139, endAt: 147, frame: [black-hole-4-laser-2], spot: *preclockwiseSoak }
+    - { when: { debuff: "Third in Line", role: healer }, startAt: 142, endAt: 150, frame: [black-hole-4-laser-2], spot: *clockwiseSoak }
 
     # tb-3 has no Black Hole in play yet, so it keeps the plain shared bait spot. tb-4/tb-5 have
     # their own mechanic-gated rules above (framed on their Black Hole's 2nd tether).

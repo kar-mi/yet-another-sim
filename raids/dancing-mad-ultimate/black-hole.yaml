@@ -369,6 +369,13 @@ optionals:
         sets:
           - [slap-happy-3-right-hit-1, slap-happy-3-right-hit-2, slap-happy-3-right-hit-3, slap-happy-3-party-stack, visual-chaos-cone-at-party-stack-3]
           - [slap-happy-3-left-hit-1, slap-happy-3-left-hit-2, slap-happy-3-left-hit-3, slap-happy-3-role-stack-mt, slap-happy-3-role-stack-h1, slap-happy-3-role-stack-m1, slap-happy-3-role-cone-mt, slap-happy-3-role-cone-h1, slap-happy-3-role-cone-m1]
+      # first_in_line has two dps (r1, m1): one does the regular dps hand-off, the other carries
+      # Accretion. Which one is picked at random per pull, not hardcoded to m1.
+      accretion-duty-first-in-line:
+        rng: true
+        sets:
+          - [accretion-dps-m1, accretion-duty-dps-m1]
+          - [accretion-dps-r1, accretion-duty-dps-r1]
 
 events:
   - type: aoe
@@ -457,21 +464,56 @@ events:
       duration: 200
       showTimer: false
 
+  # Accretion carrier #2: second_in_line's healer (h2) - the group's spare non-hand-off member.
   - type: apply_effect
     id: accretion-healer
     time: 17
     name: Accretion
-    players: [h1]
+    players: [h2]
     applyEffect:
       ref: accretion
-
   - type: apply_effect
-    id: accretion-dps
+    id: accretion-duty-healer
+    time: 17
+    name: Accretion Duty
+    players: [h2]
+    applyEffect:
+      ref: accretion_duty
+
+  # Accretion carrier #1: first_in_line's spare dps (r1 or m1 - it has two dps, one does the DPS
+  # hand-off, the other carries Accretion). Which one is picked by the RNG eventSet below
+  # (optionals.combinations.eventSets.accretion-duty-first-in-line), not hardcoded, so the bot
+  # solver (which matches by debuff + role, never by name) resolves correctly either way.
+  - type: apply_effect
+    id: accretion-dps-m1
     time: 17
     name: Accretion
     players: [m1]
     applyEffect:
       ref: accretion
+  - type: apply_effect
+    id: accretion-duty-dps-m1
+    time: 17
+    name: Accretion Duty
+    players: [m1]
+    applyEffect:
+      ref: accretion_duty
+
+  - type: apply_effect
+    id: accretion-dps-r1
+    time: 17
+    name: Accretion
+    players: [r1]
+    applyEffect:
+      ref: accretion
+  - type: apply_effect
+    id: accretion-duty-dps-r1
+    time: 17
+    name: Accretion Duty
+    players: [r1]
+    applyEffect:
+      ref: accretion_duty
+
   - type: apply_effect
     id: first-in-line
     time: 17

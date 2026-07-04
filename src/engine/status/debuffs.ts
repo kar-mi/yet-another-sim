@@ -95,6 +95,14 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     icon: "third_in_line.png",
     behavior: { kind: "assignment", expiryDamage: 20, expiryDamageType: "true" },
   },
+  accretion_duty: {
+    name: "Accretion Duty",
+    kind: "debuff",
+    duration: 200,
+    showTimer: false,
+    visibility: "invisible",
+    behavior: { kind: "none" },
+  },
   alpha: {
     name: "Alpha",
     kind: "debuff",

@@ -141,3 +141,47 @@ test("Look Upon Me beams from bigkefka toward arena centre, and the party dodges
     }
   }
 });
+
+// Tether assignments are driven by First/Second/Third in Line + role, never a hardcoded player id.
+// first_in_line has two dps (r1, m1); which one carries Accretion (and so solos the 3rd tether
+// instead of doing the 1st tether's hand-off) is picked by a seeded RNG eventSet
+// (accretion-duty-first-in-line in black-hole.yaml), so this must hold for either outcome.
+test("Black Hole tether assignments resolve correctly from debuffs regardless of which dps gets Accretion Duty", async () => {
+  for (const seed of [1, 5]) {
+    const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
+    const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
+    const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
+    let world = runTicksWithComputedBotIntents(createWorld(raid, seed), Math.ceil(18 * 60));
+
+    const hasDebuff = (id: string, name: string) => byId(world, id).effects.some(e => e.name === name);
+    const accretionCarrier = hasDebuff("m1", "Accretion Duty") ? "m1" : "r1";
+    const dpsHandoff = accretionCarrier === "m1" ? "r1" : "m1";
+    expect(hasDebuff(accretionCarrier, "Accretion Duty")).toBe(true);
+    expect(hasDebuff(dpsHandoff, "Accretion Duty")).toBe(false);
+
+    const notCenter = (id: string) => expect(genericSolverWaypoint(byId(world, id), world)).not.toEqual({ x: 0, z: 0 });
+    const atCenter = (id: string) => expect(genericSolverWaypoint(byId(world, id), world)).toEqual({ x: 0, z: 0 });
+
+    // wave 1 (t=40): the accretion carrier is already at her own orb (not laser-1's), so only the
+    // hand-off dps and (once its window opens) the tank are active on laser-1/2.
+    world = runTicksWithComputedBotIntents(world, Math.ceil((40 - 18) * 60));
+    notCenter(dpsHandoff);
+    notCenter(accretionCarrier);
+    expect(genericSolverWaypoint(byId(world, dpsHandoff), world)).not.toEqual(genericSolverWaypoint(byId(world, accretionCarrier), world));
+
+    // wave 6 (t=105): DPS/Support hand-off has moved on to second_in_line, and Accretion has
+    // switched carriers to h2 (second_in_line's healer) - r1/m1 are done for the fight.
+    world = runTicksWithComputedBotIntents(world, Math.ceil((105 - 40) * 60));
+    atCenter(dpsHandoff);
+    atCenter(accretionCarrier);
+    expect(hasDebuff("h2", "Accretion Duty")).toBe(true);
+    notCenter("r2"); // second_in_line's dps, doing the wave-6 hand-off
+    notCenter("h2"); // second_in_line's healer, soloing Accretion's tether
+
+    // wave 9 (t=138): DPS/Support chains have both reached third_in_line; m2 (dps) and h1 (healer,
+    // its only non-dps member) are the ones active - no Accretion carrier this late.
+    world = runTicksWithComputedBotIntents(world, Math.ceil((138 - 105) * 60));
+    notCenter("m2");
+    notCenter("h1");
+  }
+});
