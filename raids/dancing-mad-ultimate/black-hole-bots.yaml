@@ -104,25 +104,25 @@ solvers:
     # Assignments are driven by the First/Second/Third in Line debuffs + role (never a hardcoded
     # player id), so they stay correct however those debuffs end up grouped. Where a line group has
     # two members of the same role (first_in_line has 2 dps), the Accretion Duty marker (an inert,
-    # invisible tag applied alongside real Accretion - see black-hole.yaml) disambiguates: the
-    # marked-variant rule is listed first so it claims that specific player, and the plain-role rule
-    # then only matches the *other* same-role member.
+    # invisible tag applied alongside real Accretion - see black-hole.yaml) disambiguates them - but
+    # only from Black Hole 2 onward. Real Accretion (applied at t=17, 11s duration) has already
+    # expired by the time Black Hole 1 fires, so the Accretion-tagged dps has nothing to do yet in
+    # Black Hole 1: both of its dps tethers go to the *other*, untagged first_in_line dps instead.
 
-    # wave 2 (Black Hole 1's 2nd/3rd tethers, fire t=51): Accretion carrier #1 (first_in_line's
-    # spare dps) solos the 3rd tether. Listed before wave 1's rule below (priority ordering, not
-    # chronological) so it claims the marked player first. atOrb starts at 34, not 41 - laser-1
-    # spawns earlier (t=37) than laser-2/3 (t=44), so wave 1's "First in Line dps" rule is already
-    # live from 34; without this earlier claim, the Accretion-tagged dps would also match that rule
-    # (both dps have "First in Line") and shadow the real hand-off player at laser-1's orb.
-    - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 34, endAt: 47, frame: [black-hole-1-laser-3], spot: *atOrb }
-    - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 41, endAt: 49, frame: [black-hole-1-laser-3], spot: *preclockwiseSoak }
-    - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 44, endAt: 51, frame: [black-hole-1-laser-3], spot: *clockwiseSoak }
+    # The Accretion-tagged dps has nothing to do in Black Hole 1 (see above) - explicitly stack
+    # middle so it doesn't also match the plain "First in Line, role: dps" rules below (both dps
+    # share that debuff+role; without this, they'd both land on the untagged dps's tethers).
+    - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 34, endAt: 51, spot: *stackMiddle }
 
-    # wave 1 (Black Hole 1's 1st tether, fires t=44): DPS hand-off chain starts here - first_in_line's
-    # other dps (no Accretion Duty marker).
+    # wave 1 (Black Hole 1's 1st tether, fires t=44) then wave 2 (its 3rd tether, fires t=51):
+    # first_in_line's untagged dps solos both, back to back (free again by wave 2 since laser-1
+    # only fires once) - the Accretion-tagged dps isn't involved in Black Hole 1 at all.
     - { when: { debuff: "First in Line", role: dps }, startAt: 34, endAt: 40, frame: [black-hole-1-laser-1], spot: *atOrb }
     - { when: { debuff: "First in Line", role: dps }, startAt: 34, endAt: 42, frame: [black-hole-1-laser-1], spot: *preclockwiseSoak }
     - { when: { debuff: "First in Line", role: dps }, startAt: 37, endAt: 44, frame: [black-hole-1-laser-1], spot: *clockwiseSoak }
+    - { when: { debuff: "First in Line", role: dps }, startAt: 41, endAt: 47, frame: [black-hole-1-laser-3], spot: *atOrb }
+    - { when: { debuff: "First in Line", role: dps }, startAt: 41, endAt: 49, frame: [black-hole-1-laser-3], spot: *preclockwiseSoak }
+    - { when: { debuff: "First in Line", role: dps }, startAt: 44, endAt: 51, frame: [black-hole-1-laser-3], spot: *clockwiseSoak }
 
     # wave 2 (Black Hole 1's 2nd tether, fires t=51): Support hand-off chain starts here -
     # first_in_line's tank.
@@ -142,8 +142,12 @@ solvers:
     # mt doesn't drive exdeath's position, so it can safely target "7 out from exdeath's current spot,
     # same bearing it was dragged to" for tb-4 itself - it lands correctly wherever exdeath settled.
 
-    # waves 3-5 (Black Hole 2's 3rd tether, fires t=75/80/85): Accretion carrier #1 continues
-    # soloing - no hand-off.
+    # waves 3-5 (Black Hole 2's 3rd tether, fires t=75/80/85): Accretion carrier #1's tether duty
+    # starts here (they had nothing to do in Black Hole 1 - see above) and solos the whole thing
+    # alone, no hand-off. This assignment is driven by the persistent Accretion Duty marker, not by
+    # whether real Accretion is currently live on them - it isn't re-applied for Black Hole 2 yet
+    # (only granted once, at t=17, in black-hole.yaml), which is a separate, not-yet-solved mechanic
+    # timing question, not a bot-positioning one.
     - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 65, endAt: 71, frame: [black-hole-2-laser-3], spot: *atOrb }
     - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 65, endAt: 73, frame: [black-hole-2-laser-3], spot: *preclockwiseSoak }
     - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 68, endAt: 85, frame: [black-hole-2-laser-3], spot: *clockwiseSoak }

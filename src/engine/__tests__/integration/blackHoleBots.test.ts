@@ -162,16 +162,22 @@ test("Black Hole tether assignments resolve correctly from debuffs regardless of
     const notCenter = (id: string) => expect(genericSolverWaypoint(byId(world, id), world)).not.toEqual({ x: 0, z: 0 });
     const atCenter = (id: string) => expect(genericSolverWaypoint(byId(world, id), world)).toEqual({ x: 0, z: 0 });
 
-    // wave 1 (t=40): the accretion carrier is already at her own orb (not laser-1's), so only the
-    // hand-off dps and (once its window opens) the tank are active on laser-1/2.
+    // wave 1 (t=40): real Accretion (applied at t=17, 11s duration) has already expired, so the
+    // Accretion-tagged dps has nothing to do in Black Hole 1 - only the untagged dps (laser-1) is
+    // active; the tank's laser-2 window hasn't opened yet either.
     world = runTicksWithComputedBotIntents(world, Math.ceil((40 - 18) * 60));
     notCenter(dpsHandoff);
-    notCenter(accretionCarrier);
-    expect(genericSolverWaypoint(byId(world, dpsHandoff), world)).not.toEqual(genericSolverWaypoint(byId(world, accretionCarrier), world));
+    atCenter(accretionCarrier);
+
+    // wave 2 (t=47): the same untagged dps has moved on to laser-3 (free again since laser-1 only
+    // fired once) - the Accretion-tagged dps is still uninvolved.
+    world = runTicksWithComputedBotIntents(world, Math.ceil((47 - 40) * 60));
+    notCenter(dpsHandoff);
+    atCenter(accretionCarrier);
 
     // wave 6 (t=105): DPS/Support hand-off has moved on to second_in_line, and Accretion has
     // switched carriers to h2 (second_in_line's healer) - r1/m1 are done for the fight.
-    world = runTicksWithComputedBotIntents(world, Math.ceil((105 - 40) * 60));
+    world = runTicksWithComputedBotIntents(world, Math.ceil((105 - 47) * 60));
     atCenter(dpsHandoff);
     atCenter(accretionCarrier);
     expect(hasDebuff("h2", "Accretion Duty")).toBe(true);
