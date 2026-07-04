@@ -272,7 +272,8 @@ _lookUponMe: &lookUponMe
   showCastBar: true
   bossId: bigkefka
   anchor: boss
-  shape: { kind: rect, direction: { x: 0, z: -1 }, width: 13.3333333333, length: 40 }
+  directionFrom: bossFacing
+  shape: { kind: rect, width: 13.3333333333, length: 40 }
 
 _botTell: &botTell
   type: aoe
