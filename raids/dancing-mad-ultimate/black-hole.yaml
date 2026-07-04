@@ -426,7 +426,7 @@ events:
 
   - type: heal
     id: recovery-after-tb-1
-    time: 9
+    time: 12
     name: TB Recovery
 
   - type: aoe
@@ -616,7 +616,7 @@ events:
 
   - type: heal
     id: recovery-after-tb-4
-    time: 50
+    time: 55
     name: TB Recovery
 
   - <<: *kefkaTeleport
@@ -770,7 +770,7 @@ events:
 
   - type: heal
     id: recovery-after-tb-5
-    time: 91
+    time: 96
     name: TB Recovery
 
   - type: hazard

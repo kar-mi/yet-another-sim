@@ -32,7 +32,7 @@ _roleSafeWest: &roleSafeWest
 
 _pixelBehindChaos: &pixelBehindChaos { r: 0, z: -0.1 }
 
-_clockwiseSoak: &clockwiseSoak { r: 7.44, z: 2.44 }
+_clockwiseSoak: &clockwiseSoak { r: 9.44, z: 3.44 }
 _preclockwiseSoak: &preclockwiseSoak { r: 6.44, z: 2.44 }
 _atOrb: &atOrb { r: 0, z: 4 }
 _stackMiddle: &stackMiddle { x: 0, z: 0 }
@@ -46,6 +46,10 @@ _thunderBait: &thunderBait
   r2: { x: 0, z: 0 }
   m1: { x: 0, z: 0 }
   m2: { x: 0, z: 0 }
+
+_thunderRelativeBait: &thunderRelativeBait
+    mt: { dist: 0, angleDeg: 240 }
+    ot: { dist: 0, angleDeg: 240 } 
 
 solvers:
   generic:
@@ -98,6 +102,18 @@ solvers:
     - { when: { static: true }, startAt: 41, endAt: 49, frame: [black-hole-1-laser-3], spots: { m1: *preclockwiseSoak } }
     - { when: { static: true }, startAt: 44, endAt: 51, frame: [black-hole-1-laser-3], spots: { m1: *clockwiseSoak } }
 
+    # Drag exdeath (ot holds its aggro) out to the empty spot on the far side of Black Hole 1's 2nd
+    # tether ahead of tb-4: exdeath is unlocked (no active mechanic of its own) through this whole
+    # window, so it walks to wherever ot stands. 10 out from centre, 180 degrees opposite the tether's
+    # bearing (clear of every beam) plus 4 more degrees clockwise.
+    # ot holds this same *fixed, absolute* point clear through tb-4's resolve rather than switching to
+    # a boss-relative spot: since exdeath is chasing ot, a boss-relative target for ot would keep
+    # re-deriving itself from exdeath's still-catching-up position every tick, and the two would never
+    # converge (a runaway feedback loop that drags them both off the arena edge).
+    - { when: { static: true }, startAt: 40, endAt: 45, frame: [black-hole-1-laser-2], spots: { ot: { dist: 12, angleDeg: 240 } } }
+    # mt doesn't drive exdeath's position, so it can safely target "7 out from exdeath's current spot,
+    # same bearing it was dragged to" for tb-4 itself - it lands correctly wherever exdeath settled.
+
     - { when: { static: true }, startAt: 65, endAt: 71, frame: [black-hole-2-laser-1], spots: { r1: *atOrb } }
     - { when: { static: true }, startAt: 65, endAt: 73, frame: [black-hole-2-laser-1], spots: { r1: *preclockwiseSoak } }
     - { when: { static: true }, startAt: 68, endAt: 75, frame: [black-hole-2-laser-1], spots: { r1: *clockwiseSoak } }
@@ -113,6 +129,11 @@ solvers:
     - { when: { static: true }, startAt: 77, endAt: 79, frame: [black-hole-2-laser-2], spots: { ot: *atOrb } }
     - { when: { static: true }, startAt: 77, endAt: 82, frame: [black-hole-2-laser-2], spots: { ot: *preclockwiseSoak } }
     - { when: { static: true }, startAt: 80, endAt: 85, frame: [black-hole-2-laser-2], spots: { ot: *clockwiseSoak } }
+
+    # Same tb-drag pattern as Black Hole 1, now off Black Hole 2's 2nd tether ahead of tb-5. ot only
+    # frees up from its laser-2 hand-off at 85, five seconds before tb-5's 90s telegraph. ot again
+    # holds the fixed absolute point through tb-5's resolve (94) - see the tb-4 comment above for why.
+    - { when: { static: true }, startAt: 88, endAt: 90, frame: [black-hole-2-laser-2], spots: { ot: { dist: 12, angleDeg: 240 } } }
 
     - { when: { static: true }, startAt: 99, endAt: 104, frame: [black-hole-3-laser-1], spots: { r2: *atOrb } }
     - { when: { static: true }, startAt: 99, endAt: 107, frame: [black-hole-3-laser-1], spots: { r2: *preclockwiseSoak } }
@@ -140,12 +161,11 @@ solvers:
     - { when: { static: true }, startAt: 139, endAt: 147, frame: [black-hole-4-laser-2], spots: { h2: *preclockwiseSoak } }
     - { when: { static: true }, startAt: 142, endAt: 150, frame: [black-hole-4-laser-2], spots: { h2: *clockwiseSoak } }
 
-    # Listed after the laser-soak rules above so anyone currently mid-soak (e.g. a tank baiting a
-    # laser at the same time as tb-4) keeps their more specific spot instead of being pulled into
-    # the shared tb bait; whoever isn't soaking falls through to here and baits the tb alone.
+    # tb-3 has no Black Hole in play yet, so it keeps the plain shared bait spot. tb-4/tb-5 have
+    # their own mechanic-gated rules above (framed on their Black Hole's 2nd tether).
     - { when: { mechanic: thunder-iii-tb-3 }, spots: *thunderBait }
-    - { when: { mechanic: thunder-iii-tb-4 }, spots: *thunderBait }
-    - { when: { mechanic: thunder-iii-tb-5 }, spots: *thunderBait }
+    - { when: { mechanic: thunder-iii-tb-4 }, frame: [black-hole-1-laser-2], origin: { boss: exdeath }, spots: *thunderRelativeBait }
+    - { when: { mechanic: thunder-iii-tb-5 }, frame: [black-hole-2-laser-3], origin: { boss: exdeath }, spots: *thunderRelativeBait }
 
     # Everyone not already soaking a tether just stacks arena center, out of every beam's path.
     - { when: { static: true }, startAt: 37, endAt: 51, spot: *stackMiddle }
