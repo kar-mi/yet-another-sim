@@ -57,6 +57,7 @@ const GenericSolverRuleSchema = z.object({
   frame: GenericSolverFrameSchema.optional(),
   origin: z.object({ boss: z.string().min(1) }).optional(),
   mirrorLateral: z.boolean().optional(),
+  mirrorForward: z.boolean().optional(),
   spots: z.record(z.string().min(1), SolverSpotSchema).optional(),
   spot: SolverSpotSchema.optional(),
   // Limit Cut ring placement; `spots[n-1]` (relative/polar) is rotated by the basis of the limit cut
@@ -88,6 +89,9 @@ const GenericSolverRuleSchema = z.object({
   }
   if (rule.mirrorLateral && !Array.isArray(rule.frame)) {
     ctx.addIssue({ code: "custom", path: ["mirrorLateral"], message: "mirrorLateral requires a reference-list frame" });
+  }
+  if (rule.mirrorForward && !Array.isArray(rule.frame)) {
+    ctx.addIssue({ code: "custom", path: ["mirrorForward"], message: "mirrorForward requires a reference-list frame" });
   }
   if (rule.spots === undefined && rule.spot === undefined) {
     ctx.addIssue({ code: "custom", path: ["spot"], message: "rule must have at least one of spot / spots" });

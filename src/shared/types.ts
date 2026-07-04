@@ -62,6 +62,14 @@ export type GenericSolverRule = {
   // For a mixed boss-facing frame, flip the lateral axis when the other references are on the
   // boss's left. This lets one authored spot mirror across east/west mechanic configurations.
   mirrorLateral?: boolean;
+  // Same idea as mirrorLateral but for the frame's forward/north axis: flips when the other
+  // references point behind the boss's own facing (dot product against facing itself, rather than
+  // its right vector). Combine both when a single lateral mirror can't guarantee safety against a
+  // second boss-facing-anchored hazard for every possible relative facing between the two bosses —
+  // each axis independently forces its own spot term negative against that hazard's direction, and
+  // since right/north are orthonormal, at least one of them keeps real margin for any relative
+  // facing, including the degenerate case where a lateral-only mirror has none.
+  mirrorForward?: boolean;
   spots?: Record<string, Vec2>; // per-player spot; wins over spot
   spot?: Vec2;                   // one spot for every matching bot
   // Limit Cut placement. Requires when.mechanic naming a fired limit cut (World.limitCuts): the

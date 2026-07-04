@@ -51,14 +51,51 @@ _blackHoleCombos: &blackHoleCombos
   - - { pos: { x: 0, z: 17 }, tether: true }
     - { pos: { x: 17, z: 0 }, tether: true }
     - { pos: { x: 0, z: -17 }, tether: true }
-    - { pos: { x: 5, z: 13 }, tether: false }
+    - { pos: { x: -5, z: 13 }, tether: false }
     - { pos: { x: -7, z: 7 }, tether: false }
     - { pos: { x: 7, z: 7 }, tether: false }
-    - { pos: { x: -13, z: 5 }, tether: false }
-    - { pos: { x: 13, z: -5 }, tether: false }
+    - { pos: { x: -13, z: -5 }, tether: false }
+    - { pos: { x: 13, z: 5 }, tether: false }
     - { pos: { x: -7, z: -7 }, tether: false }
     - { pos: { x: 6, z: -7 }, tether: false }
-    - { pos: { x: -6, z: -13 }, tether: false }
+    - { pos: { x: 6, z: -13 }, tether: false }
+
+#   ..................................01..................................
+#   ......................................................................
+#   ......................................................................
+#   ......................................................................
+#   ........................04............................................
+#   ......................................................................
+#   ......................................................................
+#   ......................................................................
+#   ......................................................................
+#   ......................................................................
+#   ....................05..........................06....................
+#   ......................................................................
+#   ............................................................08........
+#   ......................................................................
+#   ......................................................................
+#   ......................................................................
+#   ......................................................................
+#   ..................................+.................................02
+#   ......................................................................
+#   ......................................................................
+#   ......................................................................
+#   ......................................................................
+#   ........07..............................................................
+#   ......................................................................
+#   ....................09........................10......................
+#   ......................................................................
+#   ......................................................................
+#   ......................................................................
+#   ......................................................................
+#   ......................................................................
+#   ..............................................11......................
+#   ......................................................................
+#   ......................................................................
+#   ......................................................................
+#   ..................................03..................................
+
   - - { pos: { x: 0, z: 17 }, tether: true }
     - { pos: { x: 17, z: 0 }, tether: true }
     - { pos: { x: 0, z: -17 }, tether: true }
@@ -70,6 +107,42 @@ _blackHoleCombos: &blackHoleCombos
     - { pos: { x: 13, z: -6 }, tether: false }
     - { pos: { x: 0, z: -9 }, tether: false }
     - { pos: { x: -5, z: -13 }, tether: false }
+
+  # ..................................01..................................
+  # ......................................................................
+  # ......................................................................
+  # ......................................................................
+  # ..............................................07......................
+  # ......................................................................
+  # ......................................................................
+  # ......................................................................
+  # ..................................06..................................
+  # ......................................................................
+  # ......................................................................
+  # ......................................................................
+  # ........04..............................................................
+  # ......................................................................
+  # ......................................................................
+  # ......................................................................
+  # ......................................................................
+  # ................05................+.................08..............02
+  # ......................................................................
+  # ......................................................................
+  # ......................................................................
+  # ......................................................................
+  # ......................................................................
+  # ............................................................09........
+  # ......................................................................
+  # ......................................................................
+  # ..................................10..................................
+  # ......................................................................
+  # ......................................................................
+  # ......................................................................
+  # ........................11............................................
+  # ......................................................................
+  # ......................................................................
+  # ......................................................................
+  # ..................................03..................................
 
 _slapHappyCircle: &slapHappyCircle
   type: aoe
@@ -199,7 +272,8 @@ _lookUponMe: &lookUponMe
   showCastBar: true
   bossId: bigkefka
   anchor: boss
-  shape: { kind: rect, direction: { x: 0, z: -1 }, width: 13.3333333333, length: 40 }
+  directionFrom: bossFacing
+  shape: { kind: rect, width: 13.3333333333, length: 40 }
 
 _botTell: &botTell
   type: aoe
@@ -295,6 +369,13 @@ optionals:
         sets:
           - [slap-happy-3-right-hit-1, slap-happy-3-right-hit-2, slap-happy-3-right-hit-3, slap-happy-3-party-stack, visual-chaos-cone-at-party-stack-3]
           - [slap-happy-3-left-hit-1, slap-happy-3-left-hit-2, slap-happy-3-left-hit-3, slap-happy-3-role-stack-mt, slap-happy-3-role-stack-h1, slap-happy-3-role-stack-m1, slap-happy-3-role-cone-mt, slap-happy-3-role-cone-h1, slap-happy-3-role-cone-m1]
+      # first_in_line has two dps (r1, m1): one does the regular dps hand-off, the other carries
+      # Accretion. Which one is picked at random per pull, not hardcoded to m1.
+      accretion-duty-first-in-line:
+        rng: true
+        sets:
+          - [accretion-dps-m1, accretion-duty-dps-m1]
+          - [accretion-dps-r1, accretion-duty-dps-r1]
 
 events:
   - type: aoe
@@ -351,6 +432,11 @@ events:
     id: thunder-iii-tb-3
     time: 8
 
+  - type: heal
+    id: recovery-after-tb-1
+    time: 12
+    name: TB Recovery
+
   - type: aoe
     id: earthquake-cast
     time: 13
@@ -378,21 +464,56 @@ events:
       duration: 200
       showTimer: false
 
+  # Accretion carrier #2: second_in_line's healer (h2) - the group's spare non-hand-off member.
   - type: apply_effect
     id: accretion-healer
     time: 17
     name: Accretion
-    players: [h1]
+    players: [h2]
     applyEffect:
       ref: accretion
-
   - type: apply_effect
-    id: accretion-dps
+    id: accretion-duty-healer
+    time: 17
+    name: Accretion Duty
+    players: [h2]
+    applyEffect:
+      ref: accretion_duty
+
+  # Accretion carrier #1: first_in_line's spare dps (r1 or m1 - it has two dps, one does the DPS
+  # hand-off, the other carries Accretion). Which one is picked by the RNG eventSet below
+  # (optionals.combinations.eventSets.accretion-duty-first-in-line), not hardcoded, so the bot
+  # solver (which matches by debuff + role, never by name) resolves correctly either way.
+  - type: apply_effect
+    id: accretion-dps-m1
     time: 17
     name: Accretion
     players: [m1]
     applyEffect:
       ref: accretion
+  - type: apply_effect
+    id: accretion-duty-dps-m1
+    time: 17
+    name: Accretion Duty
+    players: [m1]
+    applyEffect:
+      ref: accretion_duty
+
+  - type: apply_effect
+    id: accretion-dps-r1
+    time: 17
+    name: Accretion
+    players: [r1]
+    applyEffect:
+      ref: accretion
+  - type: apply_effect
+    id: accretion-duty-dps-r1
+    time: 17
+    name: Accretion Duty
+    players: [r1]
+    applyEffect:
+      ref: accretion_duty
+
   - type: apply_effect
     id: first-in-line
     time: 17
@@ -419,6 +540,7 @@ events:
     id: recovery-after-earthquake-1
     time: 23
     name: Earthquake Recovery
+
   - type: heal
     id: recovery-after-earthquake-2
     time: 26
@@ -492,6 +614,11 @@ events:
     id: slap-happy-1-role-cone-m1
     time: 36
 
+  - type: heal
+    id: recovery-after-stack-1
+    time: 37
+    name: Stack Recovery
+
   - type: hazard
     id: black-hole-1
     time: 37
@@ -529,6 +656,11 @@ events:
   - <<: *thunderIII
     id: thunder-iii-tb-4
     time: 49
+
+  - type: heal
+    id: recovery-after-tb-4
+    time: 55
+    name: TB Recovery
 
   - <<: *kefkaTeleport
     id: kefka-teleport-1
@@ -619,6 +751,11 @@ events:
     id: slap-happy-2-role-cone-m1
     time: 67
 
+  - type: heal
+    id: recovery-after-stack-2
+    time: 68
+    name: Stack Recovery
+
   - type: hazard
     id: black-hole-2
     time: 68
@@ -670,9 +807,19 @@ events:
     id: look-upon-me-1
     time: 86
 
+  - type: heal
+    id: recovery-after-bh-2
+    time: 87
+    name: Black hole cleanse recovery
+
   - <<: *thunderIII
     id: thunder-iii-tb-5
     time: 90
+
+  - type: heal
+    id: recovery-after-tb-5
+    time: 96
+    name: TB Recovery
 
   - type: hazard
     id: black-hole-3
@@ -710,7 +857,7 @@ events:
 
   - type: heal
     id: recovery-before-white-hole
-    time: 124
+    time: 120.1
     name: White Hole Recovery
 
   - <<: *whiteHole
@@ -808,6 +955,11 @@ events:
   - <<: *roleConeM1
     id: slap-happy-3-role-cone-m1
     time: 135
+
+  - type: heal
+    id: recovery-after-stack-3
+    time: 136
+    name: Stack Recovery
 
   - type: hazard
     id: black-hole-4
