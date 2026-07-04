@@ -857,7 +857,7 @@ events:
 
   - type: heal
     id: recovery-before-white-hole
-    time: 124
+    time: 120.1
     name: White Hole Recovery
 
   - <<: *whiteHole

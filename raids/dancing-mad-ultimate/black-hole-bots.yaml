@@ -232,7 +232,7 @@ solvers:
     - { when: { debuff: "Second in Line", role: tank }, startAt: 99, endAt: 104, frame: [black-hole-3-laser-2], spot: *atOrb }
     - { when: { debuff: "Second in Line", role: tank }, startAt: 99, endAt: 107, frame: [black-hole-3-laser-2], spot: *preclockwiseSoak }
     - { when: { debuff: "Second in Line", role: tank }, startAt: 102, endAt: 114, frame: [black-hole-3-laser-2], spot: *clockwiseSoak }
-    - { when: { debuff: "Third in Line", role: healer }, startAt: 111, endAt: 113, frame: [black-hole-3-laser-2], spot: *atOrb }
+    - { when: { debuff: "Third in Line", role: healer }, startAt: 111, endAt: 115, frame: [black-hole-3-laser-2], spot: *atOrb }
     - { when: { debuff: "Third in Line", role: healer }, startAt: 111, endAt: 116, frame: [black-hole-3-laser-2], spot: *preclockwiseSoak }
     - { when: { debuff: "Third in Line", role: healer }, startAt: 114, endAt: 119, frame: [black-hole-3-laser-2], spot: *clockwiseSoak }
 
@@ -272,7 +272,6 @@ solvers:
     - { when: { static: true }, startAt: 37, endAt: 51, spot: *stackMiddle }
     - { when: { static: true }, startAt: 68, endAt: 85, spot: *stackMiddle }
     - { when: { static: true }, startAt: 102, endAt: 119, spot: *stackMiddle }
-    - { when: { static: true }, startAt: 135, endAt: 150, spot: *stackMiddle }
 
     - { when: { static: true }, spots: *fallback }
 
