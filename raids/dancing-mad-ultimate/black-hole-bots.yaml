@@ -170,17 +170,46 @@ solvers:
     - { when: { debuff: "Second in Line", role: tank }, startAt: 80, endAt: 83, frame: [black-hole-2-laser-2], spot: *preclockwiseSoak }
     - { when: { debuff: "Second in Line", role: tank }, startAt: 80, endAt: 85, frame: [black-hole-2-laser-2], spot: *clockwiseSoak }
 
-    # Damning Edict 2 (84-89) and Look Upon Me 1 (86-90) overlap: Look Upon Me is a beam from
-    # bigkefka straight through arena centre (width 13.33, so +/-6.67 either side is unsafe), and
-    # the Edict's safe/unsafe halves are split by a line through the origin perpendicular to
-    # chaos's facing (chaos sits exactly at centre). A spot purely lateral to Kefka's beam axis
-    # (z:0, i.e. measured from arena centre) is automatically safe from Look Upon Me at +/-7 (party)
-    # or +/-10 (ot); mirrorLateral picks whichever of those two lateral sides is NOT where chaos's
-    # cone is currently facing, so this is safe for any Kefka teleport bearing / any randomly-baited
-    # Edict target, not just this pull's roll. ot's dodge spot doubles as its tb-5 drag-out approach
-    # (same window it needs anyway, since exdeath - unlocked, no active mechanic of its own here -
-    # follows ot there); the mechanic-gated tb-5 formation rule below takes over once tb-5 goes live.
-    - { when: { static: true }, startAt: 85.3, endAt: 94.1, frame: [{ boss: { id: bigkefka, from: facing } }, { boss: { id: chaos, from: facing } }], mirrorLateral: true, spots: { mt: { r: -7, z: 0 }, h1: { r: -7, z: 0 }, h2: { r: -7, z: 0 }, r1: { r: -7, z: 0 }, r2: { r: -7, z: 0 }, m1: { r: -7, z: 0 }, m2: { r: -7, z: 0 }, ot: { r: -14, z: 0 } } }
+    # Damning Edict 2 (84-89) and Look Upon Me 1 (86-90) overlap. Look Upon Me is a beam from
+    # bigkefka's (ring-teleported) position along his facing (width 13.33, so +/-6.67 either side
+    # is unsafe): his teleport always leaves him exactly opposite his own facing (facing = atan2
+    # of -pos), so a spot's lateral distance from the beam in this bigkefka-facing frame depends
+    # only on its r coordinate, never z - z is a free parameter for Look Upon Me at any value.
+    # Damning Edict 2's safe/unsafe halves are split by a line through chaos (fixed at arena
+    # centre) perpendicular to whichever facing gets locked in at the bait's cast start (t=84),
+    # toward a uniformly random living player.
+    #
+    # A spot purely lateral to Kefka's beam axis (old z:0) sits exactly on Edict's inclusive cone
+    # boundary whenever chaos's locked facing lands parallel/antiparallel to bigkefka's - and it
+    # does, non-negligibly often: bigkefka's own ring teleport is independently random, and
+    # Edict's bait target is frequently a player standing off alone soaking a Black Hole tether
+    # during this exact window, decorrelating the target's position from bigkefka's facing.
+    # mirrorLateral alone (flipping r vs bigkefka's right axis) can't rescue that case, because
+    # it's exactly the case where r's contribution to the dodge collapses to 0.
+    #
+    # mirrorForward does the same trick on z (flipping vs bigkefka's facing itself, rather than
+    # his right axis): together, mirrorLateral forces r's term of dot(spot, chaosFacing) <= 0 and
+    # mirrorForward forces z's term <= 0; since bigkefka's right/facing axes are orthonormal, at
+    # least one term is always strictly negative for any chaos facing, closing the gap for any
+    # Kefka teleport / any Edict bait target, including the parallel/antiparallel case.
+    #
+    # Chaos is only actually facing-locked for the bait's own telegraph->resolve window (84-89,
+    # see aoe.ts's bait promotion): past t=89 it resumes turning to face its current top-threat
+    # target every tick, so its facing keeps drifting with mt's movement afterward. Reading that
+    # drifting facing as the mirror's "other" reference has no real hazard behind it once Edict has
+    # resolved - it just flips the mirror sign whenever chaos re-faces, snapping the whole party's
+    # spot to the other side for no reason. So this combined frame only covers 85.3-89 (matches
+    # Edict's real lock window); a follow-up rule below carries the same spot through the rest of
+    # the window on a bigkefka-only frame, since Look Upon Me is the only hazard left and only
+    # cares about lateral (r) distance from its beam, which these r values already clear.
+    #
+    # ot's dodge spot doubles as its tb-5 drag-out approach (same window it needs anyway, since
+    # exdeath - unlocked, no active mechanic of its own here - follows ot there), so it keeps a
+    # longer window through t=94.1 in its own rule below (listed after the tb-5 tank-formation
+    # rule, so that rule wins for ot once tb-5 is actually live). The rest of the party has no
+    # reason to linger there and ends by t=90 so mt reaches its own tb-5 formation rule.
+    - { when: { static: true }, startAt: 85.3, endAt: 89, frame: [{ boss: { id: bigkefka, from: facing } }, { boss: { id: chaos, from: facing } }], mirrorLateral: true, mirrorForward: true, spots: { mt: { r: -7, z: -7 }, h1: { r: -7, z: -7 }, h2: { r: -7, z: -7 }, r1: { r: -7, z: -7 }, r2: { r: -7, z: -7 }, m1: { r: -7, z: -7 }, m2: { r: -7, z: -7 } } }
+    - { when: { static: true }, startAt: 89, endAt: 90, frame: [{ boss: { id: bigkefka, from: facing } }], spots: { mt: { r: -7, z: -7 }, h1: { r: -7, z: -7 }, h2: { r: -7, z: -7 }, r1: { r: -7, z: -7 }, r2: { r: -7, z: -7 }, m1: { r: -7, z: -7 }, m2: { r: -7, z: -7 } } }
 
     # waves 6-8 (Black Hole 3's 3rd tether, fires t=109/114/119): Accretion carrier #2
     # (second_in_line's healer) solos - no hand-off. (This is the swap found during review: today's
@@ -229,6 +258,15 @@ solvers:
     - { when: { mechanic: thunder-iii-tb-3 }, spots: *thunderBait }
     - { when: { mechanic: thunder-iii-tb-4 }, frame: [black-hole-1-laser-2], origin: { boss: exdeath }, spots: *thunderRelativeBait }
     - { when: { mechanic: thunder-iii-tb-5 }, frame: [black-hole-2-laser-3], origin: { boss: exdeath }, spots: *thunderRelativeBait }
+
+    # ot's Damning Edict 2 / Look Upon Me dodge (see the combined comment above): kept alive
+    # through t=94.1 since exdeath needs ot parked somewhere reasonable through tb-5's resolve.
+    # Listed after tb-5's own tank-formation rule above so that rule (dist:0 on exdeath) wins for
+    # ot once tb-5 is actually live (90-94); this only fills the gap before it (85.3-90) and the
+    # brief tail after tb-5 resolves (94-94.1). Split at t=89 same as the party rule above: chaos's
+    # facing is only a valid mirror reference through Edict's own lock window.
+    - { when: { static: true }, startAt: 85.3, endAt: 89, frame: [{ boss: { id: bigkefka, from: facing } }, { boss: { id: chaos, from: facing } }], mirrorLateral: true, mirrorForward: true, spots: { ot: { r: -14, z: -7 } } }
+    - { when: { static: true }, startAt: 89, endAt: 94.1, frame: [{ boss: { id: bigkefka, from: facing } }], spots: { ot: { r: -14, z: -7 } } }
 
     # Everyone not already soaking a tether just stacks arena center, out of every beam's path.
     - { when: { static: true }, startAt: 37, endAt: 51, spot: *stackMiddle }

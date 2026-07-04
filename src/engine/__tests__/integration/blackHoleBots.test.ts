@@ -170,6 +170,34 @@ test("Damning Edict 2 dodge survives chaos's facing landing parallel/antiparalle
   }
 });
 
+test("the party's post-Edict dodge spot doesn't jitter when chaos re-faces after t=89", async () => {
+  const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
+  const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
+  const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
+
+  // Damning Edict 2's own facing lock only holds through its resolve at t=89 (see aoe.ts's bait
+  // promotion); past that, chaos resumes turning to face its current top-threat target every tick.
+  // Once the lock has lifted, the party's dodge spot must no longer depend on chaos's (now just
+  // drifting) facing - it should land in the same place regardless of which way chaos has turned.
+  const targetsByChaosFacing = [0, Math.PI / 2, Math.PI].map(chaosFacing => {
+    const base = createWorld(raid, 1);
+    base.time = 89.5; // past Edict 2's lock (ends t=89), still inside Look Upon Me's window (86-90)
+    base.bosses = base.bosses.map(b =>
+      b.id === "bigkefka" ? { ...b, facing: 0 }
+      : b.id === "chaos" ? { ...b, facing: chaosFacing }
+      : b);
+    return Object.fromEntries(
+      ["mt", "h1", "h2", "r1", "r2", "m1", "m2"].map(id => [id, genericSolverWaypoint(byId(base, id), base)]),
+    );
+  });
+
+  for (const id of ["mt", "h1", "h2", "r1", "r2", "m1", "m2"]) {
+    for (const targets of targetsByChaosFacing) expect(targets[id]).toBeDefined();
+    expect(targetsByChaosFacing[1]![id]).toEqual(targetsByChaosFacing[0]![id]);
+    expect(targetsByChaosFacing[2]![id]).toEqual(targetsByChaosFacing[0]![id]);
+  }
+});
+
 // Tether assignments are driven by First/Second/Third in Line + role, never a hardcoded player id.
 // first_in_line has two dps (r1, m1); which one carries Accretion (and so solos the 3rd tether
 // instead of doing the 1st tether's hand-off) is picked by a seeded RNG eventSet
