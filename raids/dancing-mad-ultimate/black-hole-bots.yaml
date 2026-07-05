@@ -95,13 +95,13 @@ solvers:
     # can otherwise steal mt away even though this rule's own startAt/endAt would still be active.
     - { when: { static: true }, startAt: 119.1, endAt: 125, frame: [{ boss: { id: bigkefka, from: position } }], spots: { mt: { dist: 5, angleDeg: 225 } } }
 
-    # Slap Happy right-side cleave rolls party stack: all middle relative in the safe quadrant.
-    - { when: { mechanic: slap-happy-1-right-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-1-right-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-1-right-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-2-right-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-2-right-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-2-right-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
+    # Slap Happy right-side cleave rolls party stack: all middle relative in the safe quadrant. Gated
+    # on the invisible slap-happy-{1,2}-right-hold markers (black-hole.yaml, same eventSets branch as
+    # the real hits) rather than each hit individually: the 3 real hits resolve well before
+    # party-stack fires (t=34->36 for wave 1, t=64->67 for wave 2), and nothing else bridges that gap,
+    # so a mechanic-per-hit gate would leave the party stranded mid-transit right when it matters.
+    - { when: { mechanic: slap-happy-1-right-hold }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-2-right-hold }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
     # Slap Happy 3's right cleave ("Kefka cleaves west") overlaps the Latitude/Longitude Implosion:
     # dodge sequentially, not simultaneously. Gated on slap-happy-3-right-hold, an invisible damageless
     # marker (black-hole.yaml, same eventSets branch as the real hits so it always agrees on side) that
@@ -118,13 +118,11 @@ solvers:
     - { when: { mechanic: slap-happy-3-right-hold, endingFacing: { event: latlong-2-a, offset: -1.5707963267948966 } }, startAt: 130, endAt: 132, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeEastLatitude }
     - { when: { mechanic: slap-happy-3-right-hold }, startAt: 132, endAt: 135, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
 
-    # Slap Happy left-side cleave rolls role stacks: tanks north, healers mid, DPS south.
-    - { when: { mechanic: slap-happy-1-left-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-1-left-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-1-left-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-2-left-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-2-left-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-2-left-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
+    # Slap Happy left-side cleave rolls role stacks: tanks north, healers mid, DPS south. Gated on the
+    # invisible slap-happy-{1,2}-left-hold markers (black-hole.yaml, same eventSets branch as the real
+    # hits) rather than each hit individually - same reasoning as the right-side block above.
+    - { when: { mechanic: slap-happy-1-left-hold }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-2-left-hold }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
     # Slap Happy 3's left cleave ("Kefka cleaves east") overlaps the Latitude/Longitude Implosion:
     # dodge sequentially, not simultaneously. Gated on slap-happy-3-left-hold, an invisible damageless
     # marker (black-hole.yaml, same eventSets branch as the real hits so it always agrees on side) that
@@ -220,9 +218,9 @@ solvers:
     - { when: { debuff: "Second in Line", role: dps }, startAt: 99, endAt: 104, frame: [black-hole-3-laser-1], spot: *atOrb }
     - { when: { debuff: "Second in Line", role: dps }, startAt: 99, endAt: 107, frame: [black-hole-3-laser-1], spot: *preclockwiseSoak }
     - { when: { debuff: "Second in Line", role: dps }, startAt: 102, endAt: 109, frame: [black-hole-3-laser-1], spot: *clockwiseSoak }
-    - { when: { debuff: "Third in Line", role: dps }, startAt: 106, endAt: 111, frame: [black-hole-3-laser-1], spot: *atOrb }
-    - { when: { debuff: "Third in Line", role: dps }, startAt: 106, endAt: 114, frame: [black-hole-3-laser-1], spot: *preclockwiseSoak }
-    - { when: { debuff: "Third in Line", role: dps }, startAt: 109, endAt: 119, frame: [black-hole-3-laser-1], spot: *clockwiseSoak }
+    - { when: { debuff: "Third in Line", role: dps }, startAt: 106, endAt: 109, frame: [black-hole-3-laser-1], spot: *atOrb }
+    - { when: { debuff: "Third in Line", role: dps }, startAt: 106, endAt: 112, frame: [black-hole-3-laser-1], spot: *preclockwiseSoak }
+    - { when: { debuff: "Third in Line", role: dps }, startAt: 109, endAt: 114, frame: [black-hole-3-laser-1], spot: *clockwiseSoak }
 
     # waves 6-8 (Black Hole 3's 2nd tether, fires t=109/114/119): Support hand-off, waves 6-7 =
     # second_in_line's tank, wave 8 = third_in_line's healer (its only non-dps member).

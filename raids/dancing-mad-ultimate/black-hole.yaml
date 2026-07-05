@@ -357,13 +357,13 @@ optionals:
       slap-happy-1:
         rng: true
         sets:
-          - [slap-happy-1-right-hit-1, slap-happy-1-right-hit-2, slap-happy-1-right-hit-3, slap-happy-1-party-stack, visual-chaos-cone-at-party-stack]
-          - [slap-happy-1-left-hit-1, slap-happy-1-left-hit-2, slap-happy-1-left-hit-3, slap-happy-1-role-stack-mt, slap-happy-1-role-stack-h1, slap-happy-1-role-stack-m1, slap-happy-1-role-cone-mt, slap-happy-1-role-cone-h1, slap-happy-1-role-cone-m1]
+          - [slap-happy-1-right-hit-1, slap-happy-1-right-hit-2, slap-happy-1-right-hit-3, slap-happy-1-party-stack, visual-chaos-cone-at-party-stack, slap-happy-1-right-hold]
+          - [slap-happy-1-left-hit-1, slap-happy-1-left-hit-2, slap-happy-1-left-hit-3, slap-happy-1-role-stack-mt, slap-happy-1-role-stack-h1, slap-happy-1-role-stack-m1, slap-happy-1-role-cone-mt, slap-happy-1-role-cone-h1, slap-happy-1-role-cone-m1, slap-happy-1-left-hold]
       slap-happy-2:
         rng: true
         sets:
-          - [slap-happy-2-right-edict-bait, slap-happy-2-right-hit-1, slap-happy-2-right-hit-2, slap-happy-2-right-hit-3, slap-happy-2-party-stack, visual-chaos-cone-at-party-stack-2]
-          - [slap-happy-2-left-edict-bait, slap-happy-2-left-hit-1, slap-happy-2-left-hit-2, slap-happy-2-left-hit-3, slap-happy-2-role-stack-mt, slap-happy-2-role-stack-h1, slap-happy-2-role-stack-m1, slap-happy-2-role-cone-mt, slap-happy-2-role-cone-h1, slap-happy-2-role-cone-m1]
+          - [slap-happy-2-right-edict-bait, slap-happy-2-right-hit-1, slap-happy-2-right-hit-2, slap-happy-2-right-hit-3, slap-happy-2-party-stack, visual-chaos-cone-at-party-stack-2, slap-happy-2-right-hold]
+          - [slap-happy-2-left-edict-bait, slap-happy-2-left-hit-1, slap-happy-2-left-hit-2, slap-happy-2-left-hit-3, slap-happy-2-role-stack-mt, slap-happy-2-role-stack-h1, slap-happy-2-role-stack-m1, slap-happy-2-role-cone-mt, slap-happy-2-role-cone-h1, slap-happy-2-role-cone-m1, slap-happy-2-left-hold]
       slap-happy-3:
         rng: true
         sets:
@@ -546,6 +546,22 @@ events:
     time: 26
     name: Earthquake Recovery
 
+  # Invisible, damageless markers riding along with whichever Slap Happy 1 side got rolled (same
+  # eventSets branch as the real hits, so they always agree). Solver-only signal: the three real hits
+  # resolve by t=34, but party-stack/role-stack doesn't fire until t=36, and no other mechanic stays
+  # live across that gap.
+  - type: aoe
+    id: slap-happy-1-right-hold
+    time: 28
+    name: Slap Happy 1 side (solver marker)
+    telegraph: 8
+    damage: 0
+    damageType: "true"
+    bossId: bigkefka
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+
   - <<: *slapHappyCircle
     id: slap-happy-1-right-hit-1
     time: 28
@@ -563,6 +579,18 @@ events:
     time: 30
     showCastBar: false
     bossRelativeCenter: { lateral: 8, forward: 8 }
+
+  - type: aoe
+    id: slap-happy-1-left-hold
+    time: 28
+    name: Slap Happy 1 side (solver marker)
+    telegraph: 8
+    damage: 0
+    damageType: "true"
+    bossId: bigkefka
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
 
   - <<: *slapHappyCircle
     id: slap-happy-1-left-hit-1
@@ -683,6 +711,22 @@ events:
     time: 57
     link: damning-edict-1-store
 
+  # Invisible, damageless markers riding along with whichever Slap Happy 2 side got rolled (same
+  # eventSets branch as the real hits, so they always agree). Solver-only signal: the three real hits
+  # resolve by t=64, but party-stack/role-stack doesn't fire until t=67, and no other mechanic stays
+  # live across that gap.
+  - type: aoe
+    id: slap-happy-2-right-hold
+    time: 58
+    name: Slap Happy 2 side (solver marker)
+    telegraph: 9
+    damage: 0
+    damageType: "true"
+    bossId: bigkefka
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+
   - <<: *slapHappyCircle
     id: slap-happy-2-right-hit-1
     time: 58
@@ -700,6 +744,18 @@ events:
     time: 60
     showCastBar: false
     bossRelativeCenter: { lateral: 8, forward: 8 }
+
+  - type: aoe
+    id: slap-happy-2-left-hold
+    time: 58
+    name: Slap Happy 2 side (solver marker)
+    telegraph: 9
+    damage: 0
+    damageType: "true"
+    bossId: bigkefka
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
 
   - <<: *slapHappyCircle
     id: slap-happy-2-left-hit-1
@@ -836,7 +892,7 @@ events:
     time: 102
     fromBlackHoleOrb: { hazardId: black-hole-3, tetherIndex: 0 }
     finalizeAfter: 7
-    fireOffsets: [7, 12, 17]
+    fireOffsets: [7, 12, 17] #109, 114, 119
     despawnAfter: 17
 
   - <<: *blackHoleLaser
