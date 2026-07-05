@@ -367,8 +367,8 @@ optionals:
       slap-happy-3:
         rng: true
         sets:
-          - [slap-happy-3-right-hit-1, slap-happy-3-right-hit-2, slap-happy-3-right-hit-3, slap-happy-3-party-stack, visual-chaos-cone-at-party-stack-3]
-          - [slap-happy-3-left-hit-1, slap-happy-3-left-hit-2, slap-happy-3-left-hit-3, slap-happy-3-role-stack-mt, slap-happy-3-role-stack-h1, slap-happy-3-role-stack-m1, slap-happy-3-role-cone-mt, slap-happy-3-role-cone-h1, slap-happy-3-role-cone-m1]
+          - [slap-happy-3-right-hit-1, slap-happy-3-right-hit-2, slap-happy-3-right-hit-3, slap-happy-3-party-stack, visual-chaos-cone-at-party-stack-3, slap-happy-3-right-hold]
+          - [slap-happy-3-left-hit-1, slap-happy-3-left-hit-2, slap-happy-3-left-hit-3, slap-happy-3-role-stack-mt, slap-happy-3-role-stack-h1, slap-happy-3-role-stack-m1, slap-happy-3-role-cone-mt, slap-happy-3-role-cone-h1, slap-happy-3-role-cone-m1, slap-happy-3-left-hold]
       # first_in_line has two dps (r1, m1): one does the regular dps hand-off, the other carries
       # Accretion. Which one is picked at random per pull, not hardcoded to m1.
       accretion-duty-first-in-line:
@@ -861,7 +861,7 @@ events:
     name: White Hole Recovery
 
   - type: aoe
-    id: boss-facing-lock-chaos
+    id: boss-facing-lock-chaos-latlong
     time: 125
     name: lat long boss facing
     telegraph: 8
@@ -889,6 +889,22 @@ events:
     telegraph: 5
     showCastBar: false
 
+  # Invisible, damageless markers riding along with whichever Slap Happy 3 side got rolled (same
+  # eventSets branch as the real hits, so they always agree). Solver-only signal: the three real hits
+  # resolve by t=133, but the bots need to know which side won through t=135 (party-stack/role-stack),
+  # and no other mechanic stays live across that gap.
+  - type: aoe
+    id: slap-happy-3-right-hold
+    time: 127
+    name: Slap Happy 3 side (solver marker)
+    telegraph: 8
+    damage: 0
+    damageType: "true"
+    bossId: bigkefka
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+
   - <<: *slapHappyCircle
     id: slap-happy-3-right-hit-1
     time: 127
@@ -906,6 +922,18 @@ events:
     time: 129
     showCastBar: false
     bossRelativeCenter: { lateral: 8, forward: 8 }
+
+  - type: aoe
+    id: slap-happy-3-left-hold
+    time: 127
+    name: Slap Happy 3 side (solver marker)
+    telegraph: 8
+    damage: 0
+    damageType: "true"
+    bossId: bigkefka
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
 
   - <<: *slapHappyCircle
     id: slap-happy-3-left-hit-1
