@@ -30,6 +30,19 @@ _roleSafeWest: &roleSafeWest
   m1: { r: -4.5, z: -4 }
   m2: { r: -4.5, z: -4 }
 
+# Chaos-facing-relative dodge for wave 8's Latitude/Longitude Implosion (see the wave 8 comment
+# further down): sequential, not simultaneous, with Slap Happy 3 - the party parks on the diagonal of
+# chaos's locked facing opposite whichever side Kefka is cleaving (east for the right/partySafeEast
+# cleave, west for the left/roleSafeWest cleave) while latlong is live, then falls through to the
+# plain bigkefka spot for the cleave itself. Each 90deg-wide implosion cone's edge sits exactly on the
+# diagonal, so a couple degrees' nudge one way or the other (endingFacing) clears whichever axis is
+# live - mirrors bowels-of-agony-bots.yaml's Latitude/Longitude dodge. First-pass values, needs in-sim
+# tuning.
+_chaosPartySafeEastLongitude: &chaosPartySafeEastLongitude { dist: 8, angleDeg: 313 }
+_chaosPartySafeEastLatitude: &chaosPartySafeEastLatitude { dist: 8, angleDeg: 317 }
+_chaosPartySafeWestLongitude: &chaosPartySafeWestLongitude { dist: 8, angleDeg: 47 }
+_chaosPartySafeWestLatitude: &chaosPartySafeWestLatitude { dist: 8, angleDeg: 43 }
+
 _pixelBehindChaos: &pixelBehindChaos { r: 0, z: -0.1 }
 
 _clockwiseSoak: &clockwiseSoak { r: 9.44, z: 3.44 }
@@ -70,6 +83,19 @@ solvers:
     # since pixelBehindChaos sits inside Look Upon Me 1's beam once its direction is fixed.)
     - { when: { mechanic: damning-edict-1 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *pixelBehindChaos }
 
+    # wave 8 -> lat/long: right after Black Hole 3's last tether resolves, mt baits SW intercardinal
+    # relative to Kefka's (fixed since kefka-teleport-2) position. Chaos is aggro'd on mt, and
+    # Implosion (latlong-1/2) locks chaos's facing toward whoever it's tracking at that instant, so mt
+    # has to hold this exact spot through the whole Slap Happy 3 + latlong-1/2 window (through t=133,
+    # not just its own approach) - otherwise chaos's facing lock becomes whatever the Slap Happy 3
+    # formation happens to be, and the chaos-relative dodge spots below (chaosPartySafeEast/West near
+    # the top of the file) can't be authored against a known direction. mt itself doesn't join those
+    # spots - it stays on this bait the whole time. Listed ahead of the Slap Happy 1/2/3 rules below
+    # (which also name mt in their spots dicts) so it wins for mt for its whole window regardless of
+    # list position further down - first-match-wins means a later, wider-reaching rule can otherwise
+    # steal mt away even though this rule's own startAt/endAt would still be active.
+    - { when: { static: true }, startAt: 119.1, endAt: 125, frame: [{ boss: { id: bigkefka, from: position } }], spots: { mt: { dist: 5, angleDeg: 225 } } }
+
     # Slap Happy right-side cleave rolls party stack: all middle relative in the safe quadrant.
     - { when: { mechanic: slap-happy-1-right-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
     - { when: { mechanic: slap-happy-1-right-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
@@ -77,6 +103,15 @@ solvers:
     - { when: { mechanic: slap-happy-2-right-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
     - { when: { mechanic: slap-happy-2-right-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
     - { when: { mechanic: slap-happy-2-right-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
+    # Slap Happy 3's right cleave ("Kefka cleaves west") overlaps the Latitude/Longitude Implosion:
+    # dodge sequentially, not simultaneously. The chaos-relative east diagonal (opposite the cleave)
+    # takes priority through t=132 (whichever latlong slot is currently live), nudged +-2deg by axis
+    # the same way bowels-of-agony-bots.yaml solves this; once that ends, control falls through to the
+    # plain bigkefka partySafeEast below for the cleave itself, unchanged from before.
+    - { when: { mechanic: slap-happy-3-right-hit-1, endingFacing: { event: latlong-1-a, offset: 0 } }, startAt: 127, endAt: 130, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeEastLongitude }
+    - { when: { mechanic: slap-happy-3-right-hit-1, endingFacing: { event: latlong-1-a, offset: -1.5707963267948966 } }, startAt: 127, endAt: 130, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeEastLatitude }
+    - { when: { mechanic: slap-happy-3-right-hit-2, endingFacing: { event: latlong-2-a, offset: 0 } }, startAt: 130, endAt: 132, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeEastLongitude }
+    - { when: { mechanic: slap-happy-3-right-hit-2, endingFacing: { event: latlong-2-a, offset: -1.5707963267948966 } }, startAt: 130, endAt: 132, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeEastLatitude }
     - { when: { mechanic: slap-happy-3-right-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
     - { when: { mechanic: slap-happy-3-right-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
     - { when: { mechanic: slap-happy-3-right-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
@@ -88,6 +123,15 @@ solvers:
     - { when: { mechanic: slap-happy-2-left-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
     - { when: { mechanic: slap-happy-2-left-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
     - { when: { mechanic: slap-happy-2-left-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
+    # Slap Happy 3's left cleave ("Kefka cleaves east") overlaps the Latitude/Longitude Implosion:
+    # dodge sequentially, not simultaneously. The chaos-relative west diagonal (opposite the cleave)
+    # takes priority through t=132 (whichever latlong slot is currently live), nudged +-2deg by axis
+    # the same way bowels-of-agony-bots.yaml solves this; once that ends, control falls through to the
+    # plain bigkefka roleSafeWest below for the cleave itself, unchanged from before.
+    - { when: { mechanic: slap-happy-3-left-hit-1, endingFacing: { event: latlong-1-a, offset: 0 } }, startAt: 127, endAt: 130, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeWestLongitude }
+    - { when: { mechanic: slap-happy-3-left-hit-1, endingFacing: { event: latlong-1-a, offset: -1.5707963267948966 } }, startAt: 127, endAt: 130, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeWestLatitude }
+    - { when: { mechanic: slap-happy-3-left-hit-2, endingFacing: { event: latlong-2-a, offset: 0 } }, startAt: 130, endAt: 132, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeWestLongitude }
+    - { when: { mechanic: slap-happy-3-left-hit-2, endingFacing: { event: latlong-2-a, offset: -1.5707963267948966 } }, startAt: 130, endAt: 132, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeWestLatitude }
     - { when: { mechanic: slap-happy-3-left-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
     - { when: { mechanic: slap-happy-3-left-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
     - { when: { mechanic: slap-happy-3-left-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
@@ -184,13 +228,6 @@ solvers:
     - { when: { debuff: "Third in Line", role: healer }, startAt: 111, endAt: 116, frame: [black-hole-3-laser-2], spot: *preclockwiseSoak }
     - { when: { debuff: "Third in Line", role: healer }, startAt: 114, endAt: 119, frame: [black-hole-3-laser-2], spot: *clockwiseSoak }
 
-    # wave 8 -> lat/long: right after Black Hole 3's last tether resolves, mt baits SW intercardinal
-    # relative to Kefka's (fixed since kefka-teleport-2) position, ahead of Slap Happy 3 + latlong-1/2.
-    # Explicit startAt/endAt bounds so this can't win over the Slap Happy 3 rules above once they go
-
-    # the eventSets/endings comment near the top of the file).
-    - { when: { static: true }, startAt: 119.1, endAt: 123, frame: [{ boss: { id: bigkefka, from: position } }], spots: { mt: { dist: 5, angleDeg: 225 } } }
-
     # wave 9 (Black Hole 4's 1st tether, fires t=142): DPS chain ends at third_in_line - solos alone,
     # no further hand-off.
     - { when: { debuff: "Third in Line", role: dps }, startAt: 133, endAt: 138, frame: [black-hole-4-laser-1], spot: *atOrb }
@@ -227,6 +264,3 @@ solvers:
     - { when: { static: true }, startAt: 102, endAt: 119, spot: *stackMiddle }
 
     - { when: { static: true }, spots: *fallback }
-
-  holds:
-    - { mechanic: [slap-happy-1-right-hit-3, slap-happy-1-left-hit-3, slap-happy-2-right-hit-3, slap-happy-2-left-hit-3, slap-happy-3-right-hit-3, slap-happy-3-left-hit-3], duration: 4 }

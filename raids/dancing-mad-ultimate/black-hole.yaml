@@ -860,6 +860,19 @@ events:
     time: 120.1
     name: White Hole Recovery
 
+  - type: aoe
+    id: boss-facing-lock-chaos
+    time: 125
+    name: lat long boss facing
+    telegraph: 8
+    damage: 0
+    damageType: "true"
+    bossId: chaos
+    lockFacing: true
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+
   - <<: *whiteHole
     id: white-hole-1
     time: 125
