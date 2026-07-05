@@ -177,6 +177,17 @@ test("role condition gates the rule", () => {
   expect(genericSolverWaypoint(player({ role: "tank" }), w)).toEqual({ x: 1, z: 1 });
 });
 
+test("array role condition matches any of the listed roles", () => {
+  const w = world({
+    time: 2,
+    active: [{ id: "aoe-1", telegraphStart: 0, resolveAt: 5, resolved: false }],
+    botSolvers: { generic: [{ when: { mechanic: "aoe-1", role: ["tank", "healer"] }, spot: { x: 1, z: 1 } }] },
+  });
+  expect(genericSolverWaypoint(player({ role: "tank" }), w)).toEqual({ x: 1, z: 1 });
+  expect(genericSolverWaypoint(player({ role: "healer" }), w)).toEqual({ x: 1, z: 1 });
+  expect(genericSolverWaypoint(player({ role: "dps" }), w)).toBeUndefined();
+});
+
 test("debuff condition matches only while the named effect is active", () => {
   const w = world({
     time: 2,

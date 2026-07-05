@@ -72,7 +72,9 @@ A rule has:
     mechanic's telegraph→resolve window. Pass an **array** to require several mechanics at once — e.g.
     `mechanic: [fire-1.spread, lightning-1.inverted.a]` only matches while a spread_stack resolves to
     spread *and* a concurrent inverse rolled inverted/variant-a.
-  - `role` — `tank` | `healer` | `dps`.
+  - `role` — `tank` | `healer` | `dps`, or an **array** matching any of the listed roles (e.g.
+    `role: [tank, healer]` for a "support" condition — a bot only ever has one role, so this is OR,
+    unlike the AND semantics of `mechanic`/`debuff` arrays).
   - `debuff` — an active effect name on the bot (or an **array** requiring all listed names). A
     debuff-only rule is active while that debuff is.
   - `partnerDebuff` — same matching, against the bot's partner (`world.partners`, populated e.g. from a
