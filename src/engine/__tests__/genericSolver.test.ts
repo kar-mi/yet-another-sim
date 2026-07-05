@@ -4,6 +4,7 @@ import { computeBotIntents } from "../botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../raidLoader";
+import { BotPatternsSchema } from "../raidSchema";
 import { baseRaid, roster } from "./helpers";
 import type { Player, World } from "@shared/types";
 
@@ -122,6 +123,31 @@ test("first matching rule wins", () => {
     },
   });
   expect(genericSolverWaypoint(player({}), w)).toEqual({ x: 1, z: 1 });
+});
+
+test("freeze holds the bot at its current position instead of a configured spot", () => {
+  const w = world({
+    time: 2,
+    active: [{ id: "aoe-1", telegraphStart: 0, resolveAt: 5, resolved: false }],
+    botSolvers: { generic: [{ when: { mechanic: "aoe-1" }, freeze: true }] },
+  });
+  expect(genericSolverWaypoint(player({ pos: { x: 3, z: 4 } }), w)).toEqual({ x: 3, z: 4 });
+});
+
+test("freeze rejects being combined with spot/spots/frame/limitCutSpread", () => {
+  const base = { players: {} };
+  expect(() => BotPatternsSchema.parse({
+    ...base,
+    solvers: { generic: [{ when: { static: true }, freeze: true, spot: { x: 0, z: 0 } }] },
+  })).toThrow();
+  expect(() => BotPatternsSchema.parse({
+    ...base,
+    solvers: { generic: [{ when: { static: true }, freeze: true, spots: { p1: { x: 0, z: 0 } } }] },
+  })).toThrow();
+  expect(() => BotPatternsSchema.parse({
+    ...base,
+    solvers: { generic: [{ when: { static: true }, freeze: true }] },
+  })).not.toThrow();
 });
 
 test("static true provides an always-active fallback after specific rules", () => {
@@ -574,6 +600,15 @@ test("loadBotPatterns converts authored solver spot objects to Vec2 and preserve
   expect(w.botSolvers?.generic?.[0]?.frame).toEqual([{ crystal: "wind" }]);
   expect(w.botSolvers?.generic?.[0]?.spot).toEqual({ x: -7, z: 7 }); // relative r -> runtime x
   expect(w.botSolvers?.generic?.[1]?.spot).toEqual({ x: -4, z: 4 });
+});
+
+test("loadBotPatterns carries freeze through to the runtime rule", () => {
+  const w = createWorld(applyBotPatterns(loadRaid(baseRaid), loadBotPatterns({
+    players: {},
+    solvers: { generic: [{ when: { static: true }, freeze: true }] },
+  })), 1);
+
+  expect(w.botSolvers?.generic?.[0]?.freeze).toBe(true);
 });
 
 test("loadBotPatterns converts polar frame spots and resolves their world positions", () => {

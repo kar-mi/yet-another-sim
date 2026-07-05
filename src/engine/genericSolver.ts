@@ -357,6 +357,7 @@ export function genericSolverWaypoint(
   for (const rule of rules) {
     const matched = ruleMatches(rule, player, world, mechanics);
     if (matched === null) continue;
+    if (rule.freeze) return player.pos;
     if (rule.limitCutSpread) {
       // The matched mechanic (required when.mechanic) identifies which limit cut supplies the basis.
       const mechanicId = matched[0]?.resolvedId;

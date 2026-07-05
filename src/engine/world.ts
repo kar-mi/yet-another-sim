@@ -41,6 +41,7 @@ function toBotSolvers(raid: RaidDef): World["botSolvers"] {
       spots: rule.spots && toSpots(rule.spots),
       spot: rule.spot && toSpot(rule.spot),
       limitCutSpread: rule.limitCutSpread && { spots: rule.limitCutSpread.spots.map(toSpot) },
+      freeze: rule.freeze,
     })),
     holds: holds?.map(hold => ({ ...hold })),
   };

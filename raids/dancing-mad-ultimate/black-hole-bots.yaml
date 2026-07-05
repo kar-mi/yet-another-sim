@@ -30,6 +30,19 @@ _roleSafeWest: &roleSafeWest
   m1: { r: -4.5, z: -4 }
   m2: { r: -4.5, z: -4 }
 
+# Chaos-facing-relative dodge for wave 8's Latitude/Longitude Implosion (see the wave 8 comment
+# further down): sequential, not simultaneous, with Slap Happy 3 - the party parks on the diagonal of
+# chaos's locked facing opposite whichever side Kefka is cleaving (east for the right/partySafeEast
+# cleave, west for the left/roleSafeWest cleave) while latlong is live, then falls through to the
+# plain bigkefka spot for the cleave itself. Each 90deg-wide implosion cone's edge sits exactly on the
+# diagonal, so a couple degrees' nudge one way or the other (endingFacing) clears whichever axis is
+# live - mirrors bowels-of-agony-bots.yaml's Latitude/Longitude dodge. First-pass values, needs in-sim
+# tuning.
+_chaosPartySafeEastLongitude: &chaosPartySafeEastLongitude { dist: 8, angleDeg: 313 }
+_chaosPartySafeEastLatitude: &chaosPartySafeEastLatitude { dist: 8, angleDeg: 317 }
+_chaosPartySafeWestLongitude: &chaosPartySafeWestLongitude { dist: 8, angleDeg: 47 }
+_chaosPartySafeWestLatitude: &chaosPartySafeWestLatitude { dist: 8, angleDeg: 43 }
+
 _pixelBehindChaos: &pixelBehindChaos { r: 0, z: -0.1 }
 
 _clockwiseSoak: &clockwiseSoak { r: 9.44, z: 3.44 }
@@ -57,7 +70,6 @@ solvers:
     # they resume their orb pre-positioning immediately after via the rules below).
     - { when: { static: true }, startAt: 37.1, endAt: 39, spot: *stackMiddle }
     - { when: { static: true }, startAt: 68.1, endAt: 70, spot: *stackMiddle }
-    - { when: { static: true }, startAt: 102.1, endAt: 104, spot: *stackMiddle }
     - { when: { static: true }, startAt: 135.1, endAt: 137, spot: *stackMiddle }
 
     # Damning Edict doesn't bait: the party just stacks tight behind Chaos through the tell and
@@ -71,47 +83,81 @@ solvers:
     # since pixelBehindChaos sits inside Look Upon Me 1's beam once its direction is fixed.)
     - { when: { mechanic: damning-edict-1 }, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *pixelBehindChaos }
 
-    # Slap Happy right-side cleave rolls party stack: all middle relative in the safe quadrant.
-    - { when: { mechanic: slap-happy-1-right-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-1-right-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-1-right-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-2-right-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-2-right-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-2-right-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-3-right-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-3-right-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-3-right-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
+    # wave 8 -> lat/long: right after Black Hole 3's last tether resolves, mt baits SW intercardinal
+    # relative to Kefka's (fixed since kefka-teleport-2) position. Chaos is aggro'd on mt, and
+    # Implosion (latlong-1/2) locks chaos's facing toward whoever it's tracking at t=125 (the lock
+    # instant, see boss-facing-lock-chaos-latlong/_implosion's lockFacing in black-hole.yaml) - so mt
+    # only needs to hold this spot through t=125, not the whole Slap Happy 3 + latlong window; once the
+    # lock is captured it's fixed regardless of where mt goes, so mt rejoins the party's own
+    # partySafeEast/roleSafeWest like any other tank from t=125 on. Listed ahead of the Slap Happy
+    # 1/2/3 rules below (which also name mt in their spots dicts) so it wins for mt through t=125
+    # regardless of list position further down - first-match-wins means a later, wider-reaching rule
+    # can otherwise steal mt away even though this rule's own startAt/endAt would still be active.
+    - { when: { static: true }, startAt: 119.1, endAt: 125, frame: [{ boss: { id: bigkefka, from: position } }], spots: { mt: { dist: 5, angleDeg: 225 } } }
 
-    # Slap Happy left-side cleave rolls role stacks: tanks north, healers mid, DPS south.
-    - { when: { mechanic: slap-happy-1-left-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-1-left-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-1-left-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-2-left-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-2-left-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-2-left-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-3-left-hit-1 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-3-left-hit-2 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-3-left-hit-3 }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
+    # Slap Happy right-side cleave rolls party stack: all middle relative in the safe quadrant. Gated
+    # on the invisible slap-happy-{1,2}-right-hold markers (black-hole.yaml, same eventSets branch as
+    # the real hits) rather than each hit individually: the 3 real hits resolve well before
+    # party-stack fires (t=34->36 for wave 1, t=64->67 for wave 2), and nothing else bridges that gap,
+    # so a mechanic-per-hit gate would leave the party stranded mid-transit right when it matters.
+    - { when: { mechanic: slap-happy-1-right-hold }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-2-right-hold }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
+    # Slap Happy 3's right cleave ("Kefka cleaves west") overlaps the Latitude/Longitude Implosion:
+    # dodge sequentially, not simultaneously. Gated on slap-happy-3-right-hold, an invisible damageless
+    # marker (black-hole.yaml, same eventSets branch as the real hits so it always agrees on side) that
+    # stays live t=127-135 - long enough to span both latlong slots *and* bridge the ~2s gap after the
+    # real hits resolve (t=133) but before party-stack fires (t=135), which no visible mechanic covers.
+    # The chaos-relative east diagonal (opposite the cleave) takes priority through t=132 (whichever
+    # latlong slot is currently live), nudged +-2deg by axis the same way bowels-of-agony-bots.yaml
+    # solves this; from t=132 it falls through to the plain bigkefka partySafeEast below (unchanged),
+    # still gated on the same hold marker so the party keeps heading there instead of freezing
+    # mid-transit once the last real hit resolves at t=133.
+    - { when: { mechanic: slap-happy-3-right-hold, endingFacing: { event: latlong-1-a, offset: 0 } }, startAt: 127, endAt: 130, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeEastLongitude }
+    - { when: { mechanic: slap-happy-3-right-hold, endingFacing: { event: latlong-1-a, offset: -1.5707963267948966 } }, startAt: 127, endAt: 130, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeEastLatitude }
+    - { when: { mechanic: slap-happy-3-right-hold, endingFacing: { event: latlong-2-a, offset: 0 } }, startAt: 130, endAt: 132, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeEastLongitude }
+    - { when: { mechanic: slap-happy-3-right-hold, endingFacing: { event: latlong-2-a, offset: -1.5707963267948966 } }, startAt: 130, endAt: 132, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeEastLatitude }
+    - { when: { mechanic: slap-happy-3-right-hold }, startAt: 132, endAt: 135, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
 
-    # Tether soakers first move onto the orb itself (guaranteeing they're the nearest player when
-    # the tether spawns), then transition to the clockwise bait spot 45 degrees off the orb's own
-    # radial line. For hand-off soakers, that transit from the orb to clockwiseSoak is co-linear
-    # with "orb -> current holder" (every soaker for the same orb shares the same clockwiseSoak
-    # rest spot), so walking it is a genuine line interception, not a proximity trick.
-    # Real-log-derived: raids/dancing-mad-ultimate/black-hole.yaml orbs sit at cardinal +/-17;
-    # r=z=13.44 keeps the old radius-19 soak distance, just rotated 45 degrees.
-    #
-    # Assignments are driven by the First/Second/Third in Line debuffs + role (never a hardcoded
-    # player id), so they stay correct however those debuffs end up grouped. Where a line group has
-    # two members of the same role (first_in_line has 2 dps), the Accretion Duty marker (an inert,
-    # invisible tag applied alongside real Accretion - see black-hole.yaml) disambiguates them - but
-    # only from Black Hole 2 onward. Real Accretion (applied at t=17, 11s duration) has already
-    # expired by the time Black Hole 1 fires, so the Accretion-tagged dps has nothing to do yet in
-    # Black Hole 1: both of its dps tethers go to the *other*, untagged first_in_line dps instead.
+    # Slap Happy left-side cleave rolls role stacks: tanks north, healers mid, DPS south. Gated on the
+    # invisible slap-happy-{1,2}-left-hold markers (black-hole.yaml, same eventSets branch as the real
+    # hits) rather than each hit individually - same reasoning as the right-side block above.
+    - { when: { mechanic: slap-happy-1-left-hold }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-2-left-hold }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
+    # Slap Happy 3's left cleave ("Kefka cleaves east") overlaps the Latitude/Longitude Implosion:
+    # dodge sequentially, not simultaneously. Gated on slap-happy-3-left-hold, an invisible damageless
+    # marker (black-hole.yaml, same eventSets branch as the real hits so it always agrees on side) that
+    # stays live t=127-135 - long enough to span both latlong slots *and* bridge the ~2s gap after the
+    # real hits resolve (t=133) but before role-stack fires (t=135), which no visible mechanic covers.
+    # The chaos-relative west diagonal (opposite the cleave) takes priority through t=132 (whichever
+    # latlong slot is currently live), nudged +-2deg by axis the same way bowels-of-agony-bots.yaml
+    # solves this; from t=132 it falls through to the plain bigkefka roleSafeWest below (unchanged),
+    # still gated on the same hold marker so the party keeps heading there instead of freezing
+    # mid-transit once the last real hit resolves at t=133.
+    - { when: { mechanic: slap-happy-3-left-hold, endingFacing: { event: latlong-1-a, offset: 0 } }, startAt: 127, endAt: 130, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeWestLongitude }
+    - { when: { mechanic: slap-happy-3-left-hold, endingFacing: { event: latlong-1-a, offset: -1.5707963267948966 } }, startAt: 127, endAt: 130, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeWestLatitude }
+    - { when: { mechanic: slap-happy-3-left-hold, endingFacing: { event: latlong-2-a, offset: 0 } }, startAt: 130, endAt: 132, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeWestLongitude }
+    - { when: { mechanic: slap-happy-3-left-hold, endingFacing: { event: latlong-2-a, offset: -1.5707963267948966 } }, startAt: 130, endAt: 132, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeWestLatitude }
+    - { when: { mechanic: slap-happy-3-left-hold }, startAt: 132, endAt: 135, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
 
-    # The Accretion-tagged dps has nothing to do in Black Hole 1 (see above) - explicitly stack
-    # middle so it doesn't also match the plain "First in Line, role: dps" rules below (both dps
-    # share that debuff+role; without this, they'd both land on the untagged dps's tethers).
+
+# First Tether
+# wave 1 | DPS 1 |
+# wave 2 | DPS 1 | Support 1 |
+
+# Second Tethers
+# wave 3| DPS 1 | Support  1 | accretion 1 |
+# wave 4| DPS 2 | Support  1 | accretion  1 |
+# wave 5| DPS 2 | Support  2 | accretion  1 |
+
+# Third Tethers
+# wave 6| DPS 2 | Support  2 | accretion  2 |
+# wave 7| DPS 3 | Support  2 | accretion  2 |
+# wave 8| DPS 3 | Support  3 | accretion 2 |
+
+# Fourth Tethers
+# wave 9|  DPS 3 | Support  3 |
+# wave 10| | Support 3 |
+
     - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 34, endAt: 51, spot: *stackMiddle }
 
     # wave 1 (Black Hole 1's 1st tether, fires t=44) then wave 2 (its 3rd tether, fires t=51):
@@ -131,26 +177,12 @@ solvers:
     - { when: { debuff: "First in Line", role: tank }, startAt: 44, endAt: 51, frame: [black-hole-1-laser-2], spot: *clockwiseSoak }
 
     # Drag exdeath (ot holds its aggro) out to the empty spot on the far side of Black Hole 1's 2nd
-    # tether ahead of tb-4: exdeath is unlocked (no active mechanic of its own) through this whole
-    # window, so it walks to wherever ot stands. 10 out from centre, 180 degrees opposite the tether's
-    # bearing (clear of every beam) plus 4 more degrees clockwise.
-    # ot holds this same *fixed, absolute* point clear through tb-4's resolve rather than switching to
-    # a boss-relative spot: since exdeath is chasing ot, a boss-relative target for ot would keep
-    # re-deriving itself from exdeath's still-catching-up position every tick, and the two would never
-    # converge (a runaway feedback loop that drags them both off the arena edge).
     - { when: { static: true }, startAt: 40, endAt: 45, frame: [black-hole-1-laser-2], spots: { ot: { dist: 12, angleDeg: 240 } } }
-    # mt doesn't drive exdeath's position, so it can safely target "7 out from exdeath's current spot,
-    # same bearing it was dragged to" for tb-4 itself - it lands correctly wherever exdeath settled.
 
     # waves 3-5 (Black Hole 2's 3rd tether, fires t=75/80/85): Accretion carrier #1's tether duty
-    # starts here (they had nothing to do in Black Hole 1 - see above) and solos the whole thing
-    # alone, no hand-off. This assignment is driven by the persistent Accretion Duty marker, not by
-    # whether real Accretion is currently live on them - it isn't re-applied for Black Hole 2 yet
-    # (only granted once, at t=17, in black-hole.yaml), which is a separate, not-yet-solved mechanic
-    # timing question, not a bot-positioning one.
-    - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 65, endAt: 71, frame: [black-hole-2-laser-3], spot: *atOrb }
-    - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 65, endAt: 73, frame: [black-hole-2-laser-3], spot: *preclockwiseSoak }
-    - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 68, endAt: 85, frame: [black-hole-2-laser-3], spot: *clockwiseSoak }
+    - { when: { debuff: ["First in Line", "Accretion Duty"]}, startAt: 65, endAt: 71, frame: [black-hole-2-laser-3], spot: *atOrb }
+    - { when: { debuff: ["First in Line", "Accretion Duty"]}, startAt: 65, endAt: 73, frame: [black-hole-2-laser-3], spot: *preclockwiseSoak }
+    - { when: { debuff: ["First in Line", "Accretion Duty"]}, startAt: 68, endAt: 85, frame: [black-hole-2-laser-3], spot: *clockwiseSoak }
 
     # waves 3-5 (Black Hole 2's 1st tether, fires t=75/80/85): DPS hand-off, wave 3 = first_in_line,
     # waves 4-5 = second_in_line.
@@ -170,61 +202,26 @@ solvers:
     - { when: { debuff: "Second in Line", role: tank }, startAt: 80, endAt: 83, frame: [black-hole-2-laser-2], spot: *preclockwiseSoak }
     - { when: { debuff: "Second in Line", role: tank }, startAt: 80, endAt: 85, frame: [black-hole-2-laser-2], spot: *clockwiseSoak }
 
-    # Damning Edict 2 (84-89) and Look Upon Me 1 (86-90) overlap. Look Upon Me is a beam from
-    # bigkefka's (ring-teleported) position along his facing (width 13.33, so +/-6.67 either side
-    # is unsafe): his teleport always leaves him exactly opposite his own facing (facing = atan2
-    # of -pos), so a spot's lateral distance from the beam in this bigkefka-facing frame depends
-    # only on its r coordinate, never z - z is a free parameter for Look Upon Me at any value.
-    # Damning Edict 2's safe/unsafe halves are split by a line through chaos (fixed at arena
-    # centre) perpendicular to whichever facing gets locked in at the bait's cast start (t=84),
-    # toward a uniformly random living player.
-    #
-    # A spot purely lateral to Kefka's beam axis (old z:0) sits exactly on Edict's inclusive cone
-    # boundary whenever chaos's locked facing lands parallel/antiparallel to bigkefka's - and it
-    # does, non-negligibly often: bigkefka's own ring teleport is independently random, and
-    # Edict's bait target is frequently a player standing off alone soaking a Black Hole tether
-    # during this exact window, decorrelating the target's position from bigkefka's facing.
-    # mirrorLateral alone (flipping r vs bigkefka's right axis) can't rescue that case, because
-    # it's exactly the case where r's contribution to the dodge collapses to 0.
-    #
-    # mirrorForward does the same trick on z (flipping vs bigkefka's facing itself, rather than
-    # his right axis): together, mirrorLateral forces r's term of dot(spot, chaosFacing) <= 0 and
-    # mirrorForward forces z's term <= 0; since bigkefka's right/facing axes are orthonormal, at
-    # least one term is always strictly negative for any chaos facing, closing the gap for any
-    # Kefka teleport / any Edict bait target, including the parallel/antiparallel case.
-    #
-    # Chaos is only actually facing-locked for the bait's own telegraph->resolve window (84-89,
-    # see aoe.ts's bait promotion): past t=89 it resumes turning to face its current top-threat
-    # target every tick, so its facing keeps drifting with mt's movement afterward. Reading that
-    # drifting facing as the mirror's "other" reference has no real hazard behind it once Edict has
-    # resolved - it just flips the mirror sign whenever chaos re-faces, snapping the whole party's
-    # spot to the other side for no reason. So this combined frame only covers 85.3-89 (matches
-    # Edict's real lock window); a follow-up rule below carries the same spot through the rest of
-    # the window on a bigkefka-only frame, since Look Upon Me is the only hazard left and only
-    # cares about lateral (r) distance from its beam, which these r values already clear.
-    #
-    # ot's dodge spot doubles as its tb-5 drag-out approach (same window it needs anyway, since
-    # exdeath - unlocked, no active mechanic of its own here - follows ot there), so it keeps a
-    # longer window through t=94.1 in its own rule below (listed after the tb-5 tank-formation
-    # rule, so that rule wins for ot once tb-5 is actually live). The rest of the party has no
-    # reason to linger there and ends by t=90 so mt reaches its own tb-5 formation rule.
-    - { when: { static: true }, startAt: 85.3, endAt: 89, frame: [{ boss: { id: bigkefka, from: facing } }, { boss: { id: chaos, from: facing } }], mirrorLateral: true, mirrorForward: true, spots: { mt: { r: -7, z: -7 }, h1: { r: -7, z: -7 }, h2: { r: -7, z: -7 }, r1: { r: -7, z: -7 }, r2: { r: -7, z: -7 }, m1: { r: -7, z: -7 }, m2: { r: -7, z: -7 } } }
-    - { when: { static: true }, startAt: 89, endAt: 90, frame: [{ boss: { id: bigkefka, from: facing } }], spots: { mt: { r: -7, z: -7 }, h1: { r: -7, z: -7 }, h2: { r: -7, z: -7 }, r1: { r: -7, z: -7 }, r2: { r: -7, z: -7 }, m1: { r: -7, z: -7 }, m2: { r: -7, z: -7 } } }
+    # Damning Edict 2 (84-89) and Look Upon Me 1 (86-90) overlap
+    - { when: { static: true }, startAt: 85.3, endAt: 89, frame: [{ boss: { id: bigkefka, from: facing } }, { boss: { id: chaos, from: facing } }], mirrorLateral: true, mirrorForward: true, spots: { mt: { r: -7, z: -7 }, h1: { r: -7, z: -7 }, h2: { r: -7, z: -7 }, r1: { r: -7, z: -7 }, r2: { r: -7, z: -7 }, m1: { r: -7, z: -7 }, m2: { r: -7, z: -7 }, ot: { r: -14, z: -7 } } }
+    - { when: { static: true }, startAt: 89, endAt: 90.1, freeze: true }
+
+# wave 6| DPS 2 | Support  2 | accretion  2 |
+# wave 7| DPS 3 | Support  2 | accretion  2 |
+# wave 8| DPS 3 | Support  3 | accretion 2 |
 
     # waves 6-8 (Black Hole 3's 3rd tether, fires t=109/114/119): Accretion carrier #2
-    # (second_in_line's healer) solos - no hand-off. (This is the swap found during review: today's
-    # file had this as h1 solo/h2 hand-off, backwards.)
-    - { when: { debuff: "Second in Line", role: healer }, startAt: 99, endAt: 104, frame: [black-hole-3-laser-3], spot: *atOrb }
-    - { when: { debuff: "Second in Line", role: healer }, startAt: 99, endAt: 107, frame: [black-hole-3-laser-3], spot: *preclockwiseSoak }
-    - { when: { debuff: "Second in Line", role: healer }, startAt: 102, endAt: 119, frame: [black-hole-3-laser-3], spot: *clockwiseSoak }
+    - { when: { debuff: ["Second in Line", "Accretion Duty"]}, startAt: 99, endAt: 104, frame: [black-hole-3-laser-3], spot: *atOrb }
+    - { when: { debuff: ["Second in Line", "Accretion Duty"]}, startAt: 99, endAt: 107, frame: [black-hole-3-laser-3], spot: *preclockwiseSoak }
+    - { when: { debuff: ["Second in Line", "Accretion Duty"]}, startAt: 102, endAt: 119, frame: [black-hole-3-laser-3], spot: *clockwiseSoak }
 
     # waves 6-8 (Black Hole 3's 1st tether, fires t=109/114/119): DPS hand-off, wave 6 =
     # second_in_line, waves 7-8 = third_in_line.
     - { when: { debuff: "Second in Line", role: dps }, startAt: 99, endAt: 104, frame: [black-hole-3-laser-1], spot: *atOrb }
     - { when: { debuff: "Second in Line", role: dps }, startAt: 99, endAt: 107, frame: [black-hole-3-laser-1], spot: *preclockwiseSoak }
     - { when: { debuff: "Second in Line", role: dps }, startAt: 102, endAt: 109, frame: [black-hole-3-laser-1], spot: *clockwiseSoak }
-    - { when: { debuff: "Third in Line", role: dps }, startAt: 106, endAt: 111, frame: [black-hole-3-laser-1], spot: *atOrb }
-    - { when: { debuff: "Third in Line", role: dps }, startAt: 106, endAt: 114, frame: [black-hole-3-laser-1], spot: *preclockwiseSoak }
+    - { when: { debuff: "Third in Line", role: dps }, startAt: 106, endAt: 109, frame: [black-hole-3-laser-1], spot: *atOrb }
+    - { when: { debuff: "Third in Line", role: dps }, startAt: 106, endAt: 112, frame: [black-hole-3-laser-1], spot: *preclockwiseSoak }
     - { when: { debuff: "Third in Line", role: dps }, startAt: 109, endAt: 119, frame: [black-hole-3-laser-1], spot: *clockwiseSoak }
 
     # waves 6-8 (Black Hole 3's 2nd tether, fires t=109/114/119): Support hand-off, waves 6-7 =
@@ -238,20 +235,24 @@ solvers:
 
     # wave 9 (Black Hole 4's 1st tether, fires t=142): DPS chain ends at third_in_line - solos alone,
     # no further hand-off.
-    - { when: { debuff: "Third in Line", role: dps }, startAt: 133, endAt: 138, frame: [black-hole-4-laser-1], spot: *atOrb }
-    - { when: { debuff: "Third in Line", role: dps }, startAt: 133, endAt: 141, frame: [black-hole-4-laser-1], spot: *preclockwiseSoak }
+    - { when: { debuff: "Third in Line", role: dps }, startAt: 135, endAt: 138, frame: [black-hole-4-laser-1], spot: *atOrb }
+    - { when: { debuff: "Third in Line", role: dps }, startAt: 135, endAt: 140, frame: [black-hole-4-laser-1], spot: *preclockwiseSoak }
     - { when: { debuff: "Third in Line", role: dps }, startAt: 136, endAt: 142, frame: [black-hole-4-laser-1], spot: *clockwiseSoak }
 
     # wave 9 (Black Hole 4's 3rd tether, fires t=142) then wave 10 (its 2nd/delayed tether, fires
-    # t=150): Support chain ends at third_in_line's healer, who solos the 3rd tether then continues
-    # straight onto the delayed 2nd tether once it resolves (2 tethers collapsing into 1 soloed by
-    # the same player, since there's no fourth line to hand off to).
-    - { when: { debuff: "Third in Line", role: healer }, startAt: 133, endAt: 138, frame: [black-hole-4-laser-3], spot: *atOrb }
-    - { when: { debuff: "Third in Line", role: healer }, startAt: 133, endAt: 141, frame: [black-hole-4-laser-3], spot: *preclockwiseSoak }
+    # t=150): 
+    - { when: { debuff: "Third in Line", role: healer }, startAt: 135, endAt: 138, frame: [black-hole-4-laser-3], spot: *atOrb }
+    - { when: { debuff: "Third in Line", role: healer }, startAt: 135, endAt: 140, frame: [black-hole-4-laser-3], spot: *preclockwiseSoak }
     - { when: { debuff: "Third in Line", role: healer }, startAt: 136, endAt: 142, frame: [black-hole-4-laser-3], spot: *clockwiseSoak }
-    - { when: { debuff: "Third in Line", role: healer }, startAt: 139, endAt: 144, frame: [black-hole-4-laser-2], spot: *atOrb }
-    - { when: { debuff: "Third in Line", role: healer }, startAt: 139, endAt: 147, frame: [black-hole-4-laser-2], spot: *preclockwiseSoak }
-    - { when: { debuff: "Third in Line", role: healer }, startAt: 142, endAt: 150, frame: [black-hole-4-laser-2], spot: *clockwiseSoak }
+
+    - { when: { debuff: "Third in Line", role: healer }, startAt: 142, endAt: 146, frame: [black-hole-4-laser-2], spot: { r: 0, z: 17 } }
+
+    # wave 10's final soak stage pushes out toward the arena edge instead of the usual clockwiseSoak,
+    # using Kefka's facing as a secondary frame (mirrorLateral) so the soloing healer doesn't die to
+    # look-upon-me-2 (kefka-teleport-3 lands a new Kefka position at t=142, right before this stage).
+    # { r: 14, z: 10 } is a first-pass placeholder (~radius 17, roughly on the tether's own bearing) -
+    # needs in-sim confirmation/tuning like this file's other not-yet-fully-dialed-in spots.
+    - { when: { debuff: "Third in Line", role: healer }, startAt: 142, endAt: 150, frame: [{ boss: { id: bigkefka, from: facing } }, black-hole-4-laser-2], mirrorLateral: true, spot: { r: 0, z: 19 } }
 
     # tb-3 has no Black Hole in play yet, so it keeps the plain shared bait spot. tb-4/tb-5 have
     # their own mechanic-gated rules above (framed on their Black Hole's 2nd tether).
@@ -259,14 +260,8 @@ solvers:
     - { when: { mechanic: thunder-iii-tb-4 }, frame: [black-hole-1-laser-2], origin: { boss: exdeath }, spots: *thunderRelativeBait }
     - { when: { mechanic: thunder-iii-tb-5 }, frame: [black-hole-2-laser-3], origin: { boss: exdeath }, spots: *thunderRelativeBait }
 
-    # ot's Damning Edict 2 / Look Upon Me dodge (see the combined comment above): kept alive
-    # through t=94.1 since exdeath needs ot parked somewhere reasonable through tb-5's resolve.
-    # Listed after tb-5's own tank-formation rule above so that rule (dist:0 on exdeath) wins for
-    # ot once tb-5 is actually live (90-94); this only fills the gap before it (85.3-90) and the
-    # brief tail after tb-5 resolves (94-94.1). Split at t=89 same as the party rule above: chaos's
-    # facing is only a valid mirror reference through Edict's own lock window.
-    - { when: { static: true }, startAt: 85.3, endAt: 89, frame: [{ boss: { id: bigkefka, from: facing } }, { boss: { id: chaos, from: facing } }], mirrorLateral: true, mirrorForward: true, spots: { ot: { r: -14, z: -7 } } }
-    - { when: { static: true }, startAt: 89, endAt: 94.1, frame: [{ boss: { id: bigkefka, from: facing } }], spots: { ot: { r: -14, z: -7 } } }
+    # Party-wide look-upon-me-2 dodge 
+    - { when: { static: true }, startAt: 140, endAt: 150, frame: [{ boss: { id: bigkefka, from: facing } }], spots: { mt: { r: -7, z: -7 }, ot: { r: -7, z: -7 }, h2: { r: -7, z: -7 }, r1: { r: -7, z: -7 }, r2: { r: -7, z: -7 }, m1: { r: -7, z: -7 }, m2: { r: -7, z: -7 } } }
 
     # Everyone not already soaking a tether just stacks arena center, out of every beam's path.
     - { when: { static: true }, startAt: 37, endAt: 51, spot: *stackMiddle }
@@ -274,6 +269,3 @@ solvers:
     - { when: { static: true }, startAt: 102, endAt: 119, spot: *stackMiddle }
 
     - { when: { static: true }, spots: *fallback }
-
-  holds:
-    - { mechanic: [slap-happy-1-right-hit-3, slap-happy-1-left-hit-3, slap-happy-2-right-hit-3, slap-happy-2-left-hit-3, slap-happy-3-right-hit-3, slap-happy-3-left-hit-3], duration: 4 }

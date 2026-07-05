@@ -76,15 +76,21 @@ test("ot drags exdeath out toward Black Hole 1's 2nd tether ahead of tb-4", asyn
   expect(h1Target).toEqual({ x: 0, z: 0 });
 });
 
-test("tb-5's tank formation stands both tanks on exdeath's dragged position", async () => {
+test("the party (tanks included) stays frozen on the LUM1 dodge spot through t=90.1, then tb-5's tank formation stands both tanks on exdeath's dragged position", async () => {
   const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
   const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
   const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
-  const world = runTicksWithComputedBotIntents(createWorld(raid, 1), Math.ceil(91 * 60));
 
-  // tb-5's formation is framed on black-hole-2-laser-3 (not laser-2) with *thunderRelativeBait*
-  // (dist:0 for both tanks), so both mt and ot should resolve to exdeath's exact current position
-  // regardless of the frame's north direction.
+  // At t=90, the freeze rule (static, 89-90.1) still wins over tb-5's formation for every bot,
+  // including the tanks: they hold their LUM1 dodge spot instead of resolving onto exdeath yet.
+  let world = runTicksWithComputedBotIntents(createWorld(raid, 1), Math.ceil(90 * 60));
+  expect(genericSolverWaypoint(byId(world, "mt"), world)).toEqual(byId(world, "mt").pos);
+  expect(genericSolverWaypoint(byId(world, "ot"), world)).toEqual(byId(world, "ot").pos);
+
+  // Once the freeze rule's endAt (90.1) passes, tb-5's formation (framed on black-hole-2-laser-3,
+  // *thunderRelativeBait* dist:0 for both tanks) takes over: both mt and ot resolve to exdeath's
+  // exact current position regardless of the frame's north direction.
+  world = runTicksWithComputedBotIntents(world, Math.ceil((91 - world.time) * 60));
   const exdeath = world.bosses.find(b => b.id === "exdeath")!;
   const mtTarget = genericSolverWaypoint(byId(world, "mt"), world);
   const otTarget = genericSolverWaypoint(byId(world, "ot"), world);
