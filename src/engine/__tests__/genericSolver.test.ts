@@ -602,6 +602,15 @@ test("loadBotPatterns converts authored solver spot objects to Vec2 and preserve
   expect(w.botSolvers?.generic?.[1]?.spot).toEqual({ x: -4, z: 4 });
 });
 
+test("loadBotPatterns carries freeze through to the runtime rule", () => {
+  const w = createWorld(applyBotPatterns(loadRaid(baseRaid), loadBotPatterns({
+    players: {},
+    solvers: { generic: [{ when: { static: true }, freeze: true }] },
+  })), 1);
+
+  expect(w.botSolvers?.generic?.[0]?.freeze).toBe(true);
+});
+
 test("loadBotPatterns converts polar frame spots and resolves their world positions", () => {
   const w = createWorld(applyBotPatterns(loadRaid(baseRaid), loadBotPatterns({
     players: {},
