@@ -63,11 +63,21 @@ const GenericSolverRuleSchema = z.object({
   // Limit Cut ring placement; `spots[n-1]` (relative/polar) is rotated by the basis of the limit cut
   // named in when.mechanic (see GenericSolverRule.limitCutSpread).
   limitCutSpread: z.object({ spots: z.array(z.union([RelativeSpotSchema, PolarSpotSchema])).min(1) }).optional(),
+  // Holds the bot at its current position while the rule is active; mutually exclusive with
+  // spot/spots/frame/limitCutSpread since there's no target to compute.
+  freeze: z.literal(true).optional(),
 }).superRefine((rule, ctx) => {
   const hasCondition = rule.when.static === true || rule.when.mechanic !== undefined || rule.when.debuff !== undefined
     || rule.when.partyDebuff !== undefined || rule.when.partnerDebuff !== undefined || rule.when.plant !== undefined;
   if (!hasCondition) {
     ctx.addIssue({ code: "custom", path: ["when"], message: "rule must have when.static: true or at least one of when.mechanic / when.debuff / when.partyDebuff / when.partnerDebuff / when.plant" });
+  }
+  // freeze holds the bot wherever it already is, so it must not also set a computed target.
+  if (rule.freeze) {
+    if (rule.spot !== undefined || rule.spots !== undefined || rule.frame !== undefined || rule.limitCutSpread !== undefined) {
+      ctx.addIssue({ code: "custom", path: ["freeze"], message: "freeze holds the bot at its current position; do not also set spot / spots / frame / limitCutSpread" });
+    }
+    return;
   }
   // limitCutSpread computes absolute coords from each bot's number; it sources its rotation basis
   // from the limit cut named by when.mechanic, and replaces (and forbids) the usual frame/spot/spots

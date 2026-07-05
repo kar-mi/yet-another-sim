@@ -124,6 +124,16 @@ A rule has:
   rejected on unframed rules.
   A rule must specify at least one. If a rule matches but supplies no spot for this bot, the search
   falls through to later rules. Tuple syntax is not accepted for solver spots.
+- `freeze` — `true` instead of `spot`/`spots`: holds the bot at whatever position it currently
+  occupies for as long as the rule is active (still gated by `when`/`startAt`/`endAt` like any other
+  rule). Mutually exclusive with `spot` / `spots` / `frame` / `limitCutSpread`. Useful for a scoped,
+  per-role/per-debuff hold (e.g. keep the tank planted during a windup) without authoring a target
+  spot — unlike a top-level `solvers.holds` entry, which freezes every bot for a fixed duration after
+  a mechanic resolves and isn't part of the ordered rule list:
+  ```yaml
+  - when: { role: tank, mechanic: windup-1 }
+    freeze: true
+  ```
 
 A static fallback can keep every bot moving to a default formation between mechanics. Because the
 first matching rule wins, place it after all more-specific rules:

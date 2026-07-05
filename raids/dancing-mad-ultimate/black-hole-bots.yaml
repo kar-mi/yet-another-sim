@@ -236,6 +236,13 @@ solvers:
     - { when: { debuff: "Third in Line", role: healer }, startAt: 111, endAt: 116, frame: [black-hole-3-laser-2], spot: *preclockwiseSoak }
     - { when: { debuff: "Third in Line", role: healer }, startAt: 114, endAt: 119, frame: [black-hole-3-laser-2], spot: *clockwiseSoak }
 
+    # wave 8 -> lat/long: right after Black Hole 3's last tether resolves, mt baits SW intercardinal
+    # relative to Kefka's (fixed since kefka-teleport-2) position, ahead of Slap Happy 3 + latlong-1/2.
+    # Explicit startAt/endAt bounds so this can't win over the Slap Happy 3 rules above once they go
+    # live at t=123 (their partySafeEast/roleSafeWest already double as the lat/long dodge - see
+    # the eventSets/endings comment near the top of the file).
+    - { when: { static: true }, startAt: 119.1, endAt: 123, frame: [{ boss: { id: bigkefka, from: position } }], spots: { mt: { dist: 5, angleDeg: 225 } } }
+
     # wave 9 (Black Hole 4's 1st tether, fires t=142): DPS chain ends at third_in_line - solos alone,
     # no further hand-off.
     - { when: { debuff: "Third in Line", role: dps }, startAt: 133, endAt: 138, frame: [black-hole-4-laser-1], spot: *atOrb }
@@ -249,9 +256,15 @@ solvers:
     - { when: { debuff: "Third in Line", role: healer }, startAt: 133, endAt: 138, frame: [black-hole-4-laser-3], spot: *atOrb }
     - { when: { debuff: "Third in Line", role: healer }, startAt: 133, endAt: 141, frame: [black-hole-4-laser-3], spot: *preclockwiseSoak }
     - { when: { debuff: "Third in Line", role: healer }, startAt: 136, endAt: 142, frame: [black-hole-4-laser-3], spot: *clockwiseSoak }
-    - { when: { debuff: "Third in Line", role: healer }, startAt: 139, endAt: 144, frame: [black-hole-4-laser-2], spot: *atOrb }
-    - { when: { debuff: "Third in Line", role: healer }, startAt: 139, endAt: 147, frame: [black-hole-4-laser-2], spot: *preclockwiseSoak }
-    - { when: { debuff: "Third in Line", role: healer }, startAt: 142, endAt: 150, frame: [black-hole-4-laser-2], spot: *clockwiseSoak }
+
+    - { when: { debuff: "Third in Line", role: healer }, startAt: 139, endAt: 144, frame: [black-hole-4-laser-2], spot: { r: 0, z: 17 } }
+
+    # wave 10's final soak stage pushes out toward the arena edge instead of the usual clockwiseSoak,
+    # using Kefka's facing as a secondary frame (mirrorLateral) so the soloing healer doesn't die to
+    # look-upon-me-2 (kefka-teleport-3 lands a new Kefka position at t=142, right before this stage).
+    # { r: 14, z: 10 } is a first-pass placeholder (~radius 17, roughly on the tether's own bearing) -
+    # needs in-sim confirmation/tuning like this file's other not-yet-fully-dialed-in spots.
+    - { when: { debuff: "Third in Line", role: healer }, startAt: 142, endAt: 150, frame: [{ boss: { id: bigkefka, from: facing } }, black-hole-4-laser-2], mirrorLateral: true, spot: { r: 14, z: 10 } }
 
     # tb-3 has no Black Hole in play yet, so it keeps the plain shared bait spot. tb-4/tb-5 have
     # their own mechanic-gated rules above (framed on their Black Hole's 2nd tether).
@@ -267,6 +280,13 @@ solvers:
     # facing is only a valid mirror reference through Edict's own lock window.
     - { when: { static: true }, startAt: 85.3, endAt: 89, frame: [{ boss: { id: bigkefka, from: facing } }, { boss: { id: chaos, from: facing } }], mirrorLateral: true, mirrorForward: true, spots: { ot: { r: -14, z: -7 } } }
     - { when: { static: true }, startAt: 89, endAt: 94.1, frame: [{ boss: { id: bigkefka, from: facing } }], spots: { ot: { r: -14, z: -7 } } }
+
+    # Party-wide look-upon-me-2 dodge (t=142-146 telegraph window, held through wave 10 finishing at
+    # t=150): unlike look-upon-me-1, no Damning Edict overlaps here, so this is a plain bigkefka-facing
+    # frame (same simplification the LUM1 rule itself falls back to once Edict's lock window ends, see
+    # line 212 above) reusing the same { r: -7, z: -7 } dodge spot. Excludes h1 (Third in Line healer),
+    # who solos wave 10's tether instead - see its own kefka-framed soak spot above.
+    - { when: { static: true }, startAt: 140, endAt: 150, frame: [{ boss: { id: bigkefka, from: facing } }], spots: { mt: { r: -7, z: -7 }, ot: { r: -7, z: -7 }, h2: { r: -7, z: -7 }, r1: { r: -7, z: -7 }, r2: { r: -7, z: -7 }, m1: { r: -7, z: -7 }, m2: { r: -7, z: -7 } } }
 
     # Everyone not already soaking a tether just stacks arena center, out of every beam's path.
     - { when: { static: true }, startAt: 37, endAt: 51, spot: *stackMiddle }

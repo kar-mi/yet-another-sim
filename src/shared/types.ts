@@ -78,6 +78,9 @@ export type GenericSolverRule = {
   // rotates it by that limit cut's north and mirrors it by the players' rotation direction. Returns
   // absolute coords, so this rule must not also set frame/spot/spots; bots without a number fall through.
   limitCutSpread?: { spots: Vec2[] };
+  // Holds the bot at its current position while this rule is active (startAt/endAt still apply).
+  // Mutually exclusive with spot/spots/frame/limitCutSpread — there's no target to compute.
+  freeze?: true;
 };
 
 // A single positioned reference summed into a frame's north vector: a positioned event id, a
