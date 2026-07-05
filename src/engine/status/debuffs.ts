@@ -105,6 +105,14 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     visibility: "invisible",
     behavior: { kind: "none" },
   },
+  non_accretion_duty: {
+    name: "NonAccretion Duty",
+    kind: "debuff",
+    duration: 200,
+    showTimer: false,
+    visibility: "invisible",
+    behavior: { kind: "none" },
+  },
   alpha: {
     name: "Alpha",
     kind: "debuff",

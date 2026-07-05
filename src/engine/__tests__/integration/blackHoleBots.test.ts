@@ -220,6 +220,8 @@ test("Black Hole tether assignments resolve correctly from debuffs regardless of
     const dpsHandoff = accretionCarrier === "m1" ? "r1" : "m1";
     expect(hasDebuff(accretionCarrier, "Accretion Duty")).toBe(true);
     expect(hasDebuff(dpsHandoff, "Accretion Duty")).toBe(false);
+    expect(hasDebuff(accretionCarrier, "NonAccretion Duty")).toBe(false);
+    expect(hasDebuff(dpsHandoff, "NonAccretion Duty")).toBe(true);
 
     const notCenter = (id: string) => expect(genericSolverWaypoint(byId(world, id), world)).not.toEqual({ x: 0, z: 0 });
     const atCenter = (id: string) => expect(genericSolverWaypoint(byId(world, id), world)).toEqual({ x: 0, z: 0 });
