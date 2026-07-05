@@ -195,7 +195,9 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
       const openBtn = createElement("button", "yas-menu-start", replays ? `REPLAYS (${replays.length})` : "REPLAYS");
       openBtn.disabled = !replays || replays.length === 0;
       openBtn.addEventListener("click", openReplayModal);
-      return openBtn;
+      const wrapper = createElement("div", "yas-lobby-replays");
+      wrapper.appendChild(openBtn);
+      return wrapper;
     };
 
     const renderSlot = (slot: LobbySlot, claimedByMe: boolean, observingByMe: boolean): HTMLElement => {
@@ -360,9 +362,9 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
       );
 
       if (message.status === "lobby") {
-        panel.append(sessionEl, slotList, renderReplays(), startBtn);
+        panel.append(sessionEl, slotList, startBtn, renderReplays());
       } else {
-        panel.append(slotList, sessionEl, renderReplays(), startBtn);
+        panel.append(slotList, sessionEl, startBtn, renderReplays());
       }
     };
 

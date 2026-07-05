@@ -1800,7 +1800,7 @@ img.yas-debuff-icon {
   flex-direction: column;
   gap: 5px;
   width: 100%;
-  margin-bottom: 18px;
+  margin-top: 8px;
 }
 
 .yas-lobby-slot {
