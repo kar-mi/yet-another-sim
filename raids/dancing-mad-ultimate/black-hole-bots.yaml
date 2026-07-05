@@ -189,8 +189,8 @@ solvers:
     - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: dps }, startAt: 65, endAt: 71, frame: [black-hole-2-laser-1], spot: *atOrb }
     - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: dps }, startAt: 65, endAt: 73, frame: [black-hole-2-laser-1], spot: *preclockwiseSoak }
     - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: dps }, startAt: 68, endAt: 75, frame: [black-hole-2-laser-1], spot: *clockwiseSoak }
-    - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: dps }, startAt: 72, endAt: 77, frame: [black-hole-2-laser-1], spot: *atOrb }
-    - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: dps }, startAt: 72, endAt: 80, frame: [black-hole-2-laser-1], spot: *preclockwiseSoak }
+    - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: dps }, startAt: 72, endAt: 75, frame: [black-hole-2-laser-1], spot: *atOrb }
+    - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: dps }, startAt: 72, endAt: 78, frame: [black-hole-2-laser-1], spot: *preclockwiseSoak }
     - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: dps }, startAt: 75, endAt: 85, frame: [black-hole-2-laser-1], spot: *clockwiseSoak }
 
     # waves 3-5 (Black Hole 2's 2nd tether, fires t=75/80/85): Support hand-off, waves 3-4 =
