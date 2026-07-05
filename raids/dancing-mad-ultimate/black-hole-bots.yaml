@@ -180,9 +180,9 @@ solvers:
     - { when: { static: true }, startAt: 40, endAt: 45, frame: [black-hole-1-laser-2], spots: { ot: { dist: 12, angleDeg: 240 } } }
 
     # waves 3-5 (Black Hole 2's 3rd tether, fires t=75/80/85): Accretion carrier #1's tether duty
-    - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 65, endAt: 71, frame: [black-hole-2-laser-3], spot: *atOrb }
-    - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 65, endAt: 73, frame: [black-hole-2-laser-3], spot: *preclockwiseSoak }
-    - { when: { debuff: ["First in Line", "Accretion Duty"], role: dps }, startAt: 68, endAt: 85, frame: [black-hole-2-laser-3], spot: *clockwiseSoak }
+    - { when: { debuff: ["First in Line", "Accretion Duty"]}, startAt: 65, endAt: 71, frame: [black-hole-2-laser-3], spot: *atOrb }
+    - { when: { debuff: ["First in Line", "Accretion Duty"]}, startAt: 65, endAt: 73, frame: [black-hole-2-laser-3], spot: *preclockwiseSoak }
+    - { when: { debuff: ["First in Line", "Accretion Duty"]}, startAt: 68, endAt: 85, frame: [black-hole-2-laser-3], spot: *clockwiseSoak }
 
     # waves 3-5 (Black Hole 2's 1st tether, fires t=75/80/85): DPS hand-off, wave 3 = first_in_line,
     # waves 4-5 = second_in_line.
@@ -206,12 +206,14 @@ solvers:
     - { when: { static: true }, startAt: 85.3, endAt: 89, frame: [{ boss: { id: bigkefka, from: facing } }, { boss: { id: chaos, from: facing } }], mirrorLateral: true, mirrorForward: true, spots: { mt: { r: -7, z: -7 }, h1: { r: -7, z: -7 }, h2: { r: -7, z: -7 }, r1: { r: -7, z: -7 }, r2: { r: -7, z: -7 }, m1: { r: -7, z: -7 }, m2: { r: -7, z: -7 }, ot: { r: -14, z: -7 } } }
     - { when: { static: true }, startAt: 89, endAt: 90.1, freeze: true }
 
+# wave 6| DPS 2 | Support  2 | accretion  2 |
+# wave 7| DPS 3 | Support  2 | accretion  2 |
+# wave 8| DPS 3 | Support  3 | accretion 2 |
+
     # waves 6-8 (Black Hole 3's 3rd tether, fires t=109/114/119): Accretion carrier #2
-    # (second_in_line's healer) solos - no hand-off. (This is the swap found during review: today's
-    # file had this as h1 solo/h2 hand-off, backwards.)
-    - { when: { debuff: "Second in Line", role: healer }, startAt: 99, endAt: 104, frame: [black-hole-3-laser-3], spot: *atOrb }
-    - { when: { debuff: "Second in Line", role: healer }, startAt: 99, endAt: 107, frame: [black-hole-3-laser-3], spot: *preclockwiseSoak }
-    - { when: { debuff: "Second in Line", role: healer }, startAt: 102, endAt: 119, frame: [black-hole-3-laser-3], spot: *clockwiseSoak }
+    - { when: { debuff: ["Second in Line", "Accretion Duty"]}, startAt: 99, endAt: 104, frame: [black-hole-3-laser-3], spot: *atOrb }
+    - { when: { debuff: ["Second in Line", "Accretion Duty"]}, startAt: 99, endAt: 107, frame: [black-hole-3-laser-3], spot: *preclockwiseSoak }
+    - { when: { debuff: ["Second in Line", "Accretion Duty"]}, startAt: 102, endAt: 119, frame: [black-hole-3-laser-3], spot: *clockwiseSoak }
 
     # waves 6-8 (Black Hole 3's 1st tether, fires t=109/114/119): DPS hand-off, wave 6 =
     # second_in_line, waves 7-8 = third_in_line.
@@ -220,7 +222,7 @@ solvers:
     - { when: { debuff: "Second in Line", role: dps }, startAt: 102, endAt: 109, frame: [black-hole-3-laser-1], spot: *clockwiseSoak }
     - { when: { debuff: "Third in Line", role: dps }, startAt: 106, endAt: 109, frame: [black-hole-3-laser-1], spot: *atOrb }
     - { when: { debuff: "Third in Line", role: dps }, startAt: 106, endAt: 112, frame: [black-hole-3-laser-1], spot: *preclockwiseSoak }
-    - { when: { debuff: "Third in Line", role: dps }, startAt: 109, endAt: 114, frame: [black-hole-3-laser-1], spot: *clockwiseSoak }
+    - { when: { debuff: "Third in Line", role: dps }, startAt: 109, endAt: 119, frame: [black-hole-3-laser-1], spot: *clockwiseSoak }
 
     # waves 6-8 (Black Hole 3's 2nd tether, fires t=109/114/119): Support hand-off, waves 6-7 =
     # second_in_line's tank, wave 8 = third_in_line's healer (its only non-dps member).
@@ -250,7 +252,7 @@ solvers:
     # look-upon-me-2 (kefka-teleport-3 lands a new Kefka position at t=142, right before this stage).
     # { r: 14, z: 10 } is a first-pass placeholder (~radius 17, roughly on the tether's own bearing) -
     # needs in-sim confirmation/tuning like this file's other not-yet-fully-dialed-in spots.
-    - { when: { debuff: "Third in Line", role: healer }, startAt: 142, endAt: 150, frame: [{ boss: { id: bigkefka, from: facing } }, black-hole-4-laser-2], mirrorLateral: true, spot: { r: 14, z: 10 } }
+    - { when: { debuff: "Third in Line", role: healer }, startAt: 142, endAt: 150, frame: [{ boss: { id: bigkefka, from: facing } }, black-hole-4-laser-2], mirrorLateral: true, spot: { r: 0, z: 19 } }
 
     # tb-3 has no Black Hole in play yet, so it keeps the plain shared bait spot. tb-4/tb-5 have
     # their own mechanic-gated rules above (framed on their Black Hole's 2nd tether).
