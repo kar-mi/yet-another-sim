@@ -6,6 +6,23 @@ import { showLoadingOverlay } from "./LoadingOverlay";
 import { el } from "./dom";
 import type { HudLayoutManager } from "./HudLayoutManager";
 
+function ticksToLabel(tick: number): string {
+  const totalSeconds = Math.floor(tick / 60);
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function parseLabel(label: string): number | null {
+  const trimmed = label.trim();
+  const match = /^(?:(\d+):)?(\d{1,2})$/.exec(trimmed);
+  if (!match) return null;
+  const mins = match[1] ? Number(match[1]) : 0;
+  const secs = Number(match[2]);
+  if (secs >= 60) return null;
+  return Math.round((mins * 60 + secs) * 60);
+}
+
 /**
  * In-sim HUD: raid picker modal + playback controls.
  * Returns a disposer that tears down listeners and DOM.
@@ -226,9 +243,31 @@ export async function createRaidHudSelect(
     replay?.seek(Number(seek.value));
   });
   seek?.addEventListener("change", () => { draggingSeek = false; });
+
+  let editingTime = false;
+  const timeInput = replay ? el("input", {
+    className: "yas-replay-time",
+    type: "text",
+    value: "00:00",
+    ariaLabel: "Replay timestamp",
+  }) : null;
+  const durationLabel = replay ? el("span", {
+    className: "yas-replay-duration",
+    textContent: `/ ${ticksToLabel(replay.duration())}`,
+  }) : null;
+  timeInput?.addEventListener("focus", () => { editingTime = true; });
+  timeInput?.addEventListener("blur", () => { editingTime = false; });
+  timeInput?.addEventListener("change", () => {
+    const t = parseLabel(timeInput.value);
+    if (replay && t !== null) replay.seek(Math.min(replay.duration(), Math.max(0, t)));
+    if (replay) timeInput.value = ticksToLabel(replay.currentTick());
+  });
+
   const seekTimer = replay && seek ? setInterval(() => {
     seek.max = String(replay.duration());
     if (!draggingSeek) seek.value = String(replay.currentTick());
+    if (timeInput && !editingTime) timeInput.value = ticksToLabel(replay.currentTick());
+    if (durationLabel) durationLabel.textContent = `/ ${ticksToLabel(replay.duration())}`;
   }, 100) : null;
 
   syncPlayback = (state: PlaybackState) => {
@@ -279,6 +318,11 @@ export async function createRaidHudSelect(
   selectRow.append(raidBtn);
   wrapper.append(label, selectRow, controls);
   if (seek) wrapper.appendChild(seek);
+  if (timeInput && durationLabel) {
+    const timeRow = el("div", { className: "yas-replay-time-row" });
+    timeRow.append(timeInput, durationLabel);
+    wrapper.appendChild(timeRow);
+  }
   document.body.appendChild(wrapper);
   hudLayout.register("raidselector", wrapper);
   return () => {
