@@ -3,6 +3,7 @@ import type { World } from "@shared/types";
 import type { Transport } from "./net";
 
 const TICK_MS = 1000 / 60;
+const MAX_CATCHUP_FRAMES = 240; // 4s at 60Hz; caps synchronous work per timer fire after e.g. a backgrounded tab
 
 export class ReplayTransport implements Transport {
   private readonly clientId = crypto.randomUUID();
@@ -10,6 +11,8 @@ export class ReplayTransport implements Transport {
   private cursor = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
   private playing = false;
+  private playAnchorWall = 0;
+  private playAnchorCursor = 0;
 
   constructor(private readonly replay: { raidId: string; world: World; frames: Frame[] }) {}
 
@@ -53,6 +56,8 @@ export class ReplayTransport implements Transport {
   play(): void {
     if (this.playing || this.cursor >= this.replay.frames.length) return;
     this.playing = true;
+    this.playAnchorWall = performance.now();
+    this.playAnchorCursor = this.cursor;
     this.emitPlayback("playing");
     this.timer = setInterval(() => this.deliver(), TICK_MS);
   }
@@ -89,7 +94,16 @@ export class ReplayTransport implements Transport {
       this.pause();
       return;
     }
-    this.handler({ type: "frames", startTick: this.cursor, frames: [this.replay.frames[this.cursor]!] });
-    this.cursor++;
+    const elapsedTicks = Math.floor((performance.now() - this.playAnchorWall) / TICK_MS);
+    let target = Math.min(this.replay.frames.length, this.playAnchorCursor + elapsedTicks);
+    if (target <= this.cursor) return;
+    if (target - this.cursor > MAX_CATCHUP_FRAMES) {
+      target = this.cursor + MAX_CATCHUP_FRAMES;
+      this.playAnchorWall = performance.now();
+      this.playAnchorCursor = target;
+    }
+    this.handler({ type: "frames", startTick: this.cursor, frames: this.replay.frames.slice(this.cursor, target) });
+    this.cursor = target;
+    if (this.cursor >= this.replay.frames.length) this.pause();
   }
 }
