@@ -1,5 +1,5 @@
 import { join } from "path";
-import { Server, type ServerOptions } from "colyseus";
+import { Server, type ServerOptions } from "@colyseus/core";
 import { BunWebSockets } from "@colyseus/bun-websockets";
 import { RedisDriver } from "@colyseus/redis-driver";
 import { RedisPresence } from "@colyseus/redis-presence";
