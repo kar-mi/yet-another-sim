@@ -66,6 +66,9 @@ const GenericSolverRuleSchema = z.object({
   // Holds the bot at its current position while the rule is active; mutually exclusive with
   // spot/spots/frame/limitCutSpread since there's no target to compute.
   freeze: z.literal(true).optional(),
+  // Nearest arena-edge point (to `from`) that stays `clearance` clear of the `avoid` line axis; see
+  // GenericSolverRule.nearestEdge. Replaces (and forbids) the usual frame/spot/spots placement.
+  nearestEdge: z.object({ from: FrameRefSchema, avoid: FrameRefSchema, clearance: z.number().positive() }).optional(),
 }).superRefine((rule, ctx) => {
   const hasCondition = rule.when.static === true || rule.when.mechanic !== undefined || rule.when.debuff !== undefined
     || rule.when.partyDebuff !== undefined || rule.when.partnerDebuff !== undefined || rule.when.plant !== undefined;
@@ -76,6 +79,15 @@ const GenericSolverRuleSchema = z.object({
   if (rule.freeze) {
     if (rule.spot !== undefined || rule.spots !== undefined || rule.frame !== undefined || rule.limitCutSpread !== undefined) {
       ctx.addIssue({ code: "custom", path: ["freeze"], message: "freeze holds the bot at its current position; do not also set spot / spots / frame / limitCutSpread" });
+    }
+    return;
+  }
+  // nearestEdge computes an absolute edge target from `from`/`avoid`, so it replaces (and forbids)
+  // the usual frame/spot/spots placement, like limitCutSpread and freeze.
+  if (rule.nearestEdge !== undefined) {
+    if (rule.frame !== undefined || rule.origin !== undefined || rule.spot !== undefined
+      || rule.spots !== undefined || rule.limitCutSpread !== undefined) {
+      ctx.addIssue({ code: "custom", path: ["nearestEdge"], message: "nearestEdge returns absolute coords; do not also set frame / origin / spot / spots / limitCutSpread" });
     }
     return;
   }
@@ -1078,6 +1090,18 @@ export const RaidSchema = z.object({
         path: ["botSolvers", "generic", i, "origin", "boss"],
         message: `solver origin boss id "${rule.origin.boss}" does not match any declared boss id (${[...bossIds].join(", ")})`,
       });
+    }
+    if (rule.nearestEdge !== undefined) {
+      for (const [key, ref] of [["from", rule.nearestEdge.from], ["avoid", rule.nearestEdge.avoid]] as const) {
+        const bossId = typeof ref === "object" && "boss" in ref ? ref.boss.id : undefined;
+        if (bossId !== undefined && !bossIds.has(bossId)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["botSolvers", "generic", i, "nearestEdge", key, "boss", "id"],
+            message: `solver nearestEdge boss id "${bossId}" does not match any declared boss id (${[...bossIds].join(", ")})`,
+          });
+        }
+      }
     }
     if (!Array.isArray(rule.frame)) return;
     rule.frame.forEach((ref, j) => {

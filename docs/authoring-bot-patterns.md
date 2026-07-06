@@ -126,6 +126,16 @@ A rule has:
   rejected on unframed rules.
   A rule must specify at least one. If a rule matches but supplies no spot for this bot, the search
   falls through to later rules. Tuple syntax is not accepted for solver spots.
+- `nearestEdge` — `{ from, avoid, clearance }` instead of `spot`/`spots`: sends the bot to the
+  nearest arena-edge (wall) point that stays clear of a line AoE. `from` and `avoid` are frame
+  references (same forms as `frame` entries). `from` is the point the "closest edge" is measured from
+  — e.g. a tether orb via its event id. `avoid` is the line's axis direction — e.g.
+  `{ boss: { id: bigkefka, from: facing } }`, whose cleave runs through arena centre. The target is
+  the nearest wall point to `from` whose lateral distance from that axis is `>= clearance` (yalms),
+  choosing whichever safe side is nearer. Ties break to `from`'s own side of the line, deterministically.
+  Mutually exclusive with `frame` / `origin` / `spot` / `spots` / `limitCutSpread` / `freeze`; falls
+  through to later rules when either reference can't be resolved. See the wave-10 healer's Look Upon
+  Me dodge in `raids/dancing-mad-ultimate/black-hole-bots.yaml`.
 - `freeze` — `true` instead of `spot`/`spots`: holds the bot at whatever position it currently
   occupies for as long as the rule is active (still gated by `when`/`startAt`/`endAt` like any other
   rule). Mutually exclusive with `spot` / `spots` / `frame` / `limitCutSpread`. Useful for a scoped,

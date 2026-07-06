@@ -1,5 +1,5 @@
 import type { Vec2 } from "@shared/math";
-import { add, normalize } from "@shared/math";
+import { add, sub, scale, normalize, length, dot } from "@shared/math";
 import { cos, sin } from "@shared/dmath";
 import type { FrameRef, GenericSolverRule, Player, World } from "@shared/types";
 
@@ -336,6 +336,62 @@ function frameToWorld(spot: Vec2, north: Vec2, rightSign: 1 | -1 = 1, forwardSig
   };
 }
 
+// The arena boundary radius: the largest circle zone in the arena (the outer wall).
+function arenaRadius(world: World): number | undefined {
+  let radius: number | undefined;
+  for (const zone of world.arena?.zones ?? []) {
+    if (zone.kind === "circle") radius = Math.max(radius ?? 0, zone.radius);
+  }
+  return radius;
+}
+
+// Nearest arena-edge point to `from` that stays `clearance` yalms clear of the `avoid` line's axis.
+// The axis (a boss facing) runs through arena centre, so "in the line" means |lateral| < clearance
+// where lateral = dot(p, right). Candidates are `from` projected radially to the wall plus the four
+// wall points where |lateral| == clearance; keep the ones outside the line and return the nearest to
+// `from`. Ties (equidistant band-edge points) break to the point on `from`'s own side of the line,
+// then toward the axis's forward direction — deterministic, seed-independent. Falls through
+// (undefined) when either ref or the arena radius can't be resolved.
+const EDGE_EPS = 1e-9;
+function nearestSafeEdge(spec: NonNullable<GenericSolverRule["nearestEdge"]>, world: World): Vec2 | undefined {
+  const from = refToVec(spec.from, world);
+  const axis = refToVec(spec.avoid, world);
+  const radius = arenaRadius(world);
+  if (!from || !axis || radius === undefined) return undefined;
+  const facing = normalize(axis);
+  if (facing.x === 0 && facing.z === 0) return undefined;
+  const right: Vec2 = { x: facing.z, z: -facing.x };
+  const { clearance } = spec;
+
+  const candidates: Vec2[] = [];
+  const fromLen = length(from);
+  if (fromLen > 0) candidates.push(scale(from, radius / fromLen));
+  if (radius * radius >= clearance * clearance) {
+    const forward = Math.sqrt(radius * radius - clearance * clearance);
+    for (const a of [clearance, -clearance]) {
+      for (const b of [forward, -forward]) {
+        candidates.push({ x: a * right.x + b * facing.x, z: a * right.z + b * facing.z });
+      }
+    }
+  }
+
+  const fromSide = Math.sign(dot(from, right)); // 0 when `from` sits on the axis
+  let best: Vec2 | undefined;
+  let bestKey: [number, number, number] | undefined;
+  for (const p of candidates) {
+    if (Math.abs(dot(p, right)) < clearance - EDGE_EPS) continue; // inside the line
+    const sameSidePenalty = fromSide !== 0 && Math.sign(dot(p, right)) === fromSide ? 0 : 1;
+    const key: [number, number, number] = [length(sub(p, from)), sameSidePenalty, -dot(p, facing)];
+    if (!bestKey || key[0] < bestKey[0] - EDGE_EPS
+      || (Math.abs(key[0] - bestKey[0]) <= EDGE_EPS && (key[1] < bestKey[1]
+        || (key[1] === bestKey[1] && key[2] < bestKey[2])))) {
+      best = p;
+      bestKey = key;
+    }
+  }
+  return best;
+}
+
 function originOffset(rule: GenericSolverRule, world: World): Vec2 | undefined {
   const bossId = rule.origin?.boss;
   if (bossId === undefined) return { x: 0, z: 0 };
@@ -358,6 +414,11 @@ export function genericSolverWaypoint(
     const matched = ruleMatches(rule, player, world, mechanics);
     if (matched === null) continue;
     if (rule.freeze) return player.pos;
+    if (rule.nearestEdge) {
+      const edge = nearestSafeEdge(rule.nearestEdge, world);
+      if (edge) return edge;
+      continue; // refs unresolved: fall through to the next rule
+    }
     if (rule.limitCutSpread) {
       // The matched mechanic (required when.mechanic) identifies which limit cut supplies the basis.
       const mechanicId = matched[0]?.resolvedId;

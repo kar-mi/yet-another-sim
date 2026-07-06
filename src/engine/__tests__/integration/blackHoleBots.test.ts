@@ -169,6 +169,34 @@ test("Look Upon Me beams from bigkefka toward arena centre, and the party dodges
   }
 });
 
+// The wave-10 healer solos Black Hole 4's delayed tether while Look Upon Me 2 (a line cleave from
+// bigkefka through arena centre) resolves. Its nearestEdge rule sends it to the closest wall point,
+// to its east tether orb, that stays clear of that line - so this must hold for every teleport
+// outcome (which rotates the line), not just one. The non-soloing healer falls to the party dodge
+// far nearer centre, so the soloer is the healer nearestEdge pushes out to the wall.
+test("the wave-10 soloing healer's Look Upon Me 2 edge dodge clears the line for any teleport outcome", async () => {
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+    const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
+    const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
+    const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
+    // Sample at t=147: past the earlier {r:0,z:17} orb-approach rule (endAt 146) so nearestEdge is
+    // the winning rule, and inside Look Upon Me 2's live window (144-148).
+    const world = runTicksWithComputedBotIntents(createWorld(raid, seed), Math.ceil(147 * 60));
+
+    const lookUponMe = world.active.find(m => m.id === "look-upon-me-2");
+    expect(lookUponMe).toBeDefined();
+    const shape = lookUponMe!.shape;
+    if (shape.kind !== "rect") throw new Error("expected look-upon-me-2 to be a rect shape");
+
+    const soloTarget = ["h1", "h2"]
+      .map(id => genericSolverWaypoint(byId(world, id), world))
+      .find(target => target !== undefined && length(target) > 15);
+    expect(soloTarget).toBeDefined();
+    expect(length(soloTarget!)).toBeCloseTo(20, 3);      // parked on the wall
+    expect(pointInShape(shape, soloTarget!)).toBe(false); // and clear of Look Upon Me's line
+  }
+});
+
 test("Damning Edict 2 dodge survives chaos's facing landing parallel/antiparallel to bigkefka's", async () => {
   const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
   const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
