@@ -34,7 +34,7 @@ export type GenericSolverRule = {
     // OR an exact match against one of the resolved mechanic's labels. An array requires every listed
     // mechanic to be active at once (e.g. a spread_stack mode AND a concurrent inverse orientation).
     mechanic?: string | string[];
-    role?: Role;
+    role?: Role | Role[];  // an array matches any of the listed roles (a bot only ever has one role)
     debuff?: string | string[];   // active effect name(s) on the bot; an array requires all of them
     partyDebuff?: string | string[]; // active effect name(s) anywhere in the party; an array requires all of them
     partnerDebuff?: string | string[]; // active effect name(s) on the bot's partner (world.partners)
@@ -132,7 +132,7 @@ export type EffectBehavior =
   // expires `duration` seconds after it arms.
   | { kind: "plant"; direction: [number, number]; distance: number; radius: number; armDelay: number; duration: number; tpDelay: number }
   | { kind: "directionalKnockback"; requiredFacing: "away" | "toward"; distance: number; doubledDistance: number }
-  // Reapplying any active effect with the same key removes it, then upgrades or deals terminal damage.
+  // Reapplying escalates: with escalateTo, swaps to the next stage; without it (terminal), deals escalateDamage and stays.
   | { kind: "escalating"; escalationKey: string; escalateTo?: string; escalateDamage?: number; escalateDamageType?: DamageType }
   // Would-be-lethal hit leaves carrier at 1 HP and cleanses the debuff. Uncleansed expiry is lethal.
   | { kind: "primordialCrust"; expiryDamage: number; expiryDamageType: DamageType }

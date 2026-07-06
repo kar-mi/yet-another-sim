@@ -52,7 +52,7 @@ test("third laser on a Primordial Crust carrier leaves them at 1 HP and cleansed
 
   expect(byId(world, "m1").alive).toBe(true);
   expect(byId(world, "m1").hp).toBe(1);
-  expect(byId(world, "m1").effects.map(e => e.name)).toEqual([]);
+  expect(byId(world, "m1").effects.map(e => e.name)).toEqual(["Mean"]);
 });
 
 test("persistent tether fires multiple lasers before despawning", () => {

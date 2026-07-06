@@ -374,8 +374,8 @@ optionals:
       accretion-duty-first-in-line:
         rng: true
         sets:
-          - [accretion-dps-m1, accretion-duty-dps-m1]
-          - [accretion-dps-r1, accretion-duty-dps-r1]
+          - [accretion-dps-m1, accretion-duty-dps-m1, non-accretion-duty-r1]
+          - [accretion-dps-r1, accretion-duty-dps-r1, non-accretion-duty-m1]
 
 events:
   - type: aoe
@@ -513,6 +513,32 @@ events:
     players: [r1]
     applyEffect:
       ref: accretion_duty
+
+  # Everyone else gets the complementary marker: the 5 who never carry Accretion, plus whichever of
+  # r1/m1 the RNG above didn't pick (see accretion-duty-first-in-line).
+  - type: apply_effect
+    id: non-accretion-duty
+    time: 17
+    name: NonAccretion Duty
+    players: [mt, ot, h1, r2, m2]
+    applyEffect:
+      ref: non_accretion_duty
+
+  - type: apply_effect
+    id: non-accretion-duty-r1
+    time: 17
+    name: NonAccretion Duty
+    players: [r1]
+    applyEffect:
+      ref: non_accretion_duty
+
+  - type: apply_effect
+    id: non-accretion-duty-m1
+    time: 17
+    name: NonAccretion Duty
+    players: [m1]
+    applyEffect:
+      ref: non_accretion_duty
 
   - type: apply_effect
     id: first-in-line

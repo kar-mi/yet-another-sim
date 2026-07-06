@@ -1,4 +1,4 @@
-import { Room, type AuthContext, type Client } from "colyseus";
+import { Room, type AuthContext, type Client } from "@colyseus/core";
 import { ClientMessageSchema, EMPTY_RAID_ID, RaidIdSchema, SessionIdSchema, type ServerMessage } from "@shared/protocol";
 import { logger, createSessionLog } from "./logger";
 import { RAIDS_DIR } from "./raidCatalog";

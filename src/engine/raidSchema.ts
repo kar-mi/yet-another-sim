@@ -41,7 +41,7 @@ const GenericSolverRuleSchema = z.object({
     // segment-prefix match on a resolved mechanic id OR an exact match on one of its labels;
     // an array requires all listed mechanics at once
     mechanic: z.union([EventIdSchema, z.array(EventIdSchema).min(1)]).optional(),
-    role: RoleSchema.optional(),
+    role: z.union([RoleSchema, z.array(RoleSchema).min(1)]).optional(),
     debuff: DebuffMatchSchema.optional(),        // active effect name(s) on the bot (all required)
     partyDebuff: DebuffMatchSchema.optional(),   // active effect name(s) anywhere in the party
     partnerDebuff: DebuffMatchSchema.optional(), // active effect name(s) on the bot's partner

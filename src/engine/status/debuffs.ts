@@ -49,10 +49,10 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     duration: 999,
     icon: "unbecoming.png",
     showTimer: false,
-    behavior: { kind: "escalating", escalationKey: "unbecoming", escalateTo: "meanest_existence" },
+    behavior: { kind: "escalating", escalationKey: "unbecoming", escalateTo: "mean" },
   },
-  meanest_existence: {
-    name: "Meanest Existence",
+  mean: {
+    name: "Mean",
     kind: "debuff",
     duration: 999,
     showTimer: false,
@@ -99,6 +99,14 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
   },
   accretion_duty: {
     name: "Accretion Duty",
+    kind: "debuff",
+    duration: 200,
+    showTimer: false,
+    visibility: "invisible",
+    behavior: { kind: "none" },
+  },
+  non_accretion_duty: {
+    name: "NonAccretion Duty",
     kind: "debuff",
     duration: 200,
     showTimer: false,
