@@ -100,8 +100,8 @@ solvers:
     # the real hits) rather than each hit individually: the 3 real hits resolve well before
     # party-stack fires (t=34->36 for wave 1, t=64->67 for wave 2), and nothing else bridges that gap,
     # so a mechanic-per-hit gate would leave the party stranded mid-transit right when it matters.
-    - { when: { mechanic: slap-happy-1-right-hold }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
-    - { when: { mechanic: slap-happy-2-right-hold }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-1-right-hold }, frame: [{ boss: { id: bigkefka, from: position } }], origin: { boss: chaos }, spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-2-right-hold }, frame: [{ boss: { id: bigkefka, from: position } }], origin: { boss: chaos }, spots: *partySafeEast }
     # Slap Happy 3's right cleave ("Kefka cleaves west") overlaps the Latitude/Longitude Implosion:
     # dodge sequentially, not simultaneously. Gated on slap-happy-3-right-hold, an invisible damageless
     # marker (black-hole.yaml, same eventSets branch as the real hits so it always agrees on side) that
@@ -116,13 +116,13 @@ solvers:
     - { when: { mechanic: slap-happy-3-right-hold, endingFacing: { event: latlong-1-a, offset: -1.5707963267948966 } }, startAt: 127, endAt: 130, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeEastLatitude }
     - { when: { mechanic: slap-happy-3-right-hold, endingFacing: { event: latlong-2-a, offset: 0 } }, startAt: 130, endAt: 132, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeEastLongitude }
     - { when: { mechanic: slap-happy-3-right-hold, endingFacing: { event: latlong-2-a, offset: -1.5707963267948966 } }, startAt: 130, endAt: 132, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeEastLatitude }
-    - { when: { mechanic: slap-happy-3-right-hold }, startAt: 132, endAt: 135, frame: [{ boss: { id: bigkefka, from: position } }], spots: *partySafeEast }
+    - { when: { mechanic: slap-happy-3-right-hold }, startAt: 132, endAt: 135, frame: [{ boss: { id: bigkefka, from: position } }], origin: { boss: chaos }, spots: *partySafeEast }
 
     # Slap Happy left-side cleave rolls role stacks: tanks north, healers mid, DPS south. Gated on the
     # invisible slap-happy-{1,2}-left-hold markers (black-hole.yaml, same eventSets branch as the real
     # hits) rather than each hit individually - same reasoning as the right-side block above.
-    - { when: { mechanic: slap-happy-1-left-hold }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
-    - { when: { mechanic: slap-happy-2-left-hold }, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-1-left-hold }, frame: [{ boss: { id: bigkefka, from: position } }], origin: { boss: chaos }, spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-2-left-hold }, frame: [{ boss: { id: bigkefka, from: position } }], origin: { boss: chaos }, spots: *roleSafeWest }
     # Slap Happy 3's left cleave ("Kefka cleaves east") overlaps the Latitude/Longitude Implosion:
     # dodge sequentially, not simultaneously. Gated on slap-happy-3-left-hold, an invisible damageless
     # marker (black-hole.yaml, same eventSets branch as the real hits so it always agrees on side) that
@@ -137,7 +137,7 @@ solvers:
     - { when: { mechanic: slap-happy-3-left-hold, endingFacing: { event: latlong-1-a, offset: -1.5707963267948966 } }, startAt: 127, endAt: 130, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeWestLatitude }
     - { when: { mechanic: slap-happy-3-left-hold, endingFacing: { event: latlong-2-a, offset: 0 } }, startAt: 130, endAt: 132, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeWestLongitude }
     - { when: { mechanic: slap-happy-3-left-hold, endingFacing: { event: latlong-2-a, offset: -1.5707963267948966 } }, startAt: 130, endAt: 132, frame: [{ boss: { id: chaos, from: facing } }], origin: { boss: chaos }, spot: *chaosPartySafeWestLatitude }
-    - { when: { mechanic: slap-happy-3-left-hold }, startAt: 132, endAt: 135, frame: [{ boss: { id: bigkefka, from: position } }], spots: *roleSafeWest }
+    - { when: { mechanic: slap-happy-3-left-hold }, startAt: 132, endAt: 135, frame: [{ boss: { id: bigkefka, from: position } }], origin: { boss: chaos }, spots: *roleSafeWest }
 
 
 # First Tether
