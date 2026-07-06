@@ -1168,17 +1168,17 @@ events:
     despawnAfter: 7
 
   - <<: *blackHoleLaser
-    id: black-hole-4-laser-3
+    id: black-hole-4-laser-2
     time: 135
-    fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 2 }
+    fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 1 }
     finalizeAfter: 7
     fireOffsets: [7]
     despawnAfter: 7
 
   - <<: *blackHoleLaser
-    id: black-hole-4-laser-2
+    id: black-hole-4-laser-3
     time: 142
-    fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 1 }
+    fromBlackHoleOrb: { hazardId: black-hole-4, tetherIndex: 2 }
     finalizeAfter: 8
     fireOffsets: [8]
     despawnAfter: 8
