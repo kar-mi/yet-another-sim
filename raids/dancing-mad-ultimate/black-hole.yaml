@@ -191,6 +191,17 @@ _roleStackM1: &roleStackM1
   groups: [[m1]]
   requiredCount: 4
 
+_chaosCircle: &chaosCircle
+  type: aoe
+  name: Chaos Circle
+  telegraph: 1
+  damage: 100
+  damageType: physical
+  showCastBar: false
+  bossId: chaos
+  anchor: boss
+  shape: { kind: circle, center: { x: 0, z: 0 }, radius: 4 }
+
 _roleCone: &roleCone
   type: aoe
   name: Chaos Cone
@@ -650,6 +661,10 @@ events:
     showCastBar: false
     bossRelativeCenter: { lateral: -8, forward: 8 }
 
+  - <<: *chaosCircle
+    id: chaos-circle-slap-happy-1
+    time: 34.9
+
   - <<: *partyStack
     id: slap-happy-1-party-stack
     time: 36
@@ -700,7 +715,7 @@ events:
   - <<: *blackHoleLaser
     id: black-hole-1-laser-1
     time: 37
-    fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 0 }
+    fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 2 }
     finalizeAfter: 7
     fireOffsets: [7]
     despawnAfter: 7
@@ -716,7 +731,7 @@ events:
   - <<: *blackHoleLaser
     id: black-hole-1-laser-3
     time: 44
-    fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 2 }
+    fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 0 }
     finalizeAfter: 7
     fireOffsets: [7]
     despawnAfter: 7
@@ -828,6 +843,10 @@ events:
     time: 60
     showCastBar: false
     bossRelativeCenter: { lateral: -8, forward: 8 }
+
+  - <<: *chaosCircle
+    id: chaos-circle-slap-happy-2
+    time: 65.9
 
   - <<: *partyStack
     id: slap-happy-2-party-stack
@@ -1076,6 +1095,10 @@ events:
     time: 129
     showCastBar: false
     bossRelativeCenter: { lateral: -8, forward: 8 }
+
+  - <<: *chaosCircle
+    id: chaos-circle-slap-happy-3
+    time: 133.9
 
   - <<: *implosion
     id: latlong-2-a
