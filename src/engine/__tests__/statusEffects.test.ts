@@ -319,14 +319,14 @@ test("one Unbecoming application leaves the player alive with Unbecoming", () =>
   expect(human(world).effects.map(e => e.name)).toEqual(["Unbecoming"]);
 });
 
-test("two Unbecoming applications upgrade to Meanest Existence", () => {
+test("two Unbecoming applications upgrade to Mean", () => {
   const raid = escalatingRaid([
     { type: "apply_effect", t: 0, name: "Laser 1", players: [HUMAN], applyEffect: { ref: "unbecoming" } },
     { type: "apply_effect", t: 0.1, name: "Laser 2", players: [HUMAN], applyEffect: { ref: "unbecoming" } },
   ]);
   const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.2 * 60));
   expect(human(world).alive).toBe(true);
-  expect(human(world).effects.map(e => e.name)).toEqual(["Meanest Existence"]);
+  expect(human(world).effects.map(e => e.name)).toEqual(["Mean"]);
 });
 
 test("three Unbecoming applications KO without Crust", () => {
@@ -349,7 +349,7 @@ test("three Unbecoming applications cleanse Primordial Crust and leave 1 HP", ()
   const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.4 * 60));
   expect(human(world).alive).toBe(true);
   expect(human(world).hp).toBe(1);
-  expect(human(world).effects.map(e => e.name)).toEqual([]);
+  expect(human(world).effects.map(e => e.name)).toEqual(["Mean"]);
 });
 
 test("escalating keys are scoped", () => {

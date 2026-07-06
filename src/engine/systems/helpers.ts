@@ -214,11 +214,11 @@ export function applyEffect(player: Player, spec: EffectSpec, time: number, id: 
       && effect.behavior.escalationKey === incoming.escalationKey
     );
     if (existing?.behavior.kind === "escalating") {
-      player.effects = player.effects.filter(effect => effect !== existing);
       if (existing.behavior.escalateDamage !== undefined) {
         applyMechanicDamage(player, existing.behavior.escalateDamage, existing.behavior.escalateDamageType ?? "true", time);
       }
       if (existing.behavior.escalateTo !== undefined) {
+        player.effects = player.effects.filter(effect => effect !== existing);
         const next = resolveEffectRef({ ref: existing.behavior.escalateTo });
         if (next) applyEffect(player, next, time, id, players, plantSlot, limitCutNumber);
       }
