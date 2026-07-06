@@ -160,7 +160,7 @@ body:focus-visible {
 
 /* ===== UI SCALE (accessibility) ===== */
 /* Zoom each overlay container by --ui-scale; leaves the 3D #canvas untouched. */
-#yas-status, #yas-session-id, #settings-panel, #home-btn, #settings-btn, #hud-edit-btn, #info-btn, #info-panel, #yas-menu, #yas-raid-modal, #yas-replay-modal {
+#yas-status, #yas-session-id, #settings-panel, #home-btn, #settings-btn, #hud-edit-btn, #info-btn, #info-panel, #yas-menu, #yas-raid-modal, #yas-replay-modal, #yas-welcome-modal {
   zoom: var(--ui-scale, 1);
 }
 
@@ -426,9 +426,10 @@ body:focus-visible {
   border-top: 1px solid var(--px-edge);
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
 }
 
-#settings-close, #info-close {
+#settings-close, #info-close, #info-getting-started {
   background: var(--px-bg-2);
   border: 2px solid var(--px-edge);
   box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
@@ -443,7 +444,7 @@ body:focus-visible {
   transition: border-color 0.1s, color 0.1s, box-shadow 0.1s;
 }
 
-#settings-close:hover, #info-close:hover {
+#settings-close:hover, #info-close:hover, #info-getting-started:hover {
   border-color: var(--px-accent);
   color: var(--px-accent);
   box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow), 0 0 8px var(--px-glow);
@@ -693,7 +694,7 @@ body:focus-visible {
 }
 
 /* ===== Non-selectable overlays ===== */
-#yas-status, #yas-session-id, #yas-menu, #yas-raid-modal, #yas-replay-modal, #settings-panel, #info-panel, [data-hud-group] {
+#yas-status, #yas-session-id, #yas-menu, #yas-raid-modal, #yas-replay-modal, #yas-welcome-modal, #settings-panel, #info-panel, [data-hud-group] {
   user-select: none;
 }
 
@@ -1982,6 +1983,48 @@ img.yas-debuff-icon {
   align-items: center;
   justify-content: center;
   background: rgba(10, 12, 18, 0.9);
+}
+
+/* ===== WELCOME MODAL ===== */
+/* z-index above #info-panel (220), #settings-panel (210) and the top buttons (210)
+   so it renders on top when opened from the About panel's GETTING STARTED button. */
+#yas-welcome-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 12, 18, 0.9);
+}
+
+.yas-welcome-panel {
+  width: min(520px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  text-align: center;
+}
+
+.yas-welcome-panel .yas-menu-subtitle {
+  margin-bottom: 16px;
+}
+
+.yas-welcome-section {
+  text-align: left;
+}
+
+.yas-welcome-section-title {
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: var(--px-accent);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+  margin-bottom: 4px;
+}
+
+.yas-welcome-section-body {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--px-text-dim);
 }
 
 .yas-raid-modal-panel {

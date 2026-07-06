@@ -16,6 +16,7 @@ import {
 import type { World } from "@shared/types";
 import type { NetClient } from "../net";
 import { createElement } from "./dom";
+import { maybeShowWelcomeModal } from "./WelcomeModal";
 
 declare const __YAS_STATIC__: boolean | undefined;
 
@@ -366,11 +367,17 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
       } else {
         panel.append(slotList, sessionEl, startBtn, renderReplays());
       }
+
+      if (!welcomeShown) {
+        welcomeShown = true;
+        maybeShowWelcomeModal();
+      }
     };
 
     let lastLobby: LobbyMessage | null = null;
     let replays: ReplaySummary[] | null = null;
     let closed = false;
+    let welcomeShown = false;
 
     const disposers = [
       net.on("lobby", renderLobby),
