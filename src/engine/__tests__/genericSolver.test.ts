@@ -652,6 +652,71 @@ test("loadBotPatterns converts polar frame spots and resolves their world positi
   expect(diagonal.z).toBeCloseTo(0, 3);
 });
 
+// nearestEdge: pick the closest arena-wall point to `from` that stays `clearance` clear of the
+// `avoid` line axis (a boss facing, whose cleave runs through arena centre).
+function nearestEdgeWorld(kefkaFacing: number): World {
+  return world({
+    time: 145,
+    active: [{ id: "look", telegraphStart: 143, resolveAt: 148, resolved: false }],
+    arena: { zones: [{ kind: "circle", center: { x: 0, z: 0 }, radius: 20 }] },
+    eventPositions: { orb: { x: 17, z: 0 } }, // BH4 east tether orb
+    bosses: [{ id: "bigkefka", pos: { x: 0, z: 18 }, facing: kefkaFacing }],
+    botSolvers: { generic: [{
+      when: { mechanic: "look" },
+      nearestEdge: { from: "orb", avoid: { boss: { id: "bigkefka", from: "facing" } }, clearance: 8 },
+    }] },
+  });
+}
+
+test("nearestEdge sends the bot to the orb's radial wall point when the line clears it", () => {
+  // Kefka faces north (+z), so the line runs north-south through centre; the east orb is well clear.
+  const target = genericSolverWaypoint(player({}), nearestEdgeWorld(0))!;
+  expect(target.x).toBeCloseTo(20, 6);
+  expect(target.z).toBeCloseTo(0, 6);
+  expect(Math.hypot(target.x, target.z)).toBeCloseTo(20, 6);
+});
+
+test("nearestEdge snaps to a band-edge wall point when the orb's radial sits inside the line", () => {
+  // Kefka faces east (+x): the line runs east-west, so the east orb's radial ({20,0}) is inside it.
+  const target = genericSolverWaypoint(player({}), nearestEdgeWorld(Math.PI / 2))!;
+  // right = (facing.z, -facing.x) = (0,-1); lateral = -z, so a safe point sits at |z| == clearance.
+  expect(Math.abs(target.z)).toBeCloseTo(8, 6);
+  expect(Math.hypot(target.x, target.z)).toBeCloseTo(20, 6);
+  expect(target.x).toBeCloseTo(Math.sqrt(400 - 64), 6); // nearer (east) side, not the far west edge
+});
+
+test("nearestEdge is deterministic on a symmetric tie", () => {
+  const a = genericSolverWaypoint(player({}), nearestEdgeWorld(Math.PI / 2))!;
+  const b = genericSolverWaypoint(player({}), nearestEdgeWorld(Math.PI / 2))!;
+  expect(a).toEqual(b);
+});
+
+test("nearestEdge falls through when a reference can't be resolved", () => {
+  const w = world({
+    time: 145,
+    active: [{ id: "look", telegraphStart: 143, resolveAt: 148, resolved: false }],
+    arena: { zones: [{ kind: "circle", center: { x: 0, z: 0 }, radius: 20 }] },
+    eventPositions: {}, // orb missing
+    bosses: [{ id: "bigkefka", pos: { x: 0, z: 18 }, facing: 0 }],
+    botSolvers: { generic: [
+      { when: { mechanic: "look" }, nearestEdge: { from: "orb", avoid: { boss: { id: "bigkefka", from: "facing" } }, clearance: 8 } },
+      { when: { mechanic: "look" }, spot: { x: 9, z: 9 } },
+    ] },
+  });
+  expect(genericSolverWaypoint(player({}), w)).toEqual({ x: 9, z: 9 });
+});
+
+test("nearestEdge schema rejects a rule that also sets a spot", () => {
+  expect(() => loadBotPatterns({
+    players: {},
+    solvers: { generic: [{
+      when: { debuff: "Headwind" },
+      nearestEdge: { from: "orb", avoid: { boss: { id: "bigkefka", from: "facing" } }, clearance: 8 },
+      spot: { x: 0, z: 5 },
+    }] },
+  })).toThrow(/nearestEdge returns absolute coords/);
+});
+
 test("solver spot schema enforces relative framed and absolute unframed shapes", () => {
   expect(() => loadBotPatterns({
     players: {},

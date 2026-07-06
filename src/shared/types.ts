@@ -81,6 +81,13 @@ export type GenericSolverRule = {
   // Holds the bot at its current position while this rule is active (startAt/endAt still apply).
   // Mutually exclusive with spot/spots/frame/limitCutSpread — there's no target to compute.
   freeze?: true;
+  // Sends the bot to the nearest arena-edge point (to `from`) that stays clear of a line AoE. `from`
+  // and `avoid` are FrameRefs: `from` is the point the "closest edge" is measured from (e.g. a
+  // tether orb via its event id); `avoid` is the line's axis direction (e.g. a boss's facing, whose
+  // cleave runs through arena centre). The result stays `clearance` yalms laterally clear of that
+  // axis, picking whichever safe edge point is nearest `from`. Mutually exclusive with the other
+  // placement fields; falls through when either ref can't be resolved.
+  nearestEdge?: { from: FrameRef; avoid: FrameRef; clearance: number };
 };
 
 // A single positioned reference summed into a frame's north vector: a positioned event id, a

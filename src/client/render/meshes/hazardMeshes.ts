@@ -31,6 +31,5 @@ export function createHazardMeshes(scene: Scene, hazard: ActiveHazard): HazardMe
 }
 
 export function updateHazardMeshes(handle: HazardMeshes, hazard: ActiveHazard, time: number): void {
-  const remaining = Math.max(0, hazard.expireAt - time);
-  handle.mat.alpha = Math.min(0.9, 0.35 + remaining * 0.08);
+  handle.mat.alpha = 0.85;
 }

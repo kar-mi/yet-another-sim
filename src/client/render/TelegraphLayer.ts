@@ -63,11 +63,9 @@ export class TelegraphLayer {
         mat.emissiveColor.set(0, 0, 0);
         mat.alpha = 0.8;
       } else {
-        const span = mechanic.resolveAt - mechanic.telegraphStart;
-        const progress = span > 0 ? (time - mechanic.telegraphStart) / span : 1;
-        mat.diffuseColor.set(1, Math.max(0, 0.8 - progress * 0.6), 0);
+        mat.diffuseColor.set(1, 0.15, 0.05);
         mat.emissiveColor.set(0, 0, 0);
-        mat.alpha = 0.25 + progress * 0.45;
+        mat.alpha = 0.5;
       }
     }
   }
