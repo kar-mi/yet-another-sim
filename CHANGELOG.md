@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-06
+
+### Added
+
+- Per-session replay system: every pull is recorded and can be browsed and watched from the lobby, with a timestamp seek/scrub bar for playback.
+- Black Hole encounter (Dancing Mad Ultimate) with its mechanics, placements, and bot solutions.
+- New mechanics and content: earth crystal (plus crystal updates), and RNG variation for boss dashes.
+- 3D hand rendering with a "big Kefka" boss variant and a per-mechanic hand indicator.
+- Shared tick scheduler and batched frame logging.
+- First-time welcome screen that appears on the first lobby visit, explaining settings, UI customization, raid loading, and replays. Reopenable anytime via "Getting Started" in the About panel.
+
+### Changed
+
+- Upgraded Colyseus to 0.17.
+- Refactored debuffs and reworked debuff movement.
+- Updated the readable UI font.
+- Removed AoE animations and added dodge logic for bot patterns.
+- Reduced build time.
+- Added deterministic-lockstep authoring docs.
+- Removed the old `deploy.sh`, the ultima blaster placeholder, and stale session state; general code cleanup.
+
+### Fixed
+
+- Fixed a lobby issue and Bowls of Agony timing.
+- Fixed Chaos AoE behavior.
+- Deployment safety and permission hardening.
+
 ## [0.5.0] - 2026-06-27
 
 ### Added

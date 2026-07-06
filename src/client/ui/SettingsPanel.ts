@@ -6,6 +6,7 @@ import type { ControllerType, KeyBindings, Settings } from "../settings";
 import type { BabylonRenderer } from "../render/BabylonRenderer";
 import pkg from "../../../package.json";
 import type { HudLayoutManager } from "./HudLayoutManager";
+import { showWelcomeModal } from "./WelcomeModal";
 
 /**
  * Wires the settings/options panel, info panel, controller detection and keybind
@@ -41,6 +42,7 @@ export function initSettingsPanel(
 
   const applyUiFont = (font: Settings["uiFont"]) => {
     document.documentElement.style.setProperty("--px-font", font === "readable" ? "var(--font-readable)" : "var(--font-pixel)");
+    document.documentElement.style.setProperty("--px-font-adjust", font === "readable" ? "var(--font-readable-adjust)" : "none");
   };
 
   const isActionId = (action: string | undefined): action is ActionId => {
@@ -124,6 +126,10 @@ export function initSettingsPanel(
   document.getElementById("info-version")!.textContent = `v${pkg.version}`;
   bindPanel("settings-btn", "settings-close", settingsPanel);
   bindPanel("info-btn", "info-close", infoPanel);
+  document.getElementById("info-getting-started")!.addEventListener("click", () => {
+    document.getElementById("info-close")!.click(); // reuses bindPanel close: hides panel + restores HUD
+    showWelcomeModal();
+  });
 
   bindSlider(sensitivitySlider, sensitivityVal, value => { settings.mouseSensitivity = value; });
   bindSlider(ctrlSensSlider, ctrlSensVal, value => { settings.controllerSensitivity = value; });

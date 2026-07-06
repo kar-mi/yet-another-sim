@@ -81,7 +81,7 @@ const DEFAULTS: Settings = {
   cameraAccel: false,
   cameraAccelStrength: 1,
   uiScale: 1.25,
-  uiFont: "pixel",
+  uiFont: "readable",
   renderedPlayerHealthBars: false,
   hudLayout: {},
 };
