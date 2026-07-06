@@ -75,9 +75,7 @@ export class StackLayer {
         this.circles.set(group.id, circle);
       }
       circle.position.set(player.pos.x, CIRCLE_Y, player.pos.z);
-      const span = group.resolveAt - group.telegraphStart;
-      const progress = span > 0 ? Math.min(1, (time - group.telegraphStart) / span) : 1;
-      (circle.material as StandardMaterial).alpha = 0.25 + progress * 0.45;
+      (circle.material as StandardMaterial).alpha = 0.5;
     }
   }
 

@@ -49,9 +49,6 @@ export function createInverseMeshes(scene: Scene, inv: ActiveInverse): InverseMe
 }
 
 export function updateInverseMeshes(handle: InverseMeshes, inv: ActiveInverse, boss: Boss, time: number): void {
-  // Telegraph colour still warms by cast progress when no authored ring colour is present.
-  const span = inv.resolveAt - inv.telegraphStart;
-  const progress = span > 0 ? Math.min(1, Math.max(0, (time - inv.telegraphStart) / span)) : 1;
   for (const mat of handle.telegraphMats) {
     if (inv.resolved) {
       mat.diffuseColor.set(1, 1, 1);
@@ -62,7 +59,7 @@ export function updateInverseMeshes(handle: InverseMeshes, inv: ActiveInverse, b
       } else if (inv.inverted) {
         mat.diffuseColor.set(0.4, 0.6, 1);
       } else {
-        mat.diffuseColor.set(1, Math.max(0, 0.8 - progress * 0.6), 0);
+        mat.diffuseColor.set(1, 0.15, 0.05);
       }
       mat.alpha = inv.telegraphAlpha ?? DEFAULT_TELEGRAPH_ALPHA;
     }
