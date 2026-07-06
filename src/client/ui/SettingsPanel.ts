@@ -41,6 +41,7 @@ export function initSettingsPanel(
 
   const applyUiFont = (font: Settings["uiFont"]) => {
     document.documentElement.style.setProperty("--px-font", font === "readable" ? "var(--font-readable)" : "var(--font-pixel)");
+    document.documentElement.style.setProperty("--px-font-adjust", font === "readable" ? "var(--font-readable-adjust)" : "none");
   };
 
   const isActionId = (action: string | undefined): action is ActionId => {

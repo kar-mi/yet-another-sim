@@ -19,8 +19,13 @@
 
   /* Font options — JS swaps --px-font between these via the Display tab dropdown. */
   --font-pixel:    'Jersey 10', monospace;
-  --font-readable: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --px-font: var(--font-pixel);
+  --font-readable: 'Chakra Petch', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, system-ui;
+  --px-font: var(--font-readable);
+  /* Chakra Petch renders larger than Jersey 10 at the same px, so shrink it (via
+     font-size-adjust) to match Jersey 10's x-height. Only applied in readable mode;
+     'none' leaves Jersey 10 untouched. Nudge this value to fine-tune the match. */
+  --font-readable-adjust: 0.43;
+  --px-font-adjust: var(--font-readable-adjust);
 }
 
 /* Raised-panel bevel: light from above (inset top highlight) + hard drop shadow below = 2.5D. */
@@ -37,6 +42,7 @@ body {
   background: #0a0a0f;
   overflow: hidden;
   font-family: var(--px-font);
+  font-size-adjust: var(--px-font-adjust);
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   image-rendering: pixelated;
@@ -46,6 +52,7 @@ body {
    font everywhere (buttons/inputs/selects) without relying on per-rule declarations. */
 button, input, select, textarea {
   font-family: var(--px-font);
+  font-size-adjust: var(--px-font-adjust);
 }
 
 #canvas {
