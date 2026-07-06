@@ -572,6 +572,20 @@ events:
     time: 26
     name: Earthquake Recovery
 
+  # Unconditional visual marker (not RNG'd, always fires): tells HandLayer both hands are placed
+  # on the ground before the real cast telegraphs appear.
+  - type: aoe
+    id: slap-happy-1-hands-placed
+    time: 24
+    name: Slap Happy 1 hands placed (visual marker)
+    telegraph: 12
+    damage: 0
+    damageType: "true"
+    bossId: bigkefka
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+
   # Invisible, damageless markers riding along with whichever Slap Happy 1 side got rolled (same
   # eventSets branch as the real hits, so they always agree). Solver-only signal: the three real hits
   # resolve by t=34, but party-stack/role-stack doesn't fire until t=36, and no other mechanic stays
@@ -736,6 +750,20 @@ events:
     id: damning-edict-1
     time: 57
     link: damning-edict-1-store
+
+  # Unconditional visual marker (not RNG'd, always fires): tells HandLayer both hands are placed
+  # on the ground before the real cast telegraphs appear.
+  - type: aoe
+    id: slap-happy-2-hands-placed
+    time: 54
+    name: Slap Happy 2 hands placed (visual marker)
+    telegraph: 13
+    damage: 0
+    damageType: "true"
+    bossId: bigkefka
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
 
   # Invisible, damageless markers riding along with whichever Slap Happy 2 side got rolled (same
   # eventSets branch as the real hits, so they always agree). Solver-only signal: the three real hits
@@ -970,6 +998,20 @@ events:
     time: 125
     telegraph: 5
     showCastBar: false
+
+  # Unconditional visual marker (not RNG'd, always fires): tells HandLayer both hands are placed
+  # on the ground before the real cast telegraphs appear.
+  - type: aoe
+    id: slap-happy-3-hands-placed
+    time: 123
+    name: Slap Happy 3 hands placed (visual marker)
+    telegraph: 12
+    damage: 0
+    damageType: "true"
+    bossId: bigkefka
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
 
   # Invisible, damageless markers riding along with whichever Slap Happy 3 side got rolled (same
   # eventSets branch as the real hits, so they always agree). Solver-only signal: the three real hits
