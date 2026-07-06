@@ -713,7 +713,7 @@ events:
     applyEffect: *blackHole
 
   - <<: *blackHoleLaser
-    id: black-hole-1-laser-1
+    id: black-hole-1-laser-2
     time: 37
     fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 2 }
     finalizeAfter: 7
@@ -721,7 +721,7 @@ events:
     despawnAfter: 7
 
   - <<: *blackHoleLaser
-    id: black-hole-1-laser-2
+    id: black-hole-1-laser-1
     time: 44
     fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 1 }
     finalizeAfter: 7
@@ -729,7 +729,7 @@ events:
     despawnAfter: 7
 
   - <<: *blackHoleLaser
-    id: black-hole-1-laser-3
+    id: black-hole-1-laser-0
     time: 44
     fromBlackHoleOrb: { hazardId: black-hole-1, tetherIndex: 0 }
     finalizeAfter: 7
