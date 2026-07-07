@@ -1195,6 +1195,11 @@ events:
     id: look-upon-me-2
     time: 144
 
+  - type: heal
+    id: recovery-final
+    time: 151
+    name: Final heal
+
 waymarks:
   - { mark: A, pos: { x: 0, z: 12 } }
   - { mark: B, pos: { x: 12, z: 0 } }
