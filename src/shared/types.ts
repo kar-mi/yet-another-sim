@@ -95,7 +95,12 @@ export type GenericSolverRule = {
 export type FrameRef =
   | string
   | { crystal: CrystalElement }
-  | { boss: { id?: string; from: "facing" | "position" } };
+  | { boss: { id?: string; from: "facing" | "position" } }
+  // Kefka-relative tether soak slot: the order-th orb clockwise from the hazard's orderFrom boss.
+  | { blackHoleTether: { hazardId: string; order: 0 | 1 | 2 } }
+  // Physical tether orb by rotation index (0/1/2 = consecutive clockwise): a stable reference that
+  // doesn't shift with the boss's position, for helper spots (drags/baits) framed on the orb cluster.
+  | { blackHoleOrb: { hazardId: string; index: 0 | 1 | 2 } };
 
 // When any mechanic matching `mechanic` (id-prefix or label, like GenericSolverRule.when.mechanic)
 // resolves, bots hold their current position for `duration` seconds before re-solving.
@@ -767,7 +772,10 @@ export type TetherBeam = {
 export type PendingTether = {
   id: string;
   t: number;
-  pos: Vec2;
+  // Baked position for a plain tether_source. Black-hole lasers leave this undefined and instead
+  // carry fromBlackHoleOrb: their origin is resolved from the locked clockwise order at promote.
+  pos?: Vec2;
+  fromBlackHoleOrb?: { hazardId: string; order: number };
   finalizeAfter: number;
   fireOffsets?: number[];
   despawnAfter?: number;
@@ -1040,4 +1048,12 @@ export type World = {
   initialCharges: Record<string, string>;
   endingOffsets: Record<string, number>;
   eventPositions: Record<string, Vec2>;
+  // Black Hole tether orbs, keyed by hazard id:
+  // - blackHoleTethers: baked physical tether positions + the boss the clockwise order is read from.
+  //   Set at world build; the input to the lock below.
+  // - blackHoleTetherOrder: the tether positions re-sorted clockwise from that boss's bearing, slot
+  //   0/1/2 = 1st/2nd/3rd clockwise. Locked lazily on each hazard's first laser promote (see
+  //   resolveTethers) and held for the hazard's lifetime, so a mid-resolution teleport can't reshuffle it.
+  blackHoleTethers: Record<string, { positions: Vec2[]; orderFrom?: string }>;
+  blackHoleTetherOrder: Record<string, Vec2[]>;
 };

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { createWorld } from "../world";
-import { selectOrbLayout, type BlackHoleOrb } from "../blackHoleOrbs";
+import { selectOrbLayout, clockwiseTetherOrder, type BlackHoleOrb } from "../blackHoleOrbs";
 import { baseRaid, byId, human, loadRaid, noMove, roster, runTicks } from "./helpers";
 import type { World } from "@shared/types";
 
@@ -90,22 +90,26 @@ test("blackHole hazards seed eleven deterministic spots", () => {
   expect(a.pendingHazards[0]!.spots).toEqual(b.pendingHazards[0]!.spots);
 });
 
-test("tether_source fromBlackHoleOrb resolves to a tether-flagged orb", () => {
+test("tether_source fromBlackHoleOrb resolves to the order-th orb clockwise from the orderFrom boss", () => {
   const raid = loadRaid({
     ...baseRaid,
+    bosses: [{ id: "kefka", pos: [0, 18], targetable: false }],
     events: [
-      { type: "hazard", id: "black-hole", t: 0, name: "Black Hole", blackHole: { combos: blackHoleCombos }, radius: 1, duration: 2, applyEffect: blackHole },
+      { type: "hazard", id: "black-hole", t: 0, name: "Black Hole", blackHole: { combos: blackHoleCombos, orderFrom: "kefka" }, radius: 1, duration: 2, applyEffect: blackHole },
       {
         type: "tether_source", id: "orb-tether", t: 0, name: "Orb Tether",
-        fromBlackHoleOrb: { hazardId: "black-hole", tetherIndex: 1 },
+        fromBlackHoleOrb: { hazardId: "black-hole", order: 1 },
         finalizeAfter: 1, tetherKind: "debuff", buffName: "Unbecoming",
       },
     ],
   });
 
-  const world = createWorld(raid, 123);
-  const expected = selectOrbLayout(blackHoleCombos, 123).orbs.filter(orb => orb.tether)[1]!.pos;
-  expect(world.pendingTethers[0]!.pos).toEqual(expected);
+  // Origin is resolved lazily when the tether promotes (t=0), from the clockwise order locked off
+  // kefka's position - not baked at world creation.
+  const world = runTicks(createWorld(raid, 123), noMove, 1);
+  const tethers = selectOrbLayout(blackHoleCombos, 123).orbs.filter(orb => orb.tether).map(orb => orb.pos);
+  const expected = clockwiseTetherOrder(tethers, { x: 0, z: 18 })[1];
+  expect(world.tetherSources.find(ts => ts.id === "orb-tether")!.pos).toEqual(expected);
 });
 
 test("schema requires exactly one hazard spot source", () => {

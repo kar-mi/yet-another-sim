@@ -5,6 +5,7 @@ import { genericFrameNorth, genericSolverWaypoint } from "../../genericSolver";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../../raidLoader";
 import { pointInShape } from "../../shapes";
 import { createWorld } from "../../world";
+import { clockwiseTetherOrder } from "../../blackHoleOrbs";
 import { byId, runTicksWithComputedBotIntents } from "../helpers";
 
 // Mirrors the engine's polar-spot -> world conversion (src/engine/world.ts toSpot) for a given
@@ -23,9 +24,32 @@ test("black-hole raid and bot companion load with resolved tether frame position
 
   expect(raid.botPatterns).toBe("black-hole-bots");
   expect(world.botSolvers?.generic?.length).toBeGreaterThan(0);
-  expect(world.eventPositions["black-hole-1-laser-1"]).toBeDefined();
-  expect(world.eventPositions["black-hole-2-laser-1"]).toBeDefined();
+  expect(world.blackHoleTethers["black-hole-1"]!.positions).toHaveLength(3);
+  expect(world.blackHoleTethers["black-hole-2"]!.orderFrom).toBe("bigkefka");
   expect(world.pendingTethers.filter(tether => tether.id.startsWith("black-hole-2-laser"))).toHaveLength(3);
+});
+
+// Black Hole 2's tether order is locked clockwise from bigkefka's position at spawn (t=68, after
+// kefka-teleport-1) and must stay fixed for the hazard's lifetime - kefka teleports again at t=84,
+// mid-resolution (between the 80 and 85 fires), and that must NOT reshuffle the assignment.
+test("Black Hole tether order is locked clockwise from Kefka at spawn and survives a mid-resolution teleport", async () => {
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+    const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
+    const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
+    const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
+
+    // Just after Black Hole 2 spawns and its first laser promotes (t=68), the order is locked.
+    const atSpawn = runTicksWithComputedBotIntents(createWorld(raid, seed), Math.ceil(68.2 * 60));
+    const kefkaAtSpawn = atSpawn.bosses.find(b => b.id === "bigkefka")!.pos;
+    const physical = atSpawn.blackHoleTethers["black-hole-2"]!.positions;
+    const locked = atSpawn.blackHoleTetherOrder["black-hole-2"];
+    expect(locked).toEqual(clockwiseTetherOrder(physical, kefkaAtSpawn));
+
+    // Past kefka-teleport-2 (t=84): Kefka has moved, but the locked order is unchanged.
+    const afterTeleport = runTicksWithComputedBotIntents(atSpawn, Math.ceil((85 - atSpawn.time) * 60));
+    expect(afterTeleport.bosses.find(b => b.id === "bigkefka")!.pos).not.toEqual(kefkaAtSpawn);
+    expect(afterTeleport.blackHoleTetherOrder["black-hole-2"]).toEqual(locked);
+  }
 });
 
 test("black-hole bots survive the first Slap Happy side cleave", async () => {
@@ -84,7 +108,8 @@ test("ot drags exdeath out toward Black Hole 1's 2nd tether ahead of tb-4", asyn
 
   // Mid the ot drag-out window (40-45): ot should be walking toward the approach spot (12 out,
   // 240deg cw of the 2nd tether's bearing), not the stack-middle fallback or the old {7,0} bait.
-  const north = genericFrameNorth(["black-hole-1-laser-2"], world)!;
+  // Framed on the physical middle orb (a stable reference), not a Kefka-relative order slot.
+  const north = genericFrameNorth([{ blackHoleOrb: { hazardId: "black-hole-1", index: 1 } }], world)!;
   const otTarget = genericSolverWaypoint(byId(world, "ot"), world)!;
   expect(otTarget).toEqual(polarWorld({ x: 0, z: 0 }, north, 12, 240));
   expect(otTarget).not.toEqual({ x: 0, z: 0 });

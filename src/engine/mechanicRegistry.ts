@@ -106,11 +106,14 @@ const hazard: MechanicModule = {
 const tethers: MechanicModule = {
   fromEvent(e, c, eventPositions) {
     if (e.type !== "tether_source") return;
-    eventPositions[e.id] = toVec2(e.pos!);
+    // Black-hole lasers carry fromBlackHoleOrb and resolve their origin from the locked clockwise
+    // order at promote time; only plain tethers have a static pos to expose as a frame anchor.
+    if (e.pos) eventPositions[e.id] = toVec2(e.pos);
     c.pendingTethers.push({
       id: e.id,
       t: e.t,
-      pos: toVec2(e.pos!),
+      pos: e.pos && toVec2(e.pos),
+      fromBlackHoleOrb: e.fromBlackHoleOrb,
       finalizeAfter: e.finalizeAfter,
       fireOffsets: e.fireOffsets,
       despawnAfter: e.despawnAfter,

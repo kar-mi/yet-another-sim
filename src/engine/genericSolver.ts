@@ -232,6 +232,12 @@ function ruleMatches(rule: GenericSolverRule, player: Player, world: World, mech
 function refToVec(ref: FrameRef, world: World): Vec2 | undefined {
   if (typeof ref === "string") return world.eventPositions?.[ref];
   if ("crystal" in ref) return world.crystals?.find(c => c.element === ref.crystal)?.pos;
+  if ("blackHoleTether" in ref) {
+    return world.blackHoleTetherOrder?.[ref.blackHoleTether.hazardId]?.[ref.blackHoleTether.order];
+  }
+  if ("blackHoleOrb" in ref) {
+    return world.blackHoleTethers?.[ref.blackHoleOrb.hazardId]?.positions[ref.blackHoleOrb.index];
+  }
   const boss = ref.boss.id
     ? world.bosses?.find(candidate => candidate.id === ref.boss.id)
     : world.boss;

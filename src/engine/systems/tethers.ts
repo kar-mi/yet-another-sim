@@ -3,10 +3,11 @@
 
 import type { TickContext } from "./context";
 import type { AOEShape, TetherSource, PendingTether } from "@shared/types";
-import { length, normalize, sub } from "@shared/math";
+import { length, normalize, sub, type Vec2 } from "@shared/math";
 import { pointInShape } from "../shapes";
 import { selectTargetPlayer, findInterceptor, applyEffect, applyMechanicDamage } from "./helpers";
 import { addResolvedAoeVisual } from "./effectResolvers";
+import { clockwiseTetherOrder } from "../blackHoleOrbs";
 
 const TETHER_LINGER = 2;
 
@@ -44,16 +45,38 @@ function fireTetherBeam(ctx: TickContext, ts: TetherSource, target: TickContext[
 export function resolveTethers(ctx: TickContext): {
   tetherSources: TetherSource[];
   pendingTethers: PendingTether[];
+  blackHoleTetherOrder: Record<string, Vec2[]>;
 } {
   const { players, log, time } = ctx;
+
+  // Locked clockwise tether orders (per Black Hole hazard). Lazily lock the first time any of a
+  // hazard's lasers promotes: sort its tether orbs clockwise from the orderFrom boss's position,
+  // then hold that order for the hazard's lifetime so a later teleport can't reshuffle it.
+  const blackHoleTetherOrder: Record<string, Vec2[]> = { ...ctx.world.blackHoleTetherOrder };
+  const orbPos = (fromBlackHoleOrb: NonNullable<PendingTether["fromBlackHoleOrb"]>): Vec2 => {
+    const { hazardId, order } = fromBlackHoleOrb;
+    let ordered = blackHoleTetherOrder[hazardId];
+    if (!ordered) {
+      const spec = ctx.world.blackHoleTethers[hazardId];
+      if (!spec) throw new Error(`tether references unknown black-hole hazard "${hazardId}"`);
+      if (!spec.orderFrom) throw new Error(`black-hole hazard "${hazardId}" needs orderFrom to resolve tether order`);
+      const from = ctx.bosses.find(b => b.id === spec.orderFrom)?.pos;
+      if (!from) throw new Error(`black-hole hazard "${hazardId}" orders from missing boss "${spec.orderFrom}"`);
+      ordered = clockwiseTetherOrder(spec.positions, from);
+      blackHoleTetherOrder[hazardId] = ordered;
+    }
+    return ordered[order]!;
+  };
+
   let tetherSources: TetherSource[] = ctx.world.tetherSources.map(ts => ({ ...ts }));
   const remainingPendingTethers: PendingTether[] = [];
   for (const pt of ctx.world.pendingTethers) {
     if (pt.t <= time) {
-      const nearest = selectTargetPlayer(players, pt.pos, "closest");
+      const pos = pt.fromBlackHoleOrb ? orbPos(pt.fromBlackHoleOrb) : pt.pos!;
+      const nearest = selectTargetPlayer(players, pos, "closest");
       tetherSources.push({
         id: pt.id,
-        pos: pt.pos,
+        pos,
         spawnAt: pt.t,
         finalizeAt: pt.t + pt.finalizeAfter,
         fireTimes: (pt.fireOffsets ?? [pt.finalizeAfter]).map(offset => pt.t + offset),
@@ -105,5 +128,5 @@ export function resolveTethers(ctx: TickContext): {
 
   // Cull sources finalized more than 2s ago
   tetherSources = tetherSources.filter(ts => !ts.finalized || ts.finalizeAt > time - TETHER_LINGER);
-  return { tetherSources, pendingTethers: remainingPendingTethers };
+  return { tetherSources, pendingTethers: remainingPendingTethers, blackHoleTetherOrder };
 }

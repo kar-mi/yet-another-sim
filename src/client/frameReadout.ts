@@ -36,6 +36,8 @@ export function invertFramePosition(pos: Vec2, north: Vec2, rightSign: 1 | -1 = 
 function frameRefLabel(ref: FrameRef): string {
   if (typeof ref === "string") return ref;
   if ("crystal" in ref) return `crystal:${ref.crystal}`;
+  if ("blackHoleTether" in ref) return `orb:${ref.blackHoleTether.hazardId}:${ref.blackHoleTether.order}`;
+  if ("blackHoleOrb" in ref) return `orb#:${ref.blackHoleOrb.hazardId}:${ref.blackHoleOrb.index}`;
   return `boss:${ref.boss.id ?? "primary"}:${ref.boss.from}`;
 }
 
