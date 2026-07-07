@@ -210,14 +210,14 @@ test("persistent tether can be intercepted before a later fire", () => {
   expect(world.log.filter(e => e.mechanic === "Laser Marker" && e.playerId === "h1" && e.event === "hit")).toHaveLength(1);
 });
 
-test("black-hole tether sources are recorded as frame positions after rng resolution", async () => {
+test("black-hole tether orbs are recorded after rng resolution", async () => {
   const text = await Bun.file(`${import.meta.dir}/../../../raids/dancing-mad-ultimate/black-hole.yaml`).text();
   const raid = loadRaid(Bun.YAML.parse(text));
   const world = createWorld(raid, 1);
 
-  expect(world.eventPositions["black-hole-2-laser-1"]).toBeDefined();
-  expect(world.eventPositions["black-hole-2-laser-2"]).toBeDefined();
-  expect(world.eventPositions["black-hole-2-laser-3"]).toBeDefined();
+  // Laser origins are no longer baked into eventPositions; the three physical tether orbs per hazard
+  // are recorded on world.blackHoleTethers and resolved to clockwise slots at runtime.
+  expect(world.blackHoleTethers["black-hole-2"]!.positions).toHaveLength(3);
 });
 
 test("laser-tether demo raid loads without error", async () => {

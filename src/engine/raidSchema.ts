@@ -29,6 +29,14 @@ const FrameRefSchema = z.union([
     id: z.string().min(1).optional(),
     from: z.enum(["facing", "position"]),
   }) }),
+  z.object({ blackHoleTether: z.object({
+    hazardId: EventIdSchema,
+    order: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+  }) }),
+  z.object({ blackHoleOrb: z.object({
+    hazardId: EventIdSchema,
+    index: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+  }) }),
 ]);
 const GenericSolverFrameSchema = z.union([
   z.literal("matched"),
@@ -456,7 +464,9 @@ const TetherSourceEventSchema = z.object({
   pos: Vec2Schema.optional(),
   fromBlackHoleOrb: z.object({
     hazardId: EventIdSchema,
-    tetherIndex: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+    // Clockwise slot (not physical orb index): 0/1/2 = 1st/2nd/3rd orb clockwise from the hazard's
+    // orderFrom boss, resolved to a position from the locked order at fire time.
+    order: z.union([z.literal(0), z.literal(1), z.literal(2)]),
   }).optional(),
   finalizeAfter: z.number().positive(),
   fireOffsets: z.array(z.number().nonnegative()).min(1).optional(),
@@ -777,6 +787,9 @@ const HazardEventSchema = z.object({
   spots: z.array(Vec2Schema).min(1).optional(),
   blackHole: z.object({
     combos: z.array(z.array(BlackHoleOrbSchema).min(1)).min(1),
+    // Boss whose bearing the tether orbs are ordered clockwise from (e.g. bigkefka). Required only
+    // when a tether_source or frame references this hazard by clockwise order.
+    orderFrom: EventIdSchema.optional(),
   }).optional(),
   radius: z.number().positive(),
   duration: z.number().positive(),
