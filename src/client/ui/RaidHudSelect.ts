@@ -5,7 +5,8 @@ import { loadRaidCategories } from "./MainMenu";
 import { showLoadingOverlay } from "./LoadingOverlay";
 import { el } from "./dom";
 import type { HudLayoutManager } from "./HudLayoutManager";
-import { createRngModal } from "./RngModal";
+import { armSeed, createRngModal } from "./RngModal";
+import { loadRngConstraints } from "../rngPrefs";
 
 function ticksToLabel(tick: number): string {
   const totalSeconds = Math.floor(tick / 60);
@@ -328,12 +329,17 @@ export async function createRaidHudSelect(
     if (shouldResume) net.send({ type: "play" });
   });
   const disposeLobby = net.on("lobby", message => {
+    isHost = replay ? false : net.clientId === message.hostClientId;
     seedOverride = message.seedOverride;
-    rngModal?.update({ seedOverride });
+    rngModal?.update({ seedOverride, isHost });
+    if (isHost && message.seedOverride === null && Object.keys(loadRngConstraints(activeRaidId)).length > 0) {
+      armSeed(net, activeRaidId);
+    }
   });
   const disposeStarted = net.on("started", message => {
     currentWorldSeed = message.world.seed;
     rngModal?.update({ currentSeed: currentWorldSeed });
+    if (isHost) armSeed(net, activeRaidId);
   });
   syncPlayback(initialPlaybackState);
 
