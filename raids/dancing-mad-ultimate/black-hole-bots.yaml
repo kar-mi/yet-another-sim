@@ -38,10 +38,10 @@ _roleSafeWest: &roleSafeWest
 # diagonal, so a couple degrees' nudge one way or the other (endingFacing) clears whichever axis is
 # live - mirrors bowels-of-agony-bots.yaml's Latitude/Longitude dodge.
 
-_chaosPartySafeEastLongitude: &chaosPartySafeEastLongitude { dist: 8, angleDeg: 313 }
-_chaosPartySafeEastLatitude: &chaosPartySafeEastLatitude { dist: 8, angleDeg: 317 }
-_chaosPartySafeWestLongitude: &chaosPartySafeWestLongitude { dist: 8, angleDeg: 47 }
-_chaosPartySafeWestLatitude: &chaosPartySafeWestLatitude { dist: 8, angleDeg: 43 }
+_chaosPartySafeEastLongitude: &chaosPartySafeEastLongitude { dist: 9, angleDeg: 223 }
+_chaosPartySafeEastLatitude: &chaosPartySafeEastLatitude { dist: 9, angleDeg: 227 }
+_chaosPartySafeWestLongitude: &chaosPartySafeWestLongitude { dist: 9, angleDeg: 47 }
+_chaosPartySafeWestLatitude: &chaosPartySafeWestLatitude { dist: 9, angleDeg: 43 }
 
 _pixelBehindChaos: &pixelBehindChaos { r: 0, z: -0.1 }
 
