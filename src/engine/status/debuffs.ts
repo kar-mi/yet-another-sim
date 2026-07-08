@@ -59,6 +59,14 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     icon: "meanest_existence.png",
     behavior: { kind: "escalating", escalationKey: "unbecoming", escalateDamage: 999999, escalateDamageType: "true" },
   },
+  damage_down: {
+    name: "Damage Down",
+    kind: "debuff",
+    duration: 999,
+    showTimer: false,
+    icon: "dmg_down.png",
+    behavior: { kind: "none" },
+  },
   primordial_crust: {
     name: "Primordial Crust",
     kind: "debuff",

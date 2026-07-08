@@ -41,12 +41,7 @@ _heroEpic: &heroEpic
 _heroFated: &heroFated
   ref: fated_hero
 _blackHole: &blackHole
-  name: Black Hole
-  kind: debuff
-  duration: 3
-  behavior:
-    kind: mitigation
-    multiplier: 0.5
+  ref: damage_down
 _blackHoleCombos: &blackHoleCombos
   - - { pos: { x: 0, z: 17 }, tether: true }
     - { pos: { x: 17, z: 0 }, tether: true }
