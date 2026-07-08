@@ -247,7 +247,7 @@ solvers:
 
     # wave 10's final soak stage pushes the soloing healer out to the arena edge so it doesn't die to
     # look-upon-me-2 (kefka-teleport-3 lands a new Kefka position at t=142, right before this stage).
-    - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: healer }, startAt: 142, endAt: 146, tetherMidpoint: { hazardId: black-hole-4, order: 2 } }
+    - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: healer }, startAt: 142, endAt: 146, frame: [{ blackHoleTether: { hazardId: black-hole-4, order: 2 } }], spot: { r: 0, z: 17 } }
     - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: healer }, startAt: 146, endAt: 150, nearestEdge: { from: { blackHoleTether: { hazardId: black-hole-4, order: 2 } }, avoid: { boss: { id: bigkefka, from: facing } }, clearance: 5 } }
 
     # tb-3 has no Black Hole in play yet, so it keeps the plain shared bait spot. tb-4/tb-5 have
