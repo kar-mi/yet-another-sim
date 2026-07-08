@@ -281,6 +281,7 @@ _lookUponMe: &lookUponMe
   bossId: bigkefka
   anchor: boss
   directionFrom: bossFacing
+  telegraphMode: resolve
   shape: { kind: rect, width: 13.3333333333, length: 40 }
 
 _botTell: &botTell
