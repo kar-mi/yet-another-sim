@@ -11,7 +11,7 @@ export const BOSS_REGISTRY = {
   kefka: { model: "kefka", modelScale: 30, radius: 3, ring: { scale: 2, color: "#e62120" } },
   bigkefka: { model: "kefka", modelScale: 150, radius: 3, ring: { scale: 2, color: "#e62120" } },
   chaos: { model: "chaos", modelScale: 20, radius: 3, ring: { scale: 2, color: "#e62120" } },
-  exdeath: { model: "exdeath", modelScale: 20, radius: 2.5, ring: { scale: 2, color: "#e62120" } }
+  exdeath: { model: "exdeath", modelScale: 20, radius: 2, ring: { scale: 2, color: "#e62120" } }
 } as const satisfies Record<string, BossPreset>;
 
 export const DEFAULT_BOSS_ID = "kefka";

@@ -62,13 +62,11 @@ test("black-hole bots survive the first Slap Happy side cleave", async () => {
   expect(world.players.every(player => player.alive)).toBe(true);
 });
 
-// The partySafeEast / roleSafeWest dodge spots are framed on Kefka's position but anchored on Chaos
-// (origin: { boss: chaos }). Chaos chases mt (aggro: mt) and drifts a couple yalms off centre by the
-// later Slap Happy waves, so the whole party formation shifts with it. This guards that the shift
-// never carries anyone into one of Kefka's radius-8 cleave circles, for either rolled cleave side,
-// across all three Slap Happy waves (t~=29, 60, 132). Asserted via the damage log rather than mere
-// survival, since recovery heals between mechanics would otherwise mask a caught hit.
-test("origin:chaos safe-spots keep the party clear of every Slap Happy cleave, all seeds", async () => {
+// The partySafeEast / roleSafeWest dodge spots are center-based and oriented by Kefka's position.
+// This guards that the formation stays clear of Kefka's radius-8 cleave circles, for either rolled
+// cleave side, across all three Slap Happy waves (t~=29, 60, 132). Asserted via the damage log
+// rather than mere survival, since recovery heals between mechanics would otherwise mask a caught hit.
+test("center-based Kefka-oriented safe-spots keep the party clear of every Slap Happy cleave, all seeds", async () => {
   for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
     const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
     const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
