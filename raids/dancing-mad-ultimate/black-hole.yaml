@@ -985,6 +985,14 @@ events:
     fireOffsets: [7, 12, 17]
     despawnAfter: 17
 
+  - type: teleport_boss #todo - temporary tp till aggro direction solver added
+    id: chaos-teleport-center
+    time: 119
+    name: Chaos Recenter
+    bossId: chaos
+    spots:
+      - { x: 0, z: 0 }
+
   - type: heal
     id: recovery-before-white-hole
     time: 120.1
