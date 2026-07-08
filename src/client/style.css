@@ -2078,6 +2078,7 @@ img.yas-debuff-icon {
   border-radius: 4px;
   background: var(--px-sunken);
   padding: 8px 10px;
+  color: var(--px-text);
 }
 
 .yas-rng-seed {
@@ -2127,6 +2128,7 @@ img.yas-debuff-icon {
   border-radius: 4px;
   background: var(--px-bg-2);
   padding: 8px 10px;
+  color: var(--px-text);
 }
 
 .yas-rng-row span {
