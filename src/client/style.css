@@ -160,7 +160,7 @@ body:focus-visible {
 
 /* ===== UI SCALE (accessibility) ===== */
 /* Zoom each overlay container by --ui-scale; leaves the 3D #canvas untouched. */
-#yas-status, #yas-session-id, #settings-panel, #home-btn, #settings-btn, #hud-edit-btn, #info-btn, #info-panel, #yas-menu, #yas-raid-modal, #yas-replay-modal, #yas-welcome-modal {
+#yas-status, #yas-session-id, #settings-panel, #home-btn, #settings-btn, #hud-edit-btn, #info-btn, #info-panel, #yas-menu, #yas-raid-modal, #yas-replay-modal, #yas-rng-modal, #yas-welcome-modal {
   zoom: var(--ui-scale, 1);
 }
 
@@ -694,7 +694,7 @@ body:focus-visible {
 }
 
 /* ===== Non-selectable overlays ===== */
-#yas-status, #yas-session-id, #yas-menu, #yas-raid-modal, #yas-replay-modal, #yas-welcome-modal, #settings-panel, #info-panel, [data-hud-group] {
+#yas-status, #yas-session-id, #yas-menu, #yas-raid-modal, #yas-replay-modal, #yas-rng-modal, #yas-welcome-modal, #settings-panel, #info-panel, [data-hud-group] {
   user-select: none;
 }
 
@@ -1975,7 +1975,8 @@ img.yas-debuff-icon {
 
 /* ===== RAID SELECTOR MODAL ===== */
 #yas-raid-modal,
-#yas-replay-modal {
+#yas-replay-modal,
+#yas-rng-modal {
   position: fixed;
   inset: 0;
   z-index: 200;
@@ -2044,6 +2045,109 @@ img.yas-debuff-icon {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.yas-rng-panel .yas-raid-modal-header {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.yas-rng-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.yas-rng-panel {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.yas-rng-current,
+.yas-rng-actions,
+.yas-rng-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.yas-rng-current {
+  justify-content: space-between;
+  border: 1px solid var(--px-edge);
+  border-radius: 4px;
+  background: var(--px-sunken);
+  padding: 8px 10px;
+}
+
+.yas-rng-seed {
+  color: var(--px-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.yas-rng-note,
+.yas-rng-error {
+  color: var(--px-text-dim);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.yas-rng-error {
+  color: var(--px-danger);
+}
+
+.yas-rng-select {
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  color: var(--px-text);
+  font-family: var(--px-font);
+  font-size: 13px;
+  padding: 6px 8px;
+}
+
+.yas-rng-decisions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: min(360px, 45vh);
+}
+
+.yas-rng-row {
+  justify-content: space-between;
+  border: 1px solid var(--px-edge);
+  border-radius: 4px;
+  background: var(--px-bg-2);
+  padding: 8px 10px;
+}
+
+.yas-rng-row span {
+  min-width: 0;
+}
+
+.yas-rng-row select {
+  width: 190px;
+}
+
+.yas-rng-close,
+.yas-rng-random,
+.yas-rng-find {
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  color: var(--px-text);
+  cursor: pointer;
+  font-family: var(--px-font);
+  font-size: 11px;
+  padding: 6px 8px;
+}
+
+.yas-rng-close:hover,
+.yas-rng-random:hover,
+.yas-rng-find:hover {
+  border-color: var(--px-accent);
+  color: var(--px-accent);
 }
 
 .yas-raid-modal-header .yas-menu-subtitle {
@@ -2210,8 +2314,9 @@ img.yas-debuff-icon {
 .yas-playback-controls {
   display: flex;
   gap: 4px;
+  flex-wrap: wrap;
   width: 190px;
-  justify-content: space-between;
+  justify-content: center;
 }
 
 .yas-playback-controls button {
@@ -2222,9 +2327,10 @@ img.yas-debuff-icon {
   color: var(--px-text);
   cursor: pointer;
   font-family: var(--px-font);
-  font-size: 10px;
-  letter-spacing: 0.8px;
-  padding: 5px 7px;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  padding: 5px 6px;
+  flex: 1 1 58px;
 }
 
 .yas-playback-controls button:disabled {

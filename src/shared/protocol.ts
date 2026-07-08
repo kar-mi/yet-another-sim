@@ -113,6 +113,10 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     type: z.literal("restart"),
   }),
   z.strictObject({
+    type: z.literal("setSeed"),
+    seed: z.number().int().min(0).max(0xffffffff).nullable(),
+  }),
+  z.strictObject({
     type: z.literal("setBotsInvincible"),
     enabled: z.boolean(),
   }),
@@ -178,6 +182,7 @@ export type ServerMessage =
       status: LobbyStatus;
       hostClientId: string;
       slots: LobbySlot[];
+      seedOverride: number | null;
       observerCount: number;
       maxObservers: number;
       observingByYou: boolean;

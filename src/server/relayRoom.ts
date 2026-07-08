@@ -71,6 +71,7 @@ export class RelayRoom {
   private pullNumber = 0;
   private botsInvincible = false;
   private latestSnapshot: { tick: number; world: unknown } | null = null;
+  private seedOverride: number | null = null;
 
   // Authoritative input log: one merged-intent Frame per simulated tick since the pull started.
   // Owned by the relay; exposed for late-join / resync (`started` sends it in full to be replayed).
@@ -149,6 +150,9 @@ export class RelayRoom {
       case "restart":
         this.restart(clientId);
         return;
+      case "setSeed":
+        this.setSeed(clientId, message.seed);
+        return;
       case "setBotsInvincible":
         this.setBotsInvincible(clientId, message.enabled);
         return;
@@ -186,6 +190,7 @@ export class RelayRoom {
       : [];
     this.raidId = raidId;
     this.raid = raid;
+    this.seedOverride = null;
     this.closePullLog();
     this.slots.clear();
     for (const player of this.raid.players) this.slots.set(player.id, preserveOwners ? previousSlots.get(player.id) ?? null : null);
@@ -514,6 +519,16 @@ export class RelayRoom {
     this.applyBotsInvincible();
   }
 
+  setSeed(clientId: string, seed: number | null): void {
+    if (clientId !== this.hostClientId) {
+      this.sendError(clientId, "Only the host can set the seed");
+      return;
+    }
+
+    this.seedOverride = seed;
+    this.broadcastLobby();
+  }
+
   // Advance the relay by one tick (produce a frame, broadcast unless batching). The server never runs
   // `tick()`; clients do. Frame production/relay lives in FrameRelay.
   step(broadcast = true): void {
@@ -651,7 +666,7 @@ export class RelayRoom {
   // once a client owns it, otherwise "bot"). Raids no longer author control — it is purely a
   // function of slot ownership.
   private freshWorld(): World {
-    const world = createWorld(this.raid);
+    const world = createWorld(this.raid, this.seedOverride ?? undefined);
     return {
       ...world,
       players: world.players.map(player => ({
@@ -709,6 +724,7 @@ export class RelayRoom {
       status: this.status,
       hostClientId: this.hostClientId,
       slots,
+      seedOverride: this.seedOverride,
       observerCount: this.observers.size,
       maxObservers: MAX_OBSERVERS,
       observingByYou: this.observers.has(clientId),
