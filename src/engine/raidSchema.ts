@@ -805,6 +805,7 @@ const HazardEventSchema = z.object({
   }).optional(),
   radius: z.number().positive(),
   duration: z.number().positive(),
+  armingTime: z.number().nonnegative().default(0),
   applyEffect: ApplyEffectSchema,
 }).superRefine((ev, ctx) => {
   const hasSpots = ev.spots !== undefined && ev.spots.length > 0;

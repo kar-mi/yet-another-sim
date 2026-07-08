@@ -917,6 +917,7 @@ export type PendingHazard = {
   spots: Vec2[];
   radius: number;
   duration: number;
+  armingTime: number;
   applyEffect: EffectSpec;
 };
 
@@ -926,6 +927,7 @@ export type ActiveHazard = {
   spots: Vec2[];
   radius: number;
   spawnedAt: number;
+  armingTime: number;
   expireAt: number;
   applyEffect: EffectSpec;
 };

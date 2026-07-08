@@ -96,6 +96,7 @@ const hazard: MechanicModule = {
       spots: e.spots.map(toVec2),
       radius: e.radius,
       duration: e.duration,
+      armingTime: e.armingTime,
       applyEffect: e.applyEffect,
     });
   },

@@ -704,6 +704,7 @@ events:
       orderFrom: bigkefka
     radius: 1.68
     duration: 14
+    armingTime: 2
     applyEffect: *blackHole
 
   - <<: *blackHoleLaser
@@ -888,6 +889,7 @@ events:
       orderFrom: bigkefka
     radius: 1.68
     duration: 17
+    armingTime: 2
     applyEffect: *blackHole
 
   - <<: *blackHoleLaser
@@ -954,6 +956,7 @@ events:
       orderFrom: bigkefka
     radius: 1.68
     duration: 17
+    armingTime: 2
     applyEffect: *blackHole
 
   - <<: *blackHoleLaser
@@ -1162,6 +1165,7 @@ events:
       orderFrom: bigkefka
     radius: 1.68
     duration: 15
+    armingTime: 2
     applyEffect: *blackHole
 
   - <<: *blackHoleLaser

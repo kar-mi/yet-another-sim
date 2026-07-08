@@ -21,6 +21,7 @@ export function resolveHazards(ctx: TickContext): {
         spots: pending.spots,
         radius: pending.radius,
         spawnedAt: time,
+        armingTime: pending.armingTime,
         expireAt: time + pending.duration,
         applyEffect: pending.applyEffect,
       });
@@ -30,6 +31,8 @@ export function resolveHazards(ctx: TickContext): {
   }
 
   for (const hazard of hazards) {
+    if (time < hazard.spawnedAt + hazard.armingTime) continue;
+
     for (const player of players) {
       if (!player.alive) continue;
       if (!hazard.spots.some(spot => length(sub(player.pos, spot)) <= hazard.radius)) continue;
