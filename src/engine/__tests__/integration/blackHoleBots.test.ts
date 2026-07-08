@@ -168,7 +168,9 @@ test("Black Hole tether handoff aims at the live source-holder midpoint, then st
   const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
   const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
 
-  const during = runTicksWithComputedBotIntents(createWorld(raid, 1), Math.ceil(75.5 * 60));
+  // Sample at 76.1: past r2's brief *atOrb preposition window (75-76), so its tetherMidpoint rule is
+  // now the winning one, but before it actually steals the tether (~76.6) so m1 is still the holder.
+  const during = runTicksWithComputedBotIntents(createWorld(raid, 1), Math.ceil(76.1 * 60));
   const source = during.blackHoleTetherOrder["black-hole-2"]![0]!;
   const tether = during.tetherSources.find(ts => !ts.finalized && ts.pos.x === source.x && ts.pos.z === source.z)!;
   expect(tether.tetheredPlayerId).toBe("m1");
