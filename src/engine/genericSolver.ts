@@ -398,6 +398,20 @@ function nearestSafeEdge(spec: NonNullable<GenericSolverRule["nearestEdge"]>, wo
   return best;
 }
 
+function tetherMidpoint(
+  spec: NonNullable<GenericSolverRule["tetherMidpoint"]>,
+  player: Player,
+  world: World,
+): Vec2 | undefined {
+  const source = world.blackHoleTetherOrder?.[spec.hazardId]?.[spec.order];
+  if (!source) return undefined;
+  const tether = world.tetherSources.find(ts =>
+    !ts.finalized && ts.pos.x === source.x && ts.pos.z === source.z);
+  if (!tether?.tetheredPlayerId || tether.tetheredPlayerId === player.id) return undefined;
+  const endpoint = world.players.find(p => p.id === tether.tetheredPlayerId)?.pos;
+  return endpoint ? scale(add(source, endpoint), 0.5) : undefined;
+}
+
 function originOffset(rule: GenericSolverRule, world: World): Vec2 | undefined {
   const bossId = rule.origin?.boss;
   if (bossId === undefined) return { x: 0, z: 0 };
@@ -424,6 +438,11 @@ export function genericSolverWaypoint(
       const edge = nearestSafeEdge(rule.nearestEdge, world);
       if (edge) return edge;
       continue; // refs unresolved: fall through to the next rule
+    }
+    if (rule.tetherMidpoint) {
+      const midpoint = tetherMidpoint(rule.tetherMidpoint, player, world);
+      if (midpoint) return midpoint;
+      continue; // tether unresolved or already held by this bot: fall through
     }
     if (rule.limitCutSpread) {
       // The matched mechanic (required when.mechanic) identifies which limit cut supplies the basis.

@@ -41,12 +41,7 @@ _heroEpic: &heroEpic
 _heroFated: &heroFated
   ref: fated_hero
 _blackHole: &blackHole
-  name: Black Hole
-  kind: debuff
-  duration: 3
-  behavior:
-    kind: mitigation
-    multiplier: 0.5
+  ref: damage_down
 _blackHoleCombos: &blackHoleCombos
   - - { pos: { x: 0, z: 17 }, tether: true }
     - { pos: { x: 17, z: 0 }, tether: true }
@@ -281,6 +276,7 @@ _lookUponMe: &lookUponMe
   bossId: bigkefka
   anchor: boss
   directionFrom: bossFacing
+  telegraphMode: resolve
   shape: { kind: rect, width: 13.3333333333, length: 40 }
 
 _botTell: &botTell
@@ -983,6 +979,14 @@ events:
     finalizeAfter: 7
     fireOffsets: [7, 12, 17]
     despawnAfter: 17
+
+  - type: teleport_boss #todo - temporary tp till aggro direction solver added
+    id: chaos-teleport-center
+    time: 119
+    name: Chaos Recenter
+    bossId: chaos
+    spots:
+      - { x: 0, z: 0 }
 
   - type: heal
     id: recovery-before-white-hole

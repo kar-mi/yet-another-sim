@@ -16,6 +16,12 @@ function polarWorld(origin: { x: number; z: number }, north: { x: number; z: num
   return add(origin, add(scale(right, dist * sin(angle)), scale(north, dist * cos(angle))));
 }
 
+function clockwiseSoakWorld(source: { x: number; z: number }) {
+  const north = normalize(source);
+  const right = { x: north.z, z: -north.x };
+  return add(scale(right, 9.44), scale(north, 3.44));
+}
+
 test("black-hole raid and bot companion load with resolved tether frame positions", async () => {
   const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
   const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
@@ -155,6 +161,40 @@ test("everyone regroups at arena centre for ~2s right after each Black Hole spaw
   const afterWorld = runTicksWithComputedBotIntents(createWorld(raid, 1), Math.ceil(70.5 * 60));
   const mtTarget = genericSolverWaypoint(byId(afterWorld, "mt"), afterWorld);
   expect(mtTarget).not.toEqual({ x: 0, z: 0 });
+});
+
+test("Black Hole tether handoff aims at the live source-holder midpoint, then steals the tether", async () => {
+  const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
+  const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
+  const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
+
+  // Sample at 76.1: past r2's brief *atOrb preposition window (75-76), so its tetherMidpoint rule is
+  // now the winning one, but before it actually steals the tether (~76.6) so m1 is still the holder.
+  const during = runTicksWithComputedBotIntents(createWorld(raid, 1), Math.ceil(76.1 * 60));
+  const source = during.blackHoleTetherOrder["black-hole-2"]![0]!;
+  const tether = during.tetherSources.find(ts => !ts.finalized && ts.pos.x === source.x && ts.pos.z === source.z)!;
+  expect(tether.tetheredPlayerId).toBe("m1");
+
+  const holderId = tether.tetheredPlayerId;
+  if (!holderId) throw new Error("expected a live tether holder");
+  const holder = byId(during, holderId);
+  expect(genericSolverWaypoint(byId(during, "r2"), during)).toEqual(scale(add(source, holder.pos), 0.5));
+
+  const after = runTicksWithComputedBotIntents(during, Math.ceil((80.5 - during.time) * 60));
+  const stolen = after.tetherSources.find(ts => !ts.finalized && ts.pos.x === source.x && ts.pos.z === source.z)!;
+  expect(stolen.tetheredPlayerId).toBe("r2");
+});
+
+test("fresh Black Hole tether holder skips the midpoint rule and heads to final soak", async () => {
+  const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
+  const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
+  const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
+
+  const world = runTicksWithComputedBotIntents(createWorld(raid, 1), Math.ceil(72 * 60));
+  const source = world.blackHoleTetherOrder["black-hole-2"]![0]!;
+  const tether = world.tetherSources.find(ts => !ts.finalized && ts.pos.x === source.x && ts.pos.z === source.z)!;
+  expect(tether.tetheredPlayerId).toBe("m1");
+  expect(genericSolverWaypoint(byId(world, "m1"), world)).toEqual(clockwiseSoakWorld(source));
 });
 
 test("Look Upon Me beams from bigkefka toward arena centre, and the party dodges both it and Damning Edict 2 for any teleport/bait outcome", async () => {
