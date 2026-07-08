@@ -1875,7 +1875,7 @@ img.yas-debuff-icon {
   z-index: 50;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 3px;
   transform: translateX(-50%);
 }
@@ -2100,10 +2100,17 @@ img.yas-debuff-icon {
   background: var(--px-bg-2);
   border: 2px solid var(--px-edge);
   border-radius: 4px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
   color: var(--px-text);
   font-family: var(--px-font);
   font-size: 13px;
   padding: 6px 8px;
+  outline: none;
+}
+
+.yas-rng-select:focus {
+  border-color: var(--px-accent);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 8px var(--px-glow);
 }
 
 .yas-rng-decisions {
@@ -2135,12 +2142,15 @@ img.yas-debuff-icon {
 .yas-rng-find {
   background: var(--px-bg-2);
   border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
   border-radius: 4px;
   color: var(--px-text);
+  text-shadow: 1px 1px 0 var(--px-shadow);
   cursor: pointer;
   font-family: var(--px-font);
   font-size: 11px;
   padding: 6px 8px;
+  transition: border-color 0.1s, color 0.1s, box-shadow 0.1s;
 }
 
 .yas-rng-close:hover,
@@ -2148,6 +2158,7 @@ img.yas-debuff-icon {
 .yas-rng-find:hover {
   border-color: var(--px-accent);
   color: var(--px-accent);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow), 0 0 8px var(--px-glow);
 }
 
 .yas-raid-modal-header .yas-menu-subtitle {
@@ -2334,12 +2345,7 @@ img.yas-debuff-icon {
 
 .yas-rng-controls {
   display: flex;
-  justify-content: center;
-  width: 190px;
-}
-
-.yas-rng-controls button {
-  width: 100%;
+  align-items: center;
 }
 
 .yas-playback-controls button:disabled,

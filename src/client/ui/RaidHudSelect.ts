@@ -339,11 +339,11 @@ export async function createRaidHudSelect(
 
   const selectRow = el("div", { className: "yas-raid-select-row" });
   selectRow.append(raidBtn);
-  wrapper.append(label, selectRow, controls);
   if (rngBtn) {
     const rngRow = el("div", { className: "yas-rng-controls" }, [rngBtn]);
-    wrapper.appendChild(rngRow);
+    selectRow.appendChild(rngRow);
   }
+  wrapper.append(label, selectRow, controls);
   if (seek) wrapper.appendChild(seek);
   if (timeInput && durationLabel) {
     const timeRow = el("div", { className: "yas-replay-time-row" });
@@ -352,6 +352,7 @@ export async function createRaidHudSelect(
   }
   document.body.appendChild(wrapper);
   hudLayout.register("raidselector", wrapper);
+
   return () => {
     disposePlayback();
     disposeError();
