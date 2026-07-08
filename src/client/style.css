@@ -2140,8 +2140,7 @@ img.yas-debuff-icon {
 }
 
 .yas-rng-close,
-.yas-rng-random,
-.yas-rng-find {
+.yas-rng-random {
   background: var(--px-bg-2);
   border: 2px solid var(--px-edge);
   box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
@@ -2156,8 +2155,7 @@ img.yas-debuff-icon {
 }
 
 .yas-rng-close:hover,
-.yas-rng-random:hover,
-.yas-rng-find:hover {
+.yas-rng-random:hover {
   border-color: var(--px-accent);
   color: var(--px-accent);
   box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow), 0 0 8px var(--px-glow);

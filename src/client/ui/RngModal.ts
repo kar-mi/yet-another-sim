@@ -28,6 +28,7 @@ export function createRngModal(net: NetClient, initial: RngModalState): {
 } {
   let state = initial;
   let selects: HTMLSelectElement[] = [];
+  let dirty = false;
 
   const modal = el("div", { id: "yas-rng-modal" });
   modal.style.display = "none";
@@ -61,17 +62,16 @@ export function createRngModal(net: NetClient, initial: RngModalState): {
       if (Number.isInteger(savedValue) && savedValue >= 0 && savedValue < desc.options.length) {
         select.value = String(savedValue);
       }
-      select.addEventListener("change", applySelection);
+      select.addEventListener("change", () => {
+        dirty = true;
+        errorText.textContent = "";
+      });
       selects.push(select);
       decisionList.appendChild(el("label", { className: "yas-rng-row" }, [
         el("span", { textContent: desc.label }),
         select,
       ]));
     }
-  };
-
-  const close = () => {
-    modal.style.display = "none";
   };
 
   const applySelection = () => {
@@ -88,6 +88,15 @@ export function createRngModal(net: NetClient, initial: RngModalState): {
     saveRngConstraints(state.raidId, constraints);
     errorText.textContent = "";
     net.send({ type: "findSeed", constraints });
+  };
+
+  const close = () => {
+    if (modal.style.display === "none") return;
+    if (dirty) {
+      dirty = false;
+      applySelection();
+    }
+    modal.style.display = "none";
   };
 
   const panel = el("div", { className: "yas-raid-modal-panel yas-rng-panel" }, [
@@ -112,6 +121,7 @@ export function createRngModal(net: NetClient, initial: RngModalState): {
 
   panel.querySelector<HTMLButtonElement>(".yas-rng-close")!.addEventListener("click", close);
   panel.querySelector<HTMLButtonElement>(".yas-rng-random")!.addEventListener("click", () => {
+    dirty = false;
     errorText.textContent = "";
     clearRngConstraints(state.raidId);
     for (const select of selects) select.value = "";
@@ -137,7 +147,10 @@ export function createRngModal(net: NetClient, initial: RngModalState): {
     },
     update: next => {
       state = { ...state, ...next };
-      if (modal.style.display !== "none") renderDecisions();
+      if (modal.style.display !== "none") {
+        if (dirty) renderHeader();
+        else renderDecisions();
+      }
     },
     dispose: () => {
       disposeRngResult();
