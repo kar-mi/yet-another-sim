@@ -22,6 +22,7 @@ export function applyPlayerMovement(ctx: TickContext): void {
     const asleep = activeEffectOfKind(player, time, "sleep") !== null;
     const confusion = asleep ? null : activeEffectOfKind(player, time, "confusion");
     const intent = asleep ? undefined : intents[player.id];
+    if (intents[player.id]?.solverDirected) player.botWaypointResumeAfter = ctx.previousTime;
     actedByPlayer.set(player.id, didAct(intent) || confusion !== null);
 
     if (intent?.jump && player.y === 0) {

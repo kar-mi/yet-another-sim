@@ -98,8 +98,8 @@ order, and both `sim.ts` and `context.ts` carry explicit "do not reorder" warnin
 `tick(world, intents, dt)` is a pure function. It:
 
 1. Clones the incoming world into a `TickContext` (`createTickContext`) — players,
-   bosses, log, group choices, and `rngState` are all copied so the input world is
-   never mutated.
+   bosses, log, group choices, and `rngState` are copied. Nested player/boss fields
+   follow a replace-only convention enforced by the no-mutation regression test.
 2. Runs systems in fixed order: player movement → boss targeting/facing → the
    `REGISTRY` resolve loop (each mechanic family in a fixed slot) → status effects.
 3. Assembles a fresh `World` snapshot, settling ctx-derived fields (`rngState`,

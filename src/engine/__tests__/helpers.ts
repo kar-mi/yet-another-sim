@@ -71,6 +71,13 @@ export function runTicksWithComputedBotIntents(world: ReturnType<typeof createWo
   return w;
 }
 
+export function deepFreeze<T>(value: T): T {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+  Object.freeze(value);
+  for (const child of Object.values(value)) deepFreeze(child);
+  return value;
+}
+
 export function withPlayerEffect(world: World, playerId: string, effect: StatusEffect): World {
   return {
     ...world,

@@ -1,7 +1,7 @@
 // Pure transforms from raw RaidDef event geometry (tuples) into engine types (Vec2 objects).
 // Shared by createWorld (arena/waymarks/etc.) and the mechanic registry's per-event bucketing.
 
-import type { AOEShape, Knockback } from "@shared/types";
+import type { AOEShape, Knockback, ZoneShape } from "@shared/types";
 import { vec2 } from "@shared/math";
 import type { RaidDef } from "./raidSchema";
 
@@ -22,4 +22,12 @@ export function toAOEShape(shape: AOEEventDef["shape"]): AOEShape {
 
 export function toKnockback(kb: { distance: number; height: number; origin?: [number, number] }): Knockback {
   return { distance: kb.distance, height: kb.height, origin: kb.origin ? toVec2(kb.origin) : undefined };
+}
+
+export function toZoneShape(zone: RaidDef["arena"]["zones"][number]): ZoneShape {
+  switch (zone.kind) {
+    case "circle": return { kind: "circle", center: toVec2(zone.center), radius: zone.radius };
+    case "rect": return { kind: "rect", center: toVec2(zone.center), width: zone.width, height: zone.height };
+    case "polygon": return { kind: "polygon", vertices: zone.vertices.map(toVec2) };
+  }
 }

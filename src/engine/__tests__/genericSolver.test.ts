@@ -223,27 +223,37 @@ test("startAt/endAt clamp the activation window", () => {
 });
 
 test("a bot holds its solver position after the rule window ends", () => {
-  const bot = player({
-    alive: true,
-    control: "bot",
-    pos: { x: 0, z: 0 },
-    pattern: [{ t: 0, pos: { x: 0, z: 0 } }],
-  });
-  const w = world({
-    time: 5,
-    players: [bot],
-    active: [{ id: "aoe-1", telegraphStart: 0, resolveAt: 100, resolved: false }],
+  const w = createWorld(loadRaid({
+    ...baseRaid,
+    players: roster({ mt: { spawn: [0, 0], pattern: [{ t: 0, pos: [0, 0] }] } }),
     botSolvers: {
       generic: [{ when: { mechanic: "aoe-1" }, endAt: 10, spot: { x: 10, z: 0 } }],
     },
-  });
+  }), 1);
+  w.time = 5;
+  w.active = [{
+    id: "aoe-1",
+    name: "AOE",
+    shape: { kind: "circle", center: { x: 0, z: 0 }, radius: 1 },
+    telegraphStart: 0,
+    resolveAt: 100,
+    damage: 0,
+    damageType: "true",
+    resolved: false,
+    showCastBar: false,
+    showTelegraph: true,
+  }];
 
-  expect(computeBotIntents(w, 1 / 60).p1?.move.x).toBeGreaterThan(0);
-  expect(bot.botWaypointResumeAfter).toBe(5);
+  const intent = computeBotIntents(w, 1 / 60);
+  expect(intent.mt?.move.x).toBeGreaterThan(0);
+  expect(intent.mt?.solverDirected).toBe(true);
+  const ticked = tick(w, intent, 1 / 60);
+  const tickedBot = ticked.players.find(p => p.id === "mt")!;
+  expect(tickedBot.botWaypointResumeAfter).toBe(5);
 
-  w.time = 11;
-  bot.pos = { x: 10, z: 0 };
-  expect(computeBotIntents(w, 1 / 60).p1).toBeUndefined();
+  ticked.time = 11;
+  tickedBot.pos = { x: 10, z: 0 };
+  expect(computeBotIntents(ticked, 1 / 60).mt).toBeUndefined();
 });
 
 test("spots[id] wins over the shared spot, and a missing entry falls through", () => {
