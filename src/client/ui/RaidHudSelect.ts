@@ -237,7 +237,7 @@ export async function createRaidHudSelect(
   if (replay) {
     controls.append(playBtn, pauseBtn, restartBtn);
   } else {
-    controls.append(playBtn, pauseBtn, stopBtn, restartBtn, rngBtn!);
+    controls.append(playBtn, pauseBtn, stopBtn, restartBtn);
   }
 
   let draggingSeek = false;
@@ -340,6 +340,10 @@ export async function createRaidHudSelect(
   const selectRow = el("div", { className: "yas-raid-select-row" });
   selectRow.append(raidBtn);
   wrapper.append(label, selectRow, controls);
+  if (rngBtn) {
+    const rngRow = el("div", { className: "yas-rng-controls" }, [rngBtn]);
+    wrapper.appendChild(rngRow);
+  }
   if (seek) wrapper.appendChild(seek);
   if (timeInput && durationLabel) {
     const timeRow = el("div", { className: "yas-replay-time-row" });
