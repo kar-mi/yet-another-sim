@@ -199,8 +199,7 @@ _chaosCircle: &chaosCircle
   damageType: physical
   showCastBar: false
   bossId: chaos
-  anchor: boss
-  shape: { kind: circle, center: { x: 0, z: 0 }, radius: 4 }
+  shape: { kind: circle, center: { x: 0, z: 0 }, radius: 5 }
 
 _roleCone: &roleCone
   type: aoe
@@ -211,8 +210,7 @@ _roleCone: &roleCone
   showCastBar: false
   telegraphMode: resolve
   bossId: chaos
-  anchor: boss
-  shape: { kind: cone, angleDeg: 60, length: 30 }
+  shape: { kind: cone, origin: { x: 0, z: 0 }, angleDeg: 60, length: 30 }
 
 _roleConeMt: &roleConeMt
   <<: *roleCone
@@ -248,9 +246,8 @@ _partyCone: &partyCone
   showCastBar: false
   telegraphMode: resolve
   bossId: chaos
-  anchor: boss
   aimAtPlayer: h1
-  shape: { kind: cone, angleDeg: 70, length: 30 }
+  shape: { kind: cone, origin: { x: 0, z: 0 }, angleDeg: 70, length: 30 }
 
 _damningEdictStore: &damningEdictStore
   type: aoe
