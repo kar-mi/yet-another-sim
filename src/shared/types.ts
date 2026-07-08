@@ -970,6 +970,7 @@ export type ActiveDivebomb = Omit<PendingDivebomb, "t"> & {
 export type Intent = {
   move: Vec2;
   facing?: number;             // absolute facing in radians (atan2(x, z)); when set, overrides movement-derived facing
+  solverDirected?: boolean;    // bot only: solver is actively steering this tick; stamp botWaypointResumeAfter
   jump?: boolean;
   sprint?: boolean;
   antiKnockback?: boolean;

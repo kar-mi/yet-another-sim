@@ -46,6 +46,7 @@ export interface TickContext {
 export function createTickContext(world: World, intents: Intents, dt: number): TickContext {
   // Clone each boss with its own deep-cloned threat table. boss === bosses[0] by reference.
   const bosses = world.bosses.map(b => ({ ...b, threat: { ...b.threat } }));
+  // Player clones are shallow: replace nested fields like pos/effects/knockbackVelocity; never mutate them.
   const ctx = {
     world,
     intents,

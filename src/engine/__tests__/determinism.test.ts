@@ -4,7 +4,7 @@ import { tick } from "../sim";
 import { createWorld } from "../world";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../raidLoader";
 import { worldHash } from "@shared/worldHash";
-import { HUMAN, baseRaid, effect, loadRaid as buildRaid, roster, withPlayerEffect } from "./helpers";
+import { HUMAN, baseRaid, deepFreeze, effect, loadRaid as buildRaid, roster, withPlayerEffect } from "./helpers";
 import type { RaidDef } from "../raidSchema";
 import type { Intents, World } from "@shared/types";
 
@@ -53,6 +53,15 @@ test("mid-run JSON round-trip leaves the simulation unchanged (state lives in Wo
 test("snapshot-anchored join matches full replay (Lever A determinism guarantee)", async () => {
   const raid = await gravenRaid();
   expect(replay(raid, 600)).toEqual(replay(raid));
+});
+
+test("tick and computeBotIntents never mutate the input world (replace-only convention)", async () => {
+  const raid = await gravenRaid();
+  let w = createWorld(raid, SEED);
+  for (let i = 1; i <= 4000 && w.status === "running"; i++) {
+    deepFreeze(w);
+    w = tick(w, computeBotIntents(w, DT), DT);
+  }
 });
 
 // `tick` is a pure function of (seed, inputs), so two worlds built from the same seed and driven by

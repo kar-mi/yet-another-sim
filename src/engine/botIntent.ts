@@ -33,7 +33,7 @@ export function computeBotIntents(world: World, dt: number): Intents {
   for (const player of world.players) {
     if (!player.alive || player.control !== "bot") continue;
 
-    let intent: { move: Vec2; facing?: number } | undefined;
+    let intent: Intents[string] | undefined;
 
     // A solver hold freezes bots in place until botHoldUntil (set when a matching mechanic resolved).
     if (held) {
@@ -41,8 +41,8 @@ export function computeBotIntents(world: World, dt: number): Intents {
     } else {
       const solverTarget = genericSolverWaypoint(player, world, mechanics);
       if (solverTarget) {
-        player.botWaypointResumeAfter = world.time;
         intent = moveIntent(player, solverTarget, dt);
+        intent.solverDirected = true;
       } else if (player.pattern?.length) {
         const waypoint = activeWaypoint(player.pattern, world.time, player.botWaypointResumeAfter);
         if (waypoint) intent = moveIntent(player, waypoint.pos, dt);
