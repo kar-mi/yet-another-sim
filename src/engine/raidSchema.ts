@@ -77,6 +77,10 @@ const GenericSolverRuleSchema = z.object({
   // Nearest arena-edge point (to `from`) that stays `clearance` clear of the `avoid` line axis; see
   // GenericSolverRule.nearestEdge. Replaces (and forbids) the usual frame/spot/spots placement.
   nearestEdge: z.object({ from: FrameRefSchema, avoid: FrameRefSchema, clearance: z.number().positive() }).optional(),
+  tetherMidpoint: z.object({
+    hazardId: EventIdSchema,
+    order: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+  }).optional(),
 }).superRefine((rule, ctx) => {
   const hasCondition = rule.when.static === true || rule.when.mechanic !== undefined || rule.when.debuff !== undefined
     || rule.when.partyDebuff !== undefined || rule.when.partnerDebuff !== undefined || rule.when.plant !== undefined;
@@ -85,8 +89,9 @@ const GenericSolverRuleSchema = z.object({
   }
   // freeze holds the bot wherever it already is, so it must not also set a computed target.
   if (rule.freeze) {
-    if (rule.spot !== undefined || rule.spots !== undefined || rule.frame !== undefined || rule.limitCutSpread !== undefined) {
-      ctx.addIssue({ code: "custom", path: ["freeze"], message: "freeze holds the bot at its current position; do not also set spot / spots / frame / limitCutSpread" });
+    if (rule.spot !== undefined || rule.spots !== undefined || rule.frame !== undefined
+      || rule.limitCutSpread !== undefined || rule.nearestEdge !== undefined || rule.tetherMidpoint !== undefined) {
+      ctx.addIssue({ code: "custom", path: ["freeze"], message: "freeze holds the bot at its current position; do not also set spot / spots / frame / limitCutSpread / nearestEdge / tetherMidpoint" });
     }
     return;
   }
@@ -94,8 +99,15 @@ const GenericSolverRuleSchema = z.object({
   // the usual frame/spot/spots placement, like limitCutSpread and freeze.
   if (rule.nearestEdge !== undefined) {
     if (rule.frame !== undefined || rule.origin !== undefined || rule.spot !== undefined
-      || rule.spots !== undefined || rule.limitCutSpread !== undefined) {
-      ctx.addIssue({ code: "custom", path: ["nearestEdge"], message: "nearestEdge returns absolute coords; do not also set frame / origin / spot / spots / limitCutSpread" });
+      || rule.spots !== undefined || rule.limitCutSpread !== undefined || rule.tetherMidpoint !== undefined) {
+      ctx.addIssue({ code: "custom", path: ["nearestEdge"], message: "nearestEdge returns absolute coords; do not also set frame / origin / spot / spots / limitCutSpread / tetherMidpoint" });
+    }
+    return;
+  }
+  if (rule.tetherMidpoint !== undefined) {
+    if (rule.frame !== undefined || rule.origin !== undefined || rule.spot !== undefined
+      || rule.spots !== undefined || rule.limitCutSpread !== undefined || rule.nearestEdge !== undefined) {
+      ctx.addIssue({ code: "custom", path: ["tetherMidpoint"], message: "tetherMidpoint returns absolute coords; do not also set frame / origin / spot / spots / limitCutSpread / nearestEdge" });
     }
     return;
   }

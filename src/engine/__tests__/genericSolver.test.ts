@@ -717,6 +717,69 @@ test("nearestEdge schema rejects a rule that also sets a spot", () => {
   })).toThrow(/nearestEdge returns absolute coords/);
 });
 
+test("tetherMidpoint returns the live orb-to-holder midpoint", () => {
+  const w = world({
+    time: 10,
+    players: [
+      player({ id: "interceptor" }),
+      player({ id: "holder", pos: { x: 3, z: 5 } }),
+    ],
+    blackHoleTetherOrder: { bh: [{ x: 17, z: 0 }] },
+    tetherSources: [{ pos: { x: 17, z: 0 }, tetheredPlayerId: "holder", finalized: false }],
+    botSolvers: { generic: [{ when: { static: true }, tetherMidpoint: { hazardId: "bh", order: 0 } }] },
+  });
+
+  expect(genericSolverWaypoint(player({ id: "interceptor" }), w)).toEqual({ x: 10, z: 2.5 });
+});
+
+test("tetherMidpoint falls through when this bot already holds the tether", () => {
+  const w = world({
+    time: 10,
+    players: [player({ id: "holder", pos: { x: 3, z: 5 } })],
+    blackHoleTetherOrder: { bh: [{ x: 17, z: 0 }] },
+    tetherSources: [{ pos: { x: 17, z: 0 }, tetheredPlayerId: "holder", finalized: false }],
+    botSolvers: { generic: [
+      { when: { static: true }, tetherMidpoint: { hazardId: "bh", order: 0 } },
+      { when: { static: true }, spot: { x: 9, z: 9 } },
+    ] },
+  });
+
+  expect(genericSolverWaypoint(player({ id: "holder" }), w)).toEqual({ x: 9, z: 9 });
+});
+
+test("tetherMidpoint falls through without a resolved live tether", () => {
+  const base = {
+    time: 10,
+    players: [player({ id: "holder", pos: { x: 3, z: 5 } })],
+    botSolvers: { generic: [
+      { when: { static: true }, tetherMidpoint: { hazardId: "bh", order: 0 } },
+      { when: { static: true }, spot: { x: 9, z: 9 } },
+    ] },
+  };
+
+  expect(genericSolverWaypoint(player({ id: "interceptor" }), world({
+    ...base,
+    blackHoleTetherOrder: {},
+    tetherSources: [{ pos: { x: 17, z: 0 }, tetheredPlayerId: "holder", finalized: false }],
+  }))).toEqual({ x: 9, z: 9 });
+  expect(genericSolverWaypoint(player({ id: "interceptor" }), world({
+    ...base,
+    blackHoleTetherOrder: { bh: [{ x: 17, z: 0 }] },
+    tetherSources: [{ pos: { x: 17, z: 0 }, tetheredPlayerId: "holder", finalized: true }],
+  }))).toEqual({ x: 9, z: 9 });
+});
+
+test("tetherMidpoint schema rejects a rule that also sets a spot", () => {
+  expect(() => loadBotPatterns({
+    players: {},
+    solvers: { generic: [{
+      when: { debuff: "Headwind" },
+      tetherMidpoint: { hazardId: "bh", order: 0 },
+      spot: { x: 0, z: 5 },
+    }] },
+  })).toThrow(/tetherMidpoint returns absolute coords/);
+});
+
 test("solver spot schema enforces relative framed and absolute unframed shapes", () => {
   expect(() => loadBotPatterns({
     players: {},
