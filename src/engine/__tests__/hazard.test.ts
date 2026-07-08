@@ -45,6 +45,20 @@ test("hazard applies its debuff to players standing in explicit spots", () => {
   expect(byId(world, "m2").effects.some(effect => effect.id === "black-hole-m2")).toBe(false);
 });
 
+test("hazard waits for its arming time before applying its debuff", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    players: roster({ m1: { spawn: [0, 0] } }),
+    events: [{ type: "hazard", id: "black-hole", t: 0, name: "Black Hole", spots: [[0, 0]], radius: 1, duration: 4, armingTime: 2, applyEffect: blackHole }],
+  });
+
+  const beforeArmed = runTicks(createWorld(raid), noMove, 121);
+  expect(human(beforeArmed).effects.some(effect => effect.id === "black-hole-m1")).toBe(false);
+
+  const armed = runTicks(beforeArmed, noMove, 1);
+  expect(human(armed).effects.some(effect => effect.id === "black-hole-m1")).toBe(true);
+});
+
 test("hazard refreshes its debuff without stacking, then lets it decay after leaving", () => {
   const raid = loadRaid({
     ...baseRaid,
