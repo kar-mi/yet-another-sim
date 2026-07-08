@@ -1,8 +1,7 @@
 import { makeSeed } from "@shared/rng";
+import type { DecisionDescription } from "@shared/protocol";
 import { preRollRaid } from "./preRoll";
 import type { RaidDef } from "./raidSchema";
-
-export type DecisionDescription = { key: string; label: string; options: string[] };
 
 function rangeLabels(count: number, prefix: string): string[] {
   return Array.from({ length: count }, (_, i) => `${prefix} ${i + 1}`);

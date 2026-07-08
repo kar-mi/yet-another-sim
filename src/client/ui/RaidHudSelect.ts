@@ -1,4 +1,4 @@
-import { EMPTY_RAID_ID, type PlaybackState, type RaidCategory } from "@shared/protocol";
+import { EMPTY_RAID_ID, type DecisionDescription, type PlaybackState, type RaidCategory } from "@shared/protocol";
 import { RAID_CHANGE_START_DELAY_MS } from "@shared/constants";
 import type { NetClient } from "../net";
 import { loadRaidCategories } from "./MainMenu";
@@ -38,6 +38,7 @@ export async function createRaidHudSelect(
   initialWorldSeed: number | null = null,
   initialSeedOverride: number | null = null,
   replay?: { duration: () => number; currentTick: () => number; play: () => void; pause: () => void; restart: () => void; seek: (tick: number) => void },
+  initialRngDecisions: DecisionDescription[] = [],
 ): Promise<() => void> {
   let isHost = initialIsHost;
   let lastState: PlaybackState = initialPlaybackState;
@@ -232,6 +233,7 @@ export async function createRaidHudSelect(
     raidId: activeRaidId,
     currentSeed: currentWorldSeed,
     seedOverride,
+    rngDecisions: initialRngDecisions,
     isHost,
   });
   const rngBtn = replay ? null : makePlaybackBtn("RNG", () => rngModal?.open());
@@ -306,7 +308,7 @@ export async function createRaidHudSelect(
     if (wasRaidChangePending || message.state === "playing") resumePlaybackAfterModal = false;
     currentCategory = categoryForRaidId(message.raidId);
     selectedRaidId = message.raidId;
-    rngModal?.update({ raidId: message.raidId });
+    rngModal?.update({ raidId: message.raidId, rngDecisions: message.rngDecisions });
     updateButtonLabel();
     if (modal.style.display !== "none") {
       renderCategories();
@@ -330,10 +332,11 @@ export async function createRaidHudSelect(
   });
   const disposeLobby = net.on("lobby", message => {
     isHost = replay ? false : net.clientId === message.hostClientId;
+    activeRaidId = message.raidId;
     seedOverride = message.seedOverride;
-    rngModal?.update({ seedOverride, isHost });
-    if (isHost && message.seedOverride === null && Object.keys(loadRngConstraints(activeRaidId)).length > 0) {
-      armSeed(net, activeRaidId);
+    rngModal?.update({ raidId: message.raidId, seedOverride, rngDecisions: message.rngDecisions, isHost });
+    if (isHost && message.seedOverride === null && Object.keys(loadRngConstraints(message.raidId)).length > 0) {
+      armSeed(net, message.raidId);
     }
   });
   const disposeStarted = net.on("started", message => {

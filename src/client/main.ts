@@ -159,7 +159,7 @@ async function main(): Promise<void> {
     syncKeybindLabels();
     updateController();
 
-    const disposeRaidSelect = await createRaidHudSelect(net, session.raidId, session.isHost, session.playbackState, hudLayout, session.world.seed, session.seedOverride);
+    const disposeRaidSelect = await createRaidHudSelect(net, session.raidId, session.isHost, session.playbackState, hudLayout, session.world.seed, session.seedOverride, undefined, session.rngDecisions);
     const disposeInput = initInput();
     const disposePerfHud = initPerfHud();
     const stopLoop = startNetLoop(renderer, net);

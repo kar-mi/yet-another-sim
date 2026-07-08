@@ -4,6 +4,7 @@ import { EMPTY_RAID_ID, MAX_OBSERVERS, type ClientMessage, type Frame, type Lobb
 import type { Intent, Intents, World } from "@shared/types";
 import { RAID_CHANGE_START_DELAY_MS } from "@shared/constants";
 import { logger } from "@shared/logger";
+import { describeDecisions, findSeed } from "../engine/seedSearch";
 import { DesyncTracker } from "./desyncTracker";
 import { FrameRelay } from "./frameRelay";
 import { mergePendingIntent, type SessionLog } from "./sessionRaid";
@@ -152,6 +153,9 @@ export class RelayRoom {
         return;
       case "setSeed":
         this.setSeed(clientId, message.seed);
+        return;
+      case "findSeed":
+        this.applyRngConstraints(clientId, message.constraints);
         return;
       case "setBotsInvincible":
         this.setBotsInvincible(clientId, message.enabled);
@@ -529,6 +533,25 @@ export class RelayRoom {
     this.broadcastLobby();
   }
 
+  private applyRngConstraints(clientId: string, constraints: Record<string, number>): void {
+    if (clientId !== this.hostClientId) {
+      this.sendError(clientId, "Only the host can set the seed");
+      return;
+    }
+    if (Object.keys(constraints).length === 0) {
+      this.sendTo(clientId, { type: "rngResult", ok: false });
+      return;
+    }
+    const seed = findSeed(this.raid, constraints);
+    if (seed === null) {
+      this.sendTo(clientId, { type: "rngResult", ok: false });
+      return;
+    }
+    this.seedOverride = seed;
+    this.sendTo(clientId, { type: "rngResult", ok: true });
+    this.broadcastLobby();
+  }
+
   // Advance the relay by one tick (produce a frame, broadcast unless batching). The server never runs
   // `tick()`; clients do. Frame production/relay lives in FrameRelay.
   step(broadcast = true): void {
@@ -725,6 +748,7 @@ export class RelayRoom {
       hostClientId: this.hostClientId,
       slots,
       seedOverride: this.seedOverride,
+      rngDecisions: describeDecisions(this.raid),
       observerCount: this.observers.size,
       maxObservers: MAX_OBSERVERS,
       observingByYou: this.observers.has(clientId),
@@ -741,7 +765,7 @@ export class RelayRoom {
 
   private broadcastPlayback(): void {
     const state = this.status === "running" ? "playing" : this.status === "paused" ? "paused" : this.status === "done" ? "done" : "stopped";
-    this.broadcastAll({ type: "playback", state, raidId: this.raidId, hostClientId: this.hostClientId });
+    this.broadcastAll({ type: "playback", state, raidId: this.raidId, hostClientId: this.hostClientId, rngDecisions: describeDecisions(this.raid) });
   }
 
   private broadcastStarted(): void {

@@ -1,16 +1,13 @@
-import { EMPTY_RAID_ID } from "@shared/protocol";
-import { describeDecisions, findSeed } from "../../engine/seedSearch";
-import { loadRaid } from "../../engine/raidLoader";
-import type { RaidDef } from "../../engine/raidSchema";
+import type { DecisionDescription } from "@shared/protocol";
 import { clearRngConstraints, loadRngConstraints, saveRngConstraints } from "../rngPrefs";
 import type { NetClient } from "../net";
-import { RAID_DEFS } from "../staticRaids.generated";
 import { el } from "./dom";
 
 type RngModalState = {
   raidId: string;
   currentSeed: number | null;
   seedOverride: number | null;
+  rngDecisions: DecisionDescription[];
   isHost: boolean;
 };
 
@@ -18,19 +15,10 @@ function formatSeed(seed: number | null): string {
   return seed === null ? "-" : `0x${seed.toString(16).padStart(8, "0")}`;
 }
 
-function raidFor(raidId: string): RaidDef | null {
-  if (raidId === EMPTY_RAID_ID) return null;
-  const definition = RAID_DEFS[raidId];
-  return definition ? loadRaid(definition.raid) : null;
-}
-
 export function armSeed(net: NetClient, raidId: string): void {
   const constraints = loadRngConstraints(raidId);
   if (Object.keys(constraints).length === 0) return;
-  const raid = raidFor(raidId);
-  if (!raid) return;
-  const seed = findSeed(raid, constraints);
-  if (seed !== null) net.send({ type: "setSeed", seed });
+  net.send({ type: "findSeed", constraints });
 }
 
 export function createRngModal(net: NetClient, initial: RngModalState): {
@@ -59,14 +47,12 @@ export function createRngModal(net: NetClient, initial: RngModalState): {
     renderHeader();
     selects = [];
     decisionList.replaceChildren();
-    const raid = raidFor(state.raidId);
-    const descriptions = raid ? describeDecisions(raid) : [];
-    if (descriptions.length === 0) {
+    if (state.rngDecisions.length === 0) {
       decisionList.appendChild(el("div", { className: "yas-rng-note", textContent: "No pre-pull RNG choices for this raid." }));
       return;
     }
     const saved = loadRngConstraints(state.raidId);
-    for (const desc of descriptions) {
+    for (const desc of state.rngDecisions) {
       const select = el("select", { className: "yas-rng-select", attrs: { "data-key": desc.key } }, [
         el("option", { value: "", textContent: "Any" }),
         ...desc.options.map((option, i) => el("option", { value: String(i), textContent: option })),
@@ -75,6 +61,7 @@ export function createRngModal(net: NetClient, initial: RngModalState): {
       if (Number.isInteger(savedValue) && savedValue >= 0 && savedValue < desc.options.length) {
         select.value = String(savedValue);
       }
+      select.addEventListener("change", applySelection);
       selects.push(select);
       decisionList.appendChild(el("label", { className: "yas-rng-row" }, [
         el("span", { textContent: desc.label }),
@@ -87,25 +74,20 @@ export function createRngModal(net: NetClient, initial: RngModalState): {
     modal.style.display = "none";
   };
 
-  const findMatchingSeed = () => {
-    const raid = raidFor(state.raidId);
-    if (!raid) return;
+  const applySelection = () => {
     const constraints: Record<string, number> = {};
     for (const select of selects) {
       if (select.value !== "") constraints[select.dataset.key!] = Number(select.value);
     }
     if (Object.keys(constraints).length === 0) {
-      errorText.textContent = "Pick at least one outcome.";
+      clearRngConstraints(state.raidId);
+      errorText.textContent = "";
+      net.send({ type: "setSeed", seed: null });
       return;
     }
     saveRngConstraints(state.raidId, constraints);
-    const seed = findSeed(raid, constraints);
-    if (seed === null) {
-      errorText.textContent = "No seed found within search cap.";
-      return;
-    }
     errorText.textContent = "";
-    net.send({ type: "setSeed", seed });
+    net.send({ type: "findSeed", constraints });
   };
 
   const panel = el("div", { className: "yas-raid-modal-panel yas-rng-panel" }, [
@@ -121,8 +103,7 @@ export function createRngModal(net: NetClient, initial: RngModalState): {
       overrideText,
       decisionList,
       el("div", { className: "yas-rng-actions" }, [
-        el("button", { type: "button", className: "yas-rng-find", textContent: "APPLY OPTIONS" }),
-        el("button", { type: "button", className: "yas-rng-random", textContent: "RANDOM" }),
+        el("button", { type: "button", className: "yas-rng-random", textContent: "RESET" }),
       ]),
       errorText,
     ]),
@@ -136,11 +117,13 @@ export function createRngModal(net: NetClient, initial: RngModalState): {
     for (const select of selects) select.value = "";
     net.send({ type: "setSeed", seed: null });
   });
-  panel.querySelector<HTMLButtonElement>(".yas-rng-find")!.addEventListener("click", findMatchingSeed);
   modal.addEventListener("click", event => { if (event.target === modal) close(); });
   const onKeydown = (event: KeyboardEvent) => {
     if (event.key === "Escape" && modal.style.display !== "none") close();
   };
+  const disposeRngResult = net.on("rngResult", message => {
+    errorText.textContent = message.ok ? "" : "No seed found within search cap.";
+  });
   document.addEventListener("keydown", onKeydown);
   document.body.appendChild(modal);
 
@@ -157,6 +140,7 @@ export function createRngModal(net: NetClient, initial: RngModalState): {
       if (modal.style.display !== "none") renderDecisions();
     },
     dispose: () => {
+      disposeRngResult();
       document.removeEventListener("keydown", onKeydown);
       modal.remove();
     },
