@@ -25,6 +25,19 @@ crystals:
     spawnAt: 24
     spots: [{ x: -9, z: 9 }, { x: 9, z: 9 }, { x: 9, z: -9 }, { x: -9, z: -9 }]
 optionals:
+  rngLabels:
+    crystals-0-empty:
+      label: Crystal empty spot
+      options: [NW, NE, SE, SW]
+    crystals-0-swap:
+      label: Crystal elements
+      options: [Fire first, Water first]
+    divebomb-start:
+      label: Dash 1 start
+      options: [North, Northwest, West, Southwest, South, Southeast, East, Northeast]
+    divebomb-direction:
+      label: Dash direction
+      options: [Counter-clockwise, Clockwise]
   # Seeded per-run assignment of the two implosion axes across the two cast slots below. Each
   # variant carries one axis's cone offsets + cast-bar name (Latitude = E/W cones at ∓π/2,
   # Longitude = N/S cones at 0/π) and is shuffled onto a slot's placeholder cone pair, so which

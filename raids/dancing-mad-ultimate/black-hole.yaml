@@ -348,6 +348,43 @@ _blackHoleLaser: &blackHoleLaser
   beam: *blackHoleLaserBeam
 
 optionals:
+  rngLabels:
+    event-set-slap-happy-1:
+      label: Slap Happy 1
+      options: [Right, Left]
+    event-set-slap-happy-2:
+      label: Slap Happy 2
+      options: [Right, Left]
+    event-set-slap-happy-3:
+      label: Slap Happy 3
+      options: [Right, Left]
+    event-set-accretion-duty-first-in-line:
+      label: Accretion DPS
+      options: [M1, R1]
+    black-hole-black-hole-1-combo:
+      label: Black Hole 1 pattern
+      options: [Outer cross, Inner cross]
+    black-hole-black-hole-1-rotation:
+      label: Black Hole 1 rotation
+      options: ["0", "90", "180", "270"]
+    black-hole-black-hole-2-combo:
+      label: Black Hole 2 pattern
+      options: [Outer cross, Inner cross]
+    black-hole-black-hole-2-rotation:
+      label: Black Hole 2 rotation
+      options: ["0", "90", "180", "270"]
+    black-hole-black-hole-3-combo:
+      label: Black Hole 3 pattern
+      options: [Outer cross, Inner cross]
+    black-hole-black-hole-3-rotation:
+      label: Black Hole 3 rotation
+      options: ["0", "90", "180", "270"]
+    black-hole-black-hole-4-combo:
+      label: Black Hole 4 pattern
+      options: [Outer cross, Inner cross]
+    black-hole-black-hole-4-rotation:
+      label: Black Hole 4 rotation
+      options: ["0", "90", "180", "270"]
   combinations:
     endings:
       rng: true

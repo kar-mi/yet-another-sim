@@ -57,6 +57,16 @@ players:
     spawn: { x: 5.66, z: -5.66 }
 
 optionals:
+  rngLabels:
+    towers-offset:
+      label: Tower start
+      options: [N, NW, W, SW, S, SE, E, NE]
+    towers-direction:
+      label: Tower direction
+      options: [Clockwise, Counter-clockwise]
+    pairings:
+      label: Charge pattern
+      options: [Baseline, Alternate, Pattern C, Pattern D]
   towerRng: true
   combinations:
     endings:

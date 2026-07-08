@@ -15,6 +15,11 @@ async function bowelsRaid() {
   return applyBotPatterns(loadRaid(raidObj), loadBotPatterns(botObj));
 }
 
+async function dmuRaid(name: string) {
+  const raidObj = await parseRaidFile(join(RAIDS, `${name}.yaml`));
+  return loadRaid(raidObj);
+}
+
 test("bowels divebomb decisions match the rolled sweep", async () => {
   const raid = await bowelsRaid();
   const order = raid.optionals!.divebombSweep!.events;
@@ -52,4 +57,54 @@ test("describeDecisions lists bowels choices and empty raids have none", async (
   expect(keys).toContain("divebomb-start");
   expect(keys).toContain("divebomb-direction");
   expect(describeDecisions(loadTestRaid(baseRaid))).toEqual([]);
+});
+
+test("describeDecisions overlays raid-authored RNG labels", async () => {
+  const decisions = describeDecisions(await bowelsRaid());
+  const start = decisions.find(decision => decision.key === "divebomb-start");
+  const direction = decisions.find(decision => decision.key === "divebomb-direction");
+
+  expect(start).toEqual({
+    key: "divebomb-start",
+    label: "Dash 1 start",
+    options: ["North", "Northwest", "West", "Southwest", "South", "Southeast", "East", "Northeast"],
+  });
+  expect(direction).toEqual({
+    key: "divebomb-direction",
+    label: "Dash direction",
+    options: ["Counter-clockwise", "Clockwise"],
+  });
+});
+
+test("describeDecisions ignores wrong-length authored options", () => {
+  const raid = loadTestRaid({
+    ...baseRaid,
+    optionals: {
+      towerRng: true,
+      rngLabels: {
+        "towers-offset": { label: "Tower start", options: ["bad"] },
+      },
+    },
+  });
+
+  expect(describeDecisions(raid).find(decision => decision.key === "towers-offset")).toEqual({
+    key: "towers-offset",
+    label: "Tower start",
+    options: ["spot 1", "spot 2", "spot 3", "spot 4", "spot 5", "spot 6", "spot 7", "spot 8"],
+  });
+});
+
+test("dancing mad rngLabels match described decisions", async () => {
+  for (const name of ["bowels-of-agony", "black-hole", "forsaken", "graven-image-3"]) {
+    const raid = await dmuRaid(name);
+    const decisions = new Map(describeDecisions(raid).map(decision => [decision.key, decision]));
+
+    for (const [key, labels] of Object.entries(raid.optionals?.rngLabels ?? {})) {
+      const decision = decisions.get(key);
+      expect(decision, `${name} rngLabels.${key}`).toBeDefined();
+      if (labels.options) {
+        expect(labels.options, `${name} rngLabels.${key}.options`).toHaveLength(decision!.options.length);
+      }
+    }
+  }
 });
