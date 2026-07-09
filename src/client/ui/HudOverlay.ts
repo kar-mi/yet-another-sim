@@ -457,8 +457,8 @@ export class HudOverlay {
     if (this.bossCastKey === key) return;
     this.bossCastKey = key;
     this.bossCastPanelEl.innerHTML = "";
+    this.bossCastRows.clear();
     for (const boss of bosses) {
-      if (this.bossCastRows.has(boss.id)) continue;
       const rowEl = document.createElement("div");
       rowEl.className = "yas-boss-cast-row";
       const nameEl = document.createElement("span");
