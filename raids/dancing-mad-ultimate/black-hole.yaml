@@ -155,7 +155,7 @@ _thunderIII: &thunderIII
   targetMode: closest
   radius: 4
   telegraph: 4
-  damage: 100
+  damage: 50
   damageType: magical
   showCastBar: true
   bossId: exdeath
@@ -469,6 +469,12 @@ events:
     players: [ot, h2, r1, r2]
     applyEffect: *heroFated
 
+  # Thunder III hits twice, three seconds apart. Keep the existing id for the second hit because
+  # bot patterns already reference it.
+  - <<: *thunderIII
+    id: thunder-iii-tb-3-first
+    time: 5
+
   - <<: *thunderIII
     id: thunder-iii-tb-3
     time: 8
@@ -769,6 +775,10 @@ events:
     despawnAfter: 7
 
   - <<: *thunderIII
+    id: thunder-iii-tb-4-first
+    time: 46
+
+  - <<: *thunderIII
     id: thunder-iii-tb-4
     time: 49
 
@@ -974,6 +984,10 @@ events:
     id: recovery-after-bh-2
     time: 87
     name: Black hole cleanse recovery
+
+  - <<: *thunderIII
+    id: thunder-iii-tb-5-first
+    time: 87
 
   - <<: *thunderIII
     id: thunder-iii-tb-5

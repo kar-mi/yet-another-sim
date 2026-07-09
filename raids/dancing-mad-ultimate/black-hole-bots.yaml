@@ -237,8 +237,11 @@ solvers:
 
     # tb-3 has no Black Hole in play yet, so it keeps the plain shared bait spot. tb-4/tb-5 have
     # their own mechanic-gated rules above (framed on their Black Hole's 2nd tether).
+    - { when: { mechanic: thunder-iii-tb-3-first }, spots: *thunderBait }
     - { when: { mechanic: thunder-iii-tb-3 }, spots: *thunderBait }
+    - { when: { mechanic: thunder-iii-tb-4-first }, frame: [{ blackHoleTether: { hazardId: black-hole-1, order: 2 } }], origin: { boss: exdeath }, spots: *thunderRelativeBait }
     - { when: { mechanic: thunder-iii-tb-4 }, frame: [{ blackHoleTether: { hazardId: black-hole-1, order: 2 } }], origin: { boss: exdeath }, spots: *thunderRelativeBait }
+    - { when: { mechanic: thunder-iii-tb-5-first }, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 2 } }], origin: { boss: exdeath }, spots: *thunderRelativeBait }
     - { when: { mechanic: thunder-iii-tb-5 }, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 2 } }], origin: { boss: exdeath }, spots: *thunderRelativeBait }
 
     # Party-wide look-upon-me-2 dodge 

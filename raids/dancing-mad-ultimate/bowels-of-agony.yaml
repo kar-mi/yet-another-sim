@@ -241,21 +241,23 @@ events:
     anchor: boss
     shape: { kind: circle, center: { x: 0, z: 0 }, radius: 12 }
 
+  # One 5s cast bar, then two hits on the aggro holder 3.03s apart. Only the first hit carries the
+  # cast bar; the second is silent and lands 3.05s after it.
   - type: targeted
     id: thunder-iii-tb-1
-    time: 48
+    time: 47.3
     name: Thunder III
     targetMode: aggro
     role: tank
     radius: 4
-    telegraph: 2
+    telegraph: 5
     damage: 55
     damageType: magical
     showCastBar: true
     bossId: exdeath
   - type: targeted
     id: thunder-iii-tb-2
-    time: 50
+    time: 53.35
     name: Thunder III
     targetMode: aggro
     role: tank
@@ -263,12 +265,12 @@ events:
     telegraph: 2
     damage: 55
     damageType: magical
-    showCastBar: true
+    showCastBar: false
     bossId: exdeath
 
   - type: heal
     id: recovery-after-thunder
-    time: 53
+    time: 56
     name: Recovery
 
   - type: aoe
