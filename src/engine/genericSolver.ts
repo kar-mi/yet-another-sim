@@ -398,18 +398,30 @@ function nearestSafeEdge(spec: NonNullable<GenericSolverRule["nearestEdge"]>, wo
   return best;
 }
 
-function tetherMidpoint(
+type TetherState = { source: Vec2; held: true } | { source: Vec2; held: false; midpoint: Vec2 };
+
+export const TETHER_SOURCE_PULL = 1;
+
+function pullTowardSource(aim: Vec2, source: Vec2): Vec2 {
+  const toSource = sub(source, aim);
+  const dist = length(toSource);
+  if (dist <= TETHER_SOURCE_PULL) return source;
+  return add(aim, scale(normalize(toSource), TETHER_SOURCE_PULL));
+}
+
+function tetherState(
   spec: NonNullable<GenericSolverRule["tetherMidpoint"]>,
   player: Player,
   world: World,
-): Vec2 | undefined {
+): TetherState | undefined {
   const source = world.blackHoleTetherOrder?.[spec.hazardId]?.[spec.order];
   if (!source) return undefined;
   const tether = world.tetherSources.find(ts =>
     !ts.finalized && ts.pos.x === source.x && ts.pos.z === source.z);
-  if (!tether?.tetheredPlayerId || tether.tetheredPlayerId === player.id) return undefined;
+  if (!tether?.tetheredPlayerId) return undefined;
+  if (tether.tetheredPlayerId === player.id) return { source, held: true };
   const endpoint = world.players.find(p => p.id === tether.tetheredPlayerId)?.pos;
-  return endpoint ? scale(add(source, endpoint), 0.5) : undefined;
+  return endpoint ? { source, held: false, midpoint: scale(add(source, endpoint), 0.5) } : undefined;
 }
 
 function originOffset(rule: GenericSolverRule, world: World): Vec2 | undefined {
@@ -439,10 +451,13 @@ export function genericSolverWaypoint(
       if (edge) return edge;
       continue; // refs unresolved: fall through to the next rule
     }
+    let tetherSource: Vec2 | undefined;
     if (rule.tetherMidpoint) {
-      const midpoint = tetherMidpoint(rule.tetherMidpoint, player, world);
-      if (midpoint) return midpoint;
-      continue; // tether unresolved or already held by this bot: fall through
+      const state = tetherState(rule.tetherMidpoint, player, world);
+      if (!state) continue; // tether unresolved: fall through
+      if (!state.held) return state.midpoint;
+      if (rule.spot === undefined && rule.spots === undefined) continue;
+      tetherSource = state.source;
     }
     if (rule.limitCutSpread) {
       // The matched mechanic (required when.mechanic) identifies which limit cut supplies the basis.
@@ -455,7 +470,7 @@ export function genericSolverWaypoint(
     }
     const spot = rule.spots?.[player.id] ?? rule.spot;
     if (!spot) continue;
-    if (rule.frame === undefined) return spot;
+    if (rule.frame === undefined) return tetherSource ? pullTowardSource(spot, tetherSource) : spot;
     const north = frameNorth(rule.frame, matched, world);
     if (!north) continue; // frame uncomputable: fall through to the next rule
     const rightSign = rule.mirrorLateral && rule.frame !== "matched"
@@ -466,7 +481,8 @@ export function genericSolverWaypoint(
       : 1;
     const origin = originOffset(rule, world);
     if (!origin) continue;
-    return add(origin, frameToWorld(spot, north, rightSign, forwardSign));
+    const target = add(origin, frameToWorld(spot, north, rightSign, forwardSign));
+    return tetherSource ? pullTowardSource(target, tetherSource) : target;
   }
   return undefined;
 }

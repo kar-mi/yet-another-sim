@@ -160,43 +160,35 @@ solvers:
     # first_in_line's untagged dps solos both, back to back (free again by wave 2 since laser-1
     # only fires once) - the Accretion-tagged dps isn't involved in Black Hole 1 at all.
     - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: dps }, startAt: 34, endAt: 35, frame: [{ blackHoleTether: { hazardId: black-hole-1, order: 2 } }], spot: *atOrb }
-    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: dps }, startAt: 34, endAt: 41, tetherMidpoint: { hazardId: black-hole-1, order: 2 } }
-    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: dps }, startAt: 37, endAt: 44, frame: [{ blackHoleTether: { hazardId: black-hole-1, order: 2 } }], spot: *clockwiseSoak }
+    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: dps }, startAt: 34, endAt: 44, tetherMidpoint: { hazardId: black-hole-1, order: 2 }, frame: [{ blackHoleTether: { hazardId: black-hole-1, order: 2 } }], spot: *clockwiseSoak }
     - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: dps }, startAt: 41, endAt: 42, frame: [{ blackHoleTether: { hazardId: black-hole-1, order: 0 } }], spot: *atOrb }
-    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: dps }, startAt: 41, endAt: 48, tetherMidpoint: { hazardId: black-hole-1, order: 0 } }
-    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: dps }, startAt: 44, endAt: 51, frame: [{ blackHoleTether: { hazardId: black-hole-1, order: 0 } }], spot: *clockwiseSoak }
+    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: dps }, startAt: 41, endAt: 51, tetherMidpoint: { hazardId: black-hole-1, order: 0 }, frame: [{ blackHoleTether: { hazardId: black-hole-1, order: 0 } }], spot: *clockwiseSoak }
 
     # wave 2 (Black Hole 1's 2nd tether, fires t=51): Support hand-off chain starts here -
     # first_in_line's tank.
     - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 41, endAt: 42, frame: [{ blackHoleTether: { hazardId: black-hole-1, order: 1 } }], spot: *atOrb }
-    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 41, endAt: 48, tetherMidpoint: { hazardId: black-hole-1, order: 1 } }
-    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 44, endAt: 51, frame: [{ blackHoleTether: { hazardId: black-hole-1, order: 1 } }], spot: *clockwiseSoak }
+    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 41, endAt: 51, tetherMidpoint: { hazardId: black-hole-1, order: 1 }, frame: [{ blackHoleTether: { hazardId: black-hole-1, order: 1 } }], spot: *clockwiseSoak }
 
     # Drag exdeath (ot holds its aggro) out to the empty spot on the far side of Black Hole 1's 2nd
     - { when: { static: true }, startAt: 40, endAt: 45, frame: [{ blackHoleOrb: { hazardId: black-hole-1, index: 1 } }], spots: { ot: { dist: 12, angleDeg: 240 } } }
 
     # waves 3-5 (Black Hole 2's 3rd tether, fires t=75/80/85): Accretion carrier #1's tether duty
     - { when: { debuff: ["First in Line", "Accretion Duty"]}, startAt: 65, endAt: 67, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 2 } }], spot: *atOrb }
-    - { when: { debuff: ["First in Line", "Accretion Duty"]}, startAt: 65, endAt: 72, tetherMidpoint: { hazardId: black-hole-2, order: 2 } }
-    - { when: { debuff: ["First in Line", "Accretion Duty"]}, startAt: 68, endAt: 85, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 2 } }], spot: *clockwiseSoak }
+    - { when: { debuff: ["First in Line", "Accretion Duty"]}, startAt: 65, endAt: 85, tetherMidpoint: { hazardId: black-hole-2, order: 2 }, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 2 } }], spot: *clockwiseSoak }
 
     # waves 3-5 (Black Hole 2's 1st tether, fires t=75/80/85): DPS hand-off, wave 3 = first_in_line,
     # waves 4-5 = second_in_line.
-    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: dps }, startAt: 65, endAt: 67, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 0 } }], spot: *atOrb }
-    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: dps }, startAt: 65, endAt: 72, tetherMidpoint: { hazardId: black-hole-2, order: 0 } }
-    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: dps }, startAt: 68, endAt: 75, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 0 } }], spot: *clockwiseSoak }
+    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: dps }, startAt: 65, endAt: 66, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 0 } }], spot: *atOrb }
+    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: dps }, startAt: 65, endAt: 75, tetherMidpoint: { hazardId: black-hole-2, order: 0 }, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 0 } }], spot: *clockwiseSoak }
     - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: dps }, startAt: 75, endAt: 76, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 0 } }], spot: *atOrb }
-    - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: dps }, startAt: 75, endAt: 77, tetherMidpoint: { hazardId: black-hole-2, order: 0 } }
-    - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: dps }, startAt: 75, endAt: 85, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 0 } }], spot: *clockwiseSoak }
+    - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: dps }, startAt: 75, endAt: 85, tetherMidpoint: { hazardId: black-hole-2, order: 0 }, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 0 } }], spot: *clockwiseSoak }
 
     # waves 3-5 (Black Hole 2's 2nd tether, fires t=75/80/85): Support hand-off, waves 3-4 =
     # first_in_line's tank, wave 5 = second_in_line's tank.
-    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 65, endAt: 67, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 1 } }], spot: *atOrb }
-    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 65, endAt: 72, tetherMidpoint: { hazardId: black-hole-2, order: 1 } }
-    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 68, endAt: 80, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 1 } }], spot: *clockwiseSoak }
+    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 65, endAt: 66, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 1 } }], spot: *atOrb }
+    - { when: { debuff: ["First in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 65, endAt: 80, tetherMidpoint: { hazardId: black-hole-2, order: 1 }, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 1 } }], spot: *clockwiseSoak }
     - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 80, endAt: 81, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 1 } }], spot: *atOrb }
-    - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 80, endAt: 82, tetherMidpoint: { hazardId: black-hole-2, order: 1 } }
-    - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 80, endAt: 85, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 1 } }], spot: *clockwiseSoak }
+    - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 80, endAt: 85, tetherMidpoint: { hazardId: black-hole-2, order: 1 }, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 1 } }], spot: *clockwiseSoak }
 
     # Damning Edict 2 (84-89) and Look Upon Me 1 (86-90) overlap
     - { when: { static: true }, startAt: 85.3, endAt: 89, frame: [{ boss: { id: bigkefka, from: facing } }, { boss: { id: chaos, from: facing } }], mirrorLateral: true, mirrorForward: true, spots: { mt: { r: -7, z: -7 }, h1: { r: -7, z: -7 }, h2: { r: -7, z: -7 }, r1: { r: -7, z: -7 }, r2: { r: -7, z: -7 }, m1: { r: -7, z: -7 }, m2: { r: -7, z: -7 }, ot: { r: -14, z: -7 } } }
@@ -208,26 +200,21 @@ solvers:
 
     # waves 6-8 (Black Hole 3's 3rd tether, fires t=109/114/119): Accretion carrier #2
     - { when: { debuff: ["Second in Line", "Accretion Duty"]}, startAt: 102, endAt: 103, frame: [{ blackHoleTether: { hazardId: black-hole-3, order: 2 } }], spot: *atOrb }
-    - { when: { debuff: ["Second in Line", "Accretion Duty"]}, startAt: 102, endAt: 106, tetherMidpoint: { hazardId: black-hole-3, order: 2 } }
-    - { when: { debuff: ["Second in Line", "Accretion Duty"]}, startAt: 102, endAt: 119, frame: [{ blackHoleTether: { hazardId: black-hole-3, order: 2 } }], spot: *clockwiseSoak }
+    - { when: { debuff: ["Second in Line", "Accretion Duty"]}, startAt: 102, endAt: 119, tetherMidpoint: { hazardId: black-hole-3, order: 2 }, frame: [{ blackHoleTether: { hazardId: black-hole-3, order: 2 } }], spot: *clockwiseSoak }
 
     # waves 6-8 (Black Hole 3's 1st tether, fires t=109/114/119): DPS hand-off, wave 6 =
     # second_in_line, waves 7-8 = third_in_line.
     - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: dps }, startAt: 102, endAt: 103, frame: [{ blackHoleTether: { hazardId: black-hole-3, order: 0 } }], spot: *atOrb }
-    - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: dps }, startAt: 102, endAt: 106, tetherMidpoint: { hazardId: black-hole-3, order: 0 } }
-    - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: dps }, startAt: 102, endAt: 109, frame: [{ blackHoleTether: { hazardId: black-hole-3, order: 0 } }], spot: *clockwiseSoak }
+    - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: dps }, startAt: 102, endAt: 109, tetherMidpoint: { hazardId: black-hole-3, order: 0 }, frame: [{ blackHoleTether: { hazardId: black-hole-3, order: 0 } }], spot: *clockwiseSoak }
     - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: dps }, startAt: 109, endAt: 110, frame: [{ blackHoleTether: { hazardId: black-hole-3, order: 0 } }], spot: *atOrb }
-    - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: dps }, startAt: 109, endAt: 111, tetherMidpoint: { hazardId: black-hole-3, order: 0 } }
-    - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: dps }, startAt: 109, endAt: 119, frame: [{ blackHoleTether: { hazardId: black-hole-3, order: 0 } }], spot: *clockwiseSoak }
+    - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: dps }, startAt: 109, endAt: 119, tetherMidpoint: { hazardId: black-hole-3, order: 0 }, frame: [{ blackHoleTether: { hazardId: black-hole-3, order: 0 } }], spot: *clockwiseSoak }
 
     # waves 6-8 (Black Hole 3's 2nd tether, fires t=109/114/119): Support hand-off, waves 6-7 =
     # second_in_line's tank, wave 8 = third_in_line's healer (its only non-dps member).
     - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 102, endAt: 103, frame: [{ blackHoleTether: { hazardId: black-hole-3, order: 1 } }], spot: *atOrb }
-    - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 102, endAt: 106, tetherMidpoint: { hazardId: black-hole-3, order: 1 } }
-    - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 102, endAt: 114, frame: [{ blackHoleTether: { hazardId: black-hole-3, order: 1 } }], spot: *clockwiseSoak }
+    - { when: { debuff: ["Second in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 102, endAt: 114, tetherMidpoint: { hazardId: black-hole-3, order: 1 }, frame: [{ blackHoleTether: { hazardId: black-hole-3, order: 1 } }], spot: *clockwiseSoak }
     - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 114, endAt: 115, frame: [{ blackHoleTether: { hazardId: black-hole-3, order: 1 } }], spot: *atOrb }
-    - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 114, endAt: 117, tetherMidpoint: { hazardId: black-hole-3, order: 1 } }
-    - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 114, endAt: 119, frame: [{ blackHoleTether: { hazardId: black-hole-3, order: 1 } }], spot: *clockwiseSoak }
+    - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: ["tank", "healer"] }, startAt: 114, endAt: 119, tetherMidpoint: { hazardId: black-hole-3, order: 1 }, frame: [{ blackHoleTether: { hazardId: black-hole-3, order: 1 } }], spot: *clockwiseSoak }
 
 
 # wave 9|  DPS 3 | Support  3 |
@@ -236,14 +223,12 @@ solvers:
     # wave 9 (Black Hole 4's 1st tether, fires t=142): DPS chain ends at third_in_line - solos alone,
     # no further hand-off.
     - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: dps }, startAt: 135, endAt: 136, frame: [{ blackHoleTether: { hazardId: black-hole-4, order: 0 } }], spot: *atOrb }
-    - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: dps }, startAt: 135, endAt: 139, tetherMidpoint: { hazardId: black-hole-4, order: 0 } }
-    - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: dps }, startAt: 136, endAt: 142, frame: [{ blackHoleTether: { hazardId: black-hole-4, order: 0 } }], spot: *clockwiseSoak }
+    - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: dps }, startAt: 135, endAt: 142, tetherMidpoint: { hazardId: black-hole-4, order: 0 }, frame: [{ blackHoleTether: { hazardId: black-hole-4, order: 0 } }], spot: *clockwiseSoak }
 
     # wave 9 (Black Hole 4's 3rd tether, fires t=142) then wave 10 (its 2nd/delayed tether, fires
     # t=150): 
     - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: healer }, startAt: 135, endAt: 136, frame: [{ blackHoleTether: { hazardId: black-hole-4, order: 1 } }], spot: *atOrb }
-    - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: healer }, startAt: 135, endAt: 139, tetherMidpoint: { hazardId: black-hole-4, order: 1 } }
-    - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: healer }, startAt: 136, endAt: 142, frame: [{ blackHoleTether: { hazardId: black-hole-4, order: 1 } }], spot: *clockwiseSoak }
+    - { when: { debuff: ["Third in Line", "NonAccretion Duty"], role: healer }, startAt: 135, endAt: 142, tetherMidpoint: { hazardId: black-hole-4, order: 1 }, frame: [{ blackHoleTether: { hazardId: black-hole-4, order: 1 } }], spot: *clockwiseSoak }
 
     # wave 10's final soak stage pushes the soloing healer out to the arena edge so it doesn't die to
     # look-upon-me-2 (kefka-teleport-3 lands a new Kefka position at t=142, right before this stage).

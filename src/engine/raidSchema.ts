@@ -105,11 +105,15 @@ const GenericSolverRuleSchema = z.object({
     return;
   }
   if (rule.tetherMidpoint !== undefined) {
-    if (rule.frame !== undefined || rule.origin !== undefined || rule.spot !== undefined
-      || rule.spots !== undefined || rule.limitCutSpread !== undefined || rule.nearestEdge !== undefined) {
-      ctx.addIssue({ code: "custom", path: ["tetherMidpoint"], message: "tetherMidpoint returns absolute coords; do not also set frame / origin / spot / spots / limitCutSpread / nearestEdge" });
+    if (rule.limitCutSpread !== undefined) {
+      ctx.addIssue({ code: "custom", path: ["tetherMidpoint"], message: "tetherMidpoint cannot be combined with limitCutSpread" });
     }
-    return;
+    if (rule.spot === undefined && rule.spots === undefined) {
+      if (rule.frame !== undefined || rule.origin !== undefined) {
+        ctx.addIssue({ code: "custom", path: ["tetherMidpoint"], message: "spotless tetherMidpoint returns absolute coords; do not also set frame / origin" });
+      }
+      return;
+    }
   }
   // limitCutSpread computes absolute coords from each bot's number; it sources its rotation basis
   // from the limit cut named by when.mechanic, and replaces (and forbids) the usual frame/spot/spots

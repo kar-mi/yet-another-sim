@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
-import { add, dot, length, normalize, scale } from "@shared/math";
+import { add, dot, length, normalize, scale, sub } from "@shared/math";
 import { cos, sin } from "@shared/dmath";
-import { genericFrameNorth, genericSolverWaypoint } from "../../genericSolver";
+import { genericFrameNorth, genericSolverWaypoint, TETHER_SOURCE_PULL } from "../../genericSolver";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../../raidLoader";
 import { pointInShape } from "../../shapes";
 import { createWorld } from "../../world";
@@ -20,6 +20,12 @@ function clockwiseSoakWorld(source: { x: number; z: number }) {
   const north = normalize(source);
   const right = { x: north.z, z: -north.x };
   return add(scale(right, 9.44), scale(north, 3.44));
+}
+
+function pullTowardSource(aim: { x: number; z: number }, source: { x: number; z: number }) {
+  const toSource = sub(source, aim);
+  const dist = length(toSource);
+  return dist <= TETHER_SOURCE_PULL ? source : add(aim, scale(normalize(toSource), TETHER_SOURCE_PULL));
 }
 
 test("black-hole raid and bot companion load with resolved tether frame positions", async () => {
@@ -185,7 +191,7 @@ test("Black Hole tether handoff aims at the live source-holder midpoint, then st
   expect(stolen.tetheredPlayerId).toBe("r2");
 });
 
-test("fresh Black Hole tether holder skips the midpoint rule and heads to final soak", async () => {
+test("fresh Black Hole tether holder's merged rule heads to final soak", async () => {
   const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
   const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
   const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
@@ -194,7 +200,26 @@ test("fresh Black Hole tether holder skips the midpoint rule and heads to final 
   const source = world.blackHoleTetherOrder["black-hole-2"]![0]!;
   const tether = world.tetherSources.find(ts => !ts.finalized && ts.pos.x === source.x && ts.pos.z === source.z)!;
   expect(tether.tetheredPlayerId).toBe("m1");
-  expect(genericSolverWaypoint(byId(world, "m1"), world)).toEqual(clockwiseSoakWorld(source));
+  expect(genericSolverWaypoint(byId(world, "m1"), world)).toEqual(
+    pullTowardSource(clockwiseSoakWorld(source), source),
+  );
+});
+
+test("Black Hole tether holders stay stable after the handoff settles", async () => {
+  const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
+  const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
+  const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
+
+  const settled = runTicksWithComputedBotIntents(createWorld(raid, 1), Math.ceil(82.1 * 60));
+  const sources = settled.blackHoleTetherOrder["black-hole-2"]!;
+  const holders = sources.map(source =>
+    settled.tetherSources.find(ts => !ts.finalized && ts.pos.x === source.x && ts.pos.z === source.z)?.tetheredPlayerId);
+  expect(holders.every(Boolean)).toBe(true);
+
+  const beforeFire = runTicksWithComputedBotIntents(settled, Math.ceil((84.8 - settled.time) * 60));
+  expect(sources.map(source =>
+    beforeFire.tetherSources.find(ts => !ts.finalized && ts.pos.x === source.x && ts.pos.z === source.z)?.tetheredPlayerId,
+  )).toEqual(holders);
 });
 
 test("Look Upon Me beams from bigkefka toward arena centre, and the party dodges both it and Damning Edict 2 for any teleport/bait outcome", async () => {
