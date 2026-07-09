@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { genericSolverWaypoint, resolvedMechanics } from "../genericSolver";
+import { add, length, normalize, scale, sub } from "@shared/math";
 import { computeBotIntents } from "../botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
@@ -332,6 +333,12 @@ const lcWorld = (clockwise: boolean) => world({
 const closeTo = (got: { x: number; z: number } | undefined, x: number, z: number) => {
   expect(got!.x).toBeCloseTo(x, 2);
   expect(got!.z).toBeCloseTo(z, 2);
+};
+
+const pullTowardSource = (aim: { x: number; z: number }, source: { x: number; z: number }) => {
+  const toSource = sub(source, aim);
+  const dist = length(toSource);
+  return dist <= 1 ? source : add(aim, scale(normalize(toSource), 1));
 };
 
 test("limitCutSpread places #1 at SSW and rotates clockwise from relative-north (S)", () => {
@@ -727,7 +734,7 @@ test("nearestEdge schema rejects a rule that also sets a spot", () => {
   })).toThrow(/nearestEdge returns absolute coords/);
 });
 
-test("tetherMidpoint returns the live orb-to-holder midpoint", () => {
+test("tetherMidpoint aims just source-side of the live orb-to-holder midpoint", () => {
   const w = world({
     time: 10,
     players: [
@@ -739,7 +746,51 @@ test("tetherMidpoint returns the live orb-to-holder midpoint", () => {
     botSolvers: { generic: [{ when: { static: true }, tetherMidpoint: { hazardId: "bh", order: 0 } }] },
   });
 
-  expect(genericSolverWaypoint(player({ id: "interceptor" }), w)).toEqual({ x: 10, z: 2.5 });
+  expect(genericSolverWaypoint(player({ id: "interceptor" }), w)).toEqual(
+    pullTowardSource({ x: 10, z: 2.5 }, { x: 17, z: 0 }),
+  );
+});
+
+test("tetherMidpoint with a spot sends holders to the pulled soak and non-holders to the pulled midpoint", () => {
+  const w = world({
+    time: 10,
+    players: [
+      player({ id: "holder", pos: { x: 0, z: 0 } }),
+      player({ id: "interceptor", pos: { x: 8, z: 0 } }),
+    ],
+    blackHoleTetherOrder: { bh: [{ x: 0, z: 10 }] },
+    tetherSources: [{ pos: { x: 0, z: 10 }, tetheredPlayerId: "holder", finalized: false }],
+    botSolvers: { generic: [{
+      when: { static: true },
+      tetherMidpoint: { hazardId: "bh", order: 0 },
+      frame: [{ blackHoleTether: { hazardId: "bh", order: 0 } }],
+      spot: { x: 0, z: 4 },
+    }] },
+  });
+
+  expect(genericSolverWaypoint(player({ id: "holder" }), w)).toEqual(
+    pullTowardSource({ x: 0, z: 4 }, { x: 0, z: 10 }),
+  );
+  expect(genericSolverWaypoint(player({ id: "interceptor" }), w)).toEqual(
+    pullTowardSource({ x: 0, z: 5 }, { x: 0, z: 10 }),
+  );
+});
+
+test("tetherMidpoint spot pull clamps at the source", () => {
+  const w = world({
+    time: 10,
+    players: [player({ id: "holder", pos: { x: 0, z: 0 } })],
+    blackHoleTetherOrder: { bh: [{ x: 0, z: 1 }] },
+    tetherSources: [{ pos: { x: 0, z: 1 }, tetheredPlayerId: "holder", finalized: false }],
+    botSolvers: { generic: [{
+      when: { static: true },
+      tetherMidpoint: { hazardId: "bh", order: 0 },
+      frame: [{ blackHoleTether: { hazardId: "bh", order: 0 } }],
+      spot: { x: 0, z: 0.5 },
+    }] },
+  });
+
+  expect(genericSolverWaypoint(player({ id: "holder" }), w)).toEqual({ x: 0, z: 1 });
 });
 
 test("tetherMidpoint falls through when this bot already holds the tether", () => {
@@ -779,15 +830,24 @@ test("tetherMidpoint falls through without a resolved live tether", () => {
   }))).toEqual({ x: 9, z: 9 });
 });
 
-test("tetherMidpoint schema rejects a rule that also sets a spot", () => {
+test("tetherMidpoint schema allows framed spots but still rejects mutually exclusive solvers", () => {
   expect(() => loadBotPatterns({
     players: {},
     solvers: { generic: [{
       when: { debuff: "Headwind" },
       tetherMidpoint: { hazardId: "bh", order: 0 },
-      spot: { x: 0, z: 5 },
+      frame: [{ blackHoleTether: { hazardId: "bh", order: 0 } }],
+      spot: { r: 0, z: 5 },
     }] },
-  })).toThrow(/tetherMidpoint returns absolute coords/);
+  })).not.toThrow();
+  expect(() => loadBotPatterns({
+    players: {},
+    solvers: { generic: [{
+      when: { mechanic: "lc" },
+      tetherMidpoint: { hazardId: "bh", order: 0 },
+      limitCutSpread: { spots: [{ r: 0, z: 5 }] },
+    }] },
+  })).toThrow(/tetherMidpoint cannot be combined/);
 });
 
 test("solver spot schema enforces relative framed and absolute unframed shapes", () => {

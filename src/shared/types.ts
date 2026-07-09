@@ -88,8 +88,9 @@ export type GenericSolverRule = {
   // axis, picking whichever safe edge point is nearest `from`. Mutually exclusive with the other
   // placement fields; falls through when either ref can't be resolved.
   nearestEdge?: { from: FrameRef; avoid: FrameRef; clearance: number };
-  // Live midpoint between a Black Hole tether orb and its current tethered endpoint. Returns
-  // absolute coords; falls through when the source/end can't resolve or this bot already holds it.
+  // Live midpoint between a Black Hole tether orb and its current tethered endpoint. Once this bot
+  // holds the tether, an authored spot/spots target is used instead. Both targets are pulled 1 yalm
+  // toward the source orb to keep the tether; falls through when the source/end can't resolve.
   tetherMidpoint?: { hazardId: string; order: 0 | 1 | 2 };
 };
 
