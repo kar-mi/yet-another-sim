@@ -34,9 +34,8 @@ export interface RelayRoomInitOptions {
   createSessionLog?: (sessionId: string) => SessionLog;
 }
 
-// Outbound sink: routes a server message to one client. The colyseus adapter wires this to the
-// socket; tests and the static loopback client inject their own delivery. Keeping the relay free of
-// any transport means the static client can reuse it without bundling colyseus into the browser.
+// Outbound sink: routes a server message to one client. The Colyseus adapter wires this to the
+// socket; tests inject their own delivery.
 type Send = (clientId: string, message: ServerMessage | string) => void;
 const idleIntent: Intent = { move: { x: 0, z: 0 } };
 

@@ -4,8 +4,7 @@ A base raid simulator for FFXIV-style encounters.
 
 The project runs a server-authoritative TypeScript simulation with a browser client for
 rendering and input. Raid encounters are authored as YAML timelines under `raids/`, then
-loaded by the Bun server and played in the browser. The browser can connect through the
-Colyseus multiplayer server or run a static single-player build with generated raid data.
+loaded by the Bun server and played in the browser through the Colyseus multiplayer server.
 
 ## Requirements
 
@@ -37,8 +36,6 @@ http://localhost:3000
 bun run dev                   # Run the Bun server
 bun run start                 # Run the Bun server
 bun run build                 # Build the browser bundle into .bundle/
-bun run build:static          # Build the static single-player bundle into .bundle-static/
-bun run generate:static-raids # Generate embedded raid data for static builds
 bun run typecheck             # Run TypeScript checks
 bun test                      # Run tests
 ```
@@ -61,7 +58,7 @@ The simulator currently supports the base loop for FFXIV-style raid mechanics:
 
 - 8-player tank/healer/DPS rosters
 - Server-authoritative movement and simulation ticks
-- Colyseus multiplayer transport and static single-player loopback mode
+- Colyseus multiplayer transport
 - Browser rendering with Babylon.js
 - YAML-authored arenas, waymarks, bot movement, and timelines
 - AOE, targeted bait, tether, chain, group stack, tower, knockback, limit cut, divebomb, and effect mechanics

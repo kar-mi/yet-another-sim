@@ -66,10 +66,7 @@ if (Bun.env.BUILD_ON_START === "1") {
     env: "disable",
     minify: !Bun.env.YAS_DEBUG_BUNDLE,
     ignoreDCEAnnotations: true,
-    define: {
-      __YAS_STATIC__: "false",
-      __YAS_DEBUG__: Bun.env.YAS_DEBUG_CLIENT === "1" ? "true" : "false",
-    },
+    define: { __YAS_DEBUG__: Bun.env.YAS_DEBUG_CLIENT === "1" ? "true" : "false" },
   });
 
   if (!buildResult.success) {

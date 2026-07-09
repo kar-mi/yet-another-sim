@@ -19,8 +19,6 @@ import type { NetClient } from "../net";
 import { createElement } from "./dom";
 import { maybeShowWelcomeModal } from "./WelcomeModal";
 
-declare const __YAS_STATIC__: boolean | undefined;
-
 const LOBBY_SLOT_ORDER = ["mt", "ot", "h1", "h2", "m1", "m2", "r1", "r2"] as const;
 
 type LobbyMessage = Extract<ServerMessage, { type: "lobby" }>;
@@ -60,14 +58,9 @@ function normalizeCategory(value: unknown): RaidCategory | null {
 }
 
 export async function loadRaidCategories(): Promise<RaidCategory[]> {
-  let json: unknown;
-  if (typeof __YAS_STATIC__ !== "undefined" && __YAS_STATIC__) {
-    json = (await import("../staticRaids.generated")).RAID_CATALOG;
-  } else {
-    const res = await fetch("/api/raids");
-    if (!res.ok) throw new Error(`Failed to load raid list: ${res.status}`);
-    json = await res.json();
-  }
+  const res = await fetch("/api/raids");
+  if (!res.ok) throw new Error(`Failed to load raid list: ${res.status}`);
+  const json: unknown = await res.json();
   if (!Array.isArray(json)) throw new Error("Invalid raid list");
 
   let total = 0;
@@ -83,7 +76,6 @@ export async function loadRaidCategories(): Promise<RaidCategory[]> {
 }
 
 async function loadReplayList(sessionId: string): Promise<ReplaySummary[]> {
-  if (typeof __YAS_STATIC__ !== "undefined" && __YAS_STATIC__) return [];
   const res = await fetch(`/api/replays/${encodeURIComponent(sessionId)}`);
   if (!res.ok) return [];
   const json: unknown = await res.json();
@@ -109,9 +101,7 @@ async function loadReplay(sessionId: string, pull: number): Promise<ReplayData> 
 
 export function showLanding(options?: { notice?: string }): Promise<string> {
   return new Promise((resolve) => {
-    const landingNote = typeof __YAS_STATIC__ !== "undefined" && __YAS_STATIC__
-      ? "Single-player practice build — online multiplayer is not available. Your session runs entirely in this browser."
-      : "A UUID session link will be created. Copy the page URL to invite others.";
+    const landingNote = "A UUID session link will be created. Copy the page URL to invite others.";
     const overlay = document.createElement("div");
     overlay.id = "yas-menu";
 
