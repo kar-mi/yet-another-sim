@@ -10,8 +10,6 @@ CLAUDE.md
 node_modules/
 dist/
 .bundle/
-.bundle-static/
-src/client/staticRaids.generated.ts
 .env
 docker-compose-server.yml
 deployment/
@@ -19,6 +17,5 @@ deployment/
 logs/
 monitoring/
 scripts/*
-!scripts/generate-static-raids.ts
 
 deploy.sh

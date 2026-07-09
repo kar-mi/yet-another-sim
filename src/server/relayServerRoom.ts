@@ -50,9 +50,8 @@ export interface RelayRoomOptions {
   lobbyTimeoutMs?: number;
 }
 
-// Colyseus room adapter: owns a transport-agnostic RelayRoom and wires colyseus lifecycle, auth,
-// rate limiting, and message routing into it. Keeping the relay logic out of this class
-// is what lets the static (loopback) client reuse RelayRoom without pulling colyseus into the browser.
+// Colyseus room adapter: owns a transport-agnostic RelayRoom and wires Colyseus lifecycle, auth,
+// rate limiting, and message routing into it.
 export class RelayServerRoom extends Room {
   private readonly relay = new RelayRoom();
 

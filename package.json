@@ -3,9 +3,7 @@
   "version": "0.6.0",
   "scripts": {
     "dev": "BUILD_ON_START=1 bun src/server/server.ts",
-    "build": "rm -rf .bundle && bun build ./index.html --outdir .bundle --sourcemap=none --env=disable --minify --ignore-dce-annotations --define __YAS_STATIC__=false --define __YAS_DEBUG__=false",
-    "generate:static-raids": "bun scripts/generate-static-raids.ts",
-    "build:static": "bun scripts/generate-static-raids.ts && rm -rf .bundle-static && bun build ./index.html --outdir .bundle-static --sourcemap=none --env=disable --minify --ignore-dce-annotations --define __YAS_STATIC__=true --define __YAS_DEBUG__=false && cp -R static .bundle-static/static",
+    "build": "rm -rf .bundle && bun build ./index.html --outdir .bundle --sourcemap=none --env=disable --minify --ignore-dce-annotations --define __YAS_DEBUG__=false",
     "start": "bun src/server/server.ts",
     "typecheck": "bunx tsc --noEmit",
     "test": "bun test"

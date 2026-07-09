@@ -16,8 +16,6 @@ import {
   recordResyncRequest,
 } from "./perfMetrics";
 
-declare const __YAS_STATIC__: boolean | undefined;
-
 export interface Transport {
   open(): Promise<void>;
   send(message: ClientMessage): boolean;
@@ -402,15 +400,8 @@ function applyFrameControls(world: World, frame: Frame): World {
 }
 
 export async function connect(): Promise<NetClient> {
-  let transport: Transport;
-  if (typeof __YAS_STATIC__ !== "undefined" && __YAS_STATIC__) {
-    const { LoopbackTransport } = await import("./loopbackTransport");
-    transport = new LoopbackTransport();
-  } else {
-    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-    transport = new ColyseusTransport(`${protocol}//${location.host}`);
-  }
-  const client = new NetClient(transport);
+  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+  const client = new NetClient(new ColyseusTransport(`${protocol}//${location.host}`));
   await client.open();
   return client;
 }
