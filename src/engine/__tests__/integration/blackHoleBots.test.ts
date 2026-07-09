@@ -41,6 +41,29 @@ test("black-hole raid and bot companion load with resolved tether frame position
   expect(world.pendingTethers.filter(tether => tether.id.startsWith("black-hole-2-laser"))).toHaveLength(3);
 });
 
+test("Thunder III tankbusters are two closest-target hits three seconds apart", async () => {
+  const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text()) as { events: Array<{ id: string; time: number; telegraph: number; damage: number; targetMode: string }> };
+  const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text()) as { solvers: { generic: Array<{ when?: { mechanic?: string } }> } };
+  const events = raidData.events.filter((event: { id: string }) => event.id.startsWith("thunder-iii-tb-"));
+
+  expect(events.map((event: { id: string; time: number; telegraph: number; damage: number; targetMode: string }) => ({
+    id: event.id,
+    resolveAt: event.time + event.telegraph,
+    damage: event.damage,
+    targetMode: event.targetMode,
+  }))).toEqual([
+    { id: "thunder-iii-tb-3-first", resolveAt: 9, damage: 50, targetMode: "closest" },
+    { id: "thunder-iii-tb-3", resolveAt: 12, damage: 50, targetMode: "closest" },
+    { id: "thunder-iii-tb-4-first", resolveAt: 50, damage: 50, targetMode: "closest" },
+    { id: "thunder-iii-tb-4", resolveAt: 53, damage: 50, targetMode: "closest" },
+    { id: "thunder-iii-tb-5-first", resolveAt: 91, damage: 50, targetMode: "closest" },
+    { id: "thunder-iii-tb-5", resolveAt: 94, damage: 50, targetMode: "closest" },
+  ]);
+
+  const thunderRules = botData.solvers.generic.filter((rule: { when?: { mechanic?: string } }) => rule.when?.mechanic?.startsWith("thunder-iii-tb-"));
+  expect(thunderRules.map(rule => rule.when!.mechanic!)).toEqual(events.map(event => event.id));
+});
+
 // Black Hole 2's tether order is locked clockwise from bigkefka's position at spawn (t=68, after
 // kefka-teleport-1) and must stay fixed for the hazard's lifetime - kefka teleports again at t=84,
 // mid-resolution (between the 80 and 85 fires), and that must NOT reshuffle the assignment.
