@@ -975,6 +975,10 @@ const PairingPatternSchema = z.object({
 // `pairings` declares patterns of player pairs (one selected per run when `rng`), each carrying an
 // optional group label + initial charges that feed world.partners / playerGroups / initialCharges.
 const OptionalsSchema = z.object({
+  rngLabels: z.record(z.string().min(1), z.object({
+    label: z.string().min(1).optional(),
+    options: z.array(z.string().min(1)).optional(),
+  })).optional(),
   // Seeded per-run rotation of tower-wave positions around their canonical ring (see rotateTowerWaves).
   towerRng: z.boolean().default(false),
   orderSwap: z.object({

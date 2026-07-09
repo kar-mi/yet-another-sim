@@ -44,6 +44,10 @@ players:
     spawn: { x: 5.66, z: -5.66 }
 
 optionals:
+  rngLabels:
+    plant-swap:
+      label: Arrow groups
+      options: [Support same arrow, DPS same arrow]
   combinations:
     plant:
       rng: true

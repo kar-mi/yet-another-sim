@@ -13,10 +13,11 @@ function crystal(element: CrystalElement, pos: Vec2, spawnAt: number): Crystal {
 export function placeCrystals(
   config: CrystalConfig | undefined,
   rngState: number,
-): { crystals: Crystal[]; rngState: number } {
-  if (!config) return { crystals: [], rngState };
+): { crystals: Crystal[]; rngState: number; rolls: { emptyIndex: number; swap: number }[] } {
+  if (!config) return { crystals: [], rngState, rolls: [] };
 
   const crystals: Crystal[] = [];
+  const rolls: { emptyIndex: number; swap: number }[] = [];
   let nextState = rngState;
   for (const entry of config) {
     const spawnAt = entry.spawnAt ?? 0;
@@ -30,6 +31,7 @@ export function placeCrystals(
     const windIndex = (emptyIndex + 2) % 4;
     const remaining = [0, 1, 2, 3].filter(i => i !== emptyIndex && i !== windIndex);
     const swapRoll = randomInt(emptyRoll.state, 2);
+    rolls.push({ emptyIndex, swap: swapRoll.value });
     const [fireIndex, waterIndex] = swapRoll.value === 0 ? remaining : [remaining[1]!, remaining[0]!];
     crystals.push(
       crystal("wind", toVec2(entry.spots[windIndex]!), spawnAt),
@@ -39,5 +41,5 @@ export function placeCrystals(
     nextState = swapRoll.state;
   }
 
-  return { crystals, rngState: nextState };
+  return { crystals, rngState: nextState, rolls };
 }

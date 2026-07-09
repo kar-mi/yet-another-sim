@@ -86,7 +86,7 @@ export class ReplayTransport implements Transport {
   }
 
   private emitPlayback(state: "playing" | "paused"): void {
-    this.handler({ type: "playback", state, raidId: this.replay.raidId || EMPTY_RAID_ID, hostClientId: this.clientId });
+    this.handler({ type: "playback", state, raidId: this.replay.raidId || EMPTY_RAID_ID, hostClientId: this.clientId, rngDecisions: [] });
   }
 
   private deliver(): void {

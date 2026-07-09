@@ -1,10 +1,12 @@
-import { EMPTY_RAID_ID, type PlaybackState, type RaidCategory } from "@shared/protocol";
+import { EMPTY_RAID_ID, type DecisionDescription, type PlaybackState, type RaidCategory } from "@shared/protocol";
 import { RAID_CHANGE_START_DELAY_MS } from "@shared/constants";
 import type { NetClient } from "../net";
 import { loadRaidCategories } from "./MainMenu";
 import { showLoadingOverlay } from "./LoadingOverlay";
 import { el } from "./dom";
 import type { HudLayoutManager } from "./HudLayoutManager";
+import { armSeed, createRngModal } from "./RngModal";
+import { loadRngConstraints } from "../rngPrefs";
 
 function ticksToLabel(tick: number): string {
   const totalSeconds = Math.floor(tick / 60);
@@ -33,7 +35,10 @@ export async function createRaidHudSelect(
   initialIsHost: boolean,
   initialPlaybackState: PlaybackState,
   hudLayout: HudLayoutManager,
+  initialWorldSeed: number | null = null,
+  initialSeedOverride: number | null = null,
   replay?: { duration: () => number; currentTick: () => number; play: () => void; pause: () => void; restart: () => void; seek: (tick: number) => void },
+  initialRngDecisions: DecisionDescription[] = [],
 ): Promise<() => void> {
   let isHost = initialIsHost;
   let lastState: PlaybackState = initialPlaybackState;
@@ -66,6 +71,8 @@ export async function createRaidHudSelect(
     el("span", { className: "yas-raid-open-glyph", textContent: "▾" }),
   ]);
   let activeRaidId = initialRaidId;
+  let currentWorldSeed = initialWorldSeed;
+  let seedOverride = initialSeedOverride;
   let selectedRaidId = initialRaidId;
   let raidChangePending = false;
   let resumePlaybackAfterModal = false;
@@ -222,6 +229,14 @@ export async function createRaidHudSelect(
   const pauseBtn = makePlaybackBtn("PAUSE", () => replay ? replay.pause() : net.send({ type: "pause" }));
   const stopBtn = makePlaybackBtn("STOP", () => net.send({ type: "stop" }));
   const restartBtn = makePlaybackBtn("RESTART", () => replay ? replay.restart() : net.send({ type: "restart" }));
+  const rngModal = replay ? null : createRngModal(net, {
+    raidId: activeRaidId,
+    currentSeed: currentWorldSeed,
+    seedOverride,
+    rngDecisions: initialRngDecisions,
+    isHost,
+  });
+  const rngBtn = replay ? null : makePlaybackBtn("RNG", () => rngModal?.open());
   if (replay) {
     controls.append(playBtn, pauseBtn, restartBtn);
   } else {
@@ -280,6 +295,8 @@ export async function createRaidHudSelect(
     pauseBtn.disabled = raidChangePending || !canControl() || state !== "playing";
     stopBtn.disabled = raidChangePending || !canControl() || state === "stopped";
     restartBtn.disabled = raidChangePending || !canControl();
+    if (rngBtn) rngBtn.disabled = raidChangePending || !isHost;
+    rngModal?.update({ isHost });
   };
 
   const disposePlayback = net.on("playback", message => {
@@ -291,6 +308,7 @@ export async function createRaidHudSelect(
     if (wasRaidChangePending || message.state === "playing") resumePlaybackAfterModal = false;
     currentCategory = categoryForRaidId(message.raidId);
     selectedRaidId = message.raidId;
+    rngModal?.update({ raidId: message.raidId, rngDecisions: message.rngDecisions });
     updateButtonLabel();
     if (modal.style.display !== "none") {
       renderCategories();
@@ -312,10 +330,28 @@ export async function createRaidHudSelect(
     syncPlayback(lastState);
     if (shouldResume) net.send({ type: "play" });
   });
+  const disposeLobby = net.on("lobby", message => {
+    isHost = replay ? false : net.clientId === message.hostClientId;
+    activeRaidId = message.raidId;
+    seedOverride = message.seedOverride;
+    rngModal?.update({ raidId: message.raidId, seedOverride, rngDecisions: message.rngDecisions, isHost });
+    if (isHost && message.seedOverride === null && Object.keys(loadRngConstraints(message.raidId)).length > 0) {
+      armSeed(net, message.raidId);
+    }
+  });
+  const disposeStarted = net.on("started", message => {
+    currentWorldSeed = message.world.seed;
+    rngModal?.update({ currentSeed: currentWorldSeed });
+    if (isHost) armSeed(net, activeRaidId);
+  });
   syncPlayback(initialPlaybackState);
 
   const selectRow = el("div", { className: "yas-raid-select-row" });
   selectRow.append(raidBtn);
+  if (rngBtn) {
+    const rngRow = el("div", { className: "yas-rng-controls" }, [rngBtn]);
+    selectRow.appendChild(rngRow);
+  }
   wrapper.append(label, selectRow, controls);
   if (seek) wrapper.appendChild(seek);
   if (timeInput && durationLabel) {
@@ -325,9 +361,13 @@ export async function createRaidHudSelect(
   }
   document.body.appendChild(wrapper);
   hudLayout.register("raidselector", wrapper);
+
   return () => {
     disposePlayback();
     disposeError();
+    disposeLobby();
+    disposeStarted();
+    rngModal?.dispose();
     if (seekTimer) clearInterval(seekTimer);
     document.removeEventListener("keydown", onKeydown);
     modal.remove();

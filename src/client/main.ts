@@ -111,7 +111,7 @@ async function main(): Promise<void> {
       syncKeybindLabels();
       updateController();
 
-      const disposeRaidSelect = await createRaidHudSelect(replayNet, lobbyResult.raidId, false, "paused", hudLayout, transport);
+      const disposeRaidSelect = await createRaidHudSelect(replayNet, lobbyResult.raidId, false, "paused", hudLayout, lobbyResult.world.seed, null, transport);
       const disposeInput = initInput();
       const disposePerfHud = initPerfHud();
       const stopLoop = startNetLoop(renderer, replayNet);
@@ -159,7 +159,7 @@ async function main(): Promise<void> {
     syncKeybindLabels();
     updateController();
 
-    const disposeRaidSelect = await createRaidHudSelect(net, session.raidId, session.isHost, session.playbackState, hudLayout);
+    const disposeRaidSelect = await createRaidHudSelect(net, session.raidId, session.isHost, session.playbackState, hudLayout, session.world.seed, session.seedOverride, undefined, session.rngDecisions);
     const disposeInput = initInput();
     const disposePerfHud = initPerfHud();
     const stopLoop = startNetLoop(renderer, net);

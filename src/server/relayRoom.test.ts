@@ -5,6 +5,9 @@ import { ClientMessageSchema, EMPTY_RAID_ID, MAX_OBSERVERS } from "@shared/proto
 import type { ServerMessage } from "@shared/protocol";
 import { capacitySnapshot, EMPTY_LOBBY_TIMEOUT_MS, LOBBY_TIMEOUT_MS, RelayRoom, type SessionStatus } from "./relayRoom";
 import { createEmptyRaid, loadSessionRaid, type SessionLog } from "./sessionRaid";
+import { worldHash } from "@shared/worldHash";
+import { describeDecisions } from "../engine/seedSearch";
+import { preRollRaid } from "../engine/preRoll";
 
 // Session test raids reuse the shared canonical roster builder (clock spots from shared/protocol) so
 // spawns stay in sync with the engine; only the arena/duration and a couple of spawn overrides differ.
@@ -25,6 +28,28 @@ function testRaid() {
 
 function alternateRaid() {
   return loadRaid({ ...baseRaid, name: "Alternate Test", arena: sessionArena, duration: 30, players: roster() });
+}
+
+function rngRaid() {
+  return loadRaid({
+    ...baseRaid,
+    name: "RNG Test",
+    arena: sessionArena,
+    duration: 30,
+    players: roster(),
+    optionals: {
+      rngLabels: {
+        "plant-swap": { label: "Arrow groups", options: ["Support same arrow", "DPS same arrow"] },
+      },
+      combinations: {
+        plant: {
+          rng: true,
+          g1: { members: ["mt", "ot", "h1", "h2"], combos: [["up", "up"]] },
+          g2: { members: ["r1", "r2", "m1", "m2"], combos: [["down", "down"]] },
+        },
+      },
+    },
+  });
 }
 
 function makeSession(options: { now?: () => number; lobbyTimeoutMs?: number; createSessionLog?: (sessionId: string) => SessionLog } = {}) {
@@ -455,6 +480,91 @@ test("host can toggle bot invincibility without changing humans", () => {
 
   session.setBotsInvincible("c1", false);
   expect(session.world.players.some(player => player.control === "bot" && player.invincible)).toBe(false);
+});
+
+test("host seed override pins restarts and lobby state", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+
+  session.handle("c1", { type: "setSeed", seed: 0x1234abcd });
+  expect(sent.some(entry => entry.message.type === "lobby" && entry.message.seedOverride === 0x1234abcd)).toBe(true);
+
+  session.start("c1");
+  expect(session.world.seed).toBe(0x1234abcd);
+  const firstHash = worldHash(session.world);
+
+  session.restart("c1");
+  expect(session.world.seed).toBe(0x1234abcd);
+  expect(worldHash(session.world)).toBe(firstHash);
+});
+
+test("lobby includes server-derived rng decisions", () => {
+  const raid = rngRaid();
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.setRaid("c1", "rng", raid);
+
+  const lobby = [...sent].reverse().find(entry => entry.clientId === "c1" && entry.message.type === "lobby")?.message;
+  expect(lobby).toMatchObject({ type: "lobby", rngDecisions: describeDecisions(raid) });
+});
+
+test("playback includes server-derived rng decisions", () => {
+  const raid = rngRaid();
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.setRaid("c1", "rng", raid);
+  session.claimSlot("c1", "mt");
+
+  session.start("c1");
+  session.pause("c1");
+
+  const playback = [...sent].reverse().find(entry => entry.clientId === "c1" && entry.message.type === "playback")?.message;
+  expect(playback).toMatchObject({ type: "playback", rngDecisions: describeDecisions(raid) });
+});
+
+test("seed override is host-only, clearable, and reset by raid change", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.join("c2");
+
+  session.handle("c2", { type: "setSeed", seed: 1 });
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Only the host can set the seed")).toBe(true);
+
+  session.handle("c1", { type: "setSeed", seed: 2 });
+  session.handle("c1", { type: "setSeed", seed: null });
+  expect(sent.some(entry => entry.message.type === "lobby" && entry.message.seedOverride === null)).toBe(true);
+
+  session.handle("c1", { type: "setSeed", seed: 3 });
+  session.setRaid("c1", "alternate", alternateRaid());
+  expect(sent.some(entry => entry.message.type === "lobby" && entry.message.raidId === "alternate" && entry.message.seedOverride === null)).toBe(true);
+});
+
+test("findSeed is host-only and reports success or failure", () => {
+  const raid = rngRaid();
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.join("c2");
+  session.setRaid("c1", "rng", raid);
+
+  session.handle("c2", { type: "findSeed", constraints: { "plant-swap": 1 } });
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Only the host can set the seed")).toBe(true);
+
+  session.handle("c1", { type: "findSeed", constraints: { "plant-swap": 1 } });
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "rngResult" && entry.message.ok)).toBe(true);
+  const seededLobby = [...sent].reverse().find(entry => entry.message.type === "lobby" && entry.message.seedOverride !== null)?.message;
+  expect(seededLobby?.type).toBe("lobby");
+  if (seededLobby?.type !== "lobby") throw new Error("expected seeded lobby");
+  expect(preRollRaid(raid, seededLobby.seedOverride!).decisions["plant-swap"]).toBe(1);
+
+  const previousSeed = seededLobby.seedOverride;
+  session.handle("c1", { type: "findSeed", constraints: {} });
+  session.handle("c1", { type: "findSeed", constraints: { "plant-swap": 99 } });
+  expect(sent.filter(entry => entry.clientId === "c1" && entry.message.type === "rngResult" && !entry.message.ok)).toHaveLength(2);
+  const latestLobby = [...sent].reverse().find(entry => entry.message.type === "lobby")?.message;
+  expect(latestLobby?.type).toBe("lobby");
+  if (latestLobby?.type !== "lobby") throw new Error("expected lobby");
+  expect(latestLobby.seedOverride).toBe(previousSeed);
 });
 
 test("non-host cannot toggle bot invincibility", () => {

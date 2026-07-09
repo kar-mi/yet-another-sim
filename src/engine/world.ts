@@ -121,6 +121,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const hasMechanics = Object.values(collections).some(v => Array.isArray(v) && v.length > 0);
 
   return {
+    seed,
     time: 0,
     rngState,
     groupChoices: {},

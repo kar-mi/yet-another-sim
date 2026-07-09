@@ -39,6 +39,7 @@ export const MAX_RAID_NAME_LENGTH = 60;
 
 export type RaidEntry = { id: string; name: string };
 export type RaidCategory = { id: string; name: string; description: string; raids: RaidEntry[] };
+export type DecisionDescription = { key: string; label: string; options: string[] };
 
 export function normalizeRaidName(name: unknown): string | null {
   if (typeof name !== "string") return null;
@@ -113,6 +114,14 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     type: z.literal("restart"),
   }),
   z.strictObject({
+    type: z.literal("setSeed"),
+    seed: z.number().int().min(0).max(0xffffffff).nullable(),
+  }),
+  z.strictObject({
+    type: z.literal("findSeed"),
+    constraints: z.record(z.string(), z.number().int().min(0)),
+  }),
+  z.strictObject({
     type: z.literal("setBotsInvincible"),
     enabled: z.boolean(),
   }),
@@ -178,16 +187,19 @@ export type ServerMessage =
       status: LobbyStatus;
       hostClientId: string;
       slots: LobbySlot[];
+      seedOverride: number | null;
+      rngDecisions: DecisionDescription[];
       observerCount: number;
       maxObservers: number;
       observingByYou: boolean;
     }
+  | { type: "rngResult"; ok: boolean }
   // The pull's world at `baseTick` plus the input log tail from baseTick to `tick`. On a fresh start
   // baseTick is 0 and frames is empty. For a late join / resync anchored to a host snapshot,
   // baseTick is the snapshot tick and frames is only the tail — the client adopts the world and
   // replays just the tail instead of the full log.
   | { type: "started"; world: World; baseTick: number; yourPlayerId: string | null; tick: number; frames: Frame[] }
-  | { type: "playback"; state: PlaybackState; raidId: string; hostClientId: string }
+  | { type: "playback"; state: PlaybackState; raidId: string; hostClientId: string; rngDecisions: DecisionDescription[] }
   | { type: "sessionExpired" }
   // Incremental input frames to step locally. `startTick` is the tick index of the first frame.
   | { type: "frames"; startTick: number; frames: Frame[] }
