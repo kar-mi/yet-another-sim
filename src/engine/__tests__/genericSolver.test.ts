@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { genericSolverWaypoint, resolvedMechanics } from "../genericSolver";
+import { genericSolverWaypoint, resolvedMechanics, TETHER_SOURCE_PULL } from "../genericSolver";
 import { add, length, normalize, scale, sub } from "@shared/math";
 import { computeBotIntents } from "../botIntent";
 import { tick } from "../sim";
@@ -338,7 +338,7 @@ const closeTo = (got: { x: number; z: number } | undefined, x: number, z: number
 const pullTowardSource = (aim: { x: number; z: number }, source: { x: number; z: number }) => {
   const toSource = sub(source, aim);
   const dist = length(toSource);
-  return dist <= 1 ? source : add(aim, scale(normalize(toSource), 1));
+  return dist <= TETHER_SOURCE_PULL ? source : add(aim, scale(normalize(toSource), TETHER_SOURCE_PULL));
 };
 
 test("limitCutSpread places #1 at SSW and rotates clockwise from relative-north (S)", () => {
@@ -734,7 +734,7 @@ test("nearestEdge schema rejects a rule that also sets a spot", () => {
   })).toThrow(/nearestEdge returns absolute coords/);
 });
 
-test("tetherMidpoint aims just source-side of the live orb-to-holder midpoint", () => {
+test("tetherMidpoint returns the live orb-to-holder midpoint", () => {
   const w = world({
     time: 10,
     players: [
@@ -746,12 +746,10 @@ test("tetherMidpoint aims just source-side of the live orb-to-holder midpoint", 
     botSolvers: { generic: [{ when: { static: true }, tetherMidpoint: { hazardId: "bh", order: 0 } }] },
   });
 
-  expect(genericSolverWaypoint(player({ id: "interceptor" }), w)).toEqual(
-    pullTowardSource({ x: 10, z: 2.5 }, { x: 17, z: 0 }),
-  );
+  expect(genericSolverWaypoint(player({ id: "interceptor" }), w)).toEqual({ x: 10, z: 2.5 });
 });
 
-test("tetherMidpoint with a spot sends holders to the pulled soak and non-holders to the pulled midpoint", () => {
+test("tetherMidpoint with a spot sends holders to the pulled soak and non-holders to the midpoint", () => {
   const w = world({
     time: 10,
     players: [
@@ -771,9 +769,7 @@ test("tetherMidpoint with a spot sends holders to the pulled soak and non-holder
   expect(genericSolverWaypoint(player({ id: "holder" }), w)).toEqual(
     pullTowardSource({ x: 0, z: 4 }, { x: 0, z: 10 }),
   );
-  expect(genericSolverWaypoint(player({ id: "interceptor" }), w)).toEqual(
-    pullTowardSource({ x: 0, z: 5 }, { x: 0, z: 10 }),
-  );
+  expect(genericSolverWaypoint(player({ id: "interceptor" }), w)).toEqual({ x: 0, z: 5 });
 });
 
 test("tetherMidpoint spot pull clamps at the source", () => {
@@ -847,7 +843,7 @@ test("tetherMidpoint schema allows framed spots but still rejects mutually exclu
       tetherMidpoint: { hazardId: "bh", order: 0 },
       limitCutSpread: { spots: [{ r: 0, z: 5 }] },
     }] },
-  })).toThrow(/tetherMidpoint cannot be combined/);
+  })).toThrow(/tetherMidpoint cannot be combined with limitCutSpread/);
 });
 
 test("solver spot schema enforces relative framed and absolute unframed shapes", () => {

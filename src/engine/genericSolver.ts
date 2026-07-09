@@ -400,7 +400,7 @@ function nearestSafeEdge(spec: NonNullable<GenericSolverRule["nearestEdge"]>, wo
 
 type TetherState = { source: Vec2; held: true } | { source: Vec2; held: false; midpoint: Vec2 };
 
-const TETHER_SOURCE_PULL = 1;
+export const TETHER_SOURCE_PULL = 1;
 
 function pullTowardSource(aim: Vec2, source: Vec2): Vec2 {
   const toSource = sub(source, aim);
@@ -455,7 +455,7 @@ export function genericSolverWaypoint(
     if (rule.tetherMidpoint) {
       const state = tetherState(rule.tetherMidpoint, player, world);
       if (!state) continue; // tether unresolved: fall through
-      if (!state.held) return pullTowardSource(state.midpoint, state.source);
+      if (!state.held) return state.midpoint;
       if (rule.spot === undefined && rule.spots === undefined) continue;
       tetherSource = state.source;
     }

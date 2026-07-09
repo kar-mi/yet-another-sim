@@ -105,8 +105,8 @@ const GenericSolverRuleSchema = z.object({
     return;
   }
   if (rule.tetherMidpoint !== undefined) {
-    if (rule.limitCutSpread !== undefined || rule.nearestEdge !== undefined) {
-      ctx.addIssue({ code: "custom", path: ["tetherMidpoint"], message: "tetherMidpoint cannot be combined with limitCutSpread / nearestEdge" });
+    if (rule.limitCutSpread !== undefined) {
+      ctx.addIssue({ code: "custom", path: ["tetherMidpoint"], message: "tetherMidpoint cannot be combined with limitCutSpread" });
     }
     if (rule.spot === undefined && rule.spots === undefined) {
       if (rule.frame !== undefined || rule.origin !== undefined) {
