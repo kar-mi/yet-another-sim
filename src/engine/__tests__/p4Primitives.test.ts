@@ -24,10 +24,10 @@ test("debug fixtures resolve from their debuff expiry", async () => {
   expect(cones.every(m => m.shape.kind === "cone" && m.shape.angleDeg === 90 && m.shape.length === 20)).toBe(true);
 
   const reverseGaze = await debugWorld("p4-carrier-gaze-test.yaml", 21.1);
-  expect(reverseGaze.log.filter(entry => entry.mechanic === "Cursed Shriek")).not.toHaveLength(0);
+  expect(reverseGaze.log.filter(entry => entry.mechanic === "Fake Cursed Shriek")).not.toHaveLength(0);
 
   const burst = await debugWorld("p4-effect-burst-test.yaml", 12.1);
-  expect(burst.active.filter(m => m.name === "Entropy").map(m => m.shape.kind)).toEqual(["donut", "donut"]);
+  expect(burst.active.filter(m => m.name === "Fake Entropy").map(m => m.shape.kind)).toEqual(["donut", "donut"]);
 
   const fluid = await debugWorld("p4-effect-burst-test.yaml", 21.1);
   expect(fluid.active.filter(m => m.name === "Dynamic Fluid").map(m => m.shape.kind)).toEqual(["donut", "donut"]);

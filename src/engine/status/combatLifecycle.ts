@@ -21,6 +21,7 @@ export const COMBAT_LIFECYCLE_REGISTRY: Record<EffectBehavior["kind"], CombatLif
   effectBurst: {},
   twister: {},
   carrierGaze: {},
+  reverseCarrierGaze: {},
   pairedSpreadStack: {},
   effectCheck: {},
   plant: {},

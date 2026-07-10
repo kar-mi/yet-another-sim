@@ -11,5 +11,5 @@ players:
   - { id: m1, role: dps, spawn: { x: 0, z: 0 } }
   - { id: m2, role: dps, spawn: { x: 0, z: 8 } }
 events:
-  - { type: apply_effect, id: entropy-mark, time: 2, name: Entropy, players: [m1, m2], applyEffect: { ref: entropy, duration: 10, behavior: { questionMark: true } } }
+  - { type: apply_effect, id: entropy-mark, time: 2, name: Fake Entropy, players: [m1, m2], applyEffect: { ref: fake_entropy, duration: 10 } }
   - { type: apply_effect, id: fluid-mark, time: 16, name: Dynamic Fluid, players: [m1, m2], applyEffect: { ref: dynamic_fluid, duration: 5 } }
