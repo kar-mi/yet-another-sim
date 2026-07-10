@@ -7,6 +7,7 @@ import type { ActiveInverse, PendingInverse } from "@shared/types";
 import { pointInShape } from "../shapes";
 import { applyMechanicDamage, applyEffect, applyKnockback, shapeOrigin } from "./helpers";
 import { cullResolved } from "./util";
+import { FloorAoe, DEFAULT_DANGER_COLOR, DEFAULT_INVERTED_COLOR } from "@shared/floorAoe";
 
 export function resolveInversions(ctx: TickContext): {
   inversions: ActiveInverse[];
@@ -21,6 +22,8 @@ export function resolveInversions(ctx: TickContext): {
       const shownShapes = variantB ? pi.shownShapesB! : pi.shownShapes;
       const hiddenShapes = variantB ? pi.hiddenShapesB! : pi.hiddenShapes;
       const inverted = pi.questionMark ?? (pi.rng ? randFloat() < 0.5 : false);
+      const resolveAt = pi.t + pi.telegraph;
+      const color = pi.color ?? pi.ringColor ?? (inverted ? DEFAULT_INVERTED_COLOR : DEFAULT_DANGER_COLOR);
       inversions.push({
         id: pi.id,
         name: pi.name,
@@ -29,10 +32,14 @@ export function resolveInversions(ctx: TickContext): {
         ringColor: pi.ringColor,
         ringHeight: pi.ringHeight,
         telegraphAlpha: pi.telegraphAlpha,
+        floorAoes: shownShapes.map((shape, i) => new FloorAoe({
+          id: `${pi.id}-${i}`, shape, color, alpha: pi.telegraphAlpha,
+          resolveMode: { kind: "active" }, resolveAt,
+        })),
         inverted,
         variantB,
         telegraphStart: pi.t,
-        resolveAt: pi.t + pi.telegraph,
+        resolveAt,
         damage: pi.damage,
         damageType: pi.damageType,
         applyEffect: pi.applyEffect,

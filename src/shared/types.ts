@@ -1,4 +1,5 @@
 import type { Vec2 } from "./math";
+import type { FloorAoe } from "./floorAoe";
 
 export type Role = "tank" | "healer" | "dps";
 
@@ -339,6 +340,9 @@ export type ActiveMechanic = {
   showTelegraph: boolean;
   // "resolve" hides the marker while casting, then uses the normal resolved flash.
   telegraphMode?: TelegraphMode;
+  // The render-facing wrapper for this mechanic's ground telegraph. Absent when showTelegraph is
+  // false. Reassigned (not mutated) whenever `shape` changes, e.g. targeting resolution.
+  floorAoe?: FloorAoe;
   // When set, the circle's target (and center) is chosen at resolve time, not cast start.
   // The ground telegraph stays hidden until it resolves. "aggro" picks the boss's current
   // threat target (the player holding aggro).
@@ -348,6 +352,9 @@ export type ActiveMechanic = {
   lingerFor?: number;
   // Render-only: flash the footprint in this color for the final `lead` seconds before the hit.
   flashBeforeResolve?: FlashBeforeResolve;
+  // Ground telegraph color (hex). Kept alongside showTelegraph/telegraphMode/flashBeforeResolve so a
+  // deferred cleave can rebuild floorAoe when a bait arms it (see buildFloorAoe).
+  color?: string;
 };
 
 export type PendingEvent = {
@@ -380,6 +387,8 @@ export type PendingEvent = {
   telegraphMode: TelegraphMode;
   bossRelativeCenter?: BossRelativeCenter;
   flashBeforeResolve?: FlashBeforeResolve;
+  // Ground telegraph color (hex). Defaults to the standard danger red when omitted.
+  color?: string;
 };
 
 export type PendingTargetedEvent = {
@@ -400,6 +409,7 @@ export type PendingTargetedEvent = {
   showCastBar: boolean;
   showTelegraph: boolean;
   telegraphMode: TelegraphMode;
+  color?: string;
 };
 
 
@@ -461,6 +471,7 @@ export type PendingEffectBurst = {
   showCastBar: boolean;
   showTelegraph: boolean;
   telegraphMode: TelegraphMode;
+  color?: string;
 };
 
 export type EffectResolverAction =
@@ -565,6 +576,7 @@ export type PendingInverse = {
   ringColor?: string;              // hex colour of this mechanic's boss ring
   ringHeight?: number;             // vertical height of this mechanic's boss ring
   telegraphAlpha?: number;          // optional fixed alpha for shown telegraph footprints
+  color?: string;                  // shownShapes fill color; defaults to ringColor, else blue/red by inverted state
   rng: boolean;                    // randomize the inversion at cast start
   questionMark?: boolean;          // authored override of the inversion state
   damage: number;
@@ -582,6 +594,8 @@ export type ActiveInverse = {
   ringColor?: string;              // hex colour of this mechanic's boss ring
   ringHeight?: number;             // vertical height of this mechanic's boss ring
   telegraphAlpha?: number;          // optional fixed alpha for shown telegraph footprints
+  // Render-facing wrapper, one per shownShapes entry (hiddenShapes are never drawn).
+  floorAoes?: FloorAoe[];
   inverted: boolean;               // true => "?" telegraph: hiddenShapes are lethal
   variantB: boolean;               // true => the b orientation was rolled (for bot solvers)
   telegraphStart: number;
@@ -658,6 +672,7 @@ export type PendingGaze = {
   knockback?: Knockback;
   showCastBar: boolean;
   visual?: GazeVisual;
+  color?: string;                  // carrier cone fill color; defaults to orange/blue by reverse state
 };
 
 export type ActiveGaze = {
@@ -679,6 +694,8 @@ export type ActiveGaze = {
   showCastBar: boolean;
   visual?: GazeVisual;
   resolved: boolean;
+  // Render-facing wrapper for the carrier cone footprint. Absent when there's no carrier cone.
+  floorAoe?: FloorAoe;
 };
 
 export type PendingGroupEvent = {
@@ -697,6 +714,7 @@ export type PendingGroupEvent = {
   showCastBar: boolean;
   showMarker: boolean;
   showTelegraph: boolean;
+  color?: string;       // stack circle color; defaults to the standard "stack here" blue
 };
 
 export type PendingEffectSelect = {
@@ -781,6 +799,10 @@ export type ActiveGroupMechanic = {
   showCastBar: boolean;
   showMarker: boolean;
   showTelegraph: boolean;
+  color?: string;
+  // Render-facing wrapper for the stack circle. Absent when showTelegraph is false. Rebuilt every
+  // tick with the marked player's live position (see resolveGroups) rather than reassigned once.
+  floorAoe?: FloorAoe;
   outcome?: "success" | "failure"; // set at resolve, drives the post-resolve flash
 };
 

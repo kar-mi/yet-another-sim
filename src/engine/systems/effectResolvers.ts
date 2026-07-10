@@ -4,8 +4,11 @@ import { pointInShape } from "../shapes";
 import type { TickContext } from "./context";
 import { applyMechanicDamage, isEffectActiveAt } from "./helpers";
 import { TARGETED_LINGER } from "@shared/constants";
+import { FloorAoe, DEFAULT_DANGER_COLOR } from "@shared/floorAoe";
 
-export function addResolvedAoeVisual(ctx: TickContext, id: string, name: string, shape: AOEShape): void {
+// One-shot visual: the mechanic already resolved this tick, so it's shown from right now through a
+// short post-hit linger rather than through a normal telegraph cast.
+export function addResolvedAoeVisual(ctx: TickContext, id: string, name: string, shape: AOEShape, color?: string): void {
   ctx.resolvedAoeVisuals.push({
     id,
     name,
@@ -18,6 +21,11 @@ export function addResolvedAoeVisual(ctx: TickContext, id: string, name: string,
     showCastBar: false,
     showTelegraph: true,
     lingerFor: TARGETED_LINGER,
+    floorAoe: new FloorAoe({
+      id, shape, color: color ?? DEFAULT_DANGER_COLOR,
+      resolveMode: { kind: "resolve", lead: 0, trail: TARGETED_LINGER },
+      resolveAt: ctx.time,
+    }),
   });
 }
 

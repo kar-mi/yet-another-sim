@@ -389,6 +389,7 @@ export class BabylonRenderer implements Renderer {
     this.lineLinks.dispose();
     this.chains.dispose();
     this.towers.dispose();
+    this.telegraphs.dispose();
     this.stacks.dispose();
     this.inverse.dispose();
     this.spreadStacks.dispose();

@@ -7,6 +7,7 @@ import { pointInShape } from "../shapes";
 import { applyMechanicDamage, applyEffect } from "./helpers";
 import { cullResolved } from "./util";
 import { TARGETED_LINGER } from "@shared/constants";
+import { FloorAoe, DEFAULT_STACK_COLOR } from "@shared/floorAoe";
 
 export function resolveGroups(ctx: TickContext): {
   groupMechanics: ActiveGroupMechanic[];
@@ -46,10 +47,28 @@ export function resolveGroups(ctx: TickContext): {
         showCastBar: pg.showCastBar,
         showMarker: pg.showMarker,
         showTelegraph: pg.showTelegraph,
+        color: pg.color,
       });
     } else {
       remainingPendingGroups.push(pg);
     }
+  }
+
+  // Rebuild each stack circle's FloorAoe every tick from the marked player's live position (they can
+  // move mid-cast), matching the old renderer's per-frame reposition. Hidden once resolved or if the
+  // marked player has died.
+  for (const gm of groupMechanics) {
+    if (gm.resolved || !gm.showTelegraph) { gm.floorAoe = undefined; continue; }
+    const marked = players.find(p => p.id === gm.markedPlayerId);
+    gm.floorAoe = marked?.alive
+      ? new FloorAoe({
+        id: gm.id,
+        shape: { kind: "circle", center: { x: marked.pos.x, z: marked.pos.z }, radius: gm.radius },
+        color: gm.color ?? DEFAULT_STACK_COLOR,
+        resolveMode: { kind: "active" },
+        resolveAt: gm.resolveAt,
+      })
+      : undefined;
   }
 
   for (const gm of groupMechanics) {
