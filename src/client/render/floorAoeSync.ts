@@ -45,6 +45,10 @@ export function syncFloorAoeMeshes(
       const mat = new StandardMaterial(`floor-aoe-mat-${aoe.id}`, scene);
       mat.specularColor = new Color3(0, 0, 0);
       mat.backFaceCulling = false;
+      // Donut ribbons (and any other hand-wound mesh) may face away from the hemispheric light
+      // depending on vertex winding; without this the surface lights with groundColor (black)
+      // regardless of diffuseColor. Two-sided lighting flips the normal for back-facing polygons.
+      mat.twoSidedLighting = true;
       mesh.material = mat;
       entry = { mesh, source: aoe };
       meshes.set(aoe.id, entry);
