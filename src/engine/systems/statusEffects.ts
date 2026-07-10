@@ -20,7 +20,7 @@ export function applyStatusEffects(ctx: TickContext): void {
   // Crystal-origin follow-ups share one origin across all carriers of a mechanic, so they resolve
   // once per tick (keyed by mechanic + element) rather than once per carrier — otherwise N carriers
   // each fire `count` overlapping AOEs from the same crystal.
-  const scratch = { resolvedCrystalFollowUps: new Set<string>() };
+  const scratch = { resolvedCrystalFollowUps: new Set<string>(), resolvedPairedSpreadStacks: new Set<string>() };
   for (const player of players) {
     const intent = ctx.intents[player.id];
     if (intent?.jump || (intent !== undefined && (intent.move.x !== 0 || intent.move.z !== 0))) {

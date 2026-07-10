@@ -236,6 +236,7 @@ export function applyEffect(player: Player, spec: EffectSpec, time: number, id: 
     behavior: spec.behavior,
     visibility: spec.visibility,
     priority: spec.priority,
+    group: spec.group,
     showTimer: spec.showTimer,
     icon: spec.icon,
     marker: spec.marker,
@@ -244,6 +245,8 @@ export function applyEffect(player: Player, spec: EffectSpec, time: number, id: 
     plantSlot,
     limitCutNumber,
   };
+  if (spec.group) player.effects = player.effects.filter(existing =>
+    !isEffectActiveAt(existing, time) || existing.group !== spec.group);
   player.effects = [
     ...player.effects,
     {

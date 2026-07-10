@@ -5,7 +5,9 @@
 import type { TickContext } from "./context";
 import type { ActiveGaze, PendingGaze } from "@shared/types";
 import { applyMechanicDamage, applyEffect, applyKnockback, isLookingAt } from "./helpers";
+import { pointInShape } from "../shapes";
 import { cullResolved } from "./util";
+import { sin, cos } from "@shared/dmath";
 
 export function resolveGazes(ctx: TickContext): {
   gazes: ActiveGaze[];
@@ -17,10 +19,17 @@ export function resolveGazes(ctx: TickContext): {
   for (const pg of ctx.world.pendingGazes) {
     if (pg.t <= time) {
       const reverse = pg.rng ? randFloat() < 0.5 : pg.reverse;
-      gazes.push({
-        id: pg.id,
+      const carriers = pg.carriers
+        ? players.filter(p => p.alive && p.effects.some(e => e.name === pg.carriers && e.appliedAt + e.duration > time))
+        : [undefined];
+      carriers.forEach((carrier, index) => gazes.push({
+        id: carrier ? `${pg.id}-${carrier.id}` : pg.id,
         name: pg.name,
-        pos: pg.pos,
+        pos: carrier ? { ...carrier.pos } : pg.pos,
+        excludePlayerId: carrier?.id,
+        carrierId: carrier?.id,
+        direction: carrier && !reverse ? { x: sin(carrier.facing), z: cos(carrier.facing) } : undefined,
+        carrierCone: carrier && !reverse ? pg.carrierCone : undefined,
         reverse,
         coneHalfAngle: pg.coneHalfAngle,
         telegraphStart: pg.t,
@@ -29,10 +38,10 @@ export function resolveGazes(ctx: TickContext): {
         damageType: pg.damageType,
         applyEffect: pg.applyEffect,
         knockback: pg.knockback,
-        showCastBar: pg.showCastBar,
+        showCastBar: pg.showCastBar && index === 0,
         visual: pg.visual,
         resolved: false,
-      });
+      }));
     } else {
       remainingPendingGazes.push(pg);
     }
@@ -41,9 +50,11 @@ export function resolveGazes(ctx: TickContext): {
   for (const gz of gazes) {
     if (!gz.resolved && gz.resolveAt <= time) {
       for (const player of players) {
-        if (!player.alive) continue;
+        if (!player.alive || player.id === gz.excludePlayerId) continue;
         const looking = isLookingAt(player.facing, player.pos, gz.pos, gz.coneHalfAngle);
-        const hit = gz.reverse ? !looking : looking;
+        const hit = gz.direction && gz.carrierCone
+          ? pointInShape({ kind: "cone", origin: gz.pos, direction: gz.direction, ...gz.carrierCone }, player.pos)
+          : gz.reverse ? !looking : looking;
         if (hit) {
           applyMechanicDamage(player, gz.damage, gz.damageType, time);
           log.push({ t: time, mechanic: gz.name, playerId: player.id, event: "hit" });

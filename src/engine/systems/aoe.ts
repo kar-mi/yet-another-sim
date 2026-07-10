@@ -124,11 +124,15 @@ export function resolveAoe(ctx: TickContext): {
   for (const pb of ctx.world.pendingEffectBursts) {
     if (pb.t <= time) {
       const carriers = players.filter(p => p.alive && p.effects.some(e => e.name === pb.effectName && isEffectActiveAt(e, time)));
+      const inverted = pb.questionMark ?? (pb.rng ? ctx.randFloat() < 0.5 : false);
+      const shape = inverted ? pb.hiddenShape : pb.shownShape;
       carriers.forEach((carrier, i) => {
         active.push({
           id: `${pb.id}-${carrier.id}`,
           name: pb.name,
-          shape: { kind: "circle", center: { x: carrier.pos.x, z: carrier.pos.z }, radius: pb.radius },
+          shape: shape === "donut"
+            ? { kind: "donut", center: { x: carrier.pos.x, z: carrier.pos.z }, inner: pb.innerRadius!, outer: pb.radius }
+            : { kind: "circle", center: { x: carrier.pos.x, z: carrier.pos.z }, radius: pb.radius },
           telegraphStart: pb.t,
           resolveAt: pb.t + pb.telegraph,
           damage: pb.damage,

@@ -20,8 +20,9 @@ export function resolveSpreadStacks(ctx: TickContext): {
     if (ps.t <= time) {
       const shown = ps.shown === "random" ? (randFloat() < 0.5 ? "spread" : "stack") : ps.shown;
       const inverted = ps.questionMark ?? (ps.rng ? randFloat() < 0.5 : false);
-      // One marked member per group -> one stack circle each (e.g. two groups = two stacks).
-      const markedPlayerIds = ps.stack.groups.map(group => group[randInt(group.length)]);
+      const markedPlayerIds = ps.stackCarriers
+        ? players.filter(p => p.alive && p.effects.some(e => e.name === ps.stackCarriers && e.appliedAt + e.duration > time)).map(p => p.id)
+        : ps.stack.groups.map(group => group[randInt(group.length)]);
       spreadStacks.push({
         id: ps.id,
         name: ps.name,
@@ -32,6 +33,9 @@ export function resolveSpreadStacks(ctx: TickContext): {
         markedPlayerIds,
         spread: ps.spread,
         stack: ps.stack,
+        spreadPlayerIds: ps.spreadCarriers
+          ? players.filter(p => p.alive && p.effects.some(e => e.name === ps.spreadCarriers && e.appliedAt + e.duration > time)).map(p => p.id)
+          : undefined,
         damageType: ps.damageType,
         ringColor: ps.ringColor,
         ringHeight: ps.ringHeight,
@@ -46,7 +50,33 @@ export function resolveSpreadStacks(ctx: TickContext): {
   for (const ss of spreadStacks) {
     if (!ss.resolved && ss.resolveAt <= time) {
       const actual = ss.inverted ? (ss.shown === "spread" ? "stack" : "spread") : ss.shown;
-      if (actual === "spread") {
+      if (ss.spreadPlayerIds) {
+        const stackIds = ss.inverted ? ss.spreadPlayerIds : ss.markedPlayerIds;
+        const spreadIds = ss.inverted ? ss.markedPlayerIds : ss.spreadPlayerIds;
+        for (const id of spreadIds) {
+          const owner = players.find(p => p.id === id && p.alive);
+          if (!owner) continue;
+          const circle: AOEShape = { kind: "circle", center: owner.pos, radius: ss.spread.radius };
+          for (const player of players) {
+            if (!player.alive || !pointInShape(circle, player.pos)) continue;
+            applyMechanicDamage(player, ss.spread.damage, ss.damageType, time);
+            log.push({ t: time, mechanic: ss.name, playerId: player.id, event: "hit" });
+          }
+        }
+        for (const id of stackIds) {
+          const marked = players.find(p => p.id === id && p.alive);
+          if (!marked) continue;
+          const circle: AOEShape = { kind: "circle", center: marked.pos, radius: ss.stack.radius };
+          const soakers = players.filter(p => p.alive && pointInShape(circle, p.pos));
+          const success = soakers.length >= ss.stack.requiredCount;
+          const per = success ? ss.stack.damage / soakers.length : ss.stack.damage;
+          for (const player of soakers) {
+            applyMechanicDamage(player, per, ss.damageType, time);
+            log.push({ t: time, mechanic: ss.name, playerId: player.id, event: "hit" });
+          }
+        }
+        ss.outcome = "success";
+      } else if (actual === "spread") {
         // Each alive player drops a personal AOE; a player eats it once per circle they stand in.
         const owners = players.filter(p => p.alive);
         for (const owner of owners) {

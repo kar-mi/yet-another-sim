@@ -1,0 +1,15 @@
+name: P4 Effect Burst Test
+arena: { zones: [{ kind: circle, center: { x: 0, z: 0 }, radius: 20 }] }
+duration: 30
+players:
+  - { id: mt, role: tank, spawn: { x: -8, z: 0 } }
+  - { id: ot, role: tank, spawn: { x: 8, z: 0 } }
+  - { id: h1, role: healer, spawn: { x: -4, z: 0 } }
+  - { id: h2, role: healer, spawn: { x: 4, z: 0 } }
+  - { id: r1, role: dps, spawn: { x: -12, z: 0 } }
+  - { id: r2, role: dps, spawn: { x: 12, z: 0 } }
+  - { id: m1, role: dps, spawn: { x: 0, z: 0 } }
+  - { id: m2, role: dps, spawn: { x: 0, z: 8 } }
+events:
+  - { type: apply_effect, id: entropy-mark, time: 2, name: Entropy, players: [m1, m2], applyEffect: { ref: entropy, duration: 10, behavior: { questionMark: true } } }
+  - { type: apply_effect, id: fluid-mark, time: 16, name: Dynamic Fluid, players: [m1, m2], applyEffect: { ref: dynamic_fluid, duration: 5 } }

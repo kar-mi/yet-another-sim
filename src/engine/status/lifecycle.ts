@@ -3,11 +3,13 @@ import type { AOEShape, DamageType, EffectBehavior, Player, StatusEffect } from 
 import type { Vec2 } from "@shared/math";
 import { pointInShape } from "../shapes";
 import { addResolvedAoeVisual } from "../systems/effectResolvers";
-import { applyEffect, applyKnockback, applyMechanicDamage, effectActiveDt, selectTargetPlayers } from "../systems/helpers";
+import { applyEffect, applyKnockback, applyMechanicDamage, effectActiveDt, isLookingAt, selectTargetPlayers } from "../systems/helpers";
 import { GRAVITY } from "@shared/constants";
+import { sin, cos } from "@shared/dmath";
 
 export type ExpiryScratch = {
   resolvedCrystalFollowUps: Set<string>;
+  resolvedPairedSpreadStacks: Set<string>;
 };
 
 type StatusLifecycleModule = {
@@ -26,6 +28,10 @@ export const STATUS_LIFECYCLE_REGISTRY: Record<EffectBehavior["kind"], StatusLif
   confusion: {},
   sleep: {},
   burstSpread: { onExpiry: burstSpreadOnExpiry },
+  effectBurst: { onExpiry: effectBurstOnExpiry },
+  carrierGaze: { onExpiry: carrierGazeOnExpiry },
+  pairedSpreadStack: { onExpiry: pairedSpreadStackOnExpiry },
+  effectCheck: { onExpiry: effectCheckOnExpiry },
   plant: { onExpiry: plantOnExpiry },
   directionalKnockback: {},
   escalating: {},
@@ -74,6 +80,82 @@ export function burstSpreadOnExpiry(effect: StatusEffect, player: Player, ctx: T
     return;
   }
   resolveFollowUp(ctx, effect.id, effect.name, followUp, player.pos, player.id);
+}
+
+export function effectBurstOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
+  const behavior = effect.behavior as Extract<EffectBehavior, { kind: "effectBurst" }>;
+  const inverted = behavior.questionMark ?? (behavior.rng ? ctx.randFloat() < 0.5 : false);
+  const shapeKind = inverted ? behavior.hiddenShape : behavior.shownShape;
+  const shape: AOEShape = shapeKind === "donut"
+    ? { kind: "donut", center: player.pos, inner: behavior.innerRadius!, outer: behavior.radius }
+    : { kind: "circle", center: player.pos, radius: behavior.radius };
+  applyShapeHit(ctx.players, ctx.log, ctx.time, shape, player.pos, behavior.damage, behavior.damageType, undefined, undefined, effect.name);
+  addResolvedAoeVisual(ctx, `${effect.id}-burst`, effect.name, shape);
+}
+
+export function carrierGazeOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
+  const behavior = effect.behavior as Extract<EffectBehavior, { kind: "carrierGaze" }>;
+  if (behavior.reverse) {
+    const halfAngle = behavior.coneHalfAngle ?? Math.PI / 2;
+    for (const target of ctx.players) {
+      if (!target.alive || target.id === player.id) continue;
+      if (isLookingAt(target.facing, target.pos, player.pos, halfAngle)) continue;
+      applyMechanicDamage(target, behavior.damage, behavior.damageType, ctx.time);
+      ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: target.id, event: "hit" });
+    }
+    return;
+  }
+  const shape: AOEShape = {
+    kind: "cone",
+    origin: player.pos,
+    direction: { x: sin(player.facing), z: cos(player.facing) },
+    ...behavior.cone!,
+  };
+  applyShapeHit(ctx.players, ctx.log, ctx.time, shape, player.pos, behavior.damage, behavior.damageType, undefined, player.id, effect.name);
+  addResolvedAoeVisual(ctx, `${effect.id}-cone`, effect.name, shape);
+}
+
+export function pairedSpreadStackOnExpiry(effect: StatusEffect, _player: Player, ctx: TickContext, scratch: ExpiryScratch): void {
+  const behavior = effect.behavior as Extract<EffectBehavior, { kind: "pairedSpreadStack" }>;
+  if (scratch.resolvedPairedSpreadStacks.has(behavior.key)) return;
+  scratch.resolvedPairedSpreadStacks.add(behavior.key);
+  const carriers = ctx.players.flatMap(player => player.effects
+    .filter(candidate => candidate.behavior.kind === "pairedSpreadStack"
+      && candidate.behavior.key === behavior.key
+      && candidate.appliedAt + candidate.duration > ctx.previousTime
+      && candidate.appliedAt + candidate.duration <= ctx.time)
+    .map(candidate => ({ player, behavior: candidate.behavior as Extract<EffectBehavior, { kind: "pairedSpreadStack" }> })));
+  const inverted = behavior.questionMark ?? (behavior.rng ? ctx.randFloat() < 0.5 : false);
+  const stackCarriers = carriers.filter(carrier => (inverted ? carrier.behavior.role === "spread" : carrier.behavior.role === "stack"));
+  const spreadCarriers = carriers.filter(carrier => (inverted ? carrier.behavior.role === "stack" : carrier.behavior.role === "spread"));
+  for (const { player } of spreadCarriers) {
+    const shape: AOEShape = { kind: "circle", center: player.pos, radius: behavior.spread.radius };
+    applyShapeHit(ctx.players, ctx.log, ctx.time, shape, player.pos, behavior.spread.damage, behavior.damageType, undefined, undefined, effect.name);
+    addResolvedAoeVisual(ctx, `${effect.id}-spread-${player.id}`, effect.name, shape);
+  }
+  for (const { player } of stackCarriers) {
+    const shape: AOEShape = { kind: "circle", center: player.pos, radius: behavior.stack.radius };
+    const soakers = ctx.players.filter(target => target.alive && pointInShape(shape, target.pos));
+    const per = soakers.length >= behavior.stack.requiredCount ? behavior.stack.damage / soakers.length : behavior.stack.damage;
+    for (const soaker of soakers) {
+      applyMechanicDamage(soaker, per, behavior.damageType, ctx.time);
+      ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: soaker.id, event: "hit" });
+    }
+    addResolvedAoeVisual(ctx, `${effect.id}-stack-${player.id}`, effect.name, shape);
+  }
+}
+
+export function effectCheckOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
+  const behavior = effect.behavior as Extract<EffectBehavior, { kind: "effectCheck" }>;
+  const [left, right] = behavior.compare.map(group => player.effects.find(candidate => candidate.group === group)?.name);
+  const passes = left !== undefined && right !== undefined
+    && (behavior.expect === "matches" ? left === right : left !== right);
+  if (passes) {
+    ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: player.id, event: "cleared" });
+    return;
+  }
+  applyMechanicDamage(player, behavior.failureDamage, behavior.failureDamageType, ctx.time);
+  ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: player.id, event: "hit" });
 }
 
 export function plantOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {

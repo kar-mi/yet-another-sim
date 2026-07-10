@@ -1,0 +1,15 @@
+name: P4 Carrier Gaze Test
+arena: { zones: [{ kind: circle, center: { x: 0, z: 0 }, radius: 20 }] }
+duration: 30
+players:
+  - { id: mt, role: tank, spawn: { x: -2, z: 0 } }
+  - { id: ot, role: tank, spawn: { x: 2, z: 0 } }
+  - { id: h1, role: healer, spawn: { x: 0, z: 4 } }
+  - { id: h2, role: healer, spawn: { x: 0, z: -4 } }
+  - { id: r1, role: dps, spawn: { x: -8, z: 0 } }
+  - { id: r2, role: dps, spawn: { x: 8, z: 0 } }
+  - { id: m1, role: dps, spawn: { x: 0, z: 8 } }
+  - { id: m2, role: dps, spawn: { x: 0, z: -8 } }
+events:
+  - { type: apply_effect, id: shriek-cone, time: 2, name: Cursed Shriek, players: [mt, ot], applyEffect: { ref: cursed_shriek, duration: 10 } }
+  - { type: apply_effect, id: shriek-gaze, time: 16, name: Cursed Shriek, players: [mt, ot], applyEffect: { ref: cursed_shriek, duration: 5, behavior: { reverse: true, damage: 0 } } }

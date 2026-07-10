@@ -142,6 +142,10 @@ export type EffectBehavior =
   | { kind: "sleep" }
   // On expiry, bursts at the carrier, then can spread follow-up AOEs to nearby/far players.
   | { kind: "burstSpread"; radius: number; damage: number; damageType: DamageType; knockbackDistance: number; selfShape?: "circle" | "donut"; selfInner?: number; followUp?: { mode: "closest" | "furthest"; count: number; originCrystal?: CrystalElement; shape: "circle" | "donut"; radius: number; inner?: number; damage: number; damageType: DamageType; knockbackDistance?: number } }
+  | { kind: "effectBurst"; shownShape: "circle" | "donut"; hiddenShape: "circle" | "donut"; radius: number; innerRadius?: number; rng?: boolean; questionMark?: boolean; damage: number; damageType: DamageType }
+  | { kind: "carrierGaze"; reverse?: boolean; cone?: { angleDeg: number; length: number }; coneHalfAngle?: number; damage: number; damageType: DamageType }
+  | { kind: "pairedSpreadStack"; key: string; role: "stack" | "spread"; rng?: boolean; questionMark?: boolean; spread: { radius: number; damage: number }; stack: { radius: number; requiredCount: number; damage: number }; damageType: DamageType }
+  | { kind: "effectCheck"; compare: [string, string]; expect: "matches" | "differs"; failureDamage: number; failureDamageType: DamageType }
   // Tele-Trouncing "plant": the HUD shows an arrow along `direction` ([x, z]). When the debuff
   // expires it places a teleport trap (forced march) at the player's spot — inert for `armDelay`
   // seconds so the placer can step off, then triggers on contact: the entrant is frozen for
@@ -169,6 +173,7 @@ export type EffectSpec = {
   behavior: EffectBehavior;
   visibility?: "visible" | "invisible";
   priority?: boolean; // render before normal visible effects; stable within each band
+  group?: string; // only one active effect in a group may exist on a player
   showTimer?: boolean;
   // Optional HUD icon: a bare filename served from /static/debuffs/. Falls back to a behavior glyph.
   icon?: string;
@@ -194,6 +199,7 @@ export type StatusEffect = {
   behavior: EffectBehavior;
   visibility?: "visible" | "invisible";
   priority?: boolean;
+  group?: string;
   showTimer?: boolean;
   // Optional HUD icon: a bare filename served from /static/effects/. Falls back to a behavior glyph.
   icon?: string;
@@ -442,6 +448,11 @@ export type PendingEffectBurst = {
   telegraph: number;
   effectName: string;
   radius: number;
+  innerRadius?: number;
+  shownShape: "circle" | "donut";
+  hiddenShape: "circle" | "donut";
+  rng: boolean;
+  questionMark?: boolean;
   damage: number;
   damageType: DamageType;
   applyEffect?: EffectSpec;
@@ -600,6 +611,8 @@ export type PendingSpreadStack = {
   damageType: DamageType;
   spread: SpreadConfig;
   stack: StackConfig;
+  stackCarriers?: string;
+  spreadCarriers?: string;
   ringColor?: string;              // hex colour of this mechanic's boss ring
   ringHeight?: number;             // vertical height of this mechanic's boss ring
   showCastBar: boolean;
@@ -615,6 +628,7 @@ export type ActiveSpreadStack = {
   markedPlayerIds: string[];       // stack-mode marked member per group (rolled even when shown=spread)
   spread: SpreadConfig;
   stack: StackConfig;
+  spreadPlayerIds?: string[];
   damageType: DamageType;
   ringColor?: string;
   ringHeight?: number;
@@ -624,6 +638,7 @@ export type ActiveSpreadStack = {
 };
 
 export type GazeVisual = { width: number; height: number; depth: number };
+export type CarrierCone = { angleDeg: number; length: number };
 
 export type PendingGaze = {
   id: string;
@@ -631,6 +646,8 @@ export type PendingGaze = {
   name: string;
   telegraph: number;
   pos: Vec2;                       // position of the eye/source
+  carriers?: string;
+  carrierCone?: CarrierCone;
   reverse: boolean;               // false: hit if looking at it; true ("?" eye): hit if NOT looking
   rng: boolean;                   // randomize the reverse state at cast start
   coneHalfAngle: number;          // half-angle (radians) counted as "looking at" it
@@ -646,6 +663,10 @@ export type ActiveGaze = {
   id: string;
   name: string;
   pos: Vec2;
+  excludePlayerId?: string;
+  carrierId?: string;
+  direction?: Vec2;
+  carrierCone?: CarrierCone;
   reverse: boolean;               // resolved at cast start; drives the eye vs "?" eye icon
   coneHalfAngle: number;
   telegraphStart: number;
@@ -977,6 +998,15 @@ export type PendingBossTeleport = {
   rng: boolean;
 };
 
+export type PendingEffectCheck = {
+  id: string;
+  t: number;
+  name: string;
+  checks: { carriers: string; compare: [string, string]; expect: "matches" | "differs" }[];
+  failureDamage: number;
+  failureDamageType: DamageType;
+};
+
 export type ActiveDivebomb = Omit<PendingDivebomb, "t"> & {
   startedAt: number;
   expireAt: number;
@@ -1043,6 +1073,7 @@ export type World = {
   pendingDivebombs: PendingDivebomb[];
   pendingBossTeleports: PendingBossTeleport[];
   pendingEffectBursts: PendingEffectBurst[];
+  pendingEffectChecks: PendingEffectCheck[];
   effectResolvers: Record<string, EffectResolver>;
   pendingHeals: PendingHeal[];
   pendingSetHps: PendingSetHp[];

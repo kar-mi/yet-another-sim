@@ -1,0 +1,22 @@
+name: P4 Effect Check Test
+arena: { zones: [{ kind: circle, center: { x: 0, z: 0 }, radius: 20 }] }
+duration: 30
+players:
+  - { id: mt, role: tank, spawn: { x: -8, z: 0 } }
+  - { id: ot, role: tank, spawn: { x: 8, z: 0 } }
+  - { id: h1, role: healer, spawn: { x: -4, z: 0 } }
+  - { id: h2, role: healer, spawn: { x: 4, z: 0 } }
+  - { id: r1, role: dps, spawn: { x: -12, z: 0 } }
+  - { id: r2, role: dps, spawn: { x: 12, z: 0 } }
+  - { id: m1, role: dps, spawn: { x: 0, z: 0 } }
+  - { id: m2, role: dps, spawn: { x: 0, z: 8 } }
+events:
+  - { type: apply_effect, id: origin, time: 2, name: White Wound, players: [m1], applyEffect: { ref: white_wound, duration: 10, visibility: invisible, group: origin } }
+  - { type: apply_effect, id: wound, time: 2, name: Black Wound, players: [m1], applyEffect: { ref: black_wound, duration: 10 } }
+  - { type: apply_effect, id: field, time: 2, name: Allagan Field, players: [m1], applyEffect: { ref: allagan_field, duration: 10 } }
+  - { type: apply_effect, id: origin-match, time: 2, name: White Wound, players: [m2], applyEffect: { ref: white_wound, duration: 10, visibility: invisible, group: origin } }
+  - { type: apply_effect, id: wound-match, time: 2, name: White Wound, players: [m2], applyEffect: { ref: white_wound, duration: 10 } }
+  - { type: apply_effect, id: field-fail, time: 2, name: Allagan Field, players: [m2], applyEffect: { ref: allagan_field, duration: 10 } }
+  - { type: apply_effect, id: origin-beyond, time: 2, name: White Wound, players: [r1], applyEffect: { ref: white_wound, duration: 10, visibility: invisible, group: origin } }
+  - { type: apply_effect, id: wound-beyond, time: 2, name: Black Wound, players: [r1], applyEffect: { ref: black_wound, duration: 10 } }
+  - { type: apply_effect, id: beyond-fail, time: 2, name: Beyond Death, players: [r1], applyEffect: { ref: beyond_death, duration: 10 } }
