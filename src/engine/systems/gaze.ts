@@ -3,11 +3,12 @@
 // last movement direction, so "looking away" means flicking the stick away then stopping.
 
 import type { TickContext } from "./context";
-import type { ActiveGaze, PendingGaze } from "@shared/types";
+import type { ActiveGaze, PendingGaze, AOEShape } from "@shared/types";
 import { applyMechanicDamage, applyEffect, applyKnockback, isLookingAt } from "./helpers";
 import { pointInShape } from "../shapes";
 import { cullResolved } from "./util";
 import { sin, cos } from "@shared/dmath";
+import { FloorAoe, DEFAULT_GAZE_NORMAL_COLOR, DEFAULT_GAZE_REVERSE_COLOR } from "@shared/floorAoe";
 
 export function resolveGazes(ctx: TickContext): {
   gazes: ActiveGaze[];
@@ -22,26 +23,44 @@ export function resolveGazes(ctx: TickContext): {
       const carriers = pg.carriers
         ? players.filter(p => p.alive && p.effects.some(e => e.name === pg.carriers && e.appliedAt + e.duration > time))
         : [undefined];
-      carriers.forEach((carrier, index) => gazes.push({
-        id: carrier ? `${pg.id}-${carrier.id}` : pg.id,
-        name: pg.name,
-        pos: carrier ? { ...carrier.pos } : pg.pos,
-        excludePlayerId: carrier?.id,
-        carrierId: carrier?.id,
-        direction: carrier && !reverse ? { x: sin(carrier.facing), z: cos(carrier.facing) } : undefined,
-        carrierCone: carrier && !reverse ? pg.carrierCone : undefined,
-        reverse,
-        coneHalfAngle: pg.coneHalfAngle,
-        telegraphStart: pg.t,
-        resolveAt: pg.t + pg.telegraph,
-        damage: pg.damage,
-        damageType: pg.damageType,
-        applyEffect: pg.applyEffect,
-        knockback: pg.knockback,
-        showCastBar: pg.showCastBar && index === 0,
-        visual: pg.visual,
-        resolved: false,
-      }));
+      carriers.forEach((carrier, index) => {
+        const id = carrier ? `${pg.id}-${carrier.id}` : pg.id;
+        const direction = carrier && !reverse ? { x: sin(carrier.facing), z: cos(carrier.facing) } : undefined;
+        const carrierCone = carrier && !reverse ? pg.carrierCone : undefined;
+        const resolveAt = pg.t + pg.telegraph;
+        const coneShape: AOEShape | undefined = direction && carrierCone
+          ? { kind: "cone", origin: carrier!.pos, direction, ...carrierCone }
+          : undefined;
+        gazes.push({
+          id,
+          name: pg.name,
+          pos: carrier ? { ...carrier.pos } : pg.pos,
+          excludePlayerId: carrier?.id,
+          carrierId: carrier?.id,
+          direction,
+          carrierCone,
+          reverse,
+          coneHalfAngle: pg.coneHalfAngle,
+          telegraphStart: pg.t,
+          resolveAt,
+          damage: pg.damage,
+          damageType: pg.damageType,
+          applyEffect: pg.applyEffect,
+          knockback: pg.knockback,
+          showCastBar: pg.showCastBar && index === 0,
+          visual: pg.visual,
+          resolved: false,
+          floorAoe: coneShape
+            ? new FloorAoe({
+              id, shape: coneShape,
+              color: pg.color ?? (reverse ? DEFAULT_GAZE_REVERSE_COLOR : DEFAULT_GAZE_NORMAL_COLOR),
+              alpha: 0.45,
+              resolveMode: { kind: "active" },
+              resolveAt,
+            })
+            : undefined,
+        });
+      });
     } else {
       remainingPendingGazes.push(pg);
     }

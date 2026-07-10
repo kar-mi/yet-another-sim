@@ -1,6 +1,7 @@
 import type { ActiveMechanic, AOEShape, Boss, PendingEvent, Player } from "@shared/types";
 import { sin, cos } from "@shared/dmath";
 import { normalize, scale, add, sub } from "@shared/math";
+import { buildFloorAoe } from "./floorAoeBuild";
 
 function bossForEvent(event: PendingEvent, bosses: Boss[]): Boss {
   const b = event.bossId ? bosses.find(b => b.id === event.bossId) : undefined;
@@ -69,17 +70,20 @@ export function promotePending(
   for (const event of pending) {
     if (event.t <= time) {
       const boss = bossForEvent(event, bosses);
+      // Deferred (stored) cleaves don't snapshot geometry now; a linked bait recomputes it from the
+      // boss's locked facing at arm time, so keep the raw shape as a hidden placeholder until then.
+      const shape = event.deferred ? event.shape : resolveAnchoredShape(event, boss, players);
+      const resolveAt = event.t + event.telegraph;
+      const showTelegraph = event.deferred ? false : event.showTelegraph;
       promoted.push({
         id: event.id,
         name: event.name,
         labels: event.labels,
         group: event.group,
         bossId: event.bossId,
-        // Deferred (stored) cleaves don't snapshot geometry now; a linked bait recomputes it from the
-        // boss's locked facing at arm time, so keep the raw shape as a hidden placeholder until then.
-        shape: event.deferred ? event.shape : resolveAnchoredShape(event, boss, players),
+        shape,
         telegraphStart: event.t,
-        resolveAt: event.t + event.telegraph,
+        resolveAt,
         damage: event.damage,
         damageType: event.damageType,
         applyEffect: event.applyEffect,
@@ -99,9 +103,14 @@ export function promotePending(
         directionOffset: event.directionOffset,
         resolved: false,
         showCastBar: event.showCastBar,
-        showTelegraph: event.deferred ? false : event.showTelegraph,
+        showTelegraph,
         telegraphMode: event.telegraphMode,
         flashBeforeResolve: event.flashBeforeResolve,
+        color: event.color,
+        floorAoe: event.deferred ? undefined : buildFloorAoe({
+          id: event.id, shape, color: event.color, showTelegraph,
+          telegraphMode: event.telegraphMode, flashBeforeResolve: event.flashBeforeResolve, resolveAt,
+        }),
       });
     } else {
       remaining.push(event);

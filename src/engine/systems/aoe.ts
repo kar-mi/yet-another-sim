@@ -16,6 +16,8 @@ function bossFor(bosses: Boss[], bossId?: string): Boss {
 import { pointInShape } from "../shapes";
 import { promotePending, anchorShape } from "../timeline";
 import { AOE_RESOLVE_LINGER, TARGETED_LINGER } from "@shared/constants";
+import { FloorAoe, DEFAULT_DANGER_COLOR } from "@shared/floorAoe";
+import { buildFloorAoe } from "../floorAoeBuild";
 import { atan2 } from "@shared/dmath";
 import {
   selectTargetPlayer, selectTargetPlayers, inPositionalArc, applyMechanicDamage, applyEffect,
@@ -111,6 +113,9 @@ export function resolveAoe(ctx: TickContext): {
         showCastBar: pt.showCastBar,
         showTelegraph: pt.showTelegraph,
         telegraphMode: pt.telegraphMode,
+        color: pt.color,
+        // The center isn't chosen until resolve, so no floorAoe yet (see the targeting-resolution
+        // branch below, which builds one once the shape is finalized).
         targeting: { mode: pt.targetMode, role: pt.role, origin: { x: 0, z: 0 }, count: pt.count },
       });
     } else {
@@ -127,14 +132,17 @@ export function resolveAoe(ctx: TickContext): {
       const inverted = pb.questionMark ?? (pb.rng ? ctx.randFloat() < 0.5 : false);
       const shape = inverted ? pb.hiddenShape : pb.shownShape;
       carriers.forEach((carrier, i) => {
+        const id = `${pb.id}-${carrier.id}`;
+        const burstShape: AOEShape = shape === "donut"
+          ? { kind: "donut", center: { x: carrier.pos.x, z: carrier.pos.z }, inner: pb.innerRadius!, outer: pb.radius }
+          : { kind: "circle", center: { x: carrier.pos.x, z: carrier.pos.z }, radius: pb.radius };
+        const resolveAt = pb.t + pb.telegraph;
         active.push({
-          id: `${pb.id}-${carrier.id}`,
+          id,
           name: pb.name,
-          shape: shape === "donut"
-            ? { kind: "donut", center: { x: carrier.pos.x, z: carrier.pos.z }, inner: pb.innerRadius!, outer: pb.radius }
-            : { kind: "circle", center: { x: carrier.pos.x, z: carrier.pos.z }, radius: pb.radius },
+          shape: burstShape,
           telegraphStart: pb.t,
-          resolveAt: pb.t + pb.telegraph,
+          resolveAt,
           damage: pb.damage,
           damageType: pb.damageType,
           applyEffect: pb.applyEffect,
@@ -143,6 +151,11 @@ export function resolveAoe(ctx: TickContext): {
           showCastBar: pb.showCastBar && i === 0, // one cast bar for the whole set
           showTelegraph: pb.showTelegraph,
           telegraphMode: pb.telegraphMode,
+          color: pb.color,
+          floorAoe: buildFloorAoe({
+            id, shape: burstShape, color: pb.color, showTelegraph: pb.showTelegraph,
+            telegraphMode: pb.telegraphMode, resolveAt,
+          }),
         });
       });
     } else {
@@ -194,6 +207,11 @@ export function resolveAoe(ctx: TickContext): {
       stored.armed = true;
       stored.showTelegraph = true;
       stored.showCastBar = false;
+      stored.floorAoe = buildFloorAoe({
+        id: stored.id, shape: stored.shape, color: stored.color, showTelegraph: true,
+        telegraphMode: stored.telegraphMode, flashBeforeResolve: stored.flashBeforeResolve,
+        resolveAt: stored.resolveAt,
+      });
     }
   }
 
@@ -231,11 +249,13 @@ export function resolveAoe(ctx: TickContext): {
         showCastBar: pd.showCastBar,
         showTelegraph: false,
       });
+      const landingId = `${pd.id}-landing`;
+      const landingShape: AOEShape = { kind: "circle", center: initialDestination, radius: dashBoss.radius };
       active.push({
-        id: `${pd.id}-landing`,
+        id: landingId,
         name: pd.name,
         bossId: pd.bossId,
-        shape: { kind: "circle", center: initialDestination, radius: dashBoss.radius },
+        shape: landingShape,
         telegraphStart: pd.t,
         resolveAt,
         damage: 0,
@@ -243,12 +263,19 @@ export function resolveAoe(ctx: TickContext): {
         resolved: false,
         showCastBar: false,
         showTelegraph: true,
+        floorAoe: buildFloorAoe({ id: landingId, shape: landingShape, showTelegraph: true, resolveAt }),
       });
     }
 
     const destination = selectDashDestination(players, dashBoss, pd.destination, time, randomTargetId);
     const marker = active.find(mechanic => mechanic.id === `${pd.id}-landing` && !mechanic.resolved);
-    if (marker) marker.shape = { kind: "circle", center: destination, radius: dashBoss.radius };
+    if (marker) {
+      marker.shape = { kind: "circle", center: destination, radius: dashBoss.radius };
+      marker.floorAoe = buildFloorAoe({
+        id: marker.id, shape: marker.shape, color: marker.color, showTelegraph: marker.showTelegraph,
+        telegraphMode: marker.telegraphMode, flashBeforeResolve: marker.flashBeforeResolve, resolveAt: marker.resolveAt,
+      });
+    }
 
     if (resolveAt > time) {
       remainingPendingDashes.push({ ...pd, randomTargetId });
@@ -268,6 +295,11 @@ export function resolveAoe(ctx: TickContext): {
       stored.armed = true;
       stored.showTelegraph = true;
       stored.showCastBar = false;
+      stored.floorAoe = buildFloorAoe({
+        id: stored.id, shape: stored.shape, color: stored.color, showTelegraph: true,
+        telegraphMode: stored.telegraphMode, flashBeforeResolve: stored.flashBeforeResolve,
+        resolveAt: stored.resolveAt,
+      });
     }
   }
 
@@ -310,6 +342,14 @@ export function resolveAoe(ctx: TickContext): {
           : selectTargetPlayer(players, mBoss.pos, mechanic.targeting.mode, mechanic.targeting.role);
         if (!target) { mechanic.resolved = true; continue; } // no valid target: fizzle, no telegraph flash
         mechanic.shape = { kind: "circle", center: { x: target.pos.x, z: target.pos.z }, radius: mechanic.shape.radius };
+        // The center was hidden until now (see the targeting-cast promotion above), so it becomes
+        // visible only from this point, lingering briefly after resolve like other targeted hits.
+        if (mechanic.showTelegraph) {
+          mechanic.floorAoe = new FloorAoe({
+            id: mechanic.id, shape: mechanic.shape, color: mechanic.color ?? DEFAULT_DANGER_COLOR,
+            resolveMode: { kind: "resolve", lead: 0, trail: TARGETED_LINGER }, resolveAt: mechanic.resolveAt,
+          });
+        }
       }
       const mechBoss = bossFor(bosses, mechanic.bossId);
       const balancedOrders = mechanic.applyEffects?.order === "shuffleBalanced"

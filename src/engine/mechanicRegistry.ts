@@ -226,6 +226,7 @@ const aoe: MechanicModule = {
           telegraphMode: e.telegraphMode ?? "cast",
           bossRelativeCenter: e.bossRelativeCenter,
           flashBeforeResolve: e.flashBeforeResolve,
+          color: e.color,
         });
         break;
       case "targeted":
@@ -247,6 +248,7 @@ const aoe: MechanicModule = {
           showCastBar: e.showCastBar ?? false,
           showTelegraph: e.showTelegraph ?? true,
           telegraphMode: e.telegraphMode ?? "cast",
+          color: e.color,
         });
         break;
       case "bait":
@@ -301,6 +303,7 @@ const aoe: MechanicModule = {
           showCastBar: e.showCastBar ?? false,
           showTelegraph: e.showTelegraph ?? true,
           telegraphMode: e.telegraphMode ?? "cast",
+          color: e.color,
         });
         break;
     }
@@ -371,6 +374,7 @@ const groups: MechanicModule = {
       showCastBar: e.showCastBar ?? false,
       showMarker: e.showMarker,
       showTelegraph: e.showTelegraph,
+      color: e.color,
     });
   },
   resolve: ctx => resolveGroups(ctx),
@@ -486,6 +490,7 @@ const inverse: MechanicModule = {
       ringColor: e.ringColor,
       ringHeight: e.ringHeight,
       telegraphAlpha: e.telegraphAlpha,
+      color: e.color,
       rng: e.rng ?? false,
       questionMark: e.questionMark,
       damage: e.damage,
@@ -549,6 +554,7 @@ const gaze: MechanicModule = {
       knockback: e.knockback && toKnockback(e.knockback),
       showCastBar: e.showCastBar ?? false,
       visual: e.visual,
+      color: e.color,
     });
   },
   resolve: ctx => resolveGazes(ctx),

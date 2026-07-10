@@ -490,6 +490,8 @@ const AOEEventSchema = z.object({
     lead: z.number().positive(),
     color: z.string().optional(),
   }).optional(),
+  // Render-only: ground telegraph color (hex). Defaults to the standard danger red when omitted.
+  color: z.string().min(1).optional(),
   bossId: z.string().min(1).optional(),
 });
 
@@ -513,6 +515,7 @@ const TargetedEventSchema = z.object({
   showCastBar: z.boolean().optional(),
   showTelegraph: z.boolean().optional(),
   telegraphMode: TelegraphModeSchema.optional(),
+  color: z.string().min(1).optional(),
   bossId: z.string().min(1).optional(),
 });
 
@@ -758,6 +761,8 @@ const GroupEventSchema = z.object({
   showCastBar: z.boolean().optional(),
   showMarker: z.boolean().default(true),
   showTelegraph: z.boolean().default(true),
+  // Render-only: stack circle color (hex). Defaults to the standard "stack here" blue when omitted.
+  color: z.string().min(1).optional(),
 });
 
 const EffectSelectEventSchema = z.object({
@@ -815,6 +820,8 @@ const InverseEventSchema = z.object({
   ringColor: z.string().optional(),               // hex colour of this mechanic's boss ring (identifies it)
   ringHeight: z.number().optional(),              // vertical height of this mechanic's boss ring
   telegraphAlpha: z.number().min(0).max(1).optional(), // optional fixed alpha for shown telegraph footprints
+  // Render-only: shownShapes fill color (hex). Defaults to ringColor, else blue/red by inverted state.
+  color: z.string().min(1).optional(),
   rng: z.boolean().optional(),                      // randomize the "?" inversion (else not inverted)
   questionMark: z.boolean().optional(),            // authored override of the inversion state
   applyEffect: ApplyEffectSchema.optional(),
@@ -883,6 +890,8 @@ const GazeEventSchema = z.object({
   knockback: KnockbackSchema.optional(),
   showCastBar: z.boolean().optional(),
   visual: GazeVisualSchema.optional(),
+  // Render-only: carrier cone fill color (hex). Defaults to orange/blue by reverse state when omitted.
+  color: z.string().min(1).optional(),
 }).superRefine((event, ctx) => {
   if (event.pos === undefined && event.carriers === undefined) {
     ctx.addIssue({ code: "custom", path: ["pos"], message: "gaze needs pos or carriers" });
@@ -998,6 +1007,7 @@ const EffectBurstEventSchema = z.object({
   showCastBar: z.boolean().optional(),
   showTelegraph: z.boolean().optional(),
   telegraphMode: TelegraphModeSchema.optional(),
+  color: z.string().min(1).optional(),
 }).superRefine((event, ctx) => {
   if ((event.shownShape === "donut" || event.hiddenShape === "donut")
     && (event.innerRadius === undefined || event.innerRadius >= event.radius)) {
