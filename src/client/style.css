@@ -856,6 +856,13 @@ img.party-effect-icon {
   opacity: 0.72;
 }
 
+.party-effect-stacks,
+.yas-debuff-stacks {
+  margin-left: 3px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .party-effect-buff {
   background: rgba(90, 209, 106, 0.25);
   color: #8bf096;

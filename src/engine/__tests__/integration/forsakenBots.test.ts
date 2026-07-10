@@ -14,6 +14,7 @@ test("forsaken raid and bot companion content load", async () => {
   expect(raid.name).toContain("Forsaken");
   expect(byEventId("forsaken-raidwide")).toBeDefined();
   expect(byEventId("forsaken-charges")).toMatchObject({ initial: "plan" });
+  expect(byEventId("forsaken-spells-trouble")).toMatchObject({ applyEffect: { name: "Spells' Trouble", stacks: 4 } });
   const lastTowerResolve = Math.max(...raid.events.filter(e => e.type === "tower").map(e => e.t + e.telegraph));
   const endRaidwide = byEventId("forsaken-end-raidwide");
   expect(endRaidwide && "t" in endRaidwide && endRaidwide.t > lastTowerResolve).toBe(true);
@@ -34,5 +35,6 @@ test("forsaken raid and bot companion content load", async () => {
   expect(towerEvents.some(event => event.requiredRoles !== undefined)).toBe(false);
   expect(towerEvents.every(e => e.radius === towerEvents[0].radius)).toBe(true);
   expect(towerEvents.every(e => e.failureDamage === towerEvents[0].failureDamage)).toBe(true);
+  expect(towerEvents.every(e => e.consumeEffect?.effectName === "Spells' Trouble" && e.consumeEffect.stacks === 1)).toBe(true);
   expect(raid.events.filter(event => event.type === "heal")).toHaveLength(new Set(towerEvents.map(e => e.t)).size);
 });

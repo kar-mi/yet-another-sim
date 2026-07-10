@@ -116,6 +116,7 @@ _towerBase: &towerBase
   requiredCount: 2
   failureDamage: 999999
   failureDamageType: "true"
+  consumeEffect: { effectName: "Spells' Trouble" }
   resolveEventIds: [forsaken-stack-resolve, forsaken-cone-resolve, forsaken-defamation-resolve]
   visual:
     fallingObject: sphere
@@ -224,6 +225,12 @@ events:
       - kind: defamation
         effect: { ref: defamation_charge }
         marker: { ref: defamation_charge_marker }
+
+  - type: apply_effect
+    id: forsaken-spells-trouble
+    time: 7
+    name: Spells' Trouble
+    applyEffect: { ref: spells_trouble }
 
   # Towers 1-2 (A side).
   - <<: *towerBase
