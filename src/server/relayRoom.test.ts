@@ -3,6 +3,7 @@ import { loadRaid } from "../engine/raidLoader";
 import { baseRaid, roster } from "../engine/__tests__/helpers";
 import { ClientMessageSchema, EMPTY_RAID_ID, MAX_OBSERVERS } from "@shared/protocol";
 import type { ServerMessage } from "@shared/protocol";
+import { WAYMARK_PRESETS } from "@shared/waymarkPresets";
 import { capacitySnapshot, EMPTY_LOBBY_TIMEOUT_MS, LOBBY_TIMEOUT_MS, RelayRoom, type SessionStatus } from "./relayRoom";
 import { createEmptyRaid, loadSessionRaid, type SessionLog } from "./sessionRaid";
 import { worldHash } from "@shared/worldHash";
@@ -28,6 +29,20 @@ function testRaid() {
 
 function alternateRaid() {
   return loadRaid({ ...baseRaid, name: "Alternate Test", arena: sessionArena, duration: 30, players: roster() });
+}
+
+function botPatternOptionsRaid() {
+  return loadRaid({
+    ...baseRaid,
+    name: "Bot Pattern Options Test",
+    arena: sessionArena,
+    duration: 30,
+    players: roster(),
+    botPatternOptions: [
+      { id: "default", name: "Default", file: "does-not-matter" },
+      { id: "alt", name: "Alt", file: "does-not-matter-2" },
+    ],
+  });
 }
 
 function rngRaid() {
@@ -538,6 +553,112 @@ test("seed override is host-only, clearable, and reset by raid change", () => {
   session.handle("c1", { type: "setSeed", seed: 3 });
   session.setRaid("c1", "alternate", alternateRaid());
   expect(sent.some(entry => entry.message.type === "lobby" && entry.message.raidId === "alternate" && entry.message.seedOverride === null)).toBe(true);
+});
+
+test("waymark preset override is host-only and applied to the world on start", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.join("c2");
+  session.claimSlot("c1", "mt");
+
+  session.handle("c2", { type: "setWaymarkPreset", presetId: "standard-16" });
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Only the host can set the waymark preset")).toBe(true);
+
+  session.handle("c1", { type: "setWaymarkPreset", presetId: "bogus" });
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "error" && entry.message.message === "Unknown waymark preset")).toBe(true);
+
+  session.handle("c1", { type: "setWaymarkPreset", presetId: "standard-16" });
+  expect(sent.some(entry => entry.message.type === "lobby" && entry.message.waymarkPresetId === "standard-16")).toBe(true);
+
+  session.start("c1");
+  expect(session.world.waymarks).toEqual(WAYMARK_PRESETS.find(preset => preset.id === "standard-16")!.marks);
+});
+
+test("waymark preset applies instantly to a stopped pull's frozen world", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+  session.stop("c1");
+  const startedBefore = sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started").length;
+
+  session.handle("c1", { type: "setWaymarkPreset", presetId: "standard-16" });
+
+  expect(session.world.waymarks).toEqual(WAYMARK_PRESETS.find(preset => preset.id === "standard-16")!.marks);
+  expect(sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started")).toHaveLength(startedBefore + 1);
+});
+
+test("waymark preset does not touch the frozen world while the pull is running", () => {
+  const { session } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+  const worldBefore = session.world;
+
+  session.handle("c1", { type: "setWaymarkPreset", presetId: "standard-16" });
+
+  expect(session.world).toBe(worldBefore);
+});
+
+test("waymark preset resets to the raid default when the raid changes", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+
+  session.handle("c1", { type: "setWaymarkPreset", presetId: "standard-16" });
+  session.setRaid("c1", "alternate", alternateRaid());
+
+  expect(sent.some(entry => entry.message.type === "lobby" && entry.message.raidId === "alternate" && entry.message.waymarkPresetId === null)).toBe(true);
+});
+
+test("bot pattern options are exposed in the lobby and selectable host-only", () => {
+  const raid = botPatternOptionsRaid();
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.join("c2");
+  session.setRaid("c1", "bot-pattern", raid);
+
+  const lobby = [...sent].reverse().find(entry => entry.clientId === "c1" && entry.message.type === "lobby")?.message;
+  expect(lobby).toMatchObject({
+    type: "lobby",
+    botPatternOptions: [{ id: "default", name: "Default" }, { id: "alt", name: "Alt" }],
+    botPatternId: "default",
+  });
+
+  session.setBotPattern("c2", "alt", raid);
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Only the host can set the bot pattern")).toBe(true);
+
+  session.setBotPattern("c1", "alt", raid);
+  const updatedLobby = [...sent].reverse().find(entry => entry.clientId === "c1" && entry.message.type === "lobby")?.message;
+  expect(updatedLobby).toMatchObject({ type: "lobby", botPatternId: "alt" });
+});
+
+test("bot pattern applies instantly to a stopped pull's frozen world", () => {
+  const raid = botPatternOptionsRaid();
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.setRaid("c1", "bot-pattern", raid);
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+  session.stop("c1");
+  const startedBefore = sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started").length;
+
+  session.setBotPattern("c1", "alt", raid);
+
+  expect(sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started")).toHaveLength(startedBefore + 1);
+});
+
+test("a raid with a single botPatterns file exposes one implicit Default option; a raid with none exposes no options", () => {
+  const singlePatternRaid = loadRaid({ ...baseRaid, name: "Single Bot Pattern", arena: sessionArena, duration: 30, players: roster(), botPatterns: "does-not-matter" });
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.setRaid("c1", "single-pattern", singlePatternRaid);
+
+  const lobby = [...sent].reverse().find(entry => entry.clientId === "c1" && entry.message.type === "lobby")?.message;
+  expect(lobby).toMatchObject({ type: "lobby", botPatternOptions: [{ id: "default", name: "Default" }], botPatternId: "default" });
+
+  // testRaid() (the session default) has neither botPatterns nor botPatternOptions.
+  const noPatternLobby = [...sent].find(entry => entry.clientId === "c1" && entry.message.type === "lobby")?.message;
+  expect(noPatternLobby).toMatchObject({ type: "lobby", botPatternOptions: [], botPatternId: null });
 });
 
 test("findSeed is host-only and reports success or failure", () => {

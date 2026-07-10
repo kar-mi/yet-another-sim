@@ -1,13 +1,24 @@
 import { createWorld } from "../engine/world";
 import type { RaidDef } from "../engine/raidSchema";
-import { EMPTY_RAID_ID, MAX_OBSERVERS, type ClientMessage, type Frame, type LobbySlot, type LobbyStatus, type ServerMessage } from "@shared/protocol";
+import { EMPTY_RAID_ID, MAX_OBSERVERS, type BotPatternOption, type ClientMessage, type Frame, type LobbySlot, type LobbyStatus, type ServerMessage } from "@shared/protocol";
 import type { Intent, Intents, World } from "@shared/types";
 import { RAID_CHANGE_START_DELAY_MS } from "@shared/constants";
 import { logger } from "@shared/logger";
+import { WAYMARK_PRESETS, isWaymarkPresetId } from "@shared/waymarkPresets";
 import { describeDecisions, findSeed } from "../engine/seedSearch";
 import { DesyncTracker } from "./desyncTracker";
 import { FrameRelay } from "./frameRelay";
 import { mergePendingIntent, type SessionLog } from "./sessionRaid";
+
+function botPatternOptionsFor(raid: RaidDef): BotPatternOption[] {
+  if (raid.botPatternOptions) return raid.botPatternOptions.map(option => ({ id: option.id, name: option.name }));
+  if (raid.botPatterns) return [{ id: "default", name: "Default" }];
+  return [];
+}
+
+function defaultBotPatternId(raid: RaidDef): string | null {
+  return botPatternOptionsFor(raid)[0]?.id ?? null;
+}
 
 export const LOBBY_TIMEOUT_MS = 10 * 60 * 1000;
 export const EMPTY_LOBBY_TIMEOUT_MS = 90 * 1000;
@@ -72,6 +83,8 @@ export class RelayRoom {
   private botsInvincible = false;
   private latestSnapshot: { tick: number; world: unknown } | null = null;
   private seedOverride: number | null = null;
+  private waymarkPresetId: string | null = null;
+  private botPatternId: string | null = null;
 
   // Authoritative input log: one merged-intent Frame per simulated tick since the pull started.
   // Owned by the relay; exposed for late-join / resync (`started` sends it in full to be replayed).
@@ -84,6 +97,7 @@ export class RelayRoom {
     this.id = options.id;
     this.raidId = options.raidId;
     this.raid = options.raid;
+    this.botPatternId = defaultBotPatternId(this.raid);
     this.now = options.now ?? Date.now;
     this.lobbyTimeoutMs = options.lobbyTimeoutMs ?? LOBBY_TIMEOUT_MS;
     this.createSessionLog = options.createSessionLog ?? null;
@@ -117,7 +131,7 @@ export class RelayRoom {
     logger.info("session", "client joined", { session: this.id, clientId, clients: this.clientIds.size });
   }
 
-  handle(clientId: string, message: Exclude<ClientMessage, { type: "join" | "setRaid" }>): void {
+  handle(clientId: string, message: Exclude<ClientMessage, { type: "join" | "setRaid" | "setBotPattern" }>): void {
     this.touch();
     switch (message.type) {
       case "claimSlot":
@@ -155,6 +169,9 @@ export class RelayRoom {
         return;
       case "findSeed":
         this.applyRngConstraints(clientId, message.constraints);
+        return;
+      case "setWaymarkPreset":
+        this.setWaymarkPreset(clientId, message.presetId);
         return;
       case "setBotsInvincible":
         this.setBotsInvincible(clientId, message.enabled);
@@ -194,6 +211,8 @@ export class RelayRoom {
     this.raidId = raidId;
     this.raid = raid;
     this.seedOverride = null;
+    this.waymarkPresetId = null;
+    this.botPatternId = defaultBotPatternId(this.raid);
     this.closePullLog();
     this.slots.clear();
     for (const player of this.raid.players) this.slots.set(player.id, preserveOwners ? previousSlots.get(player.id) ?? null : null);
@@ -532,6 +551,48 @@ export class RelayRoom {
     this.broadcastLobby();
   }
 
+  setWaymarkPreset(clientId: string, presetId: string | null): void {
+    if (clientId !== this.hostClientId) {
+      this.sendError(clientId, "Only the host can set the waymark preset");
+      return;
+    }
+    if (presetId !== null && !isWaymarkPresetId(presetId)) {
+      this.sendError(clientId, "Unknown waymark preset");
+      return;
+    }
+
+    this.waymarkPresetId = presetId;
+    this.refreshFrozenWorld();
+    this.broadcastLobby();
+  }
+
+  // Called by RelayServerRoom after it has asynchronously re-resolved the raid with the chosen
+  // bot-pattern file applied (bot patterns are baked into RaidDef at file-load time, unlike the
+  // seed/waymark overrides, which apply lazily at freshWorld()).
+  setBotPattern(clientId: string, patternId: string, raid: RaidDef): void {
+    if (clientId !== this.hostClientId) {
+      this.sendError(clientId, "Only the host can set the bot pattern");
+      return;
+    }
+
+    this.raid = raid;
+    this.botPatternId = patternId;
+    this.refreshFrozenWorld();
+    this.broadcastLobby();
+  }
+
+  // The client stops the pull before opening the Options modal, so a waymark/bot-pattern change
+  // normally lands while idle (paused/stopped/done) rather than mid-pull. Rebuild the frozen world
+  // right away so the change is visible immediately instead of waiting for the next start/restart.
+  // No-op in "lobby" (nothing shown yet) and "running" (never applied mid-pull).
+  private refreshFrozenWorld(): void {
+    if (this.status === "lobby" || this.status === "running") return;
+    this.world = this.freshWorld();
+    this.applyBotsInvincible();
+    this.resetPull();
+    this.broadcastStarted();
+  }
+
   private applyRngConstraints(clientId: string, constraints: Record<string, number>): void {
     if (clientId !== this.hostClientId) {
       this.sendError(clientId, "Only the host can set the seed");
@@ -689,8 +750,10 @@ export class RelayRoom {
   // function of slot ownership.
   private freshWorld(): World {
     const world = createWorld(this.raid, this.seedOverride ?? undefined);
+    const waymarkPreset = this.waymarkPresetId ? WAYMARK_PRESETS.find(preset => preset.id === this.waymarkPresetId) : null;
     return {
       ...world,
+      waymarks: waymarkPreset ? waymarkPreset.marks : world.waymarks,
       players: world.players.map(player => ({
         ...player,
         control: this.slots.get(player.id) ? "human" : "bot",
@@ -748,6 +811,9 @@ export class RelayRoom {
       slots,
       seedOverride: this.seedOverride,
       rngDecisions: describeDecisions(this.raid),
+      waymarkPresetId: this.waymarkPresetId,
+      botPatternOptions: botPatternOptionsFor(this.raid),
+      botPatternId: this.botPatternId,
       observerCount: this.observers.size,
       maxObservers: MAX_OBSERVERS,
       observingByYou: this.observers.has(clientId),

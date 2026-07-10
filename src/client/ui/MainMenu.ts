@@ -13,6 +13,7 @@ import {
   type Frame,
   type ServerMessage,
   type DecisionDescription,
+  type BotPatternOption,
 } from "@shared/protocol";
 import type { World } from "@shared/types";
 import type { NetClient } from "../net";
@@ -146,7 +147,7 @@ function playbackStateForLobby(status: LobbyStatus): PlaybackState {
 }
 
 type LobbyResult =
-  | { kind: "started"; world: World; yourPlayerId: string | null; sessionId: string; raidId: string; isHost: boolean; playbackState: PlaybackState; seedOverride: number | null; rngDecisions: DecisionDescription[] }
+  | { kind: "started"; world: World; yourPlayerId: string | null; sessionId: string; raidId: string; isHost: boolean; playbackState: PlaybackState; seedOverride: number | null; rngDecisions: DecisionDescription[]; waymarkPresetId: string | null; botPatternOptions: BotPatternOption[]; botPatternId: string | null }
   | { kind: "replay"; pull: number; raidId: string; world: World; frames: Frame[] }
   | { kind: "expired" };
 
@@ -377,7 +378,7 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
         const isHost = net.clientId !== null && net.clientId === lastLobby?.hostClientId;
         const playbackState = playbackStateForLobby(lastLobby?.status ?? "lobby");
         cleanup();
-        resolve({ kind: "started", world: message.world, yourPlayerId: message.yourPlayerId, sessionId, raidId, isHost, playbackState, seedOverride: lastLobby?.seedOverride ?? null, rngDecisions: lastLobby?.rngDecisions ?? [] });
+        resolve({ kind: "started", world: message.world, yourPlayerId: message.yourPlayerId, sessionId, raidId, isHost, playbackState, seedOverride: lastLobby?.seedOverride ?? null, rngDecisions: lastLobby?.rngDecisions ?? [], waymarkPresetId: lastLobby?.waymarkPresetId ?? null, botPatternOptions: lastLobby?.botPatternOptions ?? [], botPatternId: lastLobby?.botPatternId ?? null });
       }),
       net.on("sessionExpired", () => {
         cleanup();

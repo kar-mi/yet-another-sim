@@ -1,15 +1,22 @@
-import type { DecisionDescription } from "@shared/protocol";
+import type { BotPatternOption, DecisionDescription } from "@shared/protocol";
+import { WAYMARK_PRESETS } from "@shared/waymarkPresets";
 import { clearRngConstraints, loadRngConstraints, saveRngConstraints } from "../rngPrefs";
+import { clearWaymarkPreset, loadWaymarkPreset, saveWaymarkPreset } from "../waymarkPrefs";
 import type { NetClient } from "../net";
 import { el } from "./dom";
 
-type RngModalState = {
+type OptionsModalState = {
   raidId: string;
   currentSeed: number | null;
   seedOverride: number | null;
   rngDecisions: DecisionDescription[];
+  waymarkPresetId: string | null;
+  botPatternOptions: BotPatternOption[];
+  botPatternId: string | null;
   isHost: boolean;
 };
+
+type OptionsTab = "waymark" | "bots" | "rng";
 
 function formatSeed(seed: number | null): string {
   return seed === null ? "-" : `0x${seed.toString(16).padStart(8, "0")}`;
@@ -21,9 +28,15 @@ export function armSeed(net: NetClient, raidId: string): void {
   net.send({ type: "findSeed", constraints });
 }
 
-export function createRngModal(net: NetClient, initial: RngModalState): {
+export function armWaymark(net: NetClient, raidId: string): void {
+  const presetId = loadWaymarkPreset(raidId);
+  if (presetId === null) return;
+  net.send({ type: "setWaymarkPreset", presetId });
+}
+
+export function createOptionsModal(net: NetClient, initial: OptionsModalState): {
   open: () => void;
-  update: (next: Partial<RngModalState>) => void;
+  update: (next: Partial<OptionsModalState>) => void;
   dispose: () => void;
 } {
   let state = initial;
@@ -32,6 +45,41 @@ export function createRngModal(net: NetClient, initial: RngModalState): {
 
   const modal = el("div", { id: "yas-rng-modal" });
   modal.style.display = "none";
+
+  // --- Waymark tab ---
+  const waymarkSelect = el("select", { className: "yas-rng-select" }, [
+    el("option", { value: "", textContent: "Default" }),
+    ...WAYMARK_PRESETS.map(preset => el("option", { value: preset.id, textContent: preset.name })),
+  ]);
+  waymarkSelect.addEventListener("change", () => {
+    const presetId = waymarkSelect.value || null;
+    if (presetId) saveWaymarkPreset(state.raidId, presetId);
+    else clearWaymarkPreset(state.raidId);
+    net.send({ type: "setWaymarkPreset", presetId });
+  });
+  const waymarkBody = el("div", { className: "yas-rng-body" }, [
+    el("div", { className: "yas-rng-note", textContent: "Ground marker layout for this pull." }),
+    el("label", { className: "yas-rng-row" }, [
+      el("span", { textContent: "Waymark preset" }),
+      waymarkSelect,
+    ]),
+  ]);
+
+  // --- Bots tab ---
+  const botsSelect = el("select", { className: "yas-rng-select" });
+  const botsNote = el("div", { className: "yas-rng-note" });
+  botsSelect.addEventListener("change", () => {
+    net.send({ type: "setBotPattern", patternId: botsSelect.value });
+  });
+  const botsBody = el("div", { className: "yas-rng-body" }, [
+    botsNote,
+    el("label", { className: "yas-rng-row" }, [
+      el("span", { textContent: "Bot pattern" }),
+      botsSelect,
+    ]),
+  ]);
+
+  // --- RNG tab (unchanged behavior) ---
   const currentSeed = el("span", { className: "yas-rng-seed", textContent: formatSeed(state.currentSeed) });
   const overrideText = el("div", { className: "yas-rng-note" });
   const errorText = el("div", { className: "yas-rng-error" });
@@ -90,6 +138,19 @@ export function createRngModal(net: NetClient, initial: RngModalState): {
     net.send({ type: "findSeed", constraints });
   };
 
+  const rngBody = el("div", { className: "yas-rng-body" }, [
+    el("div", { className: "yas-rng-current" }, [
+      el("span", { textContent: "Current pull seed" }),
+      currentSeed,
+    ]),
+    overrideText,
+    decisionList,
+    el("div", { className: "yas-rng-actions" }, [
+      el("button", { type: "button", className: "yas-rng-random", textContent: "RESET" }),
+    ]),
+    errorText,
+  ]);
+
   const close = () => {
     if (modal.style.display === "none") return;
     if (dirty) {
@@ -99,25 +160,34 @@ export function createRngModal(net: NetClient, initial: RngModalState): {
     modal.style.display = "none";
   };
 
+  // --- Tab strip ---
+  const tabs: { id: OptionsTab; label: string; body: HTMLElement }[] = [
+    { id: "waymark", label: "WAYMARK", body: waymarkBody },
+    { id: "bots", label: "BOTS", body: botsBody },
+    { id: "rng", label: "RNG", body: rngBody },
+  ];
+  const tabButtons = tabs.map(tab => el("button", { type: "button", className: "yas-options-tab", textContent: tab.label }));
+  const setActiveTab = (tab: OptionsTab) => {
+    tabs.forEach((t, i) => {
+      tabButtons[i].classList.toggle("is-active", t.id === tab);
+      t.body.style.display = t.id === tab ? "" : "none";
+    });
+  };
+  tabs.forEach((tab, i) => tabButtons[i].addEventListener("click", () => setActiveTab(tab.id)));
+  const tabStrip = el("div", { className: "yas-options-tabs" }, tabButtons);
+
   const panel = el("div", { className: "yas-raid-modal-panel yas-rng-panel" }, [
     el("div", { className: "yas-raid-modal-header" }, [
-      el("div", { className: "yas-menu-subtitle", textContent: "RNG" }),
+      el("div", { className: "yas-menu-subtitle", textContent: "OPTIONS" }),
       el("button", { type: "button", className: "yas-rng-close", textContent: "CLOSE" }),
     ]),
-    el("div", { className: "yas-rng-body" }, [
-      el("div", { className: "yas-rng-current" }, [
-        el("span", { textContent: "Current pull seed" }),
-        currentSeed,
-      ]),
-      overrideText,
-      decisionList,
-      el("div", { className: "yas-rng-actions" }, [
-        el("button", { type: "button", className: "yas-rng-random", textContent: "RESET" }),
-      ]),
-      errorText,
-    ]),
+    tabStrip,
+    waymarkBody,
+    botsBody,
+    rngBody,
   ]);
   modal.appendChild(panel);
+  setActiveTab("waymark");
 
   panel.querySelector<HTMLButtonElement>(".yas-rng-close")!.addEventListener("click", close);
   panel.querySelector<HTMLButtonElement>(".yas-rng-random")!.addEventListener("click", () => {
@@ -137,17 +207,35 @@ export function createRngModal(net: NetClient, initial: RngModalState): {
   document.addEventListener("keydown", onKeydown);
   document.body.appendChild(modal);
 
+  const renderWaymark = () => {
+    waymarkSelect.value = state.waymarkPresetId ?? "";
+  };
+
+  const renderBots = () => {
+    botsSelect.replaceChildren(...state.botPatternOptions.map(option => el("option", { value: option.id, textContent: option.name })));
+    const hasChoice = state.botPatternOptions.length > 1;
+    botsSelect.disabled = !hasChoice;
+    botsNote.textContent = state.botPatternOptions.length === 0
+      ? "This raid has no bot-controlled movement."
+      : hasChoice ? "" : "No alternate patterns for this raid.";
+    if (state.botPatternId !== null) botsSelect.value = state.botPatternId;
+  };
+
   return {
     open: () => {
       if (!state.isHost) return;
       errorText.textContent = "";
+      renderWaymark();
+      renderBots();
       renderDecisions();
       modal.style.display = "flex";
-      selects[0]?.focus();
+      tabButtons[0]?.focus();
     },
     update: next => {
       state = { ...state, ...next };
       if (modal.style.display !== "none") {
+        renderWaymark();
+        renderBots();
         if (dirty) renderHeader();
         else renderDecisions();
       }

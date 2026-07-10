@@ -1,12 +1,13 @@
-import { EMPTY_RAID_ID, type DecisionDescription, type PlaybackState, type RaidCategory } from "@shared/protocol";
+import { EMPTY_RAID_ID, type BotPatternOption, type DecisionDescription, type PlaybackState, type RaidCategory } from "@shared/protocol";
 import { RAID_CHANGE_START_DELAY_MS } from "@shared/constants";
 import type { NetClient } from "../net";
 import { loadRaidCategories } from "./MainMenu";
 import { showLoadingOverlay } from "./LoadingOverlay";
 import { el } from "./dom";
 import type { HudLayoutManager } from "./HudLayoutManager";
-import { armSeed, createRngModal } from "./RngModal";
+import { armSeed, armWaymark, createOptionsModal } from "./OptionsModal";
 import { loadRngConstraints } from "../rngPrefs";
+import { loadWaymarkPreset } from "../waymarkPrefs";
 
 function ticksToLabel(tick: number): string {
   const totalSeconds = Math.floor(tick / 60);
@@ -39,6 +40,9 @@ export async function createRaidHudSelect(
   initialSeedOverride: number | null = null,
   replay?: { duration: () => number; currentTick: () => number; play: () => void; pause: () => void; restart: () => void; seek: (tick: number) => void },
   initialRngDecisions: DecisionDescription[] = [],
+  initialWaymarkPresetId: string | null = null,
+  initialBotPatternOptions: BotPatternOption[] = [],
+  initialBotPatternId: string | null = null,
 ): Promise<() => void> {
   let isHost = initialIsHost;
   let lastState: PlaybackState = initialPlaybackState;
@@ -229,14 +233,22 @@ export async function createRaidHudSelect(
   const pauseBtn = makePlaybackBtn("PAUSE", () => replay ? replay.pause() : net.send({ type: "pause" }));
   const stopBtn = makePlaybackBtn("STOP", () => net.send({ type: "stop" }));
   const restartBtn = makePlaybackBtn("RESTART", () => replay ? replay.restart() : net.send({ type: "restart" }));
-  const rngModal = replay ? null : createRngModal(net, {
+  const optionsModal = replay ? null : createOptionsModal(net, {
     raidId: activeRaidId,
     currentSeed: currentWorldSeed,
     seedOverride,
     rngDecisions: initialRngDecisions,
+    waymarkPresetId: initialWaymarkPresetId,
+    botPatternOptions: initialBotPatternOptions,
+    botPatternId: initialBotPatternId,
     isHost,
   });
-  const rngBtn = replay ? null : makePlaybackBtn("RNG", () => rngModal?.open());
+  const optionsBtn = replay ? null : makePlaybackBtn("OPTIONS", () => {
+    // Stop before opening: options must not change out from under a live pull, and stopping first
+    // lets the server apply waymark/bot-pattern changes to the frozen world immediately.
+    if (lastState !== "stopped") net.send({ type: "stop" });
+    optionsModal?.open();
+  });
   if (replay) {
     controls.append(playBtn, pauseBtn, restartBtn);
   } else {
@@ -295,8 +307,8 @@ export async function createRaidHudSelect(
     pauseBtn.disabled = raidChangePending || !canControl() || state !== "playing";
     stopBtn.disabled = raidChangePending || !canControl() || state === "stopped";
     restartBtn.disabled = raidChangePending || !canControl();
-    if (rngBtn) rngBtn.disabled = raidChangePending || !isHost;
-    rngModal?.update({ isHost });
+    if (optionsBtn) optionsBtn.disabled = raidChangePending || !isHost;
+    optionsModal?.update({ isHost });
   };
 
   const disposePlayback = net.on("playback", message => {
@@ -308,7 +320,7 @@ export async function createRaidHudSelect(
     if (wasRaidChangePending || message.state === "playing") resumePlaybackAfterModal = false;
     currentCategory = categoryForRaidId(message.raidId);
     selectedRaidId = message.raidId;
-    rngModal?.update({ raidId: message.raidId, rngDecisions: message.rngDecisions });
+    optionsModal?.update({ raidId: message.raidId, rngDecisions: message.rngDecisions });
     updateButtonLabel();
     if (modal.style.display !== "none") {
       renderCategories();
@@ -334,22 +346,34 @@ export async function createRaidHudSelect(
     isHost = replay ? false : net.clientId === message.hostClientId;
     activeRaidId = message.raidId;
     seedOverride = message.seedOverride;
-    rngModal?.update({ raidId: message.raidId, seedOverride, rngDecisions: message.rngDecisions, isHost });
+    optionsModal?.update({
+      raidId: message.raidId,
+      seedOverride,
+      rngDecisions: message.rngDecisions,
+      waymarkPresetId: message.waymarkPresetId,
+      botPatternOptions: message.botPatternOptions,
+      botPatternId: message.botPatternId,
+      isHost,
+    });
     if (isHost && message.seedOverride === null && Object.keys(loadRngConstraints(message.raidId)).length > 0) {
       armSeed(net, message.raidId);
+    }
+    if (isHost && message.waymarkPresetId === null && loadWaymarkPreset(message.raidId) !== null) {
+      armWaymark(net, message.raidId);
     }
   });
   const disposeStarted = net.on("started", message => {
     currentWorldSeed = message.world.seed;
-    rngModal?.update({ currentSeed: currentWorldSeed });
+    optionsModal?.update({ currentSeed: currentWorldSeed });
     if (isHost) armSeed(net, activeRaidId);
+    if (isHost) armWaymark(net, activeRaidId);
   });
   syncPlayback(initialPlaybackState);
 
   const selectRow = el("div", { className: "yas-raid-select-row" });
   selectRow.append(raidBtn);
-  if (rngBtn) {
-    const rngRow = el("div", { className: "yas-rng-controls" }, [rngBtn]);
+  if (optionsBtn) {
+    const rngRow = el("div", { className: "yas-rng-controls" }, [optionsBtn]);
     selectRow.appendChild(rngRow);
   }
   wrapper.append(label, selectRow, controls);
@@ -367,7 +391,7 @@ export async function createRaidHudSelect(
     disposeError();
     disposeLobby();
     disposeStarted();
-    rngModal?.dispose();
+    optionsModal?.dispose();
     if (seekTimer) clearInterval(seekTimer);
     document.removeEventListener("keydown", onKeydown);
     modal.remove();

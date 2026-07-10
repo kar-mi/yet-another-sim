@@ -147,6 +147,11 @@ export class RelayServerRoom extends Room {
           this.relay.setRaid(client.sessionId, parsed.data.raidId, await loadSessionRaid(parsed.data.raidId, RAIDS_DIR));
           return;
         }
+        if (parsed.data.type === "setBotPattern") {
+          const raid = await loadSessionRaid(this.relay.raidId, RAIDS_DIR, parsed.data.patternId);
+          this.relay.setBotPattern(client.sessionId, parsed.data.patternId, raid);
+          return;
+        }
         this.relay.handle(client.sessionId, parsed.data);
       } catch (err) {
         logger.error("net", "message handler failed", { clientId: client.sessionId, type: parsed.data.type, err });

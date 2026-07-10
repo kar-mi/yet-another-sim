@@ -1237,6 +1237,13 @@ export const RaidSchema = z.object({
   // Multi-boss: when present, takes precedence over `boss`. Each entry requires a unique id slug.
   bosses: z.array(BossWithIdSchema).min(1).optional(),
   botPatterns: RaidIdSchema.optional(),
+  // Named alternate bot-pattern files the host can pick between (Options modal "Bots" tab).
+  // Additive: raids with only `botPatterns` show a single implicit "Default" option.
+  botPatternOptions: z.array(z.object({
+    id: z.string().min(1),
+    name: z.string().min(1),
+    file: RaidIdSchema,
+  })).min(1).optional(),
   players: z.array(PlayerDefSchema).length(ROSTER.length),
   events: z.array(EventSchema),
   waymarks: z.array(WaymarkSchema).optional(),
