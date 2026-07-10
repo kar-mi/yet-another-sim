@@ -193,6 +193,24 @@ test("bossRelativeCenter resolves circle offsets from boss position", () => {
   expect(byId(afterLeft, "m2").hp).toBe(DPS_HP - 10);
 });
 
+test("bossRelativeCenter resolves a boss-anchored rectangle origin", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    boss: { pos: [0, 18] },
+    players: roster({ mt: { spawn: [0, 8] }, m1: { spawn: [-8, -2] }, m2: { spawn: [8, -2] } }),
+    events: [{
+      t: 0, name: "Left Antilight", telegraph: 1, damage: 10, damageType: "physical" as const,
+      bossId: "boss", anchor: "boss" as const, directionFrom: "bossFacing" as const,
+      bossRelativeCenter: { lateral: 8, forward: 0 },
+      shape: { kind: "rect" as const, origin: [0, 0] as [number, number], direction: [0, 1] as [number, number], width: 4, length: 4 },
+    }],
+  });
+
+  const world = runTicks(createWorld(raid), {}, Math.ceil(1.1 * 60));
+  expect(byId(world, "m1").hp).toBe(DPS_HP - 10);
+  expect(byId(world, "m2").hp).toBe(DPS_HP);
+});
+
 test("aimAtPlayer points cone geometry without turning the boss", () => {
   const raid = loadRaid({
     ...baseRaid,

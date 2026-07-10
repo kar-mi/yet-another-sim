@@ -1,0 +1,428 @@
+# Dancing Mad P4.  Thunder/Blizzard/Mana Release are cast-bar placeholders until
+# their geometry pass; all other mechanics are authored from p4_timeline.md.
+name: P4 - Kefka Says
+arena:
+  floorPlan: dmu-p1
+  zones:
+    - kind: circle
+      center: { x: 0, z: 0 }
+      radius: 20
+duration: 165
+
+bosses:
+  - { id: kefka, pos: { x: 0, z: 0 }, aggro: mt }
+  - { id: chaos, pos: { x: -12, z: 12 }, targetable: false }
+  - { id: exdeath, pos: { x: 12, z: 12 }, targetable: false }
+
+players:
+  - { id: mt, role: tank, spawn: { x: 0, z: 8 } }
+  - { id: ot, role: tank, spawn: { x: 0, z: -8 } }
+  - { id: h1, role: healer, spawn: { x: -8, z: 0 } }
+  - { id: h2, role: healer, spawn: { x: 8, z: 0 } }
+  - { id: r1, role: dps, spawn: { x: -5.66, z: 5.66 } }
+  - { id: r2, role: dps, spawn: { x: 5.66, z: 5.66 } }
+  - { id: m1, role: dps, spawn: { x: -5.66, z: -5.66 } }
+  - { id: m2, role: dps, spawn: { x: 5.66, z: -5.66 } }
+
+_noBehavior: &noBehavior { kind: none }
+_water: &water { ref: compressed_water, behavior: *noBehavior }
+_fakeWater: &fakeWater { ref: fake_compressed_water, behavior: *noBehavior }
+_lightning: &lightning { ref: forked_lightning, behavior: *noBehavior }
+_fakeLightning: &fakeLightning { ref: fake_forked_lightning, behavior: *noBehavior }
+_shriek: &shriek { ref: cursed_shriek, behavior: *noBehavior }
+_fakeShriek: &fakeShriek { ref: fake_cursed_shriek, behavior: *noBehavior }
+_entropy: &entropy { ref: entropy, behavior: *noBehavior }
+_fakeEntropy: &fakeEntropy { ref: fake_entropy, behavior: *noBehavior }
+_fluid: &fluid { ref: dynamic_fluid, behavior: *noBehavior }
+_fakeFluid: &fakeFluid { ref: fake_dynamic_fluid, behavior: *noBehavior }
+_field: &field { ref: allagan_field, behavior: *noBehavior }
+_beyond: &beyond { ref: beyond_death, behavior: *noBehavior }
+
+optionals:
+  rngLabels:
+    event-set-grand-cross-duration:
+      label: Grand Cross durations
+      options: [GC1 short, GC1 long]
+    event-set-chaos-order:
+      label: Chaos cast order
+      options: [Tsunami first, Inferno first]
+    event-set-antilight-side:
+      label: Antilight sides
+      options: [White left, White right]
+  combinations:
+    eventSets:
+      grand-cross-duration:
+        rng: true
+        sets:
+          - [gc1-water-short, gc1-lightning-short, gc1-shriek, gc1-bombs-short, gc1-bombs-long, gc2-water-long, gc2-lightning-long, gc2-shriek, gc2-bombs-short, gc2-bombs-long]
+          - [gc1-water-long, gc1-lightning-long, gc1-shriek-long, gc1-bombs-long-first, gc1-bombs-short-second, gc2-water-short, gc2-lightning-short, gc2-shriek-short, gc2-bombs-long-first, gc2-bombs-short-second]
+      chaos-order:
+        rng: true
+        sets:
+          - [tsunami-first, dynamic-fluid-first, inferno-second, entropy-second]
+          - [inferno-first, entropy-first, tsunami-second, dynamic-fluid-second]
+      antilight-side:
+        rng: true
+        sets:
+          - [white-antilight-left, black-antilight-right]
+          - [black-antilight-left, white-antilight-right]
+
+events:
+  - type: aoe
+    id: kefka-says
+    time: 5.2
+    name: Kefka Says
+    telegraph: 5
+    damage: 0
+    damageType: magical
+    bossId: kefka
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+  - type: aoe
+    id: enhanced-thrill-1
+    time: 13.3
+    name: Enhanced Thrill Of War II
+    telegraph: 0.1
+    damage: 0
+    damageType: magical
+    bossId: kefka
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+
+  - type: aoe
+    id: mystery-magic-1
+    time: 14.8
+    name: Mystery Magic #1
+    telegraph: 4.9
+    damage: 0
+    damageType: magical
+    bossId: kefka
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+  - type: aoe
+    id: grand-cross-1
+    time: 15.2
+    name: Grand Cross #1
+    telegraph: 10.2
+    damage: 0
+    damageType: magical
+    bossId: exdeath
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
+
+  - type: aoe
+    id: tsunami-first
+    time: 20.2
+    name: Tsunami
+    telegraph: 9
+    damage: 0
+    damageType: magical
+    bossId: chaos
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
+  - type: apply_effect
+    id: dynamic-fluid-first
+    time: 29.2
+    name: Dynamic Fluid
+    applyEffectChoices: [{ <<: *fluid, duration: 84.8 }, { <<: *fakeFluid, duration: 84.8 }]
+    rng: true
+  - type: aoe
+    id: inferno-second
+    time: 35.2
+    name: Inferno
+    telegraph: 9
+    damage: 0
+    damageType: magical
+    bossId: chaos
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
+  - type: apply_effect
+    id: entropy-second
+    time: 44.2
+    name: Entropy
+    applyEffectChoices: [{ <<: *entropy, duration: 47 }, { <<: *fakeEntropy, duration: 47 }]
+    rng: true
+
+  - type: aoe
+    id: inferno-first
+    time: 20.2
+    name: Inferno
+    telegraph: 9
+    damage: 0
+    damageType: magical
+    bossId: chaos
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
+  - type: apply_effect
+    id: entropy-first
+    time: 29.2
+    name: Entropy
+    applyEffectChoices: [{ <<: *entropy, duration: 62 }, { <<: *fakeEntropy, duration: 62 }]
+    rng: true
+  - type: aoe
+    id: tsunami-second
+    time: 35.2
+    name: Tsunami
+    telegraph: 9
+    damage: 0
+    damageType: magical
+    bossId: chaos
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
+  - type: apply_effect
+    id: dynamic-fluid-second
+    time: 44.2
+    name: Dynamic Fluid
+    applyEffectChoices: [{ <<: *fluid, duration: 70 }, { <<: *fakeFluid, duration: 70 }]
+    rng: true
+
+  - type: aoe
+    id: mystery-magic-2
+    time: 29.7
+    name: Mystery Magic #2
+    telegraph: 5
+    damage: 0
+    damageType: magical
+    bossId: kefka
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+  - type: aoe
+    id: grand-cross-2
+    time: 30.1
+    name: Grand Cross #2
+    telegraph: 10.3
+    damage: 0
+    damageType: magical
+    bossId: exdeath
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
+  - type: aoe
+    id: mystery-magic-3
+    time: 44.9
+    name: Mystery Magic #3
+    telegraph: 5
+    damage: 0
+    damageType: magical
+    bossId: kefka
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+  - type: aoe
+    id: grand-cross-3
+    time: 45.1
+    name: Grand Cross #3
+    telegraph: 10.3
+    damage: 0
+    damageType: magical
+    bossId: exdeath
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 }
+  - type: aoe
+    id: forsaken-screech
+    time: 53
+    name: Forsaken Screech
+    telegraph: 3
+    damage: 0
+    damageType: magical
+    bossId: kefka
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 }
+
+  # GC1/GC2 status applications.  All non-Bomb resolver behavior is event-driven below.
+  - { type: apply_effect, id: gc1-water-short, time: 24.14, name: Compressed Water, players: [mt, r1], applyEffectChoices: [{ <<: *water, duration: 51 }, { <<: *fakeWater, duration: 51 }], rng: true, effectChoiceGroup: gc1-water-lightning }
+  - { type: apply_effect, id: gc1-lightning-short, time: 24.14, name: Forked Lightning, players: [h1, m1], applyEffectChoices: [{ <<: *lightning, duration: 51 }, { <<: *fakeLightning, duration: 51 }], rng: true, effectChoiceGroup: gc1-water-lightning }
+  - { type: apply_effect, id: gc1-shriek, time: 24.14, name: Cursed Shriek, players: [ot, m2], applyEffectChoices: [{ <<: *shriek, duration: 60 }, { <<: *fakeShriek, duration: 60 }], rng: true }
+  - { type: apply_effect, id: gc1-bombs-short, time: 24.14, name: Acceleration Bomb, players: [mt, h1], applyEffectChoices: [{ ref: acceleration_bomb, duration: 51 }, { ref: fake_acceleration_bomb, duration: 51 }], rng: true, effectChoiceGroup: gc1-bombs }
+  - { type: apply_effect, id: gc1-bombs-long, time: 24.14, name: Acceleration Bomb, players: [r1, m1], applyEffectChoices: [{ ref: acceleration_bomb, duration: 76 }, { ref: fake_acceleration_bomb, duration: 76 }], rng: true, effectChoiceGroup: gc1-bombs }
+  - { type: apply_effect, id: gc2-water-long, time: 39.12, name: Compressed Water, players: [ot, r2], applyEffectChoices: [{ <<: *water, duration: 61 }, { <<: *fakeWater, duration: 61 }], rng: true, effectChoiceGroup: gc2-water-lightning }
+  - { type: apply_effect, id: gc2-lightning-long, time: 39.12, name: Forked Lightning, players: [h2, m2], applyEffectChoices: [{ <<: *lightning, duration: 61 }, { <<: *fakeLightning, duration: 61 }], rng: true, effectChoiceGroup: gc2-water-lightning }
+  - { type: apply_effect, id: gc2-shriek, time: 39.12, name: Cursed Shriek, players: [h2, r2], applyEffectChoices: [{ <<: *shriek, duration: 69 }, { <<: *fakeShriek, duration: 69 }], rng: true }
+  - { type: apply_effect, id: gc2-bombs-short, time: 39.12, name: Acceleration Bomb, players: [ot, h2], applyEffectChoices: [{ ref: acceleration_bomb, duration: 36 }, { ref: fake_acceleration_bomb, duration: 36 }], rng: true, effectChoiceGroup: gc2-bombs }
+  - { type: apply_effect, id: gc2-bombs-long, time: 39.12, name: Acceleration Bomb, players: [r2, m2], applyEffectChoices: [{ ref: acceleration_bomb, duration: 61 }, { ref: fake_acceleration_bomb, duration: 61 }], rng: true, effectChoiceGroup: gc2-bombs }
+
+  - { type: apply_effect, id: gc1-water-long, time: 24.14, name: Compressed Water, players: [mt, r1], applyEffectChoices: [{ <<: *water, duration: 76 }, { <<: *fakeWater, duration: 76 }], rng: true, effectChoiceGroup: gc1-water-lightning }
+  - { type: apply_effect, id: gc1-lightning-long, time: 24.14, name: Forked Lightning, players: [h1, m1], applyEffectChoices: [{ <<: *lightning, duration: 76 }, { <<: *fakeLightning, duration: 76 }], rng: true, effectChoiceGroup: gc1-water-lightning }
+  - { type: apply_effect, id: gc1-shriek-long, time: 24.14, name: Cursed Shriek, players: [ot, m2], applyEffectChoices: [{ <<: *shriek, duration: 60 }, { <<: *fakeShriek, duration: 60 }], rng: true }
+  - { type: apply_effect, id: gc1-bombs-long-first, time: 24.14, name: Acceleration Bomb, players: [mt, h1], applyEffectChoices: [{ ref: acceleration_bomb, duration: 76 }, { ref: fake_acceleration_bomb, duration: 76 }], rng: true, effectChoiceGroup: gc1-bombs }
+  - { type: apply_effect, id: gc1-bombs-short-second, time: 24.14, name: Acceleration Bomb, players: [r1, m1], applyEffectChoices: [{ ref: acceleration_bomb, duration: 51 }, { ref: fake_acceleration_bomb, duration: 51 }], rng: true, effectChoiceGroup: gc1-bombs }
+  - { type: apply_effect, id: gc2-water-short, time: 39.12, name: Compressed Water, players: [ot, r2], applyEffectChoices: [{ <<: *water, duration: 36 }, { <<: *fakeWater, duration: 36 }], rng: true, effectChoiceGroup: gc2-water-lightning }
+  - { type: apply_effect, id: gc2-lightning-short, time: 39.12, name: Forked Lightning, players: [h2, m2], applyEffectChoices: [{ <<: *lightning, duration: 36 }, { <<: *fakeLightning, duration: 36 }], rng: true, effectChoiceGroup: gc2-water-lightning }
+  - { type: apply_effect, id: gc2-shriek-short, time: 39.12, name: Cursed Shriek, players: [h2, r2], applyEffectChoices: [{ <<: *shriek, duration: 69 }, { <<: *fakeShriek, duration: 69 }], rng: true }
+  - { type: apply_effect, id: gc2-bombs-long-first, time: 39.12, name: Acceleration Bomb, players: [ot, h2], applyEffectChoices: [{ ref: acceleration_bomb, duration: 61 }, { ref: fake_acceleration_bomb, duration: 61 }], rng: true, effectChoiceGroup: gc2-bombs }
+  - { type: apply_effect, id: gc2-bombs-short-second, time: 39.12, name: Acceleration Bomb, players: [r2, m2], applyEffectChoices: [{ ref: acceleration_bomb, duration: 36 }, { ref: fake_acceleration_bomb, duration: 36 }], rng: true, effectChoiceGroup: gc2-bombs }
+
+  # GC3 uses one independent visible/origin wound coin per player.
+  - { type: apply_effect, id: wound-mt, time: 55.53, name: Wound, players: [mt], applyEffectChoices: [{ ref: white_wound, duration: 110 }, { ref: black_wound, duration: 110 }], rng: true, effectChoiceGroup: wound-mt }
+  - { type: apply_effect, id: origin-mt, time: 55.53, name: Wound Origin, players: [mt], applyEffectChoices: [{ ref: white_wound, duration: 110, visibility: invisible, group: origin }, { ref: black_wound, duration: 110, visibility: invisible, group: origin }], rng: true, effectChoiceGroup: wound-mt }
+  - { type: apply_effect, id: wound-ot, time: 55.53, name: Wound, players: [ot], applyEffectChoices: [{ ref: white_wound, duration: 110 }, { ref: black_wound, duration: 110 }], rng: true, effectChoiceGroup: wound-ot }
+  - { type: apply_effect, id: origin-ot, time: 55.53, name: Wound Origin, players: [ot], applyEffectChoices: [{ ref: white_wound, duration: 110, visibility: invisible, group: origin }, { ref: black_wound, duration: 110, visibility: invisible, group: origin }], rng: true, effectChoiceGroup: wound-ot }
+  - { type: apply_effect, id: wound-h1, time: 55.53, name: Wound, players: [h1], applyEffectChoices: [{ ref: white_wound, duration: 110 }, { ref: black_wound, duration: 110 }], rng: true, effectChoiceGroup: wound-h1 }
+  - { type: apply_effect, id: origin-h1, time: 55.53, name: Wound Origin, players: [h1], applyEffectChoices: [{ ref: white_wound, duration: 110, visibility: invisible, group: origin }, { ref: black_wound, duration: 110, visibility: invisible, group: origin }], rng: true, effectChoiceGroup: wound-h1 }
+  - { type: apply_effect, id: wound-h2, time: 55.53, name: Wound, players: [h2], applyEffectChoices: [{ ref: white_wound, duration: 110 }, { ref: black_wound, duration: 110 }], rng: true, effectChoiceGroup: wound-h2 }
+  - { type: apply_effect, id: origin-h2, time: 55.53, name: Wound Origin, players: [h2], applyEffectChoices: [{ ref: white_wound, duration: 110, visibility: invisible, group: origin }, { ref: black_wound, duration: 110, visibility: invisible, group: origin }], rng: true, effectChoiceGroup: wound-h2 }
+  - { type: apply_effect, id: wound-r1, time: 55.53, name: Wound, players: [r1], applyEffectChoices: [{ ref: white_wound, duration: 110 }, { ref: black_wound, duration: 110 }], rng: true, effectChoiceGroup: wound-r1 }
+  - { type: apply_effect, id: origin-r1, time: 55.53, name: Wound Origin, players: [r1], applyEffectChoices: [{ ref: white_wound, duration: 110, visibility: invisible, group: origin }, { ref: black_wound, duration: 110, visibility: invisible, group: origin }], rng: true, effectChoiceGroup: wound-r1 }
+  - { type: apply_effect, id: wound-r2, time: 55.53, name: Wound, players: [r2], applyEffectChoices: [{ ref: white_wound, duration: 110 }, { ref: black_wound, duration: 110 }], rng: true, effectChoiceGroup: wound-r2 }
+  - { type: apply_effect, id: origin-r2, time: 55.53, name: Wound Origin, players: [r2], applyEffectChoices: [{ ref: white_wound, duration: 110, visibility: invisible, group: origin }, { ref: black_wound, duration: 110, visibility: invisible, group: origin }], rng: true, effectChoiceGroup: wound-r2 }
+  - { type: apply_effect, id: wound-m1, time: 55.53, name: Wound, players: [m1], applyEffectChoices: [{ ref: white_wound, duration: 110 }, { ref: black_wound, duration: 110 }], rng: true, effectChoiceGroup: wound-m1 }
+  - { type: apply_effect, id: origin-m1, time: 55.53, name: Wound Origin, players: [m1], applyEffectChoices: [{ ref: white_wound, duration: 110, visibility: invisible, group: origin }, { ref: black_wound, duration: 110, visibility: invisible, group: origin }], rng: true, effectChoiceGroup: wound-m1 }
+  - { type: apply_effect, id: wound-m2, time: 55.53, name: Wound, players: [m2], applyEffectChoices: [{ ref: white_wound, duration: 110 }, { ref: black_wound, duration: 110 }], rng: true, effectChoiceGroup: wound-m2 }
+  - { type: apply_effect, id: origin-m2, time: 55.53, name: Wound Origin, players: [m2], applyEffectChoices: [{ ref: white_wound, duration: 110, visibility: invisible, group: origin }, { ref: black_wound, duration: 110, visibility: invisible, group: origin }], rng: true, effectChoiceGroup: wound-m2 }
+  - { type: apply_effect, id: allagan-field, time: 55.53, name: Allagan Field, players: [mt, h1, r1, m1], applyEffect: { <<: *field, duration: 15 } }
+  - { type: apply_effect, id: beyond-death, time: 55.53, name: Beyond Death, players: [ot, h2, r2, m2], applyEffect: { <<: *beyond, duration: 15 } }
+
+  - type: teleport_boss
+    id: neo-exdeath-jump
+    time: 61.2
+    name: Flood of Naught
+    bossId: exdeath
+    rng: true
+    spots:
+      - { x: 0, z: 20 }
+      - { x: 14.142136, z: 14.142136 }
+      - { x: 20, z: 0 }
+      - { x: 14.142136, z: -14.142136 }
+      - { x: 0, z: -20 }
+      - { x: -14.142136, z: -14.142136 }
+      - { x: -20, z: 0 }
+      - { x: -14.142136, z: 14.142136 }
+  - type: aoe
+    id: edge-of-death
+    time: 61.3
+    name: Edge of Death
+    telegraph: 5.7
+    damage: 0
+    damageType: magical
+    bossId: exdeath
+    anchor: boss
+    directionFrom: bossFacing
+    showCastBar: true
+    showTelegraph: true
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 9 }
+  - type: aoe
+    id: white-antilight-left
+    time: 61.3
+    name: White Antilight
+    telegraph: 5.7
+    damage: 0
+    damageType: magical
+    bossId: exdeath
+    anchor: boss
+    directionFrom: bossFacing
+    directionOffset: -1.5707963267948966
+    bossRelativeCenter: { lateral: -9.5, forward: 0 }
+    showCastBar: false
+    applyEffect: { ref: white_wound, duration: 104 }
+    shape: { kind: rect, width: 8, length: 22 }
+  - type: aoe
+    id: black-antilight-right
+    time: 61.3
+    name: Black Antilight
+    telegraph: 5.7
+    damage: 0
+    damageType: magical
+    bossId: exdeath
+    anchor: boss
+    directionFrom: bossFacing
+    directionOffset: 1.5707963267948966
+    bossRelativeCenter: { lateral: 9.5, forward: 0 }
+    showCastBar: false
+    applyEffect: { ref: black_wound, duration: 104 }
+    shape: { kind: rect, width: 8, length: 22 }
+  - type: aoe
+    id: black-antilight-left
+    time: 61.3
+    name: Black Antilight
+    telegraph: 5.7
+    damage: 0
+    damageType: magical
+    bossId: exdeath
+    anchor: boss
+    directionFrom: bossFacing
+    directionOffset: -1.5707963267948966
+    bossRelativeCenter: { lateral: -9.5, forward: 0 }
+    showCastBar: false
+    applyEffect: { ref: black_wound, duration: 104 }
+    shape: { kind: rect, width: 8, length: 22 }
+  - type: aoe
+    id: white-antilight-right
+    time: 61.3
+    name: White Antilight
+    telegraph: 5.7
+    damage: 0
+    damageType: magical
+    bossId: exdeath
+    anchor: boss
+    directionFrom: bossFacing
+    directionOffset: 1.5707963267948966
+    bossRelativeCenter: { lateral: 9.5, forward: 0 }
+    showCastBar: false
+    applyEffect: { ref: white_wound, duration: 104 }
+    shape: { kind: rect, width: 8, length: 22 }
+  - type: effect_check
+    id: death-surge
+    time: 71.5
+    name: Death Surge
+    checks:
+      - { carriers: Allagan Field, compare: [wound, origin], expect: differs }
+      - { carriers: Beyond Death, compare: [wound, origin], expect: matches }
+    failureDamage: 999
+    failureDamageType: "true"
+
+  - { type: aoe, id: mana-charge, time: 72, name: Mana Charge, telegraph: 2.9, damage: 0, damageType: magical, bossId: kefka, showCastBar: true, showTelegraph: false, shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 } }
+  - type: spread_stack
+    id: death-wave-1
+    time: 75.2
+    name: Death Bolt / Death Wave
+    telegraph: 0.7
+    shown: spread
+    rng: true
+    damageType: magical
+    stackCarriers: Compressed Water
+    spreadCarriers: Forked Lightning
+    spread: { radius: 5, damage: 0 }
+    stack: { groups: [[mt, ot, h1, h2], [r1, r2, m1, m2]], radius: 6, requiredCount: 3, damage: 0 }
+  - { type: aoe, id: thunder-iii, time: 78.2, name: Thrumming Thunder III, telegraph: 5, damage: 0, damageType: magical, bossId: kefka, showCastBar: true, showTelegraph: false, shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 } }
+  - { type: gaze, id: death-shriek-1, time: 84.3, name: Death Shriek, telegraph: 0.7, carriers: Cursed Shriek, carrierCone: { angleDeg: 90, length: 20 }, damage: 0, damageType: magical }
+  - { type: gaze, id: fake-death-shriek-1, time: 84.3, name: Fake Death Shriek, telegraph: 0.7, carriers: Fake Cursed Shriek, reverse: true, damage: 0, damageType: magical }
+  - { type: aoe, id: ultima-upsurge-1, time: 88.4, name: Ultima Upsurge, telegraph: 5.9, damage: 0, damageType: magical, bossId: kefka, showCastBar: true, showTelegraph: false, shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 } }
+  - { type: effect_burst, id: stray-flames, time: 91.1, name: Stray Flames, telegraph: 5, effectName: Entropy, radius: 8, shownShape: circle, hiddenShape: circle, damage: 0, damageType: magical, showCastBar: true }
+  - { type: effect_burst, id: fake-stray-flames, time: 91.1, name: Fake Stray Flames, telegraph: 5, effectName: Fake Entropy, radius: 8, innerRadius: 3, shownShape: donut, hiddenShape: donut, damage: 0, damageType: magical, showCastBar: false }
+  - { type: aoe, id: blizzard-iii, time: 96.2, name: Blizzard III Blowout, telegraph: 5, damage: 0, damageType: magical, bossId: kefka, showCastBar: true, showTelegraph: false, shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 } }
+  - type: spread_stack
+    id: death-wave-2
+    time: 100.3
+    name: Death Bolt / Death Wave
+    telegraph: 0.6
+    shown: spread
+    rng: true
+    damageType: magical
+    stackCarriers: Compressed Water
+    spreadCarriers: Forked Lightning
+    spread: { radius: 5, damage: 0 }
+    stack: { groups: [[mt, ot, h1, h2], [r1, r2, m1, m2]], radius: 6, requiredCount: 3, damage: 0 }
+  - { type: aoe, id: mana-release, time: 107.4, name: Mana Release, telegraph: 7, damage: 0, damageType: magical, bossId: kefka, showCastBar: true, showTelegraph: false, shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 } }
+  - { type: gaze, id: death-shriek-2, time: 108.2, name: Death Shriek, telegraph: 0.7, carriers: Cursed Shriek, carrierCone: { angleDeg: 90, length: 20 }, damage: 0, damageType: magical }
+  - { type: gaze, id: fake-death-shriek-2, time: 108.2, name: Fake Death Shriek, telegraph: 0.7, carriers: Fake Cursed Shriek, reverse: true, damage: 0, damageType: magical }
+  - { type: effect_burst, id: stray-spray, time: 113.9, name: Stray Spray, telegraph: 5, effectName: Dynamic Fluid, radius: 8, innerRadius: 3, shownShape: donut, hiddenShape: donut, damage: 0, damageType: magical, showCastBar: true }
+  - { type: effect_burst, id: fake-stray-spray, time: 113.9, name: Fake Stray Spray, telegraph: 5, effectName: Fake Dynamic Fluid, radius: 8, shownShape: circle, hiddenShape: circle, damage: 0, damageType: magical, showCastBar: false }
+  - { type: aoe, id: enhanced-thrill-2, time: 125.7, name: Enhanced Thrill Of War II, telegraph: 0.1, damage: 0, damageType: magical, bossId: kefka, showCastBar: false, showTelegraph: false, shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 } }
+  - { type: aoe, id: ultima-upsurge-2, time: 127.2, name: Ultima Upsurge, telegraph: 5.9, damage: 0, damageType: magical, bossId: kefka, showCastBar: true, showTelegraph: false, shape: { kind: circle, center: { x: 0, z: 0 }, radius: 20 } }
+
+waymarks:
+  - { mark: A, pos: { x: 0, z: 12 } }
+  - { mark: B, pos: { x: 12, z: 0 } }
+  - { mark: C, pos: { x: 0, z: -12 } }
+  - { mark: D, pos: { x: -12, z: 0 } }

@@ -95,7 +95,7 @@ test("describeDecisions ignores wrong-length authored options", () => {
 });
 
 test("dancing mad rngLabels match described decisions", async () => {
-  for (const name of ["bowels-of-agony", "black-hole", "forsaken", "graven-image-3"]) {
+  for (const name of ["bowels-of-agony", "black-hole", "forsaken", "graven-image-3", "kefka-says"]) {
     const raid = await dmuRaid(name);
     const decisions = new Map(describeDecisions(raid).map(decision => [decision.key, decision]));
 
