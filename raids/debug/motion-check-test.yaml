@@ -1,0 +1,72 @@
+name: Motion Check Test
+arena:
+  zones:
+    - kind: circle
+      center: { x: 0, z: 0 }
+      radius: 20
+duration: 22
+
+players:
+  - { id: mt, role: tank, spawn: { x: 0, z: 8 } }
+  - { id: ot, role: tank, spawn: { x: 0, z: -8 } }
+  - { id: h1, role: healer, spawn: { x: -8, z: 0 } }
+  - { id: h2, role: healer, spawn: { x: 8, z: 0 } }
+  - { id: r1, role: dps, spawn: { x: -5.66, z: 5.66 } }
+  - { id: r2, role: dps, spawn: { x: 5.66, z: -5.66 } }
+  - { id: m1, role: dps, spawn: { x: -5.66, z: -5.66 } }
+  - { id: m2, role: dps, spawn: { x: 5.66, z: -5.66 } }
+
+events:
+  # Claim m1. The priority chip must render before the normal chip despite landing second.
+  - type: apply_effect
+    id: normal-chip
+    time: 1
+    name: Normal HUD Effect
+    players: [m1]
+    applyEffect:
+      name: Normal HUD Effect
+      kind: debuff
+      duration: 19
+      icon: entropy.png
+      behavior: { kind: none }
+
+  - type: apply_effect
+    id: priority-chip
+    time: 1
+    name: Priority HUD Effect
+    players: [m1]
+    applyEffect:
+      name: Priority HUD Effect
+      kind: debuff
+      duration: 19
+      priority: true
+      icon: acceleration_bomb.png
+      behavior: { kind: none }
+
+  # Be still from 8.5s through 9.0s. Moving or jumping in that window knocks m1 up, then kills on landing.
+  - type: apply_effect
+    id: stillness
+    time: 4
+    name: Acceleration Bomb (Still)
+    players: [m1]
+    applyEffect:
+      name: Acceleration Bomb (Still)
+      kind: debuff
+      duration: 5
+      priority: true
+      icon: acceleration_bomb.png
+      behavior: { kind: motionCheck, required: still, window: 0.5, failureDamage: 999, failureDamageType: "true", failureKnockupHeight: 4 }
+
+  # Move or jump from 16.5s through 17.0s. Staying still in that window knocks m1 up, then kills on landing.
+  - type: apply_effect
+    id: motion
+    time: 12
+    name: Acceleration Bomb (Move)
+    players: [m1]
+    applyEffect:
+      name: Acceleration Bomb (Move)
+      kind: debuff
+      duration: 5
+      priority: true
+      icon: acceleration_bomb.png
+      behavior: { kind: motionCheck, required: move, window: 0.5, failureDamage: 999, failureDamageType: "true", failureKnockupHeight: 4 }

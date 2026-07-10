@@ -278,6 +278,14 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     expiryDamageType: z.enum(["physical", "magical", "true"]).default("true"),
   }),
   z.object({
+    kind: z.literal("motionCheck"),
+    required: z.enum(["move", "still"]),
+    window: z.number().positive().default(0.5),
+    failureDamage: z.number().nonnegative(),
+    failureDamageType: z.enum(["physical", "magical", "true"]).default("true"),
+    failureKnockupHeight: z.number().positive(),
+  }),
+  z.object({
     kind: z.literal("assignment"),
     expiryDamage: z.number().nonnegative(),
     expiryDamageType: z.enum(["physical", "magical", "true"]).default("true"),
@@ -310,6 +318,7 @@ const InlineApplyEffectSchema = z.object({
   stacks: z.number().int().positive().optional(),
   behavior: EffectBehaviorSchema,
   visibility: z.enum(["visible", "invisible"]).optional(),
+  priority: z.boolean().optional(),
   showTimer: z.boolean().optional(),
   icon: z.string().min(1).optional(),   // HUD icon filename, served from /static/debuffs/
   marker: z.string().min(1).max(8).optional(), // short above-head marker shown while active
@@ -325,6 +334,7 @@ const EffectRefSchema = z.object({
   stacks: z.number().int().positive().optional(),
   behavior: z.record(z.string(), z.unknown()).optional(),
   visibility: z.enum(["visible", "invisible"]).optional(),
+  priority: z.boolean().optional(),
   showTimer: z.boolean().optional(),
   icon: z.string().min(1).optional(),
   marker: z.string().min(1).max(8).optional(),

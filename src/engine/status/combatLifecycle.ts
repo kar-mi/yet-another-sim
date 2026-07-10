@@ -23,6 +23,7 @@ export const COMBAT_LIFECYCLE_REGISTRY: Record<EffectBehavior["kind"], CombatLif
   escalating: {},
   primordialCrust: { onLethal: primordialCrustOnLethal },
   accretion: {},
+  motionCheck: {},
   assignment: {},
 };
 
