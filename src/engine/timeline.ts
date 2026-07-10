@@ -42,12 +42,17 @@ function shapeAimOrigin(shape: AOEShape) {
 }
 
 function resolveAnchoredShape(event: PendingEvent, boss: Boss, players: Player[]): AOEShape {
-  if (event.bossRelativeCenter && (event.shape.kind === "circle" || event.shape.kind === "donut")) {
+  if (event.bossRelativeCenter && (event.shape.kind === "circle" || event.shape.kind === "donut" || event.shape.kind === "rect")) {
     const forward = normalize({ x: -boss.pos.x, z: -boss.pos.z });
     const relativeNorth = forward.x === 0 && forward.z === 0 ? { x: 0, z: -1 } : forward;
     const right = { x: relativeNorth.z, z: -relativeNorth.x };
-    const center = add(scale(right, event.bossRelativeCenter.lateral), scale(relativeNorth, event.bossRelativeCenter.forward));
-    return { ...event.shape, center };
+    const pos = add(scale(right, event.bossRelativeCenter.lateral), scale(relativeNorth, event.bossRelativeCenter.forward));
+    if (event.shape.kind === "rect") {
+      const shape = anchorShape(boss, event.shape, event);
+      if (shape.kind !== "rect") return shape;
+      return { ...shape, origin: pos };
+    }
+    return { ...event.shape, center: pos };
   }
   const shape = anchorShape(boss, event.shape, event);
   if (event.aimAtPlayer && (shape.kind === "cone" || shape.kind === "rect")) {
