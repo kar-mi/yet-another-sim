@@ -3,7 +3,8 @@ import type { AOEShape, DamageType, EffectBehavior, Player, StatusEffect } from 
 import type { Vec2 } from "@shared/math";
 import { pointInShape } from "../shapes";
 import { addResolvedAoeVisual } from "../systems/effectResolvers";
-import { applyKnockback, applyMechanicDamage, effectActiveDt, selectTargetPlayers } from "../systems/helpers";
+import { applyEffect, applyKnockback, applyMechanicDamage, effectActiveDt, selectTargetPlayers } from "../systems/helpers";
+import { GRAVITY } from "@shared/constants";
 
 export type ExpiryScratch = {
   resolvedCrystalFollowUps: Set<string>;
@@ -104,8 +105,15 @@ export function motionCheckOnExpiry(effect: StatusEffect, player: Player, ctx: T
   const behavior = effect.behavior as Extract<EffectBehavior, { kind: "motionCheck" }>;
   const moved = (player.lastMotionAt ?? -Infinity) >= ctx.time - behavior.window;
   if (behavior.required === "move" ? moved : !moved) return;
-  applyKnockback(player, { distance: 0, height: behavior.failureKnockupHeight }, player.pos, ctx.time);
-  player.landingDamage = { name: effect.name, damage: behavior.failureDamage, damageType: behavior.failureDamageType };
+  // ponytail: micro-distance keeps the existing knockup input lock without a new player state.
+  applyKnockback(player, { distance: 0.001, height: behavior.failureKnockupHeight }, player.pos, ctx.time);
+  applyEffect(player, {
+    name: effect.name,
+    kind: "debuff",
+    duration: 2 * Math.sqrt(2 * GRAVITY * behavior.failureKnockupHeight) / GRAVITY,
+    visibility: "invisible",
+    behavior: { kind: "assignment", expiryDamage: behavior.failureDamage, expiryDamageType: behavior.failureDamageType },
+  }, ctx.time, `${effect.id}-landing`, ctx.players);
 }
 
 export function applyPendingBurstSpreadFollowUp(ctx: TickContext, pending: TickContext["pendingBurstSpreadFollowUps"][number]): void {

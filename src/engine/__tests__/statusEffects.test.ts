@@ -469,11 +469,11 @@ test("motionCheck uses the final voluntary move-or-jump window", () => {
   let world = tick(withEffect(createWorld(loadRaid(baseRaid)), motionCheck), { [HUMAN]: { move: { x: 1, z: 0 } } }, 0.25);
   world = tick(world, noMove, 0.25);
 
-  expect(human(world).landingDamage).toBeUndefined();
+  expect(human(world).effects).toHaveLength(0);
   expect(human(world).alive).toBe(true);
 });
 
-test("motionCheck knocks up failures, ignores airborne input, and damages on landing", () => {
+test("motionCheck knocks up failures and damages after its flight time", () => {
   const motionCheck = effect({
     name: "Acceleration Bomb",
     duration: 0.5,
@@ -481,11 +481,11 @@ test("motionCheck knocks up failures, ignores airborne input, and damages on lan
   });
   let world = tick(withEffect(createWorld(loadRaid(baseRaid)), motionCheck), { [HUMAN]: { move: { x: 1, z: 0 } } }, 0.5);
   const start = { ...human(world).pos };
-  expect(human(world).landingDamage?.name).toBe("Acceleration Bomb");
+  expect(human(world).effects.some(effect => effect.name === "Acceleration Bomb" && effect.visibility === "invisible")).toBe(true);
 
   world = tick(world, { [HUMAN]: { move: { x: 1, z: 0 }, jump: true } }, 1 / 60);
-  expect(human(world).pos).toEqual(start);
-  expect(human(world).lastMotionAt).toBe(0.5);
+  expect(human(world).pos.x).toBeCloseTo(start.x, 2);
+  expect(human(world).pos.z).toBeCloseTo(start.z, 2);
 
   world = runTicks(world, noMove, 120);
   expect(human(world).alive).toBe(false);

@@ -24,9 +24,6 @@ export function applyPlayerMovement(ctx: TickContext): void {
     const intent = asleep ? undefined : intents[player.id];
     if (intents[player.id]?.solverDirected) player.botWaypointResumeAfter = ctx.previousTime;
     actedByPlayer.set(player.id, didAct(intent) || confusion !== null);
-    if (player.landingDamage === undefined && (intent?.jump || (intent && length(intent.move) > 0))) {
-      player.lastMotionAt = time;
-    }
 
     if (intent?.jump && player.y === 0) {
       player.verticalVelocity = JUMP_SPEED;
@@ -71,7 +68,7 @@ export function applyPlayerMovement(ctx: TickContext): void {
     if (player.antiKbActive > 0) player.antiKbActive = Math.max(0, player.antiKbActive - dt);
 
     // Forced movement (knockback/knockup) suppresses normal input while it carries the player.
-    const beingKnocked = length(player.knockbackVelocity) > 1e-6 || player.landingDamage !== undefined;
+    const beingKnocked = length(player.knockbackVelocity) > 1e-6;
     const speed = player.sprintActive > 0 ? MOVE_SPEED * SPRINT_MULTIPLIER : MOVE_SPEED;
     if (!beingKnocked && confusion) {
       // Confusion: walk toward the locked target. On contact the target takes the hit and it ends.
@@ -111,7 +108,6 @@ export function applyPlayerMovement(ctx: TickContext): void {
       player.knockbackVelocity = sp > 0 ? scale(normalize(player.knockbackVelocity), sp) : { x: 0, z: 0 };
     }
 
-    let landed = false;
     if (!grounded || player.y > 0 || player.verticalVelocity !== 0) {
       const prevY = player.y;
       player.y += player.verticalVelocity * dt;
@@ -120,15 +116,7 @@ export function applyPlayerMovement(ctx: TickContext): void {
         player.y = 0;
         player.verticalVelocity = 0;
         player.knockbackVelocity = { x: 0, z: 0 }; // a knockup lands cleanly at its target distance
-        landed = true;
       }
-    }
-
-    if (landed && player.landingDamage) {
-      const landingDamage = player.landingDamage;
-      player.landingDamage = undefined;
-      applyMechanicDamage(player, landingDamage.damage, landingDamage.damageType, time);
-      log.push({ t: time, mechanic: landingDamage.name, playerId: player.id, event: "hit" });
     }
 
     // Falling off the map kills even an invincible player — invincibility only negates damage.

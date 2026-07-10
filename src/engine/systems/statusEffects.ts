@@ -22,6 +22,10 @@ export function applyStatusEffects(ctx: TickContext): void {
   // each fire `count` overlapping AOEs from the same crystal.
   const scratch = { resolvedCrystalFollowUps: new Set<string>() };
   for (const player of players) {
+    const intent = ctx.intents[player.id];
+    if (intent?.jump || (intent !== undefined && (intent.move.x !== 0 || intent.move.z !== 0))) {
+      player.lastMotionAt = time;
+    }
     if (player.alive && !player.invincible) {
       const acted = actedByPlayer.get(player.id) ?? false;
       for (const effect of player.effects) {

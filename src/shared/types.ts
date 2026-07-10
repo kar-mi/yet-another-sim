@@ -249,7 +249,6 @@ export type Player = {
   verticalVelocity: number;
   knockbackVelocity: Vec2; // horizontal forced-movement velocity (knockback/knockup)
   lastMotionAt?: number; // last voluntary horizontal movement or jump
-  landingDamage?: { name: string; damage: number; damageType: DamageType }; // locks input during a scripted knockup
   facing: number;
   hp: number;
   maxHp: number;
