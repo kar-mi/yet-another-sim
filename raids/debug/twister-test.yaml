@@ -1,0 +1,37 @@
+# Twister Test — each player receives a delayed, fixed-position burst.
+# The bot companion moves everyone away after the debuffs expire and before the bursts resolve.
+
+name: Twister Test
+arena: { zones: [{ kind: circle, center: { x: 0, z: 0 }, radius: 20 }] }
+duration: 8
+botPatterns: twister-test-bots
+
+players:
+  - { id: mt, role: tank, spawn: { x: -9, z: 9 } }
+  - { id: ot, role: tank, spawn: { x: -3, z: 9 } }
+  - { id: h1, role: healer, spawn: { x: 3, z: 9 } }
+  - { id: h2, role: healer, spawn: { x: 9, z: 9 } }
+  - { id: r1, role: dps, spawn: { x: -9, z: 3 } }
+  - { id: r2, role: dps, spawn: { x: -3, z: 3 } }
+  - { id: m1, role: dps, spawn: { x: 3, z: 3 } }
+  - { id: m2, role: dps, spawn: { x: 9, z: 3 } }
+
+events:
+  - type: apply_effect
+    id: twister-debuffs
+    time: 1
+    name: Twister
+    players: [mt, ot, h1, h2, r1, r2, m1, m2]
+    applyEffect:
+      name: Twister
+      kind: debuff
+      duration: 3
+      behavior:
+        kind: twister
+        delay: 3
+        shownShape: circle
+        hiddenShape: donut
+        radius: 2
+        innerRadius: 0.5
+        damage: 100
+        damageType: magical

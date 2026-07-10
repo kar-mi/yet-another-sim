@@ -143,6 +143,7 @@ export type EffectBehavior =
   // On expiry, bursts at the carrier, then can spread follow-up AOEs to nearby/far players.
   | { kind: "burstSpread"; radius: number; damage: number; damageType: DamageType; knockbackDistance: number; selfShape?: "circle" | "donut"; selfInner?: number; followUp?: { mode: "closest" | "furthest"; count: number; originCrystal?: CrystalElement; shape: "circle" | "donut"; radius: number; inner?: number; damage: number; damageType: DamageType; knockbackDistance?: number } }
   | { kind: "effectBurst"; shownShape: "circle" | "donut"; hiddenShape: "circle" | "donut"; radius: number; innerRadius?: number; rng?: boolean; questionMark?: boolean; damage: number; damageType: DamageType }
+  | { kind: "twister"; delay: number; shownShape: "circle" | "donut"; hiddenShape: "circle" | "donut"; radius: number; innerRadius?: number; rng?: boolean; questionMark?: boolean; damage: number; damageType: DamageType }
   | { kind: "carrierGaze"; reverse?: boolean; cone?: { angleDeg: number; length: number }; coneHalfAngle?: number; damage: number; damageType: DamageType }
   | { kind: "pairedSpreadStack"; key: string; role: "stack" | "spread"; rng?: boolean; questionMark?: boolean; spread: { radius: number; damage: number }; stack: { radius: number; requiredCount: number; damage: number }; damageType: DamageType }
   | { kind: "effectCheck"; compare: [string, string]; expect: "matches" | "differs"; failureDamage: number; failureDamageType: DamageType }
@@ -756,6 +757,15 @@ export type PendingBurstSpreadFollowUp = {
   followUp: NonNullable<Extract<EffectBehavior, { kind: "burstSpread" }>["followUp"]>;
 };
 
+export type PendingTwister = {
+  id: string;
+  t: number;
+  name: string;
+  shape: AOEShape;
+  damage: number;
+  damageType: DamageType;
+};
+
 export type ActiveGroupMechanic = {
   id: string;
   name: string;
@@ -1081,6 +1091,7 @@ export type World = {
   pendingEffectSelects: PendingEffectSelect[];
   pendingApplyEffects: PendingApplyEffect[];
   pendingBurstSpreadFollowUps: PendingBurstSpreadFollowUp[];
+  pendingTwisters: PendingTwister[];
   pendingLimitCuts: PendingLimitCut[];
   // Fired limit cuts, live for their effect duration (bot-solver when.mechanic gates on these).
   limitCuts: ActiveLimitCut[];

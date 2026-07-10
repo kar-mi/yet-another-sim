@@ -1,0 +1,13 @@
+# Move only after Twister snapshots each player's expiry position at t=4.
+
+players:
+  mt: [{ time: 4.05, pos: { x: -9, z: -9 } }]
+  ot: [{ time: 4.05, pos: { x: -3, z: -9 } }]
+  h1: [{ time: 4.05, pos: { x: 3, z: -9 } }]
+  h2: [{ time: 4.05, pos: { x: 9, z: -9 } }]
+  r1: [{ time: 4.05, pos: { x: -9, z: -9 } }]
+  r2: [{ time: 4.05, pos: { x: -3, z: -9 } }]
+  m1: [{ time: 4.05, pos: { x: 3, z: -9 } }]
+  m2: [{ time: 4.05, pos: { x: 9, z: -9 } }]
+
+solvers: {}

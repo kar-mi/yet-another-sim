@@ -28,6 +28,7 @@ export const BEHAVIOR_REGISTRY: Record<EffectBehavior["kind"], BehaviorModule> =
   sleep: { disablesInput: true, icon: () => ({ src: "sleep.png" }) },
   burstSpread: {},
   effectBurst: {},
+  twister: {},
   carrierGaze: {},
   pairedSpreadStack: {},
   effectCheck: {},

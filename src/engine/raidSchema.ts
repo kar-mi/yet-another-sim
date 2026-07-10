@@ -252,6 +252,18 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     damageType: z.enum(["physical", "magical", "true"]),
   }),
   z.object({
+    kind: z.literal("twister"),
+    delay: z.number().nonnegative(),
+    shownShape: z.enum(["circle", "donut"]),
+    hiddenShape: z.enum(["circle", "donut"]),
+    radius: z.number().positive(),
+    innerRadius: z.number().positive().optional(),
+    rng: z.boolean().optional(),
+    questionMark: z.boolean().optional(),
+    damage: z.number().nonnegative(),
+    damageType: z.enum(["physical", "magical", "true"]),
+  }),
+  z.object({
     kind: z.literal("carrierGaze"),
     reverse: z.boolean().optional(),
     cone: z.object({ angleDeg: z.number().positive().max(360), length: z.number().positive() }).optional(),
@@ -348,6 +360,10 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
   if (b.kind === "effectBurst" && (b.shownShape === "donut" || b.hiddenShape === "donut")
     && (b.innerRadius === undefined || b.innerRadius >= b.radius)) {
     ctx.addIssue({ code: "custom", path: ["innerRadius"], message: "effectBurst donut needs innerRadius smaller than radius" });
+  }
+  if (b.kind === "twister" && (b.shownShape === "donut" || b.hiddenShape === "donut")
+    && (b.innerRadius === undefined || b.innerRadius >= b.radius)) {
+    ctx.addIssue({ code: "custom", path: ["innerRadius"], message: "twister donut needs innerRadius smaller than radius" });
   }
   if (b.kind === "carrierGaze" && b.reverse !== true && b.cone === undefined) {
     ctx.addIssue({ code: "custom", path: ["cone"], message: "normal carrierGaze needs cone" });
