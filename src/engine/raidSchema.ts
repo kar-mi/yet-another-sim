@@ -307,6 +307,7 @@ const InlineApplyEffectSchema = z.object({
   name: z.string().min(1),
   kind: z.enum(["buff", "debuff"]),
   duration: z.number().positive(),
+  stacks: z.number().int().positive().optional(),
   behavior: EffectBehaviorSchema,
   visibility: z.enum(["visible", "invisible"]).optional(),
   showTimer: z.boolean().optional(),
@@ -321,6 +322,7 @@ const EffectRefSchema = z.object({
   name: z.string().min(1).optional(),
   kind: z.enum(["buff", "debuff"]).optional(),
   duration: z.number().positive().optional(),
+  stacks: z.number().int().positive().optional(),
   behavior: z.record(z.string(), z.unknown()).optional(),
   visibility: z.enum(["visible", "invisible"]).optional(),
   showTimer: z.boolean().optional(),
@@ -585,6 +587,7 @@ const TowerEventSchema = z.object({
   failureDamage: z.number().nonnegative(), // raidwide damage when not enough valid soakers
   failureDamageType: z.enum(["physical", "magical", "true"]),
   applyEffect: ApplyEffectSchema.optional(), // debuff applied to valid soakers on success
+  consumeEffect: z.object({ effectName: z.string().min(1), stacks: z.number().int().positive().default(1) }).optional(),
   knockback: KnockbackSchema.optional(),     // knockback applied to valid soakers on success
   resolveEventIds: z.array(EventIdSchema).optional(), // effect_resolver ids invoked for valid inside soakers
   visual: TowerVisualSchema.optional(),

@@ -67,6 +67,15 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     icon: "dmg_down.png",
     behavior: { kind: "none" },
   },
+  spells_trouble: {
+    name: "Spells' Trouble",
+    kind: "debuff",
+    duration: 120,
+    stacks: 4,
+    showTimer: false,
+    icon: "spell_trouble.png",
+    behavior: { kind: "none" },
+  },
   primordial_crust: {
     name: "Primordial Crust",
     kind: "debuff",

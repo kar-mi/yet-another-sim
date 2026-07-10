@@ -87,6 +87,25 @@ test("under-soaked tower applies lethal failure damage to all players", () => {
   expect(world.players.every(player => !player.alive)).toBe(true);
 });
 
+test("successful tower consumes one debuff stack but failed towers do not", () => {
+  const tower = {
+    type: "tower", id: "tower", t: 0, name: "Tower", telegraph: 0.5, pos: [0, 0], radius: 3,
+    requiredCount: 2, failureDamage: 0, failureDamageType: "true", consumeEffect: { effectName: "Spells' Trouble", stacks: 1 },
+  };
+  const spawns = {
+    mt: { spawn: [0, 0] as Vec }, h1: { spawn: [1, 0] as Vec }, m1: { spawn: [10, 0] as Vec },
+    ot: { spawn: [12, 0] as Vec }, h2: { spawn: [-12, 0] as Vec }, r1: { spawn: [0, 12] as Vec }, r2: { spawn: [0, -12] as Vec }, m2: { spawn: [10, 10] as Vec },
+  };
+  const success = runTicks(withPlayerEffect(createWorld(groupRaid([tower], spawns)), "mt", effect({ name: "Spells' Trouble", stacks: 2 })), noMove, Math.ceil(0.6 * 60));
+  expect(success.players.find(p => p.id === "mt")!.effects.find(e => e.name === "Spells' Trouble")?.stacks).toBe(1);
+
+  const finalStack = runTicks(withPlayerEffect(createWorld(groupRaid([tower], spawns)), "mt", effect({ name: "Spells' Trouble", stacks: 1 })), noMove, Math.ceil(0.6 * 60));
+  expect(finalStack.players.find(p => p.id === "mt")!.effects.some(e => e.name === "Spells' Trouble")).toBe(false);
+
+  const failed = runTicks(withPlayerEffect(createWorld(groupRaid([tower], { ...spawns, h1: { spawn: [10, 0] } })), "mt", effect({ name: "Spells' Trouble", stacks: 2 })), noMove, Math.ceil(0.6 * 60));
+  expect(failed.players.find(p => p.id === "mt")!.effects.find(e => e.name === "Spells' Trouble")?.stacks).toBe(2);
+});
+
 test("tower effect resolver ignores wrong-role players", () => {
   const raid = groupRaid([
     {

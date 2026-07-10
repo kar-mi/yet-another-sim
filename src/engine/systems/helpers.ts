@@ -232,6 +232,7 @@ export function applyEffect(player: Player, spec: EffectSpec, time: number, id: 
     kind: spec.kind,
     appliedAt: time,
     duration: spec.duration,
+    stacks: spec.stacks,
     behavior: spec.behavior,
     visibility: spec.visibility,
     showTimer: spec.showTimer,
@@ -249,6 +250,16 @@ export function applyEffect(player: Player, spec: EffectSpec, time: number, id: 
       ...COMBAT_LIFECYCLE_REGISTRY[spec.behavior.kind].onApply?.(effect, player, players, spec),
     },
   ];
+}
+
+export function consumeEffectStacks(player: Player, effectName: string, stacks: number, time: number): void {
+  const effect = player.effects.find(e => e.name === effectName && isEffectActiveAt(e, time));
+  if (!effect) return;
+  if (effect.stacks === undefined || effect.stacks <= stacks) {
+    player.effects = player.effects.filter(e => e !== effect);
+  } else {
+    effect.stacks -= stacks;
+  }
 }
 
 function shuffledEffects(specs: EffectSpec[], randInt: (n: number) => number): EffectSpec[] {

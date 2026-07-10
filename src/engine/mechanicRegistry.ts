@@ -329,6 +329,7 @@ const towers: MechanicModule = {
       failureDamage: e.failureDamage,
       failureDamageType: e.failureDamageType,
       applyEffect: e.applyEffect,
+      consumeEffect: e.consumeEffect,
       knockback: e.knockback && toKnockback(e.knockback),
       resolveEventIds: e.resolveEventIds ?? [],
       visual: {

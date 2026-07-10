@@ -23,6 +23,10 @@ function isActiveVisibleEffect(effect: Player["effects"][number], time: number, 
     && (kind === null || effect.kind === kind);
 }
 
+function effectKey(effect: Player["effects"][number]): string {
+  return `${effect.id}:${effect.stacks ?? ""}`;
+}
+
 function hasSameActiveEffects(
   player: Player,
   time: number,
@@ -32,7 +36,7 @@ function hasSameActiveEffects(
   let index = 0;
   for (const effect of player.effects) {
     if (!isActiveVisibleEffect(effect, time, kind)) continue;
-    if (ids[index] !== effect.id) return false;
+    if (ids[index] !== effectKey(effect)) return false;
     index++;
   }
   return index === ids.length;
@@ -41,7 +45,7 @@ function hasSameActiveEffects(
 function activeEffectIds(player: Player, time: number, kind: EffectKind | null = null): string[] {
   const ids: string[] = [];
   for (const effect of player.effects) {
-    if (isActiveVisibleEffect(effect, time, kind)) ids.push(effect.id);
+    if (isActiveVisibleEffect(effect, time, kind)) ids.push(effectKey(effect));
   }
   return ids;
 }
@@ -96,14 +100,19 @@ function buildEffectChip(
   iconEl.className = `${className}-icon`;
   if (icon.rotate !== undefined) iconEl.style.transform = `rotate(${icon.rotate}deg)`;
   const expiresAt = effect.appliedAt + effect.duration;
+  const stacksEl = effect.stacks === undefined ? undefined : document.createElement("span");
+  if (stacksEl) {
+    stacksEl.className = `${className}-stacks`;
+    stacksEl.textContent = String(effect.stacks);
+  }
   if (effect.showTimer === false) {
-    effectEl.append(iconEl);
+    effectEl.append(iconEl, ...(stacksEl ? [stacksEl] : []));
     return { element: effectEl, handle: { expiresAt } };
   }
   const timerEl = document.createElement("span");
   timerEl.className = `${className}-timer`;
   timerEl.textContent = formatEffectTime(expiresAt, time);
-  effectEl.append(iconEl, timerEl);
+  effectEl.append(iconEl, ...(stacksEl ? [stacksEl] : []), timerEl);
   return { element: effectEl, handle: { expiresAt, timerEl } };
 }
 

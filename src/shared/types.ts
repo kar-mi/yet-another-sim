@@ -162,6 +162,7 @@ export type EffectSpec = {
   name: string;
   kind: "buff" | "debuff";
   duration: number;
+  stacks?: number;
   behavior: EffectBehavior;
   visibility?: "visible" | "invisible";
   showTimer?: boolean;
@@ -185,6 +186,7 @@ export type StatusEffect = {
   kind: "buff" | "debuff";
   appliedAt: number;
   duration: number;
+  stacks?: number;
   behavior: EffectBehavior;
   visibility?: "visible" | "invisible";
   showTimer?: boolean;
@@ -481,6 +483,11 @@ export type TowerVisual = {
   fallingObjectAlpha?: number; // falling object opacity
 };
 
+export type TowerEffectConsumption = {
+  effectName: string;
+  stacks: number;
+};
+
 export type PendingTower = {
   id: string;
   t: number;
@@ -496,6 +503,7 @@ export type PendingTower = {
   failureDamage: number;
   failureDamageType: DamageType;
   applyEffect?: EffectSpec;
+  consumeEffect?: TowerEffectConsumption;
   knockback?: Knockback;
   resolveEventIds: string[];
   visual: TowerVisual;
@@ -516,6 +524,7 @@ export type ActiveTower = {
   failureDamage: number;
   failureDamageType: DamageType;
   applyEffect?: EffectSpec;
+  consumeEffect?: TowerEffectConsumption;
   knockback?: Knockback;
   resolveEventIds: string[];
   visual: TowerVisual;

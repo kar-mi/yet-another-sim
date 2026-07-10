@@ -4,7 +4,7 @@
 import type { TickContext } from "./context";
 import type { ActiveTower, PendingTower, AOEShape, Player } from "@shared/types";
 import { pointInShape } from "../shapes";
-import { applyEffect, applyKnockback } from "./helpers";
+import { applyEffect, applyKnockback, consumeEffectStacks } from "./helpers";
 import { triggerEffectResolver } from "./effectResolvers";
 import { cullResolved } from "./util";
 import { TOWER_LINGER } from "@shared/constants";
@@ -33,6 +33,7 @@ export function resolveTowers(ctx: TickContext): {
         failureDamage: pt.failureDamage,
         failureDamageType: pt.failureDamageType,
         applyEffect: pt.applyEffect,
+        consumeEffect: pt.consumeEffect,
         knockback: pt.knockback,
         resolveEventIds: pt.resolveEventIds,
         visual: pt.visual,
@@ -79,6 +80,7 @@ export function resolveTowers(ctx: TickContext): {
           for (const p of validSoakers) {
             if (!p.alive) continue;
             if (tower.applyEffect) applyEffect(p, tower.applyEffect, time, `${tower.id}-${p.id}-eff`, players);
+            if (tower.consumeEffect) consumeEffectStacks(p, tower.consumeEffect.effectName, tower.consumeEffect.stacks, time);
             if (tower.knockback && p.antiKbActive <= 0) {
               applyKnockback(p, tower.knockback, tower.knockback.origin ?? tower.pos, time);
             }
