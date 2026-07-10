@@ -2,15 +2,14 @@ name: P4 Carrier Spread Stack Test
 arena: { zones: [{ kind: circle, center: { x: 0, z: 0 }, radius: 20 }] }
 duration: 30
 players:
-  - { id: mt, role: tank, spawn: { x: -8, z: 0 } }
-  - { id: ot, role: tank, spawn: { x: 8, z: 0 } }
-  - { id: h1, role: healer, spawn: { x: -7, z: 0 } }
-  - { id: h2, role: healer, spawn: { x: 7, z: 0 } }
-  - { id: r1, role: dps, spawn: { x: -12, z: 0 } }
-  - { id: r2, role: dps, spawn: { x: 12, z: 0 } }
-  - { id: m1, role: dps, spawn: { x: -8, z: 1 } }
-  - { id: m2, role: dps, spawn: { x: 8, z: 1 } }
+  - { id: mt, role: tank, spawn: { x: -10, z: 0 } }
+  - { id: ot, role: tank, spawn: { x: 10, z: 0 } }
+  - { id: h1, role: healer, spawn: { x: -18, z: 0 } }
+  - { id: h2, role: healer, spawn: { x: 18, z: 0 } }
+  - { id: r1, role: dps, spawn: { x: -10, z: 1 } }
+  - { id: r2, role: dps, spawn: { x: 10, z: 1 } }
+  - { id: m1, role: dps, spawn: { x: -9, z: 0 } }
+  - { id: m2, role: dps, spawn: { x: 9, z: 0 } }
 events:
-  - { type: apply_effect, id: water, time: 2, name: Compressed Water, players: [mt, ot], applyEffect: { name: Compressed Water, kind: debuff, duration: 20, behavior: { kind: none } } }
-  - { type: apply_effect, id: lightning, time: 2, name: Forked Lightning, players: [h1, h2], applyEffect: { name: Forked Lightning, kind: debuff, duration: 20, behavior: { kind: none } } }
-  - { type: spread_stack, id: death-wave, time: 10, name: Death Wave, telegraph: 5, shown: spread, damageType: "true", stackCarriers: Compressed Water, spreadCarriers: Forked Lightning, spread: { radius: 5, damage: 20 }, stack: { groups: [[mt]], radius: 6, requiredCount: 3, damage: 60 } }
+  - { type: apply_effect, id: water, time: 2, name: Compressed Water, players: [mt, ot], applyEffect: { ref: compressed_water, duration: 10 } }
+  - { type: apply_effect, id: lightning, time: 2, name: Forked Lightning, players: [h1, h2], applyEffect: { ref: forked_lightning, duration: 10 } }

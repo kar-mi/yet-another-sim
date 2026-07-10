@@ -1,11 +1,43 @@
 import { expect, test } from "bun:test";
 import { createWorld } from "../world";
+import { parseRaidFile } from "../../server/raidFileReader";
 import { loadRaid, roster, runTicks } from "./helpers";
 
 const run = (events: unknown[], players = {}) => runTicks(createWorld(loadRaid({
   name: "P4 primitive", arena: { zones: [{ kind: "circle", center: [0, 0], radius: 30 }] }, duration: 2,
   players: roster(players), events,
 })), {}, 20);
+
+async function debugWorld(file: string, seconds: number) {
+  const raid = loadRaid(await parseRaidFile(`raids/debug/${file}`));
+  return runTicks(createWorld(raid), {}, Math.ceil(seconds * 60));
+}
+
+test("debug fixtures resolve from their debuff expiry", async () => {
+  const spreadStack = await debugWorld("p4-carrier-spread-stack-test.yaml", 12.1);
+  expect(spreadStack.active.filter(m => m.name === "Compressed Water")).toHaveLength(4);
+  expect(spreadStack.players.every(player => player.hp === player.maxHp - 20)).toBe(true);
+
+  const gaze = await debugWorld("p4-carrier-gaze-test.yaml", 12.1);
+  const cones = gaze.active.filter(m => m.name === "Cursed Shriek");
+  expect(cones).toHaveLength(2);
+  expect(cones.every(m => m.shape.kind === "cone" && m.shape.angleDeg === 90 && m.shape.length === 20)).toBe(true);
+
+  const reverseGaze = await debugWorld("p4-carrier-gaze-test.yaml", 21.1);
+  expect(reverseGaze.log.filter(entry => entry.mechanic === "Cursed Shriek")).not.toHaveLength(0);
+
+  const burst = await debugWorld("p4-effect-burst-test.yaml", 12.1);
+  expect(burst.active.filter(m => m.name === "Entropy").map(m => m.shape.kind)).toEqual(["donut", "donut"]);
+
+  const fluid = await debugWorld("p4-effect-burst-test.yaml", 21.1);
+  expect(fluid.active.filter(m => m.name === "Dynamic Fluid").map(m => m.shape.kind)).toEqual(["donut", "donut"]);
+
+  const check = await debugWorld("p4-effect-check-test.yaml", 12.1);
+  expect(check.log.filter(entry => entry.mechanic === "Allagan Field" && entry.playerId === "m1").at(-1)?.event).toBe("cleared");
+  expect(check.players.find(player => player.id === "m1")!.alive).toBe(true);
+  expect(check.players.find(player => player.id === "m2")!.alive).toBe(false);
+  expect(check.players.find(player => player.id === "r1")!.alive).toBe(false);
+});
 
 test("carrier spread_stack swaps its two carrier roles", () => {
   const effects = ["Compressed Water", "Compressed Water", "Forked Lightning", "Forked Lightning"];
@@ -26,6 +58,15 @@ test("carrier gaze excludes its own eyes and reverse requires facing both", () =
   expect(world.players.find(player => player.id === "mt")!.alive).toBe(true);
   expect(world.players.find(player => player.id === "ot")!.alive).toBe(true);
   expect(world.players.find(player => player.id === "h1")!.alive).toBe(true);
+});
+
+test("normal carrier gaze is a cone from its carrier", () => {
+  const world = run([
+    { type: "apply_effect", id: "mark", t: 0, name: "Shriek", players: ["mt"], applyEffect: { name: "Shriek", kind: "debuff", duration: 2, behavior: { kind: "none" } } },
+    { type: "gaze", id: "shriek", t: 0.1, name: "Shriek", telegraph: 0.1, carriers: "Shriek", carrierCone: { angleDeg: 90, length: 20 }, damage: 20, damageType: "true" },
+  ], { mt: { spawn: [0, 0] }, m1: { spawn: [0, 5] }, m2: { spawn: [0, -5] } });
+  expect(world.players.find(player => player.id === "m1")!.hp).toBe(80);
+  expect(world.players.find(player => player.id === "m2")!.hp).toBe(100);
 });
 
 test("effect_burst chooses the hidden donut when inverted", () => {

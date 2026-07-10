@@ -241,6 +241,42 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     }).optional(),
   }),
   z.object({
+    kind: z.literal("effectBurst"),
+    shownShape: z.enum(["circle", "donut"]),
+    hiddenShape: z.enum(["circle", "donut"]),
+    radius: z.number().positive(),
+    innerRadius: z.number().positive().optional(),
+    rng: z.boolean().optional(),
+    questionMark: z.boolean().optional(),
+    damage: z.number().nonnegative(),
+    damageType: z.enum(["physical", "magical", "true"]),
+  }),
+  z.object({
+    kind: z.literal("carrierGaze"),
+    reverse: z.boolean().optional(),
+    cone: z.object({ angleDeg: z.number().positive().max(360), length: z.number().positive() }).optional(),
+    coneHalfAngle: z.number().positive().optional(),
+    damage: z.number().nonnegative(),
+    damageType: z.enum(["physical", "magical", "true"]),
+  }),
+  z.object({
+    kind: z.literal("pairedSpreadStack"),
+    key: z.string().min(1),
+    role: z.enum(["stack", "spread"]),
+    rng: z.boolean().optional(),
+    questionMark: z.boolean().optional(),
+    spread: z.object({ radius: z.number().positive(), damage: z.number().nonnegative() }),
+    stack: z.object({ radius: z.number().positive(), requiredCount: z.number().int().positive(), damage: z.number().nonnegative() }),
+    damageType: z.enum(["physical", "magical", "true"]),
+  }),
+  z.object({
+    kind: z.literal("effectCheck"),
+    compare: z.tuple([z.string().min(1), z.string().min(1)]),
+    expect: z.enum(["matches", "differs"]),
+    failureDamage: z.number().nonnegative(),
+    failureDamageType: z.enum(["physical", "magical", "true"]),
+  }),
+  z.object({
     kind: z.literal("plant"),
     // A literal [x, z] heading, or "option" to defer to the combination plan (see Optional
     // combinations). "option" resolves to a placeholder vector that the plan overrides per player.
@@ -308,6 +344,13 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
   }
   if (b.kind === "burstSpread" && b.followUp?.shape === "donut" && b.followUp.inner !== undefined && b.followUp.inner >= b.followUp.radius) {
     ctx.addIssue({ code: "custom", path: ["followUp", "inner"], message: "followUp.inner must be less than followUp.radius" });
+  }
+  if (b.kind === "effectBurst" && (b.shownShape === "donut" || b.hiddenShape === "donut")
+    && (b.innerRadius === undefined || b.innerRadius >= b.radius)) {
+    ctx.addIssue({ code: "custom", path: ["innerRadius"], message: "effectBurst donut needs innerRadius smaller than radius" });
+  }
+  if (b.kind === "carrierGaze" && b.reverse !== true && b.cone === undefined) {
+    ctx.addIssue({ code: "custom", path: ["cone"], message: "normal carrierGaze needs cone" });
   }
 });
 
@@ -785,6 +828,7 @@ const GazeEventSchema = z.object({
   damageType: z.enum(["physical", "magical", "true"]),
   pos: Vec2Schema.optional(),                       // position of the eye/source (e.g. north)
   carriers: z.string().min(1).optional(),
+  carrierCone: z.object({ angleDeg: z.number().positive().max(360), length: z.number().positive() }).optional(),
   reverse: z.boolean().optional(),                 // false (eye): hit if looking at it; true ("?" eye): hit if NOT looking
   rng: z.boolean().optional(),                     // randomize the reverse state at cast start (seeded)
   coneHalfAngle: z.number().positive().optional(), // half-angle (radians) counted as "looking at" it (default PI/2 = front 180)
@@ -795,6 +839,9 @@ const GazeEventSchema = z.object({
 }).superRefine((event, ctx) => {
   if (event.pos === undefined && event.carriers === undefined) {
     ctx.addIssue({ code: "custom", path: ["pos"], message: "gaze needs pos or carriers" });
+  }
+  if (event.carriers !== undefined && event.reverse !== true && event.carrierCone === undefined) {
+    ctx.addIssue({ code: "custom", path: ["carrierCone"], message: "normal carrier gaze needs carrierCone" });
   }
 });
 

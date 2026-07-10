@@ -5,6 +5,7 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveGaze } from "@shared/types";
+import { createShapeMesh } from "./telegraphMeshes";
 
 // A gaze mechanic is shown as an upright rectangular board (default to the north) carrying an
 // eye icon. A plain open eye means "look away" (facing it is lethal); an eye with a yellow "?"
@@ -20,7 +21,6 @@ const QUESTION = "#ffdd33";
 
 export type GazeMeshes = {
   all: Mesh[];
-  board: Mesh;
   mat: StandardMaterial;
 };
 
@@ -69,6 +69,18 @@ function eyeTexture(scene: Scene, id: string, reverse: boolean): DynamicTexture 
 }
 
 export function createGazeMeshes(scene: Scene, gz: ActiveGaze): GazeMeshes {
+  if (gz.direction && gz.carrierCone) {
+    const cone = createShapeMesh(scene, `gaze-${gz.id}`, {
+      kind: "cone", origin: gz.pos, direction: gz.direction, ...gz.carrierCone,
+    })!;
+    const mat = new StandardMaterial(`gaze-mat-${gz.id}`, scene);
+    mat.diffuseColor = gz.reverse ? new Color3(1, 0.35, 0.1) : new Color3(0.25, 0.55, 1);
+    mat.emissiveColor.copyFrom(mat.diffuseColor);
+    mat.alpha = 0.45;
+    mat.backFaceCulling = false;
+    cone.material = mat;
+    return { all: [cone], mat };
+  }
   const v = gz.visual ?? DEFAULT_VISUAL;
   const board = CreateBox(`gaze-${gz.id}`, { width: v.width, height: v.height, depth: v.depth }, scene);
   board.position.set(gz.pos.x, v.height / 2 + 1, gz.pos.z);
@@ -84,7 +96,7 @@ export function createGazeMeshes(scene: Scene, gz: ActiveGaze): GazeMeshes {
   mat.disableLighting = true;
   board.material = mat;
 
-  return { all: [board], board, mat };
+  return { all: [board], mat };
 }
 
 export function updateGazeMeshes(handle: GazeMeshes, gz: ActiveGaze, time: number): void {

@@ -4,6 +4,7 @@ import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
+import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveSpreadStack, Boss, Player } from "@shared/types";
 import { applyAlphaTest } from "./meshes/billboardMaterials";
@@ -26,6 +27,8 @@ type Handle = {
   questionRing: QuestionRingMeshes;
   spread: Map<string, Mesh>;       // playerId -> downward head triangle
   stackMarkers: Map<string, Mesh>; // marked playerId (one per group) -> "ring with triangles in" disc
+  spreadAreas: Map<string, Mesh>;
+  stackAreas: Map<string, Mesh>;
 };
 
 export class SpreadStackLayer {
@@ -51,13 +54,20 @@ export class SpreadStackLayer {
       updateQuestionRing(handle.questionRing, boss.pos.x, boss.pos.z, y, time);
 
       // Player markers only while the cast is unresolved; the shown mode decides which.
-      const showSpread = !mech.resolved && mech.shown === "spread";
-      const showStack = !mech.resolved && mech.shown === "stack";
-      this.syncSpreadMarkers(handle, showSpread ? players : [], playerMap);
-      const marked = showStack
-        ? mech.markedPlayerIds.map(id => playerMap.get(id)).filter((p): p is Player => !!p && p.alive)
-        : [];
-      this.syncStackMarkers(handle, marked);
+      const visible = !mech.resolved;
+      const showSpread = visible && mech.shown === "spread";
+      const showStack = visible && mech.shown === "stack";
+      const paired = mech.spreadPlayerIds !== undefined;
+      const spreadIds = !visible ? [] : paired
+        ? (mech.inverted ? mech.markedPlayerIds : mech.spreadPlayerIds!)
+        : showSpread ? players.map(player => player.id) : [];
+      const stackIds = !visible ? [] : paired
+        ? (mech.inverted ? mech.spreadPlayerIds! : mech.markedPlayerIds)
+        : showStack ? mech.markedPlayerIds : [];
+      this.syncSpreadMarkers(handle, spreadIds.map(id => playerMap.get(id)).filter((p): p is Player => !!p && p.alive), playerMap);
+      this.syncStackMarkers(handle, stackIds.map(id => playerMap.get(id)).filter((p): p is Player => !!p && p.alive));
+      this.syncAreas(handle.spreadAreas, spreadIds, playerMap, mech.spread.radius, "spread", mech.id);
+      this.syncAreas(handle.stackAreas, stackIds, playerMap, mech.stack.radius, "stack", mech.id);
     }
   }
 
@@ -101,7 +111,32 @@ export class SpreadStackLayer {
 
   private createHandle(mech: ActiveSpreadStack): Handle {
     const questionRing = createQuestionRing(this.scene, "ss", mech.id, mech.ringColor ?? DEFAULT_RING_COLOR, mech.inverted);
-    return { mech, questionRing, spread: new Map(), stackMarkers: new Map() };
+    return { mech, questionRing, spread: new Map(), stackMarkers: new Map(), spreadAreas: new Map(), stackAreas: new Map() };
+  }
+
+  private syncAreas(areas: Map<string, Mesh>, ids: string[], playerMap: Map<string, Player>, radius: number, kind: "spread" | "stack", mechanicId: string): void {
+    const want = new Set(ids);
+    for (const [id, mesh] of areas) {
+      if (!want.has(id)) { mesh.dispose(); areas.delete(id); }
+    }
+    for (const id of want) {
+      const player = playerMap.get(id);
+      if (!player) continue;
+      let mesh = areas.get(id);
+      if (!mesh) {
+        mesh = CreateDisc(`ss-${kind}-area-${mechanicId}-${id}`, { radius, tessellation: 48 }, this.scene);
+        mesh.rotation.x = Math.PI / 2;
+        mesh.isPickable = false;
+        const mat = new StandardMaterial(`ss-${kind}-area-mat-${mechanicId}-${id}`, this.scene);
+        mat.diffuseColor = kind === "spread" ? new Color3(1, 0.25, 0.1) : new Color3(0.3, 0.7, 1);
+        mat.emissiveColor.copyFrom(mat.diffuseColor);
+        mat.alpha = 0.35;
+        mat.backFaceCulling = false;
+        mesh.material = mat;
+        areas.set(id, mesh);
+      }
+      mesh.position.set(player.pos.x, 0.02, player.pos.z);
+    }
   }
 
   private getHeadMaterial(): StandardMaterial {
@@ -172,6 +207,10 @@ export class SpreadStackLayer {
     handle.spread.clear();
     for (const mesh of handle.stackMarkers.values()) mesh.dispose();
     handle.stackMarkers.clear();
+    for (const mesh of handle.spreadAreas.values()) mesh.dispose();
+    handle.spreadAreas.clear();
+    for (const mesh of handle.stackAreas.values()) mesh.dispose();
+    handle.stackAreas.clear();
   }
 
   dispose(): void {

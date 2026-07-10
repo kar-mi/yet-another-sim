@@ -27,6 +27,10 @@ export const BEHAVIOR_REGISTRY: Record<EffectBehavior["kind"], BehaviorModule> =
   confusion: { disablesInput: true, icon: () => ({ src: "confuse.png" }) },
   sleep: { disablesInput: true, icon: () => ({ src: "sleep.png" }) },
   burstSpread: {},
+  effectBurst: {},
+  carrierGaze: {},
+  pairedSpreadStack: {},
+  effectCheck: {},
   plant: {
     icon: effect => {
       const behavior = effect.behavior as Extract<EffectBehavior, { kind: "plant" }>;

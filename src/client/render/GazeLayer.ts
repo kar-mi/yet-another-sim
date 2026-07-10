@@ -8,7 +8,8 @@ export class GazeLayer {
   constructor(private scene: Scene) {}
 
   sync(gazes: ActiveGaze[], time: number): void {
-    const activeIds = new Set(gazes.map(g => g.id));
+    const visibleGazes = gazes.filter(gaze => !(gaze.carrierId && gaze.reverse));
+    const activeIds = new Set(visibleGazes.map(g => g.id));
     for (const [id, handle] of this.gazes) {
       if (!activeIds.has(id)) {
         for (const mesh of handle.all) mesh.dispose(false, true);
@@ -16,7 +17,7 @@ export class GazeLayer {
       }
     }
 
-    for (const gz of gazes) {
+    for (const gz of visibleGazes) {
       let handle = this.gazes.get(gz.id);
       if (!handle) {
         handle = createGazeMeshes(this.scene, gz);

@@ -5,7 +5,9 @@
 import type { TickContext } from "./context";
 import type { ActiveGaze, PendingGaze } from "@shared/types";
 import { applyMechanicDamage, applyEffect, applyKnockback, isLookingAt } from "./helpers";
+import { pointInShape } from "../shapes";
 import { cullResolved } from "./util";
+import { sin, cos } from "@shared/dmath";
 
 export function resolveGazes(ctx: TickContext): {
   gazes: ActiveGaze[];
@@ -25,6 +27,9 @@ export function resolveGazes(ctx: TickContext): {
         name: pg.name,
         pos: carrier ? { ...carrier.pos } : pg.pos,
         excludePlayerId: carrier?.id,
+        carrierId: carrier?.id,
+        direction: carrier && !reverse ? { x: sin(carrier.facing), z: cos(carrier.facing) } : undefined,
+        carrierCone: carrier && !reverse ? pg.carrierCone : undefined,
         reverse,
         coneHalfAngle: pg.coneHalfAngle,
         telegraphStart: pg.t,
@@ -47,7 +52,9 @@ export function resolveGazes(ctx: TickContext): {
       for (const player of players) {
         if (!player.alive || player.id === gz.excludePlayerId) continue;
         const looking = isLookingAt(player.facing, player.pos, gz.pos, gz.coneHalfAngle);
-        const hit = gz.reverse ? !looking : looking;
+        const hit = gz.direction && gz.carrierCone
+          ? pointInShape({ kind: "cone", origin: gz.pos, direction: gz.direction, ...gz.carrierCone }, player.pos)
+          : gz.reverse ? !looking : looking;
         if (hit) {
           applyMechanicDamage(player, gz.damage, gz.damageType, time);
           log.push({ t: time, mechanic: gz.name, playerId: player.id, event: "hit" });

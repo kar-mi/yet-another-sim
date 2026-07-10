@@ -541,6 +541,7 @@ const gaze: MechanicModule = {
       telegraph: e.telegraph,
       pos: e.pos ? toVec2(e.pos) : { x: 0, z: 0 },
       carriers: e.carriers,
+      carrierCone: e.carrierCone,
       reverse: e.reverse ?? false,
       rng: e.rng ?? false,
       coneHalfAngle: e.coneHalfAngle ?? Math.PI / 2,
