@@ -343,7 +343,6 @@ _blackHoleLaser: &blackHoleLaser
   name: Black Hole Laser
   tetherKind: debuff
   buffName: Unbecoming
-  applyTetherEffect: false
   showSource: false
   beam: *blackHoleLaserBeam
 

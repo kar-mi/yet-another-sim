@@ -24,11 +24,7 @@ events:
     name: Normal HUD Effect
     players: [m1]
     applyEffect:
-      name: Normal HUD Effect
-      kind: debuff
-      duration: 19
-      icon: entropy.png
-      behavior: { kind: none }
+      ref: debug_normal_hud_effect
 
   - type: apply_effect
     id: priority-chip
@@ -36,12 +32,7 @@ events:
     name: Priority HUD Effect
     players: [m1]
     applyEffect:
-      name: Priority HUD Effect
-      kind: debuff
-      duration: 19
-      priority: true
-      icon: acceleration_bomb.png
-      behavior: { kind: none }
+      ref: debug_priority_hud_effect
 
   # Be still from 8.5s through 9.0s. Moving or jumping in that window knocks m1 up, then kills on landing.
   - type: apply_effect
@@ -50,12 +41,10 @@ events:
     name: Acceleration Bomb (Still)
     players: [m1]
     applyEffect:
+      ref: acceleration_bomb
       name: Acceleration Bomb (Still)
-      kind: debuff
-      duration: 5
       priority: true
-      icon: acceleration_bomb.png
-      behavior: { kind: motionCheck, required: still, window: 0.5, failureDamage: 999, failureDamageType: "true", failureKnockupHeight: 4 }
+      behavior: { failureKnockupHeight: 4 }
 
   # Move or jump from 16.5s through 17.0s. Staying still in that window knocks m1 up, then kills on landing.
   - type: apply_effect
@@ -64,9 +53,7 @@ events:
     name: Acceleration Bomb (Move)
     players: [m1]
     applyEffect:
+      ref: acceleration_bomb
       name: Acceleration Bomb (Move)
-      kind: debuff
-      duration: 5
       priority: true
-      icon: acceleration_bomb.png
-      behavior: { kind: motionCheck, required: move, window: 0.5, failureDamage: 999, failureDamageType: "true", failureKnockupHeight: 4 }
+      behavior: { required: move, failureKnockupHeight: 4 }

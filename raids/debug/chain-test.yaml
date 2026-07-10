@@ -46,5 +46,5 @@ events:
     breakDistance: 12
     breakDamage: 40
     damageType: magical
-    debuffName: Chain Bond
+    debuff: chain_bond
     showCastBar: true

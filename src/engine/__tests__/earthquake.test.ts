@@ -57,8 +57,7 @@ test("primordialCrust converts a lethal hit to 1 HP and removes the debuff", () 
     players: roster({ m1: { spawn: [0, 0] } }),
     events: [
       { type: "apply_effect", t: 0, name: "Apply Crust", players: ["m1"],
-        applyEffect: { name: "Primordial Crust", kind: "debuff", duration: 30,
-          behavior: { kind: "primordialCrust", expiryDamage: 999999, expiryDamageType: "true" } } },
+        applyEffect: { ref: "primordial_crust", duration: 30 } },
       { type: "set_hp", t: 0.5, name: "Seismic", amount: 1 },
       { t: 1, name: "Lethal Hit", telegraph: 0.1, damage: 999999, damageType: "physical" as const,
         shape: { kind: "circle" as const, center: [0, 0] as [number, number], radius: 5 } },

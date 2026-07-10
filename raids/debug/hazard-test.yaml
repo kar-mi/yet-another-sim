@@ -55,12 +55,7 @@ events:
     radius: 1.4
     duration: 12
     applyEffect:
-      name: Black Hole
-      kind: debuff
-      duration: 3
-      behavior:
-        kind: mitigation
-        multiplier: 0.5
+      ref: debug_black_hole_mitigation
 
 waymarks:
   - { mark: A, pos: { x: 0, z: 12 } }

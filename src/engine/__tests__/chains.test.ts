@@ -18,7 +18,7 @@ const chainEvent = {
   breakDistance: 12,
   breakDamage: 40,
   damageType: "magical" as const,
-  debuffName: "Chain Bond",
+  debuff: "chain_bond",
   showCastBar: true,
 };
 

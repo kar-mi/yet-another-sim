@@ -801,10 +801,7 @@ export type TetherSource = {
   expireAt?: number;
   tetherKind: "buff" | "debuff";
   buffName: string;
-  behavior: EffectBehavior;
-  effectDuration: number;
-  icon?: string;
-  applyTetherEffect: boolean;
+  applyEffect?: EffectSpec;
   showSource: boolean;
   beam?: TetherBeam;
   tetheredPlayerId: string | null;
@@ -832,10 +829,7 @@ export type PendingTether = {
   despawnAfter?: number;
   tetherKind: "buff" | "debuff";
   buffName: string;
-  behavior: EffectBehavior;
-  effectDuration: number;
-  icon?: string;
-  applyTetherEffect: boolean;
+  applyEffect?: EffectSpec;
   showSource: boolean;
   beam?: TetherBeam;
 };

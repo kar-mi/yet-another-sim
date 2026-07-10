@@ -44,6 +44,8 @@ events:
     finalizeAfter: 7
     tetherKind: debuff
     buffName: Doom
+    applyEffect:
+      ref: debug_doom
 
   - type: tether_source
     id: life-bond
@@ -53,3 +55,8 @@ events:
     finalizeAfter: 6
     tetherKind: buff
     buffName: Regen
+    applyEffect:
+      name: Regen
+      kind: buff
+      duration: 15
+      behavior: { kind: none }

@@ -21,7 +21,7 @@ function dtRaid(overrides: {
       type: "apply_effect", t: 0, name: "DT",
       players: [carrier],
       applyEffect: {
-        name: "DT", kind: "debuff", duration: 0.1,
+        ref: "debug_test_debuff", name: "DT", duration: 0.1,
         behavior: { kind: "burstSpread", ...behavior },
       },
     }],
@@ -138,7 +138,7 @@ test("burstSpread followUp originCrystal targets by crystal distance", () => {
     events: [{
       type: "apply_effect", t: 0, name: "DT", players: ["mt"],
       applyEffect: {
-        name: "DT", kind: "debuff", duration: 0.1,
+        ref: "debug_test_debuff", name: "DT", duration: 0.1,
         behavior: {
           kind: "burstSpread",
           radius: 0.1, damage: 1, damageType: "magical", knockbackDistance: 0,
@@ -166,7 +166,7 @@ test("burstSpread originCrystal followUp resolves one second after the self burs
     events: [{
       type: "apply_effect", t: 0, name: "DT", players: ["mt"],
       applyEffect: {
-        name: "DT", kind: "debuff", duration: 0.1,
+        ref: "debug_test_debuff", name: "DT", duration: 0.1,
         behavior: {
           kind: "burstSpread",
           radius: 0.1, damage: 1, damageType: "magical", knockbackDistance: 0,
@@ -208,7 +208,7 @@ test("burstSpread followUp originCrystal: two carriers fire one shared set of co
     events: [{
       type: "apply_effect", t: 0, name: "DT", players: ["mt", "ot"],
       applyEffect: {
-        name: "DT", kind: "debuff", duration: 0.1,
+        ref: "debug_test_debuff", name: "DT", duration: 0.1,
         behavior: {
           kind: "burstSpread",
           selfShape: "donut", selfInner: 1, radius: 3, damage: 1, damageType: "magical", knockbackDistance: 0,

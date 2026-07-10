@@ -5,10 +5,8 @@ import { baseRaid, byId, human, loadRaid, noMove, roster, runTicks } from "./hel
 import type { World } from "@shared/types";
 
 const blackHole = {
-  name: "Black Hole",
-  kind: "debuff" as const,
+  ref: "debug_black_hole_mitigation",
   duration: 0.5,
-  behavior: { kind: "mitigation" as const, multiplier: 0.5 },
 };
 
 const blackHoleCombos: BlackHoleOrb[][] = [[
@@ -113,7 +111,7 @@ test("tether_source fromBlackHoleOrb resolves to the order-th orb clockwise from
       {
         type: "tether_source", id: "orb-tether", t: 0, name: "Orb Tether",
         fromBlackHoleOrb: { hazardId: "black-hole", order: 1 },
-        finalizeAfter: 1, tetherKind: "debuff", buffName: "Unbecoming",
+        finalizeAfter: 1, tetherKind: "debuff", buffName: "Unbecoming", applyEffect: { ref: "unbecoming" },
       },
     ],
   });

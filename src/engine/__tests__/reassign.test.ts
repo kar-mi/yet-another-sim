@@ -5,8 +5,8 @@ import type { StatusEffect } from "@shared/types";
 
 const stackCharge = {
   kind: "stack",
-  effect: { name: "Stack Charge", kind: "debuff", duration: 100, visibility: "invisible", behavior: { kind: "none" } },
-  marker: { name: "Stack Charge Marker", kind: "debuff", duration: 5, visibility: "invisible", markerIcon: "stack_processed.png", behavior: { kind: "none" } },
+  effect: { ref: "stack_charge", duration: 100 },
+  marker: { ref: "stack_charge_marker" },
 };
 
 const seededStack: StatusEffect = {

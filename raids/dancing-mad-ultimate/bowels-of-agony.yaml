@@ -555,12 +555,8 @@ events:
     # via optionals.divebombSweep — relative-north = opposite dash #1's start, handedness = opposite
     # the sweep direction. No hardcoded rotation here; the seeded sweep fills it in.
     effect:
-      name: Limit Cut
-      kind: debuff
+      ref: limit_cut_marker
       duration: 9
-      visibility: invisible
-      behavior: { kind: none }
-      markerIconScale: 2.5
 
 waymarks:
   - { mark: A, pos: { x: 0, z: 12 } }

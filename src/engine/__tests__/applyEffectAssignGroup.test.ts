@@ -7,10 +7,10 @@ const supportIds = ["mt", "ot", "h1", "h2"];
 const dpsIds = ["r1", "r2", "m1", "m2"];
 const allIds = [...supportIds, ...dpsIds];
 
-const entropyShort = { name: "Entropy Short", kind: "debuff" as const, duration: 18, behavior: { kind: "none" as const } };
-const entropyLong = { name: "Entropy Long", kind: "debuff" as const, duration: 45, behavior: { kind: "none" as const } };
-const fluidShort = { name: "Dynamic Fluid Short", kind: "debuff" as const, duration: 18, behavior: { kind: "none" as const } };
-const fluidLong = { name: "Dynamic Fluid Long", kind: "debuff" as const, duration: 45, behavior: { kind: "none" as const } };
+const entropyShort = { ref: "entropy_short" as const };
+const entropyLong = { ref: "entropy_long" as const };
+const fluidShort = { ref: "dynamic_fluid_short" as const };
+const fluidLong = { ref: "dynamic_fluid_long" as const };
 
 function hasEffect(world: ReturnType<typeof createWorld>, playerId: string, effectName: string) {
   return byId(world, playerId).effects.some(effect => effect.name === effectName);

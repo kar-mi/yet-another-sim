@@ -62,10 +62,7 @@ test("inverse: applyEffect lands only on the lethal side", () => {
     players: roster({ m1: { spawn: [10, 0] }, m2: { spawn: [-10, 0] } }),
     events: [inverseEvent({
       questionMark: true,
-      applyEffect: {
-        name: "Magic Vulnerability", kind: "debuff", duration: 8,
-        behavior: { kind: "vuln", damageType: "magical", multiplier: 1.5 },
-      },
+      applyEffect: { ref: "magic_vulnerability" },
     })],
   });
   const world = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));

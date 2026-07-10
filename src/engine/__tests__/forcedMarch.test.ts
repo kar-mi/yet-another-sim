@@ -119,10 +119,10 @@ test("schema accepts confusion and sleep effect behaviors and the forced_march e
     events: [
       { type: "aoe", t: 1, name: "Confuse", telegraph: 1, damage: 0, damageType: "magical",
         shape: { kind: "circle", center: [0, 0], radius: 5 },
-        applyEffect: { name: "Confusion", kind: "debuff", duration: 8, behavior: { kind: "confusion", damage: 80, damageType: "true", radius: 1.5 } } },
+        applyEffect: { ref: "confusion", duration: 8, behavior: { damage: 80 } } },
       { type: "aoe", t: 2, name: "Sleep", telegraph: 1, damage: 0, damageType: "magical",
         shape: { kind: "circle", center: [0, 0], radius: 5 },
-        applyEffect: { name: "Sleep", kind: "debuff", duration: 5, behavior: { kind: "sleep" } } },
+        applyEffect: { ref: "sleep", duration: 5 } },
       { type: "forced_march", t: 3, name: "March", pos: [0, 0], radius: 3, direction: [0, 1], distance: 10, duration: 4 },
     ],
   })).not.toThrow();
