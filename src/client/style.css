@@ -817,23 +817,32 @@ body:focus-visible {
 
 /* ===== Party Effects ===== */
 .party-effects {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  align-content: center;
+  display: grid;
+  grid-template-columns: repeat(4, 24px);
+  grid-template-rows: repeat(2, 24px);
+  place-items: center;
   gap: 3px;
-  width: 180px;
-  height: 40px;
+  width: 105px;
+  height: 51px;
   padding: 0;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .party-effect {
-  font-size: 13px;
-  padding: 1px 5px;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
   border-radius: 3px;
   font-weight: 600;
   letter-spacing: 0.03em;
+}
+
+.party-effect-timer,
+.party-effect-stacks {
+  display: none;
 }
 
 .party-effect-icon {
