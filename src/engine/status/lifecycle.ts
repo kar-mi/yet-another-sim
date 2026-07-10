@@ -29,6 +29,7 @@ export const STATUS_LIFECYCLE_REGISTRY: Record<EffectBehavior["kind"], StatusLif
   sleep: {},
   burstSpread: { onExpiry: burstSpreadOnExpiry },
   effectBurst: { onExpiry: effectBurstOnExpiry },
+  twister: { onExpiry: twisterOnExpiry },
   carrierGaze: { onExpiry: carrierGazeOnExpiry },
   pairedSpreadStack: { onExpiry: pairedSpreadStackOnExpiry },
   effectCheck: { onExpiry: effectCheckOnExpiry },
@@ -91,6 +92,24 @@ export function effectBurstOnExpiry(effect: StatusEffect, player: Player, ctx: T
     : { kind: "circle", center: player.pos, radius: behavior.radius };
   applyShapeHit(ctx.players, ctx.log, ctx.time, shape, player.pos, behavior.damage, behavior.damageType, undefined, undefined, effect.name);
   addResolvedAoeVisual(ctx, `${effect.id}-burst`, effect.name, shape);
+}
+
+export function twisterOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
+  const behavior = effect.behavior as Extract<EffectBehavior, { kind: "twister" }>;
+  const inverted = behavior.questionMark ?? (behavior.rng ? ctx.randFloat() < 0.5 : false);
+  const shapeKind = inverted ? behavior.hiddenShape : behavior.shownShape;
+  const center = { x: player.pos.x, z: player.pos.z };
+  const shape: AOEShape = shapeKind === "donut"
+    ? { kind: "donut", center, inner: behavior.innerRadius!, outer: behavior.radius }
+    : { kind: "circle", center, radius: behavior.radius };
+  ctx.pendingTwisters.push({
+    id: effect.id,
+    t: ctx.time + behavior.delay,
+    name: effect.name,
+    shape,
+    damage: behavior.damage,
+    damageType: behavior.damageType,
+  });
 }
 
 export function carrierGazeOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
@@ -201,6 +220,14 @@ export function motionCheckOnExpiry(effect: StatusEffect, player: Player, ctx: T
 export function applyPendingBurstSpreadFollowUp(ctx: TickContext, pending: TickContext["pendingBurstSpreadFollowUps"][number]): void {
   const origin = ctx.world.crystals.find(crystal => crystal.element === pending.originCrystal)?.pos ?? { x: 0, z: 0 };
   resolveFollowUp(ctx, pending.id, pending.name, pending.followUp, origin);
+}
+
+export function applyPendingTwister(ctx: TickContext, pending: TickContext["pendingTwisters"][number]): void {
+  const origin = pending.shape.kind === "circle" || pending.shape.kind === "donut"
+    ? pending.shape.center
+    : pending.shape.origin;
+  applyShapeHit(ctx.players, ctx.log, ctx.time, pending.shape, origin, pending.damage, pending.damageType, undefined, undefined, pending.name);
+  addResolvedAoeVisual(ctx, `${pending.id}-twister`, pending.name, pending.shape);
 }
 
 function applyShapeHit(

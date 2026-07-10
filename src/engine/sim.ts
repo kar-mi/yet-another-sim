@@ -86,6 +86,7 @@ export function tick(world: World, intents: Intents, dt: number): World {
   next.active = [...next.active, ...ctx.resolvedAoeVisuals];
   next.pendingHeals = remainingPendingHeals;
   next.pendingBurstSpreadFollowUps = ctx.pendingBurstSpreadFollowUps;
+  next.pendingTwisters = ctx.pendingTwisters;
 
   // Authored bot-solver holds: when a matching mechanic resolves this tick, freeze bots briefly.
   const hold = holdUntilFromResolves(next, ctx.previousTime);

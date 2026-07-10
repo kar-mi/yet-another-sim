@@ -3,7 +3,7 @@
 // expired effects. Plant traps are appended to ctx.forcedMarches (built in phase 1c) for next tick.
 
 import type { TickContext } from "./context";
-import { applyPendingBurstSpreadFollowUp, STATUS_LIFECYCLE_REGISTRY } from "../status/lifecycle";
+import { applyPendingBurstSpreadFollowUp, applyPendingTwister, STATUS_LIFECYCLE_REGISTRY } from "../status/lifecycle";
 import { isEffectActiveAt } from "./helpers";
 
 export function applyStatusEffects(ctx: TickContext): void {
@@ -17,6 +17,15 @@ export function applyStatusEffects(ctx: TickContext): void {
     applyPendingBurstSpreadFollowUp(ctx, pending);
   }
   ctx.pendingBurstSpreadFollowUps = remainingFollowUps;
+  const remainingTwisters = [];
+  for (const pending of ctx.pendingTwisters) {
+    if (pending.t > time) {
+      remainingTwisters.push(pending);
+      continue;
+    }
+    applyPendingTwister(ctx, pending);
+  }
+  ctx.pendingTwisters = remainingTwisters;
   // Crystal-origin follow-ups share one origin across all carriers of a mechanic, so they resolve
   // once per tick (keyed by mechanic + element) rather than once per carrier — otherwise N carriers
   // each fire `count` overlapping AOEs from the same crystal.

@@ -47,7 +47,7 @@ export type Collections = Pick<World,
   | "pendingApplyEffects" | "pendingLimitCuts" | "pendingInversions" | "pendingSpreadStacks" | "pendingGazes"
   | "pendingForcedMarches" | "pendingHazards" | "pendingDivebombs" | "pendingEffectBursts" | "pendingEffectChecks" | "pendingHeals" | "pendingSetHps"
   | "pendingBossTeleports"
-  | "pendingBurstSpreadFollowUps" | "reassigns"
+  | "pendingBurstSpreadFollowUps" | "pendingTwisters" | "reassigns"
   | "effectResolvers"
 >;
 
@@ -313,7 +313,8 @@ const aoe: MechanicModule = {
     && w.pendingTargeted.length === 0
     && w.pendingBaits.length === 0
     && w.pendingDashes.length === 0
-    && w.pendingEffectBursts.length === 0,
+    && w.pendingEffectBursts.length === 0
+    && w.pendingTwisters.length === 0,
 };
 
 const towers: MechanicModule = {
