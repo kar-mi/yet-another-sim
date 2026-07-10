@@ -44,7 +44,7 @@ events:
     linkDuration: 3
     resolveAfter: 10
     target: { roles: [dps], count: 4, mode: closest }
-    hiddenDebuffName: Line Linked
+    hiddenDebuff: line_linked
     applyEffect:
       ref: magic_vulnerability
     knockback: { distance: 12 }

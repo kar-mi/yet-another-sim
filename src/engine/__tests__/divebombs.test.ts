@@ -46,7 +46,7 @@ test("visual-only divebombs do not change HP, hit state, or logs", () => {
 test("effect-only divebombs apply and log an effect", () => {
   const world = tick(createWorld(raidWith(divebombEvent({
     damage: undefined,
-    applyEffect: { name: "Marked", kind: "debuff", duration: 2, behavior: { kind: "none" } },
+    applyEffect: { ref: "debug_test_debuff", name: "Marked", duration: 2 },
   }))), {}, 0.1);
   const player = world.players.find(p => p.id === "m1")!;
   expect(player.hp).toBe(100);

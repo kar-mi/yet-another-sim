@@ -40,10 +40,8 @@ test("physical vuln amplifies matching damage and is consumed", () => {
         damage: 0,
         damageType: "physical" as const,
         applyEffect: {
-          name: "Physical Vulnerability",
-          kind: "debuff" as const,
+          ref: "physical_vulnerability",
           duration: 10,
-          behavior: { kind: "vuln" as const, damageType: "physical" as const, multiplier: 1.5 },
         },
         shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
       },
@@ -74,12 +72,11 @@ test("applyEffect can create an invisible debuff from any mechanic", () => {
         damage: 0,
         damageType: "magical" as const,
         applyEffect: {
+          ref: "debug_test_debuff",
           name: "Stored Sentence",
-          kind: "debuff" as const,
           duration: 10,
           visibility: "invisible" as const,
           markerIcon: "defam_processed.png",
-          behavior: { kind: "none" as const },
         },
         shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
       },
@@ -105,10 +102,8 @@ test("vuln does not amplify mismatched or expired damage", () => {
         damage: 0,
         damageType: "physical" as const,
         applyEffect: {
-          name: "Physical Vulnerability",
-          kind: "debuff" as const,
+          ref: "physical_vulnerability",
           duration: 10,
-          behavior: { kind: "vuln" as const, damageType: "physical" as const, multiplier: 1.5 },
         },
         shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
       },
@@ -159,10 +154,8 @@ test("zero-damage matching mechanic does not consume vuln", () => {
         damage: 0,
         damageType: "physical" as const,
         applyEffect: {
-          name: "Physical Vulnerability",
-          kind: "debuff" as const,
+          ref: "physical_vulnerability",
           duration: 10,
-          behavior: { kind: "vuln" as const, damageType: "physical" as const, multiplier: 1.5 },
         },
         shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
       },
@@ -278,7 +271,7 @@ test("apply_effect with no target hits all living players", () => {
     ...baseRaid,
     events: [{
       type: "apply_effect", t: 0, name: "Mark",
-      applyEffect: { name: "Mark", kind: "debuff", duration: 5, behavior: { kind: "none" } },
+      applyEffect: { ref: "debug_test_debuff", name: "Mark", duration: 5 },
     }],
   });
   const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 2);
@@ -292,7 +285,7 @@ test("apply_effect narrows by role and count", () => {
     ...baseRaid,
     events: [{
       type: "apply_effect", t: 0, name: "Mark", role: "dps", count: 2,
-      applyEffect: { name: "Mark", kind: "debuff", duration: 5, behavior: { kind: "none" } },
+      applyEffect: { ref: "debug_test_debuff", name: "Mark", duration: 5 },
     }],
   });
   const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 2);
@@ -357,8 +350,8 @@ test("escalating keys are scoped", () => {
     {
       type: "apply_effect", t: 0, name: "Other", players: [HUMAN],
       applyEffect: {
+        ref: "debug_test_debuff",
         name: "Other Escalation",
-        kind: "debuff",
         duration: 30,
         behavior: { kind: "escalating", escalationKey: "other", escalateDamage: 1 },
       },
@@ -379,10 +372,9 @@ test("continuous effects respect tick timing boundaries", () => {
       damage: 0,
       damageType: "physical" as const,
       applyEffect: {
-        name: "Pyretic",
-        kind: "debuff" as const,
+        ref: "pyretic",
         duration: 10,
-        behavior: { kind: "dot" as const, dps: 100, condition: "moving" as const },
+        behavior: { dps: 100 },
       },
       shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
     }],
@@ -423,8 +415,8 @@ test("effect_select can apply double trouble, which expires into damage and knoc
     events: [{
       type: "effect_select", t: 0, name: "Double Trouble", groups: [["mt"]],
       applyEffect: {
-        name: "Double Trouble", kind: "debuff", duration: 0.1,
-        behavior: { kind: "burstSpread", radius: 3, damage: 10, damageType: "magical", knockbackDistance: 6 },
+        ref: "double_trouble", duration: 0.1,
+        behavior: { radius: 3, knockbackDistance: 6 },
       },
     }],
   });
@@ -497,7 +489,7 @@ test("priority effects survive schema parsing and application", () => {
     ...baseRaid,
     events: [{
       type: "apply_effect", t: 0, name: "Priority Mark", players: [HUMAN],
-      applyEffect: { name: "Priority Mark", kind: "debuff", duration: 5, priority: true, behavior: { kind: "none" } },
+      applyEffect: { ref: "debug_test_debuff", name: "Priority Mark", duration: 5, priority: true },
     }],
   });
   const world = runTicks(createWorld(raid), noMove, 1);
@@ -510,9 +502,9 @@ test("apply_effect with explicit players lands assignment on exactly those playe
     events: [{
       type: "apply_effect", t: 0, name: "First in Line", players: ["mt", "ot"],
       applyEffect: {
-        name: "First in Line", kind: "debuff", duration: 5,
-        behavior: { kind: "assignment", expiryDamage: 10, expiryDamageType: "true" },
-        icon: "first_in_line.png", marker: "1",
+        ref: "first_in_line", duration: 5,
+        behavior: { expiryDamage: 10 },
+        marker: "1",
       },
     }],
   });
@@ -541,7 +533,7 @@ test("applyEffect can hide its HUD timer", () => {
     ...baseRaid,
     events: [{
       type: "apply_effect", t: 0, name: "No Timer", players: [HUMAN],
-      applyEffect: { name: "No Timer", kind: "debuff", duration: 5, showTimer: false, behavior: { kind: "none" } },
+      applyEffect: { ref: "debug_test_debuff", name: "No Timer", duration: 5, showTimer: false },
     }],
   });
   const world = runTicks(createWorld(raid), noMove, 1);

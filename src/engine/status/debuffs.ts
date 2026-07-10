@@ -430,4 +430,109 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     icon: "acceleration_bomb.png",
     behavior: { kind: "motionCheck", required: "still", window: 0.5, failureDamage: 999, failureDamageType: "true", failureKnockupHeight: 1 },
   },
+  // Hidden/marker tags for chain and line_link mechanics: engine-hardcoded duration and
+  // behavior:none regardless of what's set here (see chains.ts / lineLinks.ts); the registry
+  // entry only supplies the registered name.
+  chain_bond: {
+    name: "Chain Bond",
+    kind: "debuff",
+    duration: 999,
+    behavior: { kind: "none" },
+  },
+  sleep_tether: {
+    name: "Sleep Tether",
+    kind: "debuff",
+    duration: 999,
+    behavior: { kind: "none" },
+  },
+  confuse_tether: {
+    name: "Confuse Tether",
+    kind: "debuff",
+    duration: 999,
+    behavior: { kind: "none" },
+  },
+  line_linked: {
+    name: "Line Linked",
+    kind: "debuff",
+    duration: 999,
+    behavior: { kind: "none" },
+  },
+  limit_cut_marker: {
+    name: "Limit Cut",
+    kind: "debuff",
+    duration: 5,
+    visibility: "invisible",
+    markerIconScale: 2.5,
+    behavior: { kind: "none" },
+  },
+  // Debug/demo-raid-only entries below (not used by any real fight script).
+  debug_doom: {
+    name: "Doom",
+    kind: "debuff",
+    duration: 15,
+    behavior: { kind: "none" },
+  },
+  debug_laser_marker: {
+    name: "Laser Marker",
+    kind: "debuff",
+    duration: 15,
+    behavior: { kind: "none" },
+  },
+  debug_sticky_chain: {
+    name: "Sticky Chain",
+    kind: "debuff",
+    duration: 15,
+    behavior: { kind: "none" },
+  },
+  debug_line_steal: {
+    name: "Line Steal",
+    kind: "debuff",
+    duration: 15,
+    behavior: { kind: "none" },
+  },
+  debug_normal_hud_effect: {
+    name: "Normal HUD Effect",
+    kind: "debuff",
+    duration: 19,
+    icon: "entropy.png",
+    behavior: { kind: "none" },
+  },
+  debug_priority_hud_effect: {
+    name: "Priority HUD Effect",
+    kind: "debuff",
+    duration: 19,
+    priority: true,
+    icon: "acceleration_bomb.png",
+    behavior: { kind: "none" },
+  },
+  debug_black_hole_mitigation: {
+    name: "Black Hole",
+    kind: "debuff",
+    duration: 3,
+    behavior: { kind: "mitigation", multiplier: 0.5 },
+  },
+  debug_twister: {
+    name: "Twister",
+    kind: "debuff",
+    duration: 3,
+    behavior: {
+      kind: "twister",
+      delay: 3,
+      shownShape: "circle",
+      hiddenShape: "donut",
+      radius: 2,
+      innerRadius: 0.5,
+      damage: 100,
+      damageType: "magical",
+    },
+  },
+  // Placeholder for unit tests that need to exercise arbitrary/one-off behavior configs (name,
+  // duration, and behavior are always overridden per-usage via `ref` overrides) rather than a
+  // real named mechanic. Not used by any raid content.
+  debug_test_debuff: {
+    name: "Test Debuff",
+    kind: "debuff",
+    duration: 1,
+    behavior: { kind: "none" },
+  },
 } satisfies Record<string, EffectSpec>;

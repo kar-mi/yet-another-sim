@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ROSTER, RaidIdSchema } from "@shared/protocol";
 import { BOSS_REGISTRY, BOSS_REGISTRY_IDS, DEFAULT_BOSS_ID, isBossRegistryId, type BossRegistryId } from "./bossRegistry";
 import { resolveEffectRef } from "./status/registry";
+import { DEBUFF_REGISTRY } from "./status/debuffs";
 
 const Vec2Schema = z.preprocess(
   value => Array.isArray(value) && value.length === 2 ? { x: value[0], z: value[1] } : value,
@@ -311,7 +312,7 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("escalating"),
     escalationKey: z.string().min(1),
-    escalateTo: z.string().regex(/^[a-z][a-z0-9_]*$/, "escalateTo must be a snake_case status ref").optional(),
+    escalateTo: z.string().refine(ref => ref in DEBUFF_REGISTRY, "escalateTo must be a key in DEBUFF_REGISTRY").optional(),
     escalateDamage: z.number().nonnegative().optional(),
     escalateDamageType: z.enum(["physical", "magical", "true"]).default("true"),
   }),
@@ -404,10 +405,20 @@ const EffectRefSchema = z.object({
 });
 
 const ApplyEffectSchema = z.union([InlineApplyEffectSchema, EffectRefSchema]).transform((effect, ctx) => {
-  if (!("ref" in effect)) return effect;
+  if (!("ref" in effect)) {
+    if (effect.kind === "debuff") {
+      ctx.addIssue({ code: "custom", path: ["kind"], message: `inline debuffs are not allowed; add "${effect.name}" to DEBUFF_REGISTRY and use \`ref\` instead` });
+      return z.NEVER;
+    }
+    return effect;
+  }
   const resolved = resolveEffectRef(effect);
   if (!resolved) {
     ctx.addIssue({ code: "custom", path: ["ref"], message: `unknown status ref "${effect.ref}"` });
+    return z.NEVER;
+  }
+  if (resolved.kind === "debuff" && !(effect.ref in DEBUFF_REGISTRY)) {
+    ctx.addIssue({ code: "custom", path: ["ref"], message: `debuff ref "${effect.ref}" must be defined in DEBUFF_REGISTRY` });
     return z.NEVER;
   }
   const parsed = InlineApplyEffectSchema.safeParse(resolved);
@@ -561,11 +572,8 @@ const TetherSourceEventSchema = z.object({
   fireOffsets: z.array(z.number().nonnegative()).min(1).optional(),
   despawnAfter: z.number().positive().optional(),
   tetherKind: z.enum(["buff", "debuff"]),
-  buffName: z.string().min(1),
-  behavior: EffectBehaviorSchema.default({ kind: "none" }),
-  effectDuration: z.number().positive().default(15),
-  icon: z.string().min(1).optional(),   // HUD icon filename for the tether buff, served from /static/debuffs/
-  applyTetherEffect: z.boolean().default(true),
+  buffName: z.string().min(1),  // log/visual label; independent of applyEffect's own name
+  applyEffect: ApplyEffectSchema.optional(),
   showSource: z.boolean().default(true),
   beam: z.object({
     width: z.number().positive(),
@@ -597,6 +605,13 @@ const TetherSourceEventSchema = z.object({
       message: "fireOffsets must resolve before despawnAfter",
     });
   }
+  if (ev.applyEffect !== undefined && ev.applyEffect.kind !== ev.tetherKind) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["applyEffect", "kind"],
+      message: `applyEffect.kind "${ev.applyEffect.kind}" must match tetherKind "${ev.tetherKind}"`,
+    });
+  }
 });
 
 const LineLinkTargetSchema = z.object({
@@ -625,10 +640,18 @@ const LineLinkEventSchema = z.object({
   rng: z.boolean().optional(),
   link: z.string().min(1).optional(),
   target: LineLinkTargetSchema,
-  hiddenDebuffName: z.string().min(1),
+  hiddenDebuff: z.string().min(1),
   applyEffect: ApplyEffectSchema.optional(),
   knockback: KnockbackSchema.optional(),
   visual: LineLinkVisualSchema.optional(),
+}).transform((event, ctx) => {
+  const spec = DEBUFF_REGISTRY[event.hiddenDebuff];
+  if (!spec) {
+    ctx.addIssue({ code: "custom", path: ["hiddenDebuff"], message: `unknown debuff ref "${event.hiddenDebuff}"` });
+    return z.NEVER;
+  }
+  const { hiddenDebuff, ...rest } = event;
+  return { ...rest, hiddenDebuffName: spec.name };
 });
 
 const TowerVisualSchema = z.object({
@@ -706,8 +729,16 @@ const ChainEventSchema = z.object({
   breakDistance: z.number().positive(), // separation needed to break the chain
   breakDamage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
-  debuffName: z.string().min(1),        // debuff applied to both members at cast end
+  debuff: z.string().min(1),            // registered debuff applied to both members at cast end
   showCastBar: z.boolean().optional(),
+}).transform((event, ctx) => {
+  const spec = DEBUFF_REGISTRY[event.debuff];
+  if (!spec) {
+    ctx.addIssue({ code: "custom", path: ["debuff"], message: `unknown debuff ref "${event.debuff}"` });
+    return z.NEVER;
+  }
+  const { debuff, ...rest } = event;
+  return { ...rest, debuffName: spec.name };
 });
 
 const GroupEventSchema = z.object({

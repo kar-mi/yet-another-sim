@@ -16,7 +16,6 @@ test("laser tether beam hits players inside the rect and misses players outside"
     finalizeAfter: 0.1,
     tetherKind: "debuff",
     buffName: "Laser Marker",
-    applyTetherEffect: false,
     beam: { width: 2, length: 40, damage: 10, applyEffect: { ref: "unbecoming" } },
   }], roster({
     mt: { spawn: [0, -10] },
@@ -45,7 +44,6 @@ test("third laser on a Primordial Crust carrier leaves them at 1 HP and cleansed
       finalizeAfter: 0.05,
       tetherKind: "debuff",
       buffName: "Laser Marker",
-      applyTetherEffect: false,
       beam: { width: 2, length: 40, damage: 10, pointing: [0, 1], applyEffect: { ref: "unbecoming" } },
     })),
   ], roster({ mt: { spawn: [0, -10] }, m1: { spawn: [0, 0] } }));
@@ -66,7 +64,6 @@ test("persistent tether fires multiple lasers before despawning", () => {
     despawnAfter: 0.6,
     tetherKind: "debuff",
     buffName: "Laser Marker",
-    applyTetherEffect: false,
     beam: { width: 2, length: 40, damage: 10 },
   }], roster({
     mt: { spawn: [0, 4] },
@@ -95,6 +92,7 @@ test("persistent tether keeps hitting the same locked target across fires despit
       despawnAfter: 0.7,
       tetherKind: "debuff",
       buffName: "Laser Marker",
+      applyEffect: { ref: "debug_laser_marker" },
     }],
   });
   let world = runTicks(createWorld(raid), noMove, Math.ceil(0.3 * 60));
@@ -128,6 +126,7 @@ test("single-shot tether keeps its target when a bystander gets closer without c
       finalizeAfter: 0.4,
       tetherKind: "debuff",
       buffName: "Sticky Chain",
+      applyEffect: { ref: "debug_sticky_chain" },
     }],
   });
   let world = runTicks(createWorld(raid), noMove, Math.ceil(0.2 * 60));
@@ -159,6 +158,7 @@ test("single-shot tether is stolen by a genuine line interceptor, not by whoever
       finalizeAfter: 0.4,
       tetherKind: "debuff",
       buffName: "Line Steal",
+      applyEffect: { ref: "debug_line_steal" },
     }],
   });
   let world = runTicks(createWorld(raid), noMove, Math.ceil(0.2 * 60));
@@ -194,6 +194,7 @@ test("persistent tether can be intercepted before a later fire", () => {
       despawnAfter: 0.7,
       tetherKind: "debuff",
       buffName: "Laser Marker",
+      applyEffect: { ref: "debug_laser_marker" },
     }],
   });
   // First fire (t=0.2) hits mt normally.

@@ -23,15 +23,4 @@ events:
     name: Twister
     players: [mt, ot, h1, h2, r1, r2, m1, m2]
     applyEffect:
-      name: Twister
-      kind: debuff
-      duration: 3
-      behavior:
-        kind: twister
-        delay: 3
-        shownShape: circle
-        hiddenShape: donut
-        radius: 2
-        innerRadius: 0.5
-        damage: 100
-        damageType: magical
+      ref: debug_twister

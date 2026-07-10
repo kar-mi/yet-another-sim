@@ -61,12 +61,7 @@ events:
     time: 3
     name: Limit Cut
     effect:
-      name: Limit Cut
-      kind: debuff
-      duration: 5
-      visibility: invisible
-      behavior: { kind: none }
-      markerIconScale: 2.5
+      ref: limit_cut_marker
 
   # Dashes fire in numerical order. Spots are inter-inter-cardinals at radius 18 (NNE counting CW).
   # Each dash is a rect from the previous position to the next spot.

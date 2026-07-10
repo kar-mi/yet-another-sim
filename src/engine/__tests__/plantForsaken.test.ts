@@ -13,8 +13,8 @@ test("plant debuff order maps timers to combo slots independently", () => {
     damage: 0,
     damageType: "magical" as const,
     applyEffect: {
+      ref: "debug_test_debuff",
       name,
-      kind: "debuff" as const,
       duration,
       behavior: { kind: "plant" as const, direction: "option" as const, distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
     },
@@ -71,14 +71,14 @@ test("applyEffects can shuffle plant timer order without changing combo slot ord
         order: "shuffle" as const,
         effects: [
           {
+            ref: "debug_test_debuff",
             name: "Plant (short)",
-            kind: "debuff" as const,
             duration: 7,
             behavior: { kind: "plant" as const, direction: "option" as const, distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
           },
           {
+            ref: "debug_test_debuff",
             name: "Plant (long)",
-            kind: "debuff" as const,
             duration: 10,
             behavior: { kind: "plant" as const, direction: "option" as const, distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
           },
@@ -124,14 +124,14 @@ test("applyEffects can balance shuffled plant timer order across a hit list", ()
         order: "shuffleBalanced" as const,
         effects: [
           {
+            ref: "debug_test_debuff",
             name: "Plant (short)",
-            kind: "debuff" as const,
             duration: 7,
             behavior: { kind: "plant" as const, direction: "option" as const, distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
           },
           {
+            ref: "debug_test_debuff",
             name: "Plant (long)",
-            kind: "debuff" as const,
             duration: 10,
             behavior: { kind: "plant" as const, direction: "option" as const, distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
           },
@@ -195,7 +195,7 @@ test("plant combinations assign each player a per-slot heading from their group'
   };
   const plantEvent = (name: string) => ({
     t: 0.1, name, telegraph: 0.1, damage: 0, damageType: "magical",
-    applyEffect: { name, kind: "debuff", duration: 20, behavior: { kind: "plant", direction: [1, 0], distance: 8, armDelay: 3 } },
+    applyEffect: { ref: "debug_test_debuff", name, duration: 20, behavior: { kind: "plant", direction: [1, 0], distance: 8, armDelay: 3 } },
     shape: { kind: "circle", center: [0, 0], radius: 25 },
   });
   const raid = loadRaid({ ...baseRaid, optionals, events: [plantEvent("Plant A"), plantEvent("Plant B")] });
@@ -280,8 +280,8 @@ test("pairing combinations are deterministic for the same seeded rng", () => {
 test("reassign opener applies invisible charge and short head-marker effects from the plan", () => {
   const charge = (kind: string, name: string, markerIcon: string) => ({
     kind,
-    effect: { name, kind: "debuff", duration: 20, visibility: "invisible", behavior: { kind: "none" } },
-    marker: { name: `${name} Marker`, kind: "debuff", duration: 5, visibility: "invisible", markerIcon, behavior: { kind: "none" } },
+    effect: { ref: "debug_test_debuff", name, duration: 20, visibility: "invisible" },
+    marker: { ref: "debug_test_debuff", name: `${name} Marker`, duration: 5, visibility: "invisible", markerIcon },
   });
   const raid = loadRaid({
     ...baseRaid,
@@ -309,7 +309,7 @@ test("plant direction \"option\" parses to a concrete vector (overridden by the 
     ...baseRaid,
     events: [{
       t: 1, name: "Plant", telegraph: 1, damage: 0, damageType: "magical",
-      applyEffect: { name: "Plant", kind: "debuff", duration: 7, behavior: { kind: "plant", direction: "option", distance: 8 } },
+      applyEffect: { ref: "debug_test_debuff", name: "Plant", duration: 7, behavior: { kind: "plant", direction: "option", distance: 8 } },
       shape: { kind: "circle", center: [0, 0], radius: 25 },
     }],
   });

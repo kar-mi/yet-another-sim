@@ -121,10 +121,7 @@ const tethers: MechanicModule = {
       despawnAfter: e.despawnAfter,
       tetherKind: e.tetherKind,
       buffName: e.buffName,
-      behavior: e.behavior,
-      effectDuration: e.effectDuration,
-      icon: e.icon,
-      applyTetherEffect: e.applyTetherEffect,
+      applyEffect: e.applyEffect,
       showSource: e.showSource,
       beam: e.beam && { ...e.beam, pointing: e.beam.pointing && toVec2(e.beam.pointing) },
     });

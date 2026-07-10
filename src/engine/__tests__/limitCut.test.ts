@@ -12,13 +12,7 @@ function limitCutRaid(t = 0.05) {
       id: "lc",
       t,
       name: "Limit Cut",
-      effect: {
-        name: "Limit Cut",
-        kind: "debuff",
-        duration: 5,
-        visibility: "invisible",
-        behavior: { kind: "none" },
-      },
+      effect: { ref: "limit_cut_marker" },
     }],
   });
 }

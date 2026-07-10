@@ -13,7 +13,7 @@ const lineLinkEvent = (overrides: Record<string, unknown> = {}) => ({
   pos: [0, 20] as Vec,
   resolveAfter: 0.5,
   target: { roles: ["dps"] },
-  hiddenDebuffName: "Line Linked",
+  hiddenDebuff: "line_linked",
   ...overrides,
 });
 
@@ -109,7 +109,7 @@ test("line_link resolves applyEffect and knockback once, then removes the hidden
     players: roster({ m1: { spawn: [0, 10] } }),
     events: [lineLinkEvent({
       target: { playerIds: [HUMAN] },
-      applyEffect: { name: "Resolved Link", kind: "debuff", duration: 5, behavior: { kind: "none" } },
+      applyEffect: { ref: "debug_test_debuff", name: "Resolved Link", duration: 5 },
       knockback: { distance: 6 },
     })],
   });

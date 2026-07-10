@@ -13,14 +13,8 @@ const TETHER_LINGER = 2;
 
 function fireTetherBeam(ctx: TickContext, ts: TetherSource, target: TickContext["players"][number] | undefined): void {
   const { players, log, time } = ctx;
-  if (target && ts.applyTetherEffect) {
-    applyEffect(target, {
-      name: ts.buffName,
-      kind: ts.tetherKind,
-      duration: ts.effectDuration,
-      behavior: ts.behavior,
-      icon: ts.icon,
-    }, time, `${ts.id}-effect`, players);
+  if (target && ts.applyEffect) {
+    applyEffect(target, ts.applyEffect, time, `${ts.id}-effect`, players);
     log.push({ t: time, mechanic: ts.buffName, playerId: target.id, event: ts.tetherKind === "buff" ? "cleared" : "hit" });
   }
   if (!ts.beam) return;
@@ -84,10 +78,7 @@ export function resolveTethers(ctx: TickContext): {
         expireAt: pt.despawnAfter === undefined ? undefined : pt.t + pt.despawnAfter,
         tetherKind: pt.tetherKind,
         buffName: pt.buffName,
-        behavior: pt.behavior,
-        effectDuration: pt.effectDuration,
-        icon: pt.icon,
-        applyTetherEffect: pt.applyTetherEffect,
+        applyEffect: pt.applyEffect,
         showSource: pt.showSource,
         beam: pt.beam,
         tetheredPlayerId: nearest?.id ?? null,

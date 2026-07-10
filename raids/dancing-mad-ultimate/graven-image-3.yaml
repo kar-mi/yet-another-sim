@@ -117,7 +117,7 @@ events:
     resolveAfter: 8
     rng: true
     target: { roleGroups: [[dps], [tank, healer]], count: 4, mode: closest }
-    hiddenDebuffName: Sleep Tether
+    hiddenDebuff: sleep_tether
     applyEffect:
       ref: sleep
     visual: { kind: statue, width: 3, height: 6, depth: 1 }
@@ -130,7 +130,7 @@ events:
     resolveAfter: 8
     link: sleep-statue
     target: { roleGroups: [[dps], [tank, healer]], count: 4, mode: closest }
-    hiddenDebuffName: Confuse Tether
+    hiddenDebuff: confuse_tether
     applyEffect:
       ref: confusion
     visual: { kind: statue, width: 3, height: 6, depth: 1 }

@@ -476,6 +476,8 @@ intercepted). Excerpt from `raids/debug/tether-test.yaml`:
   finalizeAfter: 7
   tetherKind: debuff
   buffName: Doom
+  applyEffect:
+    ref: debug_doom
 ```
 
 | Field            | Required | Notes |
@@ -484,11 +486,9 @@ intercepted). Excerpt from `raids/debug/tether-test.yaml`:
 | `name`           | yes      | Mechanic name. |
 | `pos`            | yes      | `{ x, z }` anchor position. |
 | `finalizeAfter`  | yes      | Seconds until the tether locks in (> 0). |
-| `tetherKind`     | yes      | `"buff"` or `"debuff"`. |
-| `buffName`       | yes      | Name of the granted effect. |
-| `behavior`       | no       | Effect behavior (see [Effects](#effects)). Defaults to `{ kind: none }`. |
-| `effectDuration` | no       | Duration of the granted effect in seconds (> 0). Defaults to `15`. |
-| `icon`           | no       | HUD icon filename for the granted effect, served from `static/debuffs/`. |
+| `tetherKind`     | yes      | `"buff"` or `"debuff"` — purely a color/log hint (red vs green tether, "hit" vs "cleared" log event); independent of whether `applyEffect` is set. |
+| `buffName`       | yes      | Log/visual label for the tether and its beam. Independent of `applyEffect`'s own `name`. |
+| `applyEffect`    | no       | Effect granted on finalize (see [Effects](#effects)). Omit for a tether that only exists to aim a beam/visual. Its `kind` must match `tetherKind`. |
 
 ### `line_link` — fixed visual links from an object to selected players
 
@@ -507,12 +507,9 @@ Unlike `tether_source`, these lines do not retarget or get intercepted. Excerpt 
   linkDuration: 3
   resolveAfter: 10
   target: { roles: [dps], count: 4, mode: closest }
-  hiddenDebuffName: Line Linked
+  hiddenDebuff: line_linked
   applyEffect:
-    name: Magic Vulnerability
-    kind: debuff
-    duration: 8
-    behavior: { kind: vuln, damageType: magical, multiplier: 1.5 }
+    ref: magic_vulnerability
   knockback: { distance: 12 }
   visual: { kind: statue, width: 3, height: 5, depth: 1 }
 ```
@@ -531,7 +528,7 @@ Unlike `tether_source`, these lines do not retarget or get intercepted. Excerpt 
 | `target.count` | no | Number of eligible targets selected. Defaults to `1`, or to `playerIds.length` when `playerIds` is supplied. |
 | `rng` | no | With `target.roleGroups`, pick a seeded random role group. Without `rng`, choose the first group. |
 | `link` | no | With `target.roleGroups`, take the complement of the referenced line link's chosen role group. The source line link must appear earlier, or earlier in the file when `t` is the same. |
-| `hiddenDebuffName` | yes | Name of the hidden simulation debuff applied while the line is active. It does not show in the HUD. |
+| `hiddenDebuff` | yes | `DEBUFF_REGISTRY` key for the hidden simulation debuff applied while the line is active. It does not show in the HUD; duration/behavior are engine-controlled, only the registry entry's `name` is used. |
 | `applyEffect` | no | Visible buff/debuff applied to the linked player at resolve. |
 | `knockback` | no | Knockback applied to each stored target at resolve; defaults to origin `pos` unless `knockback.origin` is set. |
 | `visual` | no | `{ kind: statue }` draws a rectangular statue at `pos`; dimensions default if omitted. |
@@ -539,8 +536,8 @@ Unlike `tether_source`, these lines do not retarget or get intercepted. Excerpt 
 ### `chain` — break-apart pair chains
 
 Chains a set of **explicitly named player pairs** together. While the cast bar counts down
-(for `telegraph` seconds) a chain icon floats over each chained player's head. At cast end a
-`debuffName` debuff is applied to both members and a line connects them. Each pair then has
+(for `telegraph` seconds) a chain icon floats over each chained player's head. At cast end the
+`debuff` debuff is applied to both members and a line connects them. Each pair then has
 `breakWindow` seconds to **increase their separation by `breakDistance`**: the threshold is the
 pair's distance when the chain connects *plus* `breakDistance` (e.g. starting 5 apart with
 `breakDistance: 6` breaks at 11; starting on top of each other breaks at 6). Breaking removes
@@ -559,7 +556,7 @@ burst of `breakDamage` (vulnerabilities apply per the pair's `damageType`). Exce
   breakDistance: 12
   breakDamage: 40
   damageType: magical
-  debuffName: Chain Bond
+  debuff: chain_bond
   showCastBar: true
 ```
 
@@ -574,7 +571,7 @@ burst of `breakDamage` (vulnerabilities apply per the pair's `damageType`). Exce
 | `breakDistance` | yes | Extra separation (> 0) the pair must add beyond their starting distance to break the chain. |
 | `breakDamage` | yes | Burst damage dealt to both members if the chain isn't broken in time (≥ 0). |
 | `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
-| `debuffName` | yes | Name of the debuff shown on both members until they break or get hit. |
+| `debuff` | yes | `DEBUFF_REGISTRY` key for the debuff shown on both members until they break or get hit; duration/behavior are engine-controlled, only the registry entry's `name` is used. |
 | `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
 
 ### `group` — random shared-damage stack
@@ -881,10 +878,7 @@ Excerpt from `raids/debug/tower-test.yaml`:
   failureDamage: 40
   failureDamageType: magical
   applyEffect:
-    name: Magic Vulnerability
-    kind: debuff
-    duration: 8
-    behavior: { kind: vuln, damageType: magical, multiplier: 1.5 }
+    ref: magic_vulnerability
   knockback: { distance: 8 }
   visual:
     fallingCylinder: true
@@ -1096,10 +1090,7 @@ Excerpt from `raids/dancing-mad-ultimate/graven-image-3.yaml`:
   name: Double Trouble (Support)
   groups: [[mt, ot, h1, h2]]
   applyEffect:
-    name: Double Trouble
-    kind: debuff
-    duration: 24
-    behavior: { kind: burstSpread, radius: 5, damage: 10, damageType: magical, knockbackDistance: 14 }
+    ref: double_trouble
 ```
 
 ### `apply_effect` — drop a buff/debuff straight onto players
@@ -1118,12 +1109,7 @@ roster order, or randomly when `rng: true`. Excerpt from
   time: 1
   name: Spread Charge
   applyEffect:
-    kind: debuff
-    visibility: invisible
-    behavior: { kind: none }
-    name: Spread Charge
-    duration: 12
-    markerIcon: defam_processed.png
+    ref: spread_charge
 ```
 
 | Field         | Required | Notes |
@@ -1159,8 +1145,8 @@ Excerpt from `raids/dancing-mad-ultimate/forsaken.yaml`:
     tower-even: { stack: 2, cone: 3, defamation: 3 }   # ... and after an even-wave soak
   charges:
     - kind: stack
-      effect: { name: Stack Charge, kind: debuff, duration: 120, visibility: invisible, behavior: { kind: none } }
-      marker: { name: Stack Charge Marker, kind: debuff, duration: 5, visibility: invisible, markerIcon: stack_processed.png, behavior: { kind: none } }
+      effect: { ref: stack_charge }
+      marker: { ref: stack_charge_marker }
     # ... cone, defamation
 ```
 
@@ -1195,21 +1181,42 @@ bind them to the boss.
 
 ## Effects
 
-`applyEffect` (on aoe/targeted/tower/group/line_link) and `tether_source.behavior` use the same behavior union.
-`applyEffect` wraps it with metadata. Excerpt from `raids/debug/debuff-test.yaml`:
+`applyEffect` (on aoe/targeted/tower/group/line_link/tether_source/etc.) uses the same effect shape
+everywhere. It can be either a `ref` to a registered status, or inline metadata + a behavior:
 
 ```yaml
 applyEffect:
   name: Physical Vulnerability
-  kind: debuff
+  kind: buff        # buffs may still be authored inline
   duration: 8
   behavior: { kind: vuln, damageType: physical, multiplier: 1.5 }
 ```
 
-| Field      | Required | Notes |
+**Debuffs must be registered.** Every debuff (`kind: debuff`) must exist as an entry in
+`DEBUFF_REGISTRY` (`src/engine/status/debuffs.ts`) and be referenced with `ref` — an inline
+`kind: debuff` object is rejected by the schema. Buffs (`BUFF_REGISTRY`) are not enforced this way
+and may still be authored inline. Excerpt from `raids/debug/debuff-test.yaml`:
+
+```yaml
+applyEffect:
+  ref: physical_vulnerability
+```
+
+`ref` resolves the named registry entry and merges any of the fields below on top of it (e.g. a
+one-off `duration` or `behavior` override for this usage only):
+
+```yaml
+applyEffect:
+  ref: unbecoming
+  duration: 5           # overrides the registry's duration for this usage
+  behavior: { multiplier: 2 }  # shallow-merged onto the registry's behavior
+```
+
+| Field      | Required (inline) | Notes |
 |------------|----------|-------|
+| `ref`      | —        | Alternative to inline authoring: a `DEBUFF_REGISTRY`/`BUFF_REGISTRY` key. Any other field here overrides the registry entry for this usage. |
 | `name`     | yes      | Display name. |
-| `kind`     | yes      | `"buff"` or `"debuff"`. |
+| `kind`     | yes      | `"buff"` or `"debuff"` — inline `kind: debuff` is rejected; use `ref` instead. |
 | `duration` | yes      | Seconds the effect lasts (> 0). |
 | `visibility` | no    | `"visible"` (default) shows in the HUD; `"invisible"` stores the effect without a HUD chip. |
 | `priority` | no | `true` renders this visible effect before normal HUD chips; order stays stable within each band. |
@@ -1224,14 +1231,8 @@ Excerpt from `raids/dancing-mad-ultimate/graven-image-3.yaml`:
 applyEffects:
   order: shuffleBalanced
   effects:
-    - name: Plant (short)
-      kind: debuff
-      duration: 7
-      behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay: 3, duration: 20, tpDelay: 1.25 }
-    - name: Plant (long)
-      kind: debuff
-      duration: 10
-      behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay: 3, duration: 20, tpDelay: 1.25 }
+    - ref: plant_short
+    - ref: plant_long
 ```
 
 `order` defaults to `"listed"`. Use `"shuffle"` for seeded per-player random order. Use
