@@ -243,7 +243,12 @@ export async function createRaidHudSelect(
     botPatternId: initialBotPatternId,
     isHost,
   });
-  const optionsBtn = replay ? null : makePlaybackBtn("OPTIONS", () => optionsModal?.open());
+  const optionsBtn = replay ? null : makePlaybackBtn("OPTIONS", () => {
+    // Stop before opening: options must not change out from under a live pull, and stopping first
+    // lets the server apply waymark/bot-pattern changes to the frozen world immediately.
+    if (lastState !== "stopped") net.send({ type: "stop" });
+    optionsModal?.open();
+  });
   if (replay) {
     controls.append(playBtn, pauseBtn, restartBtn);
   } else {

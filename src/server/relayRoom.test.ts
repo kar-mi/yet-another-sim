@@ -574,6 +574,32 @@ test("waymark preset override is host-only and applied to the world on start", (
   expect(session.world.waymarks).toEqual(WAYMARK_PRESETS.find(preset => preset.id === "standard-16")!.marks);
 });
 
+test("waymark preset applies instantly to a stopped pull's frozen world", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+  session.stop("c1");
+  const startedBefore = sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started").length;
+
+  session.handle("c1", { type: "setWaymarkPreset", presetId: "standard-16" });
+
+  expect(session.world.waymarks).toEqual(WAYMARK_PRESETS.find(preset => preset.id === "standard-16")!.marks);
+  expect(sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started")).toHaveLength(startedBefore + 1);
+});
+
+test("waymark preset does not touch the frozen world while the pull is running", () => {
+  const { session } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+  const worldBefore = session.world;
+
+  session.handle("c1", { type: "setWaymarkPreset", presetId: "standard-16" });
+
+  expect(session.world).toBe(worldBefore);
+});
+
 test("waymark preset resets to the raid default when the raid changes", () => {
   const { session, sent } = makeSession();
   session.join("c1");
@@ -604,6 +630,21 @@ test("bot pattern options are exposed in the lobby and selectable host-only", ()
   session.setBotPattern("c1", "alt", raid);
   const updatedLobby = [...sent].reverse().find(entry => entry.clientId === "c1" && entry.message.type === "lobby")?.message;
   expect(updatedLobby).toMatchObject({ type: "lobby", botPatternId: "alt" });
+});
+
+test("bot pattern applies instantly to a stopped pull's frozen world", () => {
+  const raid = botPatternOptionsRaid();
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.setRaid("c1", "bot-pattern", raid);
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+  session.stop("c1");
+  const startedBefore = sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started").length;
+
+  session.setBotPattern("c1", "alt", raid);
+
+  expect(sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started")).toHaveLength(startedBefore + 1);
 });
 
 test("a raid with a single botPatterns file exposes one implicit Default option; a raid with none exposes no options", () => {

@@ -562,6 +562,7 @@ export class RelayRoom {
     }
 
     this.waymarkPresetId = presetId;
+    this.refreshFrozenWorld();
     this.broadcastLobby();
   }
 
@@ -576,7 +577,20 @@ export class RelayRoom {
 
     this.raid = raid;
     this.botPatternId = patternId;
+    this.refreshFrozenWorld();
     this.broadcastLobby();
+  }
+
+  // The client stops the pull before opening the Options modal, so a waymark/bot-pattern change
+  // normally lands while idle (paused/stopped/done) rather than mid-pull. Rebuild the frozen world
+  // right away so the change is visible immediately instead of waiting for the next start/restart.
+  // No-op in "lobby" (nothing shown yet) and "running" (never applied mid-pull).
+  private refreshFrozenWorld(): void {
+    if (this.status === "lobby" || this.status === "running") return;
+    this.world = this.freshWorld();
+    this.applyBotsInvincible();
+    this.resetPull();
+    this.broadcastStarted();
   }
 
   private applyRngConstraints(clientId: string, constraints: Record<string, number>): void {
