@@ -243,12 +243,9 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
   }),
   z.object({
     kind: z.literal("effectBurst"),
-    shownShape: z.enum(["circle", "donut"]),
-    hiddenShape: z.enum(["circle", "donut"]),
+    shape: z.enum(["circle", "donut"]),
     radius: z.number().positive(),
     innerRadius: z.number().positive().optional(),
-    rng: z.boolean().optional(),
-    questionMark: z.boolean().optional(),
     damage: z.number().nonnegative(),
     damageType: z.enum(["physical", "magical", "true"]),
   }),
@@ -266,8 +263,12 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
   }),
   z.object({
     kind: z.literal("carrierGaze"),
-    reverse: z.boolean().optional(),
-    cone: z.object({ angleDeg: z.number().positive().max(360), length: z.number().positive() }).optional(),
+    cone: z.object({ angleDeg: z.number().positive().max(360), length: z.number().positive() }),
+    damage: z.number().nonnegative(),
+    damageType: z.enum(["physical", "magical", "true"]),
+  }),
+  z.object({
+    kind: z.literal("reverseCarrierGaze"),
     coneHalfAngle: z.number().positive().optional(),
     damage: z.number().nonnegative(),
     damageType: z.enum(["physical", "magical", "true"]),
@@ -276,8 +277,6 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     kind: z.literal("pairedSpreadStack"),
     key: z.string().min(1),
     role: z.enum(["stack", "spread"]),
-    rng: z.boolean().optional(),
-    questionMark: z.boolean().optional(),
     spread: z.object({ radius: z.number().positive(), damage: z.number().nonnegative() }),
     stack: z.object({ radius: z.number().positive(), requiredCount: z.number().int().positive(), damage: z.number().nonnegative() }),
     damageType: z.enum(["physical", "magical", "true"]),
@@ -358,16 +357,13 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
   if (b.kind === "burstSpread" && b.followUp?.shape === "donut" && b.followUp.inner !== undefined && b.followUp.inner >= b.followUp.radius) {
     ctx.addIssue({ code: "custom", path: ["followUp", "inner"], message: "followUp.inner must be less than followUp.radius" });
   }
-  if (b.kind === "effectBurst" && (b.shownShape === "donut" || b.hiddenShape === "donut")
+  if (b.kind === "effectBurst" && b.shape === "donut"
     && (b.innerRadius === undefined || b.innerRadius >= b.radius)) {
     ctx.addIssue({ code: "custom", path: ["innerRadius"], message: "effectBurst donut needs innerRadius smaller than radius" });
   }
   if (b.kind === "twister" && (b.shownShape === "donut" || b.hiddenShape === "donut")
     && (b.innerRadius === undefined || b.innerRadius >= b.radius)) {
     ctx.addIssue({ code: "custom", path: ["innerRadius"], message: "twister donut needs innerRadius smaller than radius" });
-  }
-  if (b.kind === "carrierGaze" && b.reverse !== true && b.cone === undefined) {
-    ctx.addIssue({ code: "custom", path: ["cone"], message: "normal carrierGaze needs cone" });
   }
 });
 

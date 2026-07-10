@@ -31,6 +31,7 @@ export const STATUS_LIFECYCLE_REGISTRY: Record<EffectBehavior["kind"], StatusLif
   effectBurst: { onExpiry: effectBurstOnExpiry },
   twister: { onExpiry: twisterOnExpiry },
   carrierGaze: { onExpiry: carrierGazeOnExpiry },
+  reverseCarrierGaze: { onExpiry: reverseCarrierGazeOnExpiry },
   pairedSpreadStack: { onExpiry: pairedSpreadStackOnExpiry },
   effectCheck: { onExpiry: effectCheckOnExpiry },
   plant: { onExpiry: plantOnExpiry },
@@ -85,9 +86,7 @@ export function burstSpreadOnExpiry(effect: StatusEffect, player: Player, ctx: T
 
 export function effectBurstOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
   const behavior = effect.behavior as Extract<EffectBehavior, { kind: "effectBurst" }>;
-  const inverted = behavior.questionMark ?? (behavior.rng ? ctx.randFloat() < 0.5 : false);
-  const shapeKind = inverted ? behavior.hiddenShape : behavior.shownShape;
-  const shape: AOEShape = shapeKind === "donut"
+  const shape: AOEShape = behavior.shape === "donut"
     ? { kind: "donut", center: player.pos, inner: behavior.innerRadius!, outer: behavior.radius }
     : { kind: "circle", center: player.pos, radius: behavior.radius };
   applyShapeHit(ctx.players, ctx.log, ctx.time, shape, player.pos, behavior.damage, behavior.damageType, undefined, undefined, effect.name);
@@ -114,24 +113,25 @@ export function twisterOnExpiry(effect: StatusEffect, player: Player, ctx: TickC
 
 export function carrierGazeOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
   const behavior = effect.behavior as Extract<EffectBehavior, { kind: "carrierGaze" }>;
-  if (behavior.reverse) {
-    const halfAngle = behavior.coneHalfAngle ?? Math.PI / 2;
-    for (const target of ctx.players) {
-      if (!target.alive || target.id === player.id) continue;
-      if (isLookingAt(target.facing, target.pos, player.pos, halfAngle)) continue;
-      applyMechanicDamage(target, behavior.damage, behavior.damageType, ctx.time);
-      ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: target.id, event: "hit" });
-    }
-    return;
-  }
   const shape: AOEShape = {
     kind: "cone",
     origin: player.pos,
     direction: { x: sin(player.facing), z: cos(player.facing) },
-    ...behavior.cone!,
+    ...behavior.cone,
   };
   applyShapeHit(ctx.players, ctx.log, ctx.time, shape, player.pos, behavior.damage, behavior.damageType, undefined, player.id, effect.name);
   addResolvedAoeVisual(ctx, `${effect.id}-cone`, effect.name, shape);
+}
+
+export function reverseCarrierGazeOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
+  const behavior = effect.behavior as Extract<EffectBehavior, { kind: "reverseCarrierGaze" }>;
+  const halfAngle = behavior.coneHalfAngle ?? Math.PI / 2;
+  for (const target of ctx.players) {
+    if (!target.alive || target.id === player.id) continue;
+    if (isLookingAt(target.facing, target.pos, player.pos, halfAngle)) continue;
+    applyMechanicDamage(target, behavior.damage, behavior.damageType, ctx.time);
+    ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: target.id, event: "hit" });
+  }
 }
 
 export function pairedSpreadStackOnExpiry(effect: StatusEffect, _player: Player, ctx: TickContext, scratch: ExpiryScratch): void {
@@ -144,9 +144,8 @@ export function pairedSpreadStackOnExpiry(effect: StatusEffect, _player: Player,
       && candidate.appliedAt + candidate.duration > ctx.previousTime
       && candidate.appliedAt + candidate.duration <= ctx.time)
     .map(candidate => ({ player, behavior: candidate.behavior as Extract<EffectBehavior, { kind: "pairedSpreadStack" }> })));
-  const inverted = behavior.questionMark ?? (behavior.rng ? ctx.randFloat() < 0.5 : false);
-  const stackCarriers = carriers.filter(carrier => (inverted ? carrier.behavior.role === "spread" : carrier.behavior.role === "stack"));
-  const spreadCarriers = carriers.filter(carrier => (inverted ? carrier.behavior.role === "stack" : carrier.behavior.role === "spread"));
+  const stackCarriers = carriers.filter(carrier => carrier.behavior.role === "stack");
+  const spreadCarriers = carriers.filter(carrier => carrier.behavior.role === "spread");
   for (const { player } of spreadCarriers) {
     const shape: AOEShape = { kind: "circle", center: player.pos, radius: behavior.spread.radius };
     applyShapeHit(ctx.players, ctx.log, ctx.time, shape, player.pos, behavior.spread.damage, behavior.damageType, undefined, undefined, effect.name);

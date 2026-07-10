@@ -12,4 +12,4 @@ players:
   - { id: m2, role: dps, spawn: { x: 0, z: -8 } }
 events:
   - { type: apply_effect, id: shriek-cone, time: 2, name: Cursed Shriek, players: [mt, ot], applyEffect: { ref: cursed_shriek, duration: 10 } }
-  - { type: apply_effect, id: shriek-gaze, time: 16, name: Cursed Shriek, players: [mt, ot], applyEffect: { ref: cursed_shriek, duration: 5, behavior: { reverse: true, damage: 0 } } }
+  - { type: apply_effect, id: shriek-gaze, time: 16, name: Fake Cursed Shriek, players: [mt, ot], applyEffect: { ref: fake_cursed_shriek, duration: 5, behavior: { damage: 0 } } }

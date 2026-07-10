@@ -143,10 +143,11 @@ export type EffectBehavior =
   | { kind: "sleep" }
   // On expiry, bursts at the carrier, then can spread follow-up AOEs to nearby/far players.
   | { kind: "burstSpread"; radius: number; damage: number; damageType: DamageType; knockbackDistance: number; selfShape?: "circle" | "donut"; selfInner?: number; followUp?: { mode: "closest" | "furthest"; count: number; originCrystal?: CrystalElement; shape: "circle" | "donut"; radius: number; inner?: number; damage: number; damageType: DamageType; knockbackDistance?: number } }
-  | { kind: "effectBurst"; shownShape: "circle" | "donut"; hiddenShape: "circle" | "donut"; radius: number; innerRadius?: number; rng?: boolean; questionMark?: boolean; damage: number; damageType: DamageType }
+  | { kind: "effectBurst"; shape: "circle" | "donut"; radius: number; innerRadius?: number; damage: number; damageType: DamageType }
   | { kind: "twister"; delay: number; shownShape: "circle" | "donut"; hiddenShape: "circle" | "donut"; radius: number; innerRadius?: number; rng?: boolean; questionMark?: boolean; damage: number; damageType: DamageType }
-  | { kind: "carrierGaze"; reverse?: boolean; cone?: { angleDeg: number; length: number }; coneHalfAngle?: number; damage: number; damageType: DamageType }
-  | { kind: "pairedSpreadStack"; key: string; role: "stack" | "spread"; rng?: boolean; questionMark?: boolean; spread: { radius: number; damage: number }; stack: { radius: number; requiredCount: number; damage: number }; damageType: DamageType }
+  | { kind: "carrierGaze"; cone: { angleDeg: number; length: number }; damage: number; damageType: DamageType }
+  | { kind: "reverseCarrierGaze"; coneHalfAngle?: number; damage: number; damageType: DamageType }
+  | { kind: "pairedSpreadStack"; key: string; role: "stack" | "spread"; spread: { radius: number; damage: number }; stack: { radius: number; requiredCount: number; damage: number }; damageType: DamageType }
   | { kind: "effectCheck"; compare: [string, string]; expect: "matches" | "differs"; failureDamage: number; failureDamageType: DamageType }
   // Tele-Trouncing "plant": the HUD shows an arrow along `direction` ([x, z]). When the debuff
   // expires it places a teleport trap (forced march) at the player's spot — inert for `armDelay`

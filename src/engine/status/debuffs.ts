@@ -332,14 +332,28 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     kind: "debuff",
     duration: 5,
     icon: "entropy.png",
-    behavior: { kind: "effectBurst", shownShape: "circle", hiddenShape: "donut", radius: 8, innerRadius: 3, damage: 20, damageType: "magical" },
+    behavior: { kind: "effectBurst", shape: "circle", radius: 8, innerRadius: 3, damage: 20, damageType: "magical" },
+  },
+  fake_entropy: {
+    name: "Fake Entropy",
+    kind: "debuff",
+    duration: 5,
+    icon: "entropy.png",
+    behavior: { kind: "effectBurst", shape: "donut", radius: 8, innerRadius: 3, damage: 20, damageType: "magical" },
   },
   dynamic_fluid: {
     name: "Dynamic Fluid",
     kind: "debuff",
     duration: 5,
     icon: "dynamic_fluid.png",
-    behavior: { kind: "effectBurst", shownShape: "donut", hiddenShape: "circle", radius: 8, innerRadius: 3, damage: 20, damageType: "magical" },
+    behavior: { kind: "effectBurst", shape: "donut", radius: 8, innerRadius: 3, damage: 20, damageType: "magical" },
+  },
+  fake_dynamic_fluid: {
+    name: "Fake Dynamic Fluid",
+    kind: "debuff",
+    duration: 5,
+    icon: "dynamic_fluid.png",
+    behavior: { kind: "effectBurst", shape: "circle", radius: 8, innerRadius: 3, damage: 20, damageType: "magical" },
   },
   debug_entropy: {
     name: "Entropy",
@@ -379,6 +393,13 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     icon: "compressed_water.png",
     behavior: { kind: "pairedSpreadStack", key: "compressed-water", role: "stack", spread: { radius: 5, damage: 20 }, stack: { radius: 6, requiredCount: 3, damage: 60 }, damageType: "true" },
   },
+  fake_compressed_water: {
+    name: "Fake Compressed Water",
+    kind: "debuff",
+    duration: 5,
+    icon: "compressed_water.png",
+    behavior: { kind: "pairedSpreadStack", key: "compressed-water", role: "spread", spread: { radius: 5, damage: 20 }, stack: { radius: 6, requiredCount: 3, damage: 60 }, damageType: "true" },
+  },
   forked_lightning: {
     name: "Forked Lightning",
     kind: "debuff",
@@ -386,12 +407,26 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     icon: "forked_lightning.png",
     behavior: { kind: "pairedSpreadStack", key: "compressed-water", role: "spread", spread: { radius: 5, damage: 20 }, stack: { radius: 6, requiredCount: 3, damage: 60 }, damageType: "true" },
   },
+  fake_forked_lightning: {
+    name: "Fake Forked Lightning",
+    kind: "debuff",
+    duration: 5,
+    icon: "forked_lightning.png",
+    behavior: { kind: "pairedSpreadStack", key: "compressed-water", role: "stack", spread: { radius: 5, damage: 20 }, stack: { radius: 6, requiredCount: 3, damage: 60 }, damageType: "true" },
+  },
   cursed_shriek: {
     name: "Cursed Shriek",
     kind: "debuff",
     duration: 5,
     icon: "cursed_shriek.png",
     behavior: { kind: "carrierGaze", cone: { angleDeg: 90, length: 20 }, damage: 20, damageType: "true" },
+  },
+  fake_cursed_shriek: {
+    name: "Fake Cursed Shriek",
+    kind: "debuff",
+    duration: 5,
+    icon: "cursed_shriek.png",
+    behavior: { kind: "reverseCarrierGaze", damage: 20, damageType: "true" },
   },
   allagan_field: {
     name: "Allagan Field",
@@ -429,6 +464,13 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     duration: 5,
     icon: "acceleration_bomb.png",
     behavior: { kind: "motionCheck", required: "still", window: 0.5, failureDamage: 999, failureDamageType: "true", failureKnockupHeight: 1 },
+  },
+  fake_acceleration_bomb: {
+    name: "Fake Acceleration Bomb",
+    kind: "debuff",
+    duration: 5,
+    icon: "acceleration_bomb.png",
+    behavior: { kind: "motionCheck", required: "move", window: 0.5, failureDamage: 999, failureDamageType: "true", failureKnockupHeight: 1 },
   },
   // Hidden/marker tags for chain and line_link mechanics: engine-hardcoded duration and
   // behavior:none regardless of what's set here (see chains.ts / lineLinks.ts); the registry

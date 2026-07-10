@@ -30,6 +30,7 @@ export const BEHAVIOR_REGISTRY: Record<EffectBehavior["kind"], BehaviorModule> =
   effectBurst: {},
   twister: {},
   carrierGaze: {},
+  reverseCarrierGaze: {},
   pairedSpreadStack: {},
   effectCheck: {},
   plant: {
