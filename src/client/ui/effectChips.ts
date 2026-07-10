@@ -57,6 +57,7 @@ function sortedActiveVisibleEffects(player: Player, time: number, kind: EffectKi
     if (isActiveVisibleEffect(effect, time, kind)) effects.push({ effect, index });
   }
   effects.sort((a, b) => {
+    if (a.effect.priority !== b.effect.priority) return a.effect.priority ? -1 : 1;
     const aPlant = a.effect.behavior.kind === "plant";
     const bPlant = b.effect.behavior.kind === "plant";
     if (aPlant && bPlant) return (a.effect.plantSlot ?? a.index) - (b.effect.plantSlot ?? b.index);

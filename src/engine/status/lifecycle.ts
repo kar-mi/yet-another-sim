@@ -30,6 +30,7 @@ export const STATUS_LIFECYCLE_REGISTRY: Record<EffectBehavior["kind"], StatusLif
   escalating: {},
   primordialCrust: { onExpiry: expiryDamageOnExpiry },
   accretion: { cleanseOnFullHp: true, onExpiry: expiryDamageOnExpiry },
+  motionCheck: { onExpiry: motionCheckOnExpiry },
   assignment: { onExpiry: expiryDamageOnExpiry },
 };
 
@@ -97,6 +98,14 @@ export function expiryDamageOnExpiry(effect: StatusEffect, player: Player, ctx: 
   const behavior = effect.behavior as Extract<EffectBehavior, { kind: "primordialCrust" | "accretion" | "assignment" }>;
   applyMechanicDamage(player, behavior.expiryDamage, behavior.expiryDamageType, ctx.time);
   if (!player.alive) ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: player.id, event: "hit" });
+}
+
+export function motionCheckOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
+  const behavior = effect.behavior as Extract<EffectBehavior, { kind: "motionCheck" }>;
+  const moved = (player.lastMotionAt ?? -Infinity) >= ctx.time - behavior.window;
+  if (behavior.required === "move" ? moved : !moved) return;
+  applyKnockback(player, { distance: 0, height: behavior.failureKnockupHeight }, player.pos, ctx.time);
+  player.landingDamage = { name: effect.name, damage: behavior.failureDamage, damageType: behavior.failureDamageType };
 }
 
 export function applyPendingBurstSpreadFollowUp(ctx: TickContext, pending: TickContext["pendingBurstSpreadFollowUps"][number]): void {

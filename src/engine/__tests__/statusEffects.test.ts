@@ -460,6 +460,50 @@ test("assignment debuff deals expiryDamage on expiry tick, nothing before", () =
   expect(human(after).hp).toBe(DPS_HP - 30);
 });
 
+test("motionCheck uses the final voluntary move-or-jump window", () => {
+  const motionCheck = effect({
+    name: "Acceleration Bomb",
+    duration: 0.5,
+    behavior: { kind: "motionCheck", required: "move", window: 0.5, failureDamage: 999, failureDamageType: "true", failureKnockupHeight: 1 },
+  });
+  let world = tick(withEffect(createWorld(loadRaid(baseRaid)), motionCheck), { [HUMAN]: { move: { x: 1, z: 0 } } }, 0.25);
+  world = tick(world, noMove, 0.25);
+
+  expect(human(world).landingDamage).toBeUndefined();
+  expect(human(world).alive).toBe(true);
+});
+
+test("motionCheck knocks up failures, ignores airborne input, and damages on landing", () => {
+  const motionCheck = effect({
+    name: "Acceleration Bomb",
+    duration: 0.5,
+    behavior: { kind: "motionCheck", required: "still", window: 0.5, failureDamage: 999, failureDamageType: "true", failureKnockupHeight: 1 },
+  });
+  let world = tick(withEffect(createWorld(loadRaid(baseRaid)), motionCheck), { [HUMAN]: { move: { x: 1, z: 0 } } }, 0.5);
+  const start = { ...human(world).pos };
+  expect(human(world).landingDamage?.name).toBe("Acceleration Bomb");
+
+  world = tick(world, { [HUMAN]: { move: { x: 1, z: 0 }, jump: true } }, 1 / 60);
+  expect(human(world).pos).toEqual(start);
+  expect(human(world).lastMotionAt).toBe(0.5);
+
+  world = runTicks(world, noMove, 120);
+  expect(human(world).alive).toBe(false);
+  expect(human(world).hp).toBe(0);
+});
+
+test("priority effects survive schema parsing and application", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{
+      type: "apply_effect", t: 0, name: "Priority Mark", players: [HUMAN],
+      applyEffect: { name: "Priority Mark", kind: "debuff", duration: 5, priority: true, behavior: { kind: "none" } },
+    }],
+  });
+  const world = runTicks(createWorld(raid), noMove, 1);
+  expect(human(world).effects[0]?.priority).toBe(true);
+});
+
 test("apply_effect with explicit players lands assignment on exactly those players", () => {
   const raid = loadRaid({
     ...baseRaid,

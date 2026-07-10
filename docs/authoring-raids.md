@@ -1212,6 +1212,7 @@ applyEffect:
 | `kind`     | yes      | `"buff"` or `"debuff"`. |
 | `duration` | yes      | Seconds the effect lasts (> 0). |
 | `visibility` | no    | `"visible"` (default) shows in the HUD; `"invisible"` stores the effect without a HUD chip. |
+| `priority` | no | `true` renders this visible effect before normal HUD chips; order stays stable within each band. |
 | `icon`     | no       | HUD icon filename served from `static/debuffs/` (e.g. `"magic-vuln.png"`). Falls back to a generic glyph chosen from the behavior when omitted. |
 | `marker`   | no       | Short text rendered above the player while the effect is active. Works even when `visibility` is `"invisible"`. |
 | `behavior` | yes      | One of the behaviors below. |
@@ -1321,6 +1322,8 @@ behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay
   ```
 
 - **assignment** — Generic priority/group marker (e.g. First/Second/Third in Line, Alpha, Beta). Pure HUD marker with no built-in resolution logic. When the debuff expires it deals `expiryDamage` of `expiryDamageType` to the carrier (placeholder until a raid wires up its own mechanic). There is no cleanse path — it always expires. Authors must set `icon` (filename from `/static/debuffs/`) and optionally `marker` for the short HUD label. `expiryDamageType` defaults to `"true"`.
+
+- **motionCheck** — At expiry, requires a voluntary horizontal move or jump (`required: "move"`) or no such action (`required: "still"`) during the final `window` seconds. Failure locks the carrier in a vertical knockup and deals `failureDamage` on landing. Facing, sprint, forced movement, and confusion do not count.
 
   ```yaml
   behavior:

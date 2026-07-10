@@ -155,6 +155,9 @@ export type EffectBehavior =
   | { kind: "primordialCrust"; expiryDamage: number; expiryDamageType: DamageType }
   // Cleansed by healing carrier to full HP. Uncleansed expiry is lethal.
   | { kind: "accretion"; expiryDamage: number; expiryDamageType: DamageType }
+  // At expiry, require voluntary move/jump activity (or stillness) in the final time window.
+  // Failure launches the carrier, then applies damage when they land.
+  | { kind: "motionCheck"; required: "move" | "still"; window: number; failureDamage: number; failureDamageType: DamageType; failureKnockupHeight: number }
   // Generic assignment/priority marker (e.g. First/Second/Third in Line, Alpha/Beta). Pure HUD marker; deals expiryDamage on expiry. No cleanse path.
   | { kind: "assignment"; expiryDamage: number; expiryDamageType: DamageType };
 
@@ -165,6 +168,7 @@ export type EffectSpec = {
   stacks?: number;
   behavior: EffectBehavior;
   visibility?: "visible" | "invisible";
+  priority?: boolean; // render before normal visible effects; stable within each band
   showTimer?: boolean;
   // Optional HUD icon: a bare filename served from /static/debuffs/. Falls back to a behavior glyph.
   icon?: string;
@@ -189,6 +193,7 @@ export type StatusEffect = {
   stacks?: number;
   behavior: EffectBehavior;
   visibility?: "visible" | "invisible";
+  priority?: boolean;
   showTimer?: boolean;
   // Optional HUD icon: a bare filename served from /static/effects/. Falls back to a behavior glyph.
   icon?: string;
@@ -243,6 +248,8 @@ export type Player = {
   y: number;
   verticalVelocity: number;
   knockbackVelocity: Vec2; // horizontal forced-movement velocity (knockback/knockup)
+  lastMotionAt?: number; // last voluntary horizontal movement or jump
+  landingDamage?: { name: string; damage: number; damageType: DamageType }; // locks input during a scripted knockup
   facing: number;
   hp: number;
   maxHp: number;
