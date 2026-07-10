@@ -30,6 +30,7 @@ import { resolveReassigns } from "./systems/reassign";
 import { resolveInversions } from "./systems/inverse";
 import { resolveSpreadStacks } from "./systems/spreadStack";
 import { resolveGazes } from "./systems/gaze";
+import { resolveEffectChecks } from "./systems/effectCheck";
 import { resolveLimitCuts } from "./systems/limitCut";
 import { resolveSetHps } from "./systems/setHp";
 import { resolveDivebombs } from "./systems/divebombs";
@@ -44,7 +45,7 @@ export type Collections = Pick<World,
   | "pending" | "pendingTethers" | "pendingLineLinks" | "pendingTargeted" | "pendingBaits" | "pendingDashes"
   | "pendingTowers" | "pendingChains" | "pendingGroups" | "pendingEffectSelects"
   | "pendingApplyEffects" | "pendingLimitCuts" | "pendingInversions" | "pendingSpreadStacks" | "pendingGazes"
-  | "pendingForcedMarches" | "pendingHazards" | "pendingDivebombs" | "pendingEffectBursts" | "pendingHeals" | "pendingSetHps"
+  | "pendingForcedMarches" | "pendingHazards" | "pendingDivebombs" | "pendingEffectBursts" | "pendingEffectChecks" | "pendingHeals" | "pendingSetHps"
   | "pendingBossTeleports"
   | "pendingBurstSpreadFollowUps" | "reassigns"
   | "effectResolvers"
@@ -291,6 +292,11 @@ const aoe: MechanicModule = {
           telegraph: e.telegraph,
           effectName: e.effectName,
           radius: e.radius,
+          innerRadius: e.innerRadius,
+          shownShape: e.shownShape,
+          hiddenShape: e.hiddenShape,
+          rng: e.rng ?? false,
+          questionMark: e.questionMark,
           damage: e.damage,
           damageType: e.damageType,
           applyEffect: e.applyEffect,
@@ -412,6 +418,15 @@ const applyEffects: MechanicModule = {
   isResolved: w => w.pendingApplyEffects.length === 0,
 };
 
+const effectCheck: MechanicModule = {
+  fromEvent(e, c) {
+    if (e.type !== "effect_check") return;
+    c.pendingEffectChecks.push({ id: e.id, t: e.t, name: e.name, checks: e.checks, failureDamage: e.failureDamage, failureDamageType: e.failureDamageType });
+  },
+  resolve: ctx => ({ pendingEffectChecks: resolveEffectChecks(ctx) }),
+  isResolved: w => w.pendingEffectChecks.length === 0,
+};
+
 const limitCut: MechanicModule = {
   fromEvent(e, c) {
     if (e.type !== "limit_cut") return;
@@ -505,6 +520,8 @@ const spreadStack: MechanicModule = {
         requiredCount: e.stack.requiredCount,
         damage: e.stack.damage,
       },
+      stackCarriers: e.stackCarriers,
+      spreadCarriers: e.spreadCarriers,
       ringColor: e.ringColor,
       ringHeight: e.ringHeight,
       showCastBar: e.showCastBar ?? false,
@@ -522,7 +539,8 @@ const gaze: MechanicModule = {
       t: e.t,
       name: e.name,
       telegraph: e.telegraph,
-      pos: toVec2(e.pos),
+      pos: e.pos ? toVec2(e.pos) : { x: 0, z: 0 },
+      carriers: e.carriers,
       reverse: e.reverse ?? false,
       rng: e.rng ?? false,
       coneHalfAngle: e.coneHalfAngle ?? Math.PI / 2,
@@ -616,6 +634,7 @@ const MODULE_FOR_TYPE = {
   group: groups,
   effect_select: effectSelect,
   apply_effect: applyEffects,
+  effect_check: effectCheck,
   limit_cut: limitCut,
   reassign: reassign,
   inverse: inverse,
@@ -632,7 +651,7 @@ const MODULE_FOR_TYPE = {
 // legacy order; the data-only modules (heal, effect_resolver) follow.
 export const REGISTRY: readonly MechanicModule[] = [
   forcedMarch, tethers, bossTeleport, lineLinks, chains, aoe, towers, groups,
-  effectSelect, applyEffects, reassign, inverse, spreadStack, gaze, limitCut,
+  effectSelect, applyEffects, effectCheck, reassign, inverse, spreadStack, gaze, limitCut,
   hazard, setHp, heal, effectResolver, divebomb,
 ];
 

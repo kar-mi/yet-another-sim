@@ -319,6 +319,7 @@ const InlineApplyEffectSchema = z.object({
   behavior: EffectBehaviorSchema,
   visibility: z.enum(["visible", "invisible"]).optional(),
   priority: z.boolean().optional(),
+  group: z.string().min(1).optional(),
   showTimer: z.boolean().optional(),
   icon: z.string().min(1).optional(),   // HUD icon filename, served from /static/debuffs/
   marker: z.string().min(1).max(8).optional(), // short above-head marker shown while active
@@ -335,6 +336,7 @@ const EffectRefSchema = z.object({
   behavior: z.record(z.string(), z.unknown()).optional(),
   visibility: z.enum(["visible", "invisible"]).optional(),
   priority: z.boolean().optional(),
+  group: z.string().min(1).optional(),
   showTimer: z.boolean().optional(),
   icon: z.string().min(1).optional(),
   marker: z.string().min(1).max(8).optional(),
@@ -756,9 +758,15 @@ const SpreadStackEventSchema = z.object({
     requiredCount: z.number().int().positive().default(1),     // soakers needed; fewer -> full damage each
     damage: z.number().nonnegative(),                // total, split evenly among soakers on success
   }),
+  stackCarriers: z.string().min(1).optional(),
+  spreadCarriers: z.string().min(1).optional(),
   ringColor: z.string().optional(),                  // hex colour of this mechanic's boss ring
   ringHeight: z.number().optional(),                 // vertical height of this mechanic's boss ring
   showCastBar: z.boolean().optional(),
+}).superRefine((event, ctx) => {
+  if ((event.stackCarriers === undefined) !== (event.spreadCarriers === undefined)) {
+    ctx.addIssue({ code: "custom", message: "stackCarriers and spreadCarriers must be provided together" });
+  }
 });
 
 const GazeVisualSchema = z.object({
@@ -775,7 +783,8 @@ const GazeEventSchema = z.object({
   telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
   damage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
-  pos: Vec2Schema,                                 // position of the eye/source (e.g. north)
+  pos: Vec2Schema.optional(),                       // position of the eye/source (e.g. north)
+  carriers: z.string().min(1).optional(),
   reverse: z.boolean().optional(),                 // false (eye): hit if looking at it; true ("?" eye): hit if NOT looking
   rng: z.boolean().optional(),                     // randomize the reverse state at cast start (seeded)
   coneHalfAngle: z.number().positive().optional(), // half-angle (radians) counted as "looking at" it (default PI/2 = front 180)
@@ -783,6 +792,10 @@ const GazeEventSchema = z.object({
   knockback: KnockbackSchema.optional(),
   showCastBar: z.boolean().optional(),
   visual: GazeVisualSchema.optional(),
+}).superRefine((event, ctx) => {
+  if (event.pos === undefined && event.carriers === undefined) {
+    ctx.addIssue({ code: "custom", path: ["pos"], message: "gaze needs pos or carriers" });
+  }
 });
 
 const ForcedMarchEventSchema = z.object({
@@ -879,6 +892,11 @@ const EffectBurstEventSchema = z.object({
   telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
   effectName: z.string().min(1),                   // burst around each player carrying this effect
   radius: z.number().positive(),                   // AOE radius around each carrier
+  innerRadius: z.number().positive().optional(),
+  shownShape: z.enum(["circle", "donut"]).default("circle"),
+  hiddenShape: z.enum(["circle", "donut"]).default("circle"),
+  rng: z.boolean().optional(),
+  questionMark: z.boolean().optional(),
   damage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
   applyEffect: ApplyEffectSchema.optional(),
@@ -886,6 +904,21 @@ const EffectBurstEventSchema = z.object({
   showCastBar: z.boolean().optional(),
   showTelegraph: z.boolean().optional(),
   telegraphMode: TelegraphModeSchema.optional(),
+}).superRefine((event, ctx) => {
+  if ((event.shownShape === "donut" || event.hiddenShape === "donut")
+    && (event.innerRadius === undefined || event.innerRadius >= event.radius)) {
+    ctx.addIssue({ code: "custom", path: ["innerRadius"], message: "donut effect_burst needs innerRadius smaller than radius" });
+  }
+});
+
+const EffectCheckEventSchema = z.object({
+  type: z.literal("effect_check"),
+  id: EventIdSchema,
+  time: z.number().nonnegative(),
+  name: z.string().min(1),
+  checks: z.array(z.object({ carriers: z.string().min(1), compare: z.tuple([z.string().min(1), z.string().min(1)]), expect: z.enum(["matches", "differs"]) })).min(1),
+  failureDamage: z.number().nonnegative(),
+  failureDamageType: z.enum(["physical", "magical", "true"]),
 });
 
 const HealEventSchema = z.object({
@@ -953,7 +986,7 @@ export const EventSchema = z.preprocess(
   value => typeof value === "object" && value !== null && "t" in value && !("time" in value)
     ? { ...value, time: value.t }
     : value,
-  z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, DashEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, HazardEventSchema, DivebombEventSchema, BossTeleportEventSchema, EffectBurstEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema]),
+  z.union([TetherSourceEventSchema, LineLinkEventSchema, AOEEventSchema, TargetedEventSchema, BaitEventSchema, DashEventSchema, TowerEventSchema, EffectResolverEventSchema, ChainEventSchema, GroupEventSchema, EffectSelectEventSchema, ApplyEffectEventSchema, LimitCutEventSchema, InverseEventSchema, SpreadStackEventSchema, GazeEventSchema, ForcedMarchEventSchema, HazardEventSchema, DivebombEventSchema, BossTeleportEventSchema, EffectBurstEventSchema, EffectCheckEventSchema, HealEventSchema, ReassignEventSchema, SetHpEventSchema]),
 ).transform(event => {
     if (!("time" in event)) return event;
     const { time, ...rest } = event;

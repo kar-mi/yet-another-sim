@@ -1,0 +1,17 @@
+name: P4 Effect Check Test
+arena: { zones: [{ kind: circle, center: { x: 0, z: 0 }, radius: 20 }] }
+duration: 30
+players:
+  - { id: mt, role: tank, spawn: { x: -8, z: 0 } }
+  - { id: ot, role: tank, spawn: { x: 8, z: 0 } }
+  - { id: h1, role: healer, spawn: { x: -4, z: 0 } }
+  - { id: h2, role: healer, spawn: { x: 4, z: 0 } }
+  - { id: r1, role: dps, spawn: { x: -12, z: 0 } }
+  - { id: r2, role: dps, spawn: { x: 12, z: 0 } }
+  - { id: m1, role: dps, spawn: { x: 0, z: 0 } }
+  - { id: m2, role: dps, spawn: { x: 0, z: 8 } }
+events:
+  - { type: apply_effect, id: origin, time: 2, name: White Wound, players: [m1], applyEffect: { name: White Wound, kind: debuff, duration: 20, visibility: invisible, group: origin, behavior: { kind: none } } }
+  - { type: apply_effect, id: wound, time: 2, name: Black Wound, players: [m1], applyEffect: { name: Black Wound, kind: debuff, duration: 20, group: wound, behavior: { kind: none } } }
+  - { type: apply_effect, id: field, time: 2, name: Allagan Field, players: [m1], applyEffect: { name: Allagan Field, kind: debuff, duration: 20, behavior: { kind: none } } }
+  - { type: effect_check, id: death-surge, time: 10, name: Death Surge, checks: [{ carriers: Allagan Field, compare: [wound, origin], expect: differs }], failureDamage: 999, failureDamageType: "true" }

@@ -1,0 +1,15 @@
+name: P4 Effect Burst Test
+arena: { zones: [{ kind: circle, center: { x: 0, z: 0 }, radius: 20 }] }
+duration: 30
+players:
+  - { id: mt, role: tank, spawn: { x: -8, z: 0 } }
+  - { id: ot, role: tank, spawn: { x: 8, z: 0 } }
+  - { id: h1, role: healer, spawn: { x: -4, z: 0 } }
+  - { id: h2, role: healer, spawn: { x: 4, z: 0 } }
+  - { id: r1, role: dps, spawn: { x: -12, z: 0 } }
+  - { id: r2, role: dps, spawn: { x: 12, z: 0 } }
+  - { id: m1, role: dps, spawn: { x: 0, z: 0 } }
+  - { id: m2, role: dps, spawn: { x: 0, z: 8 } }
+events:
+  - { type: apply_effect, id: entropy-mark, time: 2, name: Entropy, players: [m1, m2], applyEffect: { name: Entropy, kind: debuff, duration: 20, behavior: { kind: none } } }
+  - { type: effect_burst, id: entropy, time: 10, name: Entropy, telegraph: 5, effectName: Entropy, radius: 8, innerRadius: 3, shownShape: circle, hiddenShape: donut, questionMark: true, damage: 20, damageType: magical }

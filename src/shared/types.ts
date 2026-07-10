@@ -169,6 +169,7 @@ export type EffectSpec = {
   behavior: EffectBehavior;
   visibility?: "visible" | "invisible";
   priority?: boolean; // render before normal visible effects; stable within each band
+  group?: string; // only one active effect in a group may exist on a player
   showTimer?: boolean;
   // Optional HUD icon: a bare filename served from /static/debuffs/. Falls back to a behavior glyph.
   icon?: string;
@@ -194,6 +195,7 @@ export type StatusEffect = {
   behavior: EffectBehavior;
   visibility?: "visible" | "invisible";
   priority?: boolean;
+  group?: string;
   showTimer?: boolean;
   // Optional HUD icon: a bare filename served from /static/effects/. Falls back to a behavior glyph.
   icon?: string;
@@ -442,6 +444,11 @@ export type PendingEffectBurst = {
   telegraph: number;
   effectName: string;
   radius: number;
+  innerRadius?: number;
+  shownShape: "circle" | "donut";
+  hiddenShape: "circle" | "donut";
+  rng: boolean;
+  questionMark?: boolean;
   damage: number;
   damageType: DamageType;
   applyEffect?: EffectSpec;
@@ -600,6 +607,8 @@ export type PendingSpreadStack = {
   damageType: DamageType;
   spread: SpreadConfig;
   stack: StackConfig;
+  stackCarriers?: string;
+  spreadCarriers?: string;
   ringColor?: string;              // hex colour of this mechanic's boss ring
   ringHeight?: number;             // vertical height of this mechanic's boss ring
   showCastBar: boolean;
@@ -615,6 +624,7 @@ export type ActiveSpreadStack = {
   markedPlayerIds: string[];       // stack-mode marked member per group (rolled even when shown=spread)
   spread: SpreadConfig;
   stack: StackConfig;
+  spreadPlayerIds?: string[];
   damageType: DamageType;
   ringColor?: string;
   ringHeight?: number;
@@ -631,6 +641,7 @@ export type PendingGaze = {
   name: string;
   telegraph: number;
   pos: Vec2;                       // position of the eye/source
+  carriers?: string;
   reverse: boolean;               // false: hit if looking at it; true ("?" eye): hit if NOT looking
   rng: boolean;                   // randomize the reverse state at cast start
   coneHalfAngle: number;          // half-angle (radians) counted as "looking at" it
@@ -646,6 +657,7 @@ export type ActiveGaze = {
   id: string;
   name: string;
   pos: Vec2;
+  excludePlayerId?: string;
   reverse: boolean;               // resolved at cast start; drives the eye vs "?" eye icon
   coneHalfAngle: number;
   telegraphStart: number;
@@ -977,6 +989,15 @@ export type PendingBossTeleport = {
   rng: boolean;
 };
 
+export type PendingEffectCheck = {
+  id: string;
+  t: number;
+  name: string;
+  checks: { carriers: string; compare: [string, string]; expect: "matches" | "differs" }[];
+  failureDamage: number;
+  failureDamageType: DamageType;
+};
+
 export type ActiveDivebomb = Omit<PendingDivebomb, "t"> & {
   startedAt: number;
   expireAt: number;
@@ -1043,6 +1064,7 @@ export type World = {
   pendingDivebombs: PendingDivebomb[];
   pendingBossTeleports: PendingBossTeleport[];
   pendingEffectBursts: PendingEffectBurst[];
+  pendingEffectChecks: PendingEffectCheck[];
   effectResolvers: Record<string, EffectResolver>;
   pendingHeals: PendingHeal[];
   pendingSetHps: PendingSetHp[];
