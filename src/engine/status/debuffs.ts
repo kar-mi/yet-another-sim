@@ -338,7 +338,7 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     name: "Dynamic Fluid",
     kind: "debuff",
     duration: 5,
-    icon: "entropy.png",
+    icon: "dynamic_fluid.png",
     behavior: { kind: "effectBurst", shownShape: "donut", hiddenShape: "circle", radius: 8, innerRadius: 3, damage: 20, damageType: "magical" },
   },
   debug_entropy: {
