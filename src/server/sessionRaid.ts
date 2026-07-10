@@ -42,11 +42,14 @@ export function createEmptyRaid(): RaidDef {
   };
 }
 
-export async function loadSessionRaid(raidId: string, raidsDir: string): Promise<RaidDef> {
+export async function loadSessionRaid(raidId: string, raidsDir: string, botPatternId?: string): Promise<RaidDef> {
   if (raidId === EMPTY_RAID_ID) return createEmptyRaid();
 
   const raid = loadRaid(await readRaidObject(join(raidsDir, raidId)));
-  if (!raid.botPatterns) return raid;
+  const file = raid.botPatternOptions
+    ? (raid.botPatternOptions.find(option => option.id === botPatternId) ?? raid.botPatternOptions[0]).file
+    : raid.botPatterns;
+  if (!file) return raid;
   const categoryDir = dirname(raidId);
-  return applyBotPatterns(raid, loadBotPatterns(await readRaidObject(join(raidsDir, categoryDir, raid.botPatterns))));
+  return applyBotPatterns(raid, loadBotPatterns(await readRaidObject(join(raidsDir, categoryDir, file))));
 }

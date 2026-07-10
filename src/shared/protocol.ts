@@ -40,6 +40,7 @@ export const MAX_RAID_NAME_LENGTH = 60;
 export type RaidEntry = { id: string; name: string };
 export type RaidCategory = { id: string; name: string; description: string; raids: RaidEntry[] };
 export type DecisionDescription = { key: string; label: string; options: string[] };
+export type BotPatternOption = { id: string; name: string };
 
 export function normalizeRaidName(name: unknown): string | null {
   if (typeof name !== "string") return null;
@@ -122,6 +123,14 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     constraints: z.record(z.string(), z.number().int().min(0)),
   }),
   z.strictObject({
+    type: z.literal("setWaymarkPreset"),
+    presetId: z.string().nullable(),
+  }),
+  z.strictObject({
+    type: z.literal("setBotPattern"),
+    patternId: z.string(),
+  }),
+  z.strictObject({
     type: z.literal("setBotsInvincible"),
     enabled: z.boolean(),
   }),
@@ -189,6 +198,9 @@ export type ServerMessage =
       slots: LobbySlot[];
       seedOverride: number | null;
       rngDecisions: DecisionDescription[];
+      waymarkPresetId: string | null;
+      botPatternOptions: BotPatternOption[];
+      botPatternId: string | null;
       observerCount: number;
       maxObservers: number;
       observingByYou: boolean;
