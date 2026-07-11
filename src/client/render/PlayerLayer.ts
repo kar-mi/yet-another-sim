@@ -4,6 +4,7 @@ import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import type { AnimationGroup } from "@babylonjs/core/Animations/animationGroup";
+import { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import { logger } from "@shared/logger";
 import type { Player } from "@shared/types";
@@ -81,7 +82,12 @@ export class PlayerLayer {
         return;
       }
 
-      for (const mesh of result.meshes) mesh.isPickable = false;
+      const touchedMaterials = new Set<PBRMaterial>();
+      for (const mesh of result.meshes) {
+        mesh.isPickable = false;
+        if (mesh.material instanceof PBRMaterial) touchedMaterials.add(mesh.material);
+      }
+      for (const material of touchedMaterials) material.roughness = 1;
       const roots = result.meshes.filter(mesh => !mesh.parent);
       for (const root of roots) {
         root.parent = anchor;

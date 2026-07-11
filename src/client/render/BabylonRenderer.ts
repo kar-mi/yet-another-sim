@@ -4,7 +4,8 @@ import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
 import type { ArcRotateCameraPointersInput } from "@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput";
 import { Engine } from "@babylonjs/core/Engines/engine";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
-import { Color4 } from "@babylonjs/core/Maths/math.color";
+import { DirectionalLight } from "@babylonjs/core/Lights/directionalLight";
+import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Scene } from "@babylonjs/core/scene";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
@@ -178,7 +179,13 @@ export class BabylonRenderer implements Renderer {
       };
     }
 
-    new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
+    const ambientLight = new HemisphericLight("light", new Vector3(0, 1, 0), this.scene);
+    ambientLight.specular = new Color3(0.15, 0.15, 0.15);
+    ambientLight.groundColor = new Color3(0.12, 0.12, 0.16);
+
+    const fillLight = new DirectionalLight("fillLight", new Vector3(-0.5, -1, -0.3), this.scene);
+    fillLight.intensity = 0.45;
+    fillLight.specular = new Color3(0.2, 0.2, 0.2);
 
     const renderKeys = getWorldRenderKeys(world) ?? computeWorldRenderKeys(world);
     this.buildArena(world.arena.zones, world.arena.floorPlan, renderKeys.arena);
