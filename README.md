@@ -65,7 +65,7 @@ The simulator currently supports the base loop for FFXIV-style raid mechanics:
 
 ## Credits
 
-- `3d-crabz`: https://sovietshnuckums.itch.io/3d-crabz
+- LowPoly Models by @Quaternius - CC0 1.0 Universal (CC0 1.0) 
 
 Status images from https://v2.xivapi.com/
 
