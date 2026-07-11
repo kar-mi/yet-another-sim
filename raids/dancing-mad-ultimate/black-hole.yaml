@@ -357,9 +357,9 @@ optionals:
     event-set-slap-happy-3:
       label: Slap Happy 3
       options: [Right, Left]
-    event-set-accretion-duty-first-in-line:
-      label: Accretion DPS
-      options: [M1, R1]
+    event-set-black-hole-tier-accretion:
+      label: Black Hole Tier & Accretion
+      options: [Tank First / M1, Tank First / R1, Healer First / M1, Healer First / R1]
     black-hole-black-hole-1-combo:
       label: Black Hole 1 pattern
       options: [Outer cross, Inner cross]
@@ -409,13 +409,24 @@ optionals:
         sets:
           - [slap-happy-3-right-hit-1, slap-happy-3-right-hit-2, slap-happy-3-right-hit-3, slap-happy-3-party-stack, visual-chaos-cone-at-party-stack-3, slap-happy-3-right-hold]
           - [slap-happy-3-left-hit-1, slap-happy-3-left-hit-2, slap-happy-3-left-hit-3, slap-happy-3-role-stack-mt, slap-happy-3-role-stack-h1, slap-happy-3-role-stack-m1, slap-happy-3-role-cone-mt, slap-happy-3-role-cone-h1, slap-happy-3-role-cone-m1, slap-happy-3-left-hold]
-      # first_in_line has two dps (r1, m1): one does the regular dps hand-off, the other carries
-      # Accretion. Which one is picked at random per pull, not hardcoded to m1.
-      accretion-duty-first-in-line:
+      # Real-log analysis (scripts/raid_analyzer/out/dancing-mad-p3-blackhole-patterns.md) found
+      # Second in Line always has exactly one healer (h2, unconditional below), but which of
+      # first_in_line/third_in_line gets the "extra" healer vs the "extra" tank is not fixed. This
+      # eventSet randomizes that: branches 1-2 are the classic layout (tank in first_in_line,
+      # healer in third_in_line); branches 3-4 swap the tank/healer between first_in_line and
+      # third_in_line. Accretion stays anchored to h2 (second_in_line's healer) and one of
+      # first_in_line's two fixed dps (m1/r1) in every branch - first_in_line's own healer never
+      # carries it, because the bot solver's wave 1-2 hand-off chain (black-hole-bots.yaml) relies
+      # on exactly one of first_in_line's two dps holding Accretion Duty at all times; moving
+      # Accretion off both of them (forcing second_in_line's r2 to carry it instead) leaves both
+      # dps matching the same "untagged dps" solver rule simultaneously and breaks the handoff.
+      black-hole-tier-accretion:
         rng: true
         sets:
-          - [accretion-dps-m1, accretion-duty-dps-m1, non-accretion-duty-r1]
-          - [accretion-dps-r1, accretion-duty-dps-r1, non-accretion-duty-m1]
+          - [first-in-line-tank, third-in-line-healer, accretion-dps-m1, accretion-duty-dps-m1, non-accretion-duty-r1]
+          - [first-in-line-tank, third-in-line-healer, accretion-dps-r1, accretion-duty-dps-r1, non-accretion-duty-m1]
+          - [first-in-line-healer, third-in-line-tank, accretion-dps-m1, accretion-duty-dps-m1, non-accretion-duty-r1]
+          - [first-in-line-healer, third-in-line-tank, accretion-dps-r1, accretion-duty-dps-r1, non-accretion-duty-m1]
 
 events:
   - type: aoe
@@ -511,6 +522,7 @@ events:
       showTimer: false
 
   # Accretion carrier #2: second_in_line's healer (h2) - the group's spare non-hand-off member.
+  # Unconditional: every real-log pull had exactly one healer in second_in_line carrying Accretion.
   - type: apply_effect
     id: accretion-healer
     time: 17
@@ -528,7 +540,7 @@ events:
 
   # Accretion carrier #1: first_in_line's spare dps (r1 or m1 - it has two dps, one does the DPS
   # hand-off, the other carries Accretion). Which one is picked by the RNG eventSet below
-  # (optionals.combinations.eventSets.accretion-duty-first-in-line), not hardcoded, so the bot
+  # (optionals.combinations.eventSets.black-hole-tier-accretion), not hardcoded, so the bot
   # solver (which matches by debuff + role, never by name) resolves correctly either way.
   - type: apply_effect
     id: accretion-dps-m1
@@ -560,8 +572,9 @@ events:
     applyEffect:
       ref: accretion_duty
 
-  # Everyone else gets the complementary marker: the 5 who never carry Accretion, plus whichever of
-  # r1/m1 the RNG above didn't pick (see accretion-duty-first-in-line).
+  # Everyone else gets the complementary marker: the 5 who never carry Accretion (mt/ot/m2 never
+  # carry it in any tier layout; h1 and r2 don't either, since Accretion always stays on h2 and
+  # first_in_line's dps), plus whichever of r1/m1 the RNG above didn't pick.
   - type: apply_effect
     id: non-accretion-duty
     time: 17
@@ -586,13 +599,26 @@ events:
     applyEffect:
       ref: non_accretion_duty
 
+  # First/Third in Line each have two tier-membership variants - baseline (tank in first_in_line,
+  # healer in third_in_line) or swapped (healer floats into first_in_line, tank floats into
+  # third_in_line). Which pair applies is picked by black-hole-tier-accretion, since it's
+  # correlated with which players are even eligible to carry Accretion that pull. Second in Line
+  # is unconditional: real-log analysis found it always has exactly one healer (h2).
   - type: apply_effect
-    id: first-in-line
+    id: first-in-line-tank
     time: 17
     name: First in Line
-    players: [r1, m1, mt]
+    players: [mt, r1, m1]
     applyEffect:
       ref: first_in_line
+  - type: apply_effect
+    id: first-in-line-healer
+    time: 17
+    name: First in Line
+    players: [h1, r1, m1]
+    applyEffect:
+      ref: first_in_line
+
   - type: apply_effect
     id: second-in-line
     time: 17
@@ -600,11 +626,19 @@ events:
     players: [r2, ot, h2]
     applyEffect:
       ref: second_in_line
+
   - type: apply_effect
-    id: third-in-line
+    id: third-in-line-healer
     time: 17
     name: Third in Line
     players: [h1, m2]
+    applyEffect:
+      ref: third_in_line
+  - type: apply_effect
+    id: third-in-line-tank
+    time: 17
+    name: Third in Line
+    players: [mt, m2]
     applyEffect:
       ref: third_in_line
 

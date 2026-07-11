@@ -148,9 +148,10 @@ test("ot drags exdeath out toward Black Hole 1's 2nd tether ahead of tb-4", asyn
   expect(otTarget).not.toEqual({ x: 0, z: 0 });
   expect(otTarget).not.toEqual({ x: 7, z: 0 });
 
-  // h1 is untouched by this change: it still resolves to the plain stack-middle spot.
-  const h1Target = genericSolverWaypoint(byId(world, "h1"), world);
-  expect(h1Target).toEqual({ x: 0, z: 0 });
+  // third_in_line's non-dps member (mt or h1, see black-hole-tier-accretion) is untouched by this
+  // change: it still resolves to the plain stack-middle spot.
+  const thirdMember = ["mt", "h1"].find(id => byId(world, id).effects.some(e => e.name === "Third in Line"))!;
+  expect(genericSolverWaypoint(byId(world, thirdMember), world)).toEqual({ x: 0, z: 0 });
 });
 
 test("the party (tanks included) stays frozen on the LUM1 dodge spot through t=90.1, then tb-5's tank formation stands both tanks on exdeath's dragged position", async () => {
@@ -186,10 +187,12 @@ test("everyone regroups at arena centre for ~2s right after each Black Hole spaw
     expect(genericSolverWaypoint(byId(duringWorld, id), duringWorld)).toEqual({ x: 0, z: 0 });
   }
 
-  // Right after the override window ends, mt resumes its Black Hole 2 laser-2 orb soak.
+  // Right after the override window ends, first_in_line's tank/healer member (mt or h1, see
+  // black-hole-tier-accretion) resumes its Black Hole 2 laser-2 orb soak.
   const afterWorld = runTicksWithComputedBotIntents(createWorld(raid, 1), Math.ceil(70.5 * 60));
-  const mtTarget = genericSolverWaypoint(byId(afterWorld, "mt"), afterWorld);
-  expect(mtTarget).not.toEqual({ x: 0, z: 0 });
+  const firstMember = ["mt", "h1"].find(id => byId(afterWorld, id).effects.some(e => e.name === "First in Line"))!;
+  const firstMemberTarget = genericSolverWaypoint(byId(afterWorld, firstMember), afterWorld);
+  expect(firstMemberTarget).not.toEqual({ x: 0, z: 0 });
 });
 
 test("Black Hole tether handoff aims at the live source-holder midpoint, then steals the tether", async () => {
@@ -280,12 +283,13 @@ test("Look Upon Me beams from bigkefka toward arena centre, and the party dodges
   }
 });
 
-// The wave-10 healer solos Black Hole 4's delayed tether while Look Upon Me 2 (a line cleave from
-// bigkefka through arena centre) resolves. Its nearestEdge rule sends it to the closest wall point,
-// to its east tether orb, that stays clear of that line - so this must hold for every teleport
-// outcome (which rotates the line), not just one. The non-soloing healer falls to the party dodge
-// far nearer centre, so the soloer is the healer nearestEdge pushes out to the wall.
-test("the wave-10 soloing healer's Look Upon Me 2 edge dodge clears the line for any teleport outcome", async () => {
+// The wave-10 soloer (third_in_line's non-dps member - mt or h1, see black-hole-tier-accretion)
+// solos Black Hole 4's delayed tether while Look Upon Me 2 (a line cleave from bigkefka through
+// arena centre) resolves. Its nearestEdge rule sends it to the closest wall point, to its east
+// tether orb, that stays clear of that line - so this must hold for every teleport outcome (which
+// rotates the line), not just one. The non-soloing players fall to the party dodge far nearer
+// centre, so the soloer is whoever nearestEdge pushes out to the wall.
+test("the wave-10 soloer's Look Upon Me 2 edge dodge clears the line for any teleport outcome", async () => {
   for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
     const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
     const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
@@ -299,7 +303,7 @@ test("the wave-10 soloing healer's Look Upon Me 2 edge dodge clears the line for
     const shape = lookUponMe!.shape;
     if (shape.kind !== "rect") throw new Error("expected look-upon-me-2 to be a rect shape");
 
-    const soloTarget = ["h1", "h2"]
+    const soloTarget = ["mt", "h1", "h2"]
       .map(id => genericSolverWaypoint(byId(world, id), world))
       .find(target => target !== undefined && length(target) > 15);
     expect(soloTarget).toBeDefined();
@@ -365,7 +369,7 @@ test("the party's post-Edict dodge spot doesn't jitter when chaos re-faces after
 // Tether assignments are driven by First/Second/Third in Line + role, never a hardcoded player id.
 // first_in_line has two dps (r1, m1); which one carries Accretion (and so solos the 3rd tether
 // instead of doing the 1st tether's hand-off) is picked by a seeded RNG eventSet
-// (accretion-duty-first-in-line in black-hole.yaml), so this must hold for either outcome.
+// (black-hole-tier-accretion in black-hole.yaml), so this must hold for either outcome.
 test("Black Hole tether assignments resolve correctly from debuffs regardless of which dps gets Accretion Duty", async () => {
   for (const seed of [1, 5]) {
     const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
@@ -406,10 +410,12 @@ test("Black Hole tether assignments resolve correctly from debuffs regardless of
     notCenter("r2"); // second_in_line's dps, doing the wave-6 hand-off
     notCenter("h2"); // second_in_line's healer, soloing Accretion's tether
 
-    // wave 9 (t=138): DPS/Support chains have both reached third_in_line; m2 (dps) and h1 (healer,
-    // its only non-dps member) are the ones active - no Accretion carrier this late.
+    // wave 9 (t=138): DPS/Support chains have both reached third_in_line; m2 (dps) and its only
+    // non-dps member (mt or h1, see black-hole-tier-accretion) are the ones active - no Accretion
+    // carrier this late.
     world = runTicksWithComputedBotIntents(world, Math.ceil((138 - 105) * 60));
+    const thirdMember = ["mt", "h1"].find(id => hasDebuff(id, "Third in Line"))!;
     notCenter("m2");
-    notCenter("h1");
+    notCenter(thirdMember);
   }
 });
