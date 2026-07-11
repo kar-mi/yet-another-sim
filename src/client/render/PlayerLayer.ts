@@ -16,14 +16,14 @@ const PLAYER_CENTER_Y = 0.4;
 export const PLAYER_MODEL_ROOT = `${STATIC_ROOT}/model/player/`;
 export const DEFAULT_PLAYER_MODEL_FILE = "mt.glb";
 export const PLAYER_MODEL_FILES: Record<string, string> = {
-  mt: "mt.glb",
-  ot: "ot.glb",
-  h1: "h1.glb",
-  h2: "h2.glb",
-  m1: "m1.glb",
-  m2: "m2.glb",
-  r1: "r1.glb",
-  r2: "r2.glb",
+  mt: "mt-vibrant.glb",
+  ot: "ot-vibrant.glb",
+  h1: "h1-vibrant.glb",
+  h2: "h2-vibrant.glb",
+  m1: "m1-vibrant.glb",
+  m2: "m2-vibrant.glb",
+  r1: "r1-vibrant.glb",
+  r2: "r2-vibrant.glb",
 };
 const PLAYER_MODEL_SCALE = 0.3;
 const MARKER_Y = 2.6;
