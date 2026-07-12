@@ -3,6 +3,7 @@ import { loadRaid } from "../engine/raidLoader";
 import { baseRaid, roster } from "../engine/__tests__/helpers";
 import { ClientMessageSchema, EMPTY_RAID_ID, MAX_OBSERVERS } from "@shared/protocol";
 import type { ServerMessage } from "@shared/protocol";
+import { SNAPSHOT_FORMAT_VERSION } from "@shared/replay";
 import { WAYMARK_PRESETS } from "@shared/waymarkPresets";
 import { capacitySnapshot, EMPTY_LOBBY_TIMEOUT_MS, LOBBY_TIMEOUT_MS, RelayRoom, type SessionStatus } from "./relayRoom";
 import { createEmptyRaid, loadSessionRaid, type SessionLog } from "./sessionRaid";
@@ -117,6 +118,30 @@ function makeDefaultLobbySession() {
   });
   return { session, sent };
 }
+
+test("empty lobby does not create replay logs or consume a pull number", () => {
+  const logFactory = makeLogFactory();
+  const sent: Array<{ clientId: string; message: ServerMessage }> = [];
+  const session = new RelayRoom();
+  session.init({
+    id: "empty-log-test",
+    raidId: EMPTY_RAID_ID,
+    raid: createEmptyRaid(),
+    send: (clientId, message) => sent.push({ clientId, message: typeof message === "string" ? JSON.parse(message) as ServerMessage : message }),
+    autoTick: false,
+    createSessionLog: logFactory.createSessionLog,
+  });
+  session.join("c1");
+  session.claimObserver("c1");
+  session.start("c1");
+  session.stop("c1");
+
+  expect(logFactory.logs).toHaveLength(0);
+
+  session.setRaid("c1", "test-raid", testRaid());
+  session.play("c1");
+  expect(logFactory.logs.map(log => log.id)).toEqual(["empty-log-test-pull-1"]);
+});
 
 test("client can claim only one slot", () => {
   const { session, sent } = makeSession();
@@ -823,7 +848,7 @@ test("snapshot anchor: late join after host snapshot is still rejected", () => {
   for (let i = 0; i < 5; i++) session.step(false);
 
   // Host submits a snapshot at tick 3
-  session.handle("c1", { type: "snapshot", tick: 3, world: { arena: {}, players: [], sentinel: true } });
+  session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 3, world: { arena: {}, players: [], sentinel: true } });
 
   session.join("c2");
   session.claimSlot("c2", "ot");
@@ -842,7 +867,7 @@ test("snapshot anchor: desync resync uses snapshot + tail", () => {
   session.start("c1");
   for (let i = 0; i < 5; i++) session.step(false);
 
-  session.handle("c1", { type: "snapshot", tick: 3, world: { arena: {}, players: [], sentinel: true } });
+  session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 3, world: { arena: {}, players: [], sentinel: true } });
 
   // Trigger a resync for c2 via mismatched hash
   session.reportWorldHash("c1", 1, 111);
@@ -866,7 +891,7 @@ test("snapshot anchor: non-host snapshot is rejected", () => {
   for (let i = 0; i < 3; i++) session.step(false);
 
   // c2 is not the host — snapshot must be ignored
-  session.handle("c2", { type: "snapshot", tick: 2, world: { arena: {}, players: [], sentinel: true } });
+  session.handle("c2", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 2, world: { arena: {}, players: [], sentinel: true } });
 
   session.reportWorldHash("c1", 1, 111);
   const beforeResync = sent.filter(e => e.clientId === "c2" && e.message.type === "started").length;
@@ -888,7 +913,7 @@ test("snapshot anchor: resetPull clears the snapshot", () => {
   session.start("c1");
   for (let i = 0; i < 5; i++) session.step(false);
 
-  session.handle("c1", { type: "snapshot", tick: 3, world: { arena: {}, players: [], sentinel: true } });
+  session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 3, world: { arena: {}, players: [], sentinel: true } });
 
   // Restart resets the pull — snapshot must be cleared
   const beforeRestart = sent.filter(e => e.clientId === "c2" && e.message.type === "started").length;
@@ -910,8 +935,8 @@ test("snapshot anchor: monotonic — older snapshot does not replace newer", () 
   session.start("c1");
   for (let i = 0; i < 5; i++) session.step(false);
 
-  session.handle("c1", { type: "snapshot", tick: 4, world: { arena: {}, players: [], snap: "new" } });
-  session.handle("c1", { type: "snapshot", tick: 2, world: { arena: {}, players: [], snap: "old" } }); // older — must be ignored
+  session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 4, world: { arena: {}, players: [], snap: "new" } });
+  session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 2, world: { arena: {}, players: [], snap: "old" } }); // older — must be ignored
 
   session.reportWorldHash("c1", 1, 111);
   const beforeResync = sent.filter(e => e.clientId === "c2" && e.message.type === "started").length;
@@ -934,7 +959,7 @@ test("snapshot anchor: malformed world is rejected (falls back to full log)", ()
   for (let i = 0; i < 5; i++) session.step(false);
 
   // Missing arena/players — must not be stored, so a later join falls back to full-log anchoring.
-  session.handle("c1", { type: "snapshot", tick: 3, world: { bogus: true } });
+  session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 3, world: { bogus: true } });
 
   session.reportWorldHash("c1", 1, 111);
   const beforeResync = sent.filter(e => e.clientId === "c2" && e.message.type === "started").length;
@@ -945,6 +970,19 @@ test("snapshot anchor: malformed world is rejected (falls back to full log)", ()
   const msg = resyncs[resyncs.length - 1].message as Extract<ServerMessage, { type: "started" }>;
   expect(msg.baseTick).toBe(0);
   expect(msg.frames).toHaveLength(5);
+});
+
+test("snapshot anchor: incompatible format is rejected explicitly", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.handle("c1", { type: "claimSlot", playerId: "mt" });
+  session.handle("c1", { type: "start" });
+
+  session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION + 1, tick: 0, world: session.world });
+
+  expect(sent.some(entry => entry.clientId === "c1"
+    && entry.message.type === "error"
+    && entry.message.message.includes("Unsupported snapshot format"))).toBe(true);
 });
 
 test("only the host can end the session via simEnded", () => {
@@ -1074,6 +1112,18 @@ test("observer can re-enter after leaving a finished session", () => {
   expect(session.status).toBe("done");
   expect(session.observers.has("c1")).toBe(true);
   expect(sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started")).toHaveLength(startedBeforeClaim);
+});
+
+test("releasing observer mode is idempotent", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimObserver("c1");
+  session.releaseObserver("c1");
+  const errorsBeforeDuplicate = sent.filter(entry => entry.message.type === "error").length;
+
+  session.releaseObserver("c1");
+
+  expect(sent.filter(entry => entry.message.type === "error")).toHaveLength(errorsBeforeDuplicate);
 });
 
 test("host can stop after the session ends", () => {

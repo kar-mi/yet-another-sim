@@ -8,7 +8,8 @@ import { capacitySnapshot } from "./relayRoom";
 import { logger } from "./logger";
 import { startMetricsServer } from "./metricsServer";
 import { getRaidCategories, raidCatalogCacheControl } from "./raidCatalog";
-import { listReplays, loadReplay } from "./replayReader";
+import { listReplays, loadReplay, ReplayReadError } from "./replayReader";
+import { REPLAY_FORMAT_VERSION, type ReplayErrorResponse } from "@shared/replay";
 
 const ROOT = join(import.meta.dir, "..", "..");
 const BUNDLE_DIR = join(ROOT, ".bundle");
@@ -111,7 +112,16 @@ const serverOptions: ServerOptions = {
         const replay = await loadReplay(String(req.params.sessionId ?? ""), pull);
         if (!replay) return res.status(404).send("Not found");
         res.json(replay);
-      } catch {
+      } catch (error) {
+        if (error instanceof ReplayReadError) {
+          const body: ReplayErrorResponse = {
+            error: error.code,
+            message: error.message,
+            expectedVersion: error.code === "unsupported_format" ? REPLAY_FORMAT_VERSION : undefined,
+            receivedVersion: error.receivedVersion,
+          };
+          return res.status(error.code === "unsupported_format" ? 409 : 422).json(body);
+        }
         res.status(400).send("Invalid session id");
       }
     });

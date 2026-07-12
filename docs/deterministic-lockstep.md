@@ -146,7 +146,12 @@ hash window and rate-caps reports so a client can't spam the relay.
 
 ## Client side: stepping, snapshots & prediction
 
-`NetClient` (`src/client/net.ts`):
+`NetClient` coordinates two focused components:
+
+- `SimulationReplica` (`src/client/simulationReplica.ts`) owns the authoritative world and applies
+  input frames deterministically.
+- `RenderSnapshotBuffer` (`src/client/renderSnapshotBuffer.ts`) owns render timing, interpolation,
+  and bounded extrapolation. Its scratch buffers are instance-local.
 
 - **`stepOne(frame)`** runs one deterministic engine step. Control is derived from the
   frame's intent keys (a slot is human exactly when it has an intent that tick) so every
@@ -159,6 +164,9 @@ hash window and rate-caps reports so a client can't spam the relay.
   tick timeline (`t = base + tick*TICK_MS`) so bursty/jittery delivery doesn't collapse
   interpolation into instant skips. The render view interpolates between snapshots at a
   render-delay behind the latest tick.
+
+Host snapshot messages carry an explicit snapshot format version. A server rejects an incompatible
+snapshot and retains its previous valid anchor, so late joins can safely fall back to the input log.
 
 ### Client prediction is render-only
 

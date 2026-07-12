@@ -167,6 +167,10 @@ Per-session replay logs are written to
 `logs/sessions/*.jsonl` (a tick-0 world header plus every frame batch), so any pull can be replayed
 offline. This directory grows continuously — rotate it host-side.
 
+The header carries a replay format version independent of the application package version.
+Unversioned or incompatible files remain visible in the replay list but are rejected explicitly
+rather than being interpreted as the current `World`/`Frame` shape.
+
 ## Conventions
 
 - **Babylon.js imports must be sub-path / tree-shakeable.** Import from specific module paths

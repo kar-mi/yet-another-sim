@@ -9,6 +9,7 @@ import { describeDecisions, findSeed } from "../engine/seedSearch";
 import { DesyncTracker } from "./desyncTracker";
 import { FrameRelay } from "./frameRelay";
 import { mergePendingIntent, type SessionLog } from "./sessionRaid";
+import { SNAPSHOT_FORMAT_VERSION } from "@shared/replay";
 
 function botPatternOptionsFor(raid: RaidDef): BotPatternOption[] {
   if (raid.botPatternOptions) return raid.botPatternOptions.map(option => ({ id: option.id, name: option.name }));
@@ -81,7 +82,7 @@ export class RelayRoom {
   private sessionLog: SessionLog | null = null;
   private pullNumber = 0;
   private botsInvincible = false;
-  private latestSnapshot: { tick: number; world: unknown } | null = null;
+  private latestSnapshot: { formatVersion: number; tick: number; world: unknown } | null = null;
   private seedOverride: number | null = null;
   private waymarkPresetId: string | null = null;
   private botPatternId: string | null = null;
@@ -186,7 +187,7 @@ export class RelayRoom {
         this.reportWorldHash(clientId, message.tick, message.hash);
         return;
       case "snapshot":
-        this.acceptSnapshot(clientId, message.tick, message.world);
+        this.acceptSnapshot(clientId, message.formatVersion, message.tick, message.world);
         return;
     }
   }
@@ -489,10 +490,9 @@ export class RelayRoom {
   }
 
   releaseObserver(clientId: string): void {
-    if (!this.observers.delete(clientId)) {
-      this.sendError(clientId, "You are not observing");
-      return;
-    }
+    // Release is intentionally idempotent: a double-click or a stale Home cleanup can race the
+    // lobby broadcast that confirms the first release, and there is no state left to correct.
+    if (!this.observers.delete(clientId)) return;
     this.broadcastLobby();
   }
 
@@ -643,6 +643,9 @@ export class RelayRoom {
 
   private openPullLog(): void {
     this.closePullLog();
+    // The empty raid is the interactive test lobby, not authored simulation content. Recording it
+    // creates noise in the replay browser and consumes the first pull number before a real raid.
+    if (this.raidId === EMPTY_RAID_ID) return;
     this.pullNumber++;
     this.sessionLog = this.createSessionLog?.(`${this.id}-pull-${this.pullNumber}`) ?? null;
     this.sessionLog?.header(this.raidId, this.world);
@@ -653,8 +656,12 @@ export class RelayRoom {
     this.sessionLog = null;
   }
 
-  private acceptSnapshot(clientId: string, tick: number, world: unknown): void {
+  private acceptSnapshot(clientId: string, formatVersion: number, tick: number, world: unknown): void {
     if (clientId !== this.hostClientId) return;
+    if (formatVersion !== SNAPSHOT_FORMAT_VERSION) {
+      this.sendError(clientId, `Unsupported snapshot format ${formatVersion}; expected ${SNAPSHOT_FORMAT_VERSION}`);
+      return;
+    }
     if (this.status !== "running") return;
     if (tick > this.inputLog.length) return;
     if (this.latestSnapshot && tick <= this.latestSnapshot.tick) return;
@@ -662,7 +669,7 @@ export class RelayRoom {
     // snapshot would poison every later join/resync (the client crashes rehydrating it). Reject it
     // so startedMessage falls back to full-log anchoring.
     if (!world || typeof world !== "object" || !("arena" in world) || !("players" in world)) return;
-    this.latestSnapshot = { tick, world };
+    this.latestSnapshot = { formatVersion, tick, world };
   }
 
   private startedMessage(playerId: string | null): ServerMessage {

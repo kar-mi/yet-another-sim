@@ -100,11 +100,7 @@ async function main(): Promise<void> {
       renderer = new BabylonRenderer(canvas, nextSettings => {
         Object.assign(settings, nextSettings);
         saveSettings(settings);
-      }, position => {
-        replayNet.send({ type: "debugPosition", ...position });
-      }, enabled => {
-        replayNet.send({ type: "setBotsInvincible", enabled });
-      }, hudLayout);
+      }, () => {}, () => {}, hudLayout);
       renderer.init(lobbyResult.world, sessionId);
       renderer.applySettings(settings);
       renderer.setPlaybackState("paused");
@@ -114,7 +110,7 @@ async function main(): Promise<void> {
       const disposeRaidSelect = await createRaidHudSelect(replayNet, lobbyResult.raidId, false, "paused", hudLayout, lobbyResult.world.seed, null, transport);
       const disposeInput = initInput();
       const disposePerfHud = initPerfHud();
-      const stopLoop = startNetLoop(renderer, replayNet);
+      const stopLoop = startNetLoop(renderer, replayNet, { readOnly: true });
       const activeRenderer = renderer;
       currentTeardown = () => {
         stopLoop();
