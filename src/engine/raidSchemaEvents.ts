@@ -44,9 +44,9 @@ const AOEEventSchema = z.object({
     center: z.number(),
     width: z.number().positive().max(Math.PI * 2),
   }).optional(),
-  showCastBar: z.boolean().optional(),
-  showTelegraph: z.boolean().optional(),
-  telegraphMode: TelegraphModeSchema.optional(),
+  showCastBar: z.boolean().default(false),
+  showTelegraph: z.boolean().default(true),
+  telegraphMode: TelegraphModeSchema.default("cast"),
   bossRelativeCenter: BossRelativeCenterSchema.optional(),
   // Render-only: during the final `lead` seconds before resolve, flash the AoE footprint
   // in `color` (hex; defaults to light blue). Drawn even when showTelegraph is false.
@@ -76,9 +76,9 @@ const TargetedEventSchema = z.object({
   damage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
   applyEffect: ApplyEffectSchema.optional(),
-  showCastBar: z.boolean().optional(),
-  showTelegraph: z.boolean().optional(),
-  telegraphMode: TelegraphModeSchema.optional(),
+  showCastBar: z.boolean().default(false),
+  showTelegraph: z.boolean().default(true),
+  telegraphMode: TelegraphModeSchema.default("cast"),
   color: z.string().min(1).optional(),
   bossId: z.string().min(1).optional(),
 });
@@ -101,7 +101,7 @@ const BaitEventSchema = z.object({
   // If the selected bait target has one of these active effect names, override the linked stored
   // cleave's directionOffset for this bait. Used by Forsaken Past/Future Ending.
   directionOffsetByEffect: z.record(z.string().min(1), z.number()).optional(),
-  showCastBar: z.boolean().optional(),
+  showCastBar: z.boolean().default(false),
   bossId: z.string().min(1).optional(),
 });
 
@@ -120,7 +120,7 @@ const DashEventSchema = z.object({
     z.strictObject({ debuff: z.string().min(1) }),
     z.strictObject({ bait: z.enum(["closest", "furthest", "random", "aggro"]), role: RoleSchema.optional() }),
   ]),
-  showCastBar: z.boolean().optional(),
+  showCastBar: z.boolean().default(false),
 });
 
 const TetherSourceEventSchema = z.object({
@@ -204,7 +204,7 @@ const LineLinkEventSchema = z.object({
   pos: Vec2Schema,
   resolveAfter: z.number().positive(),
   linkDuration: z.number().positive().optional(),
-  rng: z.boolean().optional(),
+  rng: z.boolean().default(false),
   link: z.string().min(1).optional(),
   target: LineLinkTargetSchema,
   hiddenDebuff: z.string().min(1),
@@ -244,7 +244,7 @@ const TowerEventSchema = z.object({
   radius: z.number().positive(),
   requiredCount: z.number().int().positive().default(1), // soakers needed to clear it
   requiredRoles: z.array(RoleSchema).min(1).optional(),
-  wrongRoleLethal: z.boolean().optional(), // wrong-role soaker dies (only with requiredRoles)
+  wrongRoleLethal: z.boolean().default(false), // wrong-role soaker dies (only with requiredRoles)
   failureDamage: z.number().nonnegative(), // raidwide damage when not enough valid soakers
   failureDamageType: z.enum(["physical", "magical", "true"]),
   applyEffect: ApplyEffectSchema.optional(), // debuff applied to valid soakers on success
@@ -297,7 +297,7 @@ const ChainEventSchema = z.object({
   breakDamage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
   debuff: z.string().min(1),            // registered debuff applied to both members at cast end
-  showCastBar: z.boolean().optional(),
+  showCastBar: z.boolean().default(false),
 }).transform((event, ctx) => {
   const spec = DEBUFF_REGISTRY[event.debuff];
   if (!spec) {
@@ -314,7 +314,7 @@ const GroupEventSchema = z.object({
   name: z.string().min(1),
   id: EventIdSchema,
   groups: z.array(z.array(z.string().min(1)).min(1)).min(1),     // candidate groups of player ids
-  rng: z.boolean().optional(),                                   // pick a random group (else groups[0])
+  rng: z.boolean().default(false),                               // pick a random group (else groups[0])
   link: z.string().min(1).optional(),                            // take complement of the referenced group event's choice
   telegraph: z.number().positive(),
   radius: z.number().positive(),                                 // stack circle radius around the marked player
@@ -322,7 +322,7 @@ const GroupEventSchema = z.object({
   damage: z.number().nonnegative(),                              // total damage, split evenly among soakers on success
   damageType: z.enum(["physical", "magical", "true"]),
   applyEffect: ApplyEffectSchema.optional(),
-  showCastBar: z.boolean().optional(),
+  showCastBar: z.boolean().default(false),
   showMarker: z.boolean().default(true),
   showTelegraph: z.boolean().default(true),
   // Render-only: stack circle color (hex). Defaults to the standard "stack here" blue when omitted.
@@ -335,7 +335,7 @@ const EffectSelectEventSchema = z.object({
   name: z.string().min(1),
   id: EventIdSchema,
   groups: z.array(z.array(z.string().min(1)).min(1)).min(1),
-  rng: z.boolean().optional(),
+  rng: z.boolean().default(false),
   link: z.string().min(1).optional(),
   applyEffect: ApplyEffectSchema,
 });
@@ -353,7 +353,7 @@ const ApplyEffectEventSchema = z.object({
   players: z.array(z.string().min(1)).min(1).optional(),
   count: z.number().int().positive().optional(),
   assignGroup: z.string().min(1).optional(),
-  rng: z.boolean().optional(),
+  rng: z.boolean().default(false),
   applyEffect: ApplyEffectSchema.optional(),
   applyEffectChoices: z.tuple([ApplyEffectSchema, ApplyEffectSchema]).optional(),
   effectChoiceGroup: z.string().min(1).optional(),
@@ -380,17 +380,17 @@ const InverseEventSchema = z.object({
   hiddenShapes: z.array(AOEShapeSchema).min(1),     // not drawn; lethal when inverted ("?")
   shownShapesB: z.array(AOEShapeSchema).min(1).optional(),  // variant-b telegraph shapes (rolled when variantRng)
   hiddenShapesB: z.array(AOEShapeSchema).min(1).optional(), // variant-b hidden shapes
-  variantRng: z.boolean().optional(),               // randomize a/b orientation (needs shownShapesB + hiddenShapesB)
+  variantRng: z.boolean().default(false),            // randomize a/b orientation (needs shownShapesB + hiddenShapesB)
   ringColor: z.string().optional(),               // hex colour of this mechanic's boss ring (identifies it)
   ringHeight: z.number().optional(),              // vertical height of this mechanic's boss ring
   telegraphAlpha: z.number().min(0).max(1).optional(), // optional fixed alpha for shown telegraph footprints
   // Render-only: shownShapes fill color (hex). Defaults to ringColor, else blue/red by inverted state.
   color: z.string().min(1).optional(),
-  rng: z.boolean().optional(),                      // randomize the "?" inversion (else not inverted)
+  rng: z.boolean().default(false),                  // randomize the "?" inversion (else not inverted)
   questionMark: z.boolean().optional(),            // authored override of the inversion state
   applyEffect: ApplyEffectSchema.optional(),
   knockback: KnockbackSchema.optional(),
-  showCastBar: z.boolean().optional(),
+  showCastBar: z.boolean().default(false),
 }).superRefine((ev, ctx) => {
   if (ev.variantRng && (!ev.shownShapesB || !ev.hiddenShapesB)) {
     ctx.addIssue({ code: "custom", message: "variantRng requires both shownShapesB and hiddenShapesB" });
@@ -406,7 +406,7 @@ const SpreadStackEventSchema = z.object({
   name: z.string().min(1),
   telegraph: z.number().positive(),
   shown: z.enum(["spread", "stack", "random"]),     // marker drawn during the cast ("random" = seeded per pull)
-  rng: z.boolean().optional(),                       // seeded 50/50 flip (else honest)
+  rng: z.boolean().default(false),                   // seeded 50/50 flip (else honest)
   questionMark: z.boolean().optional(),              // authored override of the flip state
   damageType: z.enum(["physical", "magical", "true"]),
   spread: z.object({
@@ -423,7 +423,7 @@ const SpreadStackEventSchema = z.object({
   spreadCarriers: z.string().min(1).optional(),
   ringColor: z.string().optional(),                  // hex colour of this mechanic's boss ring
   ringHeight: z.number().optional(),                 // vertical height of this mechanic's boss ring
-  showCastBar: z.boolean().optional(),
+  showCastBar: z.boolean().default(false),
 }).superRefine((event, ctx) => {
   if ((event.stackCarriers === undefined) !== (event.spreadCarriers === undefined)) {
     ctx.addIssue({ code: "custom", message: "stackCarriers and spreadCarriers must be provided together" });
@@ -447,12 +447,12 @@ const GazeEventSchema = z.object({
   pos: Vec2Schema.optional(),                       // position of the eye/source (e.g. north)
   carriers: z.string().min(1).optional(),
   carrierCone: z.object({ angleDeg: z.number().positive().max(360), length: z.number().positive() }).optional(),
-  reverse: z.boolean().optional(),                 // false (eye): hit if looking at it; true ("?" eye): hit if NOT looking
-  rng: z.boolean().optional(),                     // randomize the reverse state at cast start (seeded)
+  reverse: z.boolean().default(false),              // false (eye): hit if looking at it; true ("?" eye): hit if NOT looking
+  rng: z.boolean().default(false),                  // randomize the reverse state at cast start (seeded)
   coneHalfAngle: z.number().positive().optional(), // half-angle (radians) counted as "looking at" it (default PI/2 = front 180)
   applyEffect: ApplyEffectSchema.optional(),
   knockback: KnockbackSchema.optional(),
-  showCastBar: z.boolean().optional(),
+  showCastBar: z.boolean().default(false),
   visual: GazeVisualSchema.optional(),
   // Render-only: carrier cone fill color (hex). Defaults to orange/blue by reverse state when omitted.
   color: z.string().min(1).optional(),
@@ -562,15 +562,15 @@ const EffectBurstEventSchema = z.object({
   innerRadius: z.number().positive().optional(),
   shownShape: z.enum(["circle", "donut"]).default("circle"),
   hiddenShape: z.enum(["circle", "donut"]).default("circle"),
-  rng: z.boolean().optional(),
+  rng: z.boolean().default(false),
   questionMark: z.boolean().optional(),
   damage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
   applyEffect: ApplyEffectSchema.optional(),
   knockback: KnockbackSchema.optional(),
-  showCastBar: z.boolean().optional(),
-  showTelegraph: z.boolean().optional(),
-  telegraphMode: TelegraphModeSchema.optional(),
+  showCastBar: z.boolean().default(false),
+  showTelegraph: z.boolean().default(true),
+  telegraphMode: TelegraphModeSchema.default("cast"),
   color: z.string().min(1).optional(),
 }).superRefine((event, ctx) => {
   if ((event.shownShape === "donut" || event.hiddenShape === "donut")
