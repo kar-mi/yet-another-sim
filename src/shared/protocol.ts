@@ -162,6 +162,7 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
   // DesyncTracker; accepting its world snapshot adds no new trust surface.
   z.strictObject({
     type: z.literal("snapshot"),
+    formatVersion: z.number().int().nonnegative(),
     tick: z.number().int().nonnegative(),
     world: z.unknown(),
   }),

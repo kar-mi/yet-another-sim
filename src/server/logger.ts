@@ -5,6 +5,7 @@ import { join } from "path";
 import { consoleSink, formatRecord, logger, parseLevel, type LogRecord, type Sink } from "@shared/logger";
 import type { SessionLog } from "./sessionRaid";
 import type { Frame } from "@shared/protocol";
+import { REPLAY_FORMAT_VERSION } from "@shared/replay";
 
 const ROOT = join(import.meta.dir, "..", "..");
 const LOG_DIR = join(ROOT, "logs");
@@ -109,7 +110,7 @@ export function createSessionLog(sessionId: string): SessionLog {
   const sessionLog: SessionLog = {
     header(raidId, world): void {
       writePendingFrames();
-      writer.write(JSON.stringify({ header: true, raidId, world }) + "\n");
+      writer.write(JSON.stringify({ header: true, formatVersion: REPLAY_FORMAT_VERSION, raidId, world }) + "\n");
       dirty = true;
     },
     frame(startTick: number, frames: Frame[]): void {

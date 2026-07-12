@@ -21,7 +21,7 @@ function sameContinuousIntent(a: Intent, b: Intent): boolean {
     && a.facing === b.facing;
 }
 
-export function startNetLoop(renderer: Renderer, net: NetClient): () => void {
+export function startNetLoop(renderer: Renderer, net: NetClient, options?: { readOnly?: boolean }): () => void {
   let lastTime = performance.now();
   let lastSentIntent: Intent | null = null;
   // One-shot flags the sink already consumed+sent (jump/sprint). The predictor runs only in the rAF
@@ -40,6 +40,7 @@ export function startNetLoop(renderer: Renderer, net: NetClient): () => void {
   });
 
   function sendIntent(intent: Intent): void {
+    if (options?.readOnly) return;
     if (hasOneShotIntent(intent) || !lastSentIntent || !sameContinuousIntent(intent, lastSentIntent)) {
       if (net.send({ type: "intent", intent })) lastSentIntent = intent;
     }
@@ -93,7 +94,7 @@ export function startNetLoop(renderer: Renderer, net: NetClient): () => void {
     rafId = requestAnimationFrame(frame);
   }
 
-  setOneShotSink(sendIntentNow);
+  setOneShotSink(options?.readOnly ? null : sendIntentNow);
   rafId = requestAnimationFrame(frame);
   return () => {
     setOneShotSink(null);
