@@ -1,7 +1,7 @@
 # Development Workflow
 
 This document describes how to develop, test, build, and deploy **Yet Another Sim** — a
-server-authoritative FFXIV-style raid simulator built on [Bun](https://bun.sh/) and
+server-relayed deterministic FFXIV-style raid simulator built on [Bun](https://bun.sh/) and
 [Babylon.js 9](https://www.babylonjs.com/).
 
 If you only want to author encounters (not change code), start with
@@ -43,12 +43,12 @@ A typical change cycle:
 3. `bun test` — especially for anything touching `src/engine/` (see *Determinism* below).
 4. Reload the browser to see client/render changes.
 
-### Hot reload
+### Development reloads
 
-`src/client/main.ts` wires up `import.meta.hot?.dispose(...)` for Bun's `--hot` HMR — on a client
-module swap it tears down the active session (loop, input, renderer) and closes the socket before
-re-running. If you run the server with `bun --hot src/server/server.ts`, client edits tear down and
-rebuild cleanly without a manual refresh.
+`bun run dev` builds the client once at server startup; reload the browser after client changes.
+`src/client/main.ts` registers an `import.meta.hot?.dispose(...)` cleanup hook for environments that
+provide client-module HMR, but running `bun --hot src/server/server.ts` alone does not rebuild the
+browser bundle or establish a client HMR pipeline.
 
 ## Project layout
 
@@ -58,7 +58,7 @@ The codebase is split into four layers by trust boundary and runtime:
 src/
   shared/   # types, protocol (zod), deterministic math, RNG, constants — imported by both sides
   engine/   # the pure deterministic simulation (tick), mechanic systems, raid loading/schema
-  server/   # Bun.serve host: sessions, frame relay, WebSocket transport, metrics
+  server/   # Colyseus host: rooms, frame relay, WebSocket transport, metrics
   client/   # browser: Babylon renderer, input, netcode, prediction, UI
 raids/      # YAML-authored encounters, grouped by category folder
 docs/       # this folder
@@ -73,9 +73,10 @@ networking model below.
 This project uses **server-relayed deterministic lockstep**. Understanding this is essential before
 touching the engine, netcode, or server.
 
-1. **Join / lobby.** A client opens a WebSocket to `Bun.serve` (`src/server/server.ts`). Messages
-   are validated with a zod schema (`ClientMessageSchema`) and routed to a `Session`
-   (`src/server/session.ts`). Players claim slots; one client is the host.
+1. **Join / lobby.** `ColyseusTransport` joins or creates the filtered `relay` room hosted by
+   `src/server/server.ts`. `RelayServerRoom` owns the Colyseus lifecycle, authentication, rate
+   limiting, and boundary validation; it delegates session behavior to the transport-independent
+   `RelayRoom`. Players claim slots; one client is the host.
 2. **Start.** The server builds a tick-0 `World` from the raid definition and sends it to clients
    in a `started` message, alongside the input log so far.
 3. **The relay.** The server does **not** run the simulation. `FrameRelay` produces one `Frame` per
@@ -89,14 +90,14 @@ touching the engine, netcode, or server.
    host snapshot taken every `SNAPSHOT_INTERVAL` ticks) to fast-forward to the room's current tick.
 6. **Desync detection.** Clients periodically send a `worldHash` (`HASH_INTERVAL` ticks); the server
    compares them via `DesyncTracker` and resyncs any client that diverged.
-7. **Rendering.** `src/client/net.ts` keeps a small snapshot buffer and interpolates with a fixed
-   render delay (`RENDER_DELAY_MS`) for smoothness. The local player is additionally
+7. **Rendering.** `NetClient` coordinates a `RenderSnapshotBuffer`, which keeps a small snapshot
+   history and interpolates with a fixed render delay for smoothness. The local player is additionally
    client-predicted (`src/client/predictor.ts`) so their own movement feels instant — this is
    render-only and never feeds back into the authoritative world.
 
 ```
-host + clients          server (Bun.serve)            every client
-  intents  ───────────►  Session / FrameRelay
+host + clients          server (Colyseus)             every client
+  intents  ───────────►  RelayServerRoom / RelayRoom / FrameRelay
                           merges intents → Frame
                           broadcasts frames  ─────────►  tick() locally → identical World
                           keeps input log                 ├─ interpolate + render (Babylon)
@@ -146,7 +147,8 @@ once, so each worker only serves the prebuilt bundle.
 The app ships as a Docker image (`Dockerfile`, based on `oven/bun:1`). The tracked
 `docker-compose.yml` is the local single-worker stack.
 
-- **Windows / local:** create `.env` from `.env.example`, set `METRICS_TOKEN`, then
+- **Windows / local:** create `.env` from `.env.example`, set `METRICS_TOKEN` (the tracked Compose
+  file requires it even though the application can disable metrics by leaving it unset), then
   `docker compose up -d --build`.
 - **Linux server:** `./deploy.sh [branch]` — fetches, hard-resets to `origin/<branch>`, then runs
   the gitignored server compose file.
@@ -157,8 +159,13 @@ Configuration is environment-driven (see `.env.example`):
 |-----------------|---------|
 | `PORT`          | Local single-worker HTTP/WS port (default 3000). |
 | `MAX_SESSIONS`  | Local single-worker room cap. |
-| `METRICS_TOKEN` | Required — guards the Prometheus metrics endpoint. |
+| `METRICS_TOKEN` | Guards the Prometheus endpoint; unset disables it outside tracked Compose. |
 | `METRICS_PORT`  | Local single-worker metrics port (default 9100). |
+| `MAX_CONNECTIONS_PER_IP` | Concurrent WebSocket connection cap per client IP. |
+| `MAX_WS_MSGS_PER_SEC` | Inbound message rate cap per connection. |
+| `ALLOWED_ORIGINS` | Additional comma-separated browser origins allowed to connect. |
+| `LOG_LEVEL` | Server logging verbosity. |
+| `OTEL_*` | Optional OpenTelemetry tracing; see `.env.example`. |
 
 ### Observability
 
@@ -194,8 +201,8 @@ rather than being interpreted as the current `World`/`Frame` shape.
   engine, scene, and camera. Always dispose what you create.
 - **Validate at the boundary.** All client→server messages and raid files are validated with zod
   before reaching trusted code.
-- **Prefer Bun-native APIs** already in use here: `Bun.serve`, `Bun.build`, `Bun.file`, `Bun.Glob`,
-  `Bun.env`.
+- **Prefer the existing platform APIs:** Colyseus for rooms/transport and Bun-native APIs such as
+  `Bun.build`, `Bun.file`, `Bun.Glob`, and `Bun.env`.
 
 ## Reference docs
 
