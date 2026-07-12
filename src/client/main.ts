@@ -8,10 +8,43 @@ import { createRaidHudSelect } from "./ui/RaidHudSelect";
 import { NetClient, connect } from "./net";
 import { ReplayTransport } from "./replayTransport";
 import { preloadAssets } from "./render/preloadAssets";
-import { SessionIdSchema } from "@shared/protocol";
+import { SessionIdSchema, type PlaybackState } from "@shared/protocol";
 import { consoleSink, logger, parseLevel } from "@shared/logger";
 import { HudLayoutManager } from "./ui/HudLayoutManager";
 import { initPerfHud } from "./perfMetrics";
+
+interface SessionRuntimeOptions {
+  renderer: BabylonRenderer;
+  net: NetClient;
+  playbackState: PlaybackState;
+  readOnly?: boolean;
+  closeNet?: boolean;
+  createRaidSelect: () => Promise<() => void>;
+  syncKeybindLabels: () => void;
+  updateController: () => void;
+}
+
+async function startSessionRuntime(options: SessionRuntimeOptions, settings: ReturnType<typeof loadSettings>): Promise<() => void> {
+  const { renderer, net } = options;
+  renderer.applySettings(settings);
+  renderer.setPlaybackState(options.playbackState);
+  options.syncKeybindLabels();
+  options.updateController();
+
+  const disposeRaidSelect = await options.createRaidSelect();
+  const disposeInput = initInput();
+  const disposePerfHud = initPerfHud();
+  const stopLoop = startNetLoop(renderer, net, { readOnly: options.readOnly });
+
+  return () => {
+    stopLoop();
+    disposePerfHud();
+    disposeInput();
+    disposeRaidSelect();
+    if (options.closeNet) net.close();
+    renderer.dispose();
+  };
+}
 
 logger.configure({
   level: parseLevel(
@@ -39,6 +72,10 @@ async function main(): Promise<void> {
 
   const net = await connect();
   const settings = loadSettings();
+  const onSettingsChange = (nextSettings: Partial<typeof settings>) => {
+    Object.assign(settings, nextSettings);
+    saveSettings(settings);
+  };
   const hudLayout = new HudLayoutManager(settings.hudLayout, settings.uiScale, layout => {
     settings.hudLayout = layout;
     saveSettings(settings);
@@ -97,29 +134,18 @@ async function main(): Promise<void> {
       const sessionEnd = new Promise<void>(resolve => { resolveSessionEnd = resolve; });
       resolveHome = resolveSessionEnd;
 
-      renderer = new BabylonRenderer(canvas, nextSettings => {
-        Object.assign(settings, nextSettings);
-        saveSettings(settings);
-      }, () => {}, () => {}, hudLayout);
+      renderer = new BabylonRenderer(canvas, onSettingsChange, () => {}, () => {}, hudLayout);
       renderer.init(lobbyResult.world, sessionId);
-      renderer.applySettings(settings);
-      renderer.setPlaybackState("paused");
-      syncKeybindLabels();
-      updateController();
-
-      const disposeRaidSelect = await createRaidHudSelect(replayNet, lobbyResult.raidId, false, "paused", hudLayout, lobbyResult.world.seed, null, transport);
-      const disposeInput = initInput();
-      const disposePerfHud = initPerfHud();
-      const stopLoop = startNetLoop(renderer, replayNet, { readOnly: true });
-      const activeRenderer = renderer;
-      currentTeardown = () => {
-        stopLoop();
-        disposePerfHud();
-        disposeInput();
-        disposeRaidSelect();
-        replayNet.close();
-        activeRenderer.dispose();
-      };
+      currentTeardown = await startSessionRuntime({
+        renderer,
+        net: replayNet,
+        playbackState: "paused",
+        readOnly: true,
+        closeNet: true,
+        createRaidSelect: () => createRaidHudSelect(replayNet, lobbyResult.raidId, false, "paused", hudLayout, lobbyResult.world.seed, null, transport),
+        syncKeybindLabels,
+        updateController,
+      }, settings);
 
       homeBtn.style.display = "block";
       await sessionEnd;
@@ -141,33 +167,20 @@ async function main(): Promise<void> {
       resolveSessionEnd();
     });
 
-    renderer = new BabylonRenderer(canvas, nextSettings => {
-      Object.assign(settings, nextSettings);
-      saveSettings(settings);
-    }, position => {
+    renderer = new BabylonRenderer(canvas, onSettingsChange, position => {
       net.send({ type: "debugPosition", ...position });
     }, enabled => {
       net.send({ type: "setBotsInvincible", enabled });
     }, hudLayout);
     renderer.init(session.world, sessionId, session.yourPlayerId);
-    renderer.applySettings(settings);
-    renderer.setPlaybackState(session.playbackState);
-    syncKeybindLabels();
-    updateController();
-
-    const disposeRaidSelect = await createRaidHudSelect(net, session.raidId, session.isHost, session.playbackState, hudLayout, session.world.seed, session.seedOverride, undefined, session.rngDecisions, session.waymarkPresetId, session.botPatternOptions, session.botPatternId);
-    const disposeInput = initInput();
-    const disposePerfHud = initPerfHud();
-    const stopLoop = startNetLoop(renderer, net);
-
-    const activeRenderer = renderer;
-    currentTeardown = () => {
-      stopLoop();
-      disposePerfHud();
-      disposeInput();
-      disposeRaidSelect();
-      activeRenderer.dispose();
-    };
+    currentTeardown = await startSessionRuntime({
+      renderer,
+      net,
+      playbackState: session.playbackState,
+      createRaidSelect: () => createRaidHudSelect(net, session.raidId, session.isHost, session.playbackState, hudLayout, session.world.seed, session.seedOverride, undefined, session.rngDecisions, session.waymarkPresetId, session.botPatternOptions, session.botPatternId),
+      syncKeybindLabels,
+      updateController,
+    }, settings);
 
     homeBtn.style.display = "block";
     await sessionEnd;

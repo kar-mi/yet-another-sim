@@ -41,6 +41,48 @@ test("authored positions use { x, z } and mechanic timing uses time", () => {
   expect(event.type === "aoe" && event.shape.kind === "circle" && event.shape.center).toEqual([4, -2]);
 });
 
+test("event presentation defaults are normalized by the raid schema", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [
+      {
+        type: "aoe",
+        time: 1,
+        name: "Defaults",
+        telegraph: 1,
+        damage: 0,
+        damageType: "true",
+        shape: { kind: "circle", center: [0, 0], radius: 1 },
+      },
+      {
+        type: "aoe",
+        time: 2,
+        name: "Overrides",
+        telegraph: 1,
+        damage: 0,
+        damageType: "true",
+        shape: { kind: "circle", center: [0, 0], radius: 1 },
+        showCastBar: true,
+        showTelegraph: false,
+        telegraphMode: "resolve",
+      },
+    ],
+  });
+
+  const defaults = raid.events[0];
+  const overrides = raid.events[1];
+  expect(defaults.type === "aoe" && {
+    showCastBar: defaults.showCastBar,
+    showTelegraph: defaults.showTelegraph,
+    telegraphMode: defaults.telegraphMode,
+  }).toEqual({ showCastBar: false, showTelegraph: true, telegraphMode: "cast" });
+  expect(overrides.type === "aoe" && {
+    showCastBar: overrides.showCastBar,
+    showTelegraph: overrides.showTelegraph,
+    telegraphMode: overrides.telegraphMode,
+  }).toEqual({ showCastBar: true, showTelegraph: false, telegraphMode: "resolve" });
+});
+
 test("heal event restores living players to max HP", () => {
   const raid = loadRaid({
     ...baseRaid,
