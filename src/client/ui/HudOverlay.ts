@@ -5,7 +5,6 @@ import {
   ACTIONS,
   CONTROLLER_FACE_BUTTONS,
   CONTROLLER_DPAD_BUTTONS,
-  CONTROLLER_BUTTON_POSITION,
   CONTROLLER_GLYPHS,
   KEYBOARD_HOTBAR_SLOT_COUNT,
   actionForKeyboardSlot,
@@ -26,13 +25,22 @@ import {
   type PositionFrameOption,
 } from "../frameReadout";
 import type { HudLayoutManager } from "./HudLayoutManager";
+import {
+  buildCastCandidates,
+  castForBoss,
+  formatTime,
+  orderedPartyPlayers,
+  renderControllerSlot,
+  renderKeyboardSlot,
+  setBackground,
+  setText,
+  setWidth,
+} from "./hudPresentation";
 
 declare const __YAS_DEBUG__: boolean | undefined;
 
 const DEBUG_ENABLED = typeof __YAS_DEBUG__ !== "undefined" && __YAS_DEBUG__;
 const DEBUG_POSITION_ENABLED = DEBUG_ENABLED;
-const PARTY_SLOT_ORDER = ["mt", "ot", "h1", "h2", "m1", "m2", "r1", "r2"] as const;
-const PARTY_SLOT_INDEX = new Map<string, number>(PARTY_SLOT_ORDER.map((id, index) => [id, index]));
 type PartyRow = {
   hpFill: HTMLDivElement;
   mpFill: HTMLDivElement;
@@ -44,70 +52,6 @@ type PartyRow = {
   camBtn?: HTMLButtonElement;
 };
 
-function formatTime(seconds: number): string {
-  const total = Math.max(0, Math.floor(seconds));
-  const mins = Math.floor(total / 60);
-  const secs = total % 60;
-  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-}
-
-function partySortIndex(player: Player): number {
-  return PARTY_SLOT_INDEX.get(player.id) ?? PARTY_SLOT_ORDER.length;
-}
-
-// Skip a DOM write when the value is unchanged. Reading an inline style / textContent is cheap and
-// doesn't force layout, but writing one can, so dirty-checking avoids per-frame style/layout churn
-// across the local bars, all 8 party rows, and the hotbar cooldown sweeps.
-function setWidth(el: HTMLElement, value: string): void {
-  if (el.style.width !== value) el.style.width = value;
-}
-function setText(el: HTMLElement, value: string): void {
-  if (el.textContent !== value) el.textContent = value;
-}
-function setBackground(el: HTMLElement, value: string): void {
-  if (el.style.background !== value) el.style.background = value;
-}
-
-type CastCandidate = { name: string; telegraphStart: number; resolveAt: number; bossId: string };
-
-function buildCastCandidates(world: World): CastCandidate[] {
-  const defaultBossId = world.bosses[0]?.id ?? "";
-  const candidates: CastCandidate[] = [];
-  for (const m of world.active) {
-    if (!m.resolved && m.showCastBar)
-      candidates.push({ name: m.name, telegraphStart: m.telegraphStart, resolveAt: m.resolveAt, bossId: m.bossId ?? defaultBossId });
-  }
-  for (const m of world.chains) {
-    if (!m.resolved && m.showCastBar)
-      candidates.push({ name: m.name, telegraphStart: m.telegraphStart, resolveAt: m.resolveAt, bossId: defaultBossId });
-  }
-  for (const m of world.groupMechanics) {
-    if (!m.resolved && m.showCastBar)
-      candidates.push({ name: m.name, telegraphStart: m.telegraphStart, resolveAt: m.resolveAt, bossId: defaultBossId });
-  }
-  for (const m of world.gazes) {
-    if (!m.resolved && m.showCastBar)
-      candidates.push({ name: m.name, telegraphStart: m.telegraphStart, resolveAt: m.resolveAt, bossId: defaultBossId });
-  }
-  for (const m of world.spreadStacks) {
-    if (!m.resolved && m.showCastBar)
-      candidates.push({ name: m.name, telegraphStart: m.telegraphStart, resolveAt: m.resolveAt, bossId: defaultBossId });
-  }
-  return candidates;
-}
-
-function castForBoss(bossId: string, candidates: CastCandidate[]): CastCandidate | null {
-  return candidates.find(c => c.bossId === bossId) ?? null;
-}
-
-function orderedPartyPlayers(players: Player[], localPlayerId: string | null): Player[] {
-  return [...players].sort((a, b) => {
-    if (a.id === localPlayerId) return -1;
-    if (b.id === localPlayerId) return 1;
-    const orderDelta = partySortIndex(a) - partySortIndex(b);
-    return orderDelta || a.id.localeCompare(b.id);
-  });
-}
 
 // Reads a skill's live cooldown/active state off a player snapshot.
 type SkillRead = (p: Player) => { activeSecs: number; cooldownSecs: number; cooldownMax: number };
@@ -345,44 +289,17 @@ export class HudOverlay {
 
     root.querySelector<HTMLDivElement>(".yas-hotbar")!.innerHTML = Array.from(
       { length: KEYBOARD_HOTBAR_SLOT_COUNT },
-      (_, slot) => this.renderKeyboardSlot(slot),
+      (_, slot) => renderKeyboardSlot(slot),
     ).join("");
     root.querySelector<HTMLDivElement>(".yas-controller-hotbar")!.innerHTML = `
       <div class="yas-controller-diamond">
-        ${CONTROLLER_FACE_BUTTONS.map(button => this.renderControllerSlot(button)).join("")}
+        ${CONTROLLER_FACE_BUTTONS.map(renderControllerSlot).join("")}
       </div>
       <div class="yas-ctrl-separator">—</div>
       <div class="yas-controller-diamond">
-        ${CONTROLLER_DPAD_BUTTONS.map(button => this.renderControllerSlot(button)).join("")}
+        ${CONTROLLER_DPAD_BUTTONS.map(renderControllerSlot).join("")}
       </div>`;
     return root;
-  }
-
-  private renderKeyboardSlot(slot: number): string {
-    const actionId = actionForKeyboardSlot(slot);
-    if (!actionId) return `<div class="yas-slot" data-slot="${slot}"><span class="yas-keybind"></span></div>`;
-    const action = ACTIONS[actionId];
-    return `
-      <div class="yas-slot" data-slot="${slot}">
-        <span class="yas-keybind"></span>
-        <span class="yas-slot-icon">${action.icon}</span>
-        <span class="yas-slot-name">${action.label}</span>
-        <div class="yas-cd-overlay"></div>
-        <div class="yas-cd-text"></div>
-      </div>`;
-  }
-
-  // A controller button cell. Icon/name/cooldown are filled per-frame from the active layer.
-  private renderControllerSlot(button: ControllerButtonId): string {
-    const position = CONTROLLER_BUTTON_POSITION[button];
-    return `
-      <div class="yas-slot yas-ctrl-${position}" data-ctrl-btn="${button}">
-        <span class="yas-keybind"></span>
-        <span class="yas-slot-icon"></span>
-        <span class="yas-slot-name"></span>
-        <div class="yas-cd-overlay"></div>
-        <div class="yas-cd-text"></div>
-      </div>`;
   }
 
   private buildPartyRow(player: Player): PartyRow {

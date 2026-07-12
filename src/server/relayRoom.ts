@@ -9,7 +9,7 @@ import { describeDecisions, findSeed } from "../engine/seedSearch";
 import { DesyncTracker } from "./desyncTracker";
 import { FrameRelay } from "./frameRelay";
 import { mergePendingIntent, type SessionLog } from "./sessionRaid";
-import { SNAPSHOT_FORMAT_VERSION } from "@shared/replay";
+import { PullSnapshot } from "./pullSnapshot";
 
 function botPatternOptionsFor(raid: RaidDef): BotPatternOption[] {
   if (raid.botPatternOptions) return raid.botPatternOptions.map(option => ({ id: option.id, name: option.name }));
@@ -82,7 +82,7 @@ export class RelayRoom {
   private sessionLog: SessionLog | null = null;
   private pullNumber = 0;
   private botsInvincible = false;
-  private latestSnapshot: { formatVersion: number; tick: number; world: unknown } | null = null;
+  private readonly pullSnapshot = new PullSnapshot();
   private seedOverride: number | null = null;
   private waymarkPresetId: string | null = null;
   private botPatternId: string | null = null;
@@ -636,7 +636,7 @@ export class RelayRoom {
   // Reset per-pull state whenever a fresh tick-0 world is built (start/restart/stop/setRaid) so the
   // input log, batching, and desync window start clean.
   private resetPull(): void {
-    this.latestSnapshot = null;
+    this.pullSnapshot.reset();
     this.relay.reset(this.world.duration);
     this.desync.reset();
   }
@@ -658,28 +658,12 @@ export class RelayRoom {
 
   private acceptSnapshot(clientId: string, formatVersion: number, tick: number, world: unknown): void {
     if (clientId !== this.hostClientId) return;
-    if (formatVersion !== SNAPSHOT_FORMAT_VERSION) {
-      this.sendError(clientId, `Unsupported snapshot format ${formatVersion}; expected ${SNAPSHOT_FORMAT_VERSION}`);
-      return;
-    }
-    if (this.status !== "running") return;
-    if (tick > this.inputLog.length) return;
-    if (this.latestSnapshot && tick <= this.latestSnapshot.tick) return;
-    // Shallow shape guard: the world is stored opaquely (the host is trusted), but a malformed
-    // snapshot would poison every later join/resync (the client crashes rehydrating it). Reject it
-    // so startedMessage falls back to full-log anchoring.
-    if (!world || typeof world !== "object" || !("arena" in world) || !("players" in world)) return;
-    this.latestSnapshot = { formatVersion, tick, world };
+    const error = this.pullSnapshot.accept(formatVersion, tick, world, this.inputLog.length, this.status === "running");
+    if (error) this.sendError(clientId, error);
   }
 
   private startedMessage(playerId: string | null): ServerMessage {
-    const snap = this.latestSnapshot;
-    if (snap) {
-      return { type: "started", world: snap.world as World, baseTick: snap.tick,
-               yourPlayerId: playerId, tick: this.inputLog.length, frames: this.inputLog.slice(snap.tick) };
-    }
-    return { type: "started", world: this.world, baseTick: 0,
-             yourPlayerId: playerId, tick: this.inputLog.length, frames: this.inputLog };
+    return this.pullSnapshot.startedMessage(this.world, this.inputLog, playerId);
   }
 
   // The host's local sim reached a terminal state (wiped/cleared). Stop relaying and mark the pull

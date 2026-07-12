@@ -1,0 +1,699 @@
+/* ===== DESIGN TOKENS (Modern 2.5D pixel — amber on slate) ===== */
+:root {
+  --px-bg-0:     #0e1118;  /* deepest, overlay backdrops */
+  --px-bg-1:     #1b1f2b;  /* slate panel fill */
+  --px-bg-2:     #252b3a;  /* raised button / input fill */
+  --px-sunken:   #0b0e15;  /* inset bar tracks */
+  --px-edge:     #3a4256;  /* steel border */
+  --px-edge-hi:  rgba(255, 255, 255, 0.07); /* top bevel highlight */
+  --px-accent:   #ffc24d;  /* amber accent — active states + key data */
+  --px-accent-dim: #b8862f; /* darker amber for fills */
+  --px-glow:     rgba(255, 194, 77, 0.35); /* accent glow */
+  --px-ink:      #2a1d05;  /* dark text on filled-amber buttons */
+  --px-text:     #e8edf7;  /* primary text */
+  --px-text-dim: #8b96ad;  /* labels / secondary text */
+  --px-shadow:   #05070c;  /* hard drop shadow */
+  --px-hp:       #5ad16a;  /* health green */
+  --px-mp:       #4aa3ff;  /* MP blue */
+  --px-danger:   #ff5d5d;  /* debuff / wipe red */
+
+  /* Font options — JS swaps --px-font between these via the Display tab dropdown. */
+  --font-pixel:    'Jersey 10', monospace;
+  --font-readable: 'Chakra Petch', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, system-ui;
+  --px-font: var(--font-readable);
+  /* Chakra Petch renders larger than Jersey 10 at the same px, so shrink it (via
+     font-size-adjust) to match Jersey 10's x-height. Only applied in readable mode;
+     'none' leaves Jersey 10 untouched. Nudge this value to fine-tune the match. */
+  --font-readable-adjust: 0.43;
+  --px-font-adjust: var(--font-readable-adjust);
+}
+
+/* Raised-panel bevel: light from above (inset top highlight) + hard drop shadow below = 2.5D. */
+
+/* ===== BASE ===== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  background: #0a0a0f;
+  overflow: hidden;
+  font-family: var(--px-font);
+  font-size-adjust: var(--px-font-adjust);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  image-rendering: pixelated;
+}
+
+/* Form controls don't inherit font-family from body, so set it globally to keep the pixel
+   font everywhere (buttons/inputs/selects) without relying on per-rule declarations. */
+button, input, select, textarea {
+  font-family: var(--px-font);
+  font-size-adjust: var(--px-font-adjust);
+}
+
+#canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  touch-action: none;
+  background: #0a0a0f;
+  outline: none;
+  user-select: none;
+}
+
+#canvas:focus,
+#canvas:focus-visible,
+body:focus,
+body:focus-visible {
+  outline: none;
+}
+
+/* Static boot overlay: this is in index.html so it can show while the large app bundle downloads. */
+#yas-boot-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #0a0a0f;
+  color: var(--px-text);
+  transition: opacity 0.18s ease;
+}
+
+#yas-boot-loading.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.yas-boot-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.yas-boot-title {
+  color: var(--px-accent);
+  font-size: 34px;
+  letter-spacing: 6px;
+  text-align: center;
+  text-shadow: 2px 2px 0 var(--px-shadow);
+}
+
+.yas-boot-label {
+  color: var(--px-text-dim);
+  font-size: 14px;
+  letter-spacing: 3px;
+  text-align: center;
+  text-shadow: 1px 1px 0 var(--px-shadow);
+}
+
+#yas-perf {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 260;
+  min-width: 430px;
+  padding: 8px 10px;
+  background: rgba(11, 14, 21, 0.86);
+  border: 1px solid var(--px-edge);
+  border-radius: 4px;
+  color: var(--px-text);
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  pointer-events: auto;
+  user-select: text;
+}
+
+#yas-perf pre {
+  margin: 0;
+  white-space: pre;
+}
+
+#yas-perf .yas-perf-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+
+#yas-perf button {
+  padding: 2px 6px;
+  background: var(--px-bg-2);
+  border: 1px solid var(--px-edge);
+  border-radius: 3px;
+  color: var(--px-accent);
+  font: inherit;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ===== UI SCALE (accessibility) ===== */
+/* Zoom each overlay container by --ui-scale; leaves the 3D #canvas untouched. */
+#yas-status, #yas-session-id, #settings-panel, #home-btn, #settings-btn, #hud-edit-btn, #info-btn, #info-panel, #yas-menu, #yas-raid-modal, #yas-replay-modal, #yas-rng-modal, #yas-welcome-modal {
+  zoom: var(--ui-scale, 1);
+}
+
+/* ===== TOP BUTTONS (home / settings / info) ===== */
+#home-btn,
+#settings-btn,
+#hud-edit-btn,
+#info-btn {
+  position: fixed;
+  top: 12px;
+  z-index: 210;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  color: var(--px-text-dim);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+  font-family: var(--px-font);
+  font-size: 21px;
+  width: 34px;
+  height: 34px;
+  border-radius: 5px;
+  cursor: pointer;
+  line-height: 1;
+  transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
+}
+
+#home-btn   { display: none; right: 132px; z-index: 10; }
+#info-btn   { right: 92px; }
+#hud-edit-btn { right: 52px; }
+#settings-btn { right: 12px; }
+
+#settings-btn::before,
+#settings-btn::after {
+  content: '';
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-color: var(--px-edge);
+  border-style: solid;
+}
+#settings-btn::before { top: 3px; left: 3px; border-width: 2px 0 0 2px; }
+#settings-btn::after  { bottom: 3px; right: 3px; border-width: 0 2px 2px 0; }
+
+#home-btn:hover,
+#settings-btn:hover,
+#hud-edit-btn:hover,
+#info-btn:hover {
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow), 0 0 8px var(--px-glow);
+}
+
+/* ===== SETTINGS PANEL ===== */
+#settings-panel {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 220;
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  border-radius: 6px;
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 5px 0 var(--px-shadow), 0 12px 28px rgba(0, 0, 0, 0.55);
+  padding: 24px 28px;
+  color: var(--px-text);
+  min-width: 320px;
+}
+
+/* ===== LOADING OVERLAY ===== */
+#yas-loading {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: rgba(14, 17, 24, 0.9);
+}
+
+.yas-loading-spinner {
+  width: 38px;
+  height: 38px;
+  border: 4px solid var(--px-edge);
+  border-top-color: var(--px-accent);
+  border-radius: 50%;
+  animation: yas-loading-spin 0.7s linear infinite;
+}
+
+.yas-loading-label {
+  font-size: 16px;
+  letter-spacing: 5px;
+  color: var(--px-accent);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+}
+
+@keyframes yas-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===== INFO PANEL ===== */
+#info-panel {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 220;
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  border-radius: 6px;
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 5px 0 var(--px-shadow), 0 12px 28px rgba(0, 0, 0, 0.55);
+  padding: 24px 28px;
+  color: var(--px-text);
+  min-width: 320px;
+  text-align: center;
+}
+
+.info-title {
+  font-size: 18px;
+  letter-spacing: 4px;
+  color: var(--px-accent);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+  margin-bottom: 10px;
+}
+
+.info-tagline {
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--px-text-dim);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+  margin-bottom: 18px;
+}
+
+.info-version {
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: var(--px-text-dim);
+  margin-bottom: 14px;
+}
+
+.info-version span {
+  color: var(--px-accent);
+}
+
+.info-link {
+  display: inline-block;
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--px-text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--px-edge);
+  padding-bottom: 2px;
+  margin-bottom: 22px;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.info-link:hover {
+  color: var(--px-accent);
+  border-bottom-color: var(--px-accent);
+}
+
+#settings-panel h2 {
+  font-size: 16px;
+  letter-spacing: 3px;
+  color: var(--px-text-dim);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+  margin-bottom: 22px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--px-edge);
+}
+
+.settings-field {
+  margin-bottom: 18px;
+}
+
+.settings-group-header {
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: var(--px-accent);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+  margin: 4px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--px-edge);
+}
+
+.settings-label {
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--px-text-dim);
+  margin-bottom: 8px;
+}
+
+.settings-value {
+  color: var(--px-accent);
+}
+
+#sensitivity-slider,
+#ctrl-sens-slider,
+#cam-accel-strength {
+  width: 100%;
+  accent-color: var(--px-accent);
+  cursor: pointer;
+}
+
+.settings-radio-group {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.settings-radio-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  color: var(--px-text);
+  padding: 6px 12px;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  box-shadow: inset 0 1px 0 var(--px-edge-hi);
+  transition: border-color 0.1s, color 0.1s, box-shadow 0.1s;
+  user-select: none;
+}
+
+.settings-radio-option:has(input:checked) {
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+  box-shadow: inset 3px 0 0 var(--px-accent), 0 0 7px var(--px-glow);
+}
+
+.settings-radio-option input[type="radio"] {
+  accent-color: var(--px-accent);
+}
+
+.settings-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--px-text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-check input[type="checkbox"] {
+  accent-color: var(--px-accent);
+  cursor: pointer;
+}
+
+.settings-footer {
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--px-edge);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+#settings-close, #info-close, #info-getting-started {
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  color: var(--px-text);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+  padding: 6px 18px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--px-font);
+  font-size: 14px;
+  letter-spacing: 1px;
+  transition: border-color 0.1s, color 0.1s, box-shadow 0.1s;
+}
+
+#settings-close:hover, #info-close:hover, #info-getting-started:hover {
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow), 0 0 8px var(--px-glow);
+}
+
+/* ===== SETTINGS TABS ===== */
+.settings-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--px-edge);
+  padding-bottom: 0;
+}
+
+.settings-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--px-text-dim);
+  font-family: var(--px-font);
+  font-size: 14px;
+  letter-spacing: 2px;
+  padding: 6px 14px 8px;
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color 0.1s, border-color 0.1s;
+}
+
+.settings-tab:hover {
+  color: var(--px-text);
+}
+
+.settings-tab.active {
+  color: var(--px-accent);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+  border-bottom-color: var(--px-accent);
+}
+
+/* Only the active settings tab's panel is shown; toggled by SettingsPanel.ts. */
+.settings-tab-content {
+  display: none;
+}
+
+.settings-tab-content.active {
+  display: block;
+}
+
+/* ===== KEYBIND ROWS ===== */
+.keybind-header,
+.keybind-row {
+  display: grid;
+  grid-template-columns: minmax(112px, 1fr) 76px 96px;
+  align-items: center;
+  column-gap: 12px;
+}
+
+.keybind-header {
+  padding: 0 0 6px;
+  border-bottom: 1px solid var(--px-edge);
+}
+
+.keybind-header span {
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--px-text-dim);
+  text-align: center;
+}
+
+.keybind-header span:first-child {
+  text-align: left;
+}
+
+.keybind-row {
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(58, 66, 86, 0.5);
+}
+
+.keybind-row:nth-last-child(2) {
+  border-bottom: none;
+}
+
+.keybind-label {
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: var(--px-text-dim);
+}
+
+.keybind-btn {
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow);
+  color: var(--px-text);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+  font-family: var(--px-font);
+  font-size: 14px;
+  letter-spacing: 1px;
+  padding: 4px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  min-width: 60px;
+  text-align: center;
+  justify-self: stretch;
+  transition: border-color 0.1s, color 0.1s, box-shadow 0.1s;
+}
+
+.keybind-controller {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 4px 8px;
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  background: rgba(37, 43, 58, 0.55);
+  color: var(--px-text-dim);
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* Action rows expose their controller combo as a clickable rebind button. Unlike the fixed
+   movement mappings, these get the solid, raised treatment of the keyboard rebind buttons so
+   it's clear they can be changed. */
+.keybind-controller-btn {
+  font-family: var(--px-font);
+  cursor: pointer;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow);
+  color: var(--px-text);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+  transition: border-color 0.1s, color 0.1s, box-shadow 0.1s;
+}
+
+.keybind-btn:hover,
+.keybind-controller-btn:hover {
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow), 0 0 8px var(--px-glow);
+}
+
+@keyframes keybind-pulse {
+  0%, 100% { border-color: var(--px-accent); box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 0 6px var(--px-glow); }
+  50%      { border-color: var(--px-edge);   box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 0 12px var(--px-glow); }
+}
+
+.keybind-listening {
+  animation: keybind-pulse 0.7s ease infinite;
+  color: var(--px-accent) !important;
+}
+
+#reset-keybinds {
+  width: 100%;
+  margin-top: 14px;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  color: var(--px-text);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--px-font);
+  font-size: 14px;
+  letter-spacing: 1px;
+  transition: border-color 0.1s, color 0.1s, box-shadow 0.1s;
+}
+
+#reset-keybinds:hover {
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow), 0 0 8px var(--px-glow);
+}
+
+#edit-hud-btn {
+  width: 100%;
+  margin-top: 14px;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  color: var(--px-accent);
+  text-shadow: 1px 1px 0 var(--px-shadow);
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--px-font);
+  font-size: 14px;
+  letter-spacing: 1px;
+  transition: border-color 0.1s, color 0.1s, box-shadow 0.1s;
+}
+
+#edit-hud-btn:hover {
+  border-color: var(--px-accent);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow), 0 0 8px var(--px-glow);
+}
+
+/* ===== Controller settings ===== */
+.controller-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.controller-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  font-weight: bold;
+  width: fit-content;
+  text-shadow: 1px 1px 0 var(--px-shadow);
+}
+
+.controller-badge--xbox     { background: rgba(90, 209, 106, 0.22); color: #8bf096;  border: 2px solid rgba(90, 209, 106, 0.55); }
+.controller-badge--ps5      { background: rgba(74, 163, 255, 0.22); color: #9cd0ff;  border: 2px solid rgba(74, 163, 255, 0.55); }
+.controller-badge--nintendo { background: rgba(255, 93, 93, 0.22);  color: #ff9b99;  border: 2px solid rgba(255, 93, 93, 0.55); }
+.controller-badge--unknown  { background: rgba(139, 150, 173, 0.2); color: #c3cbdc;  border: 2px solid rgba(139, 150, 173, 0.45); }
+.controller-badge--none     { background: rgba(37, 43, 58, 0.6);    color: var(--px-text-dim);  border: 2px solid var(--px-edge); }
+
+.controller-name {
+  font-size: 13px;
+  color: var(--px-text-dim);
+  letter-spacing: 0.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 280px;
+}
+
+.controller-select.is-hidden {
+  display: none;
+}
+
+.controller-select {
+  width: 280px;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  color: var(--px-accent);
+  font-family: var(--px-font);
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  padding: 6px 8px;
+}
+
+/* ===== Non-selectable overlays ===== */
+#yas-status, #yas-session-id, #yas-menu, #yas-raid-modal, #yas-replay-modal, #yas-rng-modal, #yas-welcome-modal, #settings-panel, #info-panel, [data-hud-group] {
+  user-select: none;
+}
