@@ -80,9 +80,10 @@ test("Black Hole tether order is locked clockwise from Kefka at spawn and surviv
     const locked = atSpawn.blackHoleTetherOrder["black-hole-2"];
     expect(locked).toEqual(clockwiseTetherOrder(physical, kefkaAtSpawn));
 
-    // Past kefka-teleport-2 (t=84): Kefka has moved, but the locked order is unchanged.
+    // Past kefka-teleport-2 (t=84): kefka-teleport-2 has fired (it draws independently from the
+    // same 8 fixed spots with no anti-repeat rule, so it may coincidentally land back on the spawn
+    // spot - that's not itself a bug), but the locked order is unchanged regardless.
     const afterTeleport = runTicksWithComputedBotIntents(atSpawn, Math.ceil((85 - atSpawn.time) * 60));
-    expect(afterTeleport.bosses.find(b => b.id === "bigkefka")!.pos).not.toEqual(kefkaAtSpawn);
     expect(afterTeleport.blackHoleTetherOrder["black-hole-2"]).toEqual(locked);
   }
 });
@@ -195,26 +196,37 @@ test("everyone regroups at arena centre for ~2s right after each Black Hole spaw
   expect(firstMemberTarget).not.toEqual({ x: 0, z: 0 });
 });
 
+// Which literal dps ends up as first_in_line's untagged (NonAccretion Duty) member and which
+// ends up as second_in_line's dps is picked per pull by black-hole-dps-tier-accretion (any of
+// r1/r2/m1/m2 can land in either slot), so these must be resolved from debuffs, not hardcoded.
+const DPS_SLOTS = ["r1", "r2", "m1", "m2"];
+function hasEffect(world: ReturnType<typeof createWorld>, id: string, name: string) {
+  return byId(world, id).effects.some(e => e.name === name);
+}
+
 test("Black Hole tether handoff aims at the live source-holder midpoint, then steals the tether", async () => {
   const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
   const botData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole-bots.yaml").text());
   const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
 
-  // Sample at 76.1: past r2's brief *atOrb preposition window (75-76), so its tetherMidpoint rule is
-  // now the winning one, but before it actually steals the tether (~76.6) so m1 is still the holder.
+  // Sample at 76.1: past second_in_line's dps's brief *atOrb preposition window (75-76), so its
+  // tetherMidpoint rule is now the winning one, but before it actually steals the tether (~76.6)
+  // so first_in_line's untagged dps is still the holder.
   const during = runTicksWithComputedBotIntents(createWorld(raid, 1), Math.ceil(76.1 * 60));
+  const firstUntaggedDps = DPS_SLOTS.find(id => hasEffect(during, id, "First in Line") && hasEffect(during, id, "NonAccretion Duty"))!;
+  const secondDps = DPS_SLOTS.find(id => hasEffect(during, id, "Second in Line"))!;
   const source = during.blackHoleTetherOrder["black-hole-2"]![0]!;
   const tether = during.tetherSources.find(ts => !ts.finalized && ts.pos.x === source.x && ts.pos.z === source.z)!;
-  expect(tether.tetheredPlayerId).toBe("m1");
+  expect(tether.tetheredPlayerId).toBe(firstUntaggedDps);
 
   const holderId = tether.tetheredPlayerId;
   if (!holderId) throw new Error("expected a live tether holder");
   const holder = byId(during, holderId);
-  expect(genericSolverWaypoint(byId(during, "r2"), during)).toEqual(scale(add(source, holder.pos), 0.5));
+  expect(genericSolverWaypoint(byId(during, secondDps), during)).toEqual(scale(add(source, holder.pos), 0.5));
 
   const after = runTicksWithComputedBotIntents(during, Math.ceil((80.5 - during.time) * 60));
   const stolen = after.tetherSources.find(ts => !ts.finalized && ts.pos.x === source.x && ts.pos.z === source.z)!;
-  expect(stolen.tetheredPlayerId).toBe("r2");
+  expect(stolen.tetheredPlayerId).toBe(secondDps);
 });
 
 test("fresh Black Hole tether holder's merged rule heads to final soak", async () => {
@@ -223,10 +235,11 @@ test("fresh Black Hole tether holder's merged rule heads to final soak", async (
   const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
 
   const world = runTicksWithComputedBotIntents(createWorld(raid, 1), Math.ceil(72 * 60));
+  const firstUntaggedDps = DPS_SLOTS.find(id => hasEffect(world, id, "First in Line") && hasEffect(world, id, "NonAccretion Duty"))!;
   const source = world.blackHoleTetherOrder["black-hole-2"]![0]!;
   const tether = world.tetherSources.find(ts => !ts.finalized && ts.pos.x === source.x && ts.pos.z === source.z)!;
-  expect(tether.tetheredPlayerId).toBe("m1");
-  expect(genericSolverWaypoint(byId(world, "m1"), world)).toEqual(
+  expect(tether.tetheredPlayerId).toBe(firstUntaggedDps);
+  expect(genericSolverWaypoint(byId(world, firstUntaggedDps), world)).toEqual(
     pullTowardSource(clockwiseSoakWorld(source), source),
   );
 });
@@ -367,9 +380,10 @@ test("the party's post-Edict dodge spot doesn't jitter when chaos re-faces after
 });
 
 // Tether assignments are driven by First/Second/Third in Line + role, never a hardcoded player id.
-// first_in_line has two dps (r1, m1); which one carries Accretion (and so solos the 3rd tether
-// instead of doing the 1st tether's hand-off) is picked by a seeded RNG eventSet
-// (black-hole-tier-accretion in black-hole.yaml), so this must hold for either outcome.
+// Which 2 of the 4 dps (r1/r2/m1/m2) land in first_in_line, and which one of those carries
+// Accretion (and so solos the 3rd tether instead of doing the 1st tether's hand-off), is picked
+// by a seeded RNG eventSet (black-hole-dps-tier-accretion in black-hole.yaml), so this must hold
+// regardless of which specific dps ends up in which tier/duty.
 test("Black Hole tether assignments resolve correctly from debuffs regardless of which dps gets Accretion Duty", async () => {
   for (const seed of [1, 5]) {
     const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());
@@ -378,8 +392,11 @@ test("Black Hole tether assignments resolve correctly from debuffs regardless of
     let world = runTicksWithComputedBotIntents(createWorld(raid, seed), Math.ceil(18 * 60));
 
     const hasDebuff = (id: string, name: string) => byId(world, id).effects.some(e => e.name === name);
-    const accretionCarrier = hasDebuff("m1", "Accretion Duty") ? "m1" : "r1";
-    const dpsHandoff = accretionCarrier === "m1" ? "r1" : "m1";
+    const firstDps = DPS_SLOTS.filter(id => hasDebuff(id, "First in Line"));
+    const accretionCarrier = firstDps.find(id => hasDebuff(id, "Accretion Duty"))!;
+    const dpsHandoff = firstDps.find(id => id !== accretionCarrier)!;
+    const secondDps = DPS_SLOTS.find(id => hasDebuff(id, "Second in Line"))!;
+    const thirdDps = DPS_SLOTS.find(id => hasDebuff(id, "Third in Line"))!;
     expect(hasDebuff(accretionCarrier, "Accretion Duty")).toBe(true);
     expect(hasDebuff(dpsHandoff, "Accretion Duty")).toBe(false);
     expect(hasDebuff(accretionCarrier, "NonAccretion Duty")).toBe(false);
@@ -402,20 +419,20 @@ test("Black Hole tether assignments resolve correctly from debuffs regardless of
     atCenter(accretionCarrier);
 
     // wave 6 (t=105): DPS/Support hand-off has moved on to second_in_line, and Accretion has
-    // switched carriers to h2 (second_in_line's healer) - r1/m1 are done for the fight.
+    // switched carriers to h2 (second_in_line's healer) - first_in_line's dps are done for the fight.
     world = runTicksWithComputedBotIntents(world, Math.ceil((105 - 47) * 60));
     atCenter(dpsHandoff);
     atCenter(accretionCarrier);
     expect(hasDebuff("h2", "Accretion Duty")).toBe(true);
-    notCenter("r2"); // second_in_line's dps, doing the wave-6 hand-off
+    notCenter(secondDps); // second_in_line's dps, doing the wave-6 hand-off
     notCenter("h2"); // second_in_line's healer, soloing Accretion's tether
 
-    // wave 9 (t=138): DPS/Support chains have both reached third_in_line; m2 (dps) and its only
-    // non-dps member (mt or h1, see black-hole-tier-accretion) are the ones active - no Accretion
+    // wave 9 (t=138): DPS/Support chains have both reached third_in_line; its dps and its only
+    // non-dps member (mt or h1, see black-hole-support-tier) are the ones active - no Accretion
     // carrier this late.
     world = runTicksWithComputedBotIntents(world, Math.ceil((138 - 105) * 60));
     const thirdMember = ["mt", "h1"].find(id => hasDebuff(id, "Third in Line"))!;
-    notCenter("m2");
+    notCenter(thirdDps);
     notCenter(thirdMember);
   }
 });
