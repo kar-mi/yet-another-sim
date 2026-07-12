@@ -245,7 +245,7 @@ solvers:
     - { when: { mechanic: thunder-iii-tb-5 }, frame: [{ blackHoleTether: { hazardId: black-hole-2, order: 2 } }], origin: { boss: exdeath }, spots: *thunderRelativeBait }
 
     # Party-wide look-upon-me-2 dodge 
-    - { when: { static: true }, startAt: 142, endAt: 150, frame: [{ boss: { id: bigkefka, from: facing } }], spots: { mt: { r: -7, z: -7 }, ot: { r: -7, z: -7 }, h2: { r: -7, z: -7 }, r1: { r: -7, z: -7 }, r2: { r: -7, z: -7 }, m1: { r: -7, z: -7 }, m2: { r: -7, z: -7 } } }
+    - { when: { static: true }, startAt: 142, endAt: 150, frame: [{ boss: { id: bigkefka, from: facing } }], spots: { mt: { r: -7, z: -7 }, ot: { r: -7, z: -7 }, h1: { r: -7, z: -7 }, h2: { r: -7, z: -7 }, r1: { r: -7, z: -7 }, r2: { r: -7, z: -7 }, m1: { r: -7, z: -7 }, m2: { r: -7, z: -7 } } }
 
     # Everyone not already soaking a tether just stacks arena center, out of every beam's path.
     - { when: { static: true }, startAt: 37, endAt: 51, spot: *stackMiddle }
