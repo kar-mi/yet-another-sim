@@ -14,7 +14,7 @@ import { glyphBillboardMaterial, imageBillboardMaterial } from "./meshes/billboa
 
 const PLAYER_CENTER_Y = 0.4;
 export const PLAYER_MODEL_ROOT = `${STATIC_ROOT}/model/player/`;
-export const DEFAULT_PLAYER_MODEL_FILE = "mt.glb";
+export const DEFAULT_PLAYER_MODEL_FILE = "mt-vibrant.glb";
 export const PLAYER_MODEL_FILES: Record<string, string> = {
   mt: "mt-vibrant.glb",
   ot: "ot-vibrant.glb",

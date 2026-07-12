@@ -357,9 +357,12 @@ optionals:
     event-set-slap-happy-3:
       label: Slap Happy 3
       options: [Right, Left]
-    event-set-accretion-duty-first-in-line:
-      label: Accretion DPS
-      options: [M1, R1]
+    event-set-black-hole-support-tier:
+      label: Black Hole Support Tier
+      options: [Tank First, Healer First]
+    event-set-black-hole-dps-tier-accretion:
+      label: Black Hole DPS Tier & Accretion
+      options: [2nd R1 / 3rd R2 / Acc M1, 2nd R1 / 3rd R2 / Acc M2, 2nd R1 / 3rd M1 / Acc R2, 2nd R1 / 3rd M1 / Acc M2, 2nd R1 / 3rd M2 / Acc R2, 2nd R1 / 3rd M2 / Acc M1, 2nd R2 / 3rd R1 / Acc M1, 2nd R2 / 3rd R1 / Acc M2, 2nd R2 / 3rd M1 / Acc R1, 2nd R2 / 3rd M1 / Acc M2, 2nd R2 / 3rd M2 / Acc R1, 2nd R2 / 3rd M2 / Acc M1, 2nd M1 / 3rd R1 / Acc R2, 2nd M1 / 3rd R1 / Acc M2, 2nd M1 / 3rd R2 / Acc R1, 2nd M1 / 3rd R2 / Acc M2, 2nd M1 / 3rd M2 / Acc R1, 2nd M1 / 3rd M2 / Acc R2, 2nd M2 / 3rd R1 / Acc R2, 2nd M2 / 3rd R1 / Acc M1, 2nd M2 / 3rd R2 / Acc R1, 2nd M2 / 3rd R2 / Acc M1, 2nd M2 / 3rd M1 / Acc R1, 2nd M2 / 3rd M1 / Acc R2]
     black-hole-black-hole-1-combo:
       label: Black Hole 1 pattern
       options: [Outer cross, Inner cross]
@@ -409,13 +412,53 @@ optionals:
         sets:
           - [slap-happy-3-right-hit-1, slap-happy-3-right-hit-2, slap-happy-3-right-hit-3, slap-happy-3-party-stack, visual-chaos-cone-at-party-stack-3, slap-happy-3-right-hold]
           - [slap-happy-3-left-hit-1, slap-happy-3-left-hit-2, slap-happy-3-left-hit-3, slap-happy-3-role-stack-mt, slap-happy-3-role-stack-h1, slap-happy-3-role-stack-m1, slap-happy-3-role-cone-mt, slap-happy-3-role-cone-h1, slap-happy-3-role-cone-m1, slap-happy-3-left-hold]
-      # first_in_line has two dps (r1, m1): one does the regular dps hand-off, the other carries
-      # Accretion. Which one is picked at random per pull, not hardcoded to m1.
-      accretion-duty-first-in-line:
+      # Real-log analysis (scripts/raid_analyzer/out/dancing-mad-p3-blackhole-patterns.md) found
+      # Second in Line always has exactly one tank and one healer (second-in-line-support,
+      # unconditional below), but which of first_in_line/third_in_line gets the tank vs the healer
+      # is not fixed. Independent of dps placement (see black-hole-dps-tier-accretion below).
+      black-hole-support-tier:
         rng: true
         sets:
-          - [accretion-dps-m1, accretion-duty-dps-m1, non-accretion-duty-r1]
-          - [accretion-dps-r1, accretion-duty-dps-r1, non-accretion-duty-m1]
+          - [first-in-line-support-tank, third-in-line-support-healer]
+          - [first-in-line-support-healer, third-in-line-support-tank]
+
+      # Which 2 of the 4 dps (r1/r2/m1/m2) land in first_in_line vs which 1 lands in second_in_line
+      # vs which 1 lands in third_in_line, and which of first_in_line's 2 dps carries Accretion
+      # (the other does the regular dps hand-off) - merged into one eventSet because the Accretion
+      # choice depends on knowing which pair is even in first_in_line that pull. This is deliberately
+      # NOT restricted to "r1/m1 always first_in_line": the sim exists so players can practice every
+      # tier, and locking specific dps slots out of first_in_line would mean whoever queues as
+      # r2/m2 could never drill it. Accretion never goes to second_in_line's or third_in_line's dps
+      # (only first_in_line's, per the bot solver's wave 1-2 handoff invariant - see
+      # black-hole-bots.yaml) and never to a tank, matching the real-log data (0/60 tank-Accretion
+      # pulls across 30 logs).
+      black-hole-dps-tier-accretion:
+        rng: true
+        sets:
+          - [first-in-line-dps-m1, first-in-line-dps-m2, second-in-line-dps-r1, third-in-line-dps-r2, accretion-dps-m1, accretion-duty-dps-m1, non-accretion-duty-m2, non-accretion-duty-r1, non-accretion-duty-r2]
+          - [first-in-line-dps-m1, first-in-line-dps-m2, second-in-line-dps-r1, third-in-line-dps-r2, accretion-dps-m2, accretion-duty-dps-m2, non-accretion-duty-m1, non-accretion-duty-r1, non-accretion-duty-r2]
+          - [first-in-line-dps-r2, first-in-line-dps-m2, second-in-line-dps-r1, third-in-line-dps-m1, accretion-dps-r2, accretion-duty-dps-r2, non-accretion-duty-m2, non-accretion-duty-r1, non-accretion-duty-m1]
+          - [first-in-line-dps-r2, first-in-line-dps-m2, second-in-line-dps-r1, third-in-line-dps-m1, accretion-dps-m2, accretion-duty-dps-m2, non-accretion-duty-r2, non-accretion-duty-r1, non-accretion-duty-m1]
+          - [first-in-line-dps-r2, first-in-line-dps-m1, second-in-line-dps-r1, third-in-line-dps-m2, accretion-dps-r2, accretion-duty-dps-r2, non-accretion-duty-m1, non-accretion-duty-r1, non-accretion-duty-m2]
+          - [first-in-line-dps-r2, first-in-line-dps-m1, second-in-line-dps-r1, third-in-line-dps-m2, accretion-dps-m1, accretion-duty-dps-m1, non-accretion-duty-r2, non-accretion-duty-r1, non-accretion-duty-m2]
+          - [first-in-line-dps-m1, first-in-line-dps-m2, second-in-line-dps-r2, third-in-line-dps-r1, accretion-dps-m1, accretion-duty-dps-m1, non-accretion-duty-m2, non-accretion-duty-r2, non-accretion-duty-r1]
+          - [first-in-line-dps-m1, first-in-line-dps-m2, second-in-line-dps-r2, third-in-line-dps-r1, accretion-dps-m2, accretion-duty-dps-m2, non-accretion-duty-m1, non-accretion-duty-r2, non-accretion-duty-r1]
+          - [first-in-line-dps-r1, first-in-line-dps-m2, second-in-line-dps-r2, third-in-line-dps-m1, accretion-dps-r1, accretion-duty-dps-r1, non-accretion-duty-m2, non-accretion-duty-r2, non-accretion-duty-m1]
+          - [first-in-line-dps-r1, first-in-line-dps-m2, second-in-line-dps-r2, third-in-line-dps-m1, accretion-dps-m2, accretion-duty-dps-m2, non-accretion-duty-r1, non-accretion-duty-r2, non-accretion-duty-m1]
+          - [first-in-line-dps-r1, first-in-line-dps-m1, second-in-line-dps-r2, third-in-line-dps-m2, accretion-dps-r1, accretion-duty-dps-r1, non-accretion-duty-m1, non-accretion-duty-r2, non-accretion-duty-m2]
+          - [first-in-line-dps-r1, first-in-line-dps-m1, second-in-line-dps-r2, third-in-line-dps-m2, accretion-dps-m1, accretion-duty-dps-m1, non-accretion-duty-r1, non-accretion-duty-r2, non-accretion-duty-m2]
+          - [first-in-line-dps-r2, first-in-line-dps-m2, second-in-line-dps-m1, third-in-line-dps-r1, accretion-dps-r2, accretion-duty-dps-r2, non-accretion-duty-m2, non-accretion-duty-m1, non-accretion-duty-r1]
+          - [first-in-line-dps-r2, first-in-line-dps-m2, second-in-line-dps-m1, third-in-line-dps-r1, accretion-dps-m2, accretion-duty-dps-m2, non-accretion-duty-r2, non-accretion-duty-m1, non-accretion-duty-r1]
+          - [first-in-line-dps-r1, first-in-line-dps-m2, second-in-line-dps-m1, third-in-line-dps-r2, accretion-dps-r1, accretion-duty-dps-r1, non-accretion-duty-m2, non-accretion-duty-m1, non-accretion-duty-r2]
+          - [first-in-line-dps-r1, first-in-line-dps-m2, second-in-line-dps-m1, third-in-line-dps-r2, accretion-dps-m2, accretion-duty-dps-m2, non-accretion-duty-r1, non-accretion-duty-m1, non-accretion-duty-r2]
+          - [first-in-line-dps-r1, first-in-line-dps-r2, second-in-line-dps-m1, third-in-line-dps-m2, accretion-dps-r1, accretion-duty-dps-r1, non-accretion-duty-r2, non-accretion-duty-m1, non-accretion-duty-m2]
+          - [first-in-line-dps-r1, first-in-line-dps-r2, second-in-line-dps-m1, third-in-line-dps-m2, accretion-dps-r2, accretion-duty-dps-r2, non-accretion-duty-r1, non-accretion-duty-m1, non-accretion-duty-m2]
+          - [first-in-line-dps-r2, first-in-line-dps-m1, second-in-line-dps-m2, third-in-line-dps-r1, accretion-dps-r2, accretion-duty-dps-r2, non-accretion-duty-m1, non-accretion-duty-m2, non-accretion-duty-r1]
+          - [first-in-line-dps-r2, first-in-line-dps-m1, second-in-line-dps-m2, third-in-line-dps-r1, accretion-dps-m1, accretion-duty-dps-m1, non-accretion-duty-r2, non-accretion-duty-m2, non-accretion-duty-r1]
+          - [first-in-line-dps-r1, first-in-line-dps-m1, second-in-line-dps-m2, third-in-line-dps-r2, accretion-dps-r1, accretion-duty-dps-r1, non-accretion-duty-m1, non-accretion-duty-m2, non-accretion-duty-r2]
+          - [first-in-line-dps-r1, first-in-line-dps-m1, second-in-line-dps-m2, third-in-line-dps-r2, accretion-dps-m1, accretion-duty-dps-m1, non-accretion-duty-r1, non-accretion-duty-m2, non-accretion-duty-r2]
+          - [first-in-line-dps-r1, first-in-line-dps-r2, second-in-line-dps-m2, third-in-line-dps-m1, accretion-dps-r1, accretion-duty-dps-r1, non-accretion-duty-r2, non-accretion-duty-m2, non-accretion-duty-m1]
+          - [first-in-line-dps-r1, first-in-line-dps-r2, second-in-line-dps-m2, third-in-line-dps-m1, accretion-dps-r2, accretion-duty-dps-r2, non-accretion-duty-r1, non-accretion-duty-m2, non-accretion-duty-m1]
 
 events:
   - type: aoe
@@ -511,6 +554,7 @@ events:
       showTimer: false
 
   # Accretion carrier #2: second_in_line's healer (h2) - the group's spare non-hand-off member.
+  # Unconditional: every real-log pull had exactly one healer in second_in_line carrying Accretion.
   - type: apply_effect
     id: accretion-healer
     time: 17
@@ -526,10 +570,40 @@ events:
     applyEffect:
       ref: accretion_duty
 
-  # Accretion carrier #1: first_in_line's spare dps (r1 or m1 - it has two dps, one does the DPS
-  # hand-off, the other carries Accretion). Which one is picked by the RNG eventSet below
-  # (optionals.combinations.eventSets.accretion-duty-first-in-line), not hardcoded, so the bot
-  # solver (which matches by debuff + role, never by name) resolves correctly either way.
+  # Accretion carrier #1: whichever of first_in_line's two dps (any of r1/r2/m1/m2 - see
+  # black-hole-dps-tier-accretion, which also decides which pair is even in first_in_line that
+  # pull) isn't doing the regular dps hand-off. Not hardcoded, so the bot solver (which matches
+  # by debuff + role, never by name) resolves correctly for any of the 4 dps.
+  - type: apply_effect
+    id: accretion-dps-r1
+    time: 17
+    name: Accretion
+    players: [r1]
+    applyEffect:
+      ref: accretion
+  - type: apply_effect
+    id: accretion-duty-dps-r1
+    time: 17
+    name: Accretion Duty
+    players: [r1]
+    applyEffect:
+      ref: accretion_duty
+
+  - type: apply_effect
+    id: accretion-dps-r2
+    time: 17
+    name: Accretion
+    players: [r2]
+    applyEffect:
+      ref: accretion
+  - type: apply_effect
+    id: accretion-duty-dps-r2
+    time: 17
+    name: Accretion Duty
+    players: [r2]
+    applyEffect:
+      ref: accretion_duty
+
   - type: apply_effect
     id: accretion-dps-m1
     time: 17
@@ -546,27 +620,27 @@ events:
       ref: accretion_duty
 
   - type: apply_effect
-    id: accretion-dps-r1
+    id: accretion-dps-m2
     time: 17
     name: Accretion
-    players: [r1]
+    players: [m2]
     applyEffect:
       ref: accretion
   - type: apply_effect
-    id: accretion-duty-dps-r1
+    id: accretion-duty-dps-m2
     time: 17
     name: Accretion Duty
-    players: [r1]
+    players: [m2]
     applyEffect:
       ref: accretion_duty
 
-  # Everyone else gets the complementary marker: the 5 who never carry Accretion, plus whichever of
-  # r1/m1 the RNG above didn't pick (see accretion-duty-first-in-line).
+  # mt/ot/h1 never carry Accretion in any branch. Exactly one of r1/r2/m1/m2 carries it each pull
+  # (see black-hole-dps-tier-accretion); the other three get this complementary marker.
   - type: apply_effect
     id: non-accretion-duty
     time: 17
     name: NonAccretion Duty
-    players: [mt, ot, h1, r2, m2]
+    players: [mt, ot, h1]
     applyEffect:
       ref: non_accretion_duty
 
@@ -579,6 +653,14 @@ events:
       ref: non_accretion_duty
 
   - type: apply_effect
+    id: non-accretion-duty-r2
+    time: 17
+    name: NonAccretion Duty
+    players: [r2]
+    applyEffect:
+      ref: non_accretion_duty
+
+  - type: apply_effect
     id: non-accretion-duty-m1
     time: 17
     name: NonAccretion Duty
@@ -587,24 +669,143 @@ events:
       ref: non_accretion_duty
 
   - type: apply_effect
-    id: first-in-line
+    id: non-accretion-duty-m2
+    time: 17
+    name: NonAccretion Duty
+    players: [m2]
+    applyEffect:
+      ref: non_accretion_duty
+
+  # First/Third in Line's tank-vs-healer member: baseline (tank in first_in_line, healer in
+  # third_in_line) or swapped. Picked by black-hole-support-tier, independent of which dps land in
+  # which tier. Second in Line's support pair (ot, h2) is unconditional: real-log analysis found
+  # it always has exactly one tank and one healer.
+  - type: apply_effect
+    id: first-in-line-support-tank
     time: 17
     name: First in Line
-    players: [r1, m1, mt]
+    players: [mt]
     applyEffect:
       ref: first_in_line
   - type: apply_effect
-    id: second-in-line
+    id: first-in-line-support-healer
+    time: 17
+    name: First in Line
+    players: [h1]
+    applyEffect:
+      ref: first_in_line
+
+  - type: apply_effect
+    id: second-in-line-support
     time: 17
     name: Second in Line
-    players: [r2, ot, h2]
+    players: [ot, h2]
+    applyEffect:
+      ref: second_in_line
+
+  - type: apply_effect
+    id: third-in-line-support-healer
+    time: 17
+    name: Third in Line
+    players: [h1]
+    applyEffect:
+      ref: third_in_line
+  - type: apply_effect
+    id: third-in-line-support-tank
+    time: 17
+    name: Third in Line
+    players: [mt]
+    applyEffect:
+      ref: third_in_line
+
+  # Which 2 of the 4 dps (r1/r2/m1/m2) are in first_in_line vs second_in_line vs third_in_line is
+  # picked by black-hole-dps-tier-accretion, so every dps slot gets a shot at every tier across
+  # pulls (not just r1/m1 always first_in_line) - see scripts/raid_analyzer sim purpose: players
+  # need to be able to practice any tier regardless of which dps slot they queue as.
+  - type: apply_effect
+    id: first-in-line-dps-r1
+    time: 17
+    name: First in Line
+    players: [r1]
+    applyEffect:
+      ref: first_in_line
+  - type: apply_effect
+    id: first-in-line-dps-r2
+    time: 17
+    name: First in Line
+    players: [r2]
+    applyEffect:
+      ref: first_in_line
+  - type: apply_effect
+    id: first-in-line-dps-m1
+    time: 17
+    name: First in Line
+    players: [m1]
+    applyEffect:
+      ref: first_in_line
+  - type: apply_effect
+    id: first-in-line-dps-m2
+    time: 17
+    name: First in Line
+    players: [m2]
+    applyEffect:
+      ref: first_in_line
+
+  - type: apply_effect
+    id: second-in-line-dps-r1
+    time: 17
+    name: Second in Line
+    players: [r1]
     applyEffect:
       ref: second_in_line
   - type: apply_effect
-    id: third-in-line
+    id: second-in-line-dps-r2
+    time: 17
+    name: Second in Line
+    players: [r2]
+    applyEffect:
+      ref: second_in_line
+  - type: apply_effect
+    id: second-in-line-dps-m1
+    time: 17
+    name: Second in Line
+    players: [m1]
+    applyEffect:
+      ref: second_in_line
+  - type: apply_effect
+    id: second-in-line-dps-m2
+    time: 17
+    name: Second in Line
+    players: [m2]
+    applyEffect:
+      ref: second_in_line
+
+  - type: apply_effect
+    id: third-in-line-dps-r1
     time: 17
     name: Third in Line
-    players: [h1, m2]
+    players: [r1]
+    applyEffect:
+      ref: third_in_line
+  - type: apply_effect
+    id: third-in-line-dps-r2
+    time: 17
+    name: Third in Line
+    players: [r2]
+    applyEffect:
+      ref: third_in_line
+  - type: apply_effect
+    id: third-in-line-dps-m1
+    time: 17
+    name: Third in Line
+    players: [m1]
+    applyEffect:
+      ref: third_in_line
+  - type: apply_effect
+    id: third-in-line-dps-m2
+    time: 17
+    name: Third in Line
+    players: [m2]
     applyEffect:
       ref: third_in_line
 
