@@ -1,6 +1,6 @@
 import { readdir } from "node:fs/promises";
 import { join } from "path";
-import { RaidIdSchema, SessionIdSchema, type Frame } from "@shared/protocol";
+import { EMPTY_RAID_ID, RaidIdSchema, SessionIdSchema, type Frame } from "@shared/protocol";
 import type { World } from "@shared/types";
 import { REPLAY_FORMAT_VERSION, type ReplayData, type ReplayErrorCode, type ReplaySummary } from "@shared/replay";
 import { sanitizeSessionId } from "./logger";
@@ -88,7 +88,9 @@ export async function listReplays(sessionId: string): Promise<ReplaySummary[]> {
     if (!Number.isInteger(pull) || pull < 0) continue;
     try {
       const replay = await readReplayFile(join(SESSION_LOG_DIR, name));
-      if (replay) replays.push({ pull, raidId: replay.raidId, ticks: replay.frames.length, supported: true, formatVersion: replay.formatVersion });
+      if (replay && replay.raidId !== EMPTY_RAID_ID) {
+        replays.push({ pull, raidId: replay.raidId, ticks: replay.frames.length, supported: true, formatVersion: replay.formatVersion });
+      }
     } catch (error) {
       if (!(error instanceof ReplayReadError) || error.code !== "unsupported_format") continue;
       replays.push({ pull, raidId: "unknown", ticks: 0, supported: false, formatVersion: error.receivedVersion ?? null });

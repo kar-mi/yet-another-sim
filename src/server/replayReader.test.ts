@@ -37,16 +37,16 @@ test("reads saved pull summaries and frame logs", async () => {
     { intents: {}, botsInvincible: false },
   ];
   const log = createSessionLog("replay-reader-test-pull-2");
-  log.header("empty", createWorld(createEmptyRaid(), 123));
+  log.header("debug/test", createWorld(createEmptyRaid(), 123));
   log.frame(0, frames);
   log.close();
 
   expect(await listReplays("replay-reader-test")).toEqual([{
-    pull: 2, raidId: "empty", ticks: 2, supported: true, formatVersion: REPLAY_FORMAT_VERSION,
+    pull: 2, raidId: "debug/test", ticks: 2, supported: true, formatVersion: REPLAY_FORMAT_VERSION,
   }]);
 
   const loaded = await loadReplay("replay-reader-test", 2);
-  expect(loaded?.raidId).toBe("empty");
+  expect(loaded?.raidId).toBe("debug/test");
   expect(loaded?.frames).toEqual(frames);
   expect(worldHash(replay(loaded!.world, loaded!.frames))).toBe(worldHash(replay(loaded!.world, loaded!.frames)));
 });

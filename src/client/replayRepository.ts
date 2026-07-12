@@ -21,7 +21,10 @@ export class ReplayRepository {
   constructor(private readonly request: Request = fetch) {}
 
   async list(sessionId: string): Promise<ReplaySummary[]> {
-    const response = await this.request(`/api/replays/${encodeURIComponent(sessionId)}`);
+    // Detach browser-native fetch from this repository. Calling it as `this.request(...)` gives it
+    // the repository as its receiver, which some browsers reject as an illegal invocation.
+    const request = this.request;
+    const response = await request(`/api/replays/${encodeURIComponent(sessionId)}`);
     if (!response.ok) throw new ReplayRepositoryError("request_failed", `Failed to load replay list: ${response.status}`);
     const value: unknown = await response.json();
     if (!Array.isArray(value)) throw new ReplayRepositoryError("corrupt_data", "Invalid replay list");
@@ -33,7 +36,8 @@ export class ReplayRepository {
     const cached = this.cache.get(key);
     if (cached) return cached;
 
-    const response = await this.request(`/api/replays/${encodeURIComponent(sessionId)}/${pull}`);
+    const request = this.request;
+    const response = await request(`/api/replays/${encodeURIComponent(sessionId)}/${pull}`);
     if (!response.ok) throw await responseError(response);
     const replay = parseReplayData(await response.json());
     this.cache.set(key, replay);

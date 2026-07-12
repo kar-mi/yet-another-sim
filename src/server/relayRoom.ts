@@ -643,6 +643,9 @@ export class RelayRoom {
 
   private openPullLog(): void {
     this.closePullLog();
+    // The empty raid is the interactive test lobby, not authored simulation content. Recording it
+    // creates noise in the replay browser and consumes the first pull number before a real raid.
+    if (this.raidId === EMPTY_RAID_ID) return;
     this.pullNumber++;
     this.sessionLog = this.createSessionLog?.(`${this.id}-pull-${this.pullNumber}`) ?? null;
     this.sessionLog?.header(this.raidId, this.world);

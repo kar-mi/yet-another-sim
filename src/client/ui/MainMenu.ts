@@ -159,8 +159,7 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
 
     const renderReplays = (): HTMLElement => {
       const openBtn = createElement("button", "yas-menu-start", replays ? `REPLAYS (${replays.length})` : "REPLAYS");
-      openBtn.disabled = !replays || replays.length === 0;
-      openBtn.addEventListener("click", openReplayModal);
+      openBtn.addEventListener("click", () => { void openReplayModal(); });
       const wrapper = createElement("div", "yas-lobby-replays");
       wrapper.appendChild(openBtn);
       return wrapper;
@@ -263,10 +262,12 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
       }
     };
 
-    const openReplayModal = () => {
+    const openReplayModal = async () => {
       replaySearch.value = "";
-      renderReplayModal();
       replayModal.style.display = "flex";
+      replayList.replaceChildren(createElement("div", "yas-raid-empty", "Loading replays..."));
+      await refreshReplays();
+      renderReplayModal();
       replaySearch.focus();
     };
 
@@ -350,8 +351,22 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
     let closed = false;
     let welcomeShown = false;
 
+    const refreshReplays = async (): Promise<void> => {
+      try {
+        const list = await replayRepository.list(sessionId);
+        if (closed) return;
+        replays = list;
+        if (lastLobby) renderLobby(lastLobby);
+      } catch (error) {
+        if (!closed) showError(`Failed to load replays: ${error instanceof Error ? error.message : "Unknown error"}`);
+      }
+    };
+
     const disposers = [
-      net.on("lobby", renderLobby),
+      net.on("lobby", message => {
+        renderLobby(message);
+        void refreshReplays();
+      }),
       net.on("started", message => {
         const raidId = lastLobby?.raidId ?? EMPTY_RAID_ID;
         const isHost = net.clientId !== null && net.clientId === lastLobby?.hostClientId;
@@ -367,11 +382,6 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
     ];
 
     renderHeader("WAITING FOR LOBBY");
-    void replayRepository.list(sessionId).catch(() => []).then(list => {
-      if (closed) return;
-      replays = list;
-      if (lastLobby) renderLobby(lastLobby);
-    });
     net.send({ type: "join", sessionId, raidId: EMPTY_RAID_ID });
   });
 }

@@ -119,6 +119,30 @@ function makeDefaultLobbySession() {
   return { session, sent };
 }
 
+test("empty lobby does not create replay logs or consume a pull number", () => {
+  const logFactory = makeLogFactory();
+  const sent: Array<{ clientId: string; message: ServerMessage }> = [];
+  const session = new RelayRoom();
+  session.init({
+    id: "empty-log-test",
+    raidId: EMPTY_RAID_ID,
+    raid: createEmptyRaid(),
+    send: (clientId, message) => sent.push({ clientId, message: typeof message === "string" ? JSON.parse(message) as ServerMessage : message }),
+    autoTick: false,
+    createSessionLog: logFactory.createSessionLog,
+  });
+  session.join("c1");
+  session.claimObserver("c1");
+  session.start("c1");
+  session.stop("c1");
+
+  expect(logFactory.logs).toHaveLength(0);
+
+  session.setRaid("c1", "test-raid", testRaid());
+  session.play("c1");
+  expect(logFactory.logs.map(log => log.id)).toEqual(["empty-log-test-pull-1"]);
+});
+
 test("client can claim only one slot", () => {
   const { session, sent } = makeSession();
   session.join("c1");

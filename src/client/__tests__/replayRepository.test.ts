@@ -37,3 +37,12 @@ test("ReplayRepository rejects malformed successful payloads", async () => {
   const repository = new ReplayRepository(async () => Response.json([{ pull: "one" }]));
   await expect(repository.list("session")).rejects.toMatchObject({ code: "corrupt_data" });
 });
+
+test("ReplayRepository invokes browser fetch without a repository receiver", async () => {
+  const request = function (this: unknown): Promise<Response> {
+    if (this !== undefined) throw new TypeError("Illegal invocation");
+    return Promise.resolve(Response.json([summary]));
+  };
+  const repository = new ReplayRepository(request);
+  expect(await repository.list("session")).toEqual([summary]);
+});
