@@ -363,6 +363,26 @@ test("plant debuff places a teleport trap that arms, then snaps the entrant afte
   expect(human(after).pos.z).toBeGreaterThan(6);
 });
 
+test("zero-delay plant trap waits until it arms and captures a player before teleporting", () => {
+  const raid = loadRaid({ ...baseRaid, players: roster({ m1: { spawn: [0, 0] } }) });
+  const world = withEffect(createWorld(raid), effect({
+    name: "Plant",
+    duration: 0.5,
+    behavior: { kind: "plant", direction: [0, 1], distance: 8, radius: 3, armDelay: 0.5, duration: 10, tpDelay: 0 },
+  }));
+
+  const beforeArm = runTicks(world, noMove, Math.ceil(0.8 * 60));
+  const trap = beforeArm.forcedMarches.find(fm => fm.id.startsWith("plant-"))!;
+  expect(trap.triggered).toBe(false);
+  expect(trap.teleported).toBe(false);
+  expect(human(beforeArm).pos.z).toBeCloseTo(0);
+
+  const afterArm = runTicks(beforeArm, noMove, Math.ceil(0.3 * 60));
+  expect(human(afterArm).pos.z).toBeCloseTo(8);
+  expect(afterArm.forcedMarches[0]!.triggered).toBe(true);
+  expect(afterArm.forcedMarches[0]!.teleported).toBe(true);
+});
+
 test("plant teleport lands the captured player along the direction from their own spot", () => {
   const raid = loadRaid({ ...baseRaid, players: roster({ m1: { spawn: [0, 0] } }) });
   let world = withEffect(createWorld(raid), effect({

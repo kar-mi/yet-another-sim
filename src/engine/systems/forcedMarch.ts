@@ -40,7 +40,7 @@ export function resolveForcedMarches(ctx: TickContext): PendingForcedMarch[] {
           behavior: { kind: "sleep" },
         }, time, `${fm.id}-freeze`, players);
       }
-    } else if (!fm.teleported && time >= (fm.triggeredAt ?? time) + fm.preDelay) {
+    } else if (fm.triggered && !fm.teleported && time >= fm.triggeredAt! + fm.preDelay) {
       // windup (preDelay) elapsed: instantly teleport the captured player to the destination.
       const captured = players.find(p => p.id === fm.capturedPlayerId && p.alive);
       if (captured) {
