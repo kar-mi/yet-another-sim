@@ -4,7 +4,7 @@
 import type { TickContext } from "./context";
 import type { ActiveTower, PendingTower, AOEShape, Player } from "@shared/types";
 import { pointInShape } from "../shapes";
-import { applyEffect, applyKnockback, consumeEffectStacks } from "./helpers";
+import { applyEffect, applyKnockback, applyMechanicDamage, applyMechanicLethal, consumeEffectStacks } from "./helpers";
 import { triggerEffectResolver } from "./effectResolvers";
 import { cullResolved } from "./util";
 import { TOWER_LINGER } from "@shared/constants";
@@ -57,8 +57,7 @@ export function resolveTowers(ctx: TickContext): {
         if (tower.requiredRoles && tower.wrongRoleLethal) {
           for (const p of inside) {
             if (!tower.requiredRoles.includes(p.role) && !p.invincible) {
-              p.hp = 0;
-              p.alive = false;
+              applyMechanicLethal(p, time);
               log.push({ t: time, mechanic: tower.name, playerId: p.id, event: "hit" });
             }
           }
@@ -90,8 +89,7 @@ export function resolveTowers(ctx: TickContext): {
           // Unsoaked: the whole raid eats the failure damage.
           for (const p of players) {
             if (!p.alive || p.invincible) continue;
-            p.hp = Math.max(0, p.hp - tower.failureDamage);
-            if (p.hp <= 0) p.alive = false;
+            applyMechanicDamage(p, tower.failureDamage, tower.failureDamageType, time);
             log.push({ t: time, mechanic: tower.name, playerId: p.id, event: "hit" });
           }
         }

@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { createWorld } from "../world";
 import { DPS_HP, TANK_HP } from "./constants";
 import type { Player, World } from "@shared/types";
-import { HUMAN, baseRaid, human, loadRaid, roster, runTicks } from "./helpers";
+import { HUMAN, baseRaid, effect, human, loadRaid, roster, runTicks, withPlayerEffect } from "./helpers";
 import type { Vec } from "./helpers";
 
 // --- Chains ---------------------------------------------------------------
@@ -58,5 +58,51 @@ test("a chain left unbroken bursts both members once at expiry", () => {
   expect(otPlayer(world).hp).toBe(TANK_HP - 40); // tank, burst applied exactly once
   expect(hasChainBond(human(world))).toBe(false);
   expect(hasChainBond(otPlayer(world))).toBe(false);
+});
+
+test("chain burst uses its damage type for vulnerability", () => {
+  const world = withPlayerEffect(createWorld(chainRaid()), HUMAN, effect({
+    name: "Magic Vulnerability",
+    behavior: { kind: "vuln", damageType: "magical", multiplier: 2 },
+  }));
+  const after = runTicks(world, {}, Math.ceil(6.0 * 60));
+
+  expect(human(after).hp).toBe(20);
+  expect(human(after).effects.some(e => e.name === "Magic Vulnerability")).toBe(false);
+  expect(otPlayer(after).hp).toBe(TANK_HP - 40);
+});
+
+test("invincibility blocks chain burst damage", () => {
+  const initial = createWorld(chainRaid());
+  const world = {
+    ...initial,
+    players: initial.players.map(player => player.id === HUMAN ? { ...player, invincible: true } : player),
+  };
+  const after = runTicks(world, {}, Math.ceil(6.0 * 60));
+
+  expect(human(after).alive).toBe(true);
+  expect(human(after).hp).toBe(DPS_HP);
+  expect(hasChainBond(human(after))).toBe(false);
+  expect(otPlayer(after).hp).toBe(TANK_HP - 40);
+});
+
+test("one-hit survivor effect saves a player from lethal chain burst", () => {
+  const initial = createWorld(chainRaid());
+  const crust = effect({
+    id: "crust",
+    name: "Primordial Crust",
+    behavior: { kind: "primordialCrust", expiryDamage: 999999, expiryDamageType: "true" },
+  });
+  const world = {
+    ...initial,
+    players: initial.players.map(player => player.id === HUMAN
+      ? { ...player, hp: 30, effects: [...player.effects, crust] }
+      : player),
+  };
+  const after = runTicks(world, {}, Math.ceil(6.0 * 60));
+
+  expect(human(after).alive).toBe(true);
+  expect(human(after).hp).toBe(1);
+  expect(human(after).effects.some(e => e.behavior.kind === "primordialCrust")).toBe(false);
 });
 

@@ -87,6 +87,99 @@ test("under-soaked tower applies lethal failure damage to all players", () => {
   expect(world.players.every(player => !player.alive)).toBe(true);
 });
 
+test("tower failure damage uses the pipeline for typed modifiers, survival, and invincibility", () => {
+  const raid = groupRaid([{
+    type: "tower", id: "tower", t: 0, name: "Tower", telegraph: 0.5, pos: [0, 0], radius: 3,
+    requiredCount: 2, failureDamage: 60, failureDamageType: "magical",
+  }], {
+    mt: { spawn: [0, 0] }, h1: { spawn: [10, 0] }, m1: { spawn: [12, 0] },
+    ot: { spawn: [-12, 0] }, h2: { spawn: [0, 12] }, r1: { spawn: [0, -12] }, r2: { spawn: [10, 10] }, m2: { spawn: [-10, -10] },
+  });
+  const initial = createWorld(raid);
+  const world = {
+    ...initial,
+    players: initial.players.map(player => {
+      if (player.id === "mt") return {
+        ...player,
+        effects: [...player.effects, effect({
+          id: "vuln",
+          name: "Magic Vulnerability",
+          behavior: { kind: "vuln", damageType: "magical", multiplier: 2 },
+        })],
+      };
+      if (player.id === "h1") return {
+        ...player,
+        hp: 50,
+        effects: [...player.effects, effect({
+          id: "crust",
+          name: "Primordial Crust",
+          behavior: { kind: "primordialCrust", expiryDamage: 999999, expiryDamageType: "true" },
+        })],
+      };
+      if (player.id === "m1") return { ...player, invincible: true };
+      return player;
+    }),
+  };
+
+  const after = runTicks(world, noMove, Math.ceil(0.6 * 60));
+
+  expect(after.players.find(p => p.id === "mt")!.hp).toBe(TANK_HP - 120);
+  expect(after.players.find(p => p.id === "mt")!.effects.some(e => e.name === "Magic Vulnerability")).toBe(false);
+  expect(after.players.find(p => p.id === "h1")!.hp).toBe(1);
+  expect(after.players.find(p => p.id === "h1")!.alive).toBe(true);
+  expect(after.players.find(p => p.id === "h1")!.effects.some(e => e.behavior.kind === "primordialCrust")).toBe(false);
+  expect(after.players.find(p => p.id === "m1")!.hp).toBe(DPS_HP);
+  expect(after.players.find(p => p.id === "m1")!.alive).toBe(true);
+});
+
+test("wrong-role tower punishment is guaranteed lethal except for invincibility or one-hit survival", () => {
+  const raid = groupRaid([{
+    type: "tower", id: "tower", t: 0, name: "Healer Tower", telegraph: 0.5, pos: [0, 0], radius: 3,
+    requiredCount: 1, requiredRoles: ["healer"], wrongRoleLethal: true,
+    failureDamage: 0, failureDamageType: "true",
+  }], {
+    h1: { spawn: [0, 0] }, mt: { spawn: [0.5, 0] }, m1: { spawn: [1, 0] }, r1: { spawn: [1.5, 0] },
+    ot: { spawn: [12, 0] }, h2: { spawn: [-12, 0] }, r2: { spawn: [0, -12] }, m2: { spawn: [10, 10] },
+  });
+  const initial = createWorld(raid);
+  const world = {
+    ...initial,
+    players: initial.players.map(player => {
+      if (player.id === "mt") return {
+        ...player,
+        effects: [...player.effects, effect({
+          id: "mitigation",
+          name: "Mitigation",
+          behavior: { kind: "mitigation", damageType: "true", multiplier: 0.1 },
+        })],
+      };
+      if (player.id === "m1") return {
+        ...player,
+        effects: [...player.effects, effect({
+          id: "crust",
+          name: "Primordial Crust",
+          behavior: { kind: "primordialCrust", expiryDamage: 999999, expiryDamageType: "true" },
+        })],
+      };
+      if (player.id === "r1") return { ...player, invincible: true };
+      return player;
+    }),
+  };
+
+  const after = runTicks(world, noMove, Math.ceil(0.6 * 60));
+  const mt = after.players.find(p => p.id === "mt")!;
+  const m1 = after.players.find(p => p.id === "m1")!;
+  const r1 = after.players.find(p => p.id === "r1")!;
+
+  expect(mt.alive).toBe(false);
+  expect(mt.hp).toBe(0);
+  expect(m1.alive).toBe(true);
+  expect(m1.hp).toBe(1);
+  expect(m1.effects.some(e => e.behavior.kind === "primordialCrust")).toBe(false);
+  expect(r1.alive).toBe(true);
+  expect(r1.hp).toBe(DPS_HP);
+});
+
 test("successful tower consumes one debuff stack but failed towers do not", () => {
   const tower = {
     type: "tower", id: "tower", t: 0, name: "Tower", telegraph: 0.5, pos: [0, 0], radius: 3,
