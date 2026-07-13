@@ -45,7 +45,7 @@ function atanUnit(x: number): number {
   return atanCore(x);
 }
 
-export function atan(x: number): number {
+function atan(x: number): number {
   const sign = x < 0 ? -1 : 1;
   const ax = Math.abs(x);
   const r = ax > 1 ? HALF_PI - atanUnit(1 / ax) : atanUnit(ax);

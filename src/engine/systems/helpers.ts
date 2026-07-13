@@ -112,14 +112,26 @@ export function applyMechanicDamage(player: Player, damage: number, damageType: 
   if (!player.invincible) {
     player.hp = Math.max(0, player.hp - dealt);
     if (player.hp <= 0) {
-      const survivor = player.effects.find(e => isEffectActiveAt(e, time) && COMBAT_LIFECYCLE_REGISTRY[e.behavior.kind].onLethal?.(e, player) === true);
-      if (survivor) {
-        player.hp = 1;
-        player.effects = player.effects.filter(e => e !== survivor);
-      } else {
-        player.alive = false;
-      }
+      resolveLethalHit(player, time);
     }
+  }
+}
+
+// Applies an explicitly lethal mechanic punishment. Invincibility and one-hit survivor effects
+// still apply, but damage modifiers cannot turn the punishment into an ordinary nonlethal hit.
+export function applyMechanicLethal(player: Player, time: number): void {
+  if (player.invincible) return;
+  player.hp = 0;
+  resolveLethalHit(player, time);
+}
+
+function resolveLethalHit(player: Player, time: number): void {
+  const survivor = player.effects.find(e => isEffectActiveAt(e, time) && COMBAT_LIFECYCLE_REGISTRY[e.behavior.kind].onLethal?.(e, player) === true);
+  if (survivor) {
+    player.hp = 1;
+    player.effects = player.effects.filter(e => e !== survivor);
+  } else {
+    player.alive = false;
   }
 }
 

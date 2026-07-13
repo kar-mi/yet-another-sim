@@ -177,7 +177,7 @@ export type PendingEffectBurst = {
   color?: string;
 };
 
-export type EffectResolverAction =
+type EffectResolverAction =
   | { kind: "spread"; radius: number; damage: number; damageType: DamageType }
   | { kind: "stack"; radius: number; requiredCount: number; damage: number; damageType: DamageType }
   | { kind: "cone_nearest"; angleDeg: number; length: number; damage: number; damageType: DamageType };
@@ -204,7 +204,7 @@ export type PendingSetHp = {
   players?: string[];
 };
 
-export type TowerVisual = {
+type TowerVisual = {
   pillar: boolean;
   countCircles: boolean;
   fallingCylinder: boolean;
@@ -215,7 +215,7 @@ export type TowerVisual = {
   fallingObjectAlpha?: number; // falling object opacity
 };
 
-export type TowerEffectConsumption = {
+type TowerEffectConsumption = {
   effectName: string;
   stacks: number;
 };
@@ -312,11 +312,11 @@ export type ActiveInverse = {
 };
 
 // A "?" mechanic that flips between spread (per-player AOEs) and stack (shared soak).
-export type SpreadStackMode = "spread" | "stack";
-export type SpreadStackShown = SpreadStackMode | "random"; // authored; "random" resolves to a concrete mode at cast start
+type SpreadStackMode = "spread" | "stack";
+type SpreadStackShown = SpreadStackMode | "random"; // authored; "random" resolves to a concrete mode at cast start
 
-export type SpreadConfig = { radius: number; damage: number };
-export type StackConfig = { groups: string[][]; radius: number; requiredCount: number; damage: number };
+type SpreadConfig = { radius: number; damage: number };
+type StackConfig = { groups: string[][]; radius: number; requiredCount: number; damage: number };
 
 export type PendingSpreadStack = {
   id: string;
@@ -355,8 +355,8 @@ export type ActiveSpreadStack = {
   outcome?: "success" | "failure"; // set at resolve (stack mode), drives the post-resolve flash
 };
 
-export type GazeVisual = { width: number; height: number; depth: number };
-export type CarrierCone = { angleDeg: number; length: number };
+type GazeVisual = { width: number; height: number; depth: number };
+type CarrierCone = { angleDeg: number; length: number };
 
 export type PendingGaze = {
   id: string;
@@ -533,7 +533,7 @@ export type TetherSource = {
   finalized: boolean;
 };
 
-export type TetherBeam = {
+type TetherBeam = {
   width: number;
   length: number;
   damage: number;
@@ -567,7 +567,7 @@ export type LineLinkTarget = {
   count?: number;
 };
 
-export type LineLinkVisual = {
+type LineLinkVisual = {
   kind: "statue";
   width: number;
   height: number;

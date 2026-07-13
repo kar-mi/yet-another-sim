@@ -15,7 +15,7 @@ import type {
   PendingTwister, TetherSource,
 } from "./mechanics";
 
-export type WorldCoreState = {
+type WorldCoreState = {
   seed: number;
   time: number;
   rngState: number;                     // seeded PRNG state (shared/rng.ts), advanced each pull
@@ -32,7 +32,7 @@ export type WorldCoreState = {
   duration: number;
 };
 
-export type WorldMechanicState = {
+type WorldMechanicState = {
   active: ActiveMechanic[];
   pending: PendingEvent[];
   tetherSources: TetherSource[];
@@ -77,7 +77,7 @@ export type WorldMechanicState = {
   limitCuts: ActiveLimitCut[];
 };
 
-export type WorldSolverState = {
+type WorldSolverState = {
   // Per-player plant directions (one per plant slot), assigned at world creation and stamped onto
   // each plant debuff as it lands so the HUD arrow and trap use the player's assigned heading.
   plantPlan: Record<string, [number, number][]>;

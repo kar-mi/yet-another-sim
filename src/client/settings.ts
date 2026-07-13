@@ -25,7 +25,7 @@ export interface HudGroupLayout {
   hidden: boolean;
 }
 
-export const HUD_GROUPS: readonly HudGroupId[] = [
+const HUD_GROUPS: readonly HudGroupId[] = [
   "party", "hotbar", "debuffs", "resources", "targetcast", "bosscasts", "timer", "raidselector",
 ];
 
