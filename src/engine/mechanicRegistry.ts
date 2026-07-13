@@ -38,7 +38,7 @@ import { resolveHazards } from "./systems/hazard";
 import { resolveBossTeleports } from "./systems/bossTeleport";
 
 type RaidEvent = RaidDef["events"][number];
-export type EventType = RaidEvent["type"];
+type EventType = RaidEvent["type"];
 
 // The mutable pending/resolver collections createWorld populates; keys match World fields exactly.
 export type Collections = Pick<World,

@@ -16,8 +16,8 @@ export type FloorAoeResolveMode =
   // lead defaults to FLOOR_AOE_DEFAULT_LEAD (0.5s), trail to FLOOR_AOE_DEFAULT_TRAIL (0.2s).
   | { kind: "resolve"; lead?: number; trail?: number };
 
-export const FLOOR_AOE_DEFAULT_LEAD = 0.5;
-export const FLOOR_AOE_DEFAULT_TRAIL = 0.2;
+const FLOOR_AOE_DEFAULT_LEAD = 0.5;
+const FLOOR_AOE_DEFAULT_TRAIL = 0.2;
 
 // Default colors, matching the conventions each render layer used to hardcode. `color` is required
 // on FloorAoe itself (no implicit convention inside the class or the renderer); these are supplied

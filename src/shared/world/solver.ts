@@ -83,7 +83,7 @@ export type FrameRef =
 
 // When any mechanic matching `mechanic` (id-prefix or label, like GenericSolverRule.when.mechanic)
 // resolves, bots hold their current position for `duration` seconds before re-solving.
-export type SolverHold = {
+type SolverHold = {
   mechanic: string | string[];
   duration: number;
 };

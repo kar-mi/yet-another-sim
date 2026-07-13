@@ -2,7 +2,7 @@ import type { EffectBehavior, Player, StatusEffect } from "@shared/types";
 
 export type EffectIcon = { glyph?: string; src?: string; rotate?: number };
 
-export type BehaviorModule = {
+type BehaviorModule = {
   disablesInput?: boolean;
   icon?: (effect: StatusEffect) => EffectIcon;
 };
@@ -14,7 +14,7 @@ function teleportentIcon([x, z]: [number, number]): string {
   return z >= 0 ? "teleportent_up.png" : "teleportent_down.png";
 }
 
-export const BEHAVIOR_REGISTRY: Record<EffectBehavior["kind"], BehaviorModule> = {
+const BEHAVIOR_REGISTRY: Record<EffectBehavior["kind"], BehaviorModule> = {
   none: {},
   vuln: { icon: () => ({ glyph: "▼" }) },
   mitigation: {},

@@ -41,7 +41,7 @@ export const ACTIONS: Record<ActionId, ActionMeta> = {
 };
 
 export const KEYBOARD_HOTBAR_SLOT_COUNT = 10;
-export const KEYBOARD_HOTBAR_ACTIONS = ["sprint", "antiKnockback", "provoke"] as const satisfies readonly ActionId[];
+const KEYBOARD_HOTBAR_ACTIONS = ["sprint", "antiKnockback", "provoke"] as const satisfies readonly ActionId[];
 
 export const KEY_BINDING_LABELS: Record<keyof KeyBindings, string> = {
   moveForward: "FORWARD",
@@ -74,7 +74,7 @@ export const CONTROLLER_FACE_BUTTONS: readonly ControllerFaceButton[] = [
 export const CONTROLLER_DPAD_BUTTONS: readonly ControllerDpadButton[] = [
   "dpadUp", "dpadLeft", "dpadRight", "dpadDown",
 ];
-export const CONTROLLER_MODIFIERS = ["LT", "RT", "LB", "RB"] as const;
+const CONTROLLER_MODIFIERS = ["LT", "RT", "LB", "RB"] as const;
 
 // Diamond position of each button so the hotbar can lay them out (top/left/right/bottom).
 export const CONTROLLER_BUTTON_POSITION: Record<ControllerButtonId, "top" | "left" | "right" | "bottom"> = {

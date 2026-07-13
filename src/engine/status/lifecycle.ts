@@ -7,7 +7,7 @@ import { applyEffect, applyKnockback, applyMechanicDamage, effectActiveDt, isLoo
 import { GRAVITY } from "@shared/constants";
 import { sin, cos } from "@shared/dmath";
 
-export type ExpiryScratch = {
+type ExpiryScratch = {
   resolvedCrystalFollowUps: Set<string>;
   resolvedPairedSpreadStacks: Set<string>;
 };
@@ -43,7 +43,7 @@ export const STATUS_LIFECYCLE_REGISTRY: Record<EffectBehavior["kind"], StatusLif
   assignment: { onExpiry: expiryDamageOnExpiry },
 };
 
-export function dotOnTick(effect: StatusEffect, player: Player, ctx: TickContext, acted: boolean): void {
+function dotOnTick(effect: StatusEffect, player: Player, ctx: TickContext, acted: boolean): void {
   const behavior = effect.behavior as Extract<EffectBehavior, { kind: "dot" }>;
   const activeDt = effectActiveDt(effect, ctx.previousTime, ctx.time);
   if (activeDt <= 0) return;
@@ -58,7 +58,7 @@ export function dotOnTick(effect: StatusEffect, player: Player, ctx: TickContext
   }
 }
 
-export function burstSpreadOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext, scratch: ExpiryScratch): void {
+function burstSpreadOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext, scratch: ExpiryScratch): void {
   const behavior = effect.behavior as BurstSpread;
   const selfShape: AOEShape = (behavior.selfShape ?? "circle") === "donut"
     ? { kind: "donut", center: player.pos, inner: behavior.selfInner!, outer: behavior.radius }
@@ -84,7 +84,7 @@ export function burstSpreadOnExpiry(effect: StatusEffect, player: Player, ctx: T
   resolveFollowUp(ctx, effect.id, effect.name, followUp, player.pos, player.id);
 }
 
-export function effectBurstOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
+function effectBurstOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
   const behavior = effect.behavior as Extract<EffectBehavior, { kind: "effectBurst" }>;
   const shape: AOEShape = behavior.shape === "donut"
     ? { kind: "donut", center: player.pos, inner: behavior.innerRadius!, outer: behavior.radius }
@@ -93,7 +93,7 @@ export function effectBurstOnExpiry(effect: StatusEffect, player: Player, ctx: T
   addResolvedAoeVisual(ctx, `${effect.id}-burst`, effect.name, shape);
 }
 
-export function twisterOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
+function twisterOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
   const behavior = effect.behavior as Extract<EffectBehavior, { kind: "twister" }>;
   const inverted = behavior.questionMark ?? (behavior.rng ? ctx.randFloat() < 0.5 : false);
   const shapeKind = inverted ? behavior.hiddenShape : behavior.shownShape;
@@ -111,7 +111,7 @@ export function twisterOnExpiry(effect: StatusEffect, player: Player, ctx: TickC
   });
 }
 
-export function carrierGazeOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
+function carrierGazeOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
   const behavior = effect.behavior as Extract<EffectBehavior, { kind: "carrierGaze" }>;
   const shape: AOEShape = {
     kind: "cone",
@@ -123,7 +123,7 @@ export function carrierGazeOnExpiry(effect: StatusEffect, player: Player, ctx: T
   addResolvedAoeVisual(ctx, `${effect.id}-cone`, effect.name, shape);
 }
 
-export function reverseCarrierGazeOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
+function reverseCarrierGazeOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
   const behavior = effect.behavior as Extract<EffectBehavior, { kind: "reverseCarrierGaze" }>;
   const halfAngle = behavior.coneHalfAngle ?? Math.PI / 2;
   for (const target of ctx.players) {
@@ -134,7 +134,7 @@ export function reverseCarrierGazeOnExpiry(effect: StatusEffect, player: Player,
   }
 }
 
-export function pairedSpreadStackOnExpiry(effect: StatusEffect, _player: Player, ctx: TickContext, scratch: ExpiryScratch): void {
+function pairedSpreadStackOnExpiry(effect: StatusEffect, _player: Player, ctx: TickContext, scratch: ExpiryScratch): void {
   const behavior = effect.behavior as Extract<EffectBehavior, { kind: "pairedSpreadStack" }>;
   if (scratch.resolvedPairedSpreadStacks.has(behavior.key)) return;
   scratch.resolvedPairedSpreadStacks.add(behavior.key);
@@ -163,7 +163,7 @@ export function pairedSpreadStackOnExpiry(effect: StatusEffect, _player: Player,
   }
 }
 
-export function effectCheckOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
+function effectCheckOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
   const behavior = effect.behavior as Extract<EffectBehavior, { kind: "effectCheck" }>;
   const [left, right] = behavior.compare.map(group => player.effects.find(candidate => candidate.group === group)?.name);
   const passes = left !== undefined && right !== undefined
@@ -176,7 +176,7 @@ export function effectCheckOnExpiry(effect: StatusEffect, player: Player, ctx: T
   ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: player.id, event: "hit" });
 }
 
-export function plantOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
+function plantOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
   const behavior = effect.behavior as Extract<EffectBehavior, { kind: "plant" }>;
   ctx.forcedMarches.push({
     id: `plant-${player.id}-${effect.id}`,
@@ -195,13 +195,13 @@ export function plantOnExpiry(effect: StatusEffect, player: Player, ctx: TickCon
   });
 }
 
-export function expiryDamageOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
+function expiryDamageOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
   const behavior = effect.behavior as Extract<EffectBehavior, { kind: "primordialCrust" | "accretion" | "assignment" }>;
   applyMechanicDamage(player, behavior.expiryDamage, behavior.expiryDamageType, ctx.time);
   if (!player.alive) ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: player.id, event: "hit" });
 }
 
-export function motionCheckOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
+function motionCheckOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
   const behavior = effect.behavior as Extract<EffectBehavior, { kind: "motionCheck" }>;
   const moved = (player.lastMotionAt ?? -Infinity) >= ctx.time - behavior.window;
   if (behavior.required === "move" ? moved : !moved) return;
