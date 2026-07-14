@@ -447,7 +447,7 @@ export class RelayRoom {
     this.applySlotControlsToWorld();
     this.broadcastLobby();
 
-    if (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused")) {
+    if (this.status === "stopped" || (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused"))) {
       this.sendTo(clientId, this.startedMessage(playerId));
     }
   }

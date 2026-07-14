@@ -384,7 +384,26 @@ test("client can reclaim and enter a stopped session", () => {
 
   expect(session.status).toBe("stopped");
   expect(session.world.time).toBe(0);
-  expect(sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started")).toHaveLength(startedBeforeClaim);
+  expect(sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started")).toHaveLength(startedBeforeClaim + 1);
+});
+
+test("new client can claim and enter a stopped session", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+  session.stop("c1");
+  session.join("c2");
+  const sentBeforeClaim = sent.length;
+
+  session.claimSlot("c2", "ot");
+
+  const messages = sent.slice(sentBeforeClaim).filter(entry => entry.clientId === "c2");
+  const lobbyIndex = messages.findIndex(entry => entry.message.type === "lobby");
+  const startedIndex = messages.findIndex(entry => entry.message.type === "started");
+  expect(lobbyIndex).toBeGreaterThanOrEqual(0);
+  expect(lobbyIndex).toBeLessThan(startedIndex);
+  expect(messages[startedIndex]?.message).toMatchObject({ type: "started", baseTick: 0, tick: 0, frames: [], yourPlayerId: "ot" });
 });
 
 test("stop promotes queued players and observers before sending a fresh tick-zero world", () => {
