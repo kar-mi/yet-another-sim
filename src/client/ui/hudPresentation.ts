@@ -10,6 +10,7 @@ const PARTY_SLOT_ORDER = ["mt", "ot", "h1", "h2", "m1", "m2", "r1", "r2"] as con
 const PARTY_SLOT_INDEX = new Map<string, number>(PARTY_SLOT_ORDER.map((id, index) => [id, index]));
 
 export type CastCandidate = { name: string; telegraphStart: number; resolveAt: number; bossId: string };
+export const CAST_BAR_COLOR = "#7a1f2b";
 
 export function formatTime(seconds: number): string {
   const total = Math.max(0, Math.floor(seconds));

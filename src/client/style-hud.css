@@ -223,7 +223,7 @@ img.party-effect-icon {
   position: absolute;
   top: 0; left: 0; bottom: 0;
   width: 0%;
-  background: linear-gradient(90deg, #f5a623, var(--px-danger));
+  background: var(--px-cast);
   transition: width 0.05s linear;
 }
 
@@ -277,7 +277,7 @@ img.party-effect-icon {
   position: absolute;
   top: 0; left: 0; bottom: 0;
   width: 0%;
-  background: linear-gradient(90deg, #f5a623, var(--px-danger));
+  background: var(--px-cast);
   transition: width 0.05s linear;
 }
 
