@@ -11,10 +11,10 @@ const EFFECT_TIMER_STEP = 0.25;
 
 type EffectKind = Player["effects"][number]["kind"];
 type EffectChipHandle = { expiresAt: number; timerEl?: HTMLSpanElement };
-export type EffectRenderState = { ids: string[]; timerBucket: number; chips: EffectChipHandle[] };
+export type EffectRenderState = { playerId: string | null; ids: string[]; timerBucket: number; chips: EffectChipHandle[] };
 
 export function createEffectRenderState(): EffectRenderState {
-  return { ids: [], timerBucket: -1, chips: [] };
+  return { playerId: null, ids: [], timerBucket: -1, chips: [] };
 }
 
 function isActiveVisibleEffect(effect: Player["effects"][number], time: number, kind: EffectKind | null = null): boolean {
@@ -126,7 +126,7 @@ export function syncEffectChips(
   kind: EffectKind | null = null,
 ): void {
   const bucket = effectTimerBucket(time);
-  if (!hasSameActiveEffects(player, time, state.ids, kind)) {
+  if (state.playerId !== player.id || !hasSameActiveEffects(player, time, state.ids, kind)) {
     const elements: HTMLSpanElement[] = [];
     const chips: EffectChipHandle[] = [];
     for (const effect of sortedActiveVisibleEffects(player, time, kind)) {
@@ -135,6 +135,7 @@ export function syncEffectChips(
       chips.push(chip.handle);
     }
     container.replaceChildren(...elements);
+    state.playerId = player.id;
     state.ids = activeEffectIds(player, time, kind);
     state.chips = chips;
     state.timerBucket = bucket;
