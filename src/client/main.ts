@@ -142,7 +142,7 @@ async function main(): Promise<void> {
         playbackState: "paused",
         readOnly: true,
         closeNet: true,
-        createRaidSelect: () => createRaidHudSelect(replayNet, lobbyResult.raidId, false, "paused", hudLayout, lobbyResult.world.seed, null, transport),
+        createRaidSelect: () => createRaidHudSelect(replayNet, lobbyResult.raidId, false, "paused", hudLayout, lobbyResult.world.seed, {}, transport),
         syncKeybindLabels,
         updateController,
       }, settings);
@@ -177,7 +177,7 @@ async function main(): Promise<void> {
       renderer,
       net,
       playbackState: session.playbackState,
-      createRaidSelect: () => createRaidHudSelect(net, session.raidId, session.isHost, session.playbackState, hudLayout, session.world.seed, session.seedOverride, undefined, session.rngDecisions, session.waymarkPresetId, session.botPatternOptions, session.botPatternId),
+      createRaidSelect: () => createRaidHudSelect(net, session.raidId, session.isHost, session.playbackState, hudLayout, session.world.seed, session.rngConstraints, undefined, session.rngDecisions, session.waymarkPresetId, session.botPatternOptions, session.botPatternId),
       syncKeybindLabels,
       updateController,
     }, settings);

@@ -45,15 +45,28 @@ interface RelayClientData {
 export interface RelayRoomOptions {
   sessionId?: string;
   raidId?: string;
+}
+
+export interface RelayServerDependencies {
   autoTick?: boolean;
   now?: () => number;
   lobbyTimeoutMs?: number;
+  loadRaid?: typeof loadSessionRaid;
 }
 
 // Colyseus room adapter: owns a transport-agnostic RelayRoom and wires Colyseus lifecycle, auth,
 // rate limiting, and message routing into it.
 export class RelayServerRoom extends Room {
-  private readonly relay = new RelayRoom();
+  private readonly relay: RelayRoom;
+  private readonly dependencies: RelayServerDependencies;
+  private capacityReserved = false;
+  private messageQueue = Promise.resolve();
+
+  constructor(dependencies: RelayServerDependencies = {}) {
+    super();
+    this.dependencies = dependencies;
+    this.relay = new RelayRoom();
+  }
 
   async onCreate(options: RelayRoomOptions): Promise<void> {
     const sessionId = typeof options.sessionId === "string" && options.sessionId ? options.sessionId : this.roomId;
@@ -62,26 +75,32 @@ export class RelayServerRoom extends Room {
     if (!RaidIdSchema.safeParse(raidId).success) throw new Error("Invalid raidId");
     if (activeRooms >= MAX_SESSIONS) throw new Error("Server is full");
     activeRooms++;
-    await this.setMetadata({ sessionId } as any);
-    this.relay.init({
-      id: sessionId,
-      raidId,
-      raid: await loadSessionRaid(raidId, RAIDS_DIR),
-      autoTick: options.autoTick,
-      now: options.now,
-      lobbyTimeoutMs: options.lobbyTimeoutMs,
-      createSessionLog,
-      send: (clientId, message) => {
-        const payload = typeof message === "string" ? JSON.parse(message) as ServerMessage : message;
-        this.clients.getById(clientId)?.send("s", payload);
-      },
-    });
-    this.onMessage("c", (client, message) => this.handleColyseusMessage(client, message));
-    this.clock.setInterval(() => {
-      if (!this.relay.isExpired()) return;
-      for (const client of this.clients) client.send("s", { type: "sessionExpired" } satisfies ServerMessage);
-      this.disconnect();
-    }, 60_000);
+    this.capacityReserved = true;
+    try {
+      await this.setMetadata({ sessionId } as any);
+      this.relay.init({
+        id: sessionId,
+        raidId,
+        raid: await (this.dependencies.loadRaid ?? loadSessionRaid)(raidId, RAIDS_DIR),
+        autoTick: this.dependencies.autoTick,
+        now: this.dependencies.now,
+        lobbyTimeoutMs: this.dependencies.lobbyTimeoutMs,
+        createSessionLog,
+        send: (clientId, message) => {
+          const payload = typeof message === "string" ? JSON.parse(message) as ServerMessage : message;
+          this.clients.getById(clientId)?.send("s", payload);
+        },
+      });
+      this.onMessage("c", (client, message) => this.handleColyseusMessage(client, message));
+      this.clock.setInterval(() => {
+        if (!this.relay.isExpired()) return;
+        for (const client of this.clients) client.send("s", { type: "sessionExpired" } satisfies ServerMessage);
+        this.disconnect();
+      }, 60_000);
+    } catch (error) {
+      this.releaseCapacity();
+      throw error;
+    }
   }
 
   onAuth(client: Client<{ userData: RelayClientData }>, _options: RelayRoomOptions, context: AuthContext): boolean {
@@ -114,25 +133,31 @@ export class RelayServerRoom extends Room {
   }
 
   onDispose(): void {
-    activeRooms = Math.max(0, activeRooms - 1);
+    this.releaseCapacity();
     this.relay.dispose();
   }
 
+  private releaseCapacity(): void {
+    if (!this.capacityReserved) return;
+    this.capacityReserved = false;
+    activeRooms = Math.max(0, activeRooms - 1);
+  }
+
   private handleColyseusMessage(client: Client<{ userData: RelayClientData }>, raw: unknown): void {
-    void (async () => {
-      metrics.wsMessagesTotal.inc();
-      const rate = client.userData?.rate;
-      if (rate && !rate.allow()) {
-        metrics.wsRateLimitedTotal.inc();
-        return;
-      }
-      const parsed = ClientMessageSchema.safeParse(raw);
-      if (!parsed.success) {
-        metrics.wsInvalidTotal.inc();
-        logger.warn("net", "invalid message", { clientId: client.sessionId });
-        client.send("s", { type: "error", message: "Invalid message" } satisfies ServerMessage);
-        return;
-      }
+    metrics.wsMessagesTotal.inc();
+    const rate = client.userData?.rate;
+    if (rate && !rate.allow()) {
+      metrics.wsRateLimitedTotal.inc();
+      return;
+    }
+    const parsed = ClientMessageSchema.safeParse(raw);
+    if (!parsed.success) {
+      metrics.wsInvalidTotal.inc();
+      logger.warn("net", "invalid message", { clientId: client.sessionId });
+      client.send("s", { type: "error", message: "Invalid message" } satisfies ServerMessage);
+      return;
+    }
+    this.messageQueue = this.messageQueue.then(async () => {
       if (parsed.data.type === "debugPosition") {
         logger.debug("hud", "player position", { clientId: client.sessionId, ...parsed.data });
         return;
@@ -144,11 +169,11 @@ export class RelayServerRoom extends Room {
           return;
         }
         if (parsed.data.type === "setRaid") {
-          this.relay.setRaid(client.sessionId, parsed.data.raidId, await loadSessionRaid(parsed.data.raidId, RAIDS_DIR));
+          this.relay.setRaid(client.sessionId, parsed.data.raidId, await (this.dependencies.loadRaid ?? loadSessionRaid)(parsed.data.raidId, RAIDS_DIR));
           return;
         }
         if (parsed.data.type === "setBotPattern") {
-          const raid = await loadSessionRaid(this.relay.raidId, RAIDS_DIR, parsed.data.patternId);
+          const raid = await (this.dependencies.loadRaid ?? loadSessionRaid)(this.relay.raidId, RAIDS_DIR, parsed.data.patternId);
           this.relay.setBotPattern(client.sessionId, parsed.data.patternId, raid);
           return;
         }
@@ -157,6 +182,6 @@ export class RelayServerRoom extends Room {
         logger.error("net", "message handler failed", { clientId: client.sessionId, type: parsed.data.type, err });
         client.send("s", { type: "error", message: "Server error" } satisfies ServerMessage);
       }
-    })();
+    });
   }
 }

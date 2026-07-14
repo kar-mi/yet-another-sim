@@ -8,7 +8,7 @@ import { el } from "./dom";
 type OptionsModalState = {
   raidId: string;
   currentSeed: number | null;
-  seedOverride: number | null;
+  rngConstraints: Record<string, number>;
   rngDecisions: DecisionDescription[];
   waymarkPresetId: string | null;
   botPatternOptions: BotPatternOption[];
@@ -22,10 +22,10 @@ function formatSeed(seed: number | null): string {
   return seed === null ? "-" : `0x${seed.toString(16).padStart(8, "0")}`;
 }
 
-export function armSeed(net: NetClient, raidId: string): void {
+export function armRngConstraints(net: NetClient, raidId: string): void {
   const constraints = loadRngConstraints(raidId);
   if (Object.keys(constraints).length === 0) return;
-  net.send({ type: "findSeed", constraints });
+  net.send({ type: "setRngConstraints", constraints });
 }
 
 export function armWaymark(net: NetClient, raidId: string): void {
@@ -87,9 +87,9 @@ export function createOptionsModal(net: NetClient, initial: OptionsModalState): 
 
   const renderHeader = () => {
     currentSeed.textContent = formatSeed(state.currentSeed);
-    overrideText.textContent = state.seedOverride === null
-      ? "Random seed each pull."
-      : "Selected outcomes applied every pull.";
+    overrideText.textContent = Object.keys(state.rngConstraints).length === 0
+      ? "Unconstrained choices reroll from a fresh seed each pull."
+      : "Selected outcomes stay fixed; RNG choices reroll each pull.";
   };
 
   const renderDecisions = () => {
@@ -103,7 +103,7 @@ export function createOptionsModal(net: NetClient, initial: OptionsModalState): 
     const saved = loadRngConstraints(state.raidId);
     for (const desc of state.rngDecisions) {
       const select = el("select", { className: "yas-rng-select", attrs: { "data-key": desc.key } }, [
-        el("option", { value: "", textContent: "Any" }),
+        el("option", { value: "", textContent: "RNG" }),
         ...desc.options.map((option, i) => el("option", { value: String(i), textContent: option })),
       ]);
       const savedValue = saved[desc.key];
@@ -130,12 +130,12 @@ export function createOptionsModal(net: NetClient, initial: OptionsModalState): 
     if (Object.keys(constraints).length === 0) {
       clearRngConstraints(state.raidId);
       errorText.textContent = "";
-      net.send({ type: "setSeed", seed: null });
+      net.send({ type: "setRngConstraints", constraints: {} });
       return;
     }
     saveRngConstraints(state.raidId, constraints);
     errorText.textContent = "";
-    net.send({ type: "findSeed", constraints });
+    net.send({ type: "setRngConstraints", constraints });
   };
 
   const rngBody = el("div", { className: "yas-rng-body" }, [
@@ -195,14 +195,15 @@ export function createOptionsModal(net: NetClient, initial: OptionsModalState): 
     errorText.textContent = "";
     clearRngConstraints(state.raidId);
     for (const select of selects) select.value = "";
-    net.send({ type: "setSeed", seed: null });
+    net.send({ type: "setRngConstraints", constraints: {} });
   });
   modal.addEventListener("click", event => { if (event.target === modal) close(); });
   const onKeydown = (event: KeyboardEvent) => {
     if (event.key === "Escape" && modal.style.display !== "none") close();
   };
-  const disposeRngResult = net.on("rngResult", message => {
-    errorText.textContent = message.ok ? "" : "No seed found within search cap.";
+  const disposeRngResult = net.on("rngConstraintsResult", message => {
+    if (!message.ok) clearRngConstraints(state.raidId);
+    errorText.textContent = message.ok ? "" : "Saved RNG choices are invalid and were cleared.";
   });
   document.addEventListener("keydown", onKeydown);
   document.body.appendChild(modal);

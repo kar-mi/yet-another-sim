@@ -5,7 +5,7 @@ import { loadRaidCategories } from "./MainMenu";
 import { showLoadingOverlay } from "./LoadingOverlay";
 import { el } from "./dom";
 import type { HudLayoutManager } from "./HudLayoutManager";
-import { armSeed, armWaymark, createOptionsModal } from "./OptionsModal";
+import { armRngConstraints, armWaymark, createOptionsModal } from "./OptionsModal";
 import { loadRngConstraints } from "../rngPrefs";
 import { loadWaymarkPreset } from "../waymarkPrefs";
 
@@ -37,7 +37,7 @@ export async function createRaidHudSelect(
   initialPlaybackState: PlaybackState,
   hudLayout: HudLayoutManager,
   initialWorldSeed: number | null = null,
-  initialSeedOverride: number | null = null,
+  initialRngConstraints: Record<string, number> = {},
   replay?: { duration: () => number; currentTick: () => number; play: () => void; pause: () => void; restart: () => void; seek: (tick: number) => void },
   initialRngDecisions: DecisionDescription[] = [],
   initialWaymarkPresetId: string | null = null,
@@ -76,7 +76,7 @@ export async function createRaidHudSelect(
   ]);
   let activeRaidId = initialRaidId;
   let currentWorldSeed = initialWorldSeed;
-  let seedOverride = initialSeedOverride;
+  let rngConstraints = initialRngConstraints;
   let selectedRaidId = initialRaidId;
   let raidChangePending = false;
   let resumePlaybackAfterModal = false;
@@ -236,7 +236,7 @@ export async function createRaidHudSelect(
   const optionsModal = replay ? null : createOptionsModal(net, {
     raidId: activeRaidId,
     currentSeed: currentWorldSeed,
-    seedOverride,
+    rngConstraints,
     rngDecisions: initialRngDecisions,
     waymarkPresetId: initialWaymarkPresetId,
     botPatternOptions: initialBotPatternOptions,
@@ -299,6 +299,7 @@ export async function createRaidHudSelect(
 
   syncPlayback = (state: PlaybackState) => {
     lastState = state;
+    playBtn.textContent = !replay && state === "stopped" ? "START" : "PLAY";
     const locked = raidChangePending || !isHost;
     raidBtn.disabled = locked;
     if (locked) closeModal(false);
@@ -345,18 +346,18 @@ export async function createRaidHudSelect(
   const disposeLobby = net.on("lobby", message => {
     isHost = replay ? false : net.clientId === message.hostClientId;
     activeRaidId = message.raidId;
-    seedOverride = message.seedOverride;
+    rngConstraints = message.rngConstraints;
     optionsModal?.update({
       raidId: message.raidId,
-      seedOverride,
+      rngConstraints,
       rngDecisions: message.rngDecisions,
       waymarkPresetId: message.waymarkPresetId,
       botPatternOptions: message.botPatternOptions,
       botPatternId: message.botPatternId,
       isHost,
     });
-    if (isHost && message.seedOverride === null && Object.keys(loadRngConstraints(message.raidId)).length > 0) {
-      armSeed(net, message.raidId);
+    if (isHost && JSON.stringify(message.rngConstraints) !== JSON.stringify(loadRngConstraints(message.raidId))) {
+      armRngConstraints(net, message.raidId);
     }
     if (isHost && message.waymarkPresetId === null && loadWaymarkPreset(message.raidId) !== null) {
       armWaymark(net, message.raidId);
@@ -365,7 +366,6 @@ export async function createRaidHudSelect(
   const disposeStarted = net.on("started", message => {
     currentWorldSeed = message.world.seed;
     optionsModal?.update({ currentSeed: currentWorldSeed });
-    if (isHost) armSeed(net, activeRaidId);
     if (isHost) armWaymark(net, activeRaidId);
   });
   syncPlayback(initialPlaybackState);

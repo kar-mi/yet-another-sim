@@ -4,7 +4,7 @@ import { parseRaidFile } from "../../server/raidFileReader";
 import { applyBotPatterns, loadBotPatterns, loadRaid } from "../raidLoader";
 import { preRollRaid } from "../preRoll";
 import { createWorld } from "../world";
-import { describeDecisions, findSeed } from "../seedSearch";
+import { describeDecisions, validateRngConstraints } from "../seedSearch";
 import { baseRaid, loadRaid as loadTestRaid } from "./helpers";
 
 const RAIDS = join(import.meta.dir, "..", "..", "..", "raids", "dancing-mad-ultimate");
@@ -42,13 +42,18 @@ test("bowels divebomb decisions match the rolled sweep", async () => {
   }
 });
 
-test("findSeed honors constraints and rejects impossible constraints", async () => {
+test("constraints override outcomes without changing RNG progression", async () => {
   const raid = await bowelsRaid();
-  const seed = findSeed(raid, { "divebomb-direction": 1 });
+  const unconstrained = preRollRaid(raid, 123);
+  const constrained = preRollRaid(raid, 123, { "divebomb-direction": 1 });
 
-  expect(seed).not.toBeNull();
-  expect(preRollRaid(raid, seed!).decisions["divebomb-direction"]).toBe(1);
-  expect(findSeed(raid, { "divebomb-direction": 99 }, 50)).toBeNull();
+  expect(constrained.decisions["divebomb-direction"]).toBe(1);
+  expect(constrained.rngState).toBe(unconstrained.rngState);
+  expect(createWorld(raid, 123, { "divebomb-direction": 1 })).toEqual(createWorld(raid, 123, { "divebomb-direction": 1 }));
+  expect(validateRngConstraints(raid, { "divebomb-direction": 1 })).toEqual({ "divebomb-direction": 1 });
+  expect(validateRngConstraints(raid, { "divebomb-direction": 99 })).toBeNull();
+  expect(validateRngConstraints(raid, { unknown: 0 })).toBeNull();
+  expect(validateRngConstraints(raid, { "divebomb-direction": 0.5 })).toBeNull();
 });
 
 test("describeDecisions lists bowels choices and empty raids have none", async () => {
@@ -107,4 +112,38 @@ test("dancing mad rngLabels match described decisions", async () => {
       }
     }
   }
+});
+
+test("every advertised decision can be overridden without consuming different RNG", async () => {
+  for (const name of ["bowels-of-agony", "black-hole", "forsaken", "graven-image-3", "kefka-says"]) {
+    const raid = await dmuRaid(name);
+    const baseline = preRollRaid(raid, 0x12345678);
+    for (const decision of describeDecisions(raid)) {
+      const value = decision.options.length - 1;
+      const constrained = preRollRaid(raid, 0x12345678, { [decision.key]: value });
+      expect(constrained.decisions[decision.key], `${name}:${decision.key}`).toBe(value);
+      expect(constrained.rngState, `${name}:${decision.key}`).toBe(baseline.rngState);
+    }
+  }
+});
+
+test("one black hole can stay forced while another rerolls", async () => {
+  const raid = await dmuRaid("black-hole");
+  const comboKeys = describeDecisions(raid).map(decision => decision.key).filter(key => key.endsWith("-combo"));
+  expect(comboKeys.length).toBeGreaterThanOrEqual(2);
+  const [forcedKey, rngKey] = comboKeys;
+  const rerolled = new Set<number>();
+  for (let seed = 1; seed <= 64; seed++) {
+    const decisions = preRollRaid(raid, seed, { [forcedKey!]: 0 }).decisions;
+    expect(decisions[forcedKey!]).toBe(0);
+    rerolled.add(decisions[rngKey!]!);
+  }
+  expect(rerolled.size).toBeGreaterThan(1);
+});
+
+test("forced shuffled endings must be unique", async () => {
+  const raid = await dmuRaid("forsaken");
+  const endingKeys = describeDecisions(raid).map(decision => decision.key).filter(key => key.startsWith("ending-"));
+  expect(endingKeys.length).toBeGreaterThanOrEqual(2);
+  expect(validateRngConstraints(raid, { [endingKeys[0]!]: 0, [endingKeys[1]!]: 0 })).toBeNull();
 });

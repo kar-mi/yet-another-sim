@@ -115,12 +115,8 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     type: z.literal("restart"),
   }),
   z.strictObject({
-    type: z.literal("setSeed"),
-    seed: z.number().int().min(0).max(0xffffffff).nullable(),
-  }),
-  z.strictObject({
-    type: z.literal("findSeed"),
-    constraints: z.record(z.string(), z.number().int().min(0)),
+    type: z.literal("setRngConstraints"),
+    constraints: z.record(z.string(), z.number()),
   }),
   z.strictObject({
     type: z.literal("setWaymarkPreset"),
@@ -197,7 +193,7 @@ export type ServerMessage =
       status: LobbyStatus;
       hostClientId: string;
       slots: LobbySlot[];
-      seedOverride: number | null;
+      rngConstraints: Record<string, number>;
       rngDecisions: DecisionDescription[];
       waymarkPresetId: string | null;
       botPatternOptions: BotPatternOption[];
@@ -206,7 +202,7 @@ export type ServerMessage =
       maxObservers: number;
       observingByYou: boolean;
     }
-  | { type: "rngResult"; ok: boolean }
+  | { type: "rngConstraintsResult"; ok: boolean }
   // The pull's world at `baseTick` plus the input log tail from baseTick to `tick`. On a fresh start
   // baseTick is 0 and frames is empty. For a late join / resync anchored to a host snapshot,
   // baseTick is the snapshot tick and frames is only the tail — the client adopts the world and

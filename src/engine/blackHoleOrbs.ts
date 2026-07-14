@@ -26,14 +26,16 @@ export function clockwiseTetherOrder(positions: readonly Vec2[], from: Vec2): Ve
   return [...positions].sort((a, b) => offset(a) - offset(b) || bearing(a) - bearing(b));
 }
 
-export function selectOrbLayout(combos: readonly (readonly BlackHoleOrb[])[], rngState: number): { orbs: BlackHoleOrb[]; rngState: number; combo: number; rotation: number } {
+export function selectOrbLayout(combos: readonly (readonly BlackHoleOrb[])[], rngState: number, forcedCombo?: number, forcedRotation?: number): { orbs: BlackHoleOrb[]; rngState: number; combo: number; rotation: number } {
   const comboRoll = randomInt(rngState, combos.length);
   const rotationRoll = randomInt(comboRoll.state, 4);
-  const source = combos[comboRoll.value]!;
+  const combo = forcedCombo ?? comboRoll.value;
+  const rotation = forcedRotation ?? rotationRoll.value;
+  const source = combos[combo]!;
   return {
-    combo: comboRoll.value,
-    rotation: rotationRoll.value,
+    combo,
+    rotation,
     rngState: rotationRoll.state,
-    orbs: source.map(orb => ({ ...orb, pos: rotate90(orb.pos, rotationRoll.value) })),
+    orbs: source.map(orb => ({ ...orb, pos: rotate90(orb.pos, rotation) })),
   };
 }

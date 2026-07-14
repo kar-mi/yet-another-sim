@@ -438,7 +438,11 @@ export class HudOverlay {
       this.statusEl.textContent = "PAUSED";
       this.statusEl.className = "yas-visible yas-paused";
     } else if (this.playbackState === "stopped") {
-      this.statusEl.textContent = "STOPPED";
+      const title = document.createElement("span");
+      title.textContent = "STOPPED";
+      const hint = document.createElement("small");
+      hint.textContent = "press start to begin";
+      this.statusEl.replaceChildren(title, hint);
       this.statusEl.className = "yas-visible yas-stopped";
     } else {
       this.statusEl.className = "";
