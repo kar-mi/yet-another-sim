@@ -210,5 +210,3 @@ rather than being interpreted as the current `World`/`Frame` shape.
 - [Authoring Bot Patterns](authoring-bot-patterns.md)
 - [Movement & Scale](movement-and-scale.md)
 - [Finding Debuffs](finding_debuffs.md)
-</content>
-</invoke>
