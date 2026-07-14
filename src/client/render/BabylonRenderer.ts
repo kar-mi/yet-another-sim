@@ -40,6 +40,7 @@ import { computeWorldRenderKeys, getWorldRenderKeys } from "../worldRenderKeys";
 import type { HudLayoutManager } from "../ui/HudLayoutManager";
 import { prewarmShaders } from "./shaderPrewarm";
 import { buildCastCandidates, CAST_BAR_COLOR, castForBoss } from "../ui/hudPresentation";
+import { resolvePovPlayer } from "../pov";
 
 // Sub-path Babylon imports pull in only the classes we reference, not the engine's side-effect
 // extension registrations (alpha blending, texture loading, dynamic textures, uniform buffers,
@@ -312,17 +313,13 @@ export class BabylonRenderer implements Renderer {
     if (this.bossSetChanged(world.bosses)) this.rebuildBossLayers(world.bosses);
 
     this.players.sync(world.players, world.time);
-    const local = world.players.find(p => p.id === this.localPlayerId);
+    const povPlayer = resolvePovPlayer(world.players, this.localPlayerId, this.spectateTargetId);
     for (const boss of world.bosses) {
       this.bossLayers.get(boss.id)?.sync(boss);
       this.bossRingLayers.get(boss.id)?.sync(boss);
-      this.targetRingLayers.get(boss.id)?.sync(boss, local?.targetBossId === boss.id);
+      this.targetRingLayers.get(boss.id)?.sync(boss, povPlayer?.targetBossId === boss.id);
     }
-    const focus = local?.alive
-      ? local
-      : (world.players.find(p => p.id === this.spectateTargetId && p.alive)
-          ?? world.players.find(p => p.alive));
-    if (focus) this.camera.target.set(focus.pos.x, 0, focus.pos.z);
+    if (povPlayer?.alive) this.camera.target.set(povPlayer.pos.x, 0, povPlayer.pos.z);
 
     for (const player of world.players) {
       this.healthBars.set(playerBarId(player.id), player.hp / player.maxHp, player.alive && this.renderedPlayerHealthBars);
@@ -354,7 +351,7 @@ export class BabylonRenderer implements Renderer {
     this.forcedMarches.sync(world.forcedMarches, world.time);
     this.hazards.sync(world.hazards, world.time);
     this.divebombs.sync(world.divebombs, world.time);
-    this.hud.sync(world);
+    this.hud.sync(world, povPlayer);
   }
 
   render(): void {

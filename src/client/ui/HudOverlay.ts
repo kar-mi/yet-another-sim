@@ -519,8 +519,7 @@ export class HudOverlay {
     setTimeout(() => slot.classList.remove("yas-slot-flash"), 180);
   }
 
-  sync(world: World): void {
-    const p = world.players.find(player => player.id === this.localPlayerId) ?? world.players[0];
+  sync(world: World, p: Player | undefined): void {
     this.latestPlayer = p ?? null;
     this.latestWorld = world;
     if (DEBUG_POSITION_ENABLED && p) this.syncPositionFrames(world, p);
