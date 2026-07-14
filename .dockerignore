@@ -7,3 +7,9 @@ Dockerfile
 *.claude
 .serena
 .mcp.json
+
+.env*
+logs/
+
+**/*.test.ts
+**/__tests__/
