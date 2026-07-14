@@ -172,6 +172,7 @@ export type LobbySlot = {
   control: Control;
   claimed: boolean;
   claimedByYou: boolean;
+  queuedByYou: boolean;
 };
 
 export type LobbyStatus = "lobby" | "running" | "paused" | "stopped" | "done";
@@ -201,6 +202,7 @@ export type ServerMessage =
       observerCount: number;
       maxObservers: number;
       observingByYou: boolean;
+      observerQueuedByYou: boolean;
     }
   | { type: "rngConstraintsResult"; ok: boolean }
   // The pull's world at `baseTick` plus the input log tail from baseTick to `tick`. On a fresh start

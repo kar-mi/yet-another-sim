@@ -132,8 +132,8 @@ export class NetClient {
       this.clientId = message.clientId;
     }
     if (message.type === "lobby") {
-      this.claimedPlayerId = message.slots.find(slot => slot.claimedByYou)?.playerId ?? null;
-      this.observing = message.observingByYou;
+      this.claimedPlayerId = message.slots.find(slot => slot.claimedByYou || slot.queuedByYou)?.playerId ?? null;
+      this.observing = message.observingByYou || message.observerQueuedByYou;
       this.isHost = this.clientId !== null && this.clientId === message.hostClientId;
       this.predictor.reset();
     }

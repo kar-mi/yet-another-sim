@@ -73,6 +73,8 @@ export class RelayRoom {
 
   private raid!: RaidDef;
   private readonly clientIds = new Set<string>();
+  private readonly pendingSlots = new Map<string, string>();
+  private readonly pendingObservers = new Set<string>();
   private send!: Send;
   private readonly latestIntents = new Map<string, Intent>();
   private now: () => number = Date.now;
@@ -226,6 +228,7 @@ export class RelayRoom {
       this.slots.set(openPlayer.id, ownerId);
     }
     this.latestIntents.clear();
+    if (this.status !== "lobby") this.promotePendingReservations();
     this.world = this.freshWorld();
     this.applyBotsInvincible();
     this.resetPull();
@@ -237,6 +240,7 @@ export class RelayRoom {
     this.status = "stopped";
     this.relay.stop();
     this.broadcastPlayback();
+    this.broadcastLobby();
     this.broadcastStarted();
     logger.info("session", "raid changed", { session: this.id, raid: this.raidId });
   }
@@ -296,10 +300,12 @@ export class RelayRoom {
     this.relay.stop();
     this.closePullLog();
     this.latestIntents.clear();
+    this.promotePendingReservations();
     this.world = this.freshWorld();
     this.applyBotsInvincible();
     this.resetPull();
     // Reset every client's local world to the fresh (frozen) one, then signal the stopped state.
+    this.broadcastLobby();
     this.broadcastStarted();
     this.broadcastPlayback();
     logger.info("session", "raid stopped", { session: this.id, raid: this.raidId });
@@ -319,12 +325,14 @@ export class RelayRoom {
     this.relay.stop();
     this.closePullLog();
     this.latestIntents.clear();
+    this.promotePendingReservations();
     this.world = this.freshWorld();
     this.applyBotsInvincible();
     this.resetPull();
 
-    // Reset the remaining clients' local worlds to the frozen one (as stop() does); the leaver is
-    // skipped and instead receives the lobby broadcast below to land back in the menu.
+    // Refresh the lobby before `started` so newly promoted clients derive the stopped state. Reset
+    // the remaining clients' worlds; the leaver is skipped so it stays in the menu.
+    this.broadcastLobby();
     for (const id of this.clientIds) {
       if (id === clientId) continue;
       if (this.observers.has(id)) {
@@ -335,7 +343,6 @@ export class RelayRoom {
       if (playerId) this.sendTo(id, this.startedMessage(playerId));
     }
     this.broadcastPlayback();
-    this.broadcastLobby();
     logger.info("session", "host returned to lobby", { session: this.id, raid: this.raidId });
   }
 
@@ -351,6 +358,7 @@ export class RelayRoom {
 
     this.status = "running";
     this.latestIntents.clear();
+    this.promotePendingReservations();
     this.world = this.freshWorld();
     this.applyBotsInvincible();
     this.resetPull();
@@ -376,6 +384,8 @@ export class RelayRoom {
       }
     }
     this.observers.delete(clientId);
+    this.pendingSlots.delete(clientId);
+    this.pendingObservers.delete(clientId);
 
     const hostChanged = this.hostClientId === clientId;
     if (hostChanged) {
@@ -394,28 +404,42 @@ export class RelayRoom {
   }
 
   claimSlot(clientId: string, playerId: string): void {
-    if (this.raidId !== EMPTY_RAID_ID && (this.status === "running" || this.status === "paused")) {
-      this.sendError(clientId, "Wait for the next pull to join");
-      return;
-    }
     if (!this.slots.has(playerId)) {
       this.sendError(clientId, "Unknown player slot");
       return;
     }
-    if (this.observers.has(clientId)) {
+    if (this.observers.has(clientId) || this.pendingObservers.has(clientId)) {
       this.sendError(clientId, "Leave observer mode before claiming a slot");
       return;
     }
 
     const ownedSlot = this.playerForClient(clientId);
+    if (ownedSlot === playerId) {
+      this.sendLobby(clientId);
+      return;
+    }
     if (ownedSlot && ownedSlot !== playerId) {
       this.sendError(clientId, "You already claimed a slot");
       return;
     }
 
+    const pendingSlot = this.pendingSlots.get(clientId);
+    if (pendingSlot) {
+      if (pendingSlot === playerId) this.sendLobby(clientId);
+      else this.sendError(clientId, "You already queued for a slot");
+      return;
+    }
+
     const ownerId = this.slots.get(playerId);
-    if (ownerId && ownerId !== clientId) {
+    const pendingOwnerId = this.pendingClientForPlayer(playerId);
+    if ((ownerId && ownerId !== clientId) || (pendingOwnerId && pendingOwnerId !== clientId)) {
       this.sendError(clientId, "Slot is already claimed");
+      return;
+    }
+
+    if (this.raidId !== EMPTY_RAID_ID && (this.status === "running" || this.status === "paused")) {
+      this.pendingSlots.set(clientId, playerId);
+      this.broadcastLobby();
       return;
     }
 
@@ -429,6 +453,11 @@ export class RelayRoom {
   }
 
   releaseSlot(clientId: string, playerId: string): void {
+    if (this.pendingSlots.get(clientId) === playerId) {
+      this.pendingSlots.delete(clientId);
+      this.broadcastLobby();
+      return;
+    }
     if (this.slots.get(playerId) !== clientId) {
       this.sendError(clientId, "You do not own that slot");
       return;
@@ -441,20 +470,22 @@ export class RelayRoom {
   }
 
   claimObserver(clientId: string): void {
-    if (this.raidId !== EMPTY_RAID_ID && (this.status === "running" || this.status === "paused")) {
-      this.sendError(clientId, "Wait for the next pull to join");
-      return;
-    }
-    if (this.playerForClient(clientId)) {
+    if (this.playerForClient(clientId) || this.pendingSlots.has(clientId)) {
       this.sendError(clientId, "Release your slot before observing");
       return;
     }
-    if (this.observers.has(clientId)) {
+    if (this.observers.has(clientId) || this.pendingObservers.has(clientId)) {
       this.sendLobby(clientId);
       return;
     }
-    if (this.observers.size >= MAX_OBSERVERS) {
+    if (this.observers.size + this.pendingObservers.size >= MAX_OBSERVERS) {
       this.sendError(clientId, "Observer seats are full");
+      return;
+    }
+
+    if (this.raidId !== EMPTY_RAID_ID && (this.status === "running" || this.status === "paused")) {
+      this.pendingObservers.add(clientId);
+      this.broadcastLobby();
       return;
     }
 
@@ -467,6 +498,10 @@ export class RelayRoom {
   }
 
   releaseObserver(clientId: string): void {
+    if (this.pendingObservers.delete(clientId)) {
+      this.broadcastLobby();
+      return;
+    }
     // Release is intentionally idempotent: a double-click or a stale Home cleanup can race the
     // lobby broadcast that confirms the first release, and there is no state left to correct.
     if (!this.observers.delete(clientId)) return;
@@ -703,6 +738,30 @@ export class RelayRoom {
     return null;
   }
 
+  private pendingClientForPlayer(playerId: string): string | null {
+    for (const [clientId, pendingPlayerId] of this.pendingSlots) {
+      if (pendingPlayerId === playerId) return clientId;
+    }
+    return null;
+  }
+
+  private promotePendingReservations(): void {
+    for (const [clientId, playerId] of this.pendingSlots) {
+      if (this.slots.has(playerId) && this.slots.get(playerId) === null) {
+        this.slots.set(playerId, clientId);
+      } else {
+        this.sendError(clientId, "Queued player slot is no longer available");
+      }
+    }
+    this.pendingSlots.clear();
+
+    for (const clientId of this.pendingObservers) {
+      if (this.observers.size < MAX_OBSERVERS) this.observers.add(clientId);
+      else this.sendError(clientId, "Observer seats are full");
+    }
+    this.pendingObservers.clear();
+  }
+
   // Build a fresh world from the raid and stamp each slot's current control (a slot is "human"
   // once a client owns it, otherwise "bot"). Raids no longer author control — it is purely a
   // function of slot ownership.
@@ -757,8 +816,9 @@ export class RelayRoom {
         playerId: player.id,
         role: player.role,
         control: player.control,
-        claimed: ownerId !== null,
+        claimed: ownerId !== null || this.pendingClientForPlayer(player.id) !== null,
         claimedByYou: ownerId === clientId,
+        queuedByYou: this.pendingSlots.get(clientId) === player.id,
       };
     });
 
@@ -775,9 +835,10 @@ export class RelayRoom {
       waymarkPresetId: this.waymarkPresetId,
       botPatternOptions: botPatternOptionsFor(this.raid),
       botPatternId: this.botPatternId,
-      observerCount: this.observers.size,
+      observerCount: this.observers.size + this.pendingObservers.size,
       maxObservers: MAX_OBSERVERS,
       observingByYou: this.observers.has(clientId),
+      observerQueuedByYou: this.pendingObservers.has(clientId),
     };
   }
 
