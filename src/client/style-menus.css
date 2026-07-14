@@ -149,6 +149,15 @@
   text-align: center;
 }
 
+.yas-menu-queue-warning {
+  margin-top: 14px;
+  max-width: 320px;
+  color: #ff6b6b;
+  font-size: 14px;
+  letter-spacing: 0.6px;
+  text-align: center;
+}
+
 .yas-menu-start {
   background: var(--px-bg-2);
   border: 2px solid var(--px-accent);
