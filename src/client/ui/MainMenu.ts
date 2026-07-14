@@ -328,6 +328,10 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
       const startBtn = createElement("button", "yas-menu-start", startLabel);
       startBtn.disabled = !isHost || (message.status === "paused" ? !canResume : message.status === "stopped" ? !canPlayStopped : message.status === "done" ? !canRestartDone : !canStart);
       startBtn.addEventListener("click", () => net.send(message.status === "done" ? { type: "restart" } : message.status === "paused" || message.status === "stopped" ? { type: "play" } : { type: "start" }));
+      const queuedByMe = message.slots.some(slot => slot.queuedByYou) || message.observerQueuedByYou;
+      const queueWarning = queuedByMe && (message.status === "running" || message.status === "paused")
+        ? createElement("div", "yas-menu-queue-warning", "Raid in progress. The host must stop the raid for you to join.")
+        : null;
 
       const sessionEl = createElement("div", "yas-menu-session");
       sessionEl.append(
@@ -339,7 +343,9 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
       if (message.status === "lobby") {
         panel.append(sessionEl, slotList, startBtn, renderReplays());
       } else {
-        panel.append(slotList, sessionEl, startBtn, renderReplays());
+        panel.append(slotList, sessionEl, startBtn);
+        if (queueWarning) panel.appendChild(queueWarning);
+        panel.appendChild(renderReplays());
       }
 
       if (!welcomeShown) {
