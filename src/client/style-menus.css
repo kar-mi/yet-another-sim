@@ -890,3 +890,5 @@
 #yas-status.yas-wiped   { color: var(--px-danger); text-shadow: 3px 3px 0 var(--px-shadow); }
 #yas-status.yas-paused,
 #yas-status.yas-stopped { color: var(--px-text); text-shadow: 3px 3px 0 var(--px-shadow); }
+#yas-status.yas-stopped { flex-direction: column; }
+#yas-status.yas-stopped small { margin-top: 8px; font-size: 16px; letter-spacing: 2px; }

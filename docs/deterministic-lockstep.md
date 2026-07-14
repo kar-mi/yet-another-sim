@@ -14,10 +14,14 @@ This is a **server-relayed deterministic lockstep** netcode:
   world with the same input frames in the same order. Given identical inputs, every
   client computes a byte-identical world.
 - The only nondeterminism in a pull is the **per-pull seed**, minted once and shared
-  with every client in the initial world.
+  with every client in the initial world. Host-selected RNG constraints replace only
+  their named outcomes; unconstrained outcomes still come from that seed.
 
-Because the simulation is a pure function of `(seed, inputs)`, the server only has to
+Because the simulation is a pure function of `(seed, constraints, inputs)`, the server only has to
 distribute inputs. It never sends world state on the hot path — just the tiny frames.
+An unconstrained pull is reproduced by its seed; a constrained pull requires the seed
+plus its constraints. Replay files remain self-contained because they store the fully
+materialized tick-zero world.
 
 ```
         ┌────────────┐   intents    ┌─────────────────────────────┐
@@ -66,8 +70,9 @@ This is enforced by a guard-rail test, `noTranscendentals.test.ts`, which greps
 `src/engine` and `src/shared` for banned calls:
 
 ```
-Math.sin | cos | tan | atan2 | atan | asin | acos | pow | exp | log | hypot | random
-Date.now
+Math.sin | cos | tan | sinh | cosh | tanh | atan2 | atan | asin | acos | asinh |
+acosh | atanh | pow | exp | expm1 | log | log1p | log2 | log10 | hypot | cbrt | random
+Date.now | performance.now
 ```
 
 `Date.now` is banned in the engine because it is wall clock, not simulation state.

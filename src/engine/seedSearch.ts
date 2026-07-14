@@ -1,6 +1,5 @@
-import { makeSeed } from "@shared/rng";
 import type { DecisionDescription } from "@shared/protocol";
-import { preRollRaid } from "./preRoll";
+import type { RngConstraints } from "./preRoll";
 import type { RaidDef } from "./raidSchema";
 
 function rangeLabels(count: number, prefix: string): string[] {
@@ -76,11 +75,19 @@ export function describeDecisions(raid: RaidDef): DecisionDescription[] {
   return decisions;
 }
 
-export function findSeed(raid: RaidDef, constraints: Record<string, number>, maxTries = 20000): number | null {
-  for (let i = 0; i < maxTries; i++) {
-    const seed = makeSeed();
-    const decisions = preRollRaid(raid, seed).decisions;
-    if (Object.entries(constraints).every(([key, value]) => decisions[key] === value)) return seed;
+export function validateRngConstraints(raid: RaidDef, value: unknown): RngConstraints | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const descriptions = new Map(describeDecisions(raid).map(description => [description.key, description.options.length]));
+  const constraints: Record<string, number> = {};
+  for (const [key, selection] of Object.entries(value)) {
+    const optionCount = descriptions.get(key);
+    if (optionCount === undefined || !Number.isInteger(selection) || (selection as number) < 0 || (selection as number) >= optionCount) return null;
+    constraints[key] = selection as number;
   }
-  return null;
+
+  const forcedEndings = Object.entries(constraints)
+    .filter(([key]) => key.startsWith("ending-"))
+    .map(([, selection]) => selection);
+  if (new Set(forcedEndings).size !== forcedEndings.length) return null;
+  return constraints;
 }

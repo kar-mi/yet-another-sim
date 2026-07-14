@@ -233,7 +233,7 @@ test("restart starts a new replay log", () => {
   expect(logFactory.logs[1].frames).toHaveLength(1);
 });
 
-test("setRaid reset closes the previous replay log and opens the new pull log", () => {
+test("setRaid closes the previous replay log and waits for START to open the next", () => {
   const logFactory = makeLogFactory();
   const { session } = makeSession({ createSessionLog: logFactory.createSessionLog });
   session.join("c1");
@@ -243,8 +243,10 @@ test("setRaid reset closes the previous replay log and opens the new pull log", 
   session.pause("c1");
   session.setRaid("c1", "alternate", alternateRaid());
 
-  expect(logFactory.logs.map(log => log.id)).toEqual(["test-room-pull-1", "test-room-pull-2"]);
+  expect(logFactory.logs.map(log => log.id)).toEqual(["test-room-pull-1"]);
   expect(logFactory.logs[0].closed).toBe(true);
+  session.play("c1");
+  expect(logFactory.logs.map(log => log.id)).toEqual(["test-room-pull-1", "test-room-pull-2"]);
   expect(logFactory.logs[1].closed).toBe(false);
   expect(logFactory.logs[1].headers).toHaveLength(1);
 });
@@ -522,21 +524,22 @@ test("host can toggle bot invincibility without changing humans", () => {
   expect(session.world.players.some(player => player.control === "bot" && player.invincible)).toBe(false);
 });
 
-test("host seed override pins restarts and lobby state", () => {
+test("RNG constraints persist while every restart gets a fresh seed", () => {
   const { session, sent } = makeSession();
   session.join("c1");
+  session.setRaid("c1", "rng", rngRaid());
   session.claimSlot("c1", "mt");
 
-  session.handle("c1", { type: "setSeed", seed: 0x1234abcd });
-  expect(sent.some(entry => entry.message.type === "lobby" && entry.message.seedOverride === 0x1234abcd)).toBe(true);
+  session.handle("c1", { type: "setRngConstraints", constraints: { "plant-swap": 1 } });
+  expect(sent.some(entry => entry.message.type === "lobby" && entry.message.rngConstraints["plant-swap"] === 1)).toBe(true);
 
-  session.start("c1");
-  expect(session.world.seed).toBe(0x1234abcd);
-  const firstHash = worldHash(session.world);
+  session.play("c1");
+  const firstSeed = session.world.seed;
+  expect(preRollRaid(rngRaid(), firstSeed, { "plant-swap": 1 }).decisions["plant-swap"]).toBe(1);
 
   session.restart("c1");
-  expect(session.world.seed).toBe(0x1234abcd);
-  expect(worldHash(session.world)).toBe(firstHash);
+  expect(session.world.seed).not.toBe(firstSeed);
+  expect(preRollRaid(rngRaid(), session.world.seed, { "plant-swap": 1 }).decisions["plant-swap"]).toBe(1);
 });
 
 test("lobby includes server-derived rng decisions", () => {
@@ -563,21 +566,22 @@ test("playback includes server-derived rng decisions", () => {
   expect(playback).toMatchObject({ type: "playback", rngDecisions: describeDecisions(raid) });
 });
 
-test("seed override is host-only, clearable, and reset by raid change", () => {
+test("RNG constraints are host-only, clearable, and reset by raid change", () => {
   const { session, sent } = makeSession();
   session.join("c1");
   session.join("c2");
 
-  session.handle("c2", { type: "setSeed", seed: 1 });
-  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Only the host can set the seed")).toBe(true);
+  session.setRaid("c1", "rng", rngRaid());
+  session.handle("c2", { type: "setRngConstraints", constraints: { "plant-swap": 1 } });
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Only the host can set RNG constraints")).toBe(true);
 
-  session.handle("c1", { type: "setSeed", seed: 2 });
-  session.handle("c1", { type: "setSeed", seed: null });
-  expect(sent.some(entry => entry.message.type === "lobby" && entry.message.seedOverride === null)).toBe(true);
+  session.handle("c1", { type: "setRngConstraints", constraints: { "plant-swap": 1 } });
+  session.handle("c1", { type: "setRngConstraints", constraints: {} });
+  expect(sent.some(entry => entry.message.type === "lobby" && Object.keys(entry.message.rngConstraints).length === 0)).toBe(true);
 
-  session.handle("c1", { type: "setSeed", seed: 3 });
+  session.handle("c1", { type: "setRngConstraints", constraints: { "plant-swap": 1 } });
   session.setRaid("c1", "alternate", alternateRaid());
-  expect(sent.some(entry => entry.message.type === "lobby" && entry.message.raidId === "alternate" && entry.message.seedOverride === null)).toBe(true);
+  expect(sent.some(entry => entry.message.type === "lobby" && entry.message.raidId === "alternate" && Object.keys(entry.message.rngConstraints).length === 0)).toBe(true);
 });
 
 test("waymark preset override is host-only and applied to the world on start", () => {
@@ -686,31 +690,25 @@ test("a raid with a single botPatterns file exposes one implicit Default option;
   expect(noPatternLobby).toMatchObject({ type: "lobby", botPatternOptions: [], botPatternId: null });
 });
 
-test("findSeed is host-only and reports success or failure", () => {
+test("setRngConstraints validates choices without changing state on failure", () => {
   const raid = rngRaid();
   const { session, sent } = makeSession();
   session.join("c1");
   session.join("c2");
   session.setRaid("c1", "rng", raid);
 
-  session.handle("c2", { type: "findSeed", constraints: { "plant-swap": 1 } });
-  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Only the host can set the seed")).toBe(true);
+  session.handle("c2", { type: "setRngConstraints", constraints: { "plant-swap": 1 } });
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Only the host can set RNG constraints")).toBe(true);
 
-  session.handle("c1", { type: "findSeed", constraints: { "plant-swap": 1 } });
-  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "rngResult" && entry.message.ok)).toBe(true);
-  const seededLobby = [...sent].reverse().find(entry => entry.message.type === "lobby" && entry.message.seedOverride !== null)?.message;
-  expect(seededLobby?.type).toBe("lobby");
-  if (seededLobby?.type !== "lobby") throw new Error("expected seeded lobby");
-  expect(preRollRaid(raid, seededLobby.seedOverride!).decisions["plant-swap"]).toBe(1);
+  session.handle("c1", { type: "setRngConstraints", constraints: { "plant-swap": 1 } });
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "rngConstraintsResult" && entry.message.ok)).toBe(true);
 
-  const previousSeed = seededLobby.seedOverride;
-  session.handle("c1", { type: "findSeed", constraints: {} });
-  session.handle("c1", { type: "findSeed", constraints: { "plant-swap": 99 } });
-  expect(sent.filter(entry => entry.clientId === "c1" && entry.message.type === "rngResult" && !entry.message.ok)).toHaveLength(2);
+  session.handle("c1", { type: "setRngConstraints", constraints: { "plant-swap": 99 } });
+  expect(sent.filter(entry => entry.clientId === "c1" && entry.message.type === "rngConstraintsResult" && !entry.message.ok)).toHaveLength(1);
   const latestLobby = [...sent].reverse().find(entry => entry.message.type === "lobby")?.message;
   expect(latestLobby?.type).toBe("lobby");
   if (latestLobby?.type !== "lobby") throw new Error("expected lobby");
-  expect(latestLobby.seedOverride).toBe(previousSeed);
+  expect(latestLobby.rngConstraints).toEqual({ "plant-swap": 1 });
 });
 
 test("non-host cannot toggle bot invincibility", () => {
@@ -797,10 +795,10 @@ test("host can stop, switch raid, and keep a claimed player", () => {
   session.stop("c1");
   session.setRaid("c1", "alternate", alternateRaid());
 
-  expect(session.status).toBe("running");
+  expect(session.status).toBe("stopped");
   expect(session.raidId).toBe("alternate");
   expect(session.slots.get("mt")).toBe("c1");
-  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "playback" && entry.message.state === "playing" && entry.message.raidId === "alternate")).toBe(true);
+  expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "playback" && entry.message.state === "stopped" && entry.message.raidId === "alternate")).toBe(true);
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === "mt")).toBe(true);
 });
 
@@ -1149,7 +1147,7 @@ test("host can switch raid after the session ends", () => {
   session.setRaid("c1", "alternate", alternateRaid());
 
   expect(session.raidId).toBe("alternate");
-  expect(session.status).toBe("running");
+  expect(session.status).toBe("stopped");
 });
 
 

@@ -6,6 +6,13 @@ import { toVec2 } from "./eventTransforms";
 import type { RaidDef } from "./raidSchema";
 
 export type PreRollDecisions = Record<string, number>;
+export type RngConstraints = Readonly<Record<string, number>>;
+
+function selected(key: string, rolled: number, constraints: RngConstraints, decisions: PreRollDecisions): number {
+  const value = constraints[key] ?? rolled;
+  decisions[key] = value;
+  return value;
+}
 
 // Cardinal direction constants -> [x, z] vectors. +z = north, +x = east.
 const DIRECTION_VECTORS: Record<"up" | "down" | "left" | "right", [number, number]> = {
@@ -19,6 +26,7 @@ function buildPlantPlan(
   raid: RaidDef,
   rngState: number,
   decisions: PreRollDecisions,
+  constraints: RngConstraints,
 ): { plan: Record<string, [number, number][]>; rngState: number } {
   const plant = raid.optionals?.combinations?.plant;
   if (!plant) return { plan: {}, rngState };
@@ -27,8 +35,7 @@ function buildPlantPlan(
   let nextState = rngState;
   if (plant.rng) {
     const roll = nextRandom(rngState);
-    swap = roll.value < 0.5;
-    decisions["plant-swap"] = swap ? 1 : 0;
+    swap = selected("plant-swap", roll.value < 0.5 ? 1 : 0, constraints, decisions) === 1;
     nextState = roll.state;
   }
 
@@ -57,15 +64,15 @@ function rotateTowerWaves(
   towerRng: boolean | undefined,
   rngState: number,
   decisions: PreRollDecisions,
+  constraints: RngConstraints,
 ): { events: RaidDef["events"]; rngState: number } {
   if (!towerRng) return { events, rngState };
 
   const roll1 = randomInt(rngState, 8);
-  const startOffset = roll1.value;
+  const startOffset = selected("towers-offset", roll1.value, constraints, decisions);
   const roll2 = randomInt(roll1.state, 2);
-  const direction = roll2.value === 0 ? 1 : -1;
-  decisions["towers-offset"] = startOffset;
-  decisions["towers-direction"] = roll2.value;
+  const directionChoice = selected("towers-direction", roll2.value, constraints, decisions);
+  const direction = directionChoice === 0 ? 1 : -1;
   const nextState = roll2.state;
 
   const towerEvents = events.filter((e): e is Extract<RaidDef["events"][number], { type: "tower" }> => e.type === "tower");
@@ -95,12 +102,13 @@ function applyOrderSwap(
   orderSwap: NonNullable<RaidDef["optionals"]>["orderSwap"] | undefined,
   rngState: number,
   decisions: PreRollDecisions,
+  constraints: RngConstraints,
 ): { events: RaidDef["events"]; rngState: number } {
   if (!orderSwap?.rng) return { events, rngState };
 
   const roll = nextRandom(rngState);
-  decisions["order-swap"] = roll.value < 0.5 ? 1 : 0;
-  if (roll.value >= 0.5) return { events, rngState: roll.state };
+  const swap = selected("order-swap", roll.value < 0.5 ? 1 : 0, constraints, decisions);
+  if (swap === 0) return { events, rngState: roll.state };
 
   const [groupA, groupB] = orderSwap.groups;
   const idsA = new Set(groupA);
@@ -134,6 +142,7 @@ function rotateDivebombSweep(
   divebombSweep: NonNullable<RaidDef["optionals"]>["divebombSweep"] | undefined,
   rngState: number,
   decisions: PreRollDecisions,
+  constraints: RngConstraints,
 ): { events: RaidDef["events"]; rngState: number } {
   if (!divebombSweep) return { events, rngState };
 
@@ -151,11 +160,10 @@ function rotateDivebombSweep(
   let nextState = rngState;
   if (divebombSweep.rng) {
     const roll1 = randomInt(rngState, n);
-    startOffset = roll1.value;
+    startOffset = selected("divebomb-start", roll1.value, constraints, decisions);
     const roll2 = randomInt(roll1.state, 2);
-    direction = roll2.value === 0 ? 1 : -1;
-    decisions["divebomb-start"] = startOffset;
-    decisions["divebomb-direction"] = roll2.value;
+    const directionChoice = selected("divebomb-direction", roll2.value, constraints, decisions);
+    direction = directionChoice === 0 ? 1 : -1;
     nextState = roll2.state;
   }
 
@@ -182,6 +190,7 @@ function buildEndingPlan(
   endings: EndingCombination,
   rngState: number,
   decisions: PreRollDecisions,
+  constraints: RngConstraints,
 ): { endingOffsets: Record<string, number>; endingNames: Record<string, string>; rngState: number } {
   if (!endings) return { endingOffsets: {}, endingNames: {}, rngState };
 
@@ -193,6 +202,21 @@ function buildEndingPlan(
       nextState = roll.state;
       [variants[i], variants[roll.value]] = [variants[roll.value]!, variants[i]!];
     }
+  }
+
+  if (endings.rng) {
+    const forced = new Map<number, number>();
+    endings.events.forEach((_, slot) => {
+      const value = constraints[`ending-${slot}`];
+      if (value !== undefined) forced.set(slot, value);
+    });
+    const forcedValues = new Set(forced.values());
+    const remaining = variants.filter(entry => !forcedValues.has(entry.index));
+    const arranged = endings.events.map((_, slot) => {
+      const forcedValue = forced.get(slot);
+      return forcedValue === undefined ? remaining.shift()! : variants.find(entry => entry.index === forcedValue)!;
+    });
+    variants.splice(0, variants.length, ...arranged);
   }
 
   const endingOffsets: Record<string, number> = {};
@@ -218,6 +242,7 @@ function applyEventSets(
   eventSets: EventSets,
   rngState: number,
   decisions: PreRollDecisions,
+  constraints: RngConstraints,
 ): { events: RaidDef["events"]; rngState: number } {
   if (!eventSets) return { events, rngState };
 
@@ -225,15 +250,14 @@ function applyEventSets(
   const keep = new Set<string>();
   const drop = new Set<string>();
   for (const [key, setConfig] of Object.entries(eventSets)) {
-    let selected = 0;
+    let selectedIndex = 0;
     if (setConfig.rng && setConfig.sets.length > 1) {
       const roll = randomInt(nextState, setConfig.sets.length);
-      selected = roll.value;
-      decisions[`event-set-${key}`] = selected;
+      selectedIndex = selected(`event-set-${key}`, roll.value, constraints, decisions);
       nextState = roll.state;
     }
     setConfig.sets.forEach((set, i) => {
-      for (const id of set) (i === selected ? keep : drop).add(id);
+      for (const id of set) (i === selectedIndex ? keep : drop).add(id);
     });
   }
 
@@ -247,6 +271,7 @@ function applyBlackHoleSpots(
   events: RaidDef["events"],
   rngState: number,
   decisions: PreRollDecisions,
+  constraints: RngConstraints,
 ): { events: RaidDef["events"]; rngState: number; blackHoleTethers: World["blackHoleTethers"] } {
   let nextState = rngState;
   const blackHoleTethers: World["blackHoleTethers"] = {};
@@ -255,7 +280,9 @@ function applyBlackHoleSpots(
     const combos = e.blackHole.combos.map(combo =>
       combo.map(orb => ({ pos: toVec2(orb.pos), tether: orb.tether })),
     );
-    const layout = selectOrbLayout(combos, nextState);
+    const comboKey = `black-hole-${e.id}-combo`;
+    const rotationKey = `black-hole-${e.id}-rotation`;
+    const layout = selectOrbLayout(combos, nextState, constraints[comboKey], constraints[rotationKey]);
     decisions[`black-hole-${e.id}-combo`] = layout.combo;
     decisions[`black-hole-${e.id}-rotation`] = layout.rotation;
     nextState = layout.rngState;
@@ -275,6 +302,7 @@ function buildPairingPlan(
   raid: RaidDef,
   rngState: number,
   decisions: PreRollDecisions,
+  constraints: RngConstraints,
 ): { partners: Record<string, string>; playerGroups: Record<string, string>; initialCharges: Record<string, string>; rngState: number } {
   const pairings = raid.optionals?.combinations?.pairings;
   if (!pairings) return { partners: {}, playerGroups: {}, initialCharges: {}, rngState };
@@ -284,8 +312,7 @@ function buildPairingPlan(
   if (pairings.rng && pairings.patterns.length > 1) {
     const roll = randomInt(nextState, pairings.patterns.length);
     nextState = roll.state;
-    patternIndex = roll.value;
-    decisions.pairings = patternIndex;
+    patternIndex = selected("pairings", roll.value, constraints, decisions);
   }
 
   const pattern = pairings.patterns[patternIndex] ?? pairings.patterns[0]!;
@@ -309,7 +336,7 @@ function buildPairingPlan(
   return { partners, playerGroups, initialCharges, rngState: nextState };
 }
 
-export function preRollRaid(raid: RaidDef, seed: number): {
+export function preRollRaid(raid: RaidDef, seed: number, constraints: RngConstraints = {}): {
   events: RaidDef["events"];
   plantPlan: Record<string, [number, number][]>;
   partners: Record<string, string>;
@@ -322,21 +349,21 @@ export function preRollRaid(raid: RaidDef, seed: number): {
   rngState: number;
 } {
   const decisions: PreRollDecisions = {};
-  const { plan: plantPlan, rngState: afterPlantRngState } = buildPlantPlan(raid, seed, decisions);
+  const { plan: plantPlan, rngState: afterPlantRngState } = buildPlantPlan(raid, seed, decisions, constraints);
   // Generic pairing/grouping maps: partners/playerGroups for the bot solver, initialCharges for the
   // reassign opener.
-  const { partners, playerGroups, initialCharges, rngState: afterPairingRngState } = buildPairingPlan(raid, afterPlantRngState, decisions);
-  const { crystals, rolls: crystalRolls, rngState: afterCrystalRngState } = placeCrystals(raid.crystals, afterPairingRngState);
+  const { partners, playerGroups, initialCharges, rngState: afterPairingRngState } = buildPairingPlan(raid, afterPlantRngState, decisions, constraints);
+  const { crystals, rolls: crystalRolls, rngState: afterCrystalRngState } = placeCrystals(raid.crystals, afterPairingRngState, constraints);
   crystalRolls.forEach((roll, i) => {
     decisions[`crystals-${i}-empty`] = roll.emptyIndex;
     decisions[`crystals-${i}-swap`] = roll.swap;
   });
-  const { events: rotatedEvents, rngState: afterTowerRngState } = rotateTowerWaves(raid.events, raid.optionals?.towerRng, afterCrystalRngState, decisions);
-  const { endingOffsets, endingNames, rngState: afterEndingRngState } = buildEndingPlan(raid.optionals?.combinations?.endings, afterTowerRngState, decisions);
-  const { events: swappedEvents, rngState: afterOrderSwapRngState } = applyOrderSwap(rotatedEvents, raid.optionals?.orderSwap, afterEndingRngState, decisions);
-  const { events: sweptEvents, rngState: afterDivebombSweepRngState } = rotateDivebombSweep(swappedEvents, raid.optionals?.divebombSweep, afterOrderSwapRngState, decisions);
-  const { events: selectedEvents, rngState: afterEventSetRngState } = applyEventSets(sweptEvents, raid.optionals?.combinations?.eventSets, afterDivebombSweepRngState, decisions);
-  const { events: hazardEvents, rngState, blackHoleTethers } = applyBlackHoleSpots(selectedEvents, afterEventSetRngState, decisions);
+  const { events: rotatedEvents, rngState: afterTowerRngState } = rotateTowerWaves(raid.events, raid.optionals?.towerRng, afterCrystalRngState, decisions, constraints);
+  const { endingOffsets, endingNames, rngState: afterEndingRngState } = buildEndingPlan(raid.optionals?.combinations?.endings, afterTowerRngState, decisions, constraints);
+  const { events: swappedEvents, rngState: afterOrderSwapRngState } = applyOrderSwap(rotatedEvents, raid.optionals?.orderSwap, afterEndingRngState, decisions, constraints);
+  const { events: sweptEvents, rngState: afterDivebombSweepRngState } = rotateDivebombSweep(swappedEvents, raid.optionals?.divebombSweep, afterOrderSwapRngState, decisions, constraints);
+  const { events: selectedEvents, rngState: afterEventSetRngState } = applyEventSets(sweptEvents, raid.optionals?.combinations?.eventSets, afterDivebombSweepRngState, decisions, constraints);
+  const { events: hazardEvents, rngState, blackHoleTethers } = applyBlackHoleSpots(selectedEvents, afterEventSetRngState, decisions, constraints);
   const events = hazardEvents.map(e =>
     endingOffsets[e.id] === undefined
       ? e

@@ -1,11 +1,12 @@
 import { createWorld } from "../engine/world";
+import { makeSeed } from "@shared/rng";
 import type { RaidDef } from "../engine/raidSchema";
 import { EMPTY_RAID_ID, MAX_OBSERVERS, type BotPatternOption, type ClientMessage, type Frame, type LobbySlot, type LobbyStatus, type ServerMessage } from "@shared/protocol";
 import type { Intent, Intents, World } from "@shared/types";
-import { RAID_CHANGE_START_DELAY_MS } from "@shared/constants";
 import { logger } from "@shared/logger";
 import { WAYMARK_PRESETS, isWaymarkPresetId } from "@shared/waymarkPresets";
-import { describeDecisions, findSeed } from "../engine/seedSearch";
+import { describeDecisions, validateRngConstraints } from "../engine/seedSearch";
+import type { RngConstraints } from "../engine/preRoll";
 import { DesyncTracker } from "./desyncTracker";
 import { FrameRelay } from "./frameRelay";
 import { mergePendingIntent, type SessionLog } from "./sessionRaid";
@@ -19,6 +20,11 @@ function botPatternOptionsFor(raid: RaidDef): BotPatternOption[] {
 
 function defaultBotPatternId(raid: RaidDef): string | null {
   return botPatternOptionsFor(raid)[0]?.id ?? null;
+}
+
+function sameConstraints(a: RngConstraints, b: RngConstraints): boolean {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every(key => a[key] === b[key]);
 }
 
 export const LOBBY_TIMEOUT_MS = 10 * 60 * 1000;
@@ -74,18 +80,16 @@ export class RelayRoom {
   private lobbyTimeoutMs = LOBBY_TIMEOUT_MS;
   private relay!: FrameRelay;
   private autoTick = true;
-  // Deferred relay start scheduled on a raid change (see RAID_CHANGE_START_DELAY_MS). Cancelled by any
-  // other pull transition so a stale start can't fire late (e.g. after dispose, leaking an interval).
-  private pendingStartTimer: ReturnType<typeof setTimeout> | null = null;
   private desync!: DesyncTracker;
   private createSessionLog: ((sessionId: string) => SessionLog) | null = null;
   private sessionLog: SessionLog | null = null;
   private pullNumber = 0;
   private botsInvincible = false;
   private readonly pullSnapshot = new PullSnapshot();
-  private seedOverride: number | null = null;
+  private rngConstraints: RngConstraints = {};
   private waymarkPresetId: string | null = null;
   private botPatternId: string | null = null;
+  private lastSeed: number | null = null;
 
   // Authoritative input log: one merged-intent Frame per simulated tick since the pull started.
   // Owned by the relay; exposed for late-join / resync (`started` sends it in full to be replayed).
@@ -165,10 +169,7 @@ export class RelayRoom {
       case "restart":
         this.restart(clientId);
         return;
-      case "setSeed":
-        this.setSeed(clientId, message.seed);
-        return;
-      case "findSeed":
+      case "setRngConstraints":
         this.applyRngConstraints(clientId, message.constraints);
         return;
       case "setWaymarkPreset":
@@ -211,7 +212,7 @@ export class RelayRoom {
       : [];
     this.raidId = raidId;
     this.raid = raid;
-    this.seedOverride = null;
+    this.rngConstraints = {};
     this.waymarkPresetId = null;
     this.botPatternId = defaultBotPatternId(this.raid);
     this.closePullLog();
@@ -233,32 +234,11 @@ export class RelayRoom {
       return;
     }
 
-    this.status = "running";
-    this.openPullLog();
-    this.startRelayAfterRaidChangeDelay();
+    this.status = "stopped";
+    this.relay.stop();
     this.broadcastPlayback();
     this.broadcastStarted();
     logger.info("session", "raid changed", { session: this.id, raid: this.raidId });
-  }
-
-  // Begin the relay tick loop after the client's raid-change loading overlay, so the timeline doesn't
-  // advance behind it. Synchronous when autoTick is off (tests) to keep manual stepping deterministic.
-  private startRelayAfterRaidChangeDelay(): void {
-    this.clearPendingStart();
-    if (!this.autoTick) {
-      this.relay.start();
-      return;
-    }
-    this.pendingStartTimer = setTimeout(() => {
-      this.pendingStartTimer = null;
-      if (this.status === "running") this.relay.start();
-    }, RAID_CHANGE_START_DELAY_MS);
-  }
-
-  private clearPendingStart(): void {
-    if (!this.pendingStartTimer) return;
-    clearTimeout(this.pendingStartTimer);
-    this.pendingStartTimer = null;
   }
 
   play(clientId: string): void {
@@ -279,6 +259,7 @@ export class RelayRoom {
     const wasStopped = this.status === "stopped";
     // Clients resume stepping from the frames that follow; the local world held while paused.
     this.status = "running";
+    if (wasStopped) this.openPullLog();
     this.relay.start();
     if (wasStopped) {
       // Refresh clients still on the lobby screen before "started", so their stale lastLobby.status
@@ -297,7 +278,6 @@ export class RelayRoom {
     }
     if (this.status !== "running") return;
 
-    this.clearPendingStart();
     this.relay.flush(); // deliver everything up to the pause point before halting the relay
     this.status = "paused";
     this.relay.stop();
@@ -312,7 +292,6 @@ export class RelayRoom {
     }
     if (this.status === "lobby") return;
 
-    this.clearPendingStart();
     this.status = "stopped";
     this.relay.stop();
     this.closePullLog();
@@ -336,7 +315,6 @@ export class RelayRoom {
     }
     if (this.status === "lobby") return;
 
-    this.clearPendingStart();
     this.status = "stopped";
     this.relay.stop();
     this.closePullLog();
@@ -371,7 +349,6 @@ export class RelayRoom {
       return;
     }
 
-    this.clearPendingStart();
     this.status = "running";
     this.latestIntents.clear();
     this.world = this.freshWorld();
@@ -541,16 +518,6 @@ export class RelayRoom {
     this.applyBotsInvincible();
   }
 
-  setSeed(clientId: string, seed: number | null): void {
-    if (clientId !== this.hostClientId) {
-      this.sendError(clientId, "Only the host can set the seed");
-      return;
-    }
-
-    this.seedOverride = seed;
-    this.broadcastLobby();
-  }
-
   setWaymarkPreset(clientId: string, presetId: string | null): void {
     if (clientId !== this.hostClientId) {
       this.sendError(clientId, "Only the host can set the waymark preset");
@@ -595,20 +562,21 @@ export class RelayRoom {
 
   private applyRngConstraints(clientId: string, constraints: Record<string, number>): void {
     if (clientId !== this.hostClientId) {
-      this.sendError(clientId, "Only the host can set the seed");
+      this.sendError(clientId, "Only the host can set RNG constraints");
       return;
     }
-    if (Object.keys(constraints).length === 0) {
-      this.sendTo(clientId, { type: "rngResult", ok: false });
+    const validated = validateRngConstraints(this.raid, constraints);
+    if (validated === null) {
+      this.sendTo(clientId, { type: "rngConstraintsResult", ok: false });
       return;
     }
-    const seed = findSeed(this.raid, constraints);
-    if (seed === null) {
-      this.sendTo(clientId, { type: "rngResult", ok: false });
+    if (sameConstraints(validated, this.rngConstraints)) {
+      this.sendTo(clientId, { type: "rngConstraintsResult", ok: true });
       return;
     }
-    this.seedOverride = seed;
-    this.sendTo(clientId, { type: "rngResult", ok: true });
+    this.rngConstraints = validated;
+    this.refreshFrozenWorld();
+    this.sendTo(clientId, { type: "rngConstraintsResult", ok: true });
     this.broadcastLobby();
   }
 
@@ -720,7 +688,6 @@ export class RelayRoom {
   }
 
   dispose(): void {
-    this.clearPendingStart();
     this.relay.stop();
     this.closePullLog();
   }
@@ -740,7 +707,10 @@ export class RelayRoom {
   // once a client owns it, otherwise "bot"). Raids no longer author control — it is purely a
   // function of slot ownership.
   private freshWorld(): World {
-    const world = createWorld(this.raid, this.seedOverride ?? undefined);
+    let seed = makeSeed();
+    if (seed === this.lastSeed) seed = (seed + 1) >>> 0;
+    this.lastSeed = seed;
+    const world = createWorld(this.raid, seed, this.rngConstraints);
     const waymarkPreset = this.waymarkPresetId ? WAYMARK_PRESETS.find(preset => preset.id === this.waymarkPresetId) : null;
     return {
       ...world,
@@ -800,7 +770,7 @@ export class RelayRoom {
       status: this.status,
       hostClientId: this.hostClientId,
       slots,
-      seedOverride: this.seedOverride,
+      rngConstraints: { ...this.rngConstraints },
       rngDecisions: describeDecisions(this.raid),
       waymarkPresetId: this.waymarkPresetId,
       botPatternOptions: botPatternOptionsFor(this.raid),

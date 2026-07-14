@@ -13,13 +13,14 @@ function crystal(element: CrystalElement, pos: Vec2, spawnAt: number): Crystal {
 export function placeCrystals(
   config: CrystalConfig | undefined,
   rngState: number,
+  constraints: Readonly<Record<string, number>> = {},
 ): { crystals: Crystal[]; rngState: number; rolls: { emptyIndex: number; swap: number }[] } {
   if (!config) return { crystals: [], rngState, rolls: [] };
 
   const crystals: Crystal[] = [];
   const rolls: { emptyIndex: number; swap: number }[] = [];
   let nextState = rngState;
-  for (const entry of config) {
+  for (const [entryIndex, entry] of config.entries()) {
     const spawnAt = entry.spawnAt ?? 0;
     if (entry.kind === "single") {
       crystals.push(crystal(entry.element, toVec2(entry.pos), spawnAt));
@@ -27,12 +28,13 @@ export function placeCrystals(
     }
 
     const emptyRoll = randomInt(nextState, 4);
-    const emptyIndex = emptyRoll.value;
+    const emptyIndex = constraints[`crystals-${entryIndex}-empty`] ?? emptyRoll.value;
     const windIndex = (emptyIndex + 2) % 4;
     const remaining = [0, 1, 2, 3].filter(i => i !== emptyIndex && i !== windIndex);
     const swapRoll = randomInt(emptyRoll.state, 2);
-    rolls.push({ emptyIndex, swap: swapRoll.value });
-    const [fireIndex, waterIndex] = swapRoll.value === 0 ? remaining : [remaining[1]!, remaining[0]!];
+    const swap = constraints[`crystals-${entryIndex}-swap`] ?? swapRoll.value;
+    rolls.push({ emptyIndex, swap });
+    const [fireIndex, waterIndex] = swap === 0 ? remaining : [remaining[1]!, remaining[0]!];
     crystals.push(
       crystal("wind", toVec2(entry.spots[windIndex]!), spawnAt),
       crystal("fire", toVec2(entry.spots[fireIndex]!), spawnAt),

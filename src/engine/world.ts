@@ -7,11 +7,11 @@ import { topThreatTarget } from "./systems/helpers";
 import { toVec2, toZoneShape } from "./eventTransforms";
 import { bucketEvent, type Collections } from "./mechanicRegistry";
 import { toBotSolvers } from "./botSolvers";
-import { preRollRaid } from "./preRoll";
+import { preRollRaid, type RngConstraints } from "./preRoll";
 
 export const ROLE_HP: Record<Player["role"], number> = { tank: 160, healer: 100, dps: 100 };
 
-export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
+export function createWorld(raid: RaidDef, seed: number = makeSeed(), constraints: RngConstraints = {}): World {
   const arena: Arena = { zones: raid.arena.zones.map(toZoneShape), floorPlan: raid.arena.floorPlan };
   const waymarks: Waymark[] = raid.waymarks?.map(w => ({ mark: w.mark, pos: toVec2(w.pos) })) ?? [];
 
@@ -76,7 +76,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed()): World {
   const {
     events: effectiveEvents, plantPlan, partners, playerGroups, initialCharges,
     crystals, endingOffsets, blackHoleTethers, rngState,
-  } = preRollRaid(raid, seed);
+  } = preRollRaid(raid, seed, constraints);
   const plantDebuffOrder = raid.optionals?.combinations?.plant?.debuffOrder;
 
   // One collection per World pending/resolver field; keys match the World field names exactly so the
