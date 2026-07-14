@@ -16,6 +16,7 @@
   --px-hp:       #5ad16a;  /* health green */
   --px-mp:       #4aa3ff;  /* MP blue */
   --px-danger:   #ff5d5d;  /* debuff / wipe red */
+  --px-cast:     #7a1f2b;  /* dark blood red for readable cast bars */
 
   /* Font options — JS swaps --px-font between these via the Display tab dropdown. */
   --font-pixel:    'Jersey 10', monospace;

@@ -39,6 +39,7 @@ import { setControlScheme } from "../input";
 import { computeWorldRenderKeys, getWorldRenderKeys } from "../worldRenderKeys";
 import type { HudLayoutManager } from "../ui/HudLayoutManager";
 import { prewarmShaders } from "./shaderPrewarm";
+import { buildCastCandidates, CAST_BAR_COLOR, castForBoss } from "../ui/hudPresentation";
 
 // Sub-path Babylon imports pull in only the classes we reference, not the engine's side-effect
 // extension registrations (alpha blending, texture loading, dynamic textures, uniform buffers,
@@ -57,6 +58,7 @@ RegisterFullEngineExtensions();
 RegisterAnimatable();
 
 const playerBarId = (id: string) => `player:${id}`;
+const bossCastBarId = (id: string) => `boss-cast:${id}`;
 
 // Rate at which controller-camera acceleration ramps toward its target multiplier (~reaches it in <1s).
 const CAMERA_ACCEL_RAMP = 3;
@@ -240,6 +242,7 @@ export class BabylonRenderer implements Renderer {
   }
 
   private rebuildBossLayers(bosses: Boss[]): void {
+    for (const id of this.bossIds) this.healthBars.remove(bossCastBarId(id));
     for (const layer of this.bossLayers.values()) layer.dispose();
     this.bossLayers.clear();
     for (const layer of this.bossRingLayers.values()) layer.dispose();
@@ -251,6 +254,20 @@ export class BabylonRenderer implements Renderer {
       const bossLayer = new BossLayer(this.scene);
       bossLayer.init(boss);
       this.bossLayers.set(boss.id, bossLayer);
+      const mesh = bossLayer.getMesh();
+      if (mesh) {
+        this.healthBars.link(bossCastBarId(boss.id), mesh, {
+          trackWidthPx: 200,
+          trackHeightPx: 25,
+          offsetYPx: -20,
+          color: CAST_BAR_COLOR,
+          showLabel: true,
+          cornerRadiusPx: 8.75,
+          borderColor: "#3a4256",
+          backgroundColor: "#0b0e15",
+          labelFontSizePx: 16.25,
+        });
+      }
       const bossRingLayer = new BossRingLayer(this.scene);
       bossRingLayer.sync(boss);
       this.bossRingLayers.set(boss.id, bossRingLayer);
@@ -309,6 +326,19 @@ export class BabylonRenderer implements Renderer {
 
     for (const player of world.players) {
       this.healthBars.set(playerBarId(player.id), player.hp / player.maxHp, player.alive && this.renderedPlayerHealthBars);
+    }
+    const castCandidates = buildCastCandidates(world);
+    for (const boss of world.bosses) {
+      const cast = castForBoss(boss.id, castCandidates);
+      const span = cast ? cast.resolveAt - cast.telegraphStart : 0;
+      const progress = cast && span > 0 ? Math.min(1, Math.max(0, (world.time - cast.telegraphStart) / span)) : 0;
+      this.healthBars.set(
+        bossCastBarId(boss.id),
+        progress,
+        boss.hp > 0 && !boss.hidden && cast !== null,
+        cast?.name,
+        CAST_BAR_COLOR,
+      );
     }
 
     this.telegraphs.sync(world.active, world.time);
