@@ -157,3 +157,33 @@ test("reports an unsupported version even when the frame data behind it is corru
 test("returns null for a missing replay", async () => {
   expect(await loadReplay(SESSION, 99)).toBeNull();
 });
+
+test("a format-1 recording still lists and loads for playback", async () => {
+  // Format 1 predates the replay-review payload: it plays back, it just has nothing to review.
+  const { sections, avoidableSources, ...legacyWorld } = createWorld(createEmptyRaid(), 123);
+  const frame: Frame = { intents: {}, botsInvincible: false };
+  await writePull(11, `${headerLine({ formatVersion: 1, world: legacyWorld })}\n`
+    + `${JSON.stringify({ startTick: 0, frames: [frame] })}\n`);
+
+  expect(await listReplays(SESSION)).toEqual([{
+    pull: 11, raidId: "debug/test", ticks: 1, supported: true, formatVersion: 1,
+  }]);
+  const loaded = await loadReplay(SESSION, 11);
+  expect(loaded?.formatVersion).toBe(1);
+  expect(loaded?.frames).toHaveLength(1);
+  expect(loaded?.world.sections).toBeUndefined();
+});
+
+test("a current recording carries the review payload through the round trip", async () => {
+  const world = createWorld(createEmptyRaid(), 123);
+  const log = createSessionLog(`${SESSION}-pull-12`);
+  pullPath(12);
+  log.header("debug/test", world);
+  log.frame(0, [{ intents: {}, botsInvincible: false }]);
+  log.close();
+
+  const loaded = await loadReplay(SESSION, 12);
+  expect(loaded?.formatVersion).toBe(REPLAY_FORMAT_VERSION);
+  expect(loaded?.world.sections).toEqual([]);
+  expect(loaded?.world.avoidableSources).toEqual({});
+});

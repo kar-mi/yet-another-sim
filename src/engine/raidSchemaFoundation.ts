@@ -205,6 +205,9 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
 const InlineApplyEffectSchema = z.object({
   name: z.string().min(1),
   kind: z.enum(["buff", "debuff"]),
+  // Marks every hit this effect deals (dot ticks, expiry punishments, bursts, checks) as an
+  // explicitly avoidable damage source for replay review. See docs/authoring-raids.md.
+  avoidable: z.boolean().optional(),
   duration: z.number().positive(),
   stacks: z.number().int().positive().optional(),
   behavior: EffectBehaviorSchema,
@@ -222,6 +225,7 @@ const EffectRefSchema = z.object({
   ref: z.string().regex(/^[a-z][a-z0-9_]*$/, "status ref must be a snake_case id"),
   name: z.string().min(1).optional(),
   kind: z.enum(["buff", "debuff"]).optional(),
+  avoidable: z.boolean().optional(),
   duration: z.number().positive().optional(),
   stacks: z.number().int().positive().optional(),
   behavior: z.record(z.string(), z.unknown()).optional(),

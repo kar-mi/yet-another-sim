@@ -3,6 +3,7 @@ import { length, sub } from "@shared/math";
 import { pointInShape } from "../shapes";
 import type { TickContext } from "./context";
 import { applyMechanicDamage, isEffectActiveAt } from "./helpers";
+import { mechanicSource } from "./damageLog";
 import { TARGETED_LINGER } from "@shared/constants";
 import { FloorAoe, DEFAULT_DANGER_COLOR } from "@shared/floorAoe";
 
@@ -78,7 +79,7 @@ export function triggerEffectResolver(ctx: TickContext, resolver: EffectResolver
       addResolvedAoeVisual(ctx, `${resolver.id}-${carrier.id}-visual`, resolver.name, circle);
       for (const player of players) {
         if (!player.alive || !pointInShape(circle, player.pos)) continue;
-        applyMechanicDamage(player, action.damage, action.damageType, time);
+        applyMechanicDamage(ctx, player, action.damage, action.damageType, mechanicSource(ctx, resolver.id, resolver.name));
         log.push({ t: time, mechanic: resolver.name, playerId: player.id, event: "hit" });
       }
     }
@@ -91,7 +92,7 @@ export function triggerEffectResolver(ctx: TickContext, resolver: EffectResolver
       const success = soakers.length >= action.requiredCount;
       const per = success ? action.damage / soakers.length : action.damage;
       for (const player of soakers) {
-        applyMechanicDamage(player, per, action.damageType, time);
+        applyMechanicDamage(ctx, player, per, action.damageType, mechanicSource(ctx, resolver.id, resolver.name));
         log.push({ t: time, mechanic: resolver.name, playerId: player.id, event: "hit" });
       }
     }
@@ -112,7 +113,7 @@ export function triggerEffectResolver(ctx: TickContext, resolver: EffectResolver
       addResolvedAoeVisual(ctx, `${resolver.id}-${carrier.id}-visual`, resolver.name, cone);
       for (const player of players) {
         if (!player.alive || player.id === carrier.id || !pointInShape(cone, player.pos)) continue;
-        applyMechanicDamage(player, action.damage, action.damageType, time);
+        applyMechanicDamage(ctx, player, action.damage, action.damageType, mechanicSource(ctx, resolver.id, resolver.name));
         log.push({ t: time, mechanic: resolver.name, playerId: player.id, event: "hit" });
       }
     }

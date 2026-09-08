@@ -155,6 +155,13 @@ export const RaidSchema = z.object({
   })).min(1).optional(),
   players: z.array(PlayerDefSchema).length(ROSTER.length),
   events: z.array(EventSchema),
+  // Named timeline bookmarks for replay review (docs/authoring-raids.md "Mechanic sections").
+  // Descriptive only: sections never affect the simulation.
+  sections: z.array(z.object({
+    id: EventIdSchema,
+    name: z.string().min(1),
+    t: z.number().nonnegative(),
+  })).optional(),
   waymarks: z.array(WaymarkSchema).optional(),
   crystals: CrystalsSchema,
   optionals: OptionalsSchema,
@@ -228,6 +235,14 @@ export const RaidSchema = z.object({
       return;
     }
     eventIds.set(event.id, { type: event.type, index: i });
+  });
+
+  const seenSectionIds = new Set<string>();
+  raid.sections?.forEach((section, i) => {
+    if (seenSectionIds.has(section.id)) {
+      ctx.addIssue({ code: "custom", path: ["sections", i, "id"], message: `duplicate section id "${section.id}"` });
+    }
+    seenSectionIds.add(section.id);
   });
 
   raid.optionals?.orderSwap?.groups.forEach((group, groupIndex) => {

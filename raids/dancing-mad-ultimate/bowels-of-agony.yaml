@@ -102,6 +102,18 @@ _dynamicFluidShort: &dynamicFluidShort
 _dynamicFluidLong: &dynamicFluidLong
   ref: dynamic_fluid_long
 
+# Named review bookmarks. Descriptive only - sections never affect the simulation.
+sections:
+  - { id: opener, name: Opener, t: 0 }
+  - { id: bowels-1, name: Bowels of Agony, t: 19 }
+  - { id: winds, name: Headwind / Tailwind, t: 24 }
+  - { id: thunder, name: Thunder III, t: 36 }
+  - { id: trance, name: Trance & Implosions, t: 60 }
+  - { id: umbra-smash, name: Umbra Smash, t: 79 }
+  - { id: vacuum-wave, name: Vacuum Wave & Dive, t: 81 }
+  - { id: bowels-stack, name: Bowels Stack, t: 90 }
+  - { id: limit-cut, name: Limit Cut, t: 91 }
+
 events:
   # Lock the boss at the start
   - type: aoe
@@ -236,6 +248,7 @@ events:
     telegraph: 7
     damage: 30
     damageType: magical
+    avoidable: true          # get-out circle; the whole party should be outside it
     showCastBar: true
     bossId: exdeath
     anchor: boss
@@ -310,6 +323,7 @@ events:
     telegraph: 6
     damage: 40
     damageType: magical
+    avoidable: true          # quadrant cones; stand in the safe quarter
     anchor: boss
     directionFrom: bossFacing
     lockFacing: true
@@ -326,6 +340,7 @@ events:
     telegraph: 6
     damage: 40
     damageType: magical
+    avoidable: true          # quadrant cones; stand in the safe quarter
     anchor: boss
     directionFrom: bossFacing
     lockFacing: true
@@ -342,6 +357,7 @@ events:
     telegraph: 2
     damage: 40
     damageType: magical
+    avoidable: true          # quadrant cones; stand in the safe quarter
     anchor: boss
     directionFrom: bossFacing
     lockFacing: true
@@ -357,6 +373,7 @@ events:
     telegraph: 2
     damage: 40
     damageType: magical
+    avoidable: true          # quadrant cones; stand in the safe quarter
     anchor: boss
     directionFrom: bossFacing
     lockFacing: true

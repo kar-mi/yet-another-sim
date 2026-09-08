@@ -5,6 +5,7 @@ import type { TickContext } from "./context";
 import type { ActiveChain, PendingChain, EffectSpec } from "@shared/types";
 import { length, sub } from "@shared/math";
 import { applyEffect, applyMechanicDamage } from "./helpers";
+import { mechanicSource } from "./damageLog";
 import { CHAIN_LINGER } from "@shared/constants";
 
 export function resolveChains(ctx: TickContext): {
@@ -56,8 +57,8 @@ export function resolveChains(ctx: TickContext): {
         duration: chain.expireAt - chain.resolveAt,
         behavior: { kind: "none" },
       };
-      if (a?.alive) applyEffect(a, spec, time, aEffId, players);
-      if (b?.alive) applyEffect(b, spec, time, bEffId, players);
+      if (a?.alive) applyEffect(ctx, a, spec, aEffId, players);
+      if (b?.alive) applyEffect(ctx, b, spec, bEffId, players);
     }
 
     if (chain.resolved && chain.outcome === undefined) {
@@ -76,7 +77,7 @@ export function resolveChains(ctx: TickContext): {
         chain.finishedAt = time;
         for (const member of [a, b]) {
           if (!member?.alive) continue;
-          applyMechanicDamage(member, chain.breakDamage, chain.damageType, time);
+          applyMechanicDamage(ctx, member, chain.breakDamage, chain.damageType, mechanicSource(ctx, chain.id, chain.name));
           member.effects = member.effects.filter(e => e.id !== `${chain.id}-${member.id}-eff`);
           log.push({ t: time, mechanic: chain.name, playerId: member.id, event: "hit" });
         }

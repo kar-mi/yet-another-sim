@@ -22,7 +22,7 @@ export function resolveLimitCuts(ctx: TickContext): { remaining: PendingLimitCut
     }
     for (let i = 0; i < shuffled.length; i++) {
       const target = shuffled[i];
-      applyEffect(target, { ...plc.effect, markerIcon: `limit${i + 1}_head.png` }, time, `${plc.id}-${target.id}-lc`, players, undefined, i + 1);
+      applyEffect(ctx, target, { ...plc.effect, markerIcon: `limit${i + 1}_head.png` }, `${plc.id}-${target.id}-lc`, players, undefined, i + 1);
       log.push({ t: time, mechanic: plc.name, playerId: target.id, event: "hit" });
     }
     // Surface the fired limit cut so bot-solver rules can gate on it via when.mechanic.

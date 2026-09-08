@@ -5,6 +5,7 @@ import type { TickContext } from "./context";
 import type { ActiveGroupMechanic, PendingGroupEvent, AOEShape } from "@shared/types";
 import { pointInShape } from "../shapes";
 import { applyMechanicDamage, applyEffect } from "./helpers";
+import { mechanicSource } from "./damageLog";
 import { cullResolved } from "./util";
 import { TARGETED_LINGER } from "@shared/constants";
 import { FloorAoe, DEFAULT_STACK_COLOR } from "@shared/floorAoe";
@@ -82,10 +83,10 @@ export function resolveGroups(ctx: TickContext): {
         const success = soakers.length >= gm.requiredCount;
         const per = success ? gm.damage / soakers.length : gm.damage;
         for (const player of soakers) {
-          applyMechanicDamage(player, per, gm.damageType, time);
+          applyMechanicDamage(ctx, player, per, gm.damageType, mechanicSource(ctx, gm.id, gm.name));
           log.push({ t: time, mechanic: gm.name, playerId: player.id, event: "hit" });
           if (gm.applyEffect && player.alive) {
-            applyEffect(player, gm.applyEffect, time, `${gm.id}-${player.id}-eff`, players);
+            applyEffect(ctx, player, gm.applyEffect, `${gm.id}-${player.id}-eff`, players);
           }
         }
         gm.outcome = success ? "success" : "failure";

@@ -24,6 +24,7 @@ import {
   effectsForMechanic, balancedEffectOrders, applyKnockback, shapeOrigin, isEffectActiveAt,
 } from "./helpers";
 import { addResolvedAoeVisual } from "./effectResolvers";
+import { mechanicSource } from "./damageLog";
 
 // Pick the player a bait targets at cast start: "random" draws a seeded alive (optionally
 // role-filtered) player; "closest"/"furthest" measure from the boss.
@@ -327,9 +328,9 @@ export function resolveAoe(ctx: TickContext): {
           addResolvedAoeVisual(ctx, `${mechanic.id}-${target.id}-visual`, mechanic.name, circle);
           for (const player of players) {
             if (!player.alive || !pointInShape(circle, player.pos)) continue;
-            applyMechanicDamage(player, mechanic.damage, mechanic.damageType, time);
+            applyMechanicDamage(ctx, player, mechanic.damage, mechanic.damageType, mechanicSource(ctx, mechanic.id, mechanic.name));
             log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });
-            if (mechanic.applyEffect) applyEffect(player, mechanic.applyEffect, time, `${mechanic.id}-${player.id}-eff`, players);
+            if (mechanic.applyEffect) applyEffect(ctx, player, mechanic.applyEffect, `${mechanic.id}-${player.id}-eff`, players);
           }
         }
         mechanic.resolved = true;
@@ -370,7 +371,7 @@ export function resolveAoe(ctx: TickContext): {
           ? player.hp < player.maxHp
           : pointInShape(mechanic.shape, player.pos) && inArc;
         if (hit) {
-          applyMechanicDamage(player, mechanic.damage, mechanic.damageType, time);
+          applyMechanicDamage(ctx, player, mechanic.damage, mechanic.damageType, mechanicSource(ctx, mechanic.id, mechanic.name));
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });
           const effectSpecs = player.alive
             ? (mechanic.applyEffects?.order === "shuffleBalanced"
@@ -391,7 +392,7 @@ export function resolveAoe(ctx: TickContext): {
             const effectId = effectSpecs.length === 1
               ? `${mechanic.id}-${player.id}-eff`
               : `${mechanic.id}-${player.id}-eff-${effectIndex}`;
-            applyEffect(player, spec, time, effectId, players, plantSlot);
+            applyEffect(ctx, player, spec, effectId, players, plantSlot);
           }
           if (mechanic.knockback && player.alive && player.antiKbActive <= 0) {
             const origin = mechanic.knockback.origin ?? shapeOrigin(mechanic.shape);

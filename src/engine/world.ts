@@ -8,6 +8,7 @@ import { toVec2, toZoneShape } from "./eventTransforms";
 import { bucketEvent, type Collections } from "./mechanicRegistry";
 import { toBotSolvers } from "./botSolvers";
 import { preRollRaid, type RngConstraints } from "./preRoll";
+import { collectAvoidableSources } from "./avoidableSources";
 
 export const ROLE_HP: Record<Player["role"], number> = { tank: 160, healer: 100, dps: 100 };
 
@@ -137,6 +138,8 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed(), constraint
     bosses,
     log: [],
     duration: raid.duration,
+    avoidableSources: collectAvoidableSources(effectiveEvents),
+    sections: raid.sections ? [...raid.sections].sort((a, b) => a.t - b.t) : [],
     // Active-mechanic runtime lists; always empty at world creation (resolvers populate them).
     active: [],
     tetherSources: [],

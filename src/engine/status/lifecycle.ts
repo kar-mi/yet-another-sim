@@ -4,6 +4,7 @@ import type { Vec2 } from "@shared/math";
 import { pointInShape } from "../shapes";
 import { addResolvedAoeVisual } from "../systems/effectResolvers";
 import { applyEffect, applyKnockback, applyMechanicDamage, effectActiveDt, isLookingAt, selectTargetPlayers } from "../systems/helpers";
+import { effectSource, recordDeath, type DamageSource } from "../systems/damageLog";
 import { GRAVITY } from "@shared/constants";
 import { sin, cos } from "@shared/dmath";
 
@@ -51,10 +52,13 @@ function dotOnTick(effect: StatusEffect, player: Player, ctx: TickContext, acted
     || (behavior.condition === "moving" && acted)
     || (behavior.condition === "idle" && !acted);
   if (!ticks) return;
+  if (!player.alive) return;
   player.hp = Math.max(0, player.hp - behavior.dps * activeDt);
   if (player.hp <= 0) {
     player.alive = false;
     ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: player.id, event: "hit" });
+    // A dot ticks every frame, so only the death it causes is recorded, not each tick's damage.
+    recordDeath(ctx, player, effectSource(effect));
   }
 }
 
@@ -63,7 +67,7 @@ function burstSpreadOnExpiry(effect: StatusEffect, player: Player, ctx: TickCont
   const selfShape: AOEShape = (behavior.selfShape ?? "circle") === "donut"
     ? { kind: "donut", center: player.pos, inner: behavior.selfInner!, outer: behavior.radius }
     : { kind: "circle", center: player.pos, radius: behavior.radius };
-  applyShapeHit(ctx.players, ctx.log, ctx.time, selfShape, player.pos, behavior.damage, behavior.damageType, behavior.knockbackDistance, player.id, effect.name);
+  applyShapeHit(ctx, selfShape, player.pos, behavior.damage, behavior.damageType, behavior.knockbackDistance, player.id, effectSource(effect));
   addResolvedAoeVisual(ctx, `${effect.id}-self`, effect.name, selfShape);
   if (!behavior.followUp) return;
 
@@ -76,12 +80,13 @@ function burstSpreadOnExpiry(effect: StatusEffect, player: Player, ctx: TickCont
       id: effect.id,
       t: ctx.time + 1,
       name: effect.name,
+      avoidable: effect.avoidable,
       originCrystal: followUp.originCrystal,
       followUp,
     });
     return;
   }
-  resolveFollowUp(ctx, effect.id, effect.name, followUp, player.pos, player.id);
+  resolveFollowUp(ctx, effect.id, effectSource(effect), followUp, player.pos, player.id);
 }
 
 function effectBurstOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
@@ -89,7 +94,7 @@ function effectBurstOnExpiry(effect: StatusEffect, player: Player, ctx: TickCont
   const shape: AOEShape = behavior.shape === "donut"
     ? { kind: "donut", center: player.pos, inner: behavior.innerRadius!, outer: behavior.radius }
     : { kind: "circle", center: player.pos, radius: behavior.radius };
-  applyShapeHit(ctx.players, ctx.log, ctx.time, shape, player.pos, behavior.damage, behavior.damageType, undefined, undefined, effect.name);
+  applyShapeHit(ctx, shape, player.pos, behavior.damage, behavior.damageType, undefined, undefined, effectSource(effect));
   addResolvedAoeVisual(ctx, `${effect.id}-burst`, effect.name, shape);
 }
 
@@ -105,6 +110,7 @@ function twisterOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext)
     id: effect.id,
     t: ctx.time + behavior.delay,
     name: effect.name,
+    avoidable: effect.avoidable,
     shape,
     damage: behavior.damage,
     damageType: behavior.damageType,
@@ -119,7 +125,7 @@ function carrierGazeOnExpiry(effect: StatusEffect, player: Player, ctx: TickCont
     direction: { x: sin(player.facing), z: cos(player.facing) },
     ...behavior.cone,
   };
-  applyShapeHit(ctx.players, ctx.log, ctx.time, shape, player.pos, behavior.damage, behavior.damageType, undefined, player.id, effect.name);
+  applyShapeHit(ctx, shape, player.pos, behavior.damage, behavior.damageType, undefined, player.id, effectSource(effect));
   addResolvedAoeVisual(ctx, `${effect.id}-cone`, effect.name, shape);
 }
 
@@ -129,7 +135,7 @@ function reverseCarrierGazeOnExpiry(effect: StatusEffect, player: Player, ctx: T
   for (const target of ctx.players) {
     if (!target.alive || target.id === player.id) continue;
     if (isLookingAt(target.facing, target.pos, player.pos, halfAngle)) continue;
-    applyMechanicDamage(target, behavior.damage, behavior.damageType, ctx.time);
+    applyMechanicDamage(ctx, target, behavior.damage, behavior.damageType, effectSource(effect));
     ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: target.id, event: "hit" });
   }
 }
@@ -148,7 +154,7 @@ function pairedSpreadStackOnExpiry(effect: StatusEffect, _player: Player, ctx: T
   const spreadCarriers = carriers.filter(carrier => carrier.behavior.role === "spread");
   for (const { player } of spreadCarriers) {
     const shape: AOEShape = { kind: "circle", center: player.pos, radius: behavior.spread.radius };
-    applyShapeHit(ctx.players, ctx.log, ctx.time, shape, player.pos, behavior.spread.damage, behavior.damageType, undefined, undefined, effect.name);
+    applyShapeHit(ctx, shape, player.pos, behavior.spread.damage, behavior.damageType, undefined, undefined, effectSource(effect));
     addResolvedAoeVisual(ctx, `${effect.id}-spread-${player.id}`, effect.name, shape);
   }
   for (const { player } of stackCarriers) {
@@ -156,7 +162,7 @@ function pairedSpreadStackOnExpiry(effect: StatusEffect, _player: Player, ctx: T
     const soakers = ctx.players.filter(target => target.alive && pointInShape(shape, target.pos));
     const per = soakers.length >= behavior.stack.requiredCount ? behavior.stack.damage / soakers.length : behavior.stack.damage;
     for (const soaker of soakers) {
-      applyMechanicDamage(soaker, per, behavior.damageType, ctx.time);
+      applyMechanicDamage(ctx, soaker, per, behavior.damageType, effectSource(effect));
       ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: soaker.id, event: "hit" });
     }
     addResolvedAoeVisual(ctx, `${effect.id}-stack-${player.id}`, effect.name, shape);
@@ -172,7 +178,7 @@ function effectCheckOnExpiry(effect: StatusEffect, player: Player, ctx: TickCont
     ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: player.id, event: "cleared" });
     return;
   }
-  applyMechanicDamage(player, behavior.failureDamage, behavior.failureDamageType, ctx.time);
+  applyMechanicDamage(ctx, player, behavior.failureDamage, behavior.failureDamageType, effectSource(effect));
   ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: player.id, event: "hit" });
 }
 
@@ -197,7 +203,7 @@ function plantOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): 
 
 function expiryDamageOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
   const behavior = effect.behavior as Extract<EffectBehavior, { kind: "primordialCrust" | "accretion" | "assignment" }>;
-  applyMechanicDamage(player, behavior.expiryDamage, behavior.expiryDamageType, ctx.time);
+  applyMechanicDamage(ctx, player, behavior.expiryDamage, behavior.expiryDamageType, effectSource(effect));
   if (!player.alive) ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: player.id, event: "hit" });
 }
 
@@ -207,51 +213,52 @@ function motionCheckOnExpiry(effect: StatusEffect, player: Player, ctx: TickCont
   if (behavior.required === "move" ? moved : !moved) return;
   // ponytail: micro-distance keeps the existing knockup input lock without a new player state.
   applyKnockback(player, { distance: 0.001, height: behavior.failureKnockupHeight }, player.pos, ctx.time);
-  applyEffect(player, {
+  applyEffect(ctx, player, {
     name: effect.name,
     kind: "debuff",
+    avoidable: effect.avoidable,
     duration: 2 * Math.sqrt(2 * GRAVITY * behavior.failureKnockupHeight) / GRAVITY,
     visibility: "invisible",
     behavior: { kind: "assignment", expiryDamage: behavior.failureDamage, expiryDamageType: behavior.failureDamageType },
-  }, ctx.time, `${effect.id}-landing`, ctx.players);
+  }, `${effect.id}-landing`, ctx.players);
 }
 
 export function applyPendingBurstSpreadFollowUp(ctx: TickContext, pending: TickContext["pendingBurstSpreadFollowUps"][number]): void {
   const origin = ctx.world.crystals.find(crystal => crystal.element === pending.originCrystal)?.pos ?? { x: 0, z: 0 };
-  resolveFollowUp(ctx, pending.id, pending.name, pending.followUp, origin);
+  resolveFollowUp(ctx, pending.id, { key: pending.id, name: pending.name, avoidable: pending.avoidable === true }, pending.followUp, origin);
 }
 
 export function applyPendingTwister(ctx: TickContext, pending: TickContext["pendingTwisters"][number]): void {
   const origin = pending.shape.kind === "circle" || pending.shape.kind === "donut"
     ? pending.shape.center
     : pending.shape.origin;
-  applyShapeHit(ctx.players, ctx.log, ctx.time, pending.shape, origin, pending.damage, pending.damageType, undefined, undefined, pending.name);
+  applyShapeHit(ctx, pending.shape, origin, pending.damage, pending.damageType, undefined, undefined,
+    { key: pending.id, name: pending.name, avoidable: pending.avoidable === true });
   addResolvedAoeVisual(ctx, `${pending.id}-twister`, pending.name, pending.shape);
 }
 
 function applyShapeHit(
-  players: TickContext["players"],
-  log: TickContext["log"],
-  time: number,
+  ctx: TickContext,
   shape: AOEShape,
   origin: Vec2,
   damage: number,
   damageType: DamageType,
   kbDistance: number | undefined,
   skipKbForId: string | undefined,
-  name: string,
+  source: DamageSource,
 ): void {
-  for (const target of players) {
+  const time = ctx.time;
+  for (const target of ctx.players) {
     if (!target.alive || !pointInShape(shape, target.pos)) continue;
-    applyMechanicDamage(target, damage, damageType, time);
+    applyMechanicDamage(ctx, target, damage, damageType, source);
     if (kbDistance !== undefined && kbDistance > 0 && (skipKbForId === undefined || target.id !== skipKbForId) && target.antiKbActive <= 0) {
       applyKnockback(target, { distance: kbDistance, height: 0, origin }, origin, time);
     }
-    log.push({ t: time, mechanic: name, playerId: target.id, event: "hit" });
+    ctx.log.push({ t: time, mechanic: source.name, playerId: target.id, event: "hit" });
   }
 }
 
-function resolveFollowUp(ctx: TickContext, id: string, name: string, followUp: NonNullable<BurstSpread["followUp"]>, origin: Vec2, excludeId?: string): void {
+function resolveFollowUp(ctx: TickContext, id: string, source: DamageSource, followUp: NonNullable<BurstSpread["followUp"]>, origin: Vec2, excludeId?: string): void {
   const candidates = excludeId === undefined
     ? ctx.players.filter(p => p.alive)
     : ctx.players.filter(p => p.alive && p.id !== excludeId);
@@ -260,7 +267,7 @@ function resolveFollowUp(ctx: TickContext, id: string, name: string, followUp: N
     const shape: AOEShape = followUp.shape === "donut"
       ? { kind: "donut", center: target.pos, inner: followUp.inner!, outer: followUp.radius }
       : { kind: "circle", center: target.pos, radius: followUp.radius };
-    applyShapeHit(ctx.players, ctx.log, ctx.time, shape, target.pos, followUp.damage, followUp.damageType, followUp.knockbackDistance, undefined, name);
-    addResolvedAoeVisual(ctx, `${id}-fu-${target.id}`, name, shape);
+    applyShapeHit(ctx, shape, target.pos, followUp.damage, followUp.damageType, followUp.knockbackDistance, undefined, source);
+    addResolvedAoeVisual(ctx, `${id}-fu-${target.id}`, source.name, shape);
   }
 }

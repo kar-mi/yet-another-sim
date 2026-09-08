@@ -23,16 +23,8 @@ export type Crystal = { id: string; element: CrystalElement; pos: Vec2; spawnAt:
 
 export type Waypoint = { t: number; pos: Vec2 };
 
-// One ordered, data-driven bot-solver rule (see docs/authoring-bot-patterns.md "Generic solver").
-// A rule is active during a matched mechanic's telegraph->resolve window (and/or while a named
-// debuff is active), optionally clamped by startAt/endAt. When active it sends each matching bot
-// to spots[its id] ?? spot. Conditions in `when` are ANDed.
 export type DamageType = "physical" | "magical" | "true";
 export type TelegraphMode = "cast" | "resolve";
-
-// Render-only: during the final `lead` seconds before resolve, flash the AoE footprint
-// in `color` (hex; defaults to light blue) as a just-in-time tell. Drawn even when
-// showTelegraph is false. Does not affect simulation timing or damage.
 export type FlashBeforeResolve = { lead: number; color?: string };
 
 export type AOEShape =
@@ -46,3 +38,4 @@ export type AOEShape =
 // facing direction: 0 = front, π = rear, π/2 = boss's right, -π/2 = left, π/4 = front-right, etc.
 export type PositionalArc = { center: number; width: number };
 export type BossRelativeCenter = { lateral: number; forward: number };
+export type MechanicSection = { id: string; name: string; t: number };

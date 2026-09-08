@@ -6,6 +6,7 @@ import type { TickContext } from "./context";
 import type { ActiveSpreadStack, PendingSpreadStack, AOEShape } from "@shared/types";
 import { pointInShape } from "../shapes";
 import { applyMechanicDamage } from "./helpers";
+import { mechanicSource } from "./damageLog";
 import { cullResolved } from "./util";
 import { TARGETED_LINGER } from "@shared/constants";
 
@@ -59,7 +60,7 @@ export function resolveSpreadStacks(ctx: TickContext): {
           const circle: AOEShape = { kind: "circle", center: owner.pos, radius: ss.spread.radius };
           for (const player of players) {
             if (!player.alive || !pointInShape(circle, player.pos)) continue;
-            applyMechanicDamage(player, ss.spread.damage, ss.damageType, time);
+            applyMechanicDamage(ctx, player, ss.spread.damage, ss.damageType, mechanicSource(ctx, ss.id, ss.name, "spread"));
             log.push({ t: time, mechanic: ss.name, playerId: player.id, event: "hit" });
           }
         }
@@ -71,7 +72,7 @@ export function resolveSpreadStacks(ctx: TickContext): {
           const success = soakers.length >= ss.stack.requiredCount;
           const per = success ? ss.stack.damage / soakers.length : ss.stack.damage;
           for (const player of soakers) {
-            applyMechanicDamage(player, per, ss.damageType, time);
+            applyMechanicDamage(ctx, player, per, ss.damageType, mechanicSource(ctx, ss.id, ss.name, "stack"));
             log.push({ t: time, mechanic: ss.name, playerId: player.id, event: "hit" });
           }
         }
@@ -83,7 +84,7 @@ export function resolveSpreadStacks(ctx: TickContext): {
           const circle: AOEShape = { kind: "circle", center: owner.pos, radius: ss.spread.radius };
           for (const player of players) {
             if (!player.alive || !pointInShape(circle, player.pos)) continue;
-            applyMechanicDamage(player, ss.spread.damage, ss.damageType, time);
+            applyMechanicDamage(ctx, player, ss.spread.damage, ss.damageType, mechanicSource(ctx, ss.id, ss.name, "spread"));
             log.push({ t: time, mechanic: ss.name, playerId: player.id, event: "hit" });
           }
         }
@@ -100,7 +101,7 @@ export function resolveSpreadStacks(ctx: TickContext): {
           if (!success) allSucceeded = false;
           const per = success ? ss.stack.damage / soakers.length : ss.stack.damage;
           for (const player of soakers) {
-            applyMechanicDamage(player, per, ss.damageType, time);
+            applyMechanicDamage(ctx, player, per, ss.damageType, mechanicSource(ctx, ss.id, ss.name, "stack"));
             log.push({ t: time, mechanic: ss.name, playerId: player.id, event: "hit" });
           }
         }

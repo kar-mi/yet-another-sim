@@ -215,6 +215,27 @@ The header carries a replay format version independent of the application packag
 Unversioned or incompatible files remain visible in the replay list but are rejected explicitly
 rather than being interpreted as the current `World`/`Frame` shape.
 
+### Replay review
+
+Format **2** adds the review payload to the recorded tick-0 world: `avoidableSources` (the raid's
+`avoidable: true` damage tags) and `sections` (authored timeline bookmarks). Both are baked by
+`createWorld`, so they travel in the recording and review never depends on the raid file being
+unchanged since the pull. Format 1 recordings still play back and simply report
+"Event details were not recorded for this replay" — distinct from a format 2 recording whose event
+list is legitimately empty.
+
+The events themselves are **not** stored. The server relays frames and never runs `tick()`, so it has
+nothing to record; instead `src/client/replayInsights.ts` replays the input log once when a replay is
+opened and collects the avoidable-hit and death entries the engine emits into `world.log`
+(`src/engine/systems/damageLog.ts`). Because the engine is deterministic this reproduces exactly the
+pull that was recorded, and because `ReplayTransport` already re-simulates from tick 0 on every seek,
+the one-time pass costs less than a single scrub. Nothing is inferred from HP differences, and nothing
+is collected again during playback or seeking.
+
+Recorded event ticks follow the transport's seek convention: seeking to an event's tick shows the
+state *after* that event resolved. See [Authoring Raids](authoring-raids.md#replay-review) for the
+`avoidable` and `sections` fields.
+
 ## Conventions
 
 - **Babylon.js imports must be sub-path / tree-shakeable.** Import from specific module paths

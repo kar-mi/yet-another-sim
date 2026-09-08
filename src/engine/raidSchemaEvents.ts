@@ -19,6 +19,8 @@ const AOEEventSchema = z.object({
   telegraph: z.number().positive(),
   damage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
+  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
+  avoidable: z.boolean().optional(),
   shape: AOEShapeSchema,
   applyEffect: ApplyEffectSchema.optional(),
   applyEffects: ApplyEffectsSchema.optional(),
@@ -75,6 +77,8 @@ const TargetedEventSchema = z.object({
   telegraph: z.number().positive(),
   damage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
+  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
+  avoidable: z.boolean().optional(),
   applyEffect: ApplyEffectSchema.optional(),
   showCastBar: z.boolean().default(false),
   showTelegraph: z.boolean().default(true),
@@ -147,6 +151,7 @@ const TetherSourceEventSchema = z.object({
     length: z.number().positive(),
     damage: z.number().nonnegative(),
     damageType: z.enum(["physical", "magical", "true"]).default("true"),
+    avoidable: z.boolean().optional(),
     applyEffect: ApplyEffectSchema.optional(),
     pointing: Vec2Schema.optional(),
   }).optional(),
@@ -247,6 +252,9 @@ const TowerEventSchema = z.object({
   wrongRoleLethal: z.boolean().default(false), // wrong-role soaker dies (only with requiredRoles)
   failureDamage: z.number().nonnegative(), // raidwide damage when not enough valid soakers
   failureDamageType: z.enum(["physical", "magical", "true"]),
+  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
+  avoidable: z.boolean().optional(),
+
   applyEffect: ApplyEffectSchema.optional(), // debuff applied to valid soakers on success
   consumeEffect: z.object({ effectName: z.string().min(1), stacks: z.number().int().positive().default(1) }).optional(),
   knockback: KnockbackSchema.optional(),     // knockback applied to valid soakers on success
@@ -260,6 +268,7 @@ const EffectResolverActionSchema = z.discriminatedUnion("kind", [
     radius: z.number().positive(),
     damage: z.number().nonnegative(),
     damageType: z.enum(["physical", "magical", "true"]),
+    avoidable: z.boolean().optional(),
   }),
   z.object({
     kind: z.literal("stack"),
@@ -267,6 +276,7 @@ const EffectResolverActionSchema = z.discriminatedUnion("kind", [
     requiredCount: z.number().int().positive().default(1),
     damage: z.number().nonnegative(),
     damageType: z.enum(["physical", "magical", "true"]),
+    avoidable: z.boolean().optional(),
   }),
   z.object({
     kind: z.literal("cone_nearest"),
@@ -274,6 +284,7 @@ const EffectResolverActionSchema = z.discriminatedUnion("kind", [
     length: z.number().positive(),
     damage: z.number().nonnegative(),
     damageType: z.enum(["physical", "magical", "true"]),
+    avoidable: z.boolean().optional(),
   }),
 ]);
 
@@ -296,6 +307,8 @@ const ChainEventSchema = z.object({
   breakDistance: z.number().positive(), // separation needed to break the chain
   breakDamage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
+  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
+  avoidable: z.boolean().optional(),
   debuff: z.string().min(1),            // registered debuff applied to both members at cast end
   showCastBar: z.boolean().default(false),
 }).transform((event, ctx) => {
@@ -321,6 +334,9 @@ const GroupEventSchema = z.object({
   requiredCount: z.number().int().positive().default(1),         // soakers needed inside the radius; fewer -> stack fails (full damage each)
   damage: z.number().nonnegative(),                              // total damage, split evenly among soakers on success
   damageType: z.enum(["physical", "magical", "true"]),
+  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
+  avoidable: z.boolean().optional(),
+
   applyEffect: ApplyEffectSchema.optional(),
   showCastBar: z.boolean().default(false),
   showMarker: z.boolean().default(true),
@@ -376,6 +392,8 @@ const InverseEventSchema = z.object({
   telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
   damage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
+  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
+  avoidable: z.boolean().optional(),
   shownShapes: z.array(AOEShapeSchema).min(1),      // telegraph shapes that ARE drawn
   hiddenShapes: z.array(AOEShapeSchema).min(1),     // not drawn; lethal when inverted ("?")
   shownShapesB: z.array(AOEShapeSchema).min(1).optional(),  // variant-b telegraph shapes (rolled when variantRng)
@@ -412,12 +430,14 @@ const SpreadStackEventSchema = z.object({
   spread: z.object({
     radius: z.number().positive(),                   // each player's personal AOE radius
     damage: z.number().nonnegative(),                // damage per circle a player stands in
+    avoidable: z.boolean().optional(),
   }),
   stack: z.object({
     groups: z.array(z.array(z.string().min(1)).min(1)).min(1), // candidate groups; one member is marked
     radius: z.number().positive(),                   // stack circle radius around the marked player
     requiredCount: z.number().int().positive().default(1),     // soakers needed; fewer -> full damage each
     damage: z.number().nonnegative(),                // total, split evenly among soakers on success
+    avoidable: z.boolean().optional(),
   }),
   stackCarriers: z.string().min(1).optional(),
   spreadCarriers: z.string().min(1).optional(),
@@ -444,6 +464,8 @@ const GazeEventSchema = z.object({
   telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
   damage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
+  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
+  avoidable: z.boolean().optional(),
   pos: Vec2Schema.optional(),                       // position of the eye/source (e.g. north)
   carriers: z.string().min(1).optional(),
   carrierCone: z.object({ angleDeg: z.number().positive().max(360), length: z.number().positive() }).optional(),
@@ -528,6 +550,9 @@ const DivebombEventSchema = z.object({
   gap: z.number().positive().optional(),
   damage: z.number().nonnegative().optional(),
   damageType: z.enum(["physical", "magical", "true"]).default("physical"),
+  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
+  avoidable: z.boolean().optional(),
+
   applyEffect: ApplyEffectSchema.optional(),
   hitInterval: z.number().positive().optional(),
   teleportBoss: z.string().min(1).optional(),  // on cast start, move this boss to `from` (facing `to`) and unhide it
@@ -566,6 +591,8 @@ const EffectBurstEventSchema = z.object({
   questionMark: z.boolean().optional(),
   damage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
+  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
+  avoidable: z.boolean().optional(),
   applyEffect: ApplyEffectSchema.optional(),
   knockback: KnockbackSchema.optional(),
   showCastBar: z.boolean().default(false),
@@ -587,6 +614,8 @@ const EffectCheckEventSchema = z.object({
   checks: z.array(z.object({ carriers: z.string().min(1), compare: z.tuple([z.string().min(1), z.string().min(1)]), expect: z.enum(["matches", "differs"]) })).min(1),
   failureDamage: z.number().nonnegative(),
   failureDamageType: z.enum(["physical", "magical", "true"]),
+  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
+  avoidable: z.boolean().optional(),
 });
 
 const HealEventSchema = z.object({

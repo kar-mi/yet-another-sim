@@ -18,8 +18,8 @@ function activeChargeKind(player: Player, time: number, kindByEffectName: Map<st
 }
 
 function applyCharge(ctx: TickContext, player: Player, charge: ReassignCharge, idPrefix: string): void {
-  applyEffect(player, charge.effect, ctx.time, `${idPrefix}-charge`, ctx.players);
-  if (charge.marker) applyEffect(player, charge.marker, ctx.time, `${idPrefix}-marker`, ctx.players);
+  applyEffect(ctx, player, charge.effect, `${idPrefix}-charge`, ctx.players);
+  if (charge.marker) applyEffect(ctx, player, charge.marker, `${idPrefix}-marker`, ctx.players);
 }
 
 export function resolveReassigns(ctx: TickContext): { reassigns: Reassign[] } {

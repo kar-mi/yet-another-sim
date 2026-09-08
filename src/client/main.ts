@@ -7,6 +7,8 @@ import { initSettingsPanel } from "./ui/SettingsPanel";
 import { createRaidHudSelect } from "./ui/RaidHudSelect";
 import { NetClient, connect } from "./net";
 import { ReplayTransport } from "./replayTransport";
+import { collectReplayInsights } from "./replayInsights";
+import { createReplayReview } from "./ui/ReplayReview";
 import { preloadAssets } from "./render/preloadAssets";
 import { SessionIdSchema, type PlaybackState } from "@shared/protocol";
 import { consoleSink, logger, parseLevel } from "@shared/logger";
@@ -136,13 +138,19 @@ async function main(): Promise<void> {
 
       renderer = new BabylonRenderer(canvas, onSettingsChange, () => {}, () => {}, hudLayout);
       renderer.init(lobbyResult.world, sessionId);
+      const review = createReplayReview(collectReplayInsights(lobbyResult), {
+        duration: () => transport.duration(),
+        currentTick: () => transport.currentTick(),
+        pause: () => transport.pause(),
+        seek: tick => transport.seek(tick),
+      }, hudLayout);
       currentTeardown = await startSessionRuntime({
         renderer,
         net: replayNet,
         playbackState: "paused",
         readOnly: true,
         closeNet: true,
-        createRaidSelect: () => createRaidHudSelect(replayNet, lobbyResult.raidId, false, "paused", hudLayout, lobbyResult.world.seed, {}, transport),
+        createRaidSelect: () => createRaidHudSelect(replayNet, lobbyResult.raidId, false, "paused", hudLayout, lobbyResult.world.seed, {}, transport, [], null, [], null, review),
         syncKeybindLabels,
         updateController,
       }, settings);
@@ -151,6 +159,7 @@ async function main(): Promise<void> {
       await sessionEnd;
       resolveHome = null;
       homeBtn.style.display = "none";
+      review.dispose();
       currentTeardown();
       currentTeardown = () => {};
       renderer = null;

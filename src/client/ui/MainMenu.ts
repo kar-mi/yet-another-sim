@@ -121,7 +121,7 @@ function playbackStateForLobby(status: LobbyStatus): PlaybackState {
 
 type LobbyResult =
   | { kind: "started"; world: World; yourPlayerId: string | null; sessionId: string; raidId: string; isHost: boolean; playbackState: PlaybackState; rngConstraints: Record<string, number>; rngDecisions: DecisionDescription[]; waymarkPresetId: string | null; botPatternOptions: BotPatternOption[]; botPatternId: string | null }
-  | { kind: "replay"; pull: number; raidId: string; world: World; frames: Frame[] }
+  | { kind: "replay"; pull: number; formatVersion: number; raidId: string; world: World; frames: Frame[] }
   | { kind: "expired" };
 
 export async function showLobby(net: NetClient, sessionId: string): Promise<LobbyResult> {
@@ -229,7 +229,7 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
       try {
         const loaded = await replayRepository.load(sessionId, replay.pull);
         cleanup();
-        resolve({ kind: "replay", pull: replay.pull, raidId: loaded.raidId, world: loaded.world, frames: loaded.frames });
+        resolve({ kind: "replay", pull: replay.pull, formatVersion: loaded.formatVersion, raidId: loaded.raidId, world: loaded.world, frames: loaded.frames });
       } catch (error) {
         action.disabled = false;
         showError(error instanceof ReplayRepositoryError && error.code === "unsupported_format"

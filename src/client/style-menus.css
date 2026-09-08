@@ -901,3 +901,267 @@
 #yas-status.yas-stopped { color: var(--px-text); text-shadow: 3px 3px 0 var(--px-shadow); }
 #yas-status.yas-stopped { flex-direction: column; }
 #yas-status.yas-stopped small { margin-top: 8px; font-size: 16px; letter-spacing: 2px; }
+
+/* ===== REPLAY REVIEW ===== */
+/* Event sidebar. A movable HUD group like the other boxes, so it uses the same raised-panel bevel
+   as #yas-timer rather than a bespoke frame. */
+#yas-replay-review {
+  position: fixed;
+  top: 45px;
+  left: 12px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 268px;
+  padding: 9px 10px;
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  border-radius: 5px;
+  font-family: var(--px-font);
+}
+
+.yas-review-search {
+  background: var(--px-sunken);
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+  color: var(--px-text);
+  font-family: var(--px-font);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  padding: 5px 7px;
+  outline: none;
+}
+
+/* HUD groups are user-select:none; the search box is the one place typing needs selection. */
+.yas-review-search {
+  user-select: text;
+}
+
+.yas-review-search::placeholder {
+  color: var(--px-text-dim);
+}
+
+.yas-review-search:focus,
+.yas-review-player:focus {
+  border-color: var(--px-accent);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 8px var(--px-glow);
+}
+
+.yas-review-filters {
+  display: flex;
+  gap: 4px;
+}
+
+.yas-review-chip {
+  flex: 1;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow);
+  border-radius: 4px;
+  color: var(--px-text);
+  cursor: pointer;
+  font-family: var(--px-font);
+  font-size: 10px;
+  letter-spacing: 0.8px;
+  padding: 5px 4px;
+  transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
+}
+
+.yas-review-chip:hover {
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+}
+
+.yas-review-chip.is-active {
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+  box-shadow: inset 0 0 0 1px var(--px-accent), 0 0 8px var(--px-glow);
+}
+
+.yas-review-player {
+  font-size: 12px;
+  padding: 5px 7px;
+  width: 100%;
+}
+
+.yas-review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: min(420px, 46vh);
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--px-sunken);
+  border: 1px solid var(--px-edge);
+  border-radius: 4px;
+  scrollbar-color: var(--px-edge) var(--px-bg-0);
+  scrollbar-width: thin;
+}
+
+.yas-review-list::-webkit-scrollbar { width: 8px; }
+.yas-review-list::-webkit-scrollbar-track { background: var(--px-bg-0); border-radius: 3px; }
+.yas-review-list::-webkit-scrollbar-thumb { background: var(--px-edge); border: 1px solid var(--px-bg-0); border-radius: 3px; }
+.yas-review-list::-webkit-scrollbar-thumb:hover { background: var(--px-accent); }
+
+.yas-review-row {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  box-shadow: inset 0 1px 0 var(--px-edge-hi);
+  color: var(--px-text);
+  cursor: pointer;
+  font-family: var(--px-font);
+  padding: 5px 7px;
+  text-align: left;
+  transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
+}
+
+.yas-review-row:hover { border-color: var(--px-accent); }
+
+.yas-review-row.is-current { border-color: var(--px-accent-dim); }
+
+.yas-review-row.is-selected {
+  border-color: var(--px-accent);
+  box-shadow: inset 3px 0 0 var(--px-accent), 0 0 8px var(--px-glow);
+}
+
+.yas-review-row-time {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: var(--px-text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.yas-review-row-icon {
+  font-size: 12px;
+  color: var(--px-accent);
+}
+
+.yas-review-row.is-death .yas-review-row-icon { color: var(--px-danger); }
+
+.yas-review-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.yas-review-row-source {
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.yas-review-row-meta {
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  color: var(--px-text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Death markers: a thin track directly under the seek bar, sharing its 190px width so each
+   marker lines up with the position it points at. */
+.yas-review-markers {
+  position: relative;
+  width: 190px;
+  height: 14px;
+}
+
+.yas-review-marker {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  min-width: 10px;
+  height: 14px;
+  padding: 0 2px;
+  background: var(--px-danger);
+  border: 2px solid var(--px-edge);
+  border-radius: 3px;
+  box-shadow: 0 2px 0 var(--px-shadow);
+  color: var(--px-ink);
+  cursor: pointer;
+  font-family: var(--px-font);
+  font-size: 9px;
+  line-height: 1;
+}
+
+.yas-review-marker:hover,
+.yas-review-marker.is-active {
+  border-color: var(--px-accent);
+}
+
+.yas-review-marker.is-group { background: var(--px-accent); }
+
+.yas-review-marker-popup {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transform: translateX(-50%);
+  min-width: 160px;
+  padding: 5px;
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  border-radius: 4px;
+}
+
+.yas-review-marker-entry {
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  border-radius: 4px;
+  color: var(--px-text);
+  cursor: pointer;
+  font-family: var(--px-font);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  padding: 4px 6px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.yas-review-marker-entry:hover {
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+}
+
+/* Section navigator: wraps within the raid-selector column, independent of the event filters. */
+.yas-review-sections {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  width: 190px;
+}
+
+.yas-review-section {
+  background: var(--px-bg-2);
+  border: 2px solid var(--px-edge);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow);
+  border-radius: 4px;
+  color: var(--px-text-dim);
+  cursor: pointer;
+  font-family: var(--px-font);
+  font-size: 10px;
+  letter-spacing: 0.8px;
+  padding: 4px 6px;
+}
+
+.yas-review-section:hover {
+  border-color: var(--px-accent);
+  color: var(--px-accent);
+}

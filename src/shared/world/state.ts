@@ -1,5 +1,5 @@
 import type { Vec2 } from "../math";
-import type { Arena, Crystal, Status, Waymark } from "./foundation";
+import type { Arena, Crystal, MechanicSection, Status, Waymark } from "./foundation";
 import type { Boss, Player } from "./entities";
 import type { BotSolvers } from "./solver";
 import type { Reassign } from "./effects";
@@ -30,6 +30,8 @@ type WorldCoreState = {
   bosses: Boss[];
   log: LogEntry[];
   duration: number;
+  avoidableSources?: Record<string, true>;
+  sections?: MechanicSection[];
 };
 
 type WorldMechanicState = {

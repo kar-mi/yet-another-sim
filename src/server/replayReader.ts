@@ -2,7 +2,7 @@ import { readdir } from "node:fs/promises";
 import { join } from "path";
 import { EMPTY_RAID_ID, RaidIdSchema, SessionIdSchema, type Frame } from "@shared/protocol";
 import type { World } from "@shared/types";
-import { REPLAY_FORMAT_VERSION, type ReplayData, type ReplayErrorCode, type ReplaySummary } from "@shared/replay";
+import { isSupportedReplayFormat, type ReplayData, type ReplayErrorCode, type ReplaySummary } from "@shared/replay";
 import { sanitizeSessionId } from "./logger";
 
 const SESSION_LOG_DIR = join(import.meta.dir, "..", "..", "logs", "sessions");
@@ -19,7 +19,7 @@ export class ReplayReadError extends Error {
   }
 }
 
-type ReplayHeader = { raidId: string; world: World };
+type ReplayHeader = { formatVersion: number; raidId: string; world: World };
 
 function safeSessionId(sessionId: string): string | null {
   const parsed = SessionIdSchema.safeParse(sessionId);
@@ -40,7 +40,8 @@ function parseHeader(record: unknown): ReplayHeader {
     throw new ReplayReadError("corrupt_data", "Replay header is missing");
   }
   const receivedVersion = Number.isInteger(header.formatVersion) ? Number(header.formatVersion) : null;
-  if (receivedVersion !== REPLAY_FORMAT_VERSION) {
+  // Older formats still play back; they just carry no replay-review data (see @shared/replay).
+  if (!isSupportedReplayFormat(receivedVersion)) {
     throw new ReplayReadError("unsupported_format", "Replay format is not supported", receivedVersion);
   }
   if (typeof header.raidId !== "string" || !RaidIdSchema.safeParse(header.raidId).success) {
@@ -49,7 +50,7 @@ function parseHeader(record: unknown): ReplayHeader {
   if (!header.world || typeof header.world !== "object" || !("players" in header.world) || !("arena" in header.world)) {
     throw new ReplayReadError("corrupt_data", "Replay world is invalid");
   }
-  return { raidId: header.raidId, world: header.world as World };
+  return { formatVersion: receivedVersion, raidId: header.raidId, world: header.world as World };
 }
 
 function parseBatch(record: unknown): Frame[] {
@@ -123,7 +124,7 @@ async function readReplayFile(path: string, keepFrames: boolean): Promise<(Repla
   if (!state.header) throw new ReplayReadError("corrupt_data", "Replay header is missing");
 
   return {
-    formatVersion: REPLAY_FORMAT_VERSION,
+    formatVersion: state.header.formatVersion,
     raidId: state.header.raidId,
     world: state.header.world,
     frames,

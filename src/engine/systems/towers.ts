@@ -5,6 +5,7 @@ import type { TickContext } from "./context";
 import type { ActiveTower, PendingTower, AOEShape, Player } from "@shared/types";
 import { pointInShape } from "../shapes";
 import { applyEffect, applyKnockback, applyMechanicDamage, applyMechanicLethal, consumeEffectStacks } from "./helpers";
+import { mechanicSource } from "./damageLog";
 import { triggerEffectResolver } from "./effectResolvers";
 import { cullResolved } from "./util";
 import { TOWER_LINGER } from "@shared/constants";
@@ -57,7 +58,7 @@ export function resolveTowers(ctx: TickContext): {
         if (tower.requiredRoles && tower.wrongRoleLethal) {
           for (const p of inside) {
             if (!tower.requiredRoles.includes(p.role) && !p.invincible) {
-              applyMechanicLethal(p, time);
+              applyMechanicLethal(ctx, p, mechanicSource(ctx, tower.id, tower.name));
               log.push({ t: time, mechanic: tower.name, playerId: p.id, event: "hit" });
             }
           }
@@ -78,7 +79,7 @@ export function resolveTowers(ctx: TickContext): {
           }
           for (const p of validSoakers) {
             if (!p.alive) continue;
-            if (tower.applyEffect) applyEffect(p, tower.applyEffect, time, `${tower.id}-${p.id}-eff`, players);
+            if (tower.applyEffect) applyEffect(ctx, p, tower.applyEffect, `${tower.id}-${p.id}-eff`, players);
             if (tower.consumeEffect) consumeEffectStacks(p, tower.consumeEffect.effectName, tower.consumeEffect.stacks, time);
             if (tower.knockback && p.antiKbActive <= 0) {
               applyKnockback(p, tower.knockback, tower.knockback.origin ?? tower.pos, time);
@@ -88,8 +89,10 @@ export function resolveTowers(ctx: TickContext): {
         } else {
           // Unsoaked: the whole raid eats the failure damage.
           for (const p of players) {
-            if (!p.alive || p.invincible) continue;
-            applyMechanicDamage(p, tower.failureDamage, tower.failureDamageType, time);
+            // applyMechanicDamage handles invincibility, so an invincible player still records a
+            // fully prevented hit rather than being skipped before it is seen.
+            if (!p.alive) continue;
+            applyMechanicDamage(ctx, p, tower.failureDamage, tower.failureDamageType, mechanicSource(ctx, tower.id, tower.name));
             log.push({ t: time, mechanic: tower.name, playerId: p.id, event: "hit" });
           }
         }

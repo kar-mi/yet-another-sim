@@ -8,13 +8,8 @@ import type { HudLayoutManager } from "./HudLayoutManager";
 import { armRngConstraints, armWaymark, createOptionsModal } from "./OptionsModal";
 import { loadRngConstraints } from "../rngPrefs";
 import { loadWaymarkPreset } from "../waymarkPrefs";
-
-function ticksToLabel(tick: number): string {
-  const totalSeconds = Math.floor(tick / 60);
-  const mins = Math.floor(totalSeconds / 60);
-  const secs = totalSeconds % 60;
-  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-}
+import type { ReplayReview } from "./ReplayReview";
+import { ticksToLabel } from "../replayReviewModel";
 
 function parseLabel(label: string): number | null {
   const trimmed = label.trim();
@@ -43,6 +38,7 @@ export async function createRaidHudSelect(
   initialWaymarkPresetId: string | null = null,
   initialBotPatternOptions: BotPatternOption[] = [],
   initialBotPatternId: string | null = null,
+  replayReview?: ReplayReview,
 ): Promise<() => void> {
   let isHost = initialIsHost;
   let lastState: PlaybackState = initialPlaybackState;
@@ -295,6 +291,7 @@ export async function createRaidHudSelect(
     if (!draggingSeek) seek.value = String(replay.currentTick());
     if (timeInput && !editingTime) timeInput.value = ticksToLabel(replay.currentTick());
     if (durationLabel) durationLabel.textContent = `/ ${ticksToLabel(replay.duration())}`;
+    replayReview?.setPosition(replay.currentTick());
   }, 100) : null;
 
   syncPlayback = (state: PlaybackState) => {
@@ -378,11 +375,14 @@ export async function createRaidHudSelect(
   }
   wrapper.append(label, selectRow, controls);
   if (seek) wrapper.appendChild(seek);
+  // Death markers sit directly beneath the seek bar so a marker lines up with its position on it.
+  if (replayReview) wrapper.appendChild(replayReview.markers);
   if (timeInput && durationLabel) {
     const timeRow = el("div", { className: "yas-replay-time-row" });
     timeRow.append(timeInput, durationLabel);
     wrapper.appendChild(timeRow);
   }
+  if (replayReview?.sections) wrapper.appendChild(replayReview.sections);
   document.body.appendChild(wrapper);
   hudLayout.register("raidselector", wrapper);
 

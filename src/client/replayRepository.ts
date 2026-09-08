@@ -1,5 +1,5 @@
 import {
-  REPLAY_FORMAT_VERSION,
+  isSupportedReplayFormat,
   type ReplayData,
   type ReplayErrorCode,
   type ReplayErrorResponse,
@@ -59,7 +59,7 @@ function parseReplaySummary(value: unknown): ReplaySummary {
 function parseReplayData(value: unknown): ReplayData {
   if (!value || typeof value !== "object") throw new ReplayRepositoryError("corrupt_data", "Invalid replay data");
   const replay = value as Partial<ReplayData>;
-  if (replay.formatVersion !== REPLAY_FORMAT_VERSION) {
+  if (!isSupportedReplayFormat(replay.formatVersion)) {
     throw new ReplayRepositoryError("unsupported_format", `Unsupported replay format ${String(replay.formatVersion)}`);
   }
   if (typeof replay.raidId !== "string" || !replay.world || typeof replay.world !== "object" || !Array.isArray(replay.frames)) {

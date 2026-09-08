@@ -23,6 +23,7 @@ import { GRAVITY, KNOCKBACK_FRICTION, INTERCEPT_THRESHOLD } from "@shared/consta
 import { sin, cos, acos } from "@shared/dmath";
 import { COMBAT_LIFECYCLE_REGISTRY } from "../status/combatLifecycle";
 import { resolveEffectRef } from "../status/registry";
+import { effectSource, recordAvoidableHit, recordDeath, type DamageContext, type DamageSource } from "./damageLog";
 
 export function topThreatTarget(players: Player[], threat: Record<string, number>): string | null {
   let best: string | null = null;
@@ -96,7 +97,11 @@ export function selectLineLinkTargets(
 
 // Applies `damage` to a player, factoring in matching vuln debuffs (which multiply
 // the hit and are then consumed when the base damage is > 0). Respects invincibility.
-export function applyMechanicDamage(player: Player, damage: number, damageType: DamageType, time: number): void {
+// `source` also drives replay recording; a hit on an already-dead player records nothing.
+export function applyMechanicDamage(dc: DamageContext, player: Player, damage: number, damageType: DamageType, source: DamageSource): void {
+  const time = dc.time;
+  const wasAlive = player.alive;
+  const hpBefore = player.hp;
   const matchingVulnIds = new Set<string>();
   let dealt = damage;
   for (const effect of player.effects) {
@@ -111,27 +116,33 @@ export function applyMechanicDamage(player: Player, damage: number, damageType: 
   }
   if (!player.invincible) {
     player.hp = Math.max(0, player.hp - dealt);
-    if (player.hp <= 0) {
-      resolveLethalHit(player, time);
-    }
+  }
+  if (wasAlive) recordAvoidableHit(dc, player, source, hpBefore - player.hp);
+  if (!player.invincible && player.hp <= 0) {
+    resolveLethalHit(dc, player, source, wasAlive);
   }
 }
 
 // Applies an explicitly lethal mechanic punishment. Invincibility and one-hit survivor effects
 // still apply, but damage modifiers cannot turn the punishment into an ordinary nonlethal hit.
-export function applyMechanicLethal(player: Player, time: number): void {
+export function applyMechanicLethal(dc: DamageContext, player: Player, source: DamageSource): void {
   if (player.invincible) return;
+  const wasAlive = player.alive;
+  const hpBefore = player.hp;
   player.hp = 0;
-  resolveLethalHit(player, time);
+  if (wasAlive) recordAvoidableHit(dc, player, source, hpBefore);
+  resolveLethalHit(dc, player, source, wasAlive);
 }
 
-function resolveLethalHit(player: Player, time: number): void {
+function resolveLethalHit(dc: DamageContext, player: Player, source: DamageSource, wasAlive: boolean): void {
+  const time = dc.time;
   const survivor = player.effects.find(e => isEffectActiveAt(e, time) && COMBAT_LIFECYCLE_REGISTRY[e.behavior.kind].onLethal?.(e, player) === true);
   if (survivor) {
     player.hp = 1;
     player.effects = player.effects.filter(e => e !== survivor);
   } else {
     player.alive = false;
+    if (wasAlive) recordDeath(dc, player, source);
   }
 }
 
@@ -217,7 +228,8 @@ export function applyKnockback(player: Player, knockback: Knockback, origin: Vec
   }
 }
 
-export function applyEffect(player: Player, spec: EffectSpec, time: number, id: string, players: Player[], plantSlot?: number, limitCutNumber?: number): void {
+export function applyEffect(dc: DamageContext, player: Player, spec: EffectSpec, id: string, players: Player[], plantSlot?: number, limitCutNumber?: number): void {
+  const time = dc.time;
   if (spec.behavior.kind === "escalating") {
     const incoming = spec.behavior;
     const existing = player.effects.find(effect =>
@@ -227,12 +239,12 @@ export function applyEffect(player: Player, spec: EffectSpec, time: number, id: 
     );
     if (existing?.behavior.kind === "escalating") {
       if (existing.behavior.escalateDamage !== undefined) {
-        applyMechanicDamage(player, existing.behavior.escalateDamage, existing.behavior.escalateDamageType ?? "true", time);
+        applyMechanicDamage(dc, player, existing.behavior.escalateDamage, existing.behavior.escalateDamageType ?? "true", effectSource(existing));
       }
       if (existing.behavior.escalateTo !== undefined) {
         player.effects = player.effects.filter(effect => effect !== existing);
         const next = resolveEffectRef({ ref: existing.behavior.escalateTo });
-        if (next) applyEffect(player, next, time, id, players, plantSlot, limitCutNumber);
+        if (next) applyEffect(dc, player, next, id, players, plantSlot, limitCutNumber);
       }
       return;
     }
@@ -242,6 +254,7 @@ export function applyEffect(player: Player, spec: EffectSpec, time: number, id: 
     id,
     name: spec.name,
     kind: spec.kind,
+    avoidable: spec.avoidable,
     appliedAt: time,
     duration: spec.duration,
     stacks: spec.stacks,
