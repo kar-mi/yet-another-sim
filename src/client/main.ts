@@ -136,13 +136,15 @@ async function main(): Promise<void> {
       const sessionEnd = new Promise<void>(resolve => { resolveSessionEnd = resolve; });
       resolveHome = resolveSessionEnd;
 
-      renderer = new BabylonRenderer(canvas, onSettingsChange, () => {}, () => {}, hudLayout);
-      renderer.init(lobbyResult.world, sessionId);
+      const replayRenderer = new BabylonRenderer(canvas, onSettingsChange, () => {}, () => {}, hudLayout);
+      renderer = replayRenderer;
+      replayRenderer.init(lobbyResult.world, sessionId);
       const review = createReplayReview(collectReplayInsights(lobbyResult), {
         duration: () => transport.duration(),
         currentTick: () => transport.currentTick(),
         pause: () => transport.pause(),
         seek: tick => transport.seek(tick),
+        spectate: playerId => replayRenderer.setSpectateTarget(playerId),
       }, hudLayout);
       hudLayout.setGroupSuppressed("hotbar", true);
       currentTeardown = await startSessionRuntime({

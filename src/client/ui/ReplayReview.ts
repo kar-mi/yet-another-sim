@@ -18,6 +18,7 @@ export type ReplayReviewControls = {
   currentTick: () => number;
   pause: () => void;
   seek: (tick: number) => void;
+  spectate: (playerId: string) => void;
 };
 
 export type ReplayReview = {
@@ -54,6 +55,7 @@ export function createReplayReview(
     selectedId = row.id;
     scrollOnNextRender = true;
     controls.pause();
+    controls.spectate(row.playerId);
     controls.seek(eventSeekTick(row.tick));
     render();
   };

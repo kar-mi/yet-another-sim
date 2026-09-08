@@ -376,6 +376,7 @@ export class BabylonRenderer implements Renderer {
 
   setSpectateTarget(id: string): void {
     this.spectateTargetId = id;
+    this.hud.markSpectating(id);
   }
 
   getCameraYaw(): number {
