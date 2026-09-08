@@ -161,12 +161,14 @@ body:focus-visible {
 
 /* ===== UI SCALE (accessibility) ===== */
 /* Zoom each overlay container by --ui-scale; leaves the 3D #canvas untouched. */
-#yas-status, #yas-session-id, #settings-panel, #home-btn, #settings-btn, #hud-edit-btn, #info-btn, #info-panel, #yas-menu, #yas-raid-modal, #yas-replay-modal, #yas-rng-modal, #yas-welcome-modal {
+#yas-status, #yas-session-id, #settings-panel, #home-btn, #replay-btn, #replay-exit-btn, #settings-btn, #hud-edit-btn, #info-btn, #info-panel, #yas-menu, #yas-raid-modal, #yas-replay-modal, #yas-rng-modal, #yas-tour {
   zoom: var(--ui-scale, 1);
 }
 
 /* ===== TOP BUTTONS (home / settings / info) ===== */
 #home-btn,
+#replay-btn,
+#replay-exit-btn,
 #settings-btn,
 #hud-edit-btn,
 #info-btn {
@@ -192,6 +194,8 @@ body:focus-visible {
 }
 
 #home-btn   { display: none; right: 132px; z-index: 10; }
+#replay-btn { display: none; right: 172px; z-index: 10; }
+#replay-exit-btn { display: none; right: 212px; z-index: 10; }
 #info-btn   { right: 92px; }
 #hud-edit-btn { right: 52px; }
 #settings-btn { right: 12px; }
@@ -209,6 +213,8 @@ body:focus-visible {
 #settings-btn::after  { bottom: 3px; right: 3px; border-width: 0 2px 2px 0; }
 
 #home-btn:hover,
+#replay-btn:hover,
+#replay-exit-btn:hover,
 #settings-btn:hover,
 #hud-edit-btn:hover,
 #info-btn:hover {
@@ -695,6 +701,6 @@ body:focus-visible {
 }
 
 /* ===== Non-selectable overlays ===== */
-#yas-status, #yas-session-id, #yas-menu, #yas-raid-modal, #yas-replay-modal, #yas-rng-modal, #yas-welcome-modal, #settings-panel, #info-panel, [data-hud-group] {
+#yas-status, #yas-session-id, #yas-menu, #yas-raid-modal, #yas-replay-modal, #yas-rng-modal, #yas-tour, #settings-panel, #info-panel, [data-hud-group] {
   user-select: none;
 }

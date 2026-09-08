@@ -10,17 +10,13 @@ import {
   type PlaybackState,
   type RaidCategory,
   type RaidEntry,
-  type Frame,
   type ServerMessage,
   type DecisionDescription,
   type BotPatternOption,
 } from "@shared/protocol";
 import type { World } from "@shared/types";
-import type { ReplayData, ReplaySummary } from "@shared/replay";
 import type { NetClient } from "../net";
-import { replayRepository, ReplayRepositoryError } from "../replayRepository";
 import { createElement } from "./dom";
-import { maybeShowWelcomeModal } from "./WelcomeModal";
 
 const LOBBY_SLOT_ORDER = ["mt", "ot", "h1", "h2", "m1", "m2", "r1", "r2"] as const;
 
@@ -121,7 +117,6 @@ function playbackStateForLobby(status: LobbyStatus): PlaybackState {
 
 type LobbyResult =
   | { kind: "started"; world: World; yourPlayerId: string | null; sessionId: string; raidId: string; isHost: boolean; playbackState: PlaybackState; rngConstraints: Record<string, number>; rngDecisions: DecisionDescription[]; waymarkPresetId: string | null; botPatternOptions: BotPatternOption[]; botPatternId: string | null }
-  | { kind: "replay"; pull: number; raidId: string; world: World; frames: Frame[] }
   | { kind: "expired" };
 
 export async function showLobby(net: NetClient, sessionId: string): Promise<LobbyResult> {
@@ -143,10 +138,7 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
     };
 
     const cleanup = () => {
-      closed = true;
       for (const dispose of disposers) dispose();
-      document.removeEventListener("keydown", onReplayKeydown);
-      replayModal.remove();
       overlay.remove();
     };
 
@@ -155,14 +147,6 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
         createElement("div", "yas-menu-title", "YET ANOTHER SIM"),
         createElement("div", "yas-menu-subtitle", subtitle),
       );
-    };
-
-    const renderReplays = (): HTMLElement => {
-      const openBtn = createElement("button", "yas-menu-start", replays ? `REPLAYS (${replays.length})` : "REPLAYS");
-      openBtn.addEventListener("click", () => { void openReplayModal(); });
-      const wrapper = createElement("div", "yas-lobby-replays");
-      wrapper.appendChild(openBtn);
-      return wrapper;
     };
 
     const renderSlot = (slot: LobbySlot, claimedByMe: boolean, observingByMe: boolean): HTMLElement => {
@@ -207,82 +191,6 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
       row.append(meta, createElement("div", "yas-lobby-slot-status", status), action);
       return row;
     };
-
-    const replayModal = createElement("div");
-    replayModal.id = "yas-replay-modal";
-    replayModal.style.display = "none";
-    const replaySearch = document.createElement("input");
-    replaySearch.className = "yas-raid-search";
-    replaySearch.type = "search";
-    replaySearch.placeholder = "Search replays...";
-    replaySearch.ariaLabel = "Search replays";
-    const replayList = createElement("div", "yas-raid-raid-list");
-    const replayHeader = createElement("div", "yas-raid-modal-header");
-    replayHeader.append(createElement("div", "yas-menu-subtitle", "WATCH REPLAY"), replaySearch);
-    const replayPanel = createElement("div", "yas-raid-modal-panel");
-    replayPanel.append(replayHeader, replayList);
-    replayModal.appendChild(replayPanel);
-    document.body.appendChild(replayModal);
-
-    const watchReplay = async (replay: ReplaySummary, action: HTMLButtonElement) => {
-      action.disabled = true;
-      try {
-        const loaded = await replayRepository.load(sessionId, replay.pull);
-        cleanup();
-        resolve({ kind: "replay", pull: replay.pull, raidId: loaded.raidId, world: loaded.world, frames: loaded.frames });
-      } catch (error) {
-        action.disabled = false;
-        showError(error instanceof ReplayRepositoryError && error.code === "unsupported_format"
-          ? "This replay was recorded by an incompatible version"
-          : "Failed to load replay");
-      }
-    };
-
-    const renderReplayModal = () => {
-      const q = replaySearch.value.trim().toLowerCase();
-      const matches = (replays ?? []).filter(replay =>
-        `pull ${replay.pull}`.includes(q)
-        || replay.raidId.toLowerCase().includes(q)
-        || `${Math.round(replay.ticks / 60)}s`.includes(q));
-      replayList.replaceChildren();
-      if (matches.length === 0) {
-        replayList.appendChild(createElement("div", "yas-raid-empty", "No replays match"));
-        return;
-      }
-      for (const replay of matches) {
-        const row = createElement("button", "yas-raid-raid-option");
-        row.type = "button";
-        row.disabled = !replay.supported;
-        row.append(
-          createElement("span", "yas-raid-raid-name", `Pull ${replay.pull}`),
-          createElement("span", "yas-raid-raid-cat", replay.supported
-            ? `${replay.raidId} - ${Math.round(replay.ticks / 60)}s`
-            : "INCOMPATIBLE REPLAY"),
-        );
-        row.addEventListener("click", () => watchReplay(replay, row));
-        replayList.appendChild(row);
-      }
-    };
-
-    const openReplayModal = async () => {
-      replaySearch.value = "";
-      replayModal.style.display = "flex";
-      replayList.replaceChildren(createElement("div", "yas-raid-empty", "Loading replays..."));
-      await refreshReplays();
-      renderReplayModal();
-      replaySearch.focus();
-    };
-
-    const closeReplayModal = () => {
-      replayModal.style.display = "none";
-    };
-
-    replaySearch.addEventListener("input", renderReplayModal);
-    replayModal.addEventListener("click", event => { if (event.target === replayModal) closeReplayModal(); });
-    const onReplayKeydown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeReplayModal();
-    };
-    document.addEventListener("keydown", onReplayKeydown);
 
     const renderLobby = (message: LobbyMessage) => {
       lastLobby = message;
@@ -341,40 +249,17 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
       );
 
       if (message.status === "lobby") {
-        panel.append(sessionEl, slotList, startBtn, renderReplays());
+        panel.append(sessionEl, slotList, startBtn);
       } else {
         panel.append(slotList, sessionEl, startBtn);
         if (queueWarning) panel.appendChild(queueWarning);
-        panel.appendChild(renderReplays());
-      }
-
-      if (!welcomeShown) {
-        welcomeShown = true;
-        maybeShowWelcomeModal();
       }
     };
 
     let lastLobby: LobbyMessage | null = null;
-    let replays: ReplaySummary[] | null = null;
-    let closed = false;
-    let welcomeShown = false;
-
-    const refreshReplays = async (): Promise<void> => {
-      try {
-        const list = await replayRepository.list(sessionId);
-        if (closed) return;
-        replays = list;
-        if (lastLobby) renderLobby(lastLobby);
-      } catch (error) {
-        if (!closed) showError(`Failed to load replays: ${error instanceof Error ? error.message : "Unknown error"}`);
-      }
-    };
 
     const disposers = [
-      net.on("lobby", message => {
-        renderLobby(message);
-        void refreshReplays();
-      }),
+      net.on("lobby", renderLobby),
       net.on("started", message => {
         const raidId = lastLobby?.raidId ?? EMPTY_RAID_ID;
         const isHost = net.clientId !== null && net.clientId === lastLobby?.hostClientId;
