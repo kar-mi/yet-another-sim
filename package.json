@@ -1,12 +1,15 @@
 {
   "name": "yet-another-sim",
   "version": "0.6.0",
+  "packageManager": "bun@1.4.2",
   "scripts": {
     "dev": "BUILD_ON_START=1 bun src/server/server.ts",
     "build": "rm -rf .bundle && bun build ./index.html --outdir .bundle --sourcemap=none --env=disable --minify --ignore-dce-annotations --define __YAS_DEBUG__=false",
     "start": "bun src/server/server.ts",
     "typecheck": "bunx tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "test:parallel": "bun test --parallel=4 src/engine src/client && bun test src/server",
+    "build:analyze": "rm -rf .analyze && bun build ./index.html --outdir .analyze/bundle --sourcemap=none --env=disable --minify --ignore-dce-annotations --define __YAS_DEBUG__=false --metafile-md=.analyze/bundle.md"
   },
   "dependencies": {
     "@babylonjs/core": "^9.0.0",
@@ -20,6 +23,6 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.14"
+    "@types/bun": "^1.4.2"
   }
 }

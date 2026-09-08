@@ -19,6 +19,8 @@ export class ReplayReadError extends Error {
   }
 }
 
+type ReplayHeader = { raidId: string; world: World };
+
 function safeSessionId(sessionId: string): string | null {
   const parsed = SessionIdSchema.safeParse(sessionId);
   return parsed.success ? sanitizeSessionId(parsed.data) : null;
@@ -32,23 +34,11 @@ function isFrame(value: unknown): value is Frame {
     && typeof (value as { intents?: unknown }).intents === "object";
 }
 
-async function readReplayFile(path: string): Promise<ReplayData | null> {
-  const file = Bun.file(path);
-  if (!(await file.exists())) return null;
-
-  let lines: string[];
-  try {
-    lines = (await file.text()).trim().split("\n").filter(Boolean);
-  } catch {
-    throw new ReplayReadError("corrupt_data", "Replay could not be read");
+function parseHeader(record: unknown): ReplayHeader {
+  const header = record as { header?: unknown; formatVersion?: unknown; raidId?: unknown; world?: unknown };
+  if (!header || typeof header !== "object" || header.header !== true) {
+    throw new ReplayReadError("corrupt_data", "Replay header is missing");
   }
-  let header: { header?: unknown; formatVersion?: unknown; raidId?: unknown; world?: unknown };
-  try {
-    header = JSON.parse(lines[0] ?? "{}");
-  } catch {
-    throw new ReplayReadError("corrupt_data", "Replay header is invalid");
-  }
-  if (header.header !== true) throw new ReplayReadError("corrupt_data", "Replay header is missing");
   const receivedVersion = Number.isInteger(header.formatVersion) ? Number(header.formatVersion) : null;
   if (receivedVersion !== REPLAY_FORMAT_VERSION) {
     throw new ReplayReadError("unsupported_format", "Replay format is not supported", receivedVersion);
@@ -59,18 +49,86 @@ async function readReplayFile(path: string): Promise<ReplayData | null> {
   if (!header.world || typeof header.world !== "object" || !("players" in header.world) || !("arena" in header.world)) {
     throw new ReplayReadError("corrupt_data", "Replay world is invalid");
   }
+  return { raidId: header.raidId, world: header.world as World };
+}
 
-  const frames: Frame[] = [];
-  for (const line of lines.slice(1)) {
-    let chunk: { startTick?: unknown; frames?: unknown };
-    try { chunk = JSON.parse(line); } catch { throw new ReplayReadError("corrupt_data", "Replay frame data is invalid"); }
-    if (!Number.isInteger(chunk.startTick) || Number(chunk.startTick) < 0 || !Array.isArray(chunk.frames)) {
-      throw new ReplayReadError("corrupt_data", "Replay frame batch is invalid");
-    }
-    if (!chunk.frames.every(isFrame)) throw new ReplayReadError("corrupt_data", "Replay frame is invalid");
-    frames.push(...chunk.frames as Frame[]);
+function parseBatch(record: unknown): Frame[] {
+  const batch = record as { startTick?: unknown; frames?: unknown };
+  if (!batch || typeof batch !== "object"
+    || !Number.isInteger(batch.startTick) || Number(batch.startTick) < 0 || !Array.isArray(batch.frames)) {
+    throw new ReplayReadError("corrupt_data", "Replay frame batch is invalid");
   }
-  return { formatVersion: REPLAY_FORMAT_VERSION, raidId: header.raidId, world: header.world as World, frames };
+  if (!batch.frames.every(isFrame)) throw new ReplayReadError("corrupt_data", "Replay frame is invalid");
+  return batch.frames as Frame[];
+}
+
+// Streams a replay file record by record, so listing never has to hold the whole
+// file (nor its frames) in memory. `onRecord` sees records in file order and may
+// throw to reject early; the stream is released either way.
+async function forEachRecord(path: string, onRecord: (record: unknown, index: number) => void): Promise<void> {
+  const reader = Bun.file(path).stream().getReader();
+  const decoder = new TextDecoder();
+  let pending = "";
+  let index = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      // `stream: true` carries a multi-byte character split across chunks.
+      pending += done ? decoder.decode() : decoder.decode(value, { stream: true });
+      // parseChunk stops at the last complete record and reports how much of the
+      // input it consumed, so an incomplete tail is carried into the next chunk.
+      const parsed = Bun.JSONL.parseChunk(pending);
+      pending = pending.slice(parsed.read);
+      // Records ahead of a malformed one are handled first, so an unsupported
+      // header still takes precedence over corrupt frame data behind it.
+      for (const record of parsed.values) onRecord(record, index++);
+      if (parsed.error) throw new ReplayReadError("corrupt_data", recordMessage(index));
+      if (done) {
+        // Anything left is a truncated record; a complete final record without a
+        // trailing newline has already been consumed.
+        if (pending.trim()) throw new ReplayReadError("corrupt_data", recordMessage(index));
+        return;
+      }
+    }
+  } finally {
+    await reader.cancel().catch(() => {});
+  }
+}
+
+function recordMessage(index: number): string {
+  return index === 0 ? "Replay header is invalid" : "Replay frame data is invalid";
+}
+
+async function readReplayFile(path: string, keepFrames: boolean): Promise<(ReplayData & { ticks: number }) | null> {
+  const file = Bun.file(path);
+  if (!(await file.exists())) return null;
+
+  const state = { header: null as ReplayHeader | null, ticks: 0 };
+  const frames: Frame[] = [];
+  try {
+    await forEachRecord(path, (record, index) => {
+      if (index === 0) {
+        state.header = parseHeader(record);
+        return;
+      }
+      const batch = parseBatch(record);
+      state.ticks += batch.length;
+      // Appended one by one: a batch can exceed the spread argument limit.
+      if (keepFrames) for (const frame of batch) frames.push(frame);
+    });
+  } catch (error) {
+    if (error instanceof ReplayReadError) throw error;
+    throw new ReplayReadError("corrupt_data", "Replay could not be read");
+  }
+  if (!state.header) throw new ReplayReadError("corrupt_data", "Replay header is missing");
+
+  return {
+    formatVersion: REPLAY_FORMAT_VERSION,
+    raidId: state.header.raidId,
+    world: state.header.world,
+    frames,
+    ticks: state.ticks,
+  };
 }
 
 export async function listReplays(sessionId: string): Promise<ReplaySummary[]> {
@@ -87,9 +145,9 @@ export async function listReplays(sessionId: string): Promise<ReplaySummary[]> {
     const pull = Number(match[1]);
     if (!Number.isInteger(pull) || pull < 0) continue;
     try {
-      const replay = await readReplayFile(join(SESSION_LOG_DIR, name));
+      const replay = await readReplayFile(join(SESSION_LOG_DIR, name), false);
       if (replay && replay.raidId !== EMPTY_RAID_ID) {
-        replays.push({ pull, raidId: replay.raidId, ticks: replay.frames.length, supported: true, formatVersion: replay.formatVersion });
+        replays.push({ pull, raidId: replay.raidId, ticks: replay.ticks, supported: true, formatVersion: replay.formatVersion });
       }
     } catch (error) {
       if (!(error instanceof ReplayReadError) || error.code !== "unsupported_format") continue;
@@ -103,5 +161,7 @@ export async function loadReplay(sessionId: string, pull: number): Promise<Repla
   const safeId = safeSessionId(sessionId);
   if (!safeId) throw new Error("Invalid session id");
   if (!Number.isInteger(pull) || pull < 0) return null;
-  return readReplayFile(join(SESSION_LOG_DIR, `${safeId}-pull-${pull}.jsonl`));
+  const replay = await readReplayFile(join(SESSION_LOG_DIR, `${safeId}-pull-${pull}.jsonl`), true);
+  if (!replay) return null;
+  return { formatVersion: replay.formatVersion, raidId: replay.raidId, world: replay.world, frames: replay.frames };
 }
