@@ -9,7 +9,9 @@ If you only want to author encounters (not change code), start with
 
 ## Prerequisites
 
-- [Bun](https://bun.sh/) (the runtime, package manager, bundler, and test runner — no Node toolchain needed).
+- [Bun](https://bun.sh/) **1.4.2** (the runtime, package manager, bundler, and test runner — no Node
+  toolchain needed). This is the version pinned by `packageManager` in `package.json` and by the
+  Docker image; `bun upgrade` if `bun --version` reports anything older.
 - For deployment only: Docker + Docker Compose.
 
 Bun is the single toolchain here. `package.json` has no separate bundler, test framework, or
@@ -33,8 +35,10 @@ press play.
 | `bun run dev`      | Runs `src/server/server.ts` with `BUILD_ON_START=1`, building the client bundle before serving it. |
 | `bun run typecheck`| `bunx tsc --noEmit` — strict type checking across `src/**` and `scripts/**`. |
 | `bun test`         | Runs the engine + server test suites (`*.test.ts`). |
+| `bun test:parallel`| Same suites, but engine + client run across 4 worker processes; server tests stay serial. |
 | `bun run build`    | Produces a standalone client bundle in `.bundle/` (the production path). |
 | `bun run start`    | Runs `src/server/server.ts` and serves the prebuilt `.bundle/`. |
+| `bun run build:analyze` | Production build into the gitignored `.analyze/`, plus a Markdown module-graph report at `.analyze/bundle.md`. |
 
 A typical change cycle:
 
@@ -135,6 +139,33 @@ after any engine change.
   internal state.
 - Run a single file with `bun test src/engine/__tests__/towers.test.ts`.
 
+### Running tests in parallel
+
+`bun test` runs serially and stays the default. `bun run test:parallel` splits the engine and client
+suites across four worker processes and then runs the server suite serially, because
+`src/server/logger.ts` opens a `FileSink` on `logs/sim.log` at import time — several workers importing
+it would append to the same file concurrently. Both commands cover the same 61 files.
+
+Bun can order files by past duration: write per-file timings once and reuse them so the slowest files
+start first.
+
+```sh
+bun test --timings=.analyze/timings.json --update-timings   # record per-file durations
+bun test --parallel=4 --timings=.analyze/timings.json       # reuse them: slowest files start first
+```
+
+### Profiling
+
+Bun writes profiles on process exit, so profile a script that ends — a bench harness, or the server
+stopped with SIGTERM. `--cpu-prof-md` also emits a grep-friendly Markdown view of the profile.
+
+```sh
+bun --cpu-prof --cpu-prof-md --cpu-prof-dir=.analyze/prof <script>.ts   # CPU profile + Markdown
+bun --heap-prof --cpu-prof-dir=.analyze/prof <script>.ts                # .heapprofile
+```
+
+These flags apply to `bun <script>`; `bun test` does not emit them.
+
 ## Building & deployment
 
 ### Production bundle
@@ -144,7 +175,8 @@ once, so each worker only serves the prebuilt bundle.
 
 ### Container
 
-The app ships as a Docker image (`Dockerfile`, based on `oven/bun:1`). The tracked
+The app ships as a Docker image (`Dockerfile`, based on `oven/bun:1.4.2` — keep it in step with
+`packageManager`). The tracked
 `docker-compose.yml` is the local single-worker stack.
 
 - **Windows / local:** create `.env` from `.env.example`, set `METRICS_TOKEN` (the tracked Compose
@@ -173,6 +205,11 @@ The server emits Prometheus metrics (`src/server/metrics.ts`, served by `metrics
 Per-session replay logs are written to
 `logs/sessions/*.jsonl` (a tick-0 world header plus every frame batch), so any pull can be replayed
 offline. This directory grows continuously — rotate it host-side.
+
+`src/server/replayReader.ts` reads those files as a stream, parsing JSONL record by record with
+`Bun.JSONL.parseChunk()` rather than loading the whole file. Listing therefore counts ticks without
+retaining any frames (a 60 MB pull lists in ~88 MB RSS instead of ~285 MB); loading still returns the
+full frame array, so it retains what it hands back.
 
 The header carries a replay format version independent of the application package version.
 Unversioned or incompatible files remain visible in the replay list but are rejected explicitly

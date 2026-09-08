@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Upgraded the pinned Bun toolchain to 1.4.2 (Docker image, `packageManager`, `@types/bun`).
+- Replay files are now read as a stream, record by record, instead of being loaded whole. Listing
+  replays no longer retains any frames, cutting the memory a long pull needs to summarize.
+
+### Added
+
+- `bun run test:parallel` (engine + client across 4 workers, server suite serial) and
+  `bun run build:analyze` (production build plus a Markdown module-graph report in `.analyze/`).
+
 ## [0.6.0] - 2026-07-06
 
 ### Added
