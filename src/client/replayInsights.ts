@@ -5,13 +5,7 @@
 
 import type { Frame } from "@shared/protocol";
 import type { LogEntry, MechanicSection, World } from "@shared/types";
-import {
-  REPLAY_INSIGHTS_MIN_VERSION,
-  type ReplayData,
-  type ReplayEvent,
-  type ReplayInsights,
-  type ReplayPlayerLabel,
-} from "@shared/replay";
+import type { ReplayEvent, ReplayInsights, ReplayPlayerLabel } from "@shared/replay";
 import { computeBotIntents } from "../engine/botIntent";
 import { tick } from "../engine/sim";
 import { applyFrameControls } from "./simulationReplica";
@@ -20,12 +14,8 @@ const DT = 1 / 60;
 // Separates the two halves of a hit's lookup key. Neither player ids nor source keys contain it.
 const KEY_SEPARATOR = "|";
 
-export function collectReplayInsights(replay: ReplayData): ReplayInsights {
-  if (replay.formatVersion < REPLAY_INSIGHTS_MIN_VERSION) {
-    return { available: false, events: [], sections: [], players: [] };
-  }
-
-  const sections = [...(replay.world.sections ?? [])].sort((a, b) => a.t - b.t);
+export function collectReplayInsights(replay: { world: World; frames: Frame[] }): ReplayInsights {
+  const sections = [...replay.world.sections].sort((a, b) => a.t - b.t);
   // The roster carries no display names, so the party slot id is the label.
   const players: ReplayPlayerLabel[] = replay.world.players.map(player => ({ id: player.id, label: player.id }));
   const labelById = new Map(players.map(player => [player.id, player.label]));
@@ -47,7 +37,7 @@ export function collectReplayInsights(replay: ReplayData): ReplayInsights {
     world.log = [];
   }
 
-  return { available: true, events, sections, players };
+  return { events, sections, players };
 }
 
 function collectTick(

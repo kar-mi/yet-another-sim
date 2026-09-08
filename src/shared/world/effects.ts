@@ -44,8 +44,6 @@ export type EffectBehavior =
 export type EffectSpec = {
   name: string;
   kind: "buff" | "debuff";
-  // Marks every hit this effect deals as explicitly avoidable. Carried onto the applied
-  // StatusEffect so the classification survives application and delayed resolution.
   avoidable?: boolean;
   duration: number;
   stacks?: number;

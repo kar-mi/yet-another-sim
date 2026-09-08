@@ -30,8 +30,8 @@ type WorldCoreState = {
   bosses: Boss[];
   log: LogEntry[];
   duration: number;
-  avoidableSources?: Record<string, true>;
-  sections?: MechanicSection[];
+  avoidableSources: Record<string, true>;
+  sections: MechanicSection[];
 };
 
 type WorldMechanicState = {

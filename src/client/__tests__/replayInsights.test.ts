@@ -30,8 +30,8 @@ function aoe(id: string, t: number, extra: Record<string, unknown> = {}): unknow
   };
 }
 
-function replay(world: World, tickCount: number, formatVersion = REPLAY_FORMAT_VERSION): ReplayData {
-  return { formatVersion, raidId: "debug/insights", world, frames: frames(tickCount) };
+function replay(world: World, tickCount: number): ReplayData {
+  return { formatVersion: REPLAY_FORMAT_VERSION, raidId: "debug/insights", world, frames: frames(tickCount) };
 }
 
 // Reference implementation of the transport's seek convention: seeking to tick N applies N frames.
@@ -44,7 +44,6 @@ test("collects one hit per player for a tagged source, with party slot labels", 
   const data = replay(createWorld(stackedRaid([aoe("boom", 0, { avoidable: true })])), 120);
   const insights = collectReplayInsights(data);
 
-  expect(insights.available).toBe(true);
   expect(insights.players.map(p => p.id)).toEqual(ROSTER.map(r => r.id));
   const hits = insights.events.filter(event => event.kind === "hit");
   expect(hits).toHaveLength(8);
@@ -111,21 +110,9 @@ test("event ids are unique across a pull", () => {
   expect(new Set(ids).size).toBe(ids.length);
 });
 
-test("a pre-format-2 recording reports no review data at all", () => {
-  const data = replay(createWorld(stackedRaid([aoe("boom", 0, { avoidable: true })])), 120, 1);
-  const insights = collectReplayInsights(data);
-
-  expect(insights.available).toBe(false);
-  expect(insights.events).toEqual([]);
-  expect(insights.sections).toEqual([]);
-});
-
-test("a format-2 recording with nothing to report is available but empty", () => {
+test("a pull with no tagged source and no deaths collects nothing", () => {
   const data = replay(createWorld(stackedRaid([aoe("boom", 0)])), 120);
-  const insights = collectReplayInsights(data);
-
-  expect(insights.available).toBe(true);
-  expect(insights.events).toEqual([]);
+  expect(collectReplayInsights(data).events).toEqual([]);
 });
 
 test("clock-spot spawns keep a centered AOE a miss, recording nothing", () => {

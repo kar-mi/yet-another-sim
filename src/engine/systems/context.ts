@@ -60,7 +60,7 @@ export function createTickContext(world: World, intents: Intents, dt: number): T
     bosses,
     boss: bosses[0]!,
     log: world.log.slice(),
-    avoidableSources: world.avoidableSources ?? {},
+    avoidableSources: world.avoidableSources,
     groupChoices: { ...world.groupChoices },
     actedByPlayer: new Map<string, boolean>(),
     rngState: world.rngState,

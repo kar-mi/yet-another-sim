@@ -107,7 +107,6 @@ export function createReplayReview(
   const rowElements = new Map<string, HTMLElement>();
 
   function emptyMessage(visible: ReviewRow[]): string | null {
-    if (!insights.available) return "Event details were not recorded for this replay.";
     if (rows.length === 0) return "No deaths or avoidable hits in this pull.";
     if (visible.length === 0) return "No events match";
     return null;

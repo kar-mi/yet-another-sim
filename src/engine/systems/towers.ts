@@ -89,8 +89,6 @@ export function resolveTowers(ctx: TickContext): {
         } else {
           // Unsoaked: the whole raid eats the failure damage.
           for (const p of players) {
-            // applyMechanicDamage handles invincibility, so an invincible player still records a
-            // fully prevented hit rather than being skipped before it is seen.
             if (!p.alive) continue;
             applyMechanicDamage(ctx, p, tower.failureDamage, tower.failureDamageType, mechanicSource(ctx, tower.id, tower.name));
             log.push({ t: time, mechanic: tower.name, playerId: p.id, event: "hit" });
