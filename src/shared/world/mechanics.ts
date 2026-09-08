@@ -474,6 +474,7 @@ export type PendingBurstSpreadFollowUp = {
   id: string;
   t: number;
   name: string;
+  avoidable?: boolean;
   originCrystal: CrystalElement;
   followUp: NonNullable<Extract<EffectBehavior, { kind: "burstSpread" }>["followUp"]>;
 };
@@ -482,6 +483,7 @@ export type PendingTwister = {
   id: string;
   t: number;
   name: string;
+  avoidable?: boolean;
   shape: AOEShape;
   damage: number;
   damageType: DamageType;
@@ -503,8 +505,6 @@ export type ActiveGroupMechanic = {
   showMarker: boolean;
   showTelegraph: boolean;
   color?: string;
-  // Render-facing wrapper for the stack circle. Absent when showTelegraph is false. Rebuilt every
-  // tick with the marked player's live position (see resolveGroups) rather than reassigned once.
   floorAoe?: FloorAoe;
   outcome?: "success" | "failure"; // set at resolve, drives the post-resolve flash
 };
@@ -513,7 +513,9 @@ export type LogEntry = {
   t: number;
   mechanic: string;
   playerId: string;
-  event: "hit" | "fell" | "cleared";
+  event: "hit" | "fell" | "cleared" | "avoidableHit" | "death";
+  source?: string;
+  hpLoss?: number;
 };
 
 export type TetherSource = {

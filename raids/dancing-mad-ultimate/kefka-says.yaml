@@ -67,6 +67,26 @@ optionals:
           - [white-antilight-left, black-antilight-right]
           - [black-antilight-left, white-antilight-right]
 
+# Named review bookmarks. Descriptive only - sections never affect the simulation.
+sections:
+  - { id: kefka-says, name: Kefka Says, t: 5.2 }
+  - { id: thrill, name: Enhanced Thrill, t: 13.3 }
+  - { id: grand-cross-1, name: Grand Cross 1, t: 15.2 }
+  - { id: chaos-casts, name: Chaos Casts, t: 20.2 }
+  - { id: grand-cross-2, name: Grand Cross 2, t: 29.7 }
+  - { id: grand-cross-3, name: Grand Cross 3, t: 44.9 }
+  - { id: forsaken-screech, name: Forsaken Screech, t: 53 }
+  - { id: wounds, name: Wounds, t: 55.53 }
+  - { id: flood-of-naught, name: Flood of Naught, t: 61.2 }
+  - { id: death-surge, name: Death Surge, t: 71.5 }
+  - { id: mana-charge, name: Mana Charge, t: 72 }
+  - { id: death-shriek, name: Death Shriek, t: 84.3 }
+  - { id: ultima-upsurge, name: Ultima Upsurge, t: 88.4 }
+  - { id: stray-flames, name: Stray Flames, t: 91.1 }
+  - { id: blizzard-blowout, name: Blizzard III Blowout, t: 96.2 }
+  - { id: mana-release, name: Mana Release, t: 107.4 }
+  - { id: stray-spray, name: Stray Spray, t: 113.9 }
+
 events:
   - type: aoe
     id: kefka-says
@@ -380,6 +400,7 @@ events:
       - { carriers: Beyond Death, compare: [wound, origin], expect: matches }
     failureDamage: 999
     failureDamageType: "true"
+    avoidable: true          # damage only on a failed wound check
 
   - { type: aoe, id: mana-charge, time: 72, name: Mana Charge, telegraph: 2.9, damage: 0, damageType: magical, bossId: kefka, showCastBar: true, showTelegraph: false, shape: { kind: circle, center: { x: 0, z: 0 }, radius: 0.1 } }
   - type: spread_stack

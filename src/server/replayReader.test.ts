@@ -157,3 +157,29 @@ test("reports an unsupported version even when the frame data behind it is corru
 test("returns null for a missing replay", async () => {
   expect(await loadReplay(SESSION, 99)).toBeNull();
 });
+
+test("a superseded format lists as unsupported and refuses to load", async () => {
+  const { sections, avoidableSources, ...legacyWorld } = createWorld(createEmptyRaid(), 123);
+  const frame: Frame = { intents: {}, botsInvincible: false };
+  await writePull(11, `${headerLine({ formatVersion: 1, world: legacyWorld })}\n`
+    + `${JSON.stringify({ startTick: 0, frames: [frame] })}\n`);
+
+  expect(await listReplays(SESSION)).toEqual([{
+    pull: 11, raidId: "unknown", ticks: 0, supported: false, formatVersion: 1,
+  }]);
+  await expect(loadReplay(SESSION, 11)).rejects.toMatchObject({ code: "unsupported_format" });
+});
+
+test("a current recording carries the review payload through the round trip", async () => {
+  const world = createWorld(createEmptyRaid(), 123);
+  const log = createSessionLog(`${SESSION}-pull-12`);
+  pullPath(12);
+  log.header("debug/test", world);
+  log.frame(0, [{ intents: {}, botsInvincible: false }]);
+  log.close();
+
+  const loaded = await loadReplay(SESSION, 12);
+  expect(loaded?.formatVersion).toBe(REPLAY_FORMAT_VERSION);
+  expect(loaded?.world.sections).toEqual([]);
+  expect(loaded?.world.avoidableSources).toEqual({});
+});

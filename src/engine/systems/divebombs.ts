@@ -5,6 +5,7 @@ import { atan2 } from "@shared/dmath";
 import { divebombLifetime, divebombPosition } from "@shared/divebomb";
 import type { TickContext } from "./context";
 import { applyEffect, applyMechanicDamage } from "./helpers";
+import { mechanicSource } from "./damageLog";
 
 export function resolveDivebombs(ctx: TickContext): {
   divebombs: ActiveDivebomb[];
@@ -65,11 +66,11 @@ export function resolveDivebombs(ctx: TickContext): {
 
       let applied = false;
       if ((divebomb.damage ?? 0) > 0) {
-        applyMechanicDamage(player, divebomb.damage!, divebomb.damageType, time);
+        applyMechanicDamage(ctx, player, divebomb.damage!, divebomb.damageType, mechanicSource(ctx, divebomb.id, divebomb.name));
         applied = true;
       }
       if (divebomb.applyEffect && player.alive) {
-        applyEffect(player, divebomb.applyEffect, time, `${divebomb.id}-${player.id}-${time}-eff`, players);
+        applyEffect(ctx, player, divebomb.applyEffect, `${divebomb.id}-${player.id}-${time}-eff`, players);
         applied = true;
       }
       if (applied) {

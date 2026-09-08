@@ -145,6 +145,7 @@ _slapHappyCircle: &slapHappyCircle
   telegraph: 4
   damage: 200
   damageType: physical
+  avoidable: true          # dodge the hand circles
   telegraphMode: resolve
   bossId: bigkefka
   shape: { kind: circle, center: { x: 0, z: 0 }, radius: 8 }
@@ -192,6 +193,7 @@ _chaosCircle: &chaosCircle
   telegraph: 1
   damage: 100
   damageType: physical
+  avoidable: true          # small circle under Chaos; step out
   showCastBar: false
   bossId: chaos
   shape: { kind: circle, center: { x: 0, z: 0 }, radius: 5 }
@@ -253,6 +255,7 @@ _damningEdictStore: &damningEdictStore
   telegraph: 5
   damage: 200
   damageType: magical
+  avoidable: true          # baited half-room cone; stand behind it
   shape: { kind: cone, angleDeg: 180, length: 24 }
   telegraphMode: resolve
   showCastBar: false
@@ -272,6 +275,7 @@ _lookUponMe: &lookUponMe
   telegraph: 4
   damage: 200
   damageType: physical
+  avoidable: true          # boss-facing rect cleave
   showCastBar: true
   bossId: bigkefka
   anchor: boss
@@ -310,6 +314,7 @@ _whiteHole: &whiteHole
   telegraph: 4
   damage: 9999
   damageType: "true"
+  avoidable: true          # lethal unless topped to full HP
   requireFullHp: true
   showCastBar: true
   showTelegraph: false
@@ -321,6 +326,7 @@ _implosion: &implosion
   name: Implosion
   damage: 40
   damageType: magical
+  avoidable: true          # quadrant cones; stand in the safe quarter
   anchor: boss
   directionFrom: bossFacing
   lockFacing: true
@@ -459,6 +465,25 @@ optionals:
           - [first-in-line-dps-r1, first-in-line-dps-m1, second-in-line-dps-m2, third-in-line-dps-r2, accretion-dps-m1, accretion-duty-dps-m1, non-accretion-duty-r1, non-accretion-duty-m2, non-accretion-duty-r2]
           - [first-in-line-dps-r1, first-in-line-dps-r2, second-in-line-dps-m2, third-in-line-dps-m1, accretion-dps-r1, accretion-duty-dps-r1, non-accretion-duty-r2, non-accretion-duty-m2, non-accretion-duty-m1]
           - [first-in-line-dps-r1, first-in-line-dps-r2, second-in-line-dps-m2, third-in-line-dps-m1, accretion-dps-r2, accretion-duty-dps-r2, non-accretion-duty-r1, non-accretion-duty-m2, non-accretion-duty-m1]
+
+# Named review bookmarks. Descriptive only - sections never affect the simulation.
+sections:
+  - { id: opener, name: Opener, t: 0 }
+  - { id: thunder-1, name: Thunder III 1, t: 5 }
+  - { id: earthquake, name: Earthquake, t: 13 }
+  - { id: crust-accretion, name: Crust & Accretion, t: 17 }
+  - { id: slap-happy-1, name: Slap Happy 1, t: 24 }
+  - { id: black-hole-1, name: Black Hole 1, t: 36 }
+  - { id: slap-happy-2, name: Slap Happy 2, t: 54 }
+  - { id: damning-edict-1, name: Damning Edict 1, t: 57 }
+  - { id: black-hole-2, name: Black Hole 2, t: 66 }
+  - { id: damning-edict-2, name: Damning Edict 2, t: 84 }
+  - { id: look-upon-me-1, name: Look Upon Me 1, t: 86 }
+  - { id: black-hole-3, name: Black Hole 3, t: 100 }
+  - { id: white-hole, name: White Hole, t: 119 }
+  - { id: slap-happy-3, name: Slap Happy 3, t: 123 }
+  - { id: black-hole-4, name: Black Hole 4, t: 134 }
+  - { id: look-upon-me-2, name: Look Upon Me 2, t: 144 }
 
 events:
   - type: aoe

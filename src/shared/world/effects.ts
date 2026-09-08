@@ -44,6 +44,7 @@ export type EffectBehavior =
 export type EffectSpec = {
   name: string;
   kind: "buff" | "debuff";
+  avoidable?: boolean;
   duration: number;
   stacks?: number;
   behavior: EffectBehavior;
@@ -69,6 +70,7 @@ export type StatusEffect = {
   id: string;
   name: string;
   kind: "buff" | "debuff";
+  avoidable?: boolean;
   appliedAt: number;
   duration: number;
   stacks?: number;

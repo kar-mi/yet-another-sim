@@ -8,6 +8,7 @@ import { add, sub, scale, normalize, length } from "@shared/math";
 import { isOnFloor } from "../shapes";
 import { atan2 } from "@shared/dmath";
 import { activeEffectOfKind, didAct, applyMechanicDamage } from "./helpers";
+import { FALL_SOURCE, effectSource, recordDeath } from "./damageLog";
 import {
   MOVE_SPEED, SPRINT_MULTIPLIER, JUMP_SPEED, GRAVITY, DEATH_FLOOR_Y,
   SPRINT_DURATION, SPRINT_COOLDOWN, ANTI_KB_DURATION, ANTI_KB_COOLDOWN,
@@ -77,7 +78,7 @@ export function applyPlayerMovement(ctx: TickContext): void {
       if (target) {
         const toTarget = sub(target.pos, player.pos);
         if (length(toTarget) <= cb.radius) {
-          applyMechanicDamage(target, cb.damage, cb.damageType, time);
+          applyMechanicDamage(ctx, target, cb.damage, cb.damageType, effectSource(confusion));
           player.effects = player.effects.filter(e => e.id !== confusion.id);
           log.push({ t: time, mechanic: confusion.name, playerId: target.id, event: "hit" });
         } else {
@@ -121,10 +122,12 @@ export function applyPlayerMovement(ctx: TickContext): void {
 
     // Falling off the map kills even an invincible player — invincibility only negates damage.
     if (player.y <= DEATH_FLOOR_Y) {
+      const wasAlive = player.alive;
       player.hp = 0;
       player.alive = false;
       player.verticalVelocity = 0;
       log.push({ t: time, mechanic: "arena", playerId: player.id, event: "fell" });
+      if (wasAlive) recordDeath(ctx, player, FALL_SOURCE);
     }
   }
 }

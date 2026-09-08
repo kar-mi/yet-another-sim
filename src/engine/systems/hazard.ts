@@ -42,7 +42,7 @@ export function resolveHazards(ctx: TickContext): {
       if (idx >= 0) {
         player.effects = player.effects.map((effect, i) => i === idx ? { ...effect, appliedAt: time } : effect);
       } else {
-        applyEffect(player, hazard.applyEffect, time, id, players);
+        applyEffect(ctx, player, hazard.applyEffect, id, players);
         log.push({ t: time, mechanic: hazard.name, playerId: player.id, event: "hit" });
       }
     }

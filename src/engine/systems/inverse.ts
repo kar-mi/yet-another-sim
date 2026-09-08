@@ -6,6 +6,7 @@ import type { TickContext } from "./context";
 import type { ActiveInverse, PendingInverse } from "@shared/types";
 import { pointInShape } from "../shapes";
 import { applyMechanicDamage, applyEffect, applyKnockback, shapeOrigin } from "./helpers";
+import { mechanicSource } from "./damageLog";
 import { cullResolved } from "./util";
 import { FloorAoe, DEFAULT_DANGER_COLOR, DEFAULT_INVERTED_COLOR } from "@shared/floorAoe";
 
@@ -59,10 +60,10 @@ export function resolveInversions(ctx: TickContext): {
         if (!player.alive) continue;
         const hitShape = lethal.find(shape => pointInShape(shape, player.pos));
         if (hitShape) {
-          applyMechanicDamage(player, inv.damage, inv.damageType, time);
+          applyMechanicDamage(ctx, player, inv.damage, inv.damageType, mechanicSource(ctx, inv.id, inv.name));
           log.push({ t: time, mechanic: inv.name, playerId: player.id, event: "hit" });
           if (inv.applyEffect && player.alive) {
-            applyEffect(player, inv.applyEffect, time, `${inv.id}-${player.id}-eff`, players);
+            applyEffect(ctx, player, inv.applyEffect, `${inv.id}-${player.id}-eff`, players);
           }
           if (inv.knockback && player.alive && player.antiKbActive <= 0) {
             applyKnockback(player, inv.knockback, inv.knockback.origin ?? shapeOrigin(hitShape), time);

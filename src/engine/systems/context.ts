@@ -21,6 +21,8 @@ export interface TickContext {
   bosses: Boss[];               // cloned array; boss === bosses[0] (same reference)
   boss: Boss;                   // alias for bosses[0] (threat deep-cloned)
   log: LogEntry[];
+  // Lets TickContext satisfy DamageContext, so the damage helpers can classify hits.
+  readonly avoidableSources: Record<string, true>;
   groupChoices: Record<string, number>; // group/link event id -> chosen index (shared for linking)
   actedByPlayer: Map<string, boolean>;   // set by movement, read by status-effect dot conditions
 
@@ -58,6 +60,7 @@ export function createTickContext(world: World, intents: Intents, dt: number): T
     bosses,
     boss: bosses[0]!,
     log: world.log.slice(),
+    avoidableSources: world.avoidableSources,
     groupChoices: { ...world.groupChoices },
     actedByPlayer: new Map<string, boolean>(),
     rngState: world.rngState,

@@ -115,6 +115,7 @@ export class HudOverlay {
   private lastWorldStatus: World["status"] = "running";
   private partyEl!: HTMLDivElement;
   private partyRows = new Map<string, PartyRow>();
+  private spectatingId: string | null = null;
   private castBarEl!: HTMLDivElement;
   private castNameEl!: HTMLDivElement;
   private castFillEl!: HTMLDivElement;
@@ -316,11 +317,7 @@ export class HudOverlay {
       camBtn.className = "party-cam-btn";
       camBtn.textContent = "📷";
       camBtn.title = `Spectate ${player.role.toUpperCase()}`;
-      camBtn.addEventListener("click", () => {
-        this.onSpectate(player.id);
-        for (const row of this.partyRows.values()) row.camBtn?.classList.remove("party-cam-active");
-        camBtn!.classList.add("party-cam-active");
-      });
+      camBtn.addEventListener("click", () => this.onSpectate(player.id));
     }
 
     const nameRowEl = document.createElement("div");
@@ -359,6 +356,15 @@ export class HudOverlay {
     return { hpFill, mpFill, wrapEl, rowEl, statusDot, effectsEl, effectState: createEffectRenderState(), camBtn };
   }
 
+  // Highlights whose camera the view is following. Rows are built lazily, so this also runs from
+  // ensurePartyRows for a target chosen before its row existed.
+  markSpectating(id: string | null): void {
+    this.spectatingId = id;
+    for (const [playerId, row] of this.partyRows) {
+      row.camBtn?.classList.toggle("party-cam-active", playerId === id);
+    }
+  }
+
   private ensurePartyRows(players: Player[]): void {
     if (this.partyRows.size === players.length) return;
     for (const player of orderedPartyPlayers(players, this.localPlayerId)) {
@@ -366,6 +372,7 @@ export class HudOverlay {
       const row = this.buildPartyRow(player);
       this.partyEl.appendChild(row.wrapEl);
       this.partyRows.set(player.id, row);
+      row.camBtn?.classList.toggle("party-cam-active", player.id === this.spectatingId);
     }
   }
 

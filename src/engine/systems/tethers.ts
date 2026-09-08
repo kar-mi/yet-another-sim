@@ -6,6 +6,7 @@ import type { AOEShape, TetherSource, PendingTether } from "@shared/types";
 import { length, normalize, sub, type Vec2 } from "@shared/math";
 import { pointInShape } from "../shapes";
 import { selectTargetPlayer, findInterceptor, applyEffect, applyMechanicDamage } from "./helpers";
+import { mechanicSource } from "./damageLog";
 import { addResolvedAoeVisual } from "./effectResolvers";
 import { clockwiseTetherOrder } from "../blackHoleOrbs";
 
@@ -14,7 +15,7 @@ const TETHER_LINGER = 2;
 function fireTetherBeam(ctx: TickContext, ts: TetherSource, target: TickContext["players"][number] | undefined): void {
   const { players, log, time } = ctx;
   if (target && ts.applyEffect) {
-    applyEffect(target, ts.applyEffect, time, `${ts.id}-effect`, players);
+    applyEffect(ctx, target, ts.applyEffect, `${ts.id}-effect`, players);
     log.push({ t: time, mechanic: ts.buffName, playerId: target.id, event: ts.tetherKind === "buff" ? "cleared" : "hit" });
   }
   if (!ts.beam) return;
@@ -30,9 +31,9 @@ function fireTetherBeam(ctx: TickContext, ts: TetherSource, target: TickContext[
   addResolvedAoeVisual(ctx, `${ts.id}-beam-${ts.nextFireIndex}`, ts.buffName, shape);
   for (const player of players) {
     if (!player.alive || !pointInShape(shape, player.pos)) continue;
-    applyMechanicDamage(player, ts.beam.damage, ts.beam.damageType, time);
+    applyMechanicDamage(ctx, player, ts.beam.damage, ts.beam.damageType, mechanicSource(ctx, ts.id, ts.buffName, "beam"));
     log.push({ t: time, mechanic: ts.buffName, playerId: player.id, event: "hit" });
-    if (player.alive && ts.beam.applyEffect) applyEffect(player, ts.beam.applyEffect, time, `${ts.id}-beam-${ts.nextFireIndex}-${player.id}`, players);
+    if (player.alive && ts.beam.applyEffect) applyEffect(ctx, player, ts.beam.applyEffect, `${ts.id}-beam-${ts.nextFireIndex}-${player.id}`, players);
   }
 }
 

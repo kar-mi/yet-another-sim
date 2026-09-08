@@ -34,11 +34,11 @@ export function resolveForcedMarches(ctx: TickContext): PendingForcedMarch[] {
         fm.capturedPlayerId = entrant.id;
         fm.capturedFrom = { x: entrant.pos.x, z: entrant.pos.z };
         // A transient sleep effect holds them still for the windup + recovery window.
-        applyEffect(entrant, {
+        applyEffect(ctx, entrant, {
           name: fm.name, kind: "debuff",
           duration: fm.preDelay + fm.postDelay,
           behavior: { kind: "sleep" },
-        }, time, `${fm.id}-freeze`, players);
+        }, `${fm.id}-freeze`, players);
       }
     } else if (fm.triggered && !fm.teleported && time >= fm.triggeredAt! + fm.preDelay) {
       // windup (preDelay) elapsed: instantly teleport the captured player to the destination.

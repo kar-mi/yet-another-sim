@@ -1,6 +1,7 @@
 import type { PendingEffectCheck } from "@shared/types";
 import type { TickContext } from "./context";
 import { applyMechanicDamage, isEffectActiveAt } from "./helpers";
+import { mechanicSource } from "./damageLog";
 
 export function resolveEffectChecks(ctx: TickContext): PendingEffectCheck[] {
   const remaining: PendingEffectCheck[] = [];
@@ -12,7 +13,7 @@ export function resolveEffectChecks(ctx: TickContext): PendingEffectCheck[] {
       const passes = left !== undefined && right !== undefined
         && (rule.expect === "matches" ? left === right : left !== right);
       if (!passes) {
-        applyMechanicDamage(player, check.failureDamage, check.failureDamageType, ctx.time);
+        applyMechanicDamage(ctx, player, check.failureDamage, check.failureDamageType, mechanicSource(ctx, check.id, check.name));
         ctx.log.push({ t: ctx.time, mechanic: check.name, playerId: player.id, event: "hit" });
       } else ctx.log.push({ t: ctx.time, mechanic: check.name, playerId: player.id, event: "cleared" });
     }

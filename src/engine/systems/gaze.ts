@@ -5,6 +5,7 @@
 import type { TickContext } from "./context";
 import type { ActiveGaze, PendingGaze, AOEShape } from "@shared/types";
 import { applyMechanicDamage, applyEffect, applyKnockback, isLookingAt } from "./helpers";
+import { mechanicSource } from "./damageLog";
 import { pointInShape } from "../shapes";
 import { cullResolved } from "./util";
 import { sin, cos } from "@shared/dmath";
@@ -75,10 +76,10 @@ export function resolveGazes(ctx: TickContext): {
           ? pointInShape({ kind: "cone", origin: gz.pos, direction: gz.direction, ...gz.carrierCone }, player.pos)
           : gz.reverse ? !looking : looking;
         if (hit) {
-          applyMechanicDamage(player, gz.damage, gz.damageType, time);
+          applyMechanicDamage(ctx, player, gz.damage, gz.damageType, mechanicSource(ctx, gz.id, gz.name));
           log.push({ t: time, mechanic: gz.name, playerId: player.id, event: "hit" });
           if (gz.applyEffect && player.alive) {
-            applyEffect(player, gz.applyEffect, time, `${gz.id}-${player.id}-eff`, players);
+            applyEffect(ctx, player, gz.applyEffect, `${gz.id}-${player.id}-eff`, players);
           }
           if (gz.knockback && player.alive && player.antiKbActive <= 0) {
             applyKnockback(player, gz.knockback, gz.knockback.origin ?? gz.pos, time);

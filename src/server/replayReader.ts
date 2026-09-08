@@ -62,9 +62,7 @@ function parseBatch(record: unknown): Frame[] {
   return batch.frames as Frame[];
 }
 
-// Streams a replay file record by record, so listing never has to hold the whole
-// file (nor its frames) in memory. `onRecord` sees records in file order and may
-// throw to reject early; the stream is released either way.
+// Streams a replay file record by record deterministic by file
 async function forEachRecord(path: string, onRecord: (record: unknown, index: number) => void): Promise<void> {
   const reader = Bun.file(path).stream().getReader();
   const decoder = new TextDecoder();
@@ -75,17 +73,11 @@ async function forEachRecord(path: string, onRecord: (record: unknown, index: nu
       const { done, value } = await reader.read();
       // `stream: true` carries a multi-byte character split across chunks.
       pending += done ? decoder.decode() : decoder.decode(value, { stream: true });
-      // parseChunk stops at the last complete record and reports how much of the
-      // input it consumed, so an incomplete tail is carried into the next chunk.
       const parsed = Bun.JSONL.parseChunk(pending);
       pending = pending.slice(parsed.read);
-      // Records ahead of a malformed one are handled first, so an unsupported
-      // header still takes precedence over corrupt frame data behind it.
       for (const record of parsed.values) onRecord(record, index++);
       if (parsed.error) throw new ReplayReadError("corrupt_data", recordMessage(index));
       if (done) {
-        // Anything left is a truncated record; a complete final record without a
-        // trailing newline has already been consumed.
         if (pending.trim()) throw new ReplayReadError("corrupt_data", recordMessage(index));
         return;
       }
@@ -113,7 +105,6 @@ async function readReplayFile(path: string, keepFrames: boolean): Promise<(Repla
       }
       const batch = parseBatch(record);
       state.ticks += batch.length;
-      // Appended one by one: a batch can exceed the spread argument limit.
       if (keepFrames) for (const frame of batch) frames.push(frame);
     });
   } catch (error) {

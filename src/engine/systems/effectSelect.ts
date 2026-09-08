@@ -25,7 +25,7 @@ export function resolveEffectSelects(ctx: TickContext): PendingEffectSelect[] {
       const targetId = members[randInt(members.length)];
       const target = players.find(p => p.id === targetId && p.alive);
       if (target) {
-        applyEffect(target, pe.applyEffect, time, `${pe.id}-${target.id}-eff`, players);
+        applyEffect(ctx, target, pe.applyEffect, `${pe.id}-${target.id}-eff`, players);
         log.push({ t: time, mechanic: pe.name, playerId: target.id, event: "hit" });
       }
     } else {

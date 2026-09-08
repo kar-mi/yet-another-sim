@@ -58,7 +58,7 @@ export function resolveApplyEffects(ctx: TickContext): PendingApplyEffect[] {
     }
     const effect = selectedEffect(pae, groupChoices, randInt);
     for (const target of pool) {
-      applyEffect(target, effect, time, `${pae.id}-${target.id}-eff`, players);
+      applyEffect(ctx, target, effect, `${pae.id}-${target.id}-eff`, players);
       log.push({ t: time, mechanic: pae.name, playerId: target.id, event: "hit" });
     }
   }

@@ -67,6 +67,14 @@ optionals:
           - [down, left]
           - [left, up]
 
+# Named review bookmarks. Descriptive only - sections never affect the simulation.
+sections:
+  - { id: teletrouncing, name: Teletrouncing, t: 3 }
+  - { id: graven-image, name: Graven Image, t: 17 }
+  - { id: statues, name: Statues, t: 22 }
+  - { id: sleeper-burst, name: Sleeper Burst, t: 30 }
+  - { id: mystery-magic-3, name: Mystery Magic 3, t: 37 }
+
 events:
   # Lock the boss facing for the whole encounter.
   - type: aoe
@@ -176,6 +184,7 @@ events:
     telegraph: 5
     damage: 60
     damageType: magical
+    avoidable: true          # rects are fully dodgeable once the inversion is read
     showCastBar: true
     rng: true
     variantRng: true

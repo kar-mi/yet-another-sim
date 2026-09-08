@@ -59,6 +59,7 @@ events:
 | `events`      | yes      | Array of events. May be empty. |
 | `waymarks`    | no       | Optional visual floor markers (A–D, 1–4). See [Waymarks](#waymarks). |
 | `boss`        | no       | Optional boss config. See [Boss](#boss). Defaults to Kefka's values when omitted. |
+| `sections`    | no       | Named timeline bookmarks for replay review. See [Replay review](#replay-review). |
 
 ## Boss
 
@@ -1526,6 +1527,123 @@ events:
     damageType: magical
     shape: { kind: donut, center: { x: 0, z: 0 }, inner: 7, outer: 28 }
 ```
+
+## Replay review
+
+Replays get an event sidebar, death markers under the seek bar, and a section navigator. Two
+optional authoring fields feed it. Both are baked into the world when a pull starts, so a recording
+carries its own review data — editing a raid file afterwards never changes how an old replay reads.
+
+### `avoidable` — tagging a damage source
+
+Every death is recorded automatically. Hits are not: the sidebar would be useless if it listed every
+raidwide and every stack. So a hit is recorded only when its damage source is explicitly tagged, and
+**untagged damage is unavoidable by default**.
+
+Tag a source when a party playing correctly takes **zero** damage from it. Dodgeable cleaves,
+gaze checks, unsoaked towers, failed debuff checks: yes. Raidwides, tankbusters, stacks, and
+spreads a player eats by standing where they are supposed to: no — flagging correct play as a
+mistake is worse than not flagging it at all. When in doubt, leave it untagged.
+
+Put `avoidable: true` next to the damage it describes:
+
+```yaml
+  # A dodgeable cleave: nobody should be standing in it.
+  - type: aoe
+    id: look-upon-me
+    time: 86
+    name: Look Upon Me
+    telegraph: 4
+    damage: 200
+    damageType: physical
+    avoidable: true
+    shape: { kind: rect, width: 13.33, length: 40 }
+
+  # A raidwide: everyone takes it every time, so it stays untagged.
+  - type: aoe
+    id: forsaken-raidwide
+    time: 3
+    name: Forsaken
+    telegraph: 4
+    damage: 25
+    damageType: magical
+    shape: { kind: circle, center: { x: 0, z: 0 }, radius: 30 }
+```
+
+A mechanic with several independent damage sources tags each one separately, so a punishing
+component can be flagged while the component correct play still eats stays quiet:
+
+```yaml
+  - type: spread_stack
+    id: fire-1
+    time: 37
+    name: Mystery Magic 3 (Fire)
+    telegraph: 5
+    shown: random
+    damageType: magical
+    spread: { radius: 4, damage: 80, avoidable: true }   # clipping someone else's spread
+    stack:                                               # the stack itself is correct play
+      groups: [[r1, r2, m1, m2], [h1, h2, mt, ot]]
+      radius: 6
+      requiredCount: 4
+      damage: 200
+```
+
+`avoidable` is accepted on `aoe`, `targeted`, `tower` (its failure damage), `chain`, `group`,
+`inverse`, `gaze`, `divebomb`, `effect_burst` and `effect_check`; on `tether_source`'s `beam`; on an
+`effect_resolver`'s `action`; and on a `spread_stack`'s `spread` and `stack` independently.
+
+Damage dealt by a **status effect** — a dot, an expiry punishment, a burst, a motion or effect check
+— is classified on the effect instead, and the tag travels with it through application and any
+delayed resolution:
+
+```yaml
+    applyEffect:
+      name: Acceleration Bomb
+      kind: buff
+      duration: 5
+      avoidable: true      # only detonates on a carrier who moved
+      behavior: { kind: motionCheck, required: still, window: 0.5, failureDamage: 999, failureKnockupHeight: 1 }
+```
+
+Registered debuffs carry the flag in `DEBUFF_REGISTRY` (`src/engine/status/debuffs.ts`) so every raid
+using them agrees. A `ref:` may still override it per raid, like any other field.
+
+A dot's per-tick damage is deliberately not recorded as a hit — it would emit sixty rows a second —
+but a death it causes is.
+
+### `sections` — named timeline bookmarks
+
+Sections label positions in the fight so a reviewer can jump straight to a mechanic. They are
+descriptive only and never affect the simulation. `t` is the section's start in seconds of pull time;
+they may be listed in any order and are sorted when the world is built.
+
+```yaml
+sections:
+  - { id: opener, name: Opener, t: 0 }
+  - { id: towers-1-2, name: Towers 1-2, t: 8 }
+  - { id: ending-1, name: Ending 1, t: 20 }
+```
+
+Each event is attributed to the last section that started at or before it, so cover the fight without
+gaps if you want every event labelled. Ids must be unique within a raid.
+
+### Reviewed but left unavoidable
+
+The Dancing Mad encounters were passed over once and these sources were deliberately **not** tagged,
+because a party playing correctly still takes them. They are listed here so a later pass does not
+have to re-derive the judgement — revisit any of them if review turns out to want them flagged:
+
+| Source | Why it is untagged |
+|--------|--------------------|
+| Raidwides (`Forsaken`, `Forsaken Ends`, `Vacuum Wave`) | Hit everyone every pull. |
+| Tankbusters (`Thunder III` tank hits) | Land on the aggro holder by design. |
+| Stacks (`Party Stack`, `Role Stack`, `Bowels of Agony Stack`, `Stack Resolve`) | Soaking them *is* the correct play. |
+| Spreads (`Clone Spread`, `Mystery Magic 3 (Fire)` stack half) | Each player eats their own circle. |
+| `Defamation Resolve` | The carrier is always inside their own radius, so a tag would fire on every pull. |
+| `Double Trouble`, `Entropy`, `Dynamic Fluid` bursts | The carrier's own burst is unavoidable; only the splash onto others is a mistake, and the two share one damage source. |
+| `Compressed Water` / `Forked Lightning` | Paired spread/stack resolutions; correct play still takes damage. |
+| `First/Second/Third in Line` expiry damage | Fires unconditionally on expiry, not on a failure. |
 
 ## Validating
 

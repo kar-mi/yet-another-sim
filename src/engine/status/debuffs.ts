@@ -41,6 +41,8 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     name: "Confusion",
     kind: "debuff",
     duration: 6,
+    // Friendly fire: a confused player walking into someone is a failed cleanse/kite.
+    avoidable: true,
     behavior: { kind: "confusion", damage: 50, damageType: "true", radius: 1.5 },
   },
   unbecoming: {
@@ -82,12 +84,16 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     duration: 200,
     showTimer: false,
     icon: "primoridial_crust.png",
+    // Lethal only when the debuff expires uncleansed.
+    avoidable: true,
     behavior: { kind: "primordialCrust", expiryDamage: 999999, expiryDamageType: "true" },
   },
   accretion: {
     name: "Accretion",
     kind: "debuff",
     duration: 11,
+    // Lethal only when the carrier was not healed to full in time.
+    avoidable: true,
     behavior: { kind: "accretion", expiryDamage: 999999, expiryDamageType: "true" },
   },
   first_in_line: {
@@ -419,6 +425,8 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     kind: "debuff",
     duration: 5,
     icon: "cursed_shriek.png",
+    // Gaze: hits only players who failed to look away.
+    avoidable: true,
     behavior: { kind: "carrierGaze", cone: { angleDeg: 90, length: 20 }, damage: 20, damageType: "true" },
   },
   fake_cursed_shriek: {
@@ -426,6 +434,8 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     kind: "debuff",
     duration: 5,
     icon: "cursed_shriek.png",
+    // Reverse gaze: hits only players who failed to look at it.
+    avoidable: true,
     behavior: { kind: "reverseCarrierGaze", damage: 20, damageType: "true" },
   },
   allagan_field: {
@@ -433,6 +443,8 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     kind: "debuff",
     duration: 5,
     icon: "allagan_field.png",
+    // Damage only on a failed wound check.
+    avoidable: true,
     behavior: { kind: "effectCheck", compare: ["wound", "origin"], expect: "differs", failureDamage: 999, failureDamageType: "true" },
   },
   beyond_death: {
@@ -440,6 +452,8 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     kind: "debuff",
     duration: 5,
     icon: "beyond_death.png",
+    // Damage only on a failed wound check.
+    avoidable: true,
     behavior: { kind: "effectCheck", compare: ["wound", "origin"], expect: "matches", failureDamage: 999, failureDamageType: "true" },
   },
   white_wound: {
@@ -463,12 +477,16 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     kind: "debuff",
     duration: 5,
     icon: "acceleration_bomb.png",
+    // Damage only when the carrier moved inside the check window.
+    avoidable: true,
     behavior: { kind: "motionCheck", required: "still", window: 0.5, failureDamage: 999, failureDamageType: "true", failureKnockupHeight: 1 },
   },
   fake_acceleration_bomb: {
     name: "Fake Acceleration Bomb",
     kind: "debuff",
     duration: 5,
+    // Damage only when the carrier stood still inside the check window.
+    avoidable: true,
     icon: "acceleration_bomb.png",
     behavior: { kind: "motionCheck", required: "move", window: 0.5, failureDamage: 999, failureDamageType: "true", failureKnockupHeight: 1 },
   },

@@ -29,13 +29,13 @@ export function resolveLineLinks(ctx: TickContext): {
       const targets = selectLineLinkTargets(players, pendingLink.pos, target);
       const resolveAt = pendingLink.t + pendingLink.resolveAfter;
       for (const target of targets) {
-        applyEffect(target, {
+        applyEffect(ctx, target, {
           name: pendingLink.hiddenDebuffName,
           kind: "debuff",
           duration: Math.max(0.01, resolveAt - time),
           behavior: { kind: "none" },
           visibility: "invisible",
-        }, time, `${pendingLink.id}-${target.id}-hidden`, players);
+        }, `${pendingLink.id}-${target.id}-hidden`, players);
       }
       lineLinks.push({
         id: pendingLink.id,
@@ -65,7 +65,7 @@ export function resolveLineLinks(ctx: TickContext): {
         if (!target) continue;
         target.effects = target.effects.filter(e => e.id !== `${link.id}-${target.id}-hidden`);
         if (target.alive) {
-          if (link.applyEffect) applyEffect(target, link.applyEffect, time, `${link.id}-${target.id}-eff`, players);
+          if (link.applyEffect) applyEffect(ctx, target, link.applyEffect, `${link.id}-${target.id}-eff`, players);
           if (link.knockback && target.antiKbActive <= 0) {
             applyKnockback(target, link.knockback, link.knockback.origin ?? link.pos, time);
           }
