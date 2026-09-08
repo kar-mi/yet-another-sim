@@ -15,7 +15,7 @@ export interface KeyBindings {
   swapTarget: string;
 }
 
-export type HudGroupId = "party" | "hotbar" | "debuffs" | "resources" | "targetcast" | "bosscasts" | "timer" | "raidselector" | "replayevents";
+export type HudGroupId = "party" | "hotbar" | "debuffs" | "resources" | "targetcast" | "bosscasts" | "timer" | "raidselector" | "replayevents" | "replayseek";
 
 export interface HudGroupLayout {
   x: number;
@@ -26,7 +26,8 @@ export interface HudGroupLayout {
 }
 
 const HUD_GROUPS: readonly HudGroupId[] = [
-  "party", "hotbar", "debuffs", "resources", "targetcast", "bosscasts", "timer", "raidselector", "replayevents",
+  "party", "hotbar", "debuffs", "resources", "targetcast", "bosscasts", "timer", "raidselector",
+  "replayevents", "replayseek",
 ];
 
 export const HUD_GROUP_LABELS: Record<HudGroupId, string> = {
@@ -39,6 +40,7 @@ export const HUD_GROUP_LABELS: Record<HudGroupId, string> = {
   timer: "Timer",
   raidselector: "Raid Selector",
   replayevents: "Replay Events",
+  replayseek: "Replay Seek Bar",
 };
 
 export interface Settings {

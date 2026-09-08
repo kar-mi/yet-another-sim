@@ -144,6 +144,7 @@ async function main(): Promise<void> {
         pause: () => transport.pause(),
         seek: tick => transport.seek(tick),
       }, hudLayout);
+      hudLayout.setGroupSuppressed("hotbar", true);
       currentTeardown = await startSessionRuntime({
         renderer,
         net: replayNet,
@@ -160,6 +161,7 @@ async function main(): Promise<void> {
       resolveHome = null;
       homeBtn.style.display = "none";
       review.dispose();
+      hudLayout.setGroupSuppressed("hotbar", false);
       currentTeardown();
       currentTeardown = () => {};
       renderer = null;

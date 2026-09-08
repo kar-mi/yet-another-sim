@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
 import type { ReplayEvent } from "@shared/replay";
 import {
-  buildRows, damageLabel, eventSeekTick, groupDeathMarkers, matchesFilter, rowLabel,
-  sectionSeekTick, ticksToLabel, type ReplayFilterState,
+  buildRows, damageLabel, eventSeekTick, matchesFilter, rowLabel, sectionSeekTick, ticksToLabel,
+  type ReplayFilterState,
 } from "../replayReviewModel";
 
 function event(over: Partial<ReplayEvent> & Pick<ReplayEvent, "id" | "kind">): ReplayEvent {
@@ -65,24 +65,10 @@ test("search, player and type filters combine", () => {
   expect(matching({ query: "add phase", filter: "deaths" })).toEqual([]);
 });
 
-test("simultaneous deaths group into one marker while distinct ticks stay separate", () => {
-  const rows = buildRows([
-    event({ id: "d1", kind: "death", tick: 600, playerId: "m1", playerLabel: "m1" }),
-    event({ id: "d2", kind: "death", tick: 600, playerId: "h1", playerLabel: "h1" }),
-    event({ id: "d3", kind: "death", tick: 900, playerId: "r1", playerLabel: "r1" }),
-    event({ id: "h9", kind: "hit", tick: 600, hpLoss: 3 }),
-  ]);
-  const groups = groupDeathMarkers(rows);
-
-  expect(groups.map(group => group.tick)).toEqual([600, 900]);
-  expect(groups[0]!.rows.map(row => row.id)).toEqual(["d1", "d2"]);
-  expect(groups[1]!.rows).toHaveLength(1);
-});
-
-test("selecting an event seeks three seconds earlier, clamped to the replay start", () => {
-  expect(eventSeekTick(600)).toBe(420);
-  expect(eventSeekTick(180)).toBe(0);
+test("selecting an event seeks half a second earlier, clamped to the replay start", () => {
+  expect(eventSeekTick(600)).toBe(570);
   expect(eventSeekTick(30)).toBe(0);
+  expect(eventSeekTick(10)).toBe(0);
 });
 
 test("selecting a section seeks to its authored start, clamped to the replay", () => {

@@ -373,18 +373,28 @@ export async function createRaidHudSelect(
     const rngRow = el("div", { className: "yas-rng-controls" }, [optionsBtn]);
     selectRow.appendChild(rngRow);
   }
-  wrapper.append(label, selectRow, controls);
-  if (seek) wrapper.appendChild(seek);
-  // Death markers sit directly beneath the seek bar so a marker lines up with its position on it.
-  if (replayReview) wrapper.appendChild(replayReview.markers);
-  if (timeInput && durationLabel) {
+  // A replay has nothing to select, so the raid selector is not built at all and its playback
+  // controls live in the seek window instead.
+  if (!replay) {
+    wrapper.append(label, selectRow, controls);
+    document.body.appendChild(wrapper);
+    hudLayout.register("raidselector", wrapper);
+  }
+
+  let seekWrapper: HTMLElement | null = null;
+  if (seek && timeInput && durationLabel) {
     const timeRow = el("div", { className: "yas-replay-time-row" });
     timeRow.append(timeInput, durationLabel);
-    wrapper.appendChild(timeRow);
+    seekWrapper = el("div", { id: "yas-replay-seekbar" }, [
+      el("span", { className: "yas-session-label", textContent: "PLAYBACK" }),
+      controls,
+      seek,
+    ]);
+    seekWrapper.appendChild(timeRow);
+    if (replayReview?.sections) seekWrapper.appendChild(replayReview.sections);
+    document.body.appendChild(seekWrapper);
+    hudLayout.register("replayseek", seekWrapper);
   }
-  if (replayReview?.sections) wrapper.appendChild(replayReview.sections);
-  document.body.appendChild(wrapper);
-  hudLayout.register("raidselector", wrapper);
 
   return () => {
     disposePlayback();
@@ -395,7 +405,13 @@ export async function createRaidHudSelect(
     if (seekTimer) clearInterval(seekTimer);
     document.removeEventListener("keydown", onKeydown);
     modal.remove();
-    hudLayout.unregister("raidselector");
-    wrapper.remove();
+    if (!replay) {
+      hudLayout.unregister("raidselector");
+      wrapper.remove();
+    }
+    if (seekWrapper) {
+      hudLayout.unregister("replayseek");
+      seekWrapper.remove();
+    }
   };
 }

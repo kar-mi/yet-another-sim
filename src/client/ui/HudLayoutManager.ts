@@ -13,6 +13,7 @@ const MAX_CAPTURE_ATTEMPTS = 5;
 
 export class HudLayoutManager {
   private readonly groups = new Map<HudGroupId, HTMLElement>();
+  private readonly suppressed = new Set<HudGroupId>();
   private readonly outlines = new Map<HudGroupId, HTMLDivElement>();
   private layout: HudLayout;
   private uiScale: number;
@@ -31,6 +32,7 @@ export class HudLayoutManager {
   register(id: HudGroupId, el: HTMLElement): void {
     this.groups.set(id, el);
     el.dataset.hudGroup = id;
+    el.classList.toggle("yas-hud-suppressed", this.suppressed.has(id));
     this.applyGroup(id);
     if (this.overlay) this.createOutline(id);
   }
@@ -47,6 +49,13 @@ export class HudLayoutManager {
 
   setHudHidden(hidden: boolean): void {
     for (const el of this.groups.values()) el.classList.toggle("yas-hud-hidden", hidden);
+  }
+
+  // Hides a group for as long as the current session needs it gone, leaving the saved layout alone.
+  setGroupSuppressed(id: HudGroupId, suppressed: boolean): void {
+    if (suppressed) this.suppressed.add(id);
+    else this.suppressed.delete(id);
+    this.groups.get(id)?.classList.toggle("yas-hud-suppressed", suppressed);
   }
 
   setLayout(layout: HudLayout): void {

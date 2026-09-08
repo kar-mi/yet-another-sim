@@ -339,7 +339,7 @@ img.party-effect-icon {
   gap: 8px;
 }
 
-.yas-hud-hidden { display: none !important; }
+.yas-hud-hidden, .yas-hud-suppressed { display: none !important; }
 
 /* ===== HUD LAYOUT EDITOR ===== */
 #yas-hud-edit-overlay {

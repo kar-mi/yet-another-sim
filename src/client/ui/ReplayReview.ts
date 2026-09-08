@@ -1,14 +1,13 @@
-// Replay review UI: the event sidebar, the death markers beneath the seek bar, and the section
-// navigator, over the insights collected in client/replayInsights.ts.
+// Replay review UI: the event sidebar and the section navigator, over the insights collected in
+// client/replayInsights.ts.
 //
-// The sidebar and the markers share one filter state; the section navigator is independent of it,
-// so sections locate you in the fight whether or not anything happened to the filtered player.
+// The section navigator is independent of the sidebar's filters, so sections locate you in the
+// fight whether or not anything happened to the filtered player.
 
 import type { MechanicSection } from "@shared/types";
 import type { ReplayInsights } from "@shared/replay";
 import {
-  buildRows, damageLabel, eventSeekTick, groupDeathMarkers, matchesFilter, rowLabel,
-  sectionSeekTick, ticksToLabel,
+  buildRows, damageLabel, eventSeekTick, matchesFilter, rowLabel, sectionSeekTick, ticksToLabel,
   type ReplayFilter, type ReviewRow,
 } from "../replayReviewModel";
 import { el } from "./dom";
@@ -22,8 +21,7 @@ export type ReplayReviewControls = {
 };
 
 export type ReplayReview = {
-  // Appended under the seek bar by the raid HUD. `sections` is null when the recording has none.
-  markers: HTMLElement;
+  // Appended under the seek bar by the raid HUD; null when the recording has no sections.
   sections: HTMLElement | null;
   // Called from the playback timer so the current position stays highlighted.
   setPosition: (tick: number) => void;
@@ -95,14 +93,7 @@ export function createReplayReview(
   document.body.appendChild(panel);
   hudLayout.register("replayevents", panel);
 
-  // Shares the seek bar's width so each marker lines up with the position it points at.
-  const markers = el("div", { className: "yas-review-markers", attrs: { role: "group", "aria-label": "Death markers" } });
-
-  let sectionsEl: HTMLElement | null = null;
-  if (insights.sections.length > 0) {
-    sectionsEl = el("div", { className: "yas-review-sections", attrs: { role: "group", "aria-label": "Mechanic sections" } });
-    for (const section of insights.sections) sectionsEl.appendChild(sectionButton(section, controls));
-  }
+  const sectionsEl = insights.sections.length > 0 ? sectionPicker(insights.sections, controls) : null;
 
   const rowElements = new Map<string, HTMLElement>();
 
@@ -141,46 +132,6 @@ export function createReplayReview(
     }
   }
 
-  function renderMarkers(visible: ReviewRow[]): void {
-    markers.replaceChildren();
-    const duration = Math.max(1, controls.duration());
-    for (const group of groupDeathMarkers(visible)) {
-      const names = group.rows.map(row => row.playerLabel).join(", ");
-      const grouped = group.rows.length > 1;
-      const marker = el("button", {
-        type: "button",
-        className: `yas-review-marker${grouped ? " is-group" : ""}`
-          + `${group.rows.some(row => row.id === selectedId) ? " is-active" : ""}`,
-        textContent: grouped ? String(group.rows.length) : "",
-        attrs: {
-          "aria-label": grouped
-            ? `${group.rows.length} deaths at ${ticksToLabel(group.tick)}: ${names}`
-            : `Death at ${ticksToLabel(group.tick)}: ${names} — ${group.rows[0]!.sourceName}`,
-          title: `${ticksToLabel(group.tick)} — ${names}`,
-        },
-      });
-      marker.style.left = `${(group.tick / duration) * 100}%`;
-      if (!grouped) {
-        marker.addEventListener("click", () => select(group.rows[0]!));
-      } else {
-        // A grouped marker opens a small list so every simultaneous death stays reachable.
-        const popup = el("div", { className: "yas-review-marker-popup", hidden: true });
-        for (const row of group.rows) {
-          const entry = el("button", {
-            type: "button",
-            className: "yas-review-marker-entry",
-            textContent: `${row.playerLabel} — ${row.sourceName}`,
-          });
-          entry.addEventListener("click", () => { popup.hidden = true; select(row); });
-          popup.appendChild(entry);
-        }
-        marker.addEventListener("click", () => { popup.hidden = !popup.hidden; });
-        marker.appendChild(popup);
-      }
-      markers.appendChild(marker);
-    }
-  }
-
   function applyHighlight(): void {
     for (const [id, element] of rowElements) {
       const row = rowsById.get(id);
@@ -191,9 +142,7 @@ export function createReplayReview(
 
   function render(): void {
     for (const [value, button] of filterButtons) button.classList.toggle("is-active", state.filter === value);
-    const visible = rows.filter(row => matchesFilter(row, state, sectionNameById));
-    renderList(visible);
-    renderMarkers(visible);
+    renderList(rows.filter(row => matchesFilter(row, state, sectionNameById)));
     applyHighlight();
     if (scrollOnNextRender && selectedId !== null) {
       rowElements.get(selectedId)?.scrollIntoView({ block: "nearest" });
@@ -204,7 +153,6 @@ export function createReplayReview(
   render();
 
   return {
-    markers,
     sections: sectionsEl,
     setPosition(tick: number): void {
       if (tick === position) return;
@@ -218,19 +166,24 @@ export function createReplayReview(
   };
 }
 
-function sectionButton(section: MechanicSection, controls: ReplayReviewControls): HTMLElement {
-  const button = el("button", {
-    type: "button",
-    className: "yas-review-section",
-    textContent: section.name,
-    attrs: {
-      "aria-label": `Jump to ${section.name} at ${ticksToLabel(Math.round(section.t * 60))}`,
-      title: ticksToLabel(Math.round(section.t * 60)),
-    },
-  });
-  button.addEventListener("click", () => {
+function sectionPicker(sections: MechanicSection[], controls: ReplayReviewControls): HTMLElement {
+  const picker = el("select", {
+    className: "yas-rng-select yas-review-sections",
+    ariaLabel: "Jump to mechanic section",
+  }, [el("option", { value: "", textContent: "Jump to mechanic..." })]);
+  for (const [index, section] of sections.entries()) {
+    picker.appendChild(el("option", {
+      value: String(index),
+      textContent: `${ticksToLabel(Math.round(section.t * 60))}  ${section.name}`,
+    }));
+  }
+  picker.addEventListener("change", () => {
+    const section = sections[Number(picker.value)];
+    // Reset to the prompt so picking the same section twice still fires a change.
+    picker.value = "";
+    if (!section) return;
     controls.pause();
     controls.seek(sectionSeekTick(section, controls.duration()));
   });
-  return button;
+  return picker;
 }

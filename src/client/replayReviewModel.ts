@@ -5,7 +5,7 @@ import type { MechanicSection } from "@shared/types";
 
 const TICKS_PER_SECOND = 60;
 // Selecting a hit or death rewinds this far so the lead-up is visible, not just the aftermath.
-const PREROLL_TICKS = 3 * TICKS_PER_SECOND;
+const PREROLL_TICKS = 0.5 * TICKS_PER_SECOND;
 
 export type ReplayFilter = "all" | "deaths" | "hits";
 
@@ -75,18 +75,6 @@ export function rowLabel(row: ReviewRow): string {
 export function damageLabel(row: ReviewRow): string {
   if (row.hpLoss === undefined) return "";
   return row.hpLoss === 0 ? "0 damage — prevented" : `${Math.round(row.hpLoss)} damage`;
-}
-
-// Deaths at the same tick would stack into an unclickable pile on the seek bar, so they share one
-// marker.
-export function groupDeathMarkers(rows: ReviewRow[]): { tick: number; rows: ReviewRow[] }[] {
-  const byTick = new Map<number, ReviewRow[]>();
-  for (const row of rows) {
-    if (!row.isDeath) continue;
-    const group = byTick.get(row.tick);
-    if (group) group.push(row); else byTick.set(row.tick, [row]);
-  }
-  return [...byTick].sort((a, b) => a[0] - b[0]).map(([tick, group]) => ({ tick, rows: group }));
 }
 
 export function eventSeekTick(tick: number): number {

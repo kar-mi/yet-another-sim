@@ -907,8 +907,9 @@
    as #yas-timer rather than a bespoke frame. */
 #yas-replay-review {
   position: fixed;
-  top: 45px;
-  left: 12px;
+  top: 50%;
+  left: calc(50% + 300px);
+  transform: translate(-50%, -50%);
   z-index: 50;
   display: flex;
   flex-direction: column;
@@ -944,8 +945,7 @@
   color: var(--px-text-dim);
 }
 
-.yas-review-search:focus,
-.yas-review-player:focus {
+.yas-review-search:focus {
   border-color: var(--px-accent);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4), 0 0 8px var(--px-glow);
 }
@@ -988,10 +988,13 @@
 }
 
 .yas-review-list {
+  --review-row-height: 46px;
+  --review-row-gap: 3px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  max-height: min(420px, 46vh);
+  gap: var(--review-row-gap);
+  /* Five rows, their gaps, and the list's own padding + border. */
+  max-height: calc(5 * var(--review-row-height) + 4 * var(--review-row-gap) + 10px);
   overflow-y: auto;
   padding: 4px;
   background: var(--px-sunken);
@@ -1012,6 +1015,8 @@
   align-items: center;
   gap: 7px;
   width: 100%;
+  height: var(--review-row-height);
+  flex: none;
   background: var(--px-bg-2);
   border: 2px solid var(--px-edge);
   border-radius: 4px;
@@ -1071,97 +1076,31 @@
   white-space: nowrap;
 }
 
-/* Death markers: a thin track directly under the seek bar, sharing its 190px width so each
-   marker lines up with the position it points at. */
-.yas-review-markers {
-  position: relative;
+/* Section navigator: independent of the event filters, so it always lists every mechanic. */
+.yas-review-sections {
   width: 190px;
-  height: 14px;
+  font-size: 11px;
+  padding: 4px 6px;
 }
 
-.yas-review-marker {
-  position: absolute;
-  top: 0;
-  transform: translateX(-50%);
-  min-width: 10px;
-  height: 14px;
-  padding: 0 2px;
-  background: var(--px-danger);
-  border: 2px solid var(--px-edge);
-  border-radius: 3px;
-  box-shadow: 0 2px 0 var(--px-shadow);
-  color: var(--px-ink);
-  cursor: pointer;
-  font-family: var(--px-font);
-  font-size: 9px;
-  line-height: 1;
-}
 
-.yas-review-marker:hover,
-.yas-review-marker.is-active {
-  border-color: var(--px-accent);
-}
-
-.yas-review-marker.is-group { background: var(--px-accent); }
-
-.yas-review-marker-popup {
-  position: absolute;
-  top: 16px;
+/* Seek bar HUD group: the scrubber, its death markers, the timestamp and the section picker. */
+#yas-replay-seekbar {
+  position: fixed;
+  /* `top` is the box centre (see the transform below), so the floor leaves room for the
+     panel's top half and the default never starts off-screen on a short viewport. */
+  top: max(88px, calc(50% - 500px));
   left: 50%;
-  z-index: 60;
+  transform: translate(-50%, -50%);
+  z-index: 50;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  transform: translateX(-50%);
-  min-width: 160px;
-  padding: 5px;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 10px;
   background: var(--px-bg-1);
   border: 2px solid var(--px-edge);
-  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
-  border-radius: 4px;
-}
-
-.yas-review-marker-entry {
-  background: var(--px-bg-2);
-  border: 2px solid var(--px-edge);
-  border-radius: 4px;
-  color: var(--px-text);
-  cursor: pointer;
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+  border-radius: 5px;
   font-family: var(--px-font);
-  font-size: 11px;
-  letter-spacing: 0.5px;
-  padding: 4px 6px;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.yas-review-marker-entry:hover {
-  border-color: var(--px-accent);
-  color: var(--px-accent);
-}
-
-/* Section navigator: wraps within the raid-selector column, independent of the event filters. */
-.yas-review-sections {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  width: 190px;
-}
-
-.yas-review-section {
-  background: var(--px-bg-2);
-  border: 2px solid var(--px-edge);
-  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 2px 0 var(--px-shadow);
-  border-radius: 4px;
-  color: var(--px-text-dim);
-  cursor: pointer;
-  font-family: var(--px-font);
-  font-size: 10px;
-  letter-spacing: 0.8px;
-  padding: 4px 6px;
-}
-
-.yas-review-section:hover {
-  border-color: var(--px-accent);
-  color: var(--px-accent);
 }
