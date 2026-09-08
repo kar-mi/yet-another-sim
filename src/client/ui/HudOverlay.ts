@@ -25,6 +25,7 @@ import {
   type PositionFrameOption,
 } from "../frameReadout";
 import type { HudLayoutManager } from "./HudLayoutManager";
+import { Minimap } from "./Minimap";
 import {
   buildCastCandidates,
   castForBoss,
@@ -93,6 +94,7 @@ interface CtrlSlotView {
 }
 
 export class HudOverlay {
+  private readonly minimap = new Minimap();
   private root: HTMLDivElement;
   private statusEl: HTMLDivElement;
   private hpFill: HTMLDivElement;
@@ -280,6 +282,8 @@ export class HudOverlay {
     this.hudLayout.register("targetcast", this.castBarEl);
     this.hudLayout.register("bosscasts", this.bossCastPanelEl);
     this.hudLayout.register("timer", this.timerEl);
+    document.body.appendChild(this.minimap.element);
+    this.hudLayout.register("minimap", this.minimap.element);
 
     this.bindEvents();
   }
@@ -527,6 +531,7 @@ export class HudOverlay {
   }
 
   sync(world: World, p: Player | undefined): void {
+    this.minimap.sync(world, p);
     this.latestPlayer = p ?? null;
     this.latestWorld = world;
     if (DEBUG_POSITION_ENABLED && p) this.syncPositionFrames(world, p);
@@ -807,10 +812,11 @@ export class HudOverlay {
 
   dispose(): void {
     this.hudLayout.exitEditMode();
-    for (const id of ["party", "hotbar", "debuffs", "resources", "targetcast", "bosscasts", "timer"] as const) {
+    for (const id of ["party", "hotbar", "debuffs", "resources", "targetcast", "bosscasts", "timer", "minimap"] as const) {
       this.hudLayout.unregister(id);
     }
     this.hotbarGroupEl.remove();
+    this.minimap.dispose();
     this.debuffTrackerEl.remove();
     this.resourceGroupEl.remove();
     this.bossCastPanelEl.remove();

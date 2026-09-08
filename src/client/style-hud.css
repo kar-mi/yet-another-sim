@@ -930,3 +930,46 @@ img.yas-debuff-icon {
 .yas-slot-ready {
   animation: yas-ready-pulse 0.55s ease 2 forwards;
 }
+
+/* ===== Minimap ===== */
+#yas-minimap {
+  position: fixed;
+  top: calc(145px + 100px * (var(--ui-scale, 1) - 1));
+  right: calc(20px + 100px * (var(--ui-scale, 1) - 1));
+  width: 200px;
+  height: 200px;
+  z-index: 10;
+  pointer-events: none;
+  background: var(--px-bg-1);
+  border: 2px solid var(--px-accent-dim);
+  border-radius: 50%;
+  box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
+}
+
+#yas-minimap svg { display: block; width: 100%; height: 100%; }
+.yas-minimap-content { clip-path: circle(43% at 50% 50%); }
+.yas-minimap-arena { fill: var(--px-bg-2); stroke: var(--px-text-dim); stroke-width: 1; }
+.yas-minimap-compass, .yas-minimap-marks text {
+  text-anchor: middle;
+  dominant-baseline: central;
+  font-family: var(--px-font);
+  font-size: 12px;
+  font-weight: bold;
+}
+.yas-minimap-compass { fill: var(--px-accent); }
+.yas-minimap-marks circle, .yas-minimap-marks rect {
+  fill: var(--px-bg-0);
+  stroke: currentColor;
+  stroke-width: 1;
+}
+.yas-minimap-marks text { fill: currentColor; }
+.yas-minimap-player {
+  fill: var(--px-mp);
+  stroke: var(--px-text);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.yas-minimap-dot { stroke: var(--px-bg-0); stroke-width: 1; }
+.yas-minimap-dot--tank { fill: var(--px-mp); }
+.yas-minimap-dot--healer { fill: var(--px-hp); }
+.yas-minimap-dot--dps { fill: var(--px-danger); }
