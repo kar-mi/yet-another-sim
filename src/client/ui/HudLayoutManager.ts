@@ -14,6 +14,7 @@ const MAX_CAPTURE_ATTEMPTS = 5;
 export class HudLayoutManager {
   private readonly groups = new Map<HudGroupId, HTMLElement>();
   private readonly suppressed = new Set<HudGroupId>();
+  private readonly revealed = new Set<HudGroupId>();
   private readonly outlines = new Map<HudGroupId, HTMLDivElement>();
   private layout: HudLayout;
   private uiScale: number;
@@ -32,7 +33,7 @@ export class HudLayoutManager {
   register(id: HudGroupId, el: HTMLElement): void {
     this.groups.set(id, el);
     el.dataset.hudGroup = id;
-    el.classList.toggle("yas-hud-suppressed", this.suppressed.has(id));
+    el.classList.toggle("yas-hud-suppressed", this.isSuppressed(id));
     this.applyGroup(id);
     if (this.overlay) this.createOutline(id);
   }
@@ -55,7 +56,20 @@ export class HudLayoutManager {
   setGroupSuppressed(id: HudGroupId, suppressed: boolean): void {
     if (suppressed) this.suppressed.add(id);
     else this.suppressed.delete(id);
-    this.groups.get(id)?.classList.toggle("yas-hud-suppressed", suppressed);
+    this.groups.get(id)?.classList.toggle("yas-hud-suppressed", this.isSuppressed(id));
+  }
+
+  // Shows a group that the saved layout (or the session) hides, for as long as a transient flow such
+  // as the guided tour needs it visible. Never touches the persisted layout.
+  setGroupRevealed(id: HudGroupId, revealed: boolean): void {
+    if (revealed) this.revealed.add(id);
+    else this.revealed.delete(id);
+    this.groups.get(id)?.classList.toggle("yas-hud-suppressed", this.isSuppressed(id));
+    this.applyGroup(id);
+  }
+
+  private isSuppressed(id: HudGroupId): boolean {
+    return this.suppressed.has(id) && !this.revealed.has(id);
   }
 
   setLayout(layout: HudLayout): void {
@@ -86,7 +100,7 @@ export class HudLayoutManager {
       transform: `translate(-50%, -50%) scale(${scale})`,
       transformOrigin: "center",
       opacity: String(entry.opacity),
-      display: entry.hidden ? "none" : "",
+      display: entry.hidden && !this.revealed.has(id) ? "none" : "",
     });
     requestAnimationFrame(() => this.positionOutline(id));
   }

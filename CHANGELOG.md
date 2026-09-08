@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The welcome flow is now a guided tour that runs inside the simulator: the overview card is
+  followed by spotlight steps on the HUD edit button, the raid selector and the replay button, with
+  the rest of the screen dimmed and gameplay input blocked. Reopen it any time via ? -> Getting
+  Started; outside the simulator it queues the spotlights for the next live entry.
+- Replays moved out of the lobby. The session host now opens them from a new play-icon button in
+  the top-right toolbar, without leaving the session or giving up their claimed slot.
 - Upgraded the pinned Bun toolchain to 1.4.2 (Docker image, `packageManager`, `@types/bun`).
 - Replay files are now read as a stream, record by record, instead of being loaded whole. Listing
   replays no longer retains any frames, cutting the memory a long pull needs to summarize.

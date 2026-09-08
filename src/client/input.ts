@@ -35,6 +35,7 @@ let standardFacingSynced = false;
 let keyboardCameraPan = 0;      // camera yaw delta produced by the last getIntent() call
 let oneShotSink: (() => void) | null = null;
 let cachedPads: ReturnType<typeof navigator.getGamepads> | null = null;
+let inputSuppressed = false;
 
 const STANDARD_TURN_RATE = 2.6; // rad/s character turn from A/D (standard)
 const CAMERA_FOLLOW_RATE = 4;   // camera auto-trail responsiveness (standard)
@@ -168,7 +169,7 @@ export function getKeyboardCameraPan(): number {
 }
 
 export function getRightStick(): { x: number; y: number } {
-  const gp = getGamepad();
+  const gp = inputSuppressed ? null : getGamepad();
   if (!gp) return { x: 0, y: 0 };
   // PS5 non-standard mapping: right-stick Y is on axes[5]; axes[3] is the L2 analog
   // trigger, so reading it here makes the camera pan whenever LT is held.
@@ -202,6 +203,11 @@ export function triggerAction(actionId: ActionId): void {
       swapTargetPressed = true;
       break;
   }
+}
+
+/** Freezes gameplay input (keyboard, gamepad) while a modal flow such as the guided tour owns the screen. */
+export function setGameplayInputSuppressed(suppressed: boolean): void {
+  inputSuppressed = suppressed;
 }
 
 export function initInput(): () => void {
@@ -243,6 +249,19 @@ export function initInput(): () => void {
 
 export function getIntent(cameraYaw: number, dt: number, mouse: { left: boolean; right: boolean }): Intent {
   cachedPads = navigator.getGamepads();
+  if (inputSuppressed) {
+    keys.clear();
+    jumpPressed = sprintPressed = antiKbPressed = provokePressed = swapTargetPressed = false;
+    invincibilityToggled = false;
+    keyboardCameraPan = 0;
+    // Latch the pad's current buttons so nothing held during the block fires on release.
+    const pad = getGamepad();
+    if (pad) {
+      for (let i = 0; i < pad.buttons.length; i++) prevButtons[i] = pad.buttons[i].pressed;
+      prevButtons.length = pad.buttons.length;
+    }
+    return { move: { x: 0, z: 0 } };
+  }
   const jump = jumpPressed;
   jumpPressed = false;
   const sprint = sprintPressed;
