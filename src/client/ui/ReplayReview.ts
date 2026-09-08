@@ -10,6 +10,7 @@ import {
   buildRows, damageLabel, eventSeekTick, matchesFilter, rowLabel, sectionSeekTick, ticksToLabel,
   type ReplayFilter, type ReviewRow,
 } from "../replayReviewModel";
+import { createDropdown, type Dropdown } from "./Dropdown";
 import { el } from "./dom";
 import type { HudLayoutManager } from "./HudLayoutManager";
 
@@ -77,25 +78,29 @@ export function createReplayReview(
     filterRow.appendChild(button);
   }
 
-  const playerSelect = el("select", { className: "yas-rng-select yas-review-player", ariaLabel: "Filter by party member" });
-  playerSelect.appendChild(el("option", { value: "", textContent: "All party members" }));
-  for (const player of insights.players) {
-    playerSelect.appendChild(el("option", { value: player.id, textContent: player.label }));
-  }
-  playerSelect.addEventListener("change", () => { state.playerId = playerSelect.value; render(); });
+  const playerFilter = createDropdown({
+    ariaLabel: "Filter by party member",
+    placeholder: "All party members",
+    className: "yas-review-player",
+    options: [
+      { value: "", label: "All party members" },
+      ...insights.players.map(player => ({ value: player.id, label: player.label })),
+    ],
+    onSelect: playerId => { state.playerId = playerId; render(); },
+  });
 
   const list = el("div", { className: "yas-review-list", attrs: { role: "list" } });
   const panel = el("div", { id: "yas-replay-review" }, [
     el("span", { className: "yas-session-label", textContent: "EVENTS" }),
     search,
     filterRow,
-    playerSelect,
+    playerFilter.element,
     list,
   ]);
   document.body.appendChild(panel);
   hudLayout.register("replayevents", panel);
 
-  const sectionsEl = insights.sections.length > 0 ? sectionPicker(insights.sections, controls) : null;
+  const sectionPicker = insights.sections.length > 0 ? createSectionPicker(insights.sections, controls) : null;
 
   const rowElements = new Map<string, HTMLElement>();
 
@@ -155,37 +160,39 @@ export function createReplayReview(
   render();
 
   return {
-    sections: sectionsEl,
+    sections: sectionPicker?.element ?? null,
     setPosition(tick: number): void {
       if (tick === position) return;
       position = tick;
       applyHighlight();
     },
     dispose(): void {
+      playerFilter.close();
+      sectionPicker?.close();
       hudLayout.unregister("replayevents");
       panel.remove();
     },
   };
 }
 
-function sectionPicker(sections: MechanicSection[], controls: ReplayReviewControls): HTMLElement {
-  const picker = el("select", {
-    className: "yas-rng-select yas-review-sections",
+// A jump target rather than a persistent choice, so the trigger falls back to its prompt after
+// each pick instead of showing the section you last visited.
+function createSectionPicker(sections: MechanicSection[], controls: ReplayReviewControls): Dropdown {
+  const picker = createDropdown({
     ariaLabel: "Jump to mechanic section",
-  }, [el("option", { value: "", textContent: "Jump to mechanic..." })]);
-  for (const [index, section] of sections.entries()) {
-    picker.appendChild(el("option", {
+    placeholder: "Jump to mechanic...",
+    className: "yas-review-sections",
+    options: sections.map((section, index) => ({
       value: String(index),
-      textContent: `${ticksToLabel(Math.round(section.t * 60))}  ${section.name}`,
-    }));
-  }
-  picker.addEventListener("change", () => {
-    const section = sections[Number(picker.value)];
-    // Reset to the prompt so picking the same section twice still fires a change.
-    picker.value = "";
-    if (!section) return;
-    controls.pause();
-    controls.seek(sectionSeekTick(section, controls.duration()));
+      label: `${ticksToLabel(Math.round(section.t * 60))}  ${section.name}`,
+    })),
+    onSelect: value => {
+      picker.setValue("");
+      const section = sections[Number(value)];
+      if (!section) return;
+      controls.pause();
+      controls.seek(sectionSeekTick(section, controls.duration()));
+    },
   });
   return picker;
 }
