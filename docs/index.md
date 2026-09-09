@@ -10,9 +10,25 @@ fights, not just playing them.
 
 ## What is in the simulator today
 
-The published encounter set is **Dancing Mad Ultimate**, with five phases: *Graven Image 3*,
-*Forsaken*, *Black Hole*, *Bowels of Agony* and *Kefka Says*. They are listed in the raid browser
-under that category.
+Encounters are grouped into categories in the raid browser, and the list comes from whatever raid
+files the server is serving — so what you see there depends on the deployment rather than being
+fixed by the client.
+
+What every encounter is built from is the same:
+
+- **An eight-player roster** of two tanks, two healers and four DPS, in fixed slots that mechanics
+  target by name.
+- **An arena** assembled from circles, rectangles and polygons, with waymarks. Anything outside the
+  floor is a fall, and a fall is fatal.
+- **A timeline** of mechanics resolving on a clock: area attacks of every shape, baited and targeted
+  hits, tethers and chains, stacks and spreads, towers to soak, knockbacks, gazes, dashes and
+  divebombs, limit cut ordering, and buffs and debuffs that change what a later mechanic does to
+  you.
+- **Seeded per-pull variation**, so a fight is not the same every time — and any of it can be pinned
+  by the host to drill one case repeatedly.
+- **Bots** filling every unclaimed slot, following movement authored alongside the encounter.
+- **A recording** of each stopped pull, reviewable afterwards with every death and avoidable hit
+  listed.
 
 Alongside those there is a **Debug** category holding one small raid per mechanic type — towers,
 knockbacks, gazes, limit cut, and so on. Those are the fastest way to see a single mechanic in
