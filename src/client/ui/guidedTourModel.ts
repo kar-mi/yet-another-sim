@@ -34,7 +34,7 @@ const REVISIT_NOTE = "Revisit this tour anytime via ? → Getting Started.";
 
 const OVERVIEW_SECTIONS: TourSection[] = [
   { title: "SETTINGS", body: "Click the ⚙ icon (top-right) to adjust camera, keybinds, controller, and display settings." },
-  { title: "CUSTOMIZE THE UI", body: "In Settings → Display, set the UI scale/font, or click EDIT HUD LAYOUT to drag, resize, or hide HUD elements. You can also click the grid button." },
+  { title: "CUSTOMIZE THE UI", body: "In Settings → Display, set the UI scale/font, or click EDIT HUD LAYOUT to drag HUD elements, resize them with their handles, or right-click to hide them. You can also click the grid button." },
   { title: "LOADING A RAID", body: "Once in a session, use the RAID selector at the top of the screen to pick a raid, and the raid will auto start." },
   { title: "REPLAYS", body: "Every pull is recorded. The host can stop a pull and open ▶ in the top-right toolbar to rewatch this session's recordings." },
 ];
@@ -57,7 +57,7 @@ export function buildTourSteps(ctx: TourContext): TourStep[] {
       id: "hudLayout",
       title: "HUD LAYOUT",
       target: HUD_EDIT_TARGET,
-      body: "Click ▦ to edit the HUD. Drag an element to move it, use the panel to resize or hide it, then SAVE & CLOSE.",
+      body: "Click ▦ to edit the HUD. Drag an element to move it, drag the handles on the selected element to resize it, right-click it to hide or show it, then SAVE & CLOSE.",
     },
     {
       id: "raidSelector",

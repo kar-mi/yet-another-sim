@@ -3,25 +3,92 @@ import {
   type HudGroupId,
   type HudGroupLayout,
 } from "../settings";
+import {
+  HUD_HANDLES,
+  HUD_MAX_SCALE,
+  HUD_MIN_SCALE,
+  centeredRect,
+  clampCenter,
+  fitPlacement,
+  groupRect,
+  moveGroup,
+  resizeGroup,
+  type HudHandle,
+  type HudMeasure,
+  type HudPlacement,
+  type HudPoint,
+  type HudRect,
+  type HudSize,
+} from "./hudGeometry";
 
 type HudLayout = Partial<Record<HudGroupId, HudGroupLayout>>;
 
 const GRID_STEP = 0.01;
-const PLACEHOLDER_WIDTH = 120;
-const PLACEHOLDER_HEIGHT = 32;
+const PLACEHOLDER: HudSize = { width: 120, height: 32 };
 const MAX_CAPTURE_ATTEMPTS = 5;
+/** Sub-pixel wobble in measurements and placements is not worth a re-layout. */
+const EPSILON = 0.5;
+
+/** The whole visible group: the element plus any control protruding from it. */
+function measureBounds(el: HTMLElement): HudRect | null {
+  if (el.getClientRects().length === 0) return null;
+  const box = el.getBoundingClientRect();
+  let left = box.left;
+  let top = box.top;
+  let right = box.right;
+  let bottom = box.bottom;
+  const visit = (parent: Element) => {
+    for (const child of Array.from(parent.children)) {
+      if (!(child instanceof HTMLElement)) continue;
+      if (child.getClientRects().length === 0) continue;
+      const rect = child.getBoundingClientRect();
+      left = Math.min(left, rect.left);
+      top = Math.min(top, rect.top);
+      right = Math.max(right, rect.right);
+      bottom = Math.max(bottom, rect.bottom);
+      if (child.childElementCount === 0) continue;
+      // A clipping box already covers everything of its children that is on screen.
+      const style = getComputedStyle(child);
+      if (style.overflowX !== "visible" || style.overflowY !== "visible") continue;
+      visit(child);
+    }
+  };
+  visit(el);
+  return { left, top, width: right - left, height: bottom - top };
+}
+
+function samePlacement(a: HudPlacement, b: HudPlacement): boolean {
+  return Math.abs(a.center.x - b.center.x) < EPSILON
+    && Math.abs(a.center.y - b.center.y) < EPSILON
+    && Math.abs(a.scale - b.scale) < 0.001;
+}
+
+function sameMeasure(a: HudMeasure, b: HudMeasure): boolean {
+  return Math.abs(a.natural.width - b.natural.width) < EPSILON
+    && Math.abs(a.natural.height - b.natural.height) < EPSILON
+    && Math.abs(a.offset.x - b.offset.x) < EPSILON
+    && Math.abs(a.offset.y - b.offset.y) < EPSILON;
+}
 
 export class HudLayoutManager {
   private readonly groups = new Map<HudGroupId, HTMLElement>();
   private readonly suppressed = new Set<HudGroupId>();
   private readonly revealed = new Set<HudGroupId>();
   private readonly outlines = new Map<HudGroupId, HTMLDivElement>();
+  /** Unit-scale bounds of each group, kept while the group is hidden so placeholders stay sized. */
+  private readonly measures = new Map<HudGroupId, HudMeasure>();
+  /** What is currently on screen: the preferred scale, shrunk where the viewport demanded it. */
+  private readonly applied = new Map<HudGroupId, HudPlacement>();
+  private readonly pendingRefresh = new Set<HudGroupId>();
+  private readonly observers = new Map<HudGroupId, ResizeObserver>();
   private layout: HudLayout;
   private uiScale: number;
   private gridEnabled = false;
   private overlay: HTMLDivElement | null = null;
   private selectionSection: HTMLDivElement | null = null;
   private selected: HudGroupId | null = null;
+  private scaleReadout: HTMLElement | null = null;
+  private visibleToggle: HTMLInputElement | null = null;
   private captureTokens = new Map<HudGroupId, number>();
 
   constructor(layout: HudLayout, uiScale: number, private readonly onChange: (layout: HudLayout) => void) {
@@ -34,14 +101,20 @@ export class HudLayoutManager {
     this.groups.set(id, el);
     el.dataset.hudGroup = id;
     el.classList.toggle("yas-hud-suppressed", this.isSuppressed(id));
+    this.observe(id, el);
     this.applyGroup(id);
     if (this.overlay) this.createOutline(id);
   }
 
   unregister(id: HudGroupId): void {
     if (this.groups.has(id) && this.overlay) this.exitEditMode();
+    this.observers.get(id)?.disconnect();
+    this.observers.delete(id);
     this.groups.delete(id);
     this.captureTokens.delete(id);
+    this.measures.delete(id);
+    this.applied.delete(id);
+    this.pendingRefresh.delete(id);
   }
 
   hasGroups(): boolean {
@@ -90,19 +163,27 @@ export class HudLayoutManager {
       this.captureDefault(id, el);
       return;
     }
-    const scale = this.uiScale * entry.scale;
-    Object.assign(el.style, {
-      position: "fixed",
-      left: `${entry.x * 100}vw`,
-      top: `${entry.y * 100}vh`,
-      right: "auto",
-      bottom: "auto",
-      transform: `translate(-50%, -50%) scale(${scale})`,
-      transformOrigin: "center",
-      opacity: String(entry.opacity),
-      display: entry.hidden && !this.revealed.has(id) ? "none" : "",
-    });
-    requestAnimationFrame(() => this.positionOutline(id));
+    const viewport = this.viewport();
+    const center = { x: entry.x * viewport.width, y: entry.y * viewport.height };
+    const preferred = this.uiScale * entry.scale;
+    const measure = this.measures.get(id);
+    const placement = measure ? fitPlacement(center, preferred, measure, viewport) : { center, scale: preferred };
+    const previous = this.applied.get(id);
+    if (!previous || !samePlacement(previous, placement)) {
+      Object.assign(el.style, {
+        position: "fixed",
+        left: `${placement.center.x}px`,
+        top: `${placement.center.y}px`,
+        right: "auto",
+        bottom: "auto",
+        transform: `translate(-50%, -50%) scale(${placement.scale})`,
+        transformOrigin: "center",
+      });
+      this.applied.set(id, placement);
+    }
+    el.style.setProperty("--yas-hud-bg-alpha", String(entry.opacity));
+    el.style.display = entry.hidden && !this.revealed.has(id) ? "none" : "";
+    this.scheduleRefresh(id);
   }
 
   enterEditMode(): void {
@@ -112,6 +193,7 @@ export class HudLayoutManager {
     overlay.addEventListener("pointerdown", event => {
       if (event.target === overlay) this.selectGroup(null);
     });
+    overlay.addEventListener("contextmenu", event => event.preventDefault());
 
     const panel = document.createElement("div");
     panel.id = "yas-hud-edit-panel";
@@ -120,6 +202,9 @@ export class HudLayoutManager {
     title.className = "yas-hud-edit-panel-title";
     title.textContent = "EDIT HUD LAYOUT";
     title.addEventListener("pointerdown", event => this.startPanelDrag(event, panel));
+    const hint = document.createElement("div");
+    hint.className = "yas-hud-edit-hint";
+    hint.textContent = "Drag to move, drag a handle to resize, right-click to hide or show.";
     const globalControls = document.createElement("div");
     globalControls.className = "yas-hud-edit-global-controls";
     const grid = this.makeButton("GRID SNAP: OFF", () => {
@@ -132,7 +217,7 @@ export class HudLayoutManager {
     globalControls.append(grid, reset, done);
     const selectionSection = document.createElement("div");
     selectionSection.className = "yas-hud-edit-selection";
-    panel.append(title, globalControls, selectionSection);
+    panel.append(title, hint, globalControls, selectionSection);
     overlay.appendChild(panel);
     document.body.appendChild(overlay);
     this.overlay = overlay;
@@ -146,7 +231,13 @@ export class HudLayoutManager {
     this.overlay = null;
     this.selectionSection = null;
     this.selected = null;
+    this.scaleReadout = null;
+    this.visibleToggle = null;
     this.outlines.clear();
+  }
+
+  private viewport(): HudSize {
+    return { width: innerWidth, height: innerHeight };
   }
 
   private readonly onResize = () => {
@@ -154,13 +245,57 @@ export class HudLayoutManager {
     this.positionOutlines();
   };
 
+  private observe(id: HudGroupId, el: HTMLElement): void {
+    this.observers.get(id)?.disconnect();
+    if (typeof ResizeObserver === "undefined") return;
+    // Content that grows or shrinks (a longer cast name, another party row) can push a group out of
+    // the viewport, so re-fit whenever its layout size changes.
+    const observer = new ResizeObserver(() => this.applyGroup(id));
+    observer.observe(el);
+    this.observers.set(id, observer);
+  }
+
   private applyAll(): void {
     for (const id of this.groups.keys()) this.applyGroup(id);
+  }
+
+  private scheduleRefresh(id: HudGroupId): void {
+    if (this.pendingRefresh.has(id)) return;
+    this.pendingRefresh.add(id);
+    requestAnimationFrame(() => {
+      this.pendingRefresh.delete(id);
+      if (!this.groups.has(id)) return;
+      if (this.remeasure(id)) this.applyGroup(id);
+      this.positionOutline(id);
+    });
+  }
+
+  /** Re-reads the group's bounds; returns whether they moved enough to need a re-fit. */
+  private remeasure(id: HudGroupId): boolean {
+    const el = this.groups.get(id);
+    const placement = this.applied.get(id);
+    if (!el || !placement || placement.scale <= 0) return false;
+    const bounds = measureBounds(el);
+    // A hidden or not-yet-rendered group keeps whatever bounds it last had.
+    if (!bounds || bounds.width === 0 || bounds.height === 0) return false;
+    const measure: HudMeasure = {
+      natural: { width: bounds.width / placement.scale, height: bounds.height / placement.scale },
+      offset: {
+        x: (bounds.left + bounds.width / 2 - placement.center.x) / placement.scale,
+        y: (bounds.top + bounds.height / 2 - placement.center.y) / placement.scale,
+      },
+    };
+    const previous = this.measures.get(id);
+    this.measures.set(id, measure);
+    return !previous || !sameMeasure(previous, measure);
   }
 
   private captureDefault(id: HudGroupId, el: HTMLElement, persist = false): void {
     const token = (this.captureTokens.get(id) ?? 0) + 1;
     this.captureTokens.set(id, token);
+    this.applied.delete(id);
+    this.measures.delete(id);
+    el.style.removeProperty("--yas-hud-bg-alpha");
     Object.assign(el.style, {
       left: "",
       top: "",
@@ -196,14 +331,39 @@ export class HudLayoutManager {
     if (!this.overlay || this.outlines.has(id)) return;
     const outline = document.createElement("div");
     outline.className = "yas-hud-edit-outline";
-    outline.dataset.hudGroup = id;
+    // Deliberately not data-hud-group: that attribute carries each group's own positioning CSS.
+    outline.dataset.hudOutline = id;
     const label = document.createElement("span");
     label.textContent = HUD_GROUP_LABELS[id];
     outline.appendChild(label);
+    for (const handle of HUD_HANDLES) {
+      const grip = document.createElement("div");
+      grip.className = `yas-hud-edit-handle yas-hud-edit-handle-${handle}`;
+      grip.addEventListener("pointerdown", event => this.startResize(event, id, handle));
+      outline.appendChild(grip);
+    }
     outline.addEventListener("pointerdown", event => this.startDrag(event, id));
+    outline.addEventListener("contextmenu", event => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.selectGroup(id);
+      this.toggleHidden(id);
+    });
     this.overlay.appendChild(outline);
     this.outlines.set(id, outline);
     this.positionOutline(id);
+  }
+
+  private measureFor(id: HudGroupId): HudMeasure {
+    return this.measures.get(id) ?? { natural: PLACEHOLDER, offset: { x: 0, y: 0 } };
+  }
+
+  private placementFor(id: HudGroupId): HudPlacement {
+    const applied = this.applied.get(id);
+    if (applied) return applied;
+    const entry = this.layout[id] ?? this.fallbackLayout(id);
+    const viewport = this.viewport();
+    return { center: { x: entry.x * viewport.width, y: entry.y * viewport.height }, scale: this.uiScale * entry.scale };
   }
 
   private startDrag(event: PointerEvent, id: HudGroupId): void {
@@ -211,34 +371,73 @@ export class HudLayoutManager {
     event.preventDefault();
     event.stopPropagation();
     this.selectGroup(id);
-    const outline = this.outlines.get(id)!;
-    outline.setPointerCapture(event.pointerId);
-    const startX = event.clientX;
-    const startY = event.clientY;
-    const initial = this.layout[id] ?? this.fallbackLayout(id);
-    const move = (moveEvent: PointerEvent) => {
-      let x = initial.x + (moveEvent.clientX - startX) / innerWidth;
-      let y = initial.y + (moveEvent.clientY - startY) / innerHeight;
-      if (this.gridEnabled) {
-        x = Math.round(x / GRID_STEP) * GRID_STEP;
-        y = Math.round(y / GRID_STEP) * GRID_STEP;
-        this.overlay?.classList.add("yas-grid-dragging");
-      }
-      x = Math.max(0, Math.min(x, 1));
-      y = Math.max(0, Math.min(y, 1));
-      this.layout[id] = { ...initial, x, y };
-      this.applyGroup(id);
+    const start = this.placementFor(id);
+    const measure = this.measureFor(id);
+    this.runGesture(event, id, delta => {
+      const viewport = this.viewport();
+      const grid = this.gridEnabled ? { width: viewport.width * GRID_STEP, height: viewport.height * GRID_STEP } : null;
+      if (grid) this.overlay?.classList.add("yas-grid-dragging");
+      const next = moveGroup(start, delta, measure, viewport, grid);
+      this.updateGroup(id, this.toEntry(next, false));
+    });
+  }
+
+  private startResize(event: PointerEvent, id: HudGroupId, handle: HudHandle): void {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.selectGroup(id);
+    const start = this.placementFor(id);
+    const measure = this.measureFor(id);
+    const limits = { min: this.uiScale * HUD_MIN_SCALE, max: this.uiScale * HUD_MAX_SCALE };
+    this.runGesture(event, id, delta => {
+      const next = resizeGroup(start, handle, delta, measure, this.viewport(), limits);
+      this.updateGroup(id, this.toEntry(next, true));
+    });
+  }
+
+  /** Turns a screen-space placement back into saved layout values. */
+  private toEntry(placement: HudPlacement, withScale: boolean): Partial<HudGroupLayout> {
+    const viewport = this.viewport();
+    const patch: Partial<HudGroupLayout> = {
+      x: placement.center.x / viewport.width,
+      y: placement.center.y / viewport.height,
     };
-    const up = () => {
+    if (withScale) {
+      patch.scale = Math.min(HUD_MAX_SCALE, Math.max(HUD_MIN_SCALE, placement.scale / this.uiScale));
+    }
+    return patch;
+  }
+
+  /** Runs a pointer gesture on an outline, persisting on release and restoring on cancel. */
+  private runGesture(event: PointerEvent, id: HudGroupId, onMove: (delta: HudPoint) => void): void {
+    const outline = this.outlines.get(id);
+    if (!outline) return;
+    const before = this.layout[id] ? { ...this.layout[id]! } : null;
+    const origin = { x: event.clientX, y: event.clientY };
+    outline.setPointerCapture(event.pointerId);
+    const move = (moveEvent: PointerEvent) => onMove({ x: moveEvent.clientX - origin.x, y: moveEvent.clientY - origin.y });
+    const finish = (endEvent: PointerEvent, cancelled: boolean) => {
+      if (outline.hasPointerCapture(endEvent.pointerId)) outline.releasePointerCapture(endEvent.pointerId);
       outline.removeEventListener("pointermove", move);
       outline.removeEventListener("pointerup", up);
-      outline.removeEventListener("pointercancel", up);
+      outline.removeEventListener("pointercancel", cancel);
       this.overlay?.classList.remove("yas-grid-dragging");
-      this.persist();
+      if (!cancelled) {
+        this.persist();
+        return;
+      }
+      if (before) this.layout[id] = before;
+      else delete this.layout[id];
+      this.applyGroup(id);
+      this.positionOutline(id);
+      this.syncSelectionControls();
     };
+    const up = (endEvent: PointerEvent) => finish(endEvent, false);
+    const cancel = (endEvent: PointerEvent) => finish(endEvent, true);
     outline.addEventListener("pointermove", move);
     outline.addEventListener("pointerup", up);
-    outline.addEventListener("pointercancel", up);
+    outline.addEventListener("pointercancel", cancel);
   }
 
   private startPanelDrag(event: PointerEvent, panel: HTMLDivElement): void {
@@ -278,6 +477,8 @@ export class HudLayoutManager {
     const section = this.selectionSection;
     if (!section) return;
     section.replaceChildren();
+    this.scaleReadout = null;
+    this.visibleToggle = null;
     const id = this.selected;
     if (!id) {
       const hint = document.createElement("div");
@@ -291,23 +492,37 @@ export class HudLayoutManager {
     const heading = document.createElement("div");
     heading.className = "yas-hud-edit-selection-title";
     heading.textContent = HUD_GROUP_LABELS[id];
-    const scale = this.makeRange("SCALE", 0.5, 2, 0.05, layout.scale, value => this.updateGroup(id, { scale: value }));
-    const opacity = this.makeRange("OPACITY", 0.2, 1, 0.05, layout.opacity, value => this.updateGroup(id, { opacity: value }));
+    const scale = document.createElement("div");
+    scale.className = "yas-hud-edit-readout";
+    const opacity = this.makeRange("BACKGROUND OPACITY", 0, 1, 0.01, layout.opacity, value => this.updateGroup(id, { opacity: value }, true));
     const visibleLabel = document.createElement("label");
     visibleLabel.className = "yas-hud-edit-visible";
     const visible = document.createElement("input");
     visible.type = "checkbox";
     visible.checked = !layout.hidden;
-    visible.addEventListener("change", () => this.updateGroup(id, { hidden: !visible.checked }));
+    visible.addEventListener("change", () => this.updateGroup(id, { hidden: !visible.checked }, true));
     visibleLabel.append(visible, document.createTextNode(" SHOW"));
     const reset = this.makeButton("RESET THIS GROUP", () => this.resetGroup(id));
     section.append(heading, scale, opacity, visibleLabel, reset);
+    this.scaleReadout = scale;
+    this.visibleToggle = visible;
+    this.syncSelectionControls();
+  }
+
+  /** Keeps the panel readout and checkbox in step with handle drags and right-click toggles. */
+  private syncSelectionControls(): void {
+    const id = this.selected;
+    if (!id) return;
+    const layout = this.layout[id] ?? this.fallbackLayout(id);
+    if (this.scaleReadout) this.scaleReadout.textContent = `SCALE: ${Math.round(layout.scale * 100)}%`;
+    if (this.visibleToggle) this.visibleToggle.checked = !layout.hidden;
   }
 
   private makeRange(labelText: string, min: number, max: number, step: number, value: number, onInput: (value: number) => void): HTMLElement {
     const label = document.createElement("label");
     const text = document.createElement("span");
-    text.textContent = `${labelText}: ${value.toFixed(2)}`;
+    const caption = (percent: number) => `${labelText}: ${Math.round(percent * 100)}%`;
+    text.textContent = caption(value);
     const input = document.createElement("input");
     input.type = "range";
     input.min = String(min);
@@ -316,7 +531,7 @@ export class HudLayoutManager {
     input.value = String(value);
     input.addEventListener("input", () => {
       const next = Number(input.value);
-      text.textContent = `${labelText}: ${next.toFixed(2)}`;
+      text.textContent = caption(next);
       onInput(next);
     });
     label.append(text, input);
@@ -331,12 +546,18 @@ export class HudLayoutManager {
     return button;
   }
 
-  private updateGroup(id: HudGroupId, patch: Partial<HudGroupLayout>): void {
+  private toggleHidden(id: HudGroupId): void {
+    const current = this.layout[id] ?? this.fallbackLayout(id);
+    this.updateGroup(id, { hidden: !current.hidden }, true);
+  }
+
+  private updateGroup(id: HudGroupId, patch: Partial<HudGroupLayout>, persist = false): void {
     const current = this.layout[id] ?? this.fallbackLayout(id);
     this.layout[id] = { ...current, ...patch };
     this.applyGroup(id);
     this.positionOutline(id);
-    this.persist();
+    this.syncSelectionControls();
+    if (persist) this.persist();
   }
 
   private resetGroup(id: HudGroupId): void {
@@ -366,37 +587,37 @@ export class HudLayoutManager {
     };
   }
 
+  private isGroupVisible(id: HudGroupId, el: HTMLElement): boolean {
+    const entry = this.layout[id];
+    if (entry?.hidden && !this.revealed.has(id)) return false;
+    if (el.getClientRects().length === 0) return false;
+    // The boss cast panel keeps its padding even with no rows to show.
+    return !(id === "bosscasts" && el.childElementCount === 0);
+  }
+
   private positionOutline(id: HudGroupId): void {
     const outline = this.outlines.get(id);
     const el = this.groups.get(id);
     if (!outline || !el) return;
-    const entry = this.layout[id] ?? this.fallbackLayout(id);
-    const rect = el.getBoundingClientRect();
-    const hidden = entry.hidden || rect.width === 0 || rect.height === 0
-      || (id === "bosscasts" && el.childElementCount === 0);
-    const outlineRect = hidden ? rect : this.outlineRect(id, el);
-    // hotbar/resources highlights render half a width too far left; nudge them back.
-    const shiftX = !hidden && (id === "hotbar" || id === "resources") ? outlineRect.width / 2 : 0;
-    const left = hidden ? entry.x * innerWidth - PLACEHOLDER_WIDTH / 2 : outlineRect.left + shiftX;
-    const top = hidden ? entry.y * innerHeight - PLACEHOLDER_HEIGHT / 2 : outlineRect.top;
+    const visible = this.isGroupVisible(id, el);
+    const rect = visible ? groupRect(this.placementFor(id), this.measureFor(id)) : this.placeholderRect(id);
+    outline.classList.toggle("is-placeholder", !visible);
     Object.assign(outline.style, {
-      left: `${left}px`,
-      top: `${top}px`,
-      width: `${hidden ? PLACEHOLDER_WIDTH : outlineRect.width}px`,
-      height: `${hidden ? PLACEHOLDER_HEIGHT : outlineRect.height}px`,
+      left: `${rect.left}px`,
+      top: `${rect.top}px`,
+      width: `${rect.width}px`,
+      height: `${rect.height}px`,
     });
   }
 
-  private outlineRect(id: HudGroupId, el: HTMLElement): DOMRect {
-    if (id === "hotbar") {
-      const target = Array.from(el.querySelectorAll<HTMLElement>(".yas-hotbar, .yas-controller-hotbar"))
-        .find(candidate => candidate.getClientRects().length > 0);
-      return (target ?? el).getBoundingClientRect();
-    }
-    if (id === "resources") {
-      return (el.querySelector<HTMLElement>(".yas-resource-panel") ?? el).getBoundingClientRect();
-    }
-    return el.getBoundingClientRect();
+  /** Where a hidden or not-yet-rendered group keeps its draggable stand-in. */
+  private placeholderRect(id: HudGroupId): HudRect {
+    const entry = this.layout[id] ?? this.fallbackLayout(id);
+    const viewport = this.viewport();
+    const center = { x: entry.x * viewport.width, y: entry.y * viewport.height };
+    const measure = this.measures.get(id);
+    if (measure) return groupRect(fitPlacement(center, this.uiScale * entry.scale, measure, viewport), measure);
+    return centeredRect(clampCenter(center, PLACEHOLDER, viewport), PLACEHOLDER);
   }
 
   private positionOutlines(): void {
