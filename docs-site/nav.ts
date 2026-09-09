@@ -83,6 +83,12 @@ export const NAV: NavSection[] = [
     title: "Troubleshooting",
     pages: [
       {
+        source: "docs/troubleshooting/index.md",
+        url: "/troubleshooting/",
+        title: "Troubleshooting overview",
+        description: "Sessions, party slots, host controls, replays and stored settings — where to look when something is not working.",
+      },
+      {
         source: "docs/troubleshooting/browsers.md",
         url: "/troubleshooting/browsers/",
         title: "Browser & performance help",

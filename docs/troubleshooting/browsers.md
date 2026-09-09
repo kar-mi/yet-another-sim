@@ -20,8 +20,9 @@ your hardware or your connection.
 | Attacks or telegraphs not drawing at all | Graphics acceleration or a WebGL fallback — [step 2](#2-check-webgl-status) |
 | Your character snapping backwards ("rollbacks") | Frame rate, not network — see [rollbacks](#rollbacks-and-rubber-banding) |
 | Stuck on **DOWNLOADING CLIENT** | Loading, not rendering — see [loading problems](#loading-problems) |
-| Everyone else moving but you frozen | Connection — see [connection symptoms](#connection-symptoms) |
 | Performance degrading the longer a tab is open | Browser power/memory saving — [step 5](#5-chrome-energy-and-memory-saver) |
+
+For sessions, slots, hosting and replays, see [Troubleshooting](./index.md) instead.
 
 ## Chrome diagnostic steps
 
@@ -115,8 +116,8 @@ result, and the correction looks like a snap.
 So rollbacks are usually a **rendering performance symptom**, and the graphics steps above are the
 right place to start. Work through steps 1 and 2 before assuming it is your connection.
 
-If frame rate is clearly fine and it still happens, that is worth reporting, with the details in the
-checklist below.
+If frame rate is clearly fine and it still happens, that is worth reporting, with the details listed
+at the end of this page.
 
 ## Loading problems
 
@@ -131,36 +132,12 @@ bundle downloads. If it never goes away the bundle did not arrive:
 **Blank page or black canvas after loading.** The client loaded but rendering failed. Check
 `chrome://gpu` first, then open the browser console (`F12`) and look for WebGL errors.
 
-## Connection symptoms
+## What to add for a graphics or performance report
 
-The simulator needs a live WebSocket connection for the whole session.
+The [general reporting checklist](./index.md#before-reporting-a-bug) covers browser version, OS and
+reproduction steps. For anything visual or performance-related, add:
 
-| Symptom | Likely cause |
-|---|---|
-| Other players moving, you frozen | Your connection dropped; reload the page |
-| Everyone frozen at once | The session or server, not your machine |
-| Returned to the landing screen with a notice | The session expired — create a new one and re-share the link |
-| Cannot join a friend's link | Wrong or truncated URL; the whole `?s=...` query has to be included |
-| Claimed a slot but did not spawn | You queued for the next pull because one was already running — the host must stop it |
-
-Corporate networks and some VPNs block WebSocket traffic. If nothing connects at all and everything
-else on the machine works, that is worth testing from another network before reporting it.
-
-## Before reporting a bug
-
-Open an issue at
-[github.com/kar-mi/yet-another-sim/issues](https://github.com/kar-mi/yet-another-sim/issues) with:
-
-- **Browser and exact version.** In Chrome: `chrome://version`. "Latest Chrome" is not a version —
-  by the time anyone reads the report it means something different.
-- **Operating system and version.**
-- **GPU, and what `chrome://gpu` says** for WebGL and WebGL2. Copying the Graphics Feature Status
-  block is ideal.
-- **Which diagnostic steps you already tried**, and whether any of them changed anything. A step
-  that helped is as informative as one that did not.
-- **What you were doing** — which raid, roughly what point in the pull, and whether you were host.
-- **What you expected and what happened**, with a screenshot or clip if the problem is visual.
-- **Whether it reproduces**, and whether it also happens in a different browser on the same machine.
-
-That last one separates "a bug in the simulator" from "a problem with one browser's configuration"
-faster than anything else in the list.
+- **Your GPU, and what `chrome://gpu` says** for WebGL and WebGL2. Copying the Graphics Feature
+  Status block is ideal.
+- **Which diagnostic steps above you already tried**, and whether any of them changed anything. A
+  step that helped is as informative as one that did not.

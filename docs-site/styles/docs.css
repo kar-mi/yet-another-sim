@@ -93,7 +93,7 @@ a:hover { color: #ffd88a; }
   border-bottom-color: var(--px-accent);
   color: var(--px-accent);
 }
-.topnav-caret { font-size: 0.6em; opacity: 0.7; }
+.topnav-caret { font-size: 0.85em; opacity: 0.85; }
 
 .topnav-menu {
   display: none;
