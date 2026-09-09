@@ -350,7 +350,7 @@ the schema):
 
 **Heal ordering:** a `heal` event that fires on the same tick as the White Hole resolves
 first (the heal pipeline runs before the AOE resolver), so scheduling both on the same tick is
-safe — all players are topped before the HP check runs. See also: [Heal / Accretion](#heal--accretion).
+safe — all players are topped before the HP check runs. See also: [Heal / Accretion](#heal--restore-all-living-players).
 
 | Field          | Required | Notes |
 |----------------|----------|-------|

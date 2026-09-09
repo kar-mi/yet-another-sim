@@ -38,6 +38,10 @@ bun run start                 # Run the Bun server
 bun run build                 # Build the browser bundle into .bundle/
 bun run typecheck             # Run TypeScript checks
 bun test                      # Run tests
+bun run docs:build            # Render the documentation site into dist/docs/
+bun run docs:check            # Validate the generated docs (links, anchors, raid examples)
+bun run docs:test             # Run the docs build tests
+bun run docs:dev              # Build + serve the docs at http://localhost:3001
 ```
 
 ## Raid Authoring
