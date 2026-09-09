@@ -409,16 +409,45 @@ img.party-effect-icon {
   background: rgba(255, 194, 77, 0.12);
 }
 
+.yas-hud-edit-outline.is-placeholder {
+  border-style: dotted;
+  background: rgba(255, 194, 77, 0.1);
+}
+
+/* Labels sit inside the box so they stay on screen for an element parked at a viewport edge. */
 .yas-hud-edit-outline > span {
   position: absolute;
-  left: -2px;
-  bottom: 100%;
+  left: 14px;
+  top: 0;
   padding: 2px 5px;
   background: var(--px-accent);
   color: var(--px-ink);
   font-size: 12px;
   white-space: nowrap;
+  pointer-events: none;
 }
+
+/* Resize handles, drawn inside the outline so they are grabbable at the viewport edges. */
+.yas-hud-edit-handle {
+  position: absolute;
+  display: none;
+  width: 12px;
+  height: 12px;
+  background: var(--px-accent);
+  border: 1px solid var(--px-ink);
+  box-sizing: border-box;
+}
+
+.yas-hud-edit-outline.is-selected .yas-hud-edit-handle { display: block; }
+
+.yas-hud-edit-handle-nw { left: 0; top: 0; cursor: nwse-resize; }
+.yas-hud-edit-handle-n  { left: calc(50% - 6px); top: 0; cursor: ns-resize; }
+.yas-hud-edit-handle-ne { right: 0; top: 0; cursor: nesw-resize; }
+.yas-hud-edit-handle-e  { right: 0; top: calc(50% - 6px); cursor: ew-resize; }
+.yas-hud-edit-handle-se { right: 0; bottom: 0; cursor: nwse-resize; }
+.yas-hud-edit-handle-s  { left: calc(50% - 6px); bottom: 0; cursor: ns-resize; }
+.yas-hud-edit-handle-sw { left: 0; bottom: 0; cursor: nesw-resize; }
+.yas-hud-edit-handle-w  { left: 0; top: calc(50% - 6px); cursor: ew-resize; }
 
 #yas-hud-edit-panel {
   position: fixed;
@@ -440,6 +469,7 @@ img.party-effect-icon {
 .yas-hud-edit-selection { display: flex; flex-direction: column; gap: 9px; border-top: 1px solid var(--px-edge); padding-top: 9px; }
 .yas-hud-edit-selection-title { color: var(--px-accent); font-size: 16px; }
 .yas-hud-edit-hint { color: var(--px-text-dim); text-align: center; padding: 8px; }
+.yas-hud-edit-readout { color: var(--px-text); }
 #yas-hud-edit-panel label { display: flex; flex-direction: column; gap: 3px; color: var(--px-text-dim); }
 #yas-hud-edit-panel input[type="range"] { width: 100%; accent-color: var(--px-accent); }
 #yas-hud-edit-panel .yas-hud-edit-visible { flex-direction: row; align-items: center; color: var(--px-text); }
@@ -1023,3 +1053,33 @@ img.yas-debuff-icon {
 .yas-minimap-dot--tank { fill: var(--px-mp); }
 .yas-minimap-dot--healer { fill: var(--px-hp); }
 .yas-minimap-dot--dps { fill: var(--px-danger); }
+/* ===== HUD BACKGROUND OPACITY =====
+   The editor sets --yas-hud-bg-alpha per group; only panel fills and their bevel/border chrome fade
+   with it, so text, icons, buttons and data bars stay readable at any setting. */
+[data-hud-group] {
+  --yas-hud-bg-alpha: 1;
+  --yas-hud-surface: color-mix(in srgb, var(--px-bg-1) calc(var(--yas-hud-bg-alpha) * 100%), transparent);
+  --yas-hud-surface-edge: color-mix(in srgb, var(--px-edge) calc(var(--yas-hud-bg-alpha) * 100%), transparent);
+  --yas-hud-surface-bevel: color-mix(in srgb, var(--px-edge-hi) calc(var(--yas-hud-bg-alpha) * 100%), transparent);
+  --yas-hud-surface-shadow: color-mix(in srgb, var(--px-shadow) calc(var(--yas-hud-bg-alpha) * 100%), transparent);
+}
+
+[data-hud-group] .party-member,
+[data-hud-group].yas-buff-bar,
+[data-hud-group].yas-debuff-tracker,
+[data-hud-group] .yas-hotbar-panel,
+[data-hud-group] .yas-resource-panel,
+[data-hud-group].yas-boss-cast-panel,
+#yas-timer[data-hud-group],
+#yas-replay-seekbar[data-hud-group],
+#yas-replay-review[data-hud-group] {
+  background: var(--yas-hud-surface);
+  border-color: var(--yas-hud-surface-edge);
+  box-shadow: inset 0 2px 0 var(--yas-hud-surface-bevel), 0 3px 0 var(--yas-hud-surface-shadow);
+}
+
+#yas-minimap[data-hud-group] {
+  background: var(--yas-hud-surface);
+  border-color: color-mix(in srgb, var(--px-accent-dim) calc(var(--yas-hud-bg-alpha) * 100%), transparent);
+  box-shadow: inset 0 2px 0 var(--yas-hud-surface-bevel), 0 3px 0 var(--yas-hud-surface-shadow);
+}
