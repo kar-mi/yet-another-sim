@@ -68,6 +68,7 @@ const IntentSchema = z.strictObject({
   provoke: z.boolean().optional(),
   cycleTarget: z.boolean().optional(),
   toggleInvincibility: z.boolean().optional(),
+  toggleCooldowns: z.boolean().optional(),
 }) satisfies z.ZodType<Intent>;
 
 export const ClientMessageSchema = z.discriminatedUnion("type", [

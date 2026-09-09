@@ -38,6 +38,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed(), constraint
     provokeCooldown: 0,
     targetBossId: "",   // filled in below once bosses are built
     invincible: false,
+    cooldownsDisabled: false,
     alive: true,
     effects: [],
   }));

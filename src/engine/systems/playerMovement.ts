@@ -26,20 +26,27 @@ export function applyPlayerMovement(ctx: TickContext): void {
     if (intents[player.id]?.solverDirected) player.botWaypointResumeAfter = ctx.previousTime;
     actedByPlayer.set(player.id, didAct(intent) || confusion !== null);
 
+    if (intent?.toggleCooldowns) player.cooldownsDisabled = !player.cooldownsDisabled;
+    if (player.cooldownsDisabled) {
+      player.sprintCooldown = 0;
+      player.antiKbCooldown = 0;
+      player.provokeCooldown = 0;
+    }
+
     if (intent?.jump && player.y === 0) {
       player.verticalVelocity = JUMP_SPEED;
     }
 
     if (intent?.sprint && player.sprintCooldown <= 0) {
       player.sprintActive = SPRINT_DURATION;
-      player.sprintCooldown = SPRINT_COOLDOWN;
+      player.sprintCooldown = player.cooldownsDisabled ? 0 : SPRINT_COOLDOWN;
     }
     if (player.sprintCooldown > 0) player.sprintCooldown = Math.max(0, player.sprintCooldown - dt);
     if (player.sprintActive > 0) player.sprintActive = Math.max(0, player.sprintActive - dt);
 
     if (intent?.antiKnockback && player.antiKbCooldown <= 0) {
       player.antiKbActive = ANTI_KB_DURATION;
-      player.antiKbCooldown = ANTI_KB_COOLDOWN;
+      player.antiKbCooldown = player.cooldownsDisabled ? 0 : ANTI_KB_COOLDOWN;
     }
 
     // cycleTarget: advance to the next alive, targetable boss in the bosses list (all roles).
@@ -58,7 +65,7 @@ export function applyPlayerMovement(ctx: TickContext): void {
         const maxThreat = Math.max(0, ...Object.values(target.threat));
         target.threat[player.id] = maxThreat + PROVOKE_LEAD;
       }
-      player.provokeCooldown = PROVOKE_COOLDOWN;
+      player.provokeCooldown = player.cooldownsDisabled ? 0 : PROVOKE_COOLDOWN;
     }
     if (player.provokeCooldown > 0) player.provokeCooldown = Math.max(0, player.provokeCooldown - dt);
 

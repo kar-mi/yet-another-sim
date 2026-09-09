@@ -1,5 +1,5 @@
 import type { World, Player, Boss } from "@shared/types";
-import { triggerAction, toggleInvincibility, getActiveModifier } from "../input";
+import { triggerAction, toggleInvincibility, toggleCooldowns, getActiveModifier } from "../input";
 import { SPRINT_COOLDOWN, ANTI_KB_COOLDOWN, PROVOKE_COOLDOWN } from "@shared/constants";
 import {
   ACTIONS,
@@ -101,6 +101,7 @@ export class HudOverlay {
   private mpFill: HTMLDivElement;
   private hpVal: HTMLSpanElement;
   private mpVal: HTMLSpanElement;
+  private cooldownsBtn: HTMLButtonElement;
   private invulnBtn: HTMLButtonElement;
   private botInvulnBtn: HTMLButtonElement;
   private skillSpecs: SkillSpec[] = [];
@@ -163,6 +164,7 @@ export class HudOverlay {
     this.mpFill = this.root.querySelector<HTMLDivElement>(".yas-mp-fill")!;
     this.hpVal = this.root.querySelector<HTMLSpanElement>("[data-hp-val]")!;
     this.mpVal = this.root.querySelector<HTMLSpanElement>("[data-mp-val]")!;
+    this.cooldownsBtn = this.root.querySelector<HTMLButtonElement>(".yas-cooldowns-btn")!;
     this.invulnBtn = this.root.querySelector<HTMLButtonElement>(".yas-invuln-btn")!;
     this.botInvulnBtn = this.root.querySelector<HTMLButtonElement>(".yas-bot-invuln-btn")!;
     this.debuffTrackerEl = this.root.querySelector<HTMLDivElement>(".yas-debuff-tracker")!;
@@ -491,6 +493,7 @@ export class HudOverlay {
     for (const view of this.ctrlSlots.values()) {
       view.el.addEventListener("click", () => { if (view.current) triggerAction(view.current); });
     }
+    this.cooldownsBtn.addEventListener("click", () => { this.cooldownsBtn.blur(); toggleCooldowns(); });
     this.invulnBtn.addEventListener("click", () => { this.invulnBtn.blur(); toggleInvincibility(); });
     this.botInvulnBtn.addEventListener("click", () => {
       const enabled = !this.botInvulnBtn.classList.contains("is-active");
@@ -596,6 +599,8 @@ export class HudOverlay {
       }
     }
 
+    this.cooldownsBtn.classList.toggle("is-active", !!p?.cooldownsDisabled);
+    this.cooldownsBtn.setAttribute("aria-pressed", String(!!p?.cooldownsDisabled));
     if (!p) return;
 
     syncEffectChips(this.debuffTrackerEl, this.debuffTrackerState, p, world.time, "yas-debuff", "debuff");

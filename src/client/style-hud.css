@@ -476,6 +476,12 @@ img.party-effect-icon {
   transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
 }
 
+.yas-cooldowns-btn {
+  width: auto;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
 .yas-bot-invuln-btn {
   font-size: 14px;
 }

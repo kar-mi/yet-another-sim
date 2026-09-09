@@ -10,6 +10,7 @@ import { createEmptyRaid, loadSessionRaid, type SessionLog } from "./sessionRaid
 import { worldHash } from "@shared/worldHash";
 import { describeDecisions } from "../engine/seedSearch";
 import { preRollRaid } from "../engine/preRoll";
+import { SimulationReplica } from "../client/simulationReplica";
 
 // Session test raids reuse the shared canonical roster builder (clock spots from shared/protocol) so
 // spawns stay in sync with the engine; only the arena/duration and a couple of spawn overrides differ.
@@ -838,6 +839,34 @@ test("edge actions survive later movement intents within the same tick's frame",
   const intent = session.inputLog[0].intents.mt!;
   expect(intent.jump).toBe(true);
   expect(intent.move).toEqual({ x: 1, z: 0 });
+});
+
+test("personal cooldown toggle survives merging, is consumed once, and resets on disconnect", () => {
+  const { session } = makeSession();
+  session.join("c1");
+  session.join("c2");
+  session.claimSlot("c1", "mt");
+  session.claimSlot("c2", "ot");
+  session.start("c1");
+  const replica = new SimulationReplica();
+  replica.adopt(session.world, 0, []);
+  const message = ClientMessageSchema.parse({ type: "intent", intent: { move: { x: 0, z: 0 }, toggleCooldowns: true } });
+  if (message.type !== "intent") throw new Error("Expected intent message");
+  session.handle("c1", message);
+  session.setIntent("c1", { move: { x: 1, z: 0 } });
+  session.step();
+  expect(session.inputLog[0].intents.mt?.toggleCooldowns).toBe(true);
+  replica.apply(0, session.inputLog);
+  expect(replica.world?.players.find(player => player.id === "mt")?.cooldownsDisabled).toBe(true);
+  expect(replica.world?.players.filter(player => player.id !== "mt").every(player => !player.cooldownsDisabled)).toBe(true);
+  session.step();
+  expect(session.inputLog[1].intents.mt?.toggleCooldowns).toBeUndefined();
+  replica.apply(0, session.inputLog);
+  expect(replica.world?.players.find(player => player.id === "mt")?.cooldownsDisabled).toBe(true);
+  session.disconnectClient("c1");
+  session.step();
+  replica.apply(0, session.inputLog);
+  expect(replica.world?.players.find(player => player.id === "mt")?.cooldownsDisabled).toBe(false);
 });
 
 test("disconnect converts claimed slot back to bot", () => {
