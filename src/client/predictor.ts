@@ -46,9 +46,10 @@ export class LocalPredictor {
 
     // Predict sprint locally so the speed boost is instant (mirrors playerMovement.ts). Gated on the
     // predicted cooldown so we don't speed up when the server would reject the sprint.
+    if (authLocal.cooldownsDisabled) this.sprintCooldown = 0;
     if (intent.sprint && this.sprintCooldown <= 0) {
       this.sprintActive = SPRINT_DURATION;
-      this.sprintCooldown = SPRINT_COOLDOWN;
+      this.sprintCooldown = authLocal.cooldownsDisabled ? 0 : SPRINT_COOLDOWN;
     }
     if (this.sprintCooldown > 0) this.sprintCooldown = Math.max(0, this.sprintCooldown - dt);
     if (this.sprintActive > 0) this.sprintActive = Math.max(0, this.sprintActive - dt);

@@ -794,6 +794,7 @@ export class RelayRoom {
         return {
           ...player,
           control,
+          cooldownsDisabled: control === player.control ? player.cooldownsDisabled : false,
           invincible: control === "bot" ? this.botsInvincible : player.control === "bot" ? false : player.invincible,
         };
       }),

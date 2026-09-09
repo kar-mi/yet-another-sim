@@ -6,7 +6,7 @@ import { STATIC_ROOT } from "../staticBase";
 
 // Above-head marker icons (PlayerLayer.syncMarkers) and HUD debuff icons (effectChips) load lazily
 // the first time a mechanic applies them mid-pull. Keep these lists in sync with static/head_markers/
-// and static/debuffs/ so new icons are warmed too.
+// and static/debuffs/ (plus the buff-bar icons in static/buffs/) so new icons are warmed too.
 const HEAD_MARKER_ICONS = [
   "cone_processed.png",
   "defam_processed.png",
@@ -27,6 +27,11 @@ const DEBUFF_ICONS = [
   "teleportent_up.png",
 ].map(file => `${STATIC_ROOT}/debuffs/${file}`);
 
+const BUFF_ICONS = [
+  "sprint.png",
+  "armslength.png",
+].map(file => `${STATIC_ROOT}/buffs/${file}`);
+
 // Warm the browser cache for every static asset up front so a later raid change / first session entry
 // renders models and icons from cache instead of downloading after the pull has already started.
 // (Paired with the Cache-Control header on /static so the warmed bytes are reused without revalidation.)
@@ -43,7 +48,7 @@ export function preloadAssets(): void {
 
   // Floor plans, markers and debuff icons load through the browser's image cache (<img> / Babylon
   // DOM-image textures), which an Image() request warms directly.
-  for (const url of [...Object.values(FLOOR_PLAN_IMAGES), ...HEAD_MARKER_ICONS, ...DEBUFF_ICONS, HAND_IMAGE_URL]) {
+  for (const url of [...Object.values(FLOOR_PLAN_IMAGES), ...HEAD_MARKER_ICONS, ...DEBUFF_ICONS, ...BUFF_ICONS, HAND_IMAGE_URL]) {
     new Image().src = url;
   }
 }

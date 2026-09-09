@@ -299,6 +299,7 @@ img.party-effect-icon {
 
 /* ===== HUD ===== */
 [data-hud-group="hotbar"],
+[data-hud-group="buffs"],
 [data-hud-group="debuffs"],
 [data-hud-group="resources"],
 [data-hud-group="bosscasts"] {
@@ -312,6 +313,12 @@ img.party-effect-icon {
   bottom: 96px;
   transform: translateX(-50%);
   pointer-events: all;
+}
+
+[data-hud-group="buffs"] {
+  right: calc(50% + 490px);
+  bottom: 168px;
+  pointer-events: none;
 }
 
 [data-hud-group="debuffs"] {
@@ -476,6 +483,12 @@ img.party-effect-icon {
   transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
 }
 
+.yas-cooldowns-btn {
+  width: auto;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
 .yas-bot-invuln-btn {
   font-size: 14px;
 }
@@ -577,6 +590,7 @@ img.party-effect-icon {
   gap: 6px;
 }
 
+.yas-buff-bar,
 .yas-debuff-tracker {
   width: 386px;
   height: 64px;
@@ -591,6 +605,42 @@ img.party-effect-icon {
   border: 2px solid var(--px-edge);
   box-shadow: inset 0 2px 0 var(--px-edge-hi), 0 3px 0 var(--px-shadow);
   border-radius: 6px;
+}
+
+.yas-buff {
+  width: 42px;
+  height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: #16261a;
+  border: 2px solid rgba(90, 209, 106, 0.55);
+  box-shadow: inset 0 1px 0 var(--px-edge-hi), 0 0 8px rgba(90, 209, 106, 0.2);
+  border-radius: 4px;
+  color: #8bf096;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* display:flex above beats the UA [hidden] rule, so hide the chip explicitly. */
+.yas-buff[hidden] {
+  display: none;
+}
+
+img.yas-buff-icon {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.yas-buff-timer {
+  font-size: 14px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--px-text);
+  text-shadow: 1px 1px 0 var(--px-shadow);
 }
 
 .yas-debuff {

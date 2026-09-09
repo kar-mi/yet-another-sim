@@ -12,6 +12,7 @@ function hasOneShotIntent(intent: Intent): boolean {
     || intent.provoke
     || intent.cycleTarget
     || intent.toggleInvincibility
+    || intent.toggleCooldowns
   );
 }
 

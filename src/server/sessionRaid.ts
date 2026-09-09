@@ -24,6 +24,7 @@ export function mergePendingIntent(previous: Intent | undefined, next: Intent): 
     provoke: previous?.provoke || next.provoke || undefined,
     cycleTarget: previous?.cycleTarget || next.cycleTarget || undefined,
     toggleInvincibility: previous?.toggleInvincibility || next.toggleInvincibility || undefined,
+    toggleCooldowns: previous?.toggleCooldowns || next.toggleCooldowns || undefined,
   };
 }
 

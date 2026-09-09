@@ -24,6 +24,7 @@ let antiKbPressed = false;
 let provokePressed = false;
 let swapTargetPressed = false;
 let invincibilityToggled = false;
+let cooldownsToggled = false;
 let keyBindings: KeyBindings = { ...DEFAULT_BINDINGS };
 let controllerBindings: ControllerBindings = { ...DEFAULT_CONTROLLER_BINDINGS };
 let prevButtons: boolean[] = [];
@@ -180,6 +181,11 @@ export function getRightStick(): { x: number; y: number } {
   };
 }
 
+export function toggleCooldowns(): void {
+  cooldownsToggled = true;
+  oneShotSink?.();
+}
+
 export function toggleInvincibility(): void {
   invincibilityToggled = true;
   oneShotSink?.();
@@ -253,6 +259,7 @@ export function getIntent(cameraYaw: number, dt: number, mouse: { left: boolean;
     keys.clear();
     jumpPressed = sprintPressed = antiKbPressed = provokePressed = swapTargetPressed = false;
     invincibilityToggled = false;
+    cooldownsToggled = false;
     keyboardCameraPan = 0;
     // Latch the pad's current buttons so nothing held during the block fires on release.
     const pad = getGamepad();
@@ -272,6 +279,8 @@ export function getIntent(cameraYaw: number, dt: number, mouse: { left: boolean;
   provokePressed = false;
   const cycleTarget = swapTargetPressed || undefined;
   swapTargetPressed = false;
+  const toggleCooldowns = cooldownsToggled || undefined;
+  cooldownsToggled = false;
   const toggleInvincibility = invincibilityToggled || undefined;
   invincibilityToggled = false;
 
@@ -363,5 +372,5 @@ export function getIntent(cameraYaw: number, dt: number, mouse: { left: boolean;
     }
   }
 
-  return { move, facing, jump, sprint, antiKnockback, provoke, cycleTarget, toggleInvincibility };
+  return { move, facing, jump, sprint, antiKnockback, provoke, cycleTarget, toggleInvincibility, toggleCooldowns };
 }

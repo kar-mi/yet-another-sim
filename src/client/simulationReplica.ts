@@ -58,7 +58,7 @@ export function applyFrameControls(world: World, frame: Frame): World {
       const invincible = human ? player.invincible : frame.botsInvincible;
       return player.control === control && player.invincible === invincible
         ? player
-        : { ...player, control, invincible };
+        : { ...player, control, invincible, cooldownsDisabled: player.control === control ? player.cooldownsDisabled : false };
     }),
   };
 }

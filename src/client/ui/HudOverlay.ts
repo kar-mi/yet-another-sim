@@ -1,5 +1,5 @@
 import type { World, Player, Boss } from "@shared/types";
-import { triggerAction, toggleInvincibility, getActiveModifier } from "../input";
+import { triggerAction, toggleInvincibility, toggleCooldowns, getActiveModifier } from "../input";
 import { SPRINT_COOLDOWN, ANTI_KB_COOLDOWN, PROVOKE_COOLDOWN } from "@shared/constants";
 import {
   ACTIONS,
@@ -18,6 +18,7 @@ import type { Settings, ControllerType } from "../settings";
 import type { PlaybackState } from "@shared/protocol";
 import { clamp01 } from "@shared/math";
 import { createEffectRenderState, syncEffectChips, type EffectRenderState } from "./effectChips";
+import { STATIC_ROOT } from "../staticBase";
 import {
   combinePositionFrames,
   invertFramePosition,
@@ -39,6 +40,14 @@ import {
 } from "./hudPresentation";
 
 declare const __YAS_DEBUG__: boolean | undefined;
+
+
+const BUFF_SPECS = [
+  { icon: "sprint.png", name: "Sprint", read: (p: Player) => p.sprintActive },
+  { icon: "armslength.png", name: "Arm's Length", read: (p: Player) => p.antiKbActive },
+] as const;
+
+type BuffChip = { el: HTMLSpanElement; timerEl: HTMLSpanElement; read: (p: Player) => number; text: string };
 
 const DEBUG_ENABLED = typeof __YAS_DEBUG__ !== "undefined" && __YAS_DEBUG__;
 const DEBUG_POSITION_ENABLED = DEBUG_ENABLED;
@@ -101,6 +110,7 @@ export class HudOverlay {
   private mpFill: HTMLDivElement;
   private hpVal: HTMLSpanElement;
   private mpVal: HTMLSpanElement;
+  private cooldownsBtn: HTMLButtonElement;
   private invulnBtn: HTMLButtonElement;
   private botInvulnBtn: HTMLButtonElement;
   private skillSpecs: SkillSpec[] = [];
@@ -139,6 +149,8 @@ export class HudOverlay {
   private latestWorld: World | null = null;
   private debuffTrackerEl!: HTMLDivElement;
   private debuffTrackerState = createEffectRenderState();
+  private buffBarEl!: HTMLDivElement;
+  private buffChips: BuffChip[] = [];
   private kbmHotbar!: HTMLDivElement;
   private controllerHotbar!: HTMLDivElement;
   private bossCastPanelEl!: HTMLDivElement;
@@ -163,9 +175,13 @@ export class HudOverlay {
     this.mpFill = this.root.querySelector<HTMLDivElement>(".yas-mp-fill")!;
     this.hpVal = this.root.querySelector<HTMLSpanElement>("[data-hp-val]")!;
     this.mpVal = this.root.querySelector<HTMLSpanElement>("[data-mp-val]")!;
+    this.cooldownsBtn = this.root.querySelector<HTMLButtonElement>(".yas-cooldowns-btn")!;
     this.invulnBtn = this.root.querySelector<HTMLButtonElement>(".yas-invuln-btn")!;
     this.botInvulnBtn = this.root.querySelector<HTMLButtonElement>(".yas-bot-invuln-btn")!;
     this.debuffTrackerEl = this.root.querySelector<HTMLDivElement>(".yas-debuff-tracker")!;
+    this.buffBarEl = this.root.querySelector<HTMLDivElement>(".yas-buff-bar")!;
+    this.buffChips = BUFF_SPECS.map(spec => this.buildBuffChip(spec));
+    this.buffBarEl.append(...this.buffChips.map(chip => chip.el));
     this.kbmHotbar = this.root.querySelector<HTMLDivElement>(".yas-hotbar")!;
     this.controllerHotbar = this.root.querySelector<HTMLDivElement>(".yas-controller-hotbar")!;
     this.bossCastPanelEl = this.root.querySelector<HTMLDivElement>(".yas-boss-cast-panel")!;
@@ -277,6 +293,7 @@ export class HudOverlay {
     this.root.remove();
     this.hudLayout.register("party", this.partyEl);
     this.hudLayout.register("hotbar", this.hotbarGroupEl);
+    this.hudLayout.register("buffs", this.buffBarEl);
     this.hudLayout.register("debuffs", this.debuffTrackerEl);
     this.hudLayout.register("resources", this.resourceGroupEl);
     this.hudLayout.register("targetcast", this.castBarEl);
@@ -286,6 +303,21 @@ export class HudOverlay {
     this.hudLayout.register("minimap", this.minimap.element);
 
     this.bindEvents();
+  }
+
+  private buildBuffChip(spec: (typeof BUFF_SPECS)[number]): BuffChip {
+    const el = document.createElement("span");
+    el.className = "yas-buff";
+    el.title = spec.name;
+    el.hidden = true;
+    const iconEl = document.createElement("img");
+    iconEl.className = "yas-buff-icon";
+    iconEl.src = `${STATIC_ROOT}/buffs/${spec.icon}`;
+    iconEl.alt = spec.name;
+    const timerEl = document.createElement("span");
+    timerEl.className = "yas-buff-timer";
+    el.append(iconEl, timerEl);
+    return { el, timerEl, read: spec.read, text: "" };
   }
 
   private buildHud(): HTMLDivElement {
@@ -491,6 +523,7 @@ export class HudOverlay {
     for (const view of this.ctrlSlots.values()) {
       view.el.addEventListener("click", () => { if (view.current) triggerAction(view.current); });
     }
+    this.cooldownsBtn.addEventListener("click", () => { this.cooldownsBtn.blur(); toggleCooldowns(); });
     this.invulnBtn.addEventListener("click", () => { this.invulnBtn.blur(); toggleInvincibility(); });
     this.botInvulnBtn.addEventListener("click", () => {
       const enabled = !this.botInvulnBtn.classList.contains("is-active");
@@ -596,9 +629,21 @@ export class HudOverlay {
       }
     }
 
+    this.cooldownsBtn.classList.toggle("is-active", !!p?.cooldownsDisabled);
+    this.cooldownsBtn.setAttribute("aria-pressed", String(!!p?.cooldownsDisabled));
     if (!p) return;
 
     syncEffectChips(this.debuffTrackerEl, this.debuffTrackerState, p, world.time, "yas-debuff", "debuff");
+
+    for (const chip of this.buffChips) {
+      const secs = chip.read(p);
+      chip.el.hidden = secs <= 0;
+      const text = `${Math.ceil(secs)}s`;
+      if (chip.text !== text) {
+        chip.text = text;
+        chip.timerEl.textContent = text;
+      }
+    }
 
     const hpPct = clamp01(p.hp / p.maxHp) * 100;
     setWidth(this.hpFill, `${hpPct}%`);
