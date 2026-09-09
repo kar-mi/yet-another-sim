@@ -1,5 +1,5 @@
-import { NAV, PAGES, sectionOf, type NavPage } from "./nav";
-import { SITE, repoFileUrl } from "./site";
+import { NAV, PAGES, sectionOf, type NavPage, type NavSection } from "./nav";
+import { SITE } from "./site";
 import { escapeHtml, type Heading } from "./render";
 
 export interface PageContext {
@@ -8,14 +8,38 @@ export interface PageContext {
   headings: Heading[];
 }
 
-function navList(current: NavPage | null): string {
-  return NAV.map(section => {
-    const items = section.pages.map(page => {
-      const active = page === current ? ' class="is-active" aria-current="page"' : "";
-      return `<li><a href="${page.url}"${active}>${escapeHtml(page.title)}</a></li>`;
-    }).join("");
-    return `<div class="nav-section"><div class="nav-section-title">${escapeHtml(section.title)}</div><ul>${items}</ul></div>`;
+function sectionList(section: NavSection, current: NavPage | null): string {
+  const items = section.pages.map(page => {
+    const active = page === current ? ' class="is-active" aria-current="page"' : "";
+    return `<li><a href="${page.url}"${active}>${escapeHtml(page.title)}</a></li>`;
   }).join("");
+  return `<div class="nav-section"><div class="nav-section-title">${escapeHtml(section.title)}</div><ul>${items}</ul></div>`;
+}
+
+function navList(current: NavPage | null): string {
+  const sections = current === null ? NAV : [sectionOf(current)];
+  return sections.map(section => sectionList(section, current)).join("");
+}
+
+function topNav(current: NavPage | null): string {
+  const items = NAV.map(section => {
+    const landing = section.pages[0]!;
+    const active = current !== null && section.pages.includes(current)
+      ? ' class="is-active" aria-current="true"'
+      : "";
+    if (section.pages.length < 2) {
+      return `<li class="topnav-item"><a href="${landing.url}"${active}>${escapeHtml(section.title)}</a></li>`;
+    }
+    const menu = section.pages.map(page => {
+      const pageActive = page === current ? ' class="is-active"' : "";
+      return `<li><a href="${page.url}"${pageActive}>${escapeHtml(page.title)}</a></li>`;
+    }).join("");
+    return `<li class="topnav-item">`
+      + `<a href="${landing.url}"${active}>${escapeHtml(section.title)}`
+      + `<span class="topnav-caret" aria-hidden="true">▾</span></a>`
+      + `<ul class="topnav-menu">${menu}</ul></li>`;
+  }).join("");
+  return `<nav class="topnav" aria-label="Sections"><ul>${items}</ul></nav>`;
 }
 
 function contentsList(headings: Heading[]): string {
@@ -23,8 +47,7 @@ function contentsList(headings: Heading[]): string {
   if (entries.length < 2) return "";
   const items = entries.map(heading =>
     `<li class="depth-${heading.level}"><a href="#${heading.id}">${escapeHtml(heading.text)}</a></li>`).join("");
-  return `
-      <details class="contents collapsible">
+  return `      <details class="contents collapsible" open>
         <summary>On this page</summary>
         <nav class="collapsible-body" aria-label="On this page"><ul>${items}</ul></nav>
       </details>`;
@@ -71,6 +94,7 @@ function shell(options: {
   description: string;
   canonical: string;
   current: NavPage | null;
+  headings: Heading[];
   main: string;
 }): string {
   return `<!DOCTYPE html>
@@ -94,16 +118,20 @@ function shell(options: {
   <a class="skip-link" href="#article">Skip to content</a>
   <header class="topbar">
     <a class="brand" href="/">${escapeHtml(SITE.shortTitle)}<span class="brand-sub">DOCS</span></a>
+    ${topNav(options.current)}
     <div class="topbar-actions">
-      <a class="topbar-btn" href="${SITE.simulatorUrl}" target="_blank" rel="noopener">Open simulator</a>
-      <a class="topbar-btn" href="${SITE.repoUrl}" target="_blank" rel="noopener">GitHub</a>
+      <a class="topbar-link" href="${SITE.repoUrl}" target="_blank" rel="noopener">GitHub</a>
+      <a class="topbar-cta" href="${SITE.simulatorUrl}" target="_blank" rel="noopener">Open simulator</a>
     </div>
   </header>
   <div class="layout">
-    <details class="sidebar collapsible">
-      <summary>Documentation</summary>
-      <nav class="collapsible-body" aria-label="Documentation">${navList(options.current)}</nav>
-    </details>
+    <div class="rail">
+      <details class="sidebar collapsible" open>
+        <summary>${escapeHtml(options.current === null ? "Documentation" : sectionOf(options.current).title)}</summary>
+        <nav class="collapsible-body" aria-label="Section">${navList(options.current)}</nav>
+      </details>
+${contentsList(options.headings)}
+    </div>
 ${options.main}
   </div>
   <footer class="sitefoot">
@@ -122,16 +150,12 @@ export function renderPage(context: PageContext): string {
   const title = page.url === "/" ? SITE.title : `${page.title} — ${SITE.shortTitle}`;
   const main = `    <main id="article" class="article">
       ${breadcrumbs(page)}
-${contentsList(headings)}
       <article>
 ${body}
       </article>
-      <div class="article-foot">
-        <a class="edit-link" href="${repoFileUrl(page.source)}" target="_blank" rel="noopener">Edit this page</a>
-      </div>
       ${pager(page)}
     </main>`;
-  return shell({ title, description: page.description, canonical, current: page, main });
+  return shell({ title, description: page.description, canonical, current: page, headings, main });
 }
 
 export function renderNotFound(): string {
@@ -153,6 +177,7 @@ export function renderNotFound(): string {
     description: "That documentation page does not exist.",
     canonical: new URL("/404.html", SITE.origin).href,
     current: null,
+    headings: [],
     main,
   });
 }

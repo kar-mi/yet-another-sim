@@ -36,8 +36,10 @@ async function writeOut(outDir: string, relativePath: string, contents: string):
   await writeFile(target, contents, "utf8");
 }
 
-export async function build(): Promise<BuildResult> {
-  const outDir = join(ROOT, SITE.outDir);
+// The dev server builds into its own directory so a running preview cannot race docs:build/check
+// over the same tree.
+export async function build(outDirName: string = SITE.outDir): Promise<BuildResult> {
+  const outDir = join(ROOT, outDirName);
   await rm(outDir, { recursive: true, force: true });
   await mkdir(outDir, { recursive: true });
 

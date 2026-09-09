@@ -68,7 +68,7 @@ async function checkUnpublished(problems: Problem[]): Promise<void> {
   }
 }
 
-async function checkLinks(problems: Problem[], pages: BuiltPage[], assets: string[]): Promise<void> {
+async function checkLinks(problems: Problem[], pages: BuiltPage[], assets: string[], outDir: string): Promise<void> {
   const anchorsByUrl = new Map(pages.map(page =>
     [page.url, new Set([...page.headings.map(heading => heading.id), ...page.anchors])]));
   const urlBySource = new Map(PAGES.map(page => [page.source, page.url]));
@@ -96,7 +96,7 @@ async function checkLinks(problems: Problem[], pages: BuiltPage[], assets: strin
   }
 
   for (const asset of assets) {
-    if (!(await exists(join(ROOT, "dist/docs/assets", asset.replace(/^docs\//, ""))))) {
+    if (!(await exists(join(outDir, "assets", asset.replace(/^docs\//, ""))))) {
       problems.push({ where: asset, message: "referenced asset was not copied into the output" });
     }
   }
@@ -121,14 +121,14 @@ async function checkReferencedRaids(problems: Problem[], pages: BuiltPage[]): Pr
   }
 }
 
-async function checkOutput(problems: Problem[], pages: BuiltPage[]): Promise<void> {
+async function checkOutput(problems: Problem[], pages: BuiltPage[], outDir: string): Promise<void> {
   for (const page of pages) {
-    if (!(await exists(join(ROOT, "dist/docs", page.outFile)))) {
+    if (!(await exists(join(outDir, page.outFile)))) {
       problems.push({ where: page.source, message: `expected output ${page.outFile} is missing` });
     }
   }
   for (const file of ["404.html", "sitemap.xml", "assets/docs.css", "assets/tokens.css"]) {
-    if (!(await exists(join(ROOT, "dist/docs", file)))) {
+    if (!(await exists(join(outDir, file)))) {
       problems.push({ where: "docs-site/build.ts", message: `expected output ${file} is missing` });
     }
   }
@@ -139,8 +139,8 @@ export async function check(): Promise<Problem[]> {
   checkNav(problems);
   await checkUnpublished(problems);
   const result = await build();
-  await checkOutput(problems, result.pages);
-  await checkLinks(problems, result.pages, result.assets);
+  await checkOutput(problems, result.pages, result.outDir);
+  await checkLinks(problems, result.pages, result.assets, result.outDir);
   await checkReferencedRaids(problems, result.pages);
   return problems;
 }

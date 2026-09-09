@@ -3,12 +3,12 @@ import { join } from "node:path";
 import { build, outputPathFor, ROOT } from "./build";
 import { SITE } from "./site";
 
-const outDir = join(ROOT, SITE.outDir);
+const outDir = join(ROOT, SITE.devOutDir);
 
 async function rebuild(): Promise<void> {
   const started = Date.now();
   try {
-    const result = await build();
+    const result = await build(SITE.devOutDir);
     console.log(`docs: ${result.pages.length} pages in ${Date.now() - started}ms`);
   } catch (error) {
     console.error(`docs: build failed — ${error instanceof Error ? error.message : String(error)}`);

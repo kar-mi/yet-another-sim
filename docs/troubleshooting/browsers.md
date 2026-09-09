@@ -7,20 +7,10 @@ Everything below is a **diagnostic step, not a confirmed fix**. These are the th
 when the simulator misbehaves; whether any of them helps on your machine is exactly what you are
 finding out. If a step does help, that is useful information for a bug report — please say which one.
 
-## What people have reported
-
-From [issue #151](https://github.com/kar-mi/yet-another-sim/issues/151):
-
-| Browser | Reported behaviour |
-|---|---|
-| Firefox | Fine |
-| Helium | Fine |
-| Chrome | Sometimes fine; other times heavy lag and rollbacks, with some attacks not rendering |
-| Edge | Fine — occasional hitches, otherwise smooth |
-
-Treat that table as **anecdotal**. These are individual reports from unspecified browser versions on
-unspecified hardware, not test results. They are recorded here because "Chrome specifically" is the
-pattern the diagnostic steps below are aimed at, not because Chrome is known to be broken.
+Heavy lag, characters snapping backwards, and attacks that never draw are the three symptoms that
+turn up most often, and in practice they usually share a single cause: the browser has fallen back
+to rendering the 3D scene on the CPU instead of the GPU. Start there before assuming the problem is
+your hardware or your connection.
 
 ## Symptoms and where to look
 

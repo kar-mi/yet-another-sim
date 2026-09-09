@@ -8,16 +8,6 @@ mechanic alone or with a full group.
 Encounters are authored as YAML timelines, which means the simulator is also a tool for *writing*
 fights, not just playing them.
 
-## Where to go
-
-| If you want to | Start at |
-|---|---|
-| Get into a session and dodge something | [Getting started](./getting-started.md) |
-| Understand the controls, HUD and replays | [Simulator guide](./simulator-guide.md) |
-| Build your own encounter | [Authoring overview](./authoring/index.md) |
-| Fix lag, missing visuals or connection problems | [Browser & performance help](./troubleshooting/browsers.md) |
-| Work on the simulator itself | [Development workflow](./workflow.md) |
-
 ## What is in the simulator today
 
 The published encounter set is **Dancing Mad Ultimate**, with five phases: *Graven Image 3*,

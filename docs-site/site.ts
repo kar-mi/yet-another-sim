@@ -7,6 +7,7 @@ export const SITE = {
   repoUrl: "https://github.com/kar-mi/yet-another-sim",
   branch: "main",
   outDir: "dist/docs",
+  devOutDir: "dist/docs-dev",
   devPort: 3001,
 } as const;
 
