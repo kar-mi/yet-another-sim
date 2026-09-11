@@ -459,7 +459,7 @@ export class HudOverlay {
     } else if (this.playbackState === "paused") {
       word = "PAUSED";
       modifier = "paused";
-    } else if (this.playbackState === "stopped") {
+    } else if (this.playbackState === "stopped" || this.playbackState === "done") {
       word = "STOPPED";
       modifier = "stopped";
     } else {
@@ -480,11 +480,12 @@ export class HudOverlay {
     } else if (this.playbackState === "paused") {
       this.statusEl.textContent = "PAUSED";
       this.statusEl.className = "yas-visible yas-paused";
-    } else if (this.playbackState === "stopped") {
+    } else if (this.playbackState === "stopped" || this.playbackState === "done") {
       const title = document.createElement("span");
       title.textContent = "STOPPED";
       const hint = document.createElement("small");
-      hint.textContent = "press start to begin";
+      // A finished pull can't be resumed with PLAY (the server rejects it) — point at RESTART.
+      hint.textContent = this.playbackState === "done" ? "press restart to begin" : "press start to begin";
       this.statusEl.replaceChildren(title, hint);
       this.statusEl.className = "yas-visible yas-stopped";
     } else {

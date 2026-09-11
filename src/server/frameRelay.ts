@@ -90,12 +90,13 @@ export class FrameRelay {
     return this.inputLog.length;
   }
 
-  // Reset per-pull relay state. Called whenever a fresh tick-0 world is built.
-  reset(durationSeconds: number): void {
+  // Reset per-pull relay state. Called whenever a fresh tick-0 world is built. `graceSeconds` is the
+  // slack past the duration before the ceiling fires; a pull that ends at its duration passes 0.
+  reset(durationSeconds: number, graceSeconds = PULL_GRACE_SECONDS): void {
     this.inputLog.length = 0;
     this.frameBatch = [];
     this.tickAccumulator = 0;
-    this.maxPullTicks = Math.ceil((durationSeconds + PULL_GRACE_SECONDS) / DT);
+    this.maxPullTicks = Math.ceil((durationSeconds + graceSeconds) / DT);
   }
 
   // Stamp the merged human intents for this tick, append to the input log, and (unless batching)
