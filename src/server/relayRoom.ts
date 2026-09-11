@@ -640,7 +640,9 @@ export class RelayRoom {
   // input log, batching, and desync window start clean.
   private resetPull(): void {
     this.pullSnapshot.reset();
-    this.relay.reset(this.world.duration);
+    // The lobby has no mechanics, so its world never reaches a terminal status and the host never
+    // sends `simEnded`. Drop the grace slack so its pull ends exactly at the authored duration.
+    this.relay.reset(this.world.duration, this.raidId === EMPTY_RAID_ID ? 0 : undefined);
     this.desync.reset();
   }
 
@@ -685,15 +687,20 @@ export class RelayRoom {
     logger.info("session", "sim ended", { session: this.id, raid: this.raidId, tick, ticks: this.inputLog.length });
   }
 
-  // Defensive: a host that never sends `simEnded` would otherwise have the room relay idle frames
-  // forever (running sessions never expire). Cap the pull well past its duration and finish it.
+  // The relay hit its tick ceiling. For the lobby that IS the normal end (it has no terminal world
+  // status, so its ceiling sits exactly at the duration). For an authored raid it is defensive: a
+  // host that never sends `simEnded` would otherwise relay idle frames forever.
   private endPullDefensively(): void {
     this.relay.flush();
     this.status = "done";
     this.relay.stop();
     this.closePullLog();
     this.broadcastPlayback();
-    logger.warn("session", "pull hit tick ceiling without simEnded", { session: this.id, ticks: this.inputLog.length });
+    if (this.raidId === EMPTY_RAID_ID) {
+      logger.info("session", "lobby reached its duration", { session: this.id, ticks: this.inputLog.length });
+    } else {
+      logger.warn("session", "pull hit tick ceiling without simEnded", { session: this.id, ticks: this.inputLog.length });
+    }
   }
 
   // Desync detection is delegated to DesyncTracker; a flagged divergence resyncs the offender here.
