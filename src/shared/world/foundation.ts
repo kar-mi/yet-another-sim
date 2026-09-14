@@ -11,7 +11,7 @@ export type ZoneShape =
   | { kind: "rect"; center: Vec2; width: number; height: number }
   | { kind: "polygon"; vertices: Vec2[] };
 
-export type FloorPlan = "squares" | "dmu-p1" | "dmu-p2";
+export type FloorPlan = "squares" | "dmu-p1" | "dmu-p2" | { color: string };
 
 export type Arena = { zones: ZoneShape[]; floorPlan: FloorPlan };
 

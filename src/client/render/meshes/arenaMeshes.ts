@@ -12,13 +12,13 @@ import { logger } from "@shared/logger";
 import { STATIC_ROOT } from "../../staticBase";
 
 // Floor-plan enum value -> top-down arena image. "squares" uses the default crosshatch (no image).
-export const FLOOR_PLAN_IMAGES: Record<Exclude<FloorPlan, "squares">, string> = {
+export const FLOOR_PLAN_IMAGES: Record<Exclude<Extract<FloorPlan, string>, "squares">, string> = {
   "dmu-p1": `${STATIC_ROOT}/arena_raid_imgs/dmu/p1-cropped.webp`,
   "dmu-p2": `${STATIC_ROOT}/arena_raid_imgs/dmu/p2-cropped.webp`,
 };
 
 export function createZoneMesh(scene: Scene, zone: ZoneShape, floorPlan: FloorPlan): Mesh | null {
-  if (zone.kind === "circle" && floorPlan !== "squares") {
+  if (zone.kind === "circle" && typeof floorPlan === "string" && floorPlan !== "squares") {
     return createFloorPlanCircle(scene, zone, FLOOR_PLAN_IMAGES[floorPlan]);
   }
 
@@ -26,8 +26,13 @@ export function createZoneMesh(scene: Scene, zone: ZoneShape, floorPlan: FloorPl
   mat.diffuseColor = new Color3(1, 1, 1);
   mat.emissiveColor = new Color3(0.04, 0.04, 0.05);
   mat.specularColor = new Color3(0, 0, 0);
-  const tex = createCrosshatchTexture(scene);
+  const tex = typeof floorPlan === "object" ? null : createCrosshatchTexture(scene);
   mat.diffuseTexture = tex;
+  if (typeof floorPlan === "object") {
+    mat.diffuseColor = new Color3(0, 0, 0);
+    mat.emissiveColor = Color3.FromHexString(floorPlan.color);
+    mat.disableLighting = true;
+  }
 
   const tileWorld = 4;
 
@@ -42,15 +47,19 @@ export function createZoneMesh(scene: Scene, zone: ZoneShape, floorPlan: FloorPl
       }, scene);
       mesh.position.set(zone.center.x, -thickness / 2, zone.center.z);
       const span = (zone.radius * 2) / tileWorld;
-      tex.uScale = span;
-      tex.vScale = span;
+      if (tex) {
+        tex.uScale = span;
+        tex.vScale = span;
+      }
       break;
     }
     case "rect":
       mesh = CreateGround("floor", { width: zone.width, height: zone.height }, scene);
       mesh.position.set(zone.center.x, 0, zone.center.z);
-      tex.uScale = zone.width / tileWorld;
-      tex.vScale = zone.height / tileWorld;
+      if (tex) {
+        tex.uScale = zone.width / tileWorld;
+        tex.vScale = zone.height / tileWorld;
+      }
       break;
     case "polygon":
       logger.warn("render", "polygon arena zones are not yet rendered");

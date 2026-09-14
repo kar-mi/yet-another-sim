@@ -8,7 +8,7 @@ export type BossPreset = {
 };
 
 export const BOSS_REGISTRY = {
-  severing_head: { model: "dragon_head", modelScale: 20, radius: 1, ring: { scale: 1, color: "#e62120" } },
+  severing_head: { model: "dragon_head", modelScale: 25, radius: 1, ring: { scale: 1, color: "#e62120" } },
   kefka: { model: "kefka", modelScale: 30, radius: 3, ring: { scale: 2, color: "#e62120" } },
   bigkefka: { model: "kefka", modelScale: 150, radius: 3, ring: { scale: 2, color: "#e62120" } },
   chaos: { model: "chaos", modelScale: 20, radius: 3, ring: { scale: 2, color: "#e62120" } },

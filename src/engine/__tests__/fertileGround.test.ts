@@ -127,8 +127,8 @@ test("Fertile Ground splits colors evenly and heads spawn outward, move clockwis
   for (const [i, head] of world.bosses.slice(1).entries()) {
     expect(head.hidden).toBe(false);
     expect(head.facing).toBeCloseTo(i * Math.PI / 4);
-    expect(head.pos.x).toBeCloseTo(3 * Math.sin(head.facing), 3);
-    expect(head.pos.z).toBeCloseTo(3 * Math.cos(head.facing), 3);
+    expect(head.pos.x).toBeCloseTo(5 * Math.sin(head.facing), 3);
+    expect(head.pos.z).toBeCloseTo(5 * Math.cos(head.facing), 3);
   }
   for (let i = 0; i < 8; i++) {
     const targetTime = 27.4 + 1.2 * i;
@@ -155,7 +155,7 @@ test("a north head's beam applies blue east and purple west, swapping opposite c
   world.players.forEach(player => { player.invincible = true; });
   world = runTicks(world, noMove, 42 * 60);
   for (const [i, player] of world.players.entries()) {
-    player.pos = { x: i % 2 === 0 ? 5 : -5, z: 0 };
+    player.pos = { x: i % 2 === 0 ? 5 : -5, z: i < 4 ? 18 : -18 };
     player.effects = [];
     applyEffect(world, player, resolveEffectRef({ ref: i % 2 === 0 ? "growing_panic" : "growing_dread" })!, `color-${i}`, world.players);
   }
