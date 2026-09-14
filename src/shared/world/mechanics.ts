@@ -37,6 +37,7 @@ export type ActiveMechanic = {
   anchor?: "boss";
   directionFrom?: "bossFacing";
   directionOffset?: number;
+  sideOrbAfter?: string;
   resolved: boolean;
   showCastBar: boolean;
   // When false, the ground telegraph is never drawn; the cast bar and damage still apply.
@@ -79,6 +80,7 @@ export type PendingEvent = {
   anchor?: "boss";
   directionFrom?: "bossFacing";
   directionOffset?: number;
+  sideOrbAfter?: string;
   aimAtPlayer?: string;
   lockFacing?: boolean;
   bossStationary?: boolean;

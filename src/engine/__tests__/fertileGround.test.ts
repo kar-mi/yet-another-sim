@@ -8,7 +8,7 @@ import { validateRngConstraints } from "../seedSearch";
 import { resolveEffectRef } from "../status/registry";
 import { applyEffect } from "../systems/helpers";
 import { createWorld } from "../world";
-import { baseRaid, human, noMove, runTicks } from "./helpers";
+import { baseRaid, human, loadRaid as loadTestRaid, noMove, roster, runTicks } from "./helpers";
 
 const rawRaid = Bun.YAML.parse(await Bun.file(`${import.meta.dir}/../../../raids/forked-tower-magic/fertile-ground.yaml`).text());
 const raid = loadRaid(rawRaid);
@@ -189,4 +189,58 @@ test("Necrophobia waymark preset matches raid defaults and the exported orientat
   expect(WAYMARK_PRESETS.find(preset => preset.id === "necrophobia")?.marks).toEqual(marks);
   expect(marks.find(mark => mark.mark === "A")?.pos).toEqual({ x: 0, z: 14.6667 });
   expect(marks.find(mark => mark.mark === "1")?.pos).toEqual({ x: -7.3333, z: 11 });
+});
+
+function sideOrbRaid(laser: Record<string, unknown> = {}, teleport: Record<string, unknown> = {}) {
+  return {
+    ...baseRaid,
+    players: roster(),
+    bosses: [
+      { id: "necrophobia", preset: "exdeath", pos: [0, 0] },
+      { id: "head-1", preset: "severing_head", pos: [0, 0] },
+    ],
+    events: [
+      { id: "move-head-1", type: "teleport_boss", time: 1, name: "Heads Roll", bossId: "head-1", spots: [[0, 18]] },
+      { id: "move-other", type: "teleport_boss", time: 1, name: "Heads Roll", bossId: "necrophobia", spots: [[0, 0]] },
+      {
+        id: "laser", type: "aoe", time: 5, name: "Sowing Fear", bossId: "head-1", telegraph: 1,
+        damage: 0, damageType: "magical", showCastBar: false, directionFrom: "bossFacing",
+        directionOffset: -Math.PI / 2, color: "#3aa0ff", sideOrbAfter: "move-head-1",
+        shape: { kind: "cone", origin: [0, 0], angleDeg: 180, length: 20 },
+        ...laser,
+      },
+      ...(Object.keys(teleport).length > 0 ? [{ ...teleport }] : []),
+    ],
+  };
+}
+
+test("sideOrbAfter requires a coloured boss-facing cleave linked to an earlier teleport of its own boss", () => {
+  expect(() => loadTestRaid(sideOrbRaid())).not.toThrow();
+  expect(() => loadTestRaid(sideOrbRaid({ directionOffset: Math.PI / 2 }))).not.toThrow();
+  expect(() => loadTestRaid(sideOrbRaid({ sideOrbAfter: "missing" }))).toThrow(/must reference a teleport_boss event/);
+  expect(() => loadTestRaid(sideOrbRaid({ sideOrbAfter: "move-other" }))).toThrow(/moves boss/);
+  expect(() => loadTestRaid(sideOrbRaid({ bossId: undefined }))).toThrow(/must name the boss/);
+  expect(() => loadTestRaid(sideOrbRaid({ color: undefined }))).toThrow(/must define the orb color/);
+  expect(() => loadTestRaid(sideOrbRaid({ directionOffset: Math.PI }))).toThrow(/directionOffset of -PI\/2/);
+  expect(() => loadTestRaid(sideOrbRaid({ directionFrom: undefined }))).toThrow(/bossFacing/);
+  expect(() => loadTestRaid(sideOrbRaid({ time: 0.5 }))).toThrow(/no later than the aoe it annotates/);
+});
+
+test("every head keeps one orb-annotated beam per side, coloured by the selected branch", () => {
+  for (const seed of [1, 7, 42, 99]) {
+    const { events, decisions } = preRollRaid(raid, seed);
+    const beams = events.filter(event => event.id.startsWith("beam-"));
+    expect(beams).toHaveLength(16);
+
+    for (let head = 1; head <= 8; head++) {
+      const annotated = beams.filter(event => event.type === "aoe" && event.bossId === `head-${head}`);
+      expect(annotated.map(event => event.type === "aoe" && event.sideOrbAfter)).toEqual([`move-head-${head}`, `move-head-${head}`]);
+      const sides = annotated.map(event => (event.type === "aoe" ? { offset: event.directionOffset, color: event.color } : null));
+      const branch = decisions[`event-set-beam-${head}`] === 0 ? "a" : "b";
+      expect(sides).toEqual([
+        { offset: branch === "a" ? -Math.PI / 2 : Math.PI / 2, color: "#3aa0ff" },
+        { offset: branch === "a" ? Math.PI / 2 : -Math.PI / 2, color: "#a855f7" },
+      ]);
+    }
+  }
 });

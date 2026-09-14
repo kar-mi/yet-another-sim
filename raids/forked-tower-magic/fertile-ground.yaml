@@ -157,6 +157,7 @@ events:
   - { id: move-head-8, type: teleport_boss, time: 35.7, name: Heads Roll, bossId: head-8, spots: [[0, 18]] }
   - &beam
     id: beam-1-a-blue
+    sideOrbAfter: move-head-1
     time: 42.4
     bossId: head-1
     directionOffset: -1.5707963267948966
@@ -173,6 +174,7 @@ events:
     shape: { kind: cone, origin: [0, 0], angleDeg: 180, length: 20 }
   - <<: *beam
     id: beam-1-a-purple
+    sideOrbAfter: move-head-1
     time: 42.4
     bossId: head-1
     directionOffset: 1.5707963267948966
@@ -180,6 +182,7 @@ events:
     applyEffect: { ref: growing_panic }
   - <<: *beam
     id: beam-1-b-blue
+    sideOrbAfter: move-head-1
     time: 42.4
     bossId: head-1
     directionOffset: 1.5707963267948966
@@ -187,6 +190,7 @@ events:
     applyEffect: { ref: growing_dread }
   - <<: *beam
     id: beam-1-b-purple
+    sideOrbAfter: move-head-1
     time: 42.4
     bossId: head-1
     directionOffset: -1.5707963267948966
@@ -194,6 +198,7 @@ events:
     applyEffect: { ref: growing_panic }
   - <<: *beam
     id: beam-2-a-blue
+    sideOrbAfter: move-head-2
     time: 48.4
     bossId: head-2
     directionOffset: -1.5707963267948966
@@ -201,6 +206,7 @@ events:
     applyEffect: { ref: growing_dread }
   - <<: *beam
     id: beam-2-a-purple
+    sideOrbAfter: move-head-2
     time: 48.4
     bossId: head-2
     directionOffset: 1.5707963267948966
@@ -208,6 +214,7 @@ events:
     applyEffect: { ref: growing_panic }
   - <<: *beam
     id: beam-2-b-blue
+    sideOrbAfter: move-head-2
     time: 48.4
     bossId: head-2
     directionOffset: 1.5707963267948966
@@ -215,6 +222,7 @@ events:
     applyEffect: { ref: growing_dread }
   - <<: *beam
     id: beam-2-b-purple
+    sideOrbAfter: move-head-2
     time: 48.4
     bossId: head-2
     directionOffset: -1.5707963267948966
@@ -222,6 +230,7 @@ events:
     applyEffect: { ref: growing_panic }
   - <<: *beam
     id: beam-3-a-blue
+    sideOrbAfter: move-head-3
     time: 54.4
     bossId: head-3
     directionOffset: -1.5707963267948966
@@ -229,6 +238,7 @@ events:
     applyEffect: { ref: growing_dread }
   - <<: *beam
     id: beam-3-a-purple
+    sideOrbAfter: move-head-3
     time: 54.4
     bossId: head-3
     directionOffset: 1.5707963267948966
@@ -236,6 +246,7 @@ events:
     applyEffect: { ref: growing_panic }
   - <<: *beam
     id: beam-3-b-blue
+    sideOrbAfter: move-head-3
     time: 54.4
     bossId: head-3
     directionOffset: 1.5707963267948966
@@ -243,6 +254,7 @@ events:
     applyEffect: { ref: growing_dread }
   - <<: *beam
     id: beam-3-b-purple
+    sideOrbAfter: move-head-3
     time: 54.4
     bossId: head-3
     directionOffset: -1.5707963267948966
@@ -250,6 +262,7 @@ events:
     applyEffect: { ref: growing_panic }
   - <<: *beam
     id: beam-4-a-blue
+    sideOrbAfter: move-head-4
     time: 60.4
     bossId: head-4
     directionOffset: -1.5707963267948966
@@ -257,6 +270,7 @@ events:
     applyEffect: { ref: growing_dread }
   - <<: *beam
     id: beam-4-a-purple
+    sideOrbAfter: move-head-4
     time: 60.4
     bossId: head-4
     directionOffset: 1.5707963267948966
@@ -264,6 +278,7 @@ events:
     applyEffect: { ref: growing_panic }
   - <<: *beam
     id: beam-4-b-blue
+    sideOrbAfter: move-head-4
     time: 60.4
     bossId: head-4
     directionOffset: 1.5707963267948966
@@ -271,6 +286,7 @@ events:
     applyEffect: { ref: growing_dread }
   - <<: *beam
     id: beam-4-b-purple
+    sideOrbAfter: move-head-4
     time: 60.4
     bossId: head-4
     directionOffset: -1.5707963267948966
@@ -278,6 +294,7 @@ events:
     applyEffect: { ref: growing_panic }
   - <<: *beam
     id: beam-5-a-blue
+    sideOrbAfter: move-head-5
     time: 66.4
     bossId: head-5
     directionOffset: -1.5707963267948966
@@ -285,6 +302,7 @@ events:
     applyEffect: { ref: growing_dread }
   - <<: *beam
     id: beam-5-a-purple
+    sideOrbAfter: move-head-5
     time: 66.4
     bossId: head-5
     directionOffset: 1.5707963267948966
@@ -292,6 +310,7 @@ events:
     applyEffect: { ref: growing_panic }
   - <<: *beam
     id: beam-5-b-blue
+    sideOrbAfter: move-head-5
     time: 66.4
     bossId: head-5
     directionOffset: 1.5707963267948966
@@ -299,6 +318,7 @@ events:
     applyEffect: { ref: growing_dread }
   - <<: *beam
     id: beam-5-b-purple
+    sideOrbAfter: move-head-5
     time: 66.4
     bossId: head-5
     directionOffset: -1.5707963267948966
@@ -306,6 +326,7 @@ events:
     applyEffect: { ref: growing_panic }
   - <<: *beam
     id: beam-6-a-blue
+    sideOrbAfter: move-head-6
     time: 72.4
     bossId: head-6
     directionOffset: -1.5707963267948966
@@ -313,6 +334,7 @@ events:
     applyEffect: { ref: growing_dread }
   - <<: *beam
     id: beam-6-a-purple
+    sideOrbAfter: move-head-6
     time: 72.4
     bossId: head-6
     directionOffset: 1.5707963267948966
@@ -320,6 +342,7 @@ events:
     applyEffect: { ref: growing_panic }
   - <<: *beam
     id: beam-6-b-blue
+    sideOrbAfter: move-head-6
     time: 72.4
     bossId: head-6
     directionOffset: 1.5707963267948966
@@ -327,6 +350,7 @@ events:
     applyEffect: { ref: growing_dread }
   - <<: *beam
     id: beam-6-b-purple
+    sideOrbAfter: move-head-6
     time: 72.4
     bossId: head-6
     directionOffset: -1.5707963267948966
@@ -334,6 +358,7 @@ events:
     applyEffect: { ref: growing_panic }
   - <<: *beam
     id: beam-7-a-blue
+    sideOrbAfter: move-head-7
     time: 78.4
     bossId: head-7
     directionOffset: -1.5707963267948966
@@ -341,6 +366,7 @@ events:
     applyEffect: { ref: growing_dread }
   - <<: *beam
     id: beam-7-a-purple
+    sideOrbAfter: move-head-7
     time: 78.4
     bossId: head-7
     directionOffset: 1.5707963267948966
@@ -348,6 +374,7 @@ events:
     applyEffect: { ref: growing_panic }
   - <<: *beam
     id: beam-7-b-blue
+    sideOrbAfter: move-head-7
     time: 78.4
     bossId: head-7
     directionOffset: 1.5707963267948966
@@ -355,6 +382,7 @@ events:
     applyEffect: { ref: growing_dread }
   - <<: *beam
     id: beam-7-b-purple
+    sideOrbAfter: move-head-7
     time: 78.4
     bossId: head-7
     directionOffset: -1.5707963267948966
@@ -362,6 +390,7 @@ events:
     applyEffect: { ref: growing_panic }
   - <<: *beam
     id: beam-8-a-blue
+    sideOrbAfter: move-head-8
     time: 84.4
     bossId: head-8
     directionOffset: -1.5707963267948966
@@ -369,6 +398,7 @@ events:
     applyEffect: { ref: growing_dread }
   - <<: *beam
     id: beam-8-a-purple
+    sideOrbAfter: move-head-8
     time: 84.4
     bossId: head-8
     directionOffset: 1.5707963267948966
@@ -376,6 +406,7 @@ events:
     applyEffect: { ref: growing_panic }
   - <<: *beam
     id: beam-8-b-blue
+    sideOrbAfter: move-head-8
     time: 84.4
     bossId: head-8
     directionOffset: 1.5707963267948966
@@ -383,6 +414,7 @@ events:
     applyEffect: { ref: growing_dread }
   - <<: *beam
     id: beam-8-b-purple
+    sideOrbAfter: move-head-8
     time: 84.4
     bossId: head-8
     directionOffset: -1.5707963267948966

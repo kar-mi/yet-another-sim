@@ -561,6 +561,29 @@ export const RaidSchema = z.object({
     });
   }
 
+  raid.events.forEach((event, i) => {
+    if (event.type !== "aoe" || event.sideOrbAfter === undefined) return;
+    const issue = (field: string, message: string) => ctx.addIssue({ code: "custom", path: ["events", i, field], message });
+    if (event.bossId === undefined) issue("bossId", `sideOrbAfter aoe "${event.id}" must name the boss the orb hangs off`);
+    if (event.color === undefined) issue("color", `sideOrbAfter aoe "${event.id}" must define the orb color`);
+    if (event.directionFrom !== "bossFacing"
+      || event.directionOffset === undefined
+      || Math.min(Math.abs(event.directionOffset - Math.PI / 2), Math.abs(event.directionOffset + Math.PI / 2)) > 1e-9) {
+      issue("directionOffset", `sideOrbAfter aoe "${event.id}" must use directionFrom: bossFacing with directionOffset of -PI/2 (left) or PI/2 (right)`);
+    }
+    const teleport = raid.events.find(candidate => candidate.id === event.sideOrbAfter);
+    if (!teleport || teleport.type !== "teleport_boss") {
+      issue("sideOrbAfter", `sideOrbAfter "${event.sideOrbAfter}" must reference a teleport_boss event`);
+      return;
+    }
+    if (teleport.bossId !== event.bossId) {
+      issue("sideOrbAfter", `sideOrbAfter "${event.sideOrbAfter}" moves boss "${teleport.bossId}", not "${event.bossId}"`);
+    }
+    if (teleport.t > event.t) {
+      issue("sideOrbAfter", `sideOrbAfter "${event.sideOrbAfter}" must occur no later than the aoe it annotates`);
+    }
+  });
+
   const eventSets = raid.optionals?.combinations?.eventSets;
   if (eventSets) {
     Object.entries(eventSets).forEach(([key, setConfig]) => {

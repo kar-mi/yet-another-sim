@@ -12,9 +12,11 @@ import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Renderer } from "./Renderer";
 import type { Boss, World, ZoneShape, FloorPlan } from "@shared/types";
 import type { PlaybackState } from "@shared/protocol";
+import { selectBossSideOrbs } from "./bossSideOrbs";
 import type { Settings, ControllerType } from "../settings";
 import { BossLayer } from "./BossLayer";
 import { BossRingLayer } from "./BossRingLayer";
+import { BossSideOrbLayer } from "./BossSideOrbLayer";
 import { TargetRingLayer } from "./TargetRingLayer";
 import { HealthBarLayer } from "./HealthBarLayer";
 import { createZoneMesh } from "./meshes/arenaMeshes";
@@ -71,6 +73,7 @@ export class BabylonRenderer implements Renderer {
   private players!: PlayerLayer;
   private bossLayers = new Map<string, BossLayer>();
   private bossRingLayers = new Map<string, BossRingLayer>();
+  private bossSideOrbLayers = new Map<string, BossSideOrbLayer>();
   private targetRingLayers = new Map<string, TargetRingLayer>();
   private bossesKey = "";
   private bossIds: string[] = [];
@@ -248,6 +251,8 @@ export class BabylonRenderer implements Renderer {
     this.bossLayers.clear();
     for (const layer of this.bossRingLayers.values()) layer.dispose();
     this.bossRingLayers.clear();
+    for (const layer of this.bossSideOrbLayers.values()) layer.dispose();
+    this.bossSideOrbLayers.clear();
     for (const layer of this.targetRingLayers.values()) layer.dispose();
     this.targetRingLayers.clear();
 
@@ -274,6 +279,7 @@ export class BabylonRenderer implements Renderer {
       this.bossRingLayers.set(boss.id, bossRingLayer);
       const targetRingLayer = new TargetRingLayer(this.scene);
       this.targetRingLayers.set(boss.id, targetRingLayer);
+      this.bossSideOrbLayers.set(boss.id, new BossSideOrbLayer(this.scene));
     }
     this.bossIds = bosses.map(b => b.id);
     this.bossesKey = this.bossIds.join(",");
@@ -314,9 +320,11 @@ export class BabylonRenderer implements Renderer {
 
     this.players.sync(world.players, world.time);
     const povPlayer = resolvePovPlayer(world.players, this.localPlayerId, this.spectateTargetId);
+    const sideOrbs = selectBossSideOrbs(world);
     for (const boss of world.bosses) {
       this.bossLayers.get(boss.id)?.sync(boss);
       this.bossRingLayers.get(boss.id)?.sync(boss);
+      this.bossSideOrbLayers.get(boss.id)?.sync(boss, sideOrbs.get(boss.id));
       this.targetRingLayers.get(boss.id)?.sync(boss, povPlayer?.targetBossId === boss.id);
     }
     if (povPlayer?.alive) this.camera.target.set(povPlayer.pos.x, 0, povPlayer.pos.z);
@@ -420,6 +428,7 @@ export class BabylonRenderer implements Renderer {
     this.hud.dispose();
     for (const layer of this.bossLayers.values()) layer.dispose();
     for (const bossRing of this.bossRingLayers.values()) bossRing.dispose();
+    for (const sideOrbs of this.bossSideOrbLayers.values()) sideOrbs.dispose();
     for (const targetRing of this.targetRingLayers.values()) targetRing.dispose();
     this.lineLinks.dispose();
     this.chains.dispose();
