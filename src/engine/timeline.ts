@@ -106,6 +106,7 @@ export function promotePending(
         anchor: event.anchor,
         directionFrom: event.directionFrom,
         directionOffset: event.directionOffset,
+        sideOrbAfter: event.sideOrbAfter,
         resolved: false,
         showCastBar: event.showCastBar,
         showTelegraph,

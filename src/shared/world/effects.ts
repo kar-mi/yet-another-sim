@@ -31,6 +31,7 @@ export type EffectBehavior =
   | { kind: "directionalKnockback"; requiredFacing: "away" | "toward"; distance: number; doubledDistance: number }
   // Reapplying escalates: with escalateTo, swaps to the next stage; without it (terminal), deals escalateDamage and stays.
   | { kind: "escalating"; escalationKey: string; escalateTo?: string; escalateDamage?: number; escalateDamageType?: DamageType }
+  | { kind: "alternating"; alternationKey: string; repeatDamage?: number; repeatDamageType?: DamageType; repeatApply?: string }
   // Would-be-lethal hit leaves carrier at 1 HP and cleanses the debuff. Uncleansed expiry is lethal.
   | { kind: "primordialCrust"; expiryDamage: number; expiryDamageType: DamageType }
   // Cleansed by healing carrier to full HP. Uncleansed expiry is lethal.

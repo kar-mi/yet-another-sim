@@ -8,6 +8,9 @@ export type GenericSolverRule = {
     // OR an exact match against one of the resolved mechanic's labels. An array requires every listed
     // mechanic to be active at once (e.g. a spread_stack mode AND a concurrent inverse orientation).
     mechanic?: string | string[];
+    // Selected, unresolved AOE event id/label. Unlike mechanic, this also sees future events in
+    // world.pending, allowing a bot to react to a pre-rolled branch before its telegraph begins.
+    selectedEvent?: string | string[];
     role?: Role | Role[];  // an array matches any of the listed roles (a bot only ever has one role)
     debuff?: string | string[];   // active effect name(s) on the bot; an array requires all of them
     partyDebuff?: string | string[]; // active effect name(s) anywhere in the party; an array requires all of them
@@ -46,6 +49,9 @@ export type GenericSolverRule = {
   mirrorForward?: boolean;
   spots?: Record<string, Vec2>; // per-player spot; wins over spot
   spot?: Vec2;                   // one spot for every matching bot
+  // Candidate spots transformed through frame/origin like `spot`. The solver chooses the nearest
+  // candidate outside every live AOE matched by when.mechanic. Requires when.mechanic.
+  safeSpots?: Vec2[];
   // Limit Cut placement. Requires when.mechanic naming a fired limit cut (World.limitCuts): the
   // matched mechanic supplies the rotation basis. `spots[n-1]` is the placement for limit-cut number
   // n, authored relative to relative-north (lateral r in Vec2.x, like a frame spot); the solver

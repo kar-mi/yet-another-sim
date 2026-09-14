@@ -50,11 +50,18 @@ export class BossLayer {
         root.rotate(Vector3.Up(), BOSS_MODEL_YAW_OFFSET, Space.LOCAL);
       }
       const bounds = roots.map(root => root.getHierarchyBoundingVectors(true));
-      const minY = bounds.length > 0 ? Math.min(...bounds.map(b => b.min.y)) : 0;
-      const maxY = bounds.length > 0 ? Math.max(...bounds.map(b => b.max.y)) : 0;
-      const modelTop = BOSS_MODEL_RAISE + (maxY - minY);
+      const extent = (axis: "x" | "y" | "z") => ({
+        min: bounds.length > 0 ? Math.min(...bounds.map(b => b.min[axis])) : 0,
+        max: bounds.length > 0 ? Math.max(...bounds.map(b => b.max[axis])) : 0,
+      });
+      const x = extent("x");
+      const y = extent("y");
+      const z = extent("z");
+      const modelTop = BOSS_MODEL_RAISE + (y.max - y.min);
       for (const root of roots) {
-        root.position.y -= minY - BOSS_MODEL_RAISE + modelTop;
+        root.position.x -= (x.min + x.max) / 2;
+        root.position.z -= (z.min + z.max) / 2;
+        root.position.y -= y.min - BOSS_MODEL_RAISE + modelTop;
       }
       anchor.position.y = modelTop;
       this.modelTopY = modelTop;

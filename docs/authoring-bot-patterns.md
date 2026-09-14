@@ -61,7 +61,7 @@ When no rule matches, the bot falls back to its authored waypoints.
 A rule has:
 
 - `when` — all conditions are ANDed; a rule must specify `static: true` or at least one of
-  `mechanic` / `debuff` / `partnerDebuff` / `plant`:
+  `mechanic` / `selectedEvent` / `debuff` / `partnerDebuff` / `plant`:
   - `static: true` — always active, subject to `startAt` / `endAt` and any other conditions. Put a
     static rule last to provide default positions when no mechanic-specific rule matches. An empty
     `when: {}` is rejected so an accidentally incomplete rule cannot become a catch-all.
@@ -72,6 +72,9 @@ A rule has:
     mechanic's telegraph→resolve window. Pass an **array** to require several mechanics at once — e.g.
     `mechanic: [fire-1.spread, lightning-1.inverted.a]` only matches while a spread_stack resolves to
     spread *and* a concurrent inverse rolled inverted/variant-a.
+  - `selectedEvent` — the same id/label matching against a selected, unresolved AOE, including future
+    events that have not started telegraphing. Use this when a pre-rolled branch is visually known and
+    bots need to preposition for it. An array requires every listed event.
   - `role` — `tank` | `healer` | `dps`, or an **array** matching any of the listed roles (e.g.
     `role: [tank, healer]` for a "support" condition — a bot only ever has one role, so this is OR,
     unlike the AND semantics of `mechanic`/`debuff` arrays).
@@ -126,6 +129,9 @@ A rule has:
   rejected on unframed rules.
   A rule must specify at least one. If a rule matches but supplies no spot for this bot, the search
   falls through to later rules. Tuple syntax is not accepted for solver spots.
+- `safeSpots` — a list of candidates in the same coordinate system as `spot`. It requires
+  `when.mechanic` and chooses the nearest candidate outside all matched live AOE shapes. It cannot be
+  combined with `spot`/`spots`; use it for a constrained dodge that must remain on one assigned side.
 - `nearestEdge` — `{ from, avoid, clearance }` instead of `spot`/`spots`: sends the bot to the
   nearest arena-edge (wall) point that stays clear of a line AoE. `from` and `avoid` are frame
   references (same forms as `frame` entries). `from` is the point the "closest edge" is measured from

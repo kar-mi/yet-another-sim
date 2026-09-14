@@ -38,6 +38,7 @@ export const STATUS_LIFECYCLE_REGISTRY: Record<EffectBehavior["kind"], StatusLif
   plant: { onExpiry: plantOnExpiry },
   directionalKnockback: {},
   escalating: {},
+  alternating: {},
   primordialCrust: { onExpiry: expiryDamageOnExpiry },
   accretion: { cleanseOnFullHp: true, onExpiry: expiryDamageOnExpiry },
   motionCheck: { onExpiry: motionCheckOnExpiry },

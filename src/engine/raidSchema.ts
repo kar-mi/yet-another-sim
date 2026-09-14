@@ -38,6 +38,12 @@ const PairingPatternSchema = z.object({
 // `pairings` declares patterns of player pairs (one selected per run when `rng`), each carrying an
 // optional group label + initial charges that feed world.partners / playerGroups / initialCharges.
 const OptionalsSchema = z.object({
+  headSequence: z.object({
+    rng: z.boolean().default(false),
+    events: z.array(EventIdSchema).length(8).refine(ids => new Set(ids).size === ids.length, "headSequence events must be unique"),
+    cardinals: z.array(Vec2Schema).length(4),
+    intercards: z.array(Vec2Schema).length(4),
+  }).optional(),
   rngLabels: z.record(z.string().min(1), z.object({
     label: z.string().min(1).optional(),
     options: z.array(z.string().min(1)).optional(),
@@ -86,7 +92,7 @@ const OptionalsSchema = z.object({
 }).optional();
 
 // Exhaustive list of glb stems available under /static/model/. Add new boss models here.
-const BOSS_MODEL_NAMES = ["kefka", "chaos", "exdeath"] as const;
+const BOSS_MODEL_NAMES = ["kefka", "chaos", "exdeath", "dragon_head"] as const;
 export type BossModelName = (typeof BOSS_MODEL_NAMES)[number];
 const BossModelSchema = z.enum(BOSS_MODEL_NAMES);
 
@@ -99,6 +105,7 @@ const BossSchema = z.strictObject({
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   }).optional(),
   model: BossModelSchema.optional(),
+  showInBossList: z.boolean().optional(),
 }).default({ pos: [0, 0] });
 
 // Boss entry in a multi-boss `bosses:` list. Same fields as BossSchema plus a required id slug
@@ -106,6 +113,7 @@ const BossSchema = z.strictObject({
 // faces a specific tank from the start).
 const BossWithIdSchema = z.strictObject({
   id: RaidIdSchema,
+  preset: z.enum(BOSS_REGISTRY_IDS).optional(),
   pos: Vec2Schema.default([0, 0]),
   radius: z.number().positive().optional(),
   ring: z.object({
@@ -113,6 +121,7 @@ const BossWithIdSchema = z.strictObject({
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   }).optional(),
   model: BossModelSchema.optional(),
+  showInBossList: z.boolean().optional(),
   aggro: z.string().min(1).optional(),
   targetable: z.boolean().default(true),
   hidden: z.boolean().default(false),  // start with the model not drawn (a divebomb teleportBoss can reveal it)
@@ -120,6 +129,7 @@ const BossWithIdSchema = z.strictObject({
 });
 
 type BossIdentityOverrides = {
+  showInBossList?: boolean;
   model?: BossModelName;
   radius?: number;
   ring?: { scale?: number; color?: string };
@@ -129,6 +139,7 @@ function resolveBossIdentity(overrides: BossIdentityOverrides, registryId: BossR
   const preset = BOSS_REGISTRY[registryId];
   return {
     model: overrides.model ?? preset.model,
+    ...(overrides.showInBossList !== undefined ? { showInBossList: overrides.showInBossList } : {}),
     modelScale: preset.modelScale,
     radius: overrides.radius ?? preset.radius,
     ring: {
@@ -235,6 +246,12 @@ export const RaidSchema = z.object({
       return;
     }
     eventIds.set(event.id, { type: event.type, index: i });
+  });
+
+  raid.optionals?.headSequence?.events.forEach((id, i) => {
+    if (eventIds.get(id)?.type !== "teleport_boss") {
+      ctx.addIssue({ code: "custom", path: ["optionals", "headSequence", "events", i], message: `headSequence event "${id}" must reference a teleport_boss event` });
+    }
   });
 
   const seenSectionIds = new Set<string>();
@@ -544,6 +561,29 @@ export const RaidSchema = z.object({
     });
   }
 
+  raid.events.forEach((event, i) => {
+    if (event.type !== "aoe" || event.sideOrbAfter === undefined) return;
+    const issue = (field: string, message: string) => ctx.addIssue({ code: "custom", path: ["events", i, field], message });
+    if (event.bossId === undefined) issue("bossId", `sideOrbAfter aoe "${event.id}" must name the boss the orb hangs off`);
+    if (event.color === undefined) issue("color", `sideOrbAfter aoe "${event.id}" must define the orb color`);
+    if (event.directionFrom !== "bossFacing"
+      || event.directionOffset === undefined
+      || Math.min(Math.abs(event.directionOffset - Math.PI / 2), Math.abs(event.directionOffset + Math.PI / 2)) > 1e-9) {
+      issue("directionOffset", `sideOrbAfter aoe "${event.id}" must use directionFrom: bossFacing with directionOffset of -PI/2 (left) or PI/2 (right)`);
+    }
+    const teleport = raid.events.find(candidate => candidate.id === event.sideOrbAfter);
+    if (!teleport || teleport.type !== "teleport_boss") {
+      issue("sideOrbAfter", `sideOrbAfter "${event.sideOrbAfter}" must reference a teleport_boss event`);
+      return;
+    }
+    if (teleport.bossId !== event.bossId) {
+      issue("sideOrbAfter", `sideOrbAfter "${event.sideOrbAfter}" moves boss "${teleport.bossId}", not "${event.bossId}"`);
+    }
+    if (teleport.t > event.t) {
+      issue("sideOrbAfter", `sideOrbAfter "${event.sideOrbAfter}" must occur no later than the aoe it annotates`);
+    }
+  });
+
   const eventSets = raid.optionals?.combinations?.eventSets;
   if (eventSets) {
     Object.entries(eventSets).forEach(([key, setConfig]) => {
@@ -561,13 +601,13 @@ export const RaidSchema = z.object({
     });
   }
 }).transform(data => {
-  const bosses = data.bosses?.map(({ id, pos, aggro, targetable, hidden, sink, ...overrides }) => ({
+  const bosses = data.bosses?.map(({ id, preset, pos, aggro, targetable, hidden, sink, ...overrides }) => ({
     id,
     pos,
     targetable,
     hidden,
     sink,
-    ...resolveBossIdentity(overrides, isBossRegistryId(id) ? id : DEFAULT_BOSS_ID),
+    ...resolveBossIdentity(overrides, preset ?? (isBossRegistryId(id) ? id : DEFAULT_BOSS_ID)),
     ...(aggro !== undefined ? { aggro } : {}),
   })) ?? [{
     id: "boss",

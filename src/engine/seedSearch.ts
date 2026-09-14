@@ -72,6 +72,14 @@ export function describeDecisions(raid: RaidDef): DecisionDescription[] {
     add({ key: `black-hole-${event.id}-rotation`, label: `${event.name} rotation`, options: ["0", "90", "180", "270"] });
   }
 
+  if (raid.optionals?.headSequence?.rng) {
+    add({ key: "head-sequence-first", label: "First head group", options: ["cardinals", "intercardinals"] });
+    for (let group = 1; group <= 2; group++) {
+      add({ key: `head-sequence-group-${group}-start`, label: `Head group ${group} start`, options: rangeLabels(4, "spot") });
+      add({ key: `head-sequence-group-${group}-direction`, label: `Head group ${group} direction`, options: ["clockwise", "counter-clockwise"] });
+    }
+  }
+
   return decisions;
 }
 

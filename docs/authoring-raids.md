@@ -276,6 +276,7 @@ dodge during the telegraph.
 | `directionFrom`   | no       | `"bossFacing"` sets the shape's `direction` to the boss's facing at cast start (the boss faces its current threat target). |
 | `directionOffset` | no       | Radians to rotate the `bossFacing` direction, clockwise. `0` = front (default), `π` = rear cleave, `-π/2` = the boss's left, `π/4` = front-right. |
 | `lockFacing`      | no       | Freezes the boss's facing for the cast's duration (it stops tracking its target), then resumes — keeping it aligned with its snapshotted cleave. **Defaults to `true`**; set `false` to let the boss keep turning mid-cast. |
+| `sideOrbAfter`    | no       | **Visual-only side indicator.** Names a [`teleport_boss`](#events-the-timeline) event for the same `bossId`; once that teleport has moved the boss, an orb in this cleave's `color` appears on the boss's matching side and stays until this cleave resolves. Requires `bossId`, a `color`, `directionFrom: bossFacing`, and a `directionOffset` of exactly `-π/2` (left) or `+π/2` (right). It never affects damage, targeting, bots, or RNG. |
 | `deferred`        | no       | **Stored cleave.** When `true`, the cast shows its cast bar but does **not** resolve at its own `t + telegraph`; it goes dormant (no ground telegraph) until a [`bait`](#bait--turn-lock-and-aim-a-stored-cleave) with a matching `link` arms it. The geometry is then computed from the boss's **locked facing at that moment** (so `directionOffset: 0`/`π` become front/rear relative to the baited player) and detonates together with the bait. Defaults to `false`. |
 
 When you use these, the shape's own `origin`/`direction` may be omitted (they default and are
@@ -294,6 +295,20 @@ a front 90° cleave is `angleDeg: 90` with no offset; a rear cleave adds `direct
   name: Front Cleave (90)
   shape: { kind: cone, angleDeg: 90, length: 25 }
 ```
+
+In `raids/forked-tower-magic/fertile-ground.yaml`, each Severing Head's paired cleaves use it so the
+head reveals its two coloured orbs the moment it teleports outward, well before the lasers fire:
+
+```yaml
+- <<: *beam
+  id: beam-1-a-blue
+  sideOrbAfter: move-head-1
+  time: 42.4
+  bossId: head-1
+  directionOffset: -1.5707963267948966
+  color: "#3aa0ff"
+```
+
 
 #### Positionals (`positional`)
 
@@ -1344,7 +1359,7 @@ combinations, plus standalone **`towerRng`** and **`orderSwap`** helpers. `optio
 seeds a per-run rotation of tower-wave positions around their canonical ring. `optionals.orderSwap`
 can seed a per-run swap of cast timing between exactly two groups of event ids: when it rolls, the
 groups exchange `time`/`telegraph` while keeping their ids, names, damage, and shapes. Every event
-within a group must share the same `time` and `telegraph`. `optionals.divebombSweep` seeds a per-run
+within a group must share the same `time` and `telegraph`. `optionals.headSequence` permutes which authored teleport destination each listed `teleport_boss` event uses: `cardinals` and `intercards` are two rings of four **positions written in the raid file**, and each pull picks which ring goes first plus a start slot and direction per ring. The engine only reorders those YAML coordinates — no encounter distance or spacing lives in simulation code. `optionals.divebombSweep` seeds a per-run
 rotation of a divebomb sweep around its canonical ring: `events` lists the divebomb ids in canonical
 sweep order (the index is each dash's number), and each pull picks a random start slot + spin
 direction, remapping which `from`/`to` pair each numbered dash fires. An optional `limitCut` id

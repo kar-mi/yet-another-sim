@@ -27,7 +27,10 @@ const CrystalEntrySchema = z.preprocess(
 );
 export const CrystalsSchema = z.array(CrystalEntrySchema).optional();
 
-export const FloorPlanSchema = z.enum(["squares", "dmu-p1", "dmu-p2"]).default("squares");
+export const FloorPlanSchema = z.union([
+  z.enum(["squares", "dmu-p1", "dmu-p2"]),
+  z.strictObject({ color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "floor color must be a six-digit hex color") }),
+]).default("squares");
 
 export const ZoneShapeSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("circle"), center: Vec2Schema, radius: z.number().positive() }),
@@ -149,6 +152,13 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     escalateTo: z.string().refine(ref => ref in DEBUFF_REGISTRY, "escalateTo must be a key in DEBUFF_REGISTRY").optional(),
     escalateDamage: z.number().nonnegative().optional(),
     escalateDamageType: z.enum(["physical", "magical", "true"]).default("true"),
+  }),
+  z.object({
+    kind: z.literal("alternating"),
+    alternationKey: z.string().min(1),
+    repeatDamage: z.number().nonnegative().optional(),
+    repeatDamageType: z.enum(["physical", "magical", "true"]).default("true"),
+    repeatApply: z.string().refine(ref => ref in DEBUFF_REGISTRY, "repeatApply must be a key in DEBUFF_REGISTRY").optional(),
   }),
   z.object({
     kind: z.literal("primordialCrust"),

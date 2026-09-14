@@ -1,0 +1,216 @@
+players: {}
+
+solvers:
+  generic:
+    # Keep the chosen elemental dodge through the slightly later Thunder resolution. This also
+    # prevents the beam's newly-swapped debuff from making bots cross sides after taking the beam.
+    - { when: { mechanic: element-2 }, startAt: 67, endAt: 67.35, freeze: true }
+    - { when: { mechanic: element-3 }, startAt: 79, endAt: 79.55, freeze: true }
+
+    # Elemental candidates stay in the same left/right quadrant selected for the current beam.
+    # The engine chooses the nearest candidate outside the live Ancient III footprint.
+    - &dodge3Right
+      when: { mechanic: element-1, selectedEvent: beam-3-a-blue, debuff: Growing Panic }
+      startAt: 50.9
+      endAt: 55.1
+      frame: &head3 [{ boss: { id: head-3, from: position } }]
+      safeSpots: &rightDodge
+        # Prefer a short lateral dodge for Blizzard/Thunder. Fire rejects these inner points.
+        - { r: 2, z: 2 }
+        - { r: 4, z: 2 }
+        - { r: 6, z: 2 }
+        - { r: 8, z: 2 }
+        - { r: 10, z: 2 }
+        - { r: 5, z: 5 }
+        - { r: 7, z: 5 }
+        - { r: 9, z: 5 }
+        - { r: 11, z: 5 }
+        - { r: 2, z: 15.5 }
+        - { r: 4.2, z: 14.9 }
+        - { r: 6.1, z: 14.3 }
+        - { r: 8, z: 13.9 }
+        - { r: 10, z: 12.5 }
+        - { r: 12.5, z: 10 }
+        - { r: 13.9, z: 8 }
+        - { r: 14.3, z: 6.1 }
+        - { r: 14.9, z: 4.2 }
+        - { r: 15.5, z: 2 }
+    - <<: *dodge3Right
+      when: { mechanic: element-1, selectedEvent: beam-3-b-purple, debuff: Growing Dread }
+    - &dodge3Left
+      <<: *dodge3Right
+      when: { mechanic: element-1, selectedEvent: beam-3-a-purple, debuff: Growing Dread }
+      safeSpots: &leftDodge
+        - { r: -2, z: 2 }
+        - { r: -4, z: 2 }
+        - { r: -6, z: 2 }
+        - { r: -8, z: 2 }
+        - { r: -10, z: 2 }
+        - { r: -5, z: 5 }
+        - { r: -7, z: 5 }
+        - { r: -9, z: 5 }
+        - { r: -11, z: 5 }
+        - { r: -2, z: 15.5 }
+        - { r: -4.2, z: 14.9 }
+        - { r: -6.1, z: 14.3 }
+        - { r: -8, z: 13.9 }
+        - { r: -10, z: 12.5 }
+        - { r: -12.5, z: 10 }
+        - { r: -13.9, z: 8 }
+        - { r: -14.3, z: 6.1 }
+        - { r: -14.9, z: 4.2 }
+        - { r: -15.5, z: 2 }
+    - <<: *dodge3Left
+      when: { mechanic: element-1, selectedEvent: beam-3-b-blue, debuff: Growing Panic }
+
+    - &dodge5Right
+      <<: *dodge3Right
+      when: { mechanic: element-2, selectedEvent: beam-5-a-blue, debuff: Growing Panic }
+      startAt: 62.1
+      endAt: 67
+      frame: &head5 [{ boss: { id: head-5, from: position } }]
+    - <<: *dodge5Right
+      when: { mechanic: element-2, selectedEvent: beam-5-b-purple, debuff: Growing Dread }
+    - &dodge5Left
+      <<: *dodge5Right
+      when: { mechanic: element-2, selectedEvent: beam-5-a-purple, debuff: Growing Dread }
+      safeSpots: *leftDodge
+    - <<: *dodge5Left
+      when: { mechanic: element-2, selectedEvent: beam-5-b-blue, debuff: Growing Panic }
+
+    - &dodge7Right
+      <<: *dodge3Right
+      when: { mechanic: element-3, selectedEvent: beam-7-a-blue, debuff: Growing Panic }
+      startAt: 74.3
+      endAt: 79
+      frame: &head7 [{ boss: { id: head-7, from: position } }]
+    - <<: *dodge7Right
+      when: { mechanic: element-3, selectedEvent: beam-7-b-purple, debuff: Growing Dread }
+    - &dodge7Left
+      <<: *dodge7Right
+      when: { mechanic: element-3, selectedEvent: beam-7-a-purple, debuff: Growing Dread }
+      safeSpots: *leftDodge
+    - <<: *dodge7Left
+      when: { mechanic: element-3, selectedEvent: beam-7-b-blue, debuff: Growing Panic }
+
+    # Stage two yalms to the appropriate side at the boss hitbox, between Necrophobia and the
+    # head that will fire next. Branch A is blue-right/purple-left; branch B reverses the sides.
+    - &stage1Right
+      when: { selectedEvent: beam-1-a-blue, debuff: Growing Panic }
+      startAt: 36.5
+      endAt: 43.08
+      frame: &head1 [{ boss: { id: head-1, from: position } }]
+      spot: &rightBoss { r: 2, z: 2 }
+    - <<: *stage1Right
+      when: { selectedEvent: beam-1-b-purple, debuff: Growing Dread }
+    - &stage1Left
+      <<: *stage1Right
+      when: { selectedEvent: beam-1-a-purple, debuff: Growing Dread }
+      spot: &leftBoss { r: -2, z: 2 }
+    - <<: *stage1Left
+      when: { selectedEvent: beam-1-b-blue, debuff: Growing Panic }
+
+    - &stage2Right
+      <<: *stage1Right
+      when: { selectedEvent: beam-2-a-blue, debuff: Growing Panic }
+      startAt: 43.09
+      endAt: 49.08
+      frame: &head2 [{ boss: { id: head-2, from: position } }]
+    - <<: *stage2Right
+      when: { selectedEvent: beam-2-b-purple, debuff: Growing Dread }
+    - &stage2Left
+      <<: *stage2Right
+      when: { selectedEvent: beam-2-a-purple, debuff: Growing Dread }
+      spot: *leftBoss
+    - <<: *stage2Left
+      when: { selectedEvent: beam-2-b-blue, debuff: Growing Panic }
+
+    - &stage3Right
+      <<: *stage1Right
+      when: { selectedEvent: beam-3-a-blue, debuff: Growing Panic }
+      startAt: 49.09
+      endAt: 55.1
+      frame: *head3
+    - <<: *stage3Right
+      when: { selectedEvent: beam-3-b-purple, debuff: Growing Dread }
+    - &stage3Left
+      <<: *stage3Right
+      when: { selectedEvent: beam-3-a-purple, debuff: Growing Dread }
+      spot: *leftBoss
+    - <<: *stage3Left
+      when: { selectedEvent: beam-3-b-blue, debuff: Growing Panic }
+
+    - &stage4Right
+      <<: *stage1Right
+      when: { selectedEvent: beam-4-a-blue, debuff: Growing Panic }
+      startAt: 55.11
+      endAt: 61.08
+      frame: &head4 [{ boss: { id: head-4, from: position } }]
+    - <<: *stage4Right
+      when: { selectedEvent: beam-4-b-purple, debuff: Growing Dread }
+    - &stage4Left
+      <<: *stage4Right
+      when: { selectedEvent: beam-4-a-purple, debuff: Growing Dread }
+      spot: *leftBoss
+    - <<: *stage4Left
+      when: { selectedEvent: beam-4-b-blue, debuff: Growing Panic }
+
+    - &stage5Right
+      <<: *stage1Right
+      when: { selectedEvent: beam-5-a-blue, debuff: Growing Panic }
+      startAt: 61.09
+      endAt: 67
+      frame: *head5
+    - <<: *stage5Right
+      when: { selectedEvent: beam-5-b-purple, debuff: Growing Dread }
+    - &stage5Left
+      <<: *stage5Right
+      when: { selectedEvent: beam-5-a-purple, debuff: Growing Dread }
+      spot: *leftBoss
+    - <<: *stage5Left
+      when: { selectedEvent: beam-5-b-blue, debuff: Growing Panic }
+
+    - &stage6Right
+      <<: *stage1Right
+      when: { selectedEvent: beam-6-a-blue, debuff: Growing Panic }
+      startAt: 67.36
+      endAt: 73.08
+      frame: &head6 [{ boss: { id: head-6, from: position } }]
+    - <<: *stage6Right
+      when: { selectedEvent: beam-6-b-purple, debuff: Growing Dread }
+    - &stage6Left
+      <<: *stage6Right
+      when: { selectedEvent: beam-6-a-purple, debuff: Growing Dread }
+      spot: *leftBoss
+    - <<: *stage6Left
+      when: { selectedEvent: beam-6-b-blue, debuff: Growing Panic }
+
+    - &stage7Right
+      <<: *stage1Right
+      when: { selectedEvent: beam-7-a-blue, debuff: Growing Panic }
+      startAt: 73.09
+      endAt: 79
+      frame: *head7
+    - <<: *stage7Right
+      when: { selectedEvent: beam-7-b-purple, debuff: Growing Dread }
+    - &stage7Left
+      <<: *stage7Right
+      when: { selectedEvent: beam-7-a-purple, debuff: Growing Dread }
+      spot: *leftBoss
+    - <<: *stage7Left
+      when: { selectedEvent: beam-7-b-blue, debuff: Growing Panic }
+
+    - &stage8Right
+      <<: *stage1Right
+      when: { selectedEvent: beam-8-a-blue, debuff: Growing Panic }
+      startAt: 79.56
+      endAt: 85.1
+      frame: &head8 [{ boss: { id: head-8, from: position } }]
+    - <<: *stage8Right
+      when: { selectedEvent: beam-8-b-purple, debuff: Growing Dread }
+    - &stage8Left
+      <<: *stage8Right
+      when: { selectedEvent: beam-8-a-purple, debuff: Growing Dread }
+      spot: *leftBoss
+    - <<: *stage8Left
+      when: { selectedEvent: beam-8-b-blue, debuff: Growing Panic }

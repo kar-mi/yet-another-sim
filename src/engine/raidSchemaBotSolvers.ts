@@ -34,6 +34,7 @@ const GenericSolverRuleSchema = z.object({
     // segment-prefix match on a resolved mechanic id OR an exact match on one of its labels;
     // an array requires all listed mechanics at once
     mechanic: z.union([EventIdSchema, z.array(EventIdSchema).min(1)]).optional(),
+    selectedEvent: z.union([EventIdSchema, z.array(EventIdSchema).min(1)]).optional(),
     role: z.union([RoleSchema, z.array(RoleSchema).min(1)]).optional(),
     debuff: DebuffMatchSchema.optional(),        // active effect name(s) on the bot (all required)
     partyDebuff: DebuffMatchSchema.optional(),   // active effect name(s) anywhere in the party
@@ -53,6 +54,7 @@ const GenericSolverRuleSchema = z.object({
   mirrorForward: z.boolean().optional(),
   spots: z.record(z.string().min(1), SolverSpotSchema).optional(),
   spot: SolverSpotSchema.optional(),
+  safeSpots: z.array(SolverSpotSchema).min(1).optional(),
   // Limit Cut ring placement; `spots[n-1]` (relative/polar) is rotated by the basis of the limit cut
   // named in when.mechanic (see GenericSolverRule.limitCutSpread).
   limitCutSpread: z.object({ spots: z.array(z.union([RelativeSpotSchema, PolarSpotSchema])).min(1) }).optional(),
@@ -67,14 +69,14 @@ const GenericSolverRuleSchema = z.object({
     order: z.union([z.literal(0), z.literal(1), z.literal(2)]),
   }).optional(),
 }).superRefine((rule, ctx) => {
-  const hasCondition = rule.when.static === true || rule.when.mechanic !== undefined || rule.when.debuff !== undefined
+  const hasCondition = rule.when.static === true || rule.when.mechanic !== undefined || rule.when.selectedEvent !== undefined || rule.when.debuff !== undefined
     || rule.when.partyDebuff !== undefined || rule.when.partnerDebuff !== undefined || rule.when.plant !== undefined;
   if (!hasCondition) {
-    ctx.addIssue({ code: "custom", path: ["when"], message: "rule must have when.static: true or at least one of when.mechanic / when.debuff / when.partyDebuff / when.partnerDebuff / when.plant" });
+    ctx.addIssue({ code: "custom", path: ["when"], message: "rule must have when.static: true or at least one of when.mechanic / when.selectedEvent / when.debuff / when.partyDebuff / when.partnerDebuff / when.plant" });
   }
   // freeze holds the bot wherever it already is, so it must not also set a computed target.
   if (rule.freeze) {
-    if (rule.spot !== undefined || rule.spots !== undefined || rule.frame !== undefined
+    if (rule.spot !== undefined || rule.spots !== undefined || rule.safeSpots !== undefined || rule.frame !== undefined
       || rule.limitCutSpread !== undefined || rule.nearestEdge !== undefined || rule.tetherMidpoint !== undefined) {
       ctx.addIssue({ code: "custom", path: ["freeze"], message: "freeze holds the bot at its current position; do not also set spot / spots / frame / limitCutSpread / nearestEdge / tetherMidpoint" });
     }
@@ -84,7 +86,7 @@ const GenericSolverRuleSchema = z.object({
   // the usual frame/spot/spots placement, like limitCutSpread and freeze.
   if (rule.nearestEdge !== undefined) {
     if (rule.frame !== undefined || rule.origin !== undefined || rule.spot !== undefined
-      || rule.spots !== undefined || rule.limitCutSpread !== undefined || rule.tetherMidpoint !== undefined) {
+      || rule.spots !== undefined || rule.safeSpots !== undefined || rule.limitCutSpread !== undefined || rule.tetherMidpoint !== undefined) {
       ctx.addIssue({ code: "custom", path: ["nearestEdge"], message: "nearestEdge returns absolute coords; do not also set frame / origin / spot / spots / limitCutSpread / tetherMidpoint" });
     }
     return;
@@ -107,13 +109,19 @@ const GenericSolverRuleSchema = z.object({
     if (rule.when.mechanic === undefined) {
       ctx.addIssue({ code: "custom", path: ["limitCutSpread"], message: "limitCutSpread requires when.mechanic naming the limit cut" });
     }
-    if (rule.frame !== undefined || rule.spot !== undefined || rule.spots !== undefined) {
+    if (rule.frame !== undefined || rule.spot !== undefined || rule.spots !== undefined || rule.safeSpots !== undefined) {
       ctx.addIssue({ code: "custom", path: ["limitCutSpread"], message: "limitCutSpread returns absolute coords; do not also set frame / spot / spots" });
     }
     return;
   }
   if ((rule.when.soaks !== undefined || rule.frame === "matched") && rule.when.mechanic === undefined) {
     ctx.addIssue({ code: "custom", path: ["when"], message: "when.soaks and frame: \"matched\" require when.mechanic" });
+  }
+  if (rule.safeSpots !== undefined && rule.when.mechanic === undefined) {
+    ctx.addIssue({ code: "custom", path: ["safeSpots"], message: "safeSpots requires when.mechanic naming the AOE(s) to avoid" });
+  }
+  if (rule.safeSpots !== undefined && (rule.spot !== undefined || rule.spots !== undefined)) {
+    ctx.addIssue({ code: "custom", path: ["safeSpots"], message: "safeSpots cannot be combined with spot / spots" });
   }
   if (rule.origin !== undefined && rule.frame === undefined) {
     ctx.addIssue({ code: "custom", path: ["origin"], message: "origin requires a frame" });
@@ -124,10 +132,10 @@ const GenericSolverRuleSchema = z.object({
   if (rule.mirrorForward && !Array.isArray(rule.frame)) {
     ctx.addIssue({ code: "custom", path: ["mirrorForward"], message: "mirrorForward requires a reference-list frame" });
   }
-  if (rule.spots === undefined && rule.spot === undefined) {
-    ctx.addIssue({ code: "custom", path: ["spot"], message: "rule must have at least one of spot / spots" });
+  if (rule.spots === undefined && rule.spot === undefined && rule.safeSpots === undefined) {
+    ctx.addIssue({ code: "custom", path: ["spot"], message: "rule must have at least one of spot / spots / safeSpots" });
   }
-  const spots = [rule.spot, ...Object.values(rule.spots ?? {})]
+  const spots = [rule.spot, ...Object.values(rule.spots ?? {}), ...(rule.safeSpots ?? [])]
     .filter((spot): spot is NonNullable<typeof spot> => spot !== undefined);
   const hasInvalidSpot = rule.frame === undefined
     ? spots.some(spot => !("x" in spot))
