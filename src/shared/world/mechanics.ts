@@ -721,6 +721,7 @@ export type PendingDivebomb = {
 };
 
 export type PendingBossTeleport = {
+  facing?: number;
   id: string;
   t: number;
   name: string;

@@ -228,22 +228,33 @@ export function applyKnockback(player: Player, knockback: Knockback, origin: Vec
   }
 }
 
+function effectReapplicationKey(behavior: EffectBehavior): string | undefined {
+  if (behavior.kind === "escalating") return behavior.escalationKey;
+  if (behavior.kind === "alternating") return behavior.alternationKey;
+  return undefined;
+}
+
 export function applyEffect(dc: DamageContext, player: Player, spec: EffectSpec, id: string, players: Player[], plantSlot?: number, limitCutNumber?: number): void {
   const time = dc.time;
-  if (spec.behavior.kind === "escalating") {
-    const incoming = spec.behavior;
-    const existing = player.effects.find(effect =>
-      isEffectActiveAt(effect, time)
-      && effect.behavior.kind === "escalating"
-      && effect.behavior.escalationKey === incoming.escalationKey
-    );
-    if (existing?.behavior.kind === "escalating") {
-      if (existing.behavior.escalateDamage !== undefined) {
-        applyMechanicDamage(dc, player, existing.behavior.escalateDamage, existing.behavior.escalateDamageType ?? "true", effectSource(existing));
-      }
-      if (existing.behavior.escalateTo !== undefined) {
-        player.effects = player.effects.filter(effect => effect !== existing);
-        const next = resolveEffectRef({ ref: existing.behavior.escalateTo });
+  const incoming = spec.behavior;
+  const key = effectReapplicationKey(incoming);
+  const existing = key === undefined ? undefined : player.effects.find(effect =>
+    isEffectActiveAt(effect, time)
+    && effect.behavior.kind === incoming.kind
+    && effectReapplicationKey(effect.behavior) === key
+  );
+  if (existing) {
+    const behavior = existing.behavior;
+    if (behavior.kind === "alternating" && existing.name !== spec.name) {
+      player.effects = player.effects.filter(effect => effect !== existing);
+    } else if (behavior.kind === "escalating" || behavior.kind === "alternating") {
+      const damage = behavior.kind === "escalating" ? behavior.escalateDamage : behavior.repeatDamage;
+      const damageType = behavior.kind === "escalating" ? behavior.escalateDamageType : behavior.repeatDamageType;
+      const nextRef = behavior.kind === "escalating" ? behavior.escalateTo : behavior.repeatApply;
+      if (damage !== undefined) applyMechanicDamage(dc, player, damage, damageType ?? "true", effectSource(existing));
+      if (nextRef !== undefined) {
+        if (behavior.kind === "escalating") player.effects = player.effects.filter(effect => effect !== existing);
+        const next = resolveEffectRef({ ref: nextRef });
         if (next) applyEffect(dc, player, next, id, players, plantSlot, limitCutNumber);
       }
       return;

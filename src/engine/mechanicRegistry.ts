@@ -140,6 +140,7 @@ const bossTeleport: MechanicModule = {
       bossId: e.bossId,
       spots: e.spots.map(toVec2),
       rng: e.rng,
+      facing: e.facing,
     });
   },
   resolve: ctx => ({ pendingBossTeleports: resolveBossTeleports(ctx) }),

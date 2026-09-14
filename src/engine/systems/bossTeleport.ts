@@ -13,7 +13,7 @@ export function resolveBossTeleports(ctx: TickContext): PendingBossTeleport[] {
     if (!boss) continue;
     const spot = pending.spots[pending.rng ? ctx.randInt(pending.spots.length) : 0]!;
     boss.pos = { ...spot };
-    boss.facing = atan2(-spot.x, -spot.z);
+    boss.facing = pending.facing ?? atan2(-spot.x, -spot.z);
     boss.hidden = false;
   }
   return remaining;

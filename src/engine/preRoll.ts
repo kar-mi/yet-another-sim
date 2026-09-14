@@ -336,6 +336,39 @@ function buildPairingPlan(
   return { partners, playerGroups, initialCharges, rngState: nextState };
 }
 
+function applyHeadSequence(
+  events: RaidDef["events"],
+  sequence: NonNullable<RaidDef["optionals"]>["headSequence"],
+  rngState: number,
+  decisions: PreRollDecisions,
+  constraints: RngConstraints,
+): { events: RaidDef["events"]; rngState: number } {
+  if (!sequence) return { events, rngState };
+  const choose = (key: string, count: number) => {
+    if (!sequence.rng) return 0;
+    const roll = randomInt(rngState, count);
+    rngState = roll.state;
+    return selected(`head-sequence-${key}`, roll.value, constraints, decisions);
+  };
+  const first = choose("first", 2);
+  const groups = [sequence.cardinals, sequence.intercards];
+  const spots = [0, 1].flatMap(group => {
+    const ring = groups[(first + group) % 2];
+    const start = choose(`group-${group + 1}-start`, 4);
+    const direction = choose(`group-${group + 1}-direction`, 2) === 0 ? 1 : -1;
+    return Array.from({ length: 4 }, (_, i) => ring[(start + direction * i + 4) % 4]);
+  });
+  return {
+    events: events.map(event => {
+      if (event.type !== "teleport_boss") return event;
+      const index = sequence.events.indexOf(event.id);
+      if (index < 0) return event;
+      return { ...event, spots: [spots[index]], rng: false };
+    }),
+    rngState,
+  };
+}
+
 export function preRollRaid(raid: RaidDef, seed: number, constraints: RngConstraints = {}): {
   events: RaidDef["events"];
   plantPlan: Record<string, [number, number][]>;
@@ -363,8 +396,9 @@ export function preRollRaid(raid: RaidDef, seed: number, constraints: RngConstra
   const { events: swappedEvents, rngState: afterOrderSwapRngState } = applyOrderSwap(rotatedEvents, raid.optionals?.orderSwap, afterEndingRngState, decisions, constraints);
   const { events: sweptEvents, rngState: afterDivebombSweepRngState } = rotateDivebombSweep(swappedEvents, raid.optionals?.divebombSweep, afterOrderSwapRngState, decisions, constraints);
   const { events: selectedEvents, rngState: afterEventSetRngState } = applyEventSets(sweptEvents, raid.optionals?.combinations?.eventSets, afterDivebombSweepRngState, decisions, constraints);
-  const { events: hazardEvents, rngState, blackHoleTethers } = applyBlackHoleSpots(selectedEvents, afterEventSetRngState, decisions, constraints);
-  const events = hazardEvents.map(e =>
+  const { events: hazardEvents, rngState: afterBlackHoleRngState, blackHoleTethers } = applyBlackHoleSpots(selectedEvents, afterEventSetRngState, decisions, constraints);
+  const { events: headEvents, rngState } = applyHeadSequence(hazardEvents, raid.optionals?.headSequence, afterBlackHoleRngState, decisions, constraints);
+  const events = headEvents.map(e =>
     endingOffsets[e.id] === undefined
       ? e
       : { ...e, directionOffset: endingOffsets[e.id], ...(endingNames[e.id] !== undefined ? { name: endingNames[e.id] } : {}) },

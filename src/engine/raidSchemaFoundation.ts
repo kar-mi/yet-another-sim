@@ -151,6 +151,13 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     escalateDamageType: z.enum(["physical", "magical", "true"]).default("true"),
   }),
   z.object({
+    kind: z.literal("alternating"),
+    alternationKey: z.string().min(1),
+    repeatDamage: z.number().nonnegative().optional(),
+    repeatDamageType: z.enum(["physical", "magical", "true"]).default("true"),
+    repeatApply: z.string().refine(ref => ref in DEBUFF_REGISTRY, "repeatApply must be a key in DEBUFF_REGISTRY").optional(),
+  }),
+  z.object({
     kind: z.literal("primordialCrust"),
     expiryDamage: z.number().nonnegative(),
     expiryDamageType: z.enum(["physical", "magical", "true"]).default("true"),

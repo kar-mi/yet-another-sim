@@ -1,0 +1,621 @@
+name: Fertile Ground
+arena:
+  floorPlan: dmu-p1
+  zones:
+    - { kind: circle, center: [0, 0], radius: 20 }
+duration: 86.4
+bosses:
+  - { id: necrophobia, preset: exdeath, pos: [0, 0] }
+  - { id: head-1, preset: severing_head, pos: [0, 0], targetable: false, hidden: true }
+  - { id: head-2, preset: severing_head, pos: [0, 0], targetable: false, hidden: true }
+  - { id: head-3, preset: severing_head, pos: [0, 0], targetable: false, hidden: true }
+  - { id: head-4, preset: severing_head, pos: [0, 0], targetable: false, hidden: true }
+  - { id: head-5, preset: severing_head, pos: [0, 0], targetable: false, hidden: true }
+  - { id: head-6, preset: severing_head, pos: [0, 0], targetable: false, hidden: true }
+  - { id: head-7, preset: severing_head, pos: [0, 0], targetable: false, hidden: true }
+  - { id: head-8, preset: severing_head, pos: [0, 0], targetable: false, hidden: true }
+players:
+  - { id: mt, role: tank, spawn: [0, 8] }
+  - { id: ot, role: tank, spawn: [0, -8] }
+  - { id: h1, role: healer, spawn: [-8, 0] }
+  - { id: h2, role: healer, spawn: [8, 0] }
+  - { id: r1, role: dps, spawn: [-5.66, 5.66] }
+  - { id: r2, role: dps, spawn: [5.66, 5.66] }
+  - { id: m1, role: dps, spawn: [-5.66, -5.66] }
+  - { id: m2, role: dps, spawn: [5.66, -5.66] }
+sections:
+  - { id: fertile-ground, name: Fertile Ground, t: 0 }
+  - { id: heads-roll, name: Heads Roll, t: 22.4 }
+  - { id: sowing-fear, name: Sowing Fear, t: 42.4 }
+optionals:
+  headSequence:
+    rng: true
+    events: [move-head-1, move-head-2, move-head-3, move-head-4, move-head-5, move-head-6, move-head-7, move-head-8]
+    cardinals: [[0, 18], [18, 0], [0, -18], [-18, 0]]
+    intercards: [[12.728, 12.728], [12.728, -12.728], [-12.728, -12.728], [-12.728, 12.728]]
+  combinations:
+    eventSets:
+      beam-1:
+        rng: true
+        sets:
+          - [beam-1-a-blue, beam-1-a-purple]
+          - [beam-1-b-blue, beam-1-b-purple]
+      beam-2:
+        rng: true
+        sets:
+          - [beam-2-a-blue, beam-2-a-purple]
+          - [beam-2-b-blue, beam-2-b-purple]
+      beam-3:
+        rng: true
+        sets:
+          - [beam-3-a-blue, beam-3-a-purple]
+          - [beam-3-b-blue, beam-3-b-purple]
+      beam-4:
+        rng: true
+        sets:
+          - [beam-4-a-blue, beam-4-a-purple]
+          - [beam-4-b-blue, beam-4-b-purple]
+      beam-5:
+        rng: true
+        sets:
+          - [beam-5-a-blue, beam-5-a-purple]
+          - [beam-5-b-blue, beam-5-b-purple]
+      beam-6:
+        rng: true
+        sets:
+          - [beam-6-a-blue, beam-6-a-purple]
+          - [beam-6-b-blue, beam-6-b-purple]
+      beam-7:
+        rng: true
+        sets:
+          - [beam-7-a-blue, beam-7-a-purple]
+          - [beam-7-b-blue, beam-7-b-purple]
+      beam-8:
+        rng: true
+        sets:
+          - [beam-8-a-blue, beam-8-a-purple]
+          - [beam-8-b-blue, beam-8-b-purple]
+      elements:
+        rng: true
+        sets:
+          - [ice-1-1, ice-1-2, ice-1-3, ice-1-4, thunder-2-1, thunder-2-2, thunder-2-3, thunder-2-4, fire-3]
+          - [ice-1-1, ice-1-2, ice-1-3, ice-1-4, fire-2, thunder-3-1, thunder-3-2, thunder-3-3, thunder-3-4]
+          - [thunder-1-1, thunder-1-2, thunder-1-3, thunder-1-4, ice-2-1, ice-2-2, ice-2-3, ice-2-4, fire-3]
+          - [thunder-1-1, thunder-1-2, thunder-1-3, thunder-1-4, fire-2, ice-3-1, ice-3-2, ice-3-3, ice-3-4]
+          - [fire-1, ice-2-1, ice-2-2, ice-2-3, ice-2-4, thunder-3-1, thunder-3-2, thunder-3-3, thunder-3-4]
+          - [fire-1, thunder-2-1, thunder-2-2, thunder-2-3, thunder-2-4, ice-3-1, ice-3-2, ice-3-3, ice-3-4]
+events:
+  - &cast
+    id: fertile-ground-cast
+    type: aoe
+    time: 0
+    name: Fertile Ground
+    bossId: necrophobia
+    telegraph: 5
+    damage: 0
+    damageType: magical
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: [0, 0], radius: 40 }
+  - <<: *cast
+    id: fertile-ground-hit
+    time: 5
+    telegraph: 2
+    showCastBar: false
+    damage: 10
+    applyEffects:
+      order: shuffleBalanced
+      effects: [{ ref: growing_dread }, { ref: growing_panic }]
+  - <<: *cast
+    id: capitation
+    time: 9.1
+    name: Capitation
+    telegraph: 0.9
+  - <<: *cast
+    id: death-shroud
+    time: 13.2
+    name: Death Shroud
+    telegraph: 7
+  - <<: *cast
+    id: heads-roll
+    time: 22.4
+    name: Heads Roll
+    telegraph: 3
+  - <<: *cast
+    id: spell-procession
+    time: 36.5
+    name: Spell Procession
+    telegraph: 5
+  - { id: spawn-head-1, type: teleport_boss, time: 10, name: Severing Head, bossId: head-1, spots: [[0.0, 3.0]], facing: 0.0 }
+  - { id: move-head-1, type: teleport_boss, time: 27.3, name: Heads Roll, bossId: head-1, spots: [[0, 18]] }
+  - { id: spawn-head-2, type: teleport_boss, time: 10, name: Severing Head, bossId: head-2, spots: [[2.1213, 2.1213]], facing: 0.7853981633974483 }
+  - { id: move-head-2, type: teleport_boss, time: 28.5, name: Heads Roll, bossId: head-2, spots: [[0, 18]] }
+  - { id: spawn-head-3, type: teleport_boss, time: 10, name: Severing Head, bossId: head-3, spots: [[3.0, 0.0]], facing: 1.5707963267948966 }
+  - { id: move-head-3, type: teleport_boss, time: 29.7, name: Heads Roll, bossId: head-3, spots: [[0, 18]] }
+  - { id: spawn-head-4, type: teleport_boss, time: 10, name: Severing Head, bossId: head-4, spots: [[2.1213, -2.1213]], facing: 2.356194490192345 }
+  - { id: move-head-4, type: teleport_boss, time: 30.9, name: Heads Roll, bossId: head-4, spots: [[0, 18]] }
+  - { id: spawn-head-5, type: teleport_boss, time: 10, name: Severing Head, bossId: head-5, spots: [[0.0, -3.0]], facing: 3.141592653589793 }
+  - { id: move-head-5, type: teleport_boss, time: 32.1, name: Heads Roll, bossId: head-5, spots: [[0, 18]] }
+  - { id: spawn-head-6, type: teleport_boss, time: 10, name: Severing Head, bossId: head-6, spots: [[-2.1213, -2.1213]], facing: 3.9269908169872414 }
+  - { id: move-head-6, type: teleport_boss, time: 33.3, name: Heads Roll, bossId: head-6, spots: [[0, 18]] }
+  - { id: spawn-head-7, type: teleport_boss, time: 10, name: Severing Head, bossId: head-7, spots: [[-3.0, -0.0]], facing: 4.71238898038469 }
+  - { id: move-head-7, type: teleport_boss, time: 34.5, name: Heads Roll, bossId: head-7, spots: [[0, 18]] }
+  - { id: spawn-head-8, type: teleport_boss, time: 10, name: Severing Head, bossId: head-8, spots: [[-2.1213, 2.1213]], facing: 5.497787143782138 }
+  - { id: move-head-8, type: teleport_boss, time: 35.7, name: Heads Roll, bossId: head-8, spots: [[0, 18]] }
+  - &beam
+    id: beam-1-a-blue
+    time: 42.4
+    bossId: head-1
+    directionOffset: -1.5707963267948966
+    color: "#3aa0ff"
+    applyEffect: { ref: growing_dread }
+    type: aoe
+    name: Sowing Fear
+    anchor: boss
+    directionFrom: bossFacing
+    telegraph: 0.67
+    telegraphMode: resolve
+    showCastBar: false
+    damage: 0
+    damageType: magical
+    shape: { kind: cone, angleDeg: 180, length: 40 }
+  - <<: *beam
+    id: beam-1-a-purple
+    time: 42.4
+    bossId: head-1
+    directionOffset: 1.5707963267948966
+    color: "#a855f7"
+    applyEffect: { ref: growing_panic }
+  - <<: *beam
+    id: beam-1-b-blue
+    time: 42.4
+    bossId: head-1
+    directionOffset: 1.5707963267948966
+    color: "#3aa0ff"
+    applyEffect: { ref: growing_dread }
+  - <<: *beam
+    id: beam-1-b-purple
+    time: 42.4
+    bossId: head-1
+    directionOffset: -1.5707963267948966
+    color: "#a855f7"
+    applyEffect: { ref: growing_panic }
+  - <<: *beam
+    id: beam-2-a-blue
+    time: 48.4
+    bossId: head-2
+    directionOffset: -1.5707963267948966
+    color: "#3aa0ff"
+    applyEffect: { ref: growing_dread }
+  - <<: *beam
+    id: beam-2-a-purple
+    time: 48.4
+    bossId: head-2
+    directionOffset: 1.5707963267948966
+    color: "#a855f7"
+    applyEffect: { ref: growing_panic }
+  - <<: *beam
+    id: beam-2-b-blue
+    time: 48.4
+    bossId: head-2
+    directionOffset: 1.5707963267948966
+    color: "#3aa0ff"
+    applyEffect: { ref: growing_dread }
+  - <<: *beam
+    id: beam-2-b-purple
+    time: 48.4
+    bossId: head-2
+    directionOffset: -1.5707963267948966
+    color: "#a855f7"
+    applyEffect: { ref: growing_panic }
+  - <<: *beam
+    id: beam-3-a-blue
+    time: 54.4
+    bossId: head-3
+    directionOffset: -1.5707963267948966
+    color: "#3aa0ff"
+    applyEffect: { ref: growing_dread }
+  - <<: *beam
+    id: beam-3-a-purple
+    time: 54.4
+    bossId: head-3
+    directionOffset: 1.5707963267948966
+    color: "#a855f7"
+    applyEffect: { ref: growing_panic }
+  - <<: *beam
+    id: beam-3-b-blue
+    time: 54.4
+    bossId: head-3
+    directionOffset: 1.5707963267948966
+    color: "#3aa0ff"
+    applyEffect: { ref: growing_dread }
+  - <<: *beam
+    id: beam-3-b-purple
+    time: 54.4
+    bossId: head-3
+    directionOffset: -1.5707963267948966
+    color: "#a855f7"
+    applyEffect: { ref: growing_panic }
+  - <<: *beam
+    id: beam-4-a-blue
+    time: 60.4
+    bossId: head-4
+    directionOffset: -1.5707963267948966
+    color: "#3aa0ff"
+    applyEffect: { ref: growing_dread }
+  - <<: *beam
+    id: beam-4-a-purple
+    time: 60.4
+    bossId: head-4
+    directionOffset: 1.5707963267948966
+    color: "#a855f7"
+    applyEffect: { ref: growing_panic }
+  - <<: *beam
+    id: beam-4-b-blue
+    time: 60.4
+    bossId: head-4
+    directionOffset: 1.5707963267948966
+    color: "#3aa0ff"
+    applyEffect: { ref: growing_dread }
+  - <<: *beam
+    id: beam-4-b-purple
+    time: 60.4
+    bossId: head-4
+    directionOffset: -1.5707963267948966
+    color: "#a855f7"
+    applyEffect: { ref: growing_panic }
+  - <<: *beam
+    id: beam-5-a-blue
+    time: 66.4
+    bossId: head-5
+    directionOffset: -1.5707963267948966
+    color: "#3aa0ff"
+    applyEffect: { ref: growing_dread }
+  - <<: *beam
+    id: beam-5-a-purple
+    time: 66.4
+    bossId: head-5
+    directionOffset: 1.5707963267948966
+    color: "#a855f7"
+    applyEffect: { ref: growing_panic }
+  - <<: *beam
+    id: beam-5-b-blue
+    time: 66.4
+    bossId: head-5
+    directionOffset: 1.5707963267948966
+    color: "#3aa0ff"
+    applyEffect: { ref: growing_dread }
+  - <<: *beam
+    id: beam-5-b-purple
+    time: 66.4
+    bossId: head-5
+    directionOffset: -1.5707963267948966
+    color: "#a855f7"
+    applyEffect: { ref: growing_panic }
+  - <<: *beam
+    id: beam-6-a-blue
+    time: 72.4
+    bossId: head-6
+    directionOffset: -1.5707963267948966
+    color: "#3aa0ff"
+    applyEffect: { ref: growing_dread }
+  - <<: *beam
+    id: beam-6-a-purple
+    time: 72.4
+    bossId: head-6
+    directionOffset: 1.5707963267948966
+    color: "#a855f7"
+    applyEffect: { ref: growing_panic }
+  - <<: *beam
+    id: beam-6-b-blue
+    time: 72.4
+    bossId: head-6
+    directionOffset: 1.5707963267948966
+    color: "#3aa0ff"
+    applyEffect: { ref: growing_dread }
+  - <<: *beam
+    id: beam-6-b-purple
+    time: 72.4
+    bossId: head-6
+    directionOffset: -1.5707963267948966
+    color: "#a855f7"
+    applyEffect: { ref: growing_panic }
+  - <<: *beam
+    id: beam-7-a-blue
+    time: 78.4
+    bossId: head-7
+    directionOffset: -1.5707963267948966
+    color: "#3aa0ff"
+    applyEffect: { ref: growing_dread }
+  - <<: *beam
+    id: beam-7-a-purple
+    time: 78.4
+    bossId: head-7
+    directionOffset: 1.5707963267948966
+    color: "#a855f7"
+    applyEffect: { ref: growing_panic }
+  - <<: *beam
+    id: beam-7-b-blue
+    time: 78.4
+    bossId: head-7
+    directionOffset: 1.5707963267948966
+    color: "#3aa0ff"
+    applyEffect: { ref: growing_dread }
+  - <<: *beam
+    id: beam-7-b-purple
+    time: 78.4
+    bossId: head-7
+    directionOffset: -1.5707963267948966
+    color: "#a855f7"
+    applyEffect: { ref: growing_panic }
+  - <<: *beam
+    id: beam-8-a-blue
+    time: 84.4
+    bossId: head-8
+    directionOffset: -1.5707963267948966
+    color: "#3aa0ff"
+    applyEffect: { ref: growing_dread }
+  - <<: *beam
+    id: beam-8-a-purple
+    time: 84.4
+    bossId: head-8
+    directionOffset: 1.5707963267948966
+    color: "#a855f7"
+    applyEffect: { ref: growing_panic }
+  - <<: *beam
+    id: beam-8-b-blue
+    time: 84.4
+    bossId: head-8
+    directionOffset: 1.5707963267948966
+    color: "#3aa0ff"
+    applyEffect: { ref: growing_dread }
+  - <<: *beam
+    id: beam-8-b-purple
+    time: 84.4
+    bossId: head-8
+    directionOffset: -1.5707963267948966
+    color: "#a855f7"
+    applyEffect: { ref: growing_panic }
+  - <<: *cast
+    id: ice-1-1
+    time: 50.1
+    name: Blizzard
+    damage: 40
+    avoidable: true
+    showCastBar: true
+    showTelegraph: true
+    shape: { kind: rect, direction: [0, 1], width: 8, length: 20 }
+  - <<: *cast
+    id: ice-1-2
+    time: 50.1
+    name: Blizzard
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: rect, direction: [1, 0], width: 8, length: 20 }
+  - <<: *cast
+    id: ice-1-3
+    time: 50.1
+    name: Blizzard
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: rect, direction: [0, -1], width: 8, length: 20 }
+  - <<: *cast
+    id: ice-1-4
+    time: 50.1
+    name: Blizzard
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: rect, direction: [-1, 0], width: 8, length: 20 }
+  - <<: *cast
+    id: thunder-1-1
+    time: 50.1
+    name: Thunder
+    damage: 40
+    avoidable: true
+    showCastBar: true
+    showTelegraph: true
+    shape: { kind: cone, direction: [1, 1], angleDeg: 60, length: 20 }
+  - <<: *cast
+    id: thunder-1-2
+    time: 50.1
+    name: Thunder
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: cone, direction: [1, -1], angleDeg: 60, length: 20 }
+  - <<: *cast
+    id: thunder-1-3
+    time: 50.1
+    name: Thunder
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: cone, direction: [-1, -1], angleDeg: 60, length: 20 }
+  - <<: *cast
+    id: thunder-1-4
+    time: 50.1
+    name: Thunder
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: cone, direction: [-1, 1], angleDeg: 60, length: 20 }
+  - <<: *cast
+    id: fire-1
+    time: 50.1
+    name: Fire
+    damage: 40
+    avoidable: true
+    showCastBar: true
+    showTelegraph: true
+    shape: { kind: circle, center: [0, 0], radius: 14 }
+  - <<: *cast
+    id: ice-2-1
+    time: 61.5
+    name: Blizzard
+    damage: 40
+    avoidable: true
+    showCastBar: true
+    showTelegraph: true
+    shape: { kind: rect, direction: [0, 1], width: 8, length: 20 }
+  - <<: *cast
+    id: ice-2-2
+    time: 61.5
+    name: Blizzard
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: rect, direction: [1, 0], width: 8, length: 20 }
+  - <<: *cast
+    id: ice-2-3
+    time: 61.5
+    name: Blizzard
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: rect, direction: [0, -1], width: 8, length: 20 }
+  - <<: *cast
+    id: ice-2-4
+    time: 61.5
+    name: Blizzard
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: rect, direction: [-1, 0], width: 8, length: 20 }
+  - <<: *cast
+    id: thunder-2-1
+    time: 62.3
+    name: Thunder
+    damage: 40
+    avoidable: true
+    showCastBar: true
+    showTelegraph: true
+    shape: { kind: cone, direction: [1, 1], angleDeg: 60, length: 20 }
+  - <<: *cast
+    id: thunder-2-2
+    time: 62.3
+    name: Thunder
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: cone, direction: [1, -1], angleDeg: 60, length: 20 }
+  - <<: *cast
+    id: thunder-2-3
+    time: 62.3
+    name: Thunder
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: cone, direction: [-1, -1], angleDeg: 60, length: 20 }
+  - <<: *cast
+    id: thunder-2-4
+    time: 62.3
+    name: Thunder
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: cone, direction: [-1, 1], angleDeg: 60, length: 20 }
+  - <<: *cast
+    id: fire-2
+    time: 61.5
+    name: Fire
+    damage: 40
+    avoidable: true
+    showCastBar: true
+    showTelegraph: true
+    shape: { kind: circle, center: [0, 0], radius: 14 }
+  - <<: *cast
+    id: ice-3-1
+    time: 73.7
+    name: Blizzard
+    damage: 40
+    avoidable: true
+    showCastBar: true
+    showTelegraph: true
+    shape: { kind: rect, direction: [0, 1], width: 8, length: 20 }
+  - <<: *cast
+    id: ice-3-2
+    time: 73.7
+    name: Blizzard
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: rect, direction: [1, 0], width: 8, length: 20 }
+  - <<: *cast
+    id: ice-3-3
+    time: 73.7
+    name: Blizzard
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: rect, direction: [0, -1], width: 8, length: 20 }
+  - <<: *cast
+    id: ice-3-4
+    time: 73.7
+    name: Blizzard
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: rect, direction: [-1, 0], width: 8, length: 20 }
+  - <<: *cast
+    id: thunder-3-1
+    time: 74.5
+    name: Thunder
+    damage: 40
+    avoidable: true
+    showCastBar: true
+    showTelegraph: true
+    shape: { kind: cone, direction: [1, 1], angleDeg: 60, length: 20 }
+  - <<: *cast
+    id: thunder-3-2
+    time: 74.5
+    name: Thunder
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: cone, direction: [1, -1], angleDeg: 60, length: 20 }
+  - <<: *cast
+    id: thunder-3-3
+    time: 74.5
+    name: Thunder
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: cone, direction: [-1, -1], angleDeg: 60, length: 20 }
+  - <<: *cast
+    id: thunder-3-4
+    time: 74.5
+    name: Thunder
+    damage: 40
+    avoidable: true
+    showCastBar: false
+    showTelegraph: true
+    shape: { kind: cone, direction: [-1, 1], angleDeg: 60, length: 20 }
+  - <<: *cast
+    id: fire-3
+    time: 73.7
+    name: Fire
+    damage: 40
+    avoidable: true
+    showCastBar: true
+    showTelegraph: true
+    shape: { kind: circle, center: [0, 0], radius: 14 }

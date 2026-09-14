@@ -567,6 +567,7 @@ const DivebombEventSchema = z.object({
 });
 
 const BossTeleportEventSchema = z.object({
+  facing: z.number().optional(),
   type: z.literal("teleport_boss"),
   id: EventIdSchema,
   time: z.number().nonnegative(),

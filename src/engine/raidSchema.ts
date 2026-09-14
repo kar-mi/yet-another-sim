@@ -38,6 +38,12 @@ const PairingPatternSchema = z.object({
 // `pairings` declares patterns of player pairs (one selected per run when `rng`), each carrying an
 // optional group label + initial charges that feed world.partners / playerGroups / initialCharges.
 const OptionalsSchema = z.object({
+  headSequence: z.object({
+    rng: z.boolean().default(false),
+    events: z.array(EventIdSchema).length(8).refine(ids => new Set(ids).size === ids.length, "headSequence events must be unique"),
+    cardinals: z.array(Vec2Schema).length(4),
+    intercards: z.array(Vec2Schema).length(4),
+  }).optional(),
   rngLabels: z.record(z.string().min(1), z.object({
     label: z.string().min(1).optional(),
     options: z.array(z.string().min(1)).optional(),
@@ -86,7 +92,7 @@ const OptionalsSchema = z.object({
 }).optional();
 
 // Exhaustive list of glb stems available under /static/model/. Add new boss models here.
-const BOSS_MODEL_NAMES = ["kefka", "chaos", "exdeath"] as const;
+const BOSS_MODEL_NAMES = ["kefka", "chaos", "exdeath", "dragon_head"] as const;
 export type BossModelName = (typeof BOSS_MODEL_NAMES)[number];
 const BossModelSchema = z.enum(BOSS_MODEL_NAMES);
 
@@ -106,6 +112,7 @@ const BossSchema = z.strictObject({
 // faces a specific tank from the start).
 const BossWithIdSchema = z.strictObject({
   id: RaidIdSchema,
+  preset: z.enum(BOSS_REGISTRY_IDS).optional(),
   pos: Vec2Schema.default([0, 0]),
   radius: z.number().positive().optional(),
   ring: z.object({
@@ -235,6 +242,12 @@ export const RaidSchema = z.object({
       return;
     }
     eventIds.set(event.id, { type: event.type, index: i });
+  });
+
+  raid.optionals?.headSequence?.events.forEach((id, i) => {
+    if (eventIds.get(id)?.type !== "teleport_boss") {
+      ctx.addIssue({ code: "custom", path: ["optionals", "headSequence", "events", i], message: `headSequence event "${id}" must reference a teleport_boss event` });
+    }
   });
 
   const seenSectionIds = new Set<string>();
@@ -561,13 +574,13 @@ export const RaidSchema = z.object({
     });
   }
 }).transform(data => {
-  const bosses = data.bosses?.map(({ id, pos, aggro, targetable, hidden, sink, ...overrides }) => ({
+  const bosses = data.bosses?.map(({ id, preset, pos, aggro, targetable, hidden, sink, ...overrides }) => ({
     id,
     pos,
     targetable,
     hidden,
     sink,
-    ...resolveBossIdentity(overrides, isBossRegistryId(id) ? id : DEFAULT_BOSS_ID),
+    ...resolveBossIdentity(overrides, preset ?? (isBossRegistryId(id) ? id : DEFAULT_BOSS_ID)),
     ...(aggro !== undefined ? { aggro } : {}),
   })) ?? [{
     id: "boss",
