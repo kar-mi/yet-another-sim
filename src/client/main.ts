@@ -202,6 +202,7 @@ async function main(): Promise<void> {
       }, botActions.button, hudLayout);
       renderer = liveRenderer;
       liveRenderer.init(world, sessionId, session.yourPlayerId);
+      const offBotsInvisible = net.on("lobby", message => liveRenderer.setBotsInvisible(message.botsInvisible));
       const dispose = await startSessionRuntime({
         renderer: liveRenderer,
         net,
@@ -214,6 +215,7 @@ async function main(): Promise<void> {
       maybeShowWelcomeModal();
       return () => {
         setSimulatorTourContext(null);
+        offBotsInvisible();
         dispose();
         botActions.dispose();
         renderer = null;
