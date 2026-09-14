@@ -2,6 +2,7 @@ import type { Vec2 } from "@shared/math";
 import { add, sub, scale, normalize, length, dot } from "@shared/math";
 import { cos, sin } from "@shared/dmath";
 import type { FrameRef, GenericSolverRule, Player, World } from "@shared/types";
+import { pointInShape } from "./shapes";
 
 // A live unresolved mechanic the generic solver can match against. `labels`/`group`/`pos` are carried
 // from the authored event (towers have a position; targeted/bait/aoe carry labels+group but no pos).
@@ -190,7 +191,7 @@ function ruleMatches(rule: GenericSolverRule, player: Player, world: World, mech
   // `static: true` adds no filter, making the rule always active subject to the optional clamps
   // and any other conditions. The schema requires the explicit flag instead of allowing an
   // accidental empty-object catch-all.
-  const { mechanic, role, debuff, partyDebuff, partnerDebuff, soaks, plant, plantSlot, endingFacing } = rule.when;
+  const { mechanic, selectedEvent, role, debuff, partyDebuff, partnerDebuff, soaks, plant, plantSlot, endingFacing } = rule.when;
   if (role !== undefined && !(Array.isArray(role) ? role : [role]).includes(player.role)) return null;
   if (debuff !== undefined && !hasAllDebuffs(player, debuff, time)) return null;
   if (partyDebuff !== undefined && !partyHasAllDebuffs(world, partyDebuff, time)) return null;
@@ -202,6 +203,14 @@ function ruleMatches(rule: GenericSolverRule, player: Player, world: World, mech
   if (plant !== undefined) {
     if (plantComboKey(player, world) !== plant) return null;
     if (plantSlot !== undefined && activePlantSlot(player) !== plantSlot) return null;
+  }
+  if (selectedEvent !== undefined) {
+    const required = Array.isArray(selectedEvent) ? selectedEvent : [selectedEvent];
+    const selected = [
+      ...world.pending.map(event => ({ id: event.id, labels: event.labels })),
+      ...world.active.filter(event => !event.resolved).map(event => ({ id: event.id, labels: event.labels })),
+    ];
+    if (!required.every(id => selected.some(event => idOrLabelMatches(id, event.id, event.labels)))) return null;
   }
 
   // The live mechanics matched by the first listed id, used by soaks / frame. A list requires every
@@ -467,6 +476,29 @@ export function genericSolverWaypoint(
         if (placement) return placement;
       }
       continue; // bot has no number yet: fall through to the next rule
+    }
+    if (rule.safeSpots) {
+      if (rule.frame === undefined) continue;
+      const north = frameNorth(rule.frame, matched, world);
+      if (!north) continue;
+      const rightSign = rule.mirrorLateral && rule.frame !== "matched"
+        ? genericFrameRightSign(rule.frame, world)
+        : 1;
+      const forwardSign = rule.mirrorForward && rule.frame !== "matched"
+        ? genericFrameForwardSign(rule.frame, world)
+        : 1;
+      const origin = originOffset(rule, world);
+      if (!origin) continue;
+      const required = Array.isArray(rule.when.mechanic) ? rule.when.mechanic : [rule.when.mechanic!];
+      const dangers = world.active.filter(event => !event.resolved
+        && event.telegraphStart <= world.time && world.time <= event.resolveAt
+        && required.some(id => idOrLabelMatches(id, event.id, event.labels)));
+      const safe = rule.safeSpots
+        .map(spot => add(origin, frameToWorld(spot, north, rightSign, forwardSign)))
+        .filter(target => dangers.every(event => !pointInShape(event.shape, target)))
+        .sort((a, b) => length(sub(a, player.pos)) - length(sub(b, player.pos)))[0];
+      if (safe) return safe;
+      continue;
     }
     const spot = rule.spots?.[player.id] ?? rule.spot;
     if (!spot) continue;

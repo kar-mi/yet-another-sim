@@ -4,6 +4,7 @@ arena:
   zones:
     - { kind: circle, center: [0, 0], radius: 20 }
 duration: 86.4
+botPatterns: fertile-ground-bots
 bosses:
   - { id: necrophobia, preset: exdeath, pos: [0, 0] }
   - &severingHead { id: head-1, preset: severing_head, pos: [0, 0], targetable: false, hidden: true, showInBossList: false }
@@ -225,6 +226,7 @@ events:
     showTelegraph: true
     telegraphMode: resolve
     flashBeforeResolve: { lead: 1 }
+    labels: &element1 [element-1]
     color: "#3aa0ff"
     shape: { kind: rect, direction: [0, 1], width: 8, length: 20 }
   - &ancientBlizzardEast
@@ -269,24 +271,24 @@ events:
     name: Ancient Fire III
     color: "#ff9999"
     shape: { kind: circle, center: [0, 0], radius: 14 }
-  - { <<: *ancientElemental, id: ice-2-1, time: 61.5 }
-  - { <<: *ancientBlizzardEast, id: ice-2-2, time: 61.5 }
-  - { <<: *ancientBlizzardSouth, id: ice-2-3, time: 61.5 }
-  - { <<: *ancientBlizzardWest, id: ice-2-4, time: 61.5 }
-  - { <<: *ancientThunderNortheast, id: thunder-2-1, time: 62.3 }
-  - { <<: *ancientThunderSoutheast, id: thunder-2-2, time: 62.3 }
-  - { <<: *ancientThunderSouthwest, id: thunder-2-3, time: 62.3 }
-  - { <<: *ancientThunderNorthwest, id: thunder-2-4, time: 62.3 }
-  - { <<: *ancientFire, id: fire-2, time: 61.5 }
-  - { <<: *ancientElemental, id: ice-3-1, time: 73.7 }
-  - { <<: *ancientBlizzardEast, id: ice-3-2, time: 73.7 }
-  - { <<: *ancientBlizzardSouth, id: ice-3-3, time: 73.7 }
-  - { <<: *ancientBlizzardWest, id: ice-3-4, time: 73.7 }
-  - { <<: *ancientThunderNortheast, id: thunder-3-1, time: 74.5 }
-  - { <<: *ancientThunderSoutheast, id: thunder-3-2, time: 74.5 }
-  - { <<: *ancientThunderSouthwest, id: thunder-3-3, time: 74.5 }
-  - { <<: *ancientThunderNorthwest, id: thunder-3-4, time: 74.5 }
-  - { <<: *ancientFire, id: fire-3, time: 73.7 }
+  - { <<: *ancientElemental, id: ice-2-1, time: 61.5, labels: &element2 [element-2] }
+  - { <<: *ancientBlizzardEast, id: ice-2-2, time: 61.5, labels: *element2 }
+  - { <<: *ancientBlizzardSouth, id: ice-2-3, time: 61.5, labels: *element2 }
+  - { <<: *ancientBlizzardWest, id: ice-2-4, time: 61.5, labels: *element2 }
+  - { <<: *ancientThunderNortheast, id: thunder-2-1, time: 62.3, labels: *element2 }
+  - { <<: *ancientThunderSoutheast, id: thunder-2-2, time: 62.3, labels: *element2 }
+  - { <<: *ancientThunderSouthwest, id: thunder-2-3, time: 62.3, labels: *element2 }
+  - { <<: *ancientThunderNorthwest, id: thunder-2-4, time: 62.3, labels: *element2 }
+  - { <<: *ancientFire, id: fire-2, time: 61.5, labels: *element2 }
+  - { <<: *ancientElemental, id: ice-3-1, time: 73.7, labels: &element3 [element-3] }
+  - { <<: *ancientBlizzardEast, id: ice-3-2, time: 73.7, labels: *element3 }
+  - { <<: *ancientBlizzardSouth, id: ice-3-3, time: 73.7, labels: *element3 }
+  - { <<: *ancientBlizzardWest, id: ice-3-4, time: 73.7, labels: *element3 }
+  - { <<: *ancientThunderNortheast, id: thunder-3-1, time: 74.5, labels: *element3 }
+  - { <<: *ancientThunderSoutheast, id: thunder-3-2, time: 74.5, labels: *element3 }
+  - { <<: *ancientThunderSouthwest, id: thunder-3-3, time: 74.5, labels: *element3 }
+  - { <<: *ancientThunderNorthwest, id: thunder-3-4, time: 74.5, labels: *element3 }
+  - { <<: *ancientFire, id: fire-3, time: 73.7, labels: *element3 }
 
 waymarks:
   - { mark: "A", pos: { x: 0, z: 14.6667 } }

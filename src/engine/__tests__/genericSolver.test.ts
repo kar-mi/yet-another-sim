@@ -126,6 +126,41 @@ test("first matching rule wins", () => {
   expect(genericSolverWaypoint(player({}), w)).toEqual({ x: 1, z: 1 });
 });
 
+test("selectedEvent matches a pre-rolled pending AOE before its telegraph", () => {
+  const w = world({
+    time: 2,
+    pending: [{ id: "beam-a-blue", labels: ["branch-a"], t: 10 }],
+    botSolvers: { generic: [{ when: { selectedEvent: "branch-a" }, spot: { x: 2, z: 2 } }] },
+  });
+  expect(genericSolverWaypoint(player({}), w)).toEqual({ x: 2, z: 2 });
+});
+
+test("safeSpots chooses the nearest framed candidate outside the matched live AOEs", () => {
+  const w = world({
+    time: 2,
+    active: [{
+      id: "fire", labels: ["element"], telegraphStart: 0, resolveAt: 5, resolved: false,
+      shape: { kind: "circle", center: { x: 0, z: 0 }, radius: 10 },
+    }],
+    bosses: [{ id: "head", pos: { x: 0, z: 18 } }],
+    botSolvers: { generic: [{
+      when: { mechanic: "element" },
+      frame: [{ boss: { id: "head", from: "position" } }],
+      safeSpots: [{ x: 2, z: 2 }, { x: 2, z: 12 }, { x: 12, z: 2 }],
+    }] },
+  });
+  expect(genericSolverWaypoint(player({ pos: { x: 2, z: 2 } }), w)).toEqual({ x: 2, z: 12 });
+});
+
+test("safeSpots schema requires a mechanic and forbids a competing fixed spot", () => {
+  expect(() => loadBotPatterns({
+    players: {}, solvers: { generic: [{ when: { static: true }, frame: [{ boss: { from: "position" } }], safeSpots: [{ r: 2, z: 12 }] }] },
+  })).toThrow(/requires when.mechanic/);
+  expect(() => loadBotPatterns({
+    players: {}, solvers: { generic: [{ when: { mechanic: "fire" }, frame: [{ boss: { from: "position" } }], spot: { r: 2, z: 2 }, safeSpots: [{ r: 2, z: 12 }] }] },
+  })).toThrow(/cannot be combined/);
+});
+
 test("freeze holds the bot at its current position instead of a configured spot", () => {
   const w = world({
     time: 2,
