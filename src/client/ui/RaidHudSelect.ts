@@ -385,7 +385,13 @@ export async function createRaidHudSelect(
   if (seek && timeInput && durationLabel) {
     const timeRow = el("div", { className: "yas-replay-time-row" });
     timeRow.append(timeInput, durationLabel);
+    const dragHandle = el("div", {
+      className: "yas-hud-drag-handle",
+      title: "Drag to move",
+      attrs: { "aria-hidden": "true" },
+    });
     seekWrapper = el("div", { id: "yas-replay-seekbar" }, [
+      dragHandle,
       el("span", { className: "yas-session-label", textContent: "PLAYBACK" }),
       controls,
       seek,
@@ -393,7 +399,7 @@ export async function createRaidHudSelect(
     seekWrapper.appendChild(timeRow);
     if (replayReview?.sections) seekWrapper.appendChild(replayReview.sections);
     document.body.appendChild(seekWrapper);
-    hudLayout.register("replayseek", seekWrapper);
+    hudLayout.register("replayseek", seekWrapper, { dragHandle });
   }
 
   return () => {
