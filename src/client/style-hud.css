@@ -200,12 +200,13 @@ img.party-effect-icon {
 }
 
 .yas-cast-name {
-  color: var(--px-text);
+  color: #fff;
   font-size: 17px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  text-shadow: 1px 1px 0 var(--px-shadow);
+  -webkit-text-stroke: 3px #000;
+  paint-order: stroke fill;
 }
 
 .yas-cast-track {
@@ -228,10 +229,11 @@ img.party-effect-icon {
 }
 
 .yas-cast-timer {
-  color: var(--px-text);
+  color: #fff;
   font-size: 14px;
   font-variant-numeric: tabular-nums;
-  text-shadow: 1px 1px 0 var(--px-shadow);
+  -webkit-text-stroke: 3px #000;
+  paint-order: stroke fill;
 }
 
 /* ===== Mini Boss Cast Panel ===== */
@@ -289,8 +291,9 @@ img.party-effect-icon {
   justify-content: center;
   font-size: 13px;
   letter-spacing: 0.05em;
-  color: var(--px-text);
-  text-shadow: 1px 1px 0 var(--px-shadow);
+  color: #fff;
+  -webkit-text-stroke: 3px #000;
+  paint-order: stroke fill;
   pointer-events: none;
   overflow: hidden;
   white-space: nowrap;
