@@ -105,6 +105,7 @@ const BossSchema = z.strictObject({
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   }).optional(),
   model: BossModelSchema.optional(),
+  showInBossList: z.boolean().optional(),
 }).default({ pos: [0, 0] });
 
 // Boss entry in a multi-boss `bosses:` list. Same fields as BossSchema plus a required id slug
@@ -120,6 +121,7 @@ const BossWithIdSchema = z.strictObject({
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
   }).optional(),
   model: BossModelSchema.optional(),
+  showInBossList: z.boolean().optional(),
   aggro: z.string().min(1).optional(),
   targetable: z.boolean().default(true),
   hidden: z.boolean().default(false),  // start with the model not drawn (a divebomb teleportBoss can reveal it)
@@ -127,6 +129,7 @@ const BossWithIdSchema = z.strictObject({
 });
 
 type BossIdentityOverrides = {
+  showInBossList?: boolean;
   model?: BossModelName;
   radius?: number;
   ring?: { scale?: number; color?: string };
@@ -136,6 +139,7 @@ function resolveBossIdentity(overrides: BossIdentityOverrides, registryId: BossR
   const preset = BOSS_REGISTRY[registryId];
   return {
     model: overrides.model ?? preset.model,
+    ...(overrides.showInBossList !== undefined ? { showInBossList: overrides.showInBossList } : {}),
     modelScale: preset.modelScale,
     radius: overrides.radius ?? preset.radius,
     ring: {

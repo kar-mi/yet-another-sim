@@ -46,6 +46,20 @@ export const WAYMARK_PRESETS: WaymarkPreset[] = [
       { mark: "4", pos: { x: -10, z: 10 } },
     ],
   },
+  {
+    id: "necrophobia",
+    name: "Necrophobia",
+    marks: [
+      { mark: "A", pos: { x: 0, z: 14.6667 } },
+      { mark: "B", pos: { x: 11, z: 0 } },
+      { mark: "C", pos: { x: 0, z: -14.6667 } },
+      { mark: "D", pos: { x: -11, z: 0 } },
+      { mark: "1", pos: { x: -7.3333, z: 11 } },
+      { mark: "2", pos: { x: 7.3333, z: 11 } },
+      { mark: "3", pos: { x: 7.3333, z: -11 } },
+      { mark: "4", pos: { x: -7.333, z: -11 } },
+    ],
+  },
 ];
 
 export function isWaymarkPresetId(id: string): boolean {

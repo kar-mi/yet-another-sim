@@ -31,6 +31,7 @@ export type Player = {
 };
 
 export type Boss = {
+  showInBossList?: boolean;
   id: string;
   pos: Vec2;
   hp: number;

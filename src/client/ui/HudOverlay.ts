@@ -413,6 +413,7 @@ export class HudOverlay {
   }
 
   private ensureBossCastRows(bosses: Boss[]): void {
+    bosses = bosses.filter(boss => boss.showInBossList !== false);
     const key = bosses.map(b => b.id).join(",");
     if (this.bossCastKey === key) return;
     this.bossCastKey = key;

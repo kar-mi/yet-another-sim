@@ -6,14 +6,14 @@ arena:
 duration: 86.4
 bosses:
   - { id: necrophobia, preset: exdeath, pos: [0, 0] }
-  - { id: head-1, preset: severing_head, pos: [0, 0], targetable: false, hidden: true }
-  - { id: head-2, preset: severing_head, pos: [0, 0], targetable: false, hidden: true }
-  - { id: head-3, preset: severing_head, pos: [0, 0], targetable: false, hidden: true }
-  - { id: head-4, preset: severing_head, pos: [0, 0], targetable: false, hidden: true }
-  - { id: head-5, preset: severing_head, pos: [0, 0], targetable: false, hidden: true }
-  - { id: head-6, preset: severing_head, pos: [0, 0], targetable: false, hidden: true }
-  - { id: head-7, preset: severing_head, pos: [0, 0], targetable: false, hidden: true }
-  - { id: head-8, preset: severing_head, pos: [0, 0], targetable: false, hidden: true }
+  - { id: head-1, preset: severing_head, pos: [0, 0], targetable: false, hidden: true, showInBossList: false }
+  - { id: head-2, preset: severing_head, pos: [0, 0], targetable: false, hidden: true, showInBossList: false }
+  - { id: head-3, preset: severing_head, pos: [0, 0], targetable: false, hidden: true, showInBossList: false }
+  - { id: head-4, preset: severing_head, pos: [0, 0], targetable: false, hidden: true, showInBossList: false }
+  - { id: head-5, preset: severing_head, pos: [0, 0], targetable: false, hidden: true, showInBossList: false }
+  - { id: head-6, preset: severing_head, pos: [0, 0], targetable: false, hidden: true, showInBossList: false }
+  - { id: head-7, preset: severing_head, pos: [0, 0], targetable: false, hidden: true, showInBossList: false }
+  - { id: head-8, preset: severing_head, pos: [0, 0], targetable: false, hidden: true, showInBossList: false }
 players:
   - { id: mt, role: tank, spawn: [0, 8] }
   - { id: ot, role: tank, spawn: [0, -8] }
@@ -85,6 +85,19 @@ optionals:
           - [fire-1, ice-2-1, ice-2-2, ice-2-3, ice-2-4, thunder-3-1, thunder-3-2, thunder-3-3, thunder-3-4]
           - [fire-1, thunder-2-1, thunder-2-2, thunder-2-3, thunder-2-4, ice-3-1, ice-3-2, ice-3-3, ice-3-4]
 events:
+  - { id: place-necrophobia, type: teleport_boss, time: 0, name: Necrophobia, bossId: necrophobia, spots: [[0, 0]], facing: 0 }
+  - type: aoe
+    id: keep-boss-still
+    time: 0
+    name: keep_boss_still
+    bossId: necrophobia
+    telegraph: 86.4
+    damage: 0
+    damageType: "true"
+    lockFacing: true
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: [0, 0], radius: 0.1 }
   - &cast
     id: fertile-ground-cast
     type: aoe
@@ -429,7 +442,7 @@ events:
     showTelegraph: true
     telegraphMode: resolve
     color: "#a855f7"
-    shape: { kind: cone, direction: [1, 1], angleDeg: 60, length: 20 }
+    shape: { kind: cone, direction: [1, 1], angleDeg: 45, length: 20 }
   - <<: *cast
     id: thunder-1-2
     time: 50.1
@@ -440,7 +453,7 @@ events:
     showTelegraph: true
     telegraphMode: resolve
     color: "#a855f7"
-    shape: { kind: cone, direction: [1, -1], angleDeg: 60, length: 20 }
+    shape: { kind: cone, direction: [1, -1], angleDeg: 45, length: 20 }
   - <<: *cast
     id: thunder-1-3
     time: 50.1
@@ -451,7 +464,7 @@ events:
     showTelegraph: true
     telegraphMode: resolve
     color: "#a855f7"
-    shape: { kind: cone, direction: [-1, -1], angleDeg: 60, length: 20 }
+    shape: { kind: cone, direction: [-1, -1], angleDeg: 45, length: 20 }
   - <<: *cast
     id: thunder-1-4
     time: 50.1
@@ -462,7 +475,7 @@ events:
     showTelegraph: true
     telegraphMode: resolve
     color: "#a855f7"
-    shape: { kind: cone, direction: [-1, 1], angleDeg: 60, length: 20 }
+    shape: { kind: cone, direction: [-1, 1], angleDeg: 45, length: 20 }
   - <<: *cast
     id: fire-1
     time: 50.1
@@ -528,7 +541,7 @@ events:
     showTelegraph: true
     telegraphMode: resolve
     color: "#a855f7"
-    shape: { kind: cone, direction: [1, 1], angleDeg: 60, length: 20 }
+    shape: { kind: cone, direction: [1, 1], angleDeg: 45, length: 20 }
   - <<: *cast
     id: thunder-2-2
     time: 62.3
@@ -539,7 +552,7 @@ events:
     showTelegraph: true
     telegraphMode: resolve
     color: "#a855f7"
-    shape: { kind: cone, direction: [1, -1], angleDeg: 60, length: 20 }
+    shape: { kind: cone, direction: [1, -1], angleDeg: 45, length: 20 }
   - <<: *cast
     id: thunder-2-3
     time: 62.3
@@ -550,7 +563,7 @@ events:
     showTelegraph: true
     telegraphMode: resolve
     color: "#a855f7"
-    shape: { kind: cone, direction: [-1, -1], angleDeg: 60, length: 20 }
+    shape: { kind: cone, direction: [-1, -1], angleDeg: 45, length: 20 }
   - <<: *cast
     id: thunder-2-4
     time: 62.3
@@ -561,7 +574,7 @@ events:
     showTelegraph: true
     telegraphMode: resolve
     color: "#a855f7"
-    shape: { kind: cone, direction: [-1, 1], angleDeg: 60, length: 20 }
+    shape: { kind: cone, direction: [-1, 1], angleDeg: 45, length: 20 }
   - <<: *cast
     id: fire-2
     time: 61.5
@@ -627,7 +640,7 @@ events:
     showTelegraph: true
     telegraphMode: resolve
     color: "#a855f7"
-    shape: { kind: cone, direction: [1, 1], angleDeg: 60, length: 20 }
+    shape: { kind: cone, direction: [1, 1], angleDeg: 45, length: 20 }
   - <<: *cast
     id: thunder-3-2
     time: 74.5
@@ -638,7 +651,7 @@ events:
     showTelegraph: true
     telegraphMode: resolve
     color: "#a855f7"
-    shape: { kind: cone, direction: [1, -1], angleDeg: 60, length: 20 }
+    shape: { kind: cone, direction: [1, -1], angleDeg: 45, length: 20 }
   - <<: *cast
     id: thunder-3-3
     time: 74.5
@@ -649,7 +662,7 @@ events:
     showTelegraph: true
     telegraphMode: resolve
     color: "#a855f7"
-    shape: { kind: cone, direction: [-1, -1], angleDeg: 60, length: 20 }
+    shape: { kind: cone, direction: [-1, -1], angleDeg: 45, length: 20 }
   - <<: *cast
     id: thunder-3-4
     time: 74.5
@@ -660,7 +673,7 @@ events:
     showTelegraph: true
     telegraphMode: resolve
     color: "#a855f7"
-    shape: { kind: cone, direction: [-1, 1], angleDeg: 60, length: 20 }
+    shape: { kind: cone, direction: [-1, 1], angleDeg: 45, length: 20 }
   - <<: *cast
     id: fire-3
     time: 73.7
@@ -672,3 +685,13 @@ events:
     telegraphMode: resolve
     color: "#ff9999"
     shape: { kind: circle, center: [0, 0], radius: 14 }
+
+waymarks:
+  - { mark: "A", pos: { x: 0, z: 14.6667 } }
+  - { mark: "B", pos: { x: 11, z: 0 } }
+  - { mark: "C", pos: { x: 0, z: -14.6667 } }
+  - { mark: "D", pos: { x: -11, z: 0 } }
+  - { mark: "1", pos: { x: -7.3333, z: 11 } }
+  - { mark: "2", pos: { x: 7.3333, z: 11 } }
+  - { mark: "3", pos: { x: 7.3333, z: -11 } }
+  - { mark: "4", pos: { x: -7.333, z: -11 } }

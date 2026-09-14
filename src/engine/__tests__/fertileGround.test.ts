@@ -1,4 +1,6 @@
 import { expect, test } from "bun:test";
+import { WAYMARK_PRESETS } from "@shared/waymarkPresets";
+import { tick } from "../sim";
 import { atan2 } from "@shared/dmath";
 import { preRollRaid } from "../preRoll";
 import { loadRaid } from "../raidLoader";
@@ -164,4 +166,27 @@ test("a north head's beam applies blue east and purple west, swapping opposite c
     expect(player.effects.map(effect => effect.name)).toEqual([i % 2 === 0 ? "Growing Dread" : "Growing Panic"]);
   }
   expect(world.log.filter(entry => entry.event === "avoidableHit")).toHaveLength(0);
+});
+
+test("Necrophobia stays targetable at center while heads remain off the boss list", () => {
+  let world = createWorld(raid, 42);
+  world.players.forEach(player => { player.invincible = true; });
+  expect(world.bosses.filter(boss => boss.showInBossList !== false).map(boss => boss.id)).toEqual(["necrophobia"]);
+  world = tick(world, noMove, 1 / 60);
+  world.players.find(player => player.id === "mt")!.pos = { x: 12, z: 0 };
+  const ticks = Math.floor((raid.duration - world.time) * 60) - 1;
+  for (let i = 0; i < ticks; i++) {
+    world = tick(world, noMove, 1 / 60);
+    expect(world.bosses[0].pos).toEqual({ x: 0, z: 0 });
+    expect(world.bosses[0].facing).toBe(0);
+  }
+  expect(world.bosses[0].targetable).toBe(true);
+  expect(world.bosses[0].currentTarget).not.toBeNull();
+});
+
+test("Necrophobia waymark preset matches raid defaults and the exported orientation", () => {
+  const marks = createWorld(raid, 1).waymarks;
+  expect(WAYMARK_PRESETS.find(preset => preset.id === "necrophobia")?.marks).toEqual(marks);
+  expect(marks.find(mark => mark.mark === "A")?.pos).toEqual({ x: 0, z: 14.6667 });
+  expect(marks.find(mark => mark.mark === "1")?.pos).toEqual({ x: -7.3333, z: 11 });
 });

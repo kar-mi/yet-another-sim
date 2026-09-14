@@ -68,6 +68,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed(), constraint
       model: bossDef.model,
       modelScale: bossDef.modelScale,
       targetable: bossDef.targetable,
+      showInBossList: bossDef.showInBossList,
       hidden: bossDef.hidden,
       sinkFraction: bossDef.sink,
     };
