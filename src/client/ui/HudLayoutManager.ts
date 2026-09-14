@@ -81,6 +81,8 @@ export class HudLayoutManager {
   private readonly applied = new Map<HudGroupId, HudPlacement>();
   private readonly pendingRefresh = new Set<HudGroupId>();
   private readonly observers = new Map<HudGroupId, ResizeObserver>();
+  /** Detach functions for the always-available drag handles some groups register. */
+  private readonly dragHandles = new Map<HudGroupId, () => void>();
   private layout: HudLayout;
   private uiScale: number;
   private gridEnabled = false;
@@ -97,10 +99,11 @@ export class HudLayoutManager {
     window.addEventListener("resize", this.onResize);
   }
 
-  register(id: HudGroupId, el: HTMLElement): void {
+  register(id: HudGroupId, el: HTMLElement, options: { dragHandle?: HTMLElement } = {}): void {
     this.groups.set(id, el);
     el.dataset.hudGroup = id;
     el.classList.toggle("yas-hud-suppressed", this.isSuppressed(id));
+    this.bindDragHandle(id, options.dragHandle);
     this.observe(id, el);
     this.applyGroup(id);
     if (this.overlay) this.createOutline(id);
@@ -110,6 +113,8 @@ export class HudLayoutManager {
     if (this.groups.has(id) && this.overlay) this.exitEditMode();
     this.observers.get(id)?.disconnect();
     this.observers.delete(id);
+    this.dragHandles.get(id)?.();
+    this.dragHandles.delete(id);
     this.groups.delete(id);
     this.captureTokens.delete(id);
     this.measures.delete(id);
@@ -368,12 +373,14 @@ export class HudLayoutManager {
 
   private startDrag(event: PointerEvent, id: HudGroupId): void {
     if (event.button !== 0) return;
+    const outline = this.outlines.get(id);
+    if (!outline) return;
     event.preventDefault();
     event.stopPropagation();
     this.selectGroup(id);
     const start = this.placementFor(id);
     const measure = this.measureFor(id);
-    this.runGesture(event, id, delta => {
+    this.runGesture(event, id, outline, delta => {
       const viewport = this.viewport();
       const grid = this.gridEnabled ? { width: viewport.width * GRID_STEP, height: viewport.height * GRID_STEP } : null;
       if (grid) this.overlay?.classList.add("yas-grid-dragging");
@@ -384,13 +391,15 @@ export class HudLayoutManager {
 
   private startResize(event: PointerEvent, id: HudGroupId, handle: HudHandle): void {
     if (event.button !== 0) return;
+    const outline = this.outlines.get(id);
+    if (!outline) return;
     event.preventDefault();
     event.stopPropagation();
     this.selectGroup(id);
     const start = this.placementFor(id);
     const measure = this.measureFor(id);
     const limits = { min: this.uiScale * HUD_MIN_SCALE, max: this.uiScale * HUD_MAX_SCALE };
-    this.runGesture(event, id, delta => {
+    this.runGesture(event, id, outline, delta => {
       const next = resizeGroup(start, handle, delta, measure, this.viewport(), limits);
       this.updateGroup(id, this.toEntry(next, true));
     });
@@ -409,19 +418,17 @@ export class HudLayoutManager {
     return patch;
   }
 
-  /** Runs a pointer gesture on an outline, persisting on release and restoring on cancel. */
-  private runGesture(event: PointerEvent, id: HudGroupId, onMove: (delta: HudPoint) => void): void {
-    const outline = this.outlines.get(id);
-    if (!outline) return;
+  /** Runs a pointer gesture on `target`, persisting on release and restoring on cancel. */
+  private runGesture(event: PointerEvent, id: HudGroupId, target: HTMLElement, onMove: (delta: HudPoint) => void): void {
     const before = this.layout[id] ? { ...this.layout[id]! } : null;
     const origin = { x: event.clientX, y: event.clientY };
-    outline.setPointerCapture(event.pointerId);
+    target.setPointerCapture(event.pointerId);
     const move = (moveEvent: PointerEvent) => onMove({ x: moveEvent.clientX - origin.x, y: moveEvent.clientY - origin.y });
     const finish = (endEvent: PointerEvent, cancelled: boolean) => {
-      if (outline.hasPointerCapture(endEvent.pointerId)) outline.releasePointerCapture(endEvent.pointerId);
-      outline.removeEventListener("pointermove", move);
-      outline.removeEventListener("pointerup", up);
-      outline.removeEventListener("pointercancel", cancel);
+      if (target.hasPointerCapture(endEvent.pointerId)) target.releasePointerCapture(endEvent.pointerId);
+      target.removeEventListener("pointermove", move);
+      target.removeEventListener("pointerup", up);
+      target.removeEventListener("pointercancel", cancel);
       this.overlay?.classList.remove("yas-grid-dragging");
       if (!cancelled) {
         this.persist();
@@ -435,9 +442,28 @@ export class HudLayoutManager {
     };
     const up = (endEvent: PointerEvent) => finish(endEvent, false);
     const cancel = (endEvent: PointerEvent) => finish(endEvent, true);
-    outline.addEventListener("pointermove", move);
-    outline.addEventListener("pointerup", up);
-    outline.addEventListener("pointercancel", cancel);
+    target.addEventListener("pointermove", move);
+    target.addEventListener("pointerup", up);
+    target.addEventListener("pointercancel", cancel);
+  }
+
+  private bindDragHandle(id: HudGroupId, handle: HTMLElement | undefined): void {
+    this.dragHandles.get(id)?.();
+    this.dragHandles.delete(id);
+    if (!handle) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const start = this.placementFor(id);
+      const measure = this.measureFor(id);
+      this.runGesture(event, id, handle, delta => {
+        const next = moveGroup(start, delta, measure, this.viewport(), null);
+        this.updateGroup(id, this.toEntry(next, false));
+      });
+    };
+    handle.addEventListener("pointerdown", onPointerDown);
+    this.dragHandles.set(id, () => handle.removeEventListener("pointerdown", onPointerDown));
   }
 
   private startPanelDrag(event: PointerEvent, panel: HTMLDivElement): void {

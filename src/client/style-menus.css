@@ -1022,9 +1022,24 @@
 #yas-status.yas-stopped { flex-direction: column; }
 #yas-status.yas-stopped small { margin-top: 8px; font-size: 16px; letter-spacing: 2px; text-shadow: 1px 1px 0 var(--px-shadow); }
 
-/* ===== REPLAY REVIEW ===== */
-/* Event sidebar. A movable HUD group like the other boxes, so it uses the same raised-panel bevel
-   as #yas-timer rather than a bespoke frame. */
+
+.yas-hud-drag-handle {
+  align-self: stretch;
+  height: 7px;
+  margin: -2px 0 1px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(90deg, var(--px-edge) 0 3px, transparent 3px 6px);
+  opacity: 0.45;
+  cursor: move;
+  touch-action: none;
+}
+
+.yas-hud-drag-handle:hover,
+.yas-hud-drag-handle:focus-visible {
+  opacity: 0.85;
+}
+
+
 #yas-replay-review {
   position: fixed;
   top: 50%;

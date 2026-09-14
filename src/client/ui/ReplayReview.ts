@@ -90,7 +90,13 @@ export function createReplayReview(
   });
 
   const list = el("div", { className: "yas-review-list", attrs: { role: "list" } });
+  const dragHandle = el("div", {
+    className: "yas-hud-drag-handle",
+    title: "Drag to move",
+    attrs: { "aria-hidden": "true" },
+  });
   const panel = el("div", { id: "yas-replay-review" }, [
+    dragHandle,
     el("span", { className: "yas-session-label", textContent: "EVENTS" }),
     search,
     filterRow,
@@ -98,7 +104,7 @@ export function createReplayReview(
     list,
   ]);
   document.body.appendChild(panel);
-  hudLayout.register("replayevents", panel);
+  hudLayout.register("replayevents", panel, { dragHandle });
 
   const sectionPicker = insights.sections.length > 0 ? createSectionPicker(insights.sections, controls) : null;
 
