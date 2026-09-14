@@ -45,7 +45,6 @@ export class BossLayer {
       for (const mesh of result.meshes) mesh.isPickable = false;
       const roots = result.meshes.filter(mesh => !mesh.parent);
       for (const root of roots) {
-        root.parent = anchor;
         root.scaling.scaleInPlace(BOSS_MODEL_SCALE * this.modelScale);
         root.rotate(Vector3.Up(), BOSS_MODEL_YAW_OFFSET, Space.LOCAL);
       }
@@ -62,6 +61,7 @@ export class BossLayer {
         root.position.x -= (x.min + x.max) / 2;
         root.position.z -= (z.min + z.max) / 2;
         root.position.y -= y.min - BOSS_MODEL_RAISE + modelTop;
+        root.parent = anchor;
       }
       anchor.position.y = modelTop;
       this.modelTopY = modelTop;
