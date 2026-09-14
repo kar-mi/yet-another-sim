@@ -136,6 +136,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed(), constraint
     waymarks,
     crystals,
     players,
+    botsInvisible: false,
     boss,
     bosses,
     log: [],

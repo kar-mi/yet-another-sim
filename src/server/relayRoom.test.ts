@@ -626,6 +626,40 @@ test("host can toggle bot invincibility without changing humans", () => {
   expect(session.world.players.some(player => player.control === "bot" && player.invincible)).toBe(false);
 });
 
+test("host can toggle bot invisibility and it rides every frame", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+
+  session.setBotsInvisible("c1", true);
+  expect(session.world.botsInvisible).toBe(true);
+
+  session.step(false);
+  expect(session.inputLog.at(-1)?.botsInvisible).toBe(true);
+
+  session.restart("c1");
+  expect(session.world.botsInvisible).toBe(true);
+
+  const latestLobby = [...sent].reverse().find(entry => entry.message.type === "lobby")?.message;
+  if (latestLobby?.type !== "lobby") throw new Error("expected lobby");
+  expect(latestLobby.botsInvisible).toBe(true);
+  expect(latestLobby.botsInvincible).toBe(false);
+});
+
+test("non-host cannot toggle bot invisibility", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.join("c2");
+  session.claimSlot("c1", "mt");
+  session.start("c1");
+
+  session.setBotsInvisible("c2", true);
+
+  expect(session.world.botsInvisible).toBe(false);
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Only the host can change bot invisibility")).toBe(true);
+});
+
 test("RNG constraints persist while every restart gets a fresh seed", () => {
   const { session, sent } = makeSession();
   session.join("c1");
@@ -1378,4 +1412,9 @@ test("client message schema accepts bot invincibility toggle", () => {
   const parsed = ClientMessageSchema.safeParse({ type: "setBotsInvincible", enabled: true });
 
   expect(parsed.success).toBe(true);
+});
+
+test("client message schema accepts bot invisibility toggle and rejects a non-boolean", () => {
+  expect(ClientMessageSchema.safeParse({ type: "setBotsInvisible", enabled: true }).success).toBe(true);
+  expect(ClientMessageSchema.safeParse({ type: "setBotsInvisible", enabled: "yes" }).success).toBe(false);
 });

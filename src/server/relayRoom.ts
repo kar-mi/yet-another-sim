@@ -87,6 +87,7 @@ export class RelayRoom {
   private sessionLog: SessionLog | null = null;
   private pullNumber = 0;
   private botsInvincible = false;
+  private botsInvisible = false;
   private readonly pullSnapshot = new PullSnapshot();
   private rngConstraints: RngConstraints = {};
   private waymarkPresetId: string | null = null;
@@ -179,6 +180,9 @@ export class RelayRoom {
         return;
       case "setBotsInvincible":
         this.setBotsInvincible(clientId, message.enabled);
+        return;
+      case "setBotsInvisible":
+        this.setBotsInvisible(clientId, message.enabled);
         return;
       case "intent":
         this.setIntent(clientId, message.intent);
@@ -551,6 +555,18 @@ export class RelayRoom {
     // the change takes effect on the next relayed tick. `this.world` keeps it for late-join display.
     this.botsInvincible = enabled;
     this.applyBotsInvincible();
+    this.broadcastLobby();
+  }
+
+  setBotsInvisible(clientId: string, enabled: boolean): void {
+    if (clientId !== this.hostClientId) {
+      this.sendError(clientId, "Only the host can change bot invisibility");
+      return;
+    }
+
+    this.botsInvisible = enabled;
+    this.world = { ...this.world, botsInvisible: enabled };
+    this.broadcastLobby();
   }
 
   setWaymarkPreset(clientId: string, presetId: string | null): void {
@@ -633,7 +649,7 @@ export class RelayRoom {
       intents[playerId] = latestIntent;
       this.latestIntents.set(playerId, { move: latestIntent.move, facing: latestIntent.facing });
     }
-    return { intents, botsInvincible: this.botsInvincible };
+    return { intents, botsInvincible: this.botsInvincible, botsInvisible: this.botsInvisible };
   }
 
   // Reset per-pull state whenever a fresh tick-0 world is built (start/restart/stop/setRaid) so the
@@ -780,6 +796,7 @@ export class RelayRoom {
     const waymarkPreset = this.waymarkPresetId ? WAYMARK_PRESETS.find(preset => preset.id === this.waymarkPresetId) : null;
     return {
       ...world,
+      botsInvisible: this.botsInvisible,
       waymarks: waymarkPreset ? waymarkPreset.marks : world.waymarks,
       players: world.players.map(player => ({
         ...player,
@@ -843,6 +860,8 @@ export class RelayRoom {
       waymarkPresetId: this.waymarkPresetId,
       botPatternOptions: botPatternOptionsFor(this.raid),
       botPatternId: this.botPatternId,
+      botsInvincible: this.botsInvincible,
+      botsInvisible: this.botsInvisible,
       observerCount: this.observers.size + this.pendingObservers.size,
       maxObservers: MAX_OBSERVERS,
       observingByYou: this.observers.has(clientId),

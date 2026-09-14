@@ -52,6 +52,7 @@ export class SimulationReplica {
 export function applyFrameControls(world: World, frame: Frame): World {
   return {
     ...world,
+    botsInvisible: frame.botsInvisible ?? false,
     players: world.players.map(player => {
       const human = frame.intents[player.id] !== undefined;
       const control = human ? "human" : "bot";

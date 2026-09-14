@@ -7,6 +7,7 @@ import { createReplayBrowser, type LoadedReplay } from "./ui/ReplayBrowser";
 import { maybeShowWelcomeModal, setSimulatorTourContext } from "./ui/WelcomeModal";
 import { initSettingsPanel } from "./ui/SettingsPanel";
 import { createRaidHudSelect } from "./ui/RaidHudSelect";
+import { createBotActionsModal } from "./ui/BotActionsModal";
 import { NetClient, connect } from "./net";
 import { ReplayTransport } from "./replayTransport";
 import { collectReplayInsights } from "./replayInsights";
@@ -191,13 +192,17 @@ async function main(): Promise<void> {
       // from whatever the replica has buffered; the first entry uses the world `started` delivered.
       const world = (enteredLive ? net.getRenderView(performance.now()) : null) ?? session.world;
       enteredLive = true;
+      const botActions = createBotActionsModal(net, {
+        isHost,
+        botsInvincible: session.botsInvincible,
+        botsInvisible: session.botsInvisible,
+      });
       const liveRenderer = new BabylonRenderer(canvas, onSettingsChange, position => {
         net.send({ type: "debugPosition", ...position });
-      }, enabled => {
-        net.send({ type: "setBotsInvincible", enabled });
-      }, hudLayout);
+      }, botActions.button, hudLayout);
       renderer = liveRenderer;
       liveRenderer.init(world, sessionId, session.yourPlayerId);
+      const offBotsInvisible = net.on("lobby", message => liveRenderer.setBotsInvisible(message.botsInvisible));
       const dispose = await startSessionRuntime({
         renderer: liveRenderer,
         net,
@@ -210,7 +215,9 @@ async function main(): Promise<void> {
       maybeShowWelcomeModal();
       return () => {
         setSimulatorTourContext(null);
+        offBotsInvisible();
         dispose();
+        botActions.dispose();
         renderer = null;
       };
     };
@@ -221,7 +228,7 @@ async function main(): Promise<void> {
       await replayNet.open();
       replayNet.send({ type: "join", sessionId, raidId: replay.raidId });
 
-      const replayRenderer = new BabylonRenderer(canvas, onSettingsChange, () => {}, () => {}, hudLayout);
+      const replayRenderer = new BabylonRenderer(canvas, onSettingsChange, () => {}, null, hudLayout);
       renderer = replayRenderer;
       replayRenderer.init(replay.world, sessionId);
       const review = createReplayReview(collectReplayInsights(replay), {

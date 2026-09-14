@@ -109,10 +109,11 @@ export class PlayerLayer {
     }
   }
 
-  sync(players: Player[], time: number): void {
+  sync(players: Player[], time: number, botsInvisible: boolean): void {
     for (const player of players) {
       const mesh = this.meshes.get(player.id);
       if (!mesh) continue;
+      mesh.setEnabled(!(botsInvisible && player.control === "bot"));
       mesh.position.x = player.pos.x;
       mesh.position.y = PLAYER_CENTER_Y + player.y;
       mesh.position.z = player.pos.z;

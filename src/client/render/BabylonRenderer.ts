@@ -105,6 +105,7 @@ export class BabylonRenderer implements Renderer {
   private cameraAccel = false;
   private cameraAccelStrength = 1;
   private renderedPlayerHealthBars = false;
+  private botsInvisibleOverride: boolean | null = null;
   private camAccelFactor = 1;
   private onPanDown!: (e: PointerEvent) => void;
   private onPanUp!: (e: PointerEvent) => void;
@@ -114,7 +115,7 @@ export class BabylonRenderer implements Renderer {
     private canvas: HTMLCanvasElement,
     private onSettingsChange: (settings: Settings) => void,
     private onDebugPosition: (position: { playerId: string; x: number; y: number; z: number }) => void,
-    private onBotsInvincibleChange: (enabled: boolean) => void,
+    private botsButton: HTMLButtonElement | null,
     private hudLayout: HudLayoutManager,
   ) {}
 
@@ -234,7 +235,7 @@ export class BabylonRenderer implements Renderer {
       this.onSettingsChange,
       id => this.setSpectateTarget(id),
       this.onDebugPosition,
-      this.onBotsInvincibleChange,
+      this.botsButton,
       this.hudLayout,
     );
 
@@ -318,7 +319,8 @@ export class BabylonRenderer implements Renderer {
 
     if (this.bossSetChanged(world.bosses)) this.rebuildBossLayers(world.bosses);
 
-    this.players.sync(world.players, world.time);
+    const botsInvisible = this.botsInvisibleOverride ?? world.botsInvisible;
+    this.players.sync(world.players, world.time, botsInvisible);
     const povPlayer = resolvePovPlayer(world.players, this.localPlayerId, this.spectateTargetId);
     const sideOrbs = selectBossSideOrbs(world);
     for (const boss of world.bosses) {
@@ -330,7 +332,8 @@ export class BabylonRenderer implements Renderer {
     if (povPlayer?.alive) this.camera.target.set(povPlayer.pos.x, 0, povPlayer.pos.z);
 
     for (const player of world.players) {
-      this.healthBars.set(playerBarId(player.id), player.hp / player.maxHp, player.alive && this.renderedPlayerHealthBars);
+      const hidden = botsInvisible && player.control === "bot";
+      this.healthBars.set(playerBarId(player.id), player.hp / player.maxHp, player.alive && this.renderedPlayerHealthBars && !hidden);
     }
     const castCandidates = buildCastCandidates(world);
     for (const boss of world.bosses) {
@@ -380,6 +383,10 @@ export class BabylonRenderer implements Renderer {
     if (mouseInput) mouseInput.buttons = [0, 2];
     setControlScheme(s.controlScheme);
     this.hud.applySettings(s);
+  }
+
+  setBotsInvisible(enabled: boolean): void {
+    this.botsInvisibleOverride = enabled;
   }
 
   setSpectateTarget(id: string): void {
