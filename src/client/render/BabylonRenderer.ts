@@ -324,7 +324,7 @@ export class BabylonRenderer implements Renderer {
     for (const boss of world.bosses) {
       this.bossLayers.get(boss.id)?.sync(boss);
       this.bossRingLayers.get(boss.id)?.sync(boss);
-      this.bossSideOrbLayers.get(boss.id)?.sync(boss, sideOrbs.get(boss.id));
+      this.bossSideOrbLayers.get(boss.id)?.sync(boss, sideOrbs.get(boss.id), world.time);
       this.targetRingLayers.get(boss.id)?.sync(boss, povPlayer?.targetBossId === boss.id);
     }
     if (povPlayer?.alive) this.camera.target.set(povPlayer.pos.x, 0, povPlayer.pos.z);
