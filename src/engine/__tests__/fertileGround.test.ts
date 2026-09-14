@@ -244,3 +244,26 @@ test("every head keeps one orb-annotated beam per side, coloured by the selected
     }
   }
 });
+
+test("elemental spell AOEs appear one second before their Ancient III casts resolve", () => {
+  for (const { prefix, count, name } of [
+    { prefix: "ice-", count: 12, name: "Ancient Blizzard III" },
+    { prefix: "thunder-", count: 12, name: "Ancient Thunder III" },
+    { prefix: "fire-", count: 3, name: "Ancient Fire III" },
+  ]) {
+    const spells = raid.events.filter(event => event.id.startsWith(prefix));
+    expect(spells).toHaveLength(count);
+    for (const spell of spells) {
+      expect(spell.type).toBe("aoe");
+      if (spell.type !== "aoe") continue;
+      expect(spell.name).toBe(name);
+      expect(spell.telegraph).toBe(5);
+      expect(spell.damage).toBe(40);
+      expect(spell.avoidable).toBe(true);
+      expect(spell.showCastBar).toBe(prefix === "fire-" || spell.id.endsWith("-1"));
+      expect(spell.showTelegraph).toBe(true);
+      expect(spell.telegraphMode).toBe("resolve");
+      expect(spell.flashBeforeResolve).toEqual({ lead: 1 });
+    }
+  }
+});
