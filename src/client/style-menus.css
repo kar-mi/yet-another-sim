@@ -1012,16 +1012,15 @@
   font-family: var(--px-font);
   font-size: 62px;
   letter-spacing: 8px;
+  color: var(--px-text);
+  text-shadow: 3px 3px 0 var(--px-shadow);
   opacity: 0;
-  transition: opacity 0.35s;
 }
-#yas-status.yas-visible { opacity: 1; }
+#yas-status.yas-visible { opacity: 1; transition: opacity 0.35s; }
 #yas-status.yas-cleared { color: var(--px-hp); text-shadow: 3px 3px 0 var(--px-shadow); }
 #yas-status.yas-wiped   { color: var(--px-danger); text-shadow: 3px 3px 0 var(--px-shadow); }
-#yas-status.yas-paused,
-#yas-status.yas-stopped { color: var(--px-text); text-shadow: 3px 3px 0 var(--px-shadow); }
 #yas-status.yas-stopped { flex-direction: column; }
-#yas-status.yas-stopped small { margin-top: 8px; font-size: 16px; letter-spacing: 2px; }
+#yas-status.yas-stopped small { margin-top: 8px; font-size: 16px; letter-spacing: 2px; text-shadow: 1px 1px 0 var(--px-shadow); }
 
 /* ===== REPLAY REVIEW ===== */
 /* Event sidebar. A movable HUD group like the other boxes, so it uses the same raised-panel bevel
