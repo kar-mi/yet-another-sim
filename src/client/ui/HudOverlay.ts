@@ -112,7 +112,6 @@ export class HudOverlay {
   private mpVal: HTMLSpanElement;
   private cooldownsBtn: HTMLButtonElement;
   private invulnBtn: HTMLButtonElement;
-  private botInvulnBtn: HTMLButtonElement;
   private skillSpecs: SkillSpec[] = [];
   private kbSkillSlots: SkillSlotView[] = [];
   private ctrlSlots = new Map<ControllerButtonId, CtrlSlotView>();
@@ -165,7 +164,7 @@ export class HudOverlay {
     private onSettingsChange: (settings: Settings) => void,
     private onSpectate: (id: string) => void,
     private onDebugPosition: (position: { playerId: string; x: number; y: number; z: number }) => void,
-    private onBotsInvincibleChange: (enabled: boolean) => void,
+    private botsButton: HTMLButtonElement | null,
     private hudLayout: HudLayoutManager,
   ) {
     this.root = this.buildHud();
@@ -177,7 +176,7 @@ export class HudOverlay {
     this.mpVal = this.root.querySelector<HTMLSpanElement>("[data-mp-val]")!;
     this.cooldownsBtn = this.root.querySelector<HTMLButtonElement>(".yas-cooldowns-btn")!;
     this.invulnBtn = this.root.querySelector<HTMLButtonElement>(".yas-invuln-btn")!;
-    this.botInvulnBtn = this.root.querySelector<HTMLButtonElement>(".yas-bot-invuln-btn")!;
+    if (this.botsButton) this.invulnBtn.insertAdjacentElement("afterend", this.botsButton);
     this.debuffTrackerEl = this.root.querySelector<HTMLDivElement>(".yas-debuff-tracker")!;
     this.buffBarEl = this.root.querySelector<HTMLDivElement>(".yas-buff-bar")!;
     this.buffChips = BUFF_SPECS.map(spec => this.buildBuffChip(spec));
@@ -527,11 +526,6 @@ export class HudOverlay {
     }
     this.cooldownsBtn.addEventListener("click", () => { this.cooldownsBtn.blur(); toggleCooldowns(); });
     this.invulnBtn.addEventListener("click", () => { this.invulnBtn.blur(); toggleInvincibility(); });
-    this.botInvulnBtn.addEventListener("click", () => {
-      const enabled = !this.botInvulnBtn.classList.contains("is-active");
-      this.botInvulnBtn.blur();
-      this.onBotsInvincibleChange(enabled);
-    });
 
     this.hotbarGroupEl.querySelectorAll<HTMLDivElement>(".yas-slot").forEach(slot => {
       slot.addEventListener("mousedown", () => this.flashSlot(slot));
@@ -570,9 +564,6 @@ export class HudOverlay {
     this.latestPlayer = p ?? null;
     this.latestWorld = world;
     if (DEBUG_POSITION_ENABLED && p) this.syncPositionFrames(world, p);
-    const botPlayers = world.players.filter(player => player.control === "bot");
-    this.botInvulnBtn.classList.toggle("is-active", botPlayers.length > 0 && botPlayers.every(player => player.invincible));
-
     this.timerValEl.textContent = formatTime(world.time);
     this.renderTimerStatus(world.status);
     this.renderCenterStatus(world.status);

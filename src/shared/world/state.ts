@@ -26,6 +26,7 @@ type WorldCoreState = {
   waymarks: Waymark[];
   crystals: Crystal[];
   players: Player[];
+  botsInvisible: boolean;
   boss: Boss;
   bosses: Boss[];
   log: LogEntry[];

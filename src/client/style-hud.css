@@ -491,10 +491,10 @@ img.party-effect-icon {
   gap: 8px;
 }
 
-/* HUD utility toggle buttons (invuln + bot invuln) share the raised pixel-button look; the
-   active state lights up teal so it matches the rest of the HUD instead of a stray semantic color. */
+/* HUD utility buttons (invuln + bots) share the raised pixel-button look; the active state lights
+   up teal so it matches the rest of the HUD instead of a stray semantic color. */
 .yas-invuln-btn,
-.yas-bot-invuln-btn {
+.yas-bots-btn {
   pointer-events: all;
   flex-shrink: 0;
   width: 44px;
@@ -519,16 +519,21 @@ img.party-effect-icon {
   font-size: 12px;
 }
 
-.yas-bot-invuln-btn {
-  font-size: 14px;
+.yas-bots-btn {
+  font-size: 12px;
+}
+
+.yas-bots-btn:disabled {
+  cursor: default;
+  opacity: 0.38;
 }
 
 .yas-invuln-btn:hover,
 .yas-invuln-btn:focus,
 .yas-invuln-btn:focus-visible,
-.yas-bot-invuln-btn:hover,
-.yas-bot-invuln-btn:focus,
-.yas-bot-invuln-btn:focus-visible {
+.yas-bots-btn:not(:disabled):hover,
+.yas-bots-btn:not(:disabled):focus,
+.yas-bots-btn:not(:disabled):focus-visible {
   outline: none;
   color: var(--px-accent);
   border-color: var(--px-accent);
@@ -539,12 +544,7 @@ img.party-effect-icon {
 .yas-invuln-btn.is-active:hover,
 .yas-invuln-btn.is-active:focus,
 .yas-invuln-btn.is-active:focus-visible,
-.yas-invuln-btn.is-active:active,
-.yas-bot-invuln-btn.is-active,
-.yas-bot-invuln-btn.is-active:hover,
-.yas-bot-invuln-btn.is-active:focus,
-.yas-bot-invuln-btn.is-active:focus-visible,
-.yas-bot-invuln-btn.is-active:active {
+.yas-invuln-btn.is-active:active {
   outline: none;
   color: var(--px-ink);
   border-color: var(--px-accent);

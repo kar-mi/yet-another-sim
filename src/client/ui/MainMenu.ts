@@ -116,7 +116,7 @@ function playbackStateForLobby(status: LobbyStatus): PlaybackState {
 }
 
 type LobbyResult =
-  | { kind: "started"; world: World; yourPlayerId: string | null; sessionId: string; raidId: string; isHost: boolean; playbackState: PlaybackState; rngConstraints: Record<string, number>; rngDecisions: DecisionDescription[]; waymarkPresetId: string | null; botPatternOptions: BotPatternOption[]; botPatternId: string | null }
+  | { kind: "started"; world: World; yourPlayerId: string | null; sessionId: string; raidId: string; isHost: boolean; playbackState: PlaybackState; rngConstraints: Record<string, number>; rngDecisions: DecisionDescription[]; waymarkPresetId: string | null; botPatternOptions: BotPatternOption[]; botPatternId: string | null; botsInvincible: boolean; botsInvisible: boolean }
   | { kind: "expired" };
 
 export async function showLobby(net: NetClient, sessionId: string): Promise<LobbyResult> {
@@ -265,7 +265,7 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
         const isHost = net.clientId !== null && net.clientId === lastLobby?.hostClientId;
         const playbackState = playbackStateForLobby(lastLobby?.status ?? "lobby");
         cleanup();
-        resolve({ kind: "started", world: message.world, yourPlayerId: message.yourPlayerId, sessionId, raidId, isHost, playbackState, rngConstraints: lastLobby?.rngConstraints ?? {}, rngDecisions: lastLobby?.rngDecisions ?? [], waymarkPresetId: lastLobby?.waymarkPresetId ?? null, botPatternOptions: lastLobby?.botPatternOptions ?? [], botPatternId: lastLobby?.botPatternId ?? null });
+        resolve({ kind: "started", world: message.world, yourPlayerId: message.yourPlayerId, sessionId, raidId, isHost, playbackState, rngConstraints: lastLobby?.rngConstraints ?? {}, rngDecisions: lastLobby?.rngDecisions ?? [], waymarkPresetId: lastLobby?.waymarkPresetId ?? null, botPatternOptions: lastLobby?.botPatternOptions ?? [], botPatternId: lastLobby?.botPatternId ?? null, botsInvincible: lastLobby?.botsInvincible ?? false, botsInvisible: lastLobby?.botsInvisible ?? false });
       }),
       net.on("sessionExpired", () => {
         cleanup();

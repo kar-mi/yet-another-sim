@@ -114,7 +114,7 @@ export class BabylonRenderer implements Renderer {
     private canvas: HTMLCanvasElement,
     private onSettingsChange: (settings: Settings) => void,
     private onDebugPosition: (position: { playerId: string; x: number; y: number; z: number }) => void,
-    private onBotsInvincibleChange: (enabled: boolean) => void,
+    private botsButton: HTMLButtonElement | null,
     private hudLayout: HudLayoutManager,
   ) {}
 
@@ -234,7 +234,7 @@ export class BabylonRenderer implements Renderer {
       this.onSettingsChange,
       id => this.setSpectateTarget(id),
       this.onDebugPosition,
-      this.onBotsInvincibleChange,
+      this.botsButton,
       this.hudLayout,
     );
 
@@ -318,7 +318,7 @@ export class BabylonRenderer implements Renderer {
 
     if (this.bossSetChanged(world.bosses)) this.rebuildBossLayers(world.bosses);
 
-    this.players.sync(world.players, world.time);
+    this.players.sync(world.players, world.time, world.botsInvisible);
     const povPlayer = resolvePovPlayer(world.players, this.localPlayerId, this.spectateTargetId);
     const sideOrbs = selectBossSideOrbs(world);
     for (const boss of world.bosses) {
@@ -330,7 +330,8 @@ export class BabylonRenderer implements Renderer {
     if (povPlayer?.alive) this.camera.target.set(povPlayer.pos.x, 0, povPlayer.pos.z);
 
     for (const player of world.players) {
-      this.healthBars.set(playerBarId(player.id), player.hp / player.maxHp, player.alive && this.renderedPlayerHealthBars);
+      const hidden = world.botsInvisible && player.control === "bot";
+      this.healthBars.set(playerBarId(player.id), player.hp / player.maxHp, player.alive && this.renderedPlayerHealthBars && !hidden);
     }
     const castCandidates = buildCastCandidates(world);
     for (const boss of world.bosses) {

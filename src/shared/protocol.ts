@@ -132,6 +132,10 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     enabled: z.boolean(),
   }),
   z.strictObject({
+    type: z.literal("setBotsInvisible"),
+    enabled: z.boolean(),
+  }),
+  z.strictObject({
     type: z.literal("debugPosition"),
     playerId: PlayerIdSchema,
     x: z.number(),
@@ -183,7 +187,9 @@ export type PlaybackState = "playing" | "paused" | "stopped" | "done";
 // merged human intents keyed by playerId (a slot is human-controlled this tick exactly when it has
 // an entry — clients derive `control` from these keys so bot computation stays identical). A frame
 // carries no world state: every client steps `tick()` locally from these inputs.
-export type Frame = { intents: Intents; botsInvincible: boolean };
+// `botsInvisible` is absent in replays recorded before bot invisibility existed; readers treat a
+// missing value as false.
+export type Frame = { intents: Intents; botsInvincible: boolean; botsInvisible?: boolean };
 
 export type ServerMessage =
   | { type: "joined"; clientId: string }
@@ -200,6 +206,8 @@ export type ServerMessage =
       waymarkPresetId: string | null;
       botPatternOptions: BotPatternOption[];
       botPatternId: string | null;
+      botsInvincible: boolean;
+      botsInvisible: boolean;
       observerCount: number;
       maxObservers: number;
       observingByYou: boolean;

@@ -21,3 +21,14 @@ test("SimulationReplica drops duplicate frames and identifies gaps", () => {
   expect(replica.apply(0, [frame, frame])).toMatchObject({ kind: "applied", applied: 0 });
   expect(replica.apply(3, [frame])).toEqual({ kind: "gap" });
 });
+
+test("SimulationReplica tracks bot invisibility and treats legacy frames as visible", () => {
+  const replica = new SimulationReplica();
+  replica.adopt(createWorld(createEmptyRaid(), 123), 0, []);
+
+  replica.apply(0, [{ intents: {}, botsInvincible: false, botsInvisible: true }]);
+  expect(replica.world?.botsInvisible).toBe(true);
+
+  replica.apply(1, [frame]);
+  expect(replica.world?.botsInvisible).toBe(false);
+});
