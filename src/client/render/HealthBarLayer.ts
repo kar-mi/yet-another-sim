@@ -69,7 +69,9 @@ export class HealthBarLayer {
     if (options.showLabel) {
       label = new TextBlock(`bar-label-${id}`);
       label.text = "";
-      label.color = "#e8edf7";
+      label.color = "#ffffff";
+      label.outlineColor = "#000000";
+      label.outlineWidth = 3;
       label.fontFamily = "Chakra Petch, Segoe UI, sans-serif";
       label.fontSizeInPixels = options.labelFontSizePx ?? 13;
       label.isHitTestVisible = false;
