@@ -1,4 +1,5 @@
 import {
+  DEFAULT_HUD_LAYOUT,
   HUD_GROUP_LABELS,
   type HudGroupId,
   type HudGroupLayout,
@@ -587,18 +588,17 @@ export class HudLayoutManager {
   }
 
   private resetGroup(id: HudGroupId): void {
-    delete this.layout[id];
+    this.layout[id] = { ...DEFAULT_HUD_LAYOUT[id] };
     this.persist();
     this.selectGroup(null);
-    const el = this.groups.get(id);
-    if (el) this.captureDefault(id, el, true);
+    this.applyGroup(id);
   }
 
   private resetAll(): void {
-    for (const id of this.groups.keys()) delete this.layout[id];
+    for (const id of this.groups.keys()) this.layout[id] = { ...DEFAULT_HUD_LAYOUT[id] };
     this.persist();
     this.selectGroup(null);
-    for (const [id, el] of this.groups) this.captureDefault(id, el, true);
+    this.applyAll();
   }
 
   private fallbackLayout(id: HudGroupId): HudGroupLayout {

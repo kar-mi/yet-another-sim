@@ -30,6 +30,7 @@ import { Minimap } from "./Minimap";
 import {
   buildCastCandidates,
   castForBoss,
+  formatBossCastLabel,
   formatTime,
   orderedPartyPlayers,
   renderControllerSlot,
@@ -423,7 +424,7 @@ export class HudOverlay {
       rowEl.className = "yas-boss-cast-row";
       const nameEl = document.createElement("span");
       nameEl.className = "yas-boss-cast-label";
-      nameEl.textContent = boss.id.toUpperCase();
+      nameEl.textContent = formatBossCastLabel(boss.id);
       const trackEl = document.createElement("div");
       trackEl.className = "yas-boss-cast-track";
       const fillEl = document.createElement("div");
@@ -850,11 +851,12 @@ export class HudOverlay {
 
   dispose(): void {
     this.hudLayout.exitEditMode();
-    for (const id of ["party", "hotbar", "debuffs", "resources", "targetcast", "bosscasts", "timer", "minimap"] as const) {
+    for (const id of ["party", "hotbar", "buffs", "debuffs", "resources", "targetcast", "bosscasts", "timer", "minimap"] as const) {
       this.hudLayout.unregister(id);
     }
     this.hotbarGroupEl.remove();
     this.minimap.dispose();
+    this.buffBarEl.remove();
     this.debuffTrackerEl.remove();
     this.resourceGroupEl.remove();
     this.bossCastPanelEl.remove();

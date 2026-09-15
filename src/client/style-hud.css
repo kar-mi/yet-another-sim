@@ -260,8 +260,11 @@ img.party-effect-icon {
   letter-spacing: 0.06em;
   color: var(--px-text-dim);
   width: 65px;
+  padding-right: 4px;
   text-align: right;
   flex-shrink: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .yas-boss-cast-track {
