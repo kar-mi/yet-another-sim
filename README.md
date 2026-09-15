@@ -67,9 +67,10 @@ The simulator currently supports the base loop for FFXIV-style raid mechanics:
 - YAML-authored arenas, waymarks, bot movement, and timelines
 - AOE, targeted bait, tether, chain, group stack, tower, knockback, limit cut, divebomb, and effect mechanics
 
-## Credits
+## Static Image/Model Credits
 
 - LowPoly Models by @Quaternius - CC0 1.0 Universal (CC0 1.0) 
+- Dragon head - https://sketchfab.com/3d-models/dragon-head-for-minecraft-blockbench-6eead3fa67a34dfd896016eea274bfde
 
 Status images from https://v2.xivapi.com/
 
