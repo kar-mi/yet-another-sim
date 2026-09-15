@@ -332,7 +332,7 @@ export class BabylonRenderer implements Renderer {
     if (povPlayer?.alive) this.camera.target.set(povPlayer.pos.x, 0, povPlayer.pos.z);
 
     for (const player of world.players) {
-      const hidden = botsInvisible && player.control === "bot";
+      const hidden = !this.players.isVisible(player.id) || (botsInvisible && player.control === "bot");
       this.healthBars.set(playerBarId(player.id), player.hp / player.maxHp, player.alive && this.renderedPlayerHealthBars && !hidden);
     }
     const castCandidates = buildCastCandidates(world);

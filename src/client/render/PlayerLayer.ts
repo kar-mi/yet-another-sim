@@ -11,6 +11,7 @@ import type { Player } from "@shared/types";
 import { length, sub } from "@shared/math";
 import { STATIC_ROOT } from "../staticBase";
 import { glyphBillboardMaterial, imageBillboardMaterial } from "./meshes/billboardMaterials";
+import { computeVisiblePlayerIds } from "./playerVisibility";
 
 const PLAYER_CENTER_Y = 0.4;
 export const PLAYER_MODEL_ROOT = `${STATIC_ROOT}/model/player/`;
@@ -60,10 +61,12 @@ export class PlayerLayer {
   private activeClip = new Map<string, string>();
   private deathState = new Map<string, DeathState>();
   private prevPos = new Map<string, { x: number; z: number; time: number }>();
+  private visiblePlayerIds = new Set<string>();
 
   constructor(private scene: Scene) {}
 
   init(players: Player[]): void {
+    this.visiblePlayerIds = computeVisiblePlayerIds(players);
     for (const player of players) {
       const mesh = new Mesh(`player-${player.id}`, this.scene);
       mesh.position.set(player.pos.x, PLAYER_CENTER_Y + player.y, player.pos.z);
@@ -110,10 +113,11 @@ export class PlayerLayer {
   }
 
   sync(players: Player[], time: number, botsInvisible: boolean): void {
+    this.visiblePlayerIds = computeVisiblePlayerIds(players);
     for (const player of players) {
       const mesh = this.meshes.get(player.id);
       if (!mesh) continue;
-      mesh.setEnabled(!(botsInvisible && player.control === "bot"));
+      mesh.setEnabled(this.visiblePlayerIds.has(player.id) && !(botsInvisible && player.control === "bot"));
       mesh.position.x = player.pos.x;
       mesh.position.y = PLAYER_CENTER_Y + player.y;
       mesh.position.z = player.pos.z;
@@ -126,6 +130,10 @@ export class PlayerLayer {
 
   getMesh(id: string): Mesh | undefined {
     return this.meshes.get(id);
+  }
+
+  isVisible(id: string): boolean {
+    return this.visiblePlayerIds.has(id);
   }
 
   private syncAnimation(player: Player, roots: AbstractMesh[], time: number): void {
