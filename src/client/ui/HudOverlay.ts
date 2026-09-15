@@ -850,11 +850,12 @@ export class HudOverlay {
 
   dispose(): void {
     this.hudLayout.exitEditMode();
-    for (const id of ["party", "hotbar", "debuffs", "resources", "targetcast", "bosscasts", "timer", "minimap"] as const) {
+    for (const id of ["party", "hotbar", "buffs", "debuffs", "resources", "targetcast", "bosscasts", "timer", "minimap"] as const) {
       this.hudLayout.unregister(id);
     }
     this.hotbarGroupEl.remove();
     this.minimap.dispose();
+    this.buffBarEl.remove();
     this.debuffTrackerEl.remove();
     this.resourceGroupEl.remove();
     this.bossCastPanelEl.remove();
