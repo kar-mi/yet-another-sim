@@ -1,9 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { createWorld } from "../../engine/world";
 import { baseRaid, loadRaid, runTicks } from "../../engine/__tests__/helpers";
-import { buildCastCandidates, castForBoss } from "../ui/hudPresentation";
+import { buildCastCandidates, castForBoss, formatBossCastLabel } from "../ui/hudPresentation";
 
 describe("boss cast presentation", () => {
+  test("caps boss labels at five characters followed by two dots", () => {
+    expect(formatBossCastLabel("kefka")).toBe("KEFKA");
+    expect(formatBossCastLabel("exdeath")).toBe("EXDEA..");
+  });
+
   test("maps concurrent casts to their authored bosses and defaults to the primary boss", () => {
     const raid = loadRaid({
       ...baseRaid,

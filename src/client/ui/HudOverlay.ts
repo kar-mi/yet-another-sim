@@ -30,6 +30,7 @@ import { Minimap } from "./Minimap";
 import {
   buildCastCandidates,
   castForBoss,
+  formatBossCastLabel,
   formatTime,
   orderedPartyPlayers,
   renderControllerSlot,
@@ -423,7 +424,7 @@ export class HudOverlay {
       rowEl.className = "yas-boss-cast-row";
       const nameEl = document.createElement("span");
       nameEl.className = "yas-boss-cast-label";
-      nameEl.textContent = boss.id.toUpperCase();
+      nameEl.textContent = formatBossCastLabel(boss.id);
       const trackEl = document.createElement("div");
       trackEl.className = "yas-boss-cast-track";
       const fillEl = document.createElement("div");

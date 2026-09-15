@@ -49,6 +49,11 @@ export function castForBoss(bossId: string, candidates: CastCandidate[]): CastCa
   return candidates.find(candidate => candidate.bossId === bossId) ?? null;
 }
 
+export function formatBossCastLabel(bossId: string): string {
+  const label = bossId.toUpperCase();
+  return label.length > 5 ? `${label.slice(0, 5)}..` : label;
+}
+
 export function orderedPartyPlayers(players: Player[], localPlayerId: string | null): Player[] {
   return [...players].sort((a, b) => {
     if (a.id === localPlayerId) return -1;
