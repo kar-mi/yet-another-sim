@@ -22,7 +22,7 @@ test("Blizzard and Thunder use short side dodges while only Fire sends bots outw
   for (let elements = 0; elements < 6; elements++) {
     const world = runTicksWithComputedBotIntents(
       createWorld(raid, 1, { "event-set-elements": elements }),
-      Math.ceil(54.9 * 60),
+      Math.ceil(34.6 * 60),
     );
     const radii = world.players.map(player => Math.hypot(player.pos.x, player.pos.z));
     const firstElementIsFire = elements >= 4;

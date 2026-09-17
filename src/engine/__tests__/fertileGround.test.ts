@@ -121,11 +121,11 @@ test("Fertile Ground splits colors evenly and heads spawn outward, move clockwis
   world.players.forEach(player => { player.invincible = true; });
   expect(world.bosses[0].model).toBe("exdeath");
   expect(world.bosses.slice(1).every(boss => boss.hidden && boss.model === "dragon_head")).toBe(true);
-  world = runTicks(world, noMove, 8 * 60);
+  world = runTicks(world, noMove, 2.5 * 60);
   for (const name of ["Growing Dread", "Growing Panic"]) {
     expect(world.players.filter(player => player.effects.some(effect => effect.name === name))).toHaveLength(4);
   }
-  world = runTicks(world, noMove, 3 * 60);
+  world = runTicks(world, noMove, 0.5 * 60);
   for (const [i, head] of world.bosses.slice(1).entries()) {
     expect(head.hidden).toBe(false);
     expect(head.facing).toBeCloseTo(i * Math.PI / 4);
@@ -133,7 +133,7 @@ test("Fertile Ground splits colors evenly and heads spawn outward, move clockwis
     expect(head.pos.z).toBeCloseTo(5 * Math.cos(head.facing), 3);
   }
   for (let i = 0; i < 8; i++) {
-    const targetTime = 27.4 + 1.2 * i;
+    const targetTime = 7.1 + 1.2 * i;
     world = runTicks(world, noMove, Math.ceil((targetTime - world.time) * 60));
     const heads = world.bosses.slice(1);
     expect(heads.filter(head => Math.hypot(head.pos.x, head.pos.z) > 17)).toHaveLength(i + 1);
@@ -155,7 +155,7 @@ test("a north head's beam applies blue east and purple west, swapping opposite c
     "event-set-beam-1": 0,
   });
   world.players.forEach(player => { player.invincible = true; });
-  world = runTicks(world, noMove, 42 * 60);
+  world = runTicks(world, noMove, 22 * 60);
   for (const [i, player] of world.players.entries()) {
     player.pos = { x: i % 2 === 0 ? 5 : -5, z: i < 4 ? 18 : -18 };
     player.effects = [];

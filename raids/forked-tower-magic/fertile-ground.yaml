@@ -3,7 +3,7 @@ arena:
   floorPlan: { color: "#1f3852" }
   zones:
     - { kind: circle, center: [0, 0], radius: 20 }
-duration: 86.4
+duration: 66.1
 botPatterns: fertile-ground-bots
 bosses:
   - { id: necrophobia, preset: exdeath, pos: [0, 0] }
@@ -26,8 +26,8 @@ players:
   - { id: m2, role: dps, spawn: [5.66, -5.66] }
 sections:
   - { id: fertile-ground, name: Fertile Ground, t: 0 }
-  - { id: heads-roll, name: Heads Roll, t: 22.4 }
-  - { id: sowing-fear, name: Sowing Fear, t: 42.4 }
+  - { id: heads-roll, name: Heads Roll, t: 2 }
+  - { id: sowing-fear, name: Sowing Fear, t: 22.1 }
 optionals:
   headSequence:
     rng: true
@@ -92,74 +92,47 @@ events:
     time: 0
     name: keep_boss_still
     bossId: necrophobia
-    telegraph: 86.4
+    telegraph: 66.1
     damage: 0
     damageType: "true"
     lockFacing: true
     showCastBar: false
     showTelegraph: false
     shape: { kind: circle, center: [0, 0], radius: 0.1 }
-  - &cast
-    id: fertile-ground-cast
+  - id: fertile-ground-hit
     type: aoe
     time: 0
     name: Fertile Ground
     bossId: necrophobia
-    telegraph: 5
-    damage: 0
+    telegraph: 2
+    damage: 10
     damageType: magical
     showCastBar: true
     showTelegraph: false
     shape: { kind: circle, center: [0, 0], radius: 20 }
-  - <<: *cast
-    id: fertile-ground-hit
-    time: 5
-    telegraph: 2
-    showCastBar: false
-    damage: 10
     applyEffects:
       order: shuffleBalanced
       effects: [{ ref: growing_dread }, { ref: growing_panic }]
-  - <<: *cast
-    id: capitation
-    time: 9.1
-    name: Capitation
-    telegraph: 0.9
-  - <<: *cast
-    id: death-shroud
-    time: 13.2
-    name: Death Shroud
-    telegraph: 7
-  - <<: *cast
-    id: heads-roll
-    time: 22.4
-    name: Heads Roll
-    telegraph: 3
-  - <<: *cast
-    id: spell-procession
-    time: 36.5
-    name: Spell Procession
-    telegraph: 5
-  - &spawnHead { id: spawn-head-1, type: teleport_boss, time: 10, name: Severing Head, bossId: head-1, spots: [[0.0, 5.0]], facing: 0.0 }
-  - &moveHead { id: move-head-1, type: teleport_boss, time: 27.3, name: Heads Roll, bossId: head-1, spots: [[0, 18]] }
+  - &spawnHead { id: spawn-head-1, type: teleport_boss, time: 2, name: Severing Head, bossId: head-1, spots: [[0.0, 5.0]], facing: 0.0 }
+  - &moveHead { id: move-head-1, type: teleport_boss, time: 7, name: Heads Roll, bossId: head-1, spots: [[0, 18]] }
   - { <<: *spawnHead, id: spawn-head-2, bossId: head-2, spots: [[3.5355, 3.5355]], facing: 0.7853981633974483 }
-  - { <<: *moveHead, id: move-head-2, time: 28.5, bossId: head-2 }
+  - { <<: *moveHead, id: move-head-2, time: 8.2, bossId: head-2 }
   - { <<: *spawnHead, id: spawn-head-3, bossId: head-3, spots: [[5.0, 0.0]], facing: 1.5707963267948966 }
-  - { <<: *moveHead, id: move-head-3, time: 29.7, bossId: head-3 }
+  - { <<: *moveHead, id: move-head-3, time: 9.4, bossId: head-3 }
   - { <<: *spawnHead, id: spawn-head-4, bossId: head-4, spots: [[3.5355, -3.5355]], facing: 2.356194490192345 }
-  - { <<: *moveHead, id: move-head-4, time: 30.9, bossId: head-4 }
+  - { <<: *moveHead, id: move-head-4, time: 10.6, bossId: head-4 }
   - { <<: *spawnHead, id: spawn-head-5, bossId: head-5, spots: [[0.0, -5.0]], facing: 3.141592653589793 }
-  - { <<: *moveHead, id: move-head-5, time: 32.1, bossId: head-5 }
+  - { <<: *moveHead, id: move-head-5, time: 11.8, bossId: head-5 }
   - { <<: *spawnHead, id: spawn-head-6, bossId: head-6, spots: [[-3.5355, -3.5355]], facing: 3.9269908169872414 }
-  - { <<: *moveHead, id: move-head-6, time: 33.3, bossId: head-6 }
+  - { <<: *moveHead, id: move-head-6, time: 13, bossId: head-6 }
   - { <<: *spawnHead, id: spawn-head-7, bossId: head-7, spots: [[-5.0, -0.0]], facing: 4.71238898038469 }
-  - { <<: *moveHead, id: move-head-7, time: 34.5, bossId: head-7 }
+  - { <<: *moveHead, id: move-head-7, time: 14.2, bossId: head-7 }
   - { <<: *spawnHead, id: spawn-head-8, bossId: head-8, spots: [[-3.5355, 3.5355]], facing: 5.497787143782138 }
-  - { <<: *moveHead, id: move-head-8, time: 35.7, bossId: head-8 }
+  - { <<: *moveHead, id: move-head-8, time: 15.4, bossId: head-8 }
   - &beamBlueLeft
     id: beam-1-a-blue
     sideOrbAfter: move-head-1
-    time: 42.4
+    time: 22.1
     bossId: head-1
     directionOffset: -1.5707963267948966
     color: "#3aa0ff"
@@ -187,38 +160,41 @@ events:
     <<: *beamPurpleRight
     id: beam-1-b-purple
     directionOffset: -1.5707963267948966
-  - { <<: *beamBlueLeft, id: beam-2-a-blue, sideOrbAfter: move-head-2, time: 48.4, bossId: head-2 }
-  - { <<: *beamPurpleRight, id: beam-2-a-purple, sideOrbAfter: move-head-2, time: 48.4, bossId: head-2 }
-  - { <<: *beamBlueRight, id: beam-2-b-blue, sideOrbAfter: move-head-2, time: 48.4, bossId: head-2 }
-  - { <<: *beamPurpleLeft, id: beam-2-b-purple, sideOrbAfter: move-head-2, time: 48.4, bossId: head-2 }
-  - { <<: *beamBlueLeft, id: beam-3-a-blue, sideOrbAfter: move-head-3, time: 54.4, bossId: head-3 }
-  - { <<: *beamPurpleRight, id: beam-3-a-purple, sideOrbAfter: move-head-3, time: 54.4, bossId: head-3 }
-  - { <<: *beamBlueRight, id: beam-3-b-blue, sideOrbAfter: move-head-3, time: 54.4, bossId: head-3 }
-  - { <<: *beamPurpleLeft, id: beam-3-b-purple, sideOrbAfter: move-head-3, time: 54.4, bossId: head-3 }
-  - { <<: *beamBlueLeft, id: beam-4-a-blue, sideOrbAfter: move-head-4, time: 60.4, bossId: head-4 }
-  - { <<: *beamPurpleRight, id: beam-4-a-purple, sideOrbAfter: move-head-4, time: 60.4, bossId: head-4 }
-  - { <<: *beamBlueRight, id: beam-4-b-blue, sideOrbAfter: move-head-4, time: 60.4, bossId: head-4 }
-  - { <<: *beamPurpleLeft, id: beam-4-b-purple, sideOrbAfter: move-head-4, time: 60.4, bossId: head-4 }
-  - { <<: *beamBlueLeft, id: beam-5-a-blue, sideOrbAfter: move-head-5, time: 66.4, bossId: head-5 }
-  - { <<: *beamPurpleRight, id: beam-5-a-purple, sideOrbAfter: move-head-5, time: 66.4, bossId: head-5 }
-  - { <<: *beamBlueRight, id: beam-5-b-blue, sideOrbAfter: move-head-5, time: 66.4, bossId: head-5 }
-  - { <<: *beamPurpleLeft, id: beam-5-b-purple, sideOrbAfter: move-head-5, time: 66.4, bossId: head-5 }
-  - { <<: *beamBlueLeft, id: beam-6-a-blue, sideOrbAfter: move-head-6, time: 72.4, bossId: head-6 }
-  - { <<: *beamPurpleRight, id: beam-6-a-purple, sideOrbAfter: move-head-6, time: 72.4, bossId: head-6 }
-  - { <<: *beamBlueRight, id: beam-6-b-blue, sideOrbAfter: move-head-6, time: 72.4, bossId: head-6 }
-  - { <<: *beamPurpleLeft, id: beam-6-b-purple, sideOrbAfter: move-head-6, time: 72.4, bossId: head-6 }
-  - { <<: *beamBlueLeft, id: beam-7-a-blue, sideOrbAfter: move-head-7, time: 78.4, bossId: head-7 }
-  - { <<: *beamPurpleRight, id: beam-7-a-purple, sideOrbAfter: move-head-7, time: 78.4, bossId: head-7 }
-  - { <<: *beamBlueRight, id: beam-7-b-blue, sideOrbAfter: move-head-7, time: 78.4, bossId: head-7 }
-  - { <<: *beamPurpleLeft, id: beam-7-b-purple, sideOrbAfter: move-head-7, time: 78.4, bossId: head-7 }
-  - { <<: *beamBlueLeft, id: beam-8-a-blue, sideOrbAfter: move-head-8, time: 84.4, bossId: head-8 }
-  - { <<: *beamPurpleRight, id: beam-8-a-purple, sideOrbAfter: move-head-8, time: 84.4, bossId: head-8 }
-  - { <<: *beamBlueRight, id: beam-8-b-blue, sideOrbAfter: move-head-8, time: 84.4, bossId: head-8 }
-  - { <<: *beamPurpleLeft, id: beam-8-b-purple, sideOrbAfter: move-head-8, time: 84.4, bossId: head-8 }
+  - { <<: *beamBlueLeft, id: beam-2-a-blue, sideOrbAfter: move-head-2, time: 28.1, bossId: head-2 }
+  - { <<: *beamPurpleRight, id: beam-2-a-purple, sideOrbAfter: move-head-2, time: 28.1, bossId: head-2 }
+  - { <<: *beamBlueRight, id: beam-2-b-blue, sideOrbAfter: move-head-2, time: 28.1, bossId: head-2 }
+  - { <<: *beamPurpleLeft, id: beam-2-b-purple, sideOrbAfter: move-head-2, time: 28.1, bossId: head-2 }
+  - { <<: *beamBlueLeft, id: beam-3-a-blue, sideOrbAfter: move-head-3, time: 34.1, bossId: head-3 }
+  - { <<: *beamPurpleRight, id: beam-3-a-purple, sideOrbAfter: move-head-3, time: 34.1, bossId: head-3 }
+  - { <<: *beamBlueRight, id: beam-3-b-blue, sideOrbAfter: move-head-3, time: 34.1, bossId: head-3 }
+  - { <<: *beamPurpleLeft, id: beam-3-b-purple, sideOrbAfter: move-head-3, time: 34.1, bossId: head-3 }
+  - { <<: *beamBlueLeft, id: beam-4-a-blue, sideOrbAfter: move-head-4, time: 40.1, bossId: head-4 }
+  - { <<: *beamPurpleRight, id: beam-4-a-purple, sideOrbAfter: move-head-4, time: 40.1, bossId: head-4 }
+  - { <<: *beamBlueRight, id: beam-4-b-blue, sideOrbAfter: move-head-4, time: 40.1, bossId: head-4 }
+  - { <<: *beamPurpleLeft, id: beam-4-b-purple, sideOrbAfter: move-head-4, time: 40.1, bossId: head-4 }
+  - { <<: *beamBlueLeft, id: beam-5-a-blue, sideOrbAfter: move-head-5, time: 46.1, bossId: head-5 }
+  - { <<: *beamPurpleRight, id: beam-5-a-purple, sideOrbAfter: move-head-5, time: 46.1, bossId: head-5 }
+  - { <<: *beamBlueRight, id: beam-5-b-blue, sideOrbAfter: move-head-5, time: 46.1, bossId: head-5 }
+  - { <<: *beamPurpleLeft, id: beam-5-b-purple, sideOrbAfter: move-head-5, time: 46.1, bossId: head-5 }
+  - { <<: *beamBlueLeft, id: beam-6-a-blue, sideOrbAfter: move-head-6, time: 52.1, bossId: head-6 }
+  - { <<: *beamPurpleRight, id: beam-6-a-purple, sideOrbAfter: move-head-6, time: 52.1, bossId: head-6 }
+  - { <<: *beamBlueRight, id: beam-6-b-blue, sideOrbAfter: move-head-6, time: 52.1, bossId: head-6 }
+  - { <<: *beamPurpleLeft, id: beam-6-b-purple, sideOrbAfter: move-head-6, time: 52.1, bossId: head-6 }
+  - { <<: *beamBlueLeft, id: beam-7-a-blue, sideOrbAfter: move-head-7, time: 58.1, bossId: head-7 }
+  - { <<: *beamPurpleRight, id: beam-7-a-purple, sideOrbAfter: move-head-7, time: 58.1, bossId: head-7 }
+  - { <<: *beamBlueRight, id: beam-7-b-blue, sideOrbAfter: move-head-7, time: 58.1, bossId: head-7 }
+  - { <<: *beamPurpleLeft, id: beam-7-b-purple, sideOrbAfter: move-head-7, time: 58.1, bossId: head-7 }
+  - { <<: *beamBlueLeft, id: beam-8-a-blue, sideOrbAfter: move-head-8, time: 64.1, bossId: head-8 }
+  - { <<: *beamPurpleRight, id: beam-8-a-purple, sideOrbAfter: move-head-8, time: 64.1, bossId: head-8 }
+  - { <<: *beamBlueRight, id: beam-8-b-blue, sideOrbAfter: move-head-8, time: 64.1, bossId: head-8 }
+  - { <<: *beamPurpleLeft, id: beam-8-b-purple, sideOrbAfter: move-head-8, time: 64.1, bossId: head-8 }
   - &ancientElemental
-    <<: *cast
+    type: aoe
+    bossId: necrophobia
+    damageType: magical
+    telegraph: 5
     id: ice-1-1
-    time: 50.1
+    time: 29.8
     name: Ancient Blizzard III
     damage: 40
     avoidable: true
@@ -271,24 +247,24 @@ events:
     name: Ancient Fire III
     color: "#ff9999"
     shape: { kind: circle, center: [0, 0], radius: 14 }
-  - { <<: *ancientElemental, id: ice-2-1, time: 61.5, labels: &element2 [element-2] }
-  - { <<: *ancientBlizzardEast, id: ice-2-2, time: 61.5, labels: *element2 }
-  - { <<: *ancientBlizzardSouth, id: ice-2-3, time: 61.5, labels: *element2 }
-  - { <<: *ancientBlizzardWest, id: ice-2-4, time: 61.5, labels: *element2 }
-  - { <<: *ancientThunderNortheast, id: thunder-2-1, time: 62.3, labels: *element2 }
-  - { <<: *ancientThunderSoutheast, id: thunder-2-2, time: 62.3, labels: *element2 }
-  - { <<: *ancientThunderSouthwest, id: thunder-2-3, time: 62.3, labels: *element2 }
-  - { <<: *ancientThunderNorthwest, id: thunder-2-4, time: 62.3, labels: *element2 }
-  - { <<: *ancientFire, id: fire-2, time: 61.5, labels: *element2 }
-  - { <<: *ancientElemental, id: ice-3-1, time: 73.7, labels: &element3 [element-3] }
-  - { <<: *ancientBlizzardEast, id: ice-3-2, time: 73.7, labels: *element3 }
-  - { <<: *ancientBlizzardSouth, id: ice-3-3, time: 73.7, labels: *element3 }
-  - { <<: *ancientBlizzardWest, id: ice-3-4, time: 73.7, labels: *element3 }
-  - { <<: *ancientThunderNortheast, id: thunder-3-1, time: 74.5, labels: *element3 }
-  - { <<: *ancientThunderSoutheast, id: thunder-3-2, time: 74.5, labels: *element3 }
-  - { <<: *ancientThunderSouthwest, id: thunder-3-3, time: 74.5, labels: *element3 }
-  - { <<: *ancientThunderNorthwest, id: thunder-3-4, time: 74.5, labels: *element3 }
-  - { <<: *ancientFire, id: fire-3, time: 73.7, labels: *element3 }
+  - { <<: *ancientElemental, id: ice-2-1, time: 41.2, labels: &element2 [element-2] }
+  - { <<: *ancientBlizzardEast, id: ice-2-2, time: 41.2, labels: *element2 }
+  - { <<: *ancientBlizzardSouth, id: ice-2-3, time: 41.2, labels: *element2 }
+  - { <<: *ancientBlizzardWest, id: ice-2-4, time: 41.2, labels: *element2 }
+  - { <<: *ancientThunderNortheast, id: thunder-2-1, time: 42, labels: *element2 }
+  - { <<: *ancientThunderSoutheast, id: thunder-2-2, time: 42, labels: *element2 }
+  - { <<: *ancientThunderSouthwest, id: thunder-2-3, time: 42, labels: *element2 }
+  - { <<: *ancientThunderNorthwest, id: thunder-2-4, time: 42, labels: *element2 }
+  - { <<: *ancientFire, id: fire-2, time: 41.2, labels: *element2 }
+  - { <<: *ancientElemental, id: ice-3-1, time: 53.4, labels: &element3 [element-3] }
+  - { <<: *ancientBlizzardEast, id: ice-3-2, time: 53.4, labels: *element3 }
+  - { <<: *ancientBlizzardSouth, id: ice-3-3, time: 53.4, labels: *element3 }
+  - { <<: *ancientBlizzardWest, id: ice-3-4, time: 53.4, labels: *element3 }
+  - { <<: *ancientThunderNortheast, id: thunder-3-1, time: 54.2, labels: *element3 }
+  - { <<: *ancientThunderSoutheast, id: thunder-3-2, time: 54.2, labels: *element3 }
+  - { <<: *ancientThunderSouthwest, id: thunder-3-3, time: 54.2, labels: *element3 }
+  - { <<: *ancientThunderNorthwest, id: thunder-3-4, time: 54.2, labels: *element3 }
+  - { <<: *ancientFire, id: fire-3, time: 53.4, labels: *element3 }
 
 waymarks:
   - { mark: "A", pos: { x: 0, z: 14.6667 } }

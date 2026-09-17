@@ -8,8 +8,8 @@ const rawRaid = Bun.YAML.parse(await Bun.file(`${import.meta.dir}/../../../raids
 const raid = loadRaid(rawRaid);
 
 const HEADS = [1, 2, 3, 4, 5, 6, 7, 8];
-const teleportTime = (head: number) => 27.3 + 1.2 * (head - 1);
-const beamResolveTime = (head: number) => 42.4 + 6 * (head - 1) + 0.67;
+const teleportTime = (head: number) => 7 + 1.2 * (head - 1);
+const beamResolveTime = (head: number) => 22.1 + 6 * (head - 1) + 0.67;
 const BRANCH_A = Object.fromEntries(HEADS.map(head => [`event-set-beam-${head}`, 0]));
 
 test("each head reveals both orbs after its own teleport and clears them when its lasers resolve", () => {
