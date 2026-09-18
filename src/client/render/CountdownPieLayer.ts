@@ -11,6 +11,13 @@ import { applyAlphaTest } from "./meshes/billboardMaterials";
 const PIE_BOTTOM = 2.3;
 const PIE_SIZE = 2;
 const TEXTURE_SIZE = 128;
+// Black spikes point outward from the end of each slice separator. The texture keeps room for them
+// outside the pie, and the plane grows to match so the pie itself stays PIE_SIZE across.
+const SPIKE_PX = 12;
+const SPIKE_BASE_PX = 12;
+const EDGE_PX = 4;
+const PIE_RADIUS_PX = TEXTURE_SIZE / 2 - EDGE_PX - SPIKE_PX;
+const PLANE_SIZE = PIE_SIZE * (TEXTURE_SIZE / 2 - EDGE_PX) / PIE_RADIUS_PX;
 const PIE_COLOR = "#ff9a1f";
 // The top slice boundary sits this far clockwise of north.
 const PIE_ROTATION_DEG = 10;
@@ -30,7 +37,7 @@ export class CountdownPieLayer {
     this.texture.hasAlpha = true;
     const material = new StandardMaterial("countdown-pie-mat", scene);
     applyAlphaTest(material, this.texture);
-    this.plane = CreatePlane("countdown-pie", { size: PIE_SIZE }, scene);
+    this.plane = CreatePlane("countdown-pie", { size: PLANE_SIZE }, scene);
     this.plane.material = material;
     this.plane.billboardMode = Mesh.BILLBOARDMODE_ALL;
     this.plane.isPickable = false;
@@ -56,7 +63,7 @@ export class CountdownPieLayer {
   private draw(left: number, slices: number): void {
     const ctx = this.texture.getContext() as unknown as CanvasRenderingContext2D;
     const c = TEXTURE_SIZE / 2;
-    const outer = c - 4;
+    const outer = PIE_RADIUS_PX;
     const step = (Math.PI * 2) / slices;
     // Bearing clockwise from north -> canvas angle (0 = east, clockwise on screen).
     const angle = (k: number) => (PIE_ROTATION_DEG * Math.PI) / 180 + k * step - Math.PI / 2;
@@ -84,6 +91,18 @@ export class CountdownPieLayer {
     ctx.beginPath();
     ctx.arc(c, c, outer, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.fillStyle = "#000000";
+    for (let k = 0; k < slices; k++) {
+      const a = angle(k);
+      const [dx, dy] = [Math.cos(a), Math.sin(a)];
+      const half = SPIKE_BASE_PX / 2;
+      ctx.beginPath();
+      ctx.moveTo(c + dx * (outer - 1) - dy * half, c + dy * (outer - 1) + dx * half);
+      ctx.lineTo(c + dx * (outer + SPIKE_PX), c + dy * (outer + SPIKE_PX));
+      ctx.lineTo(c + dx * (outer - 1) + dy * half, c + dy * (outer - 1) - dx * half);
+      ctx.closePath();
+      ctx.fill();
+    }
     ctx.fillStyle = "#000000";
     ctx.beginPath();
     ctx.arc(c, c, outer * 0.3, 0, Math.PI * 2);
