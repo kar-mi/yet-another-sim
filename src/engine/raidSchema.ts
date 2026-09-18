@@ -54,6 +54,15 @@ const OptionalsSchema = z.object({
     rng: z.boolean().default(false),
     groups: z.array(z.array(EventIdSchema).min(1)).length(2),
   }).optional(),
+  // Seeded per-run permutation of cast times across groups of events (see shuffleEventTimes). Each
+  // entry deals its groups' authored time/telegraph back out in a shuffled order; `noRepeatAfter`
+  // names an earlier entry whose last group this entry's first group may not repeat.
+  timeShuffle: z.array(z.object({
+    id: z.string().min(1),
+    rng: z.boolean().default(false),
+    noRepeatAfter: z.string().min(1).optional(),
+    groups: z.array(z.array(EventIdSchema).min(1)).min(2),
+  })).min(1).optional(),
   // Seeded per-run rotation of a divebomb sweep around its canonical ring (see rotateDivebombSweep).
   // `events` lists the divebomb ids in canonical sweep order (the list index is each dash's number).
   // `limitCut` (optional) names a limit cut whose placement basis is derived from the rolled sweep.
@@ -84,6 +93,16 @@ const OptionalsSchema = z.object({
         name: z.string().min(1).optional(),
       })).min(1),
     }).optional(),
+    // Seeded assignment of {name, color} variants across slots of event ids (see buildLabelPlan).
+    // Variants and slots pair up one-to-one, so a raid can roll which mechanic identity lands where.
+    labels: z.record(z.string().min(1), z.object({
+      rng: z.boolean().default(false),
+      slots: z.array(z.array(EventIdSchema).min(1)).min(1),
+      variants: z.array(z.object({
+        name: z.string().min(1),
+        color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+      })).min(1),
+    }).refine(spec => spec.slots.length === spec.variants.length, "labels needs one variant per slot")).optional(),
     eventSets: z.record(z.string().min(1), z.object({
       rng: z.boolean().default(false),
       sets: z.array(z.array(EventIdSchema).min(1)).min(1),
@@ -294,6 +313,62 @@ export const RaidSchema = z.object({
       }
     });
   });
+
+  const shuffleIds = new Set<string>();
+  raid.optionals?.timeShuffle?.forEach((entry, entryIndex) => {
+    if (shuffleIds.has(entry.id)) {
+      ctx.addIssue({ code: "custom", path: ["optionals", "timeShuffle", entryIndex, "id"], message: `duplicate timeShuffle id "${entry.id}"` });
+    }
+    if (entry.noRepeatAfter !== undefined && !shuffleIds.has(entry.noRepeatAfter)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["optionals", "timeShuffle", entryIndex, "noRepeatAfter"],
+        message: `timeShuffle noRepeatAfter "${entry.noRepeatAfter}" must name an earlier entry`,
+      });
+    }
+    shuffleIds.add(entry.id);
+    const previous = raid.optionals?.timeShuffle?.find(other => other.id === entry.noRepeatAfter);
+    if (previous && previous.groups.length !== entry.groups.length) {
+      ctx.addIssue({ code: "custom", path: ["optionals", "timeShuffle", entryIndex, "noRepeatAfter"], message: "timeShuffle noRepeatAfter entries must have the same number of groups" });
+    }
+    entry.groups.forEach((group, groupIndex) => {
+      let timing: { t: number; telegraph: number } | undefined;
+      group.forEach((id, idIndex) => {
+        const path = ["optionals", "timeShuffle", entryIndex, "groups", groupIndex, idIndex];
+        const event = raid.events.find(e => e.id === id);
+        if (!event) {
+          ctx.addIssue({ code: "custom", path, message: `timeShuffle references unknown event id "${id}"` });
+          return;
+        }
+        if (!("telegraph" in event)) {
+          ctx.addIssue({ code: "custom", path, message: `timeShuffle event "${id}" must have a telegraph` });
+          return;
+        }
+        const current = { t: event.t, telegraph: event.telegraph };
+        if (timing === undefined) {
+          timing = current;
+        } else if (timing.t !== current.t || timing.telegraph !== current.telegraph) {
+          ctx.addIssue({
+            code: "custom",
+            path,
+            message: `timeShuffle "${entry.id}" group ${groupIndex} events must share the same time and telegraph`,
+          });
+        }
+      });
+    });
+  });
+
+  for (const [key, spec] of Object.entries(raid.optionals?.combinations?.labels ?? {})) {
+    const seen = new Set<string>();
+    spec.slots.forEach((slot, slotIndex) => slot.forEach((id, idIndex) => {
+      const path = ["optionals", "combinations", "labels", key, "slots", slotIndex, idIndex];
+      if (eventIds.get(id)?.type !== "aoe") {
+        ctx.addIssue({ code: "custom", path, message: `label event "${id}" must reference an aoe event` });
+      }
+      if (seen.has(id)) ctx.addIssue({ code: "custom", path, message: `label event "${id}" must belong to only one slot` });
+      seen.add(id);
+    }));
+  }
 
   raid.events.forEach((event, i) => {
     if (event.type !== "tower") return;

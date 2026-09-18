@@ -1,0 +1,247 @@
+# The Index - Omni-Elements 1. t=0 is the Omni-Elements begincast; every time below is measured from
+# the ranked clears cached in scripts/raid_analyzer/.cache (see .claude/plans for the derivation).
+#
+# Each opposite pair of platforms (trapezoid + square) is one element, assigned per run. Six waves per
+# round, ~1.5s apart, each detonating one pair; every element fires twice per round and the order is
+# two permutations with no repeat across the join.
+
+name: Omni-Elements 1
+arena:
+  generator: index_arena_2
+duration: 55
+boss: { id: chaos, pos: [0, 0] }
+
+players:
+  - { id: mt, role: tank, spawn: [0, 9.5] }
+  - { id: ot, role: tank, spawn: [6.72, 6.72] }
+  - { id: h1, role: healer, spawn: [9.5, 0] }
+  - { id: h2, role: healer, spawn: [6.72, -6.72] }
+  - { id: r1, role: dps, spawn: [0, -9.5] }
+  - { id: r2, role: dps, spawn: [-6.72, -6.72] }
+  - { id: m1, role: dps, spawn: [-9.5, 0] }
+  - { id: m2, role: dps, spawn: [-6.72, 6.72] }
+
+sections:
+  - { id: raidwide, name: Omni-Elements, t: 0 }
+  - { id: elements-1, name: Elements 1, t: 16.75 }
+  - { id: implement-1, name: Implement 1, t: 36.56 }
+  - { id: elements-2, name: Elements 2, t: 39.34 }
+  - { id: implement-2, name: Implement 2, t: 50.82 }
+
+# One pair end = the trapezoid wedge plus the square platform flush against it. Hexagon apothem 13,
+# hole apothem 5.6, platform side 15.011 (src/engine/arenaGenerators.ts).
+_shapes:
+  polyN: &polyN { kind: polygon, vertices: [[-3.233, 5.6], [3.233, 5.6], [7.506, 13], [7.506, 28.011], [-7.506, 28.011], [-7.506, 13]] }
+  polyS: &polyS { kind: polygon, vertices: [[3.233, -5.6], [-3.233, -5.6], [-7.506, -13], [-7.506, -28.011], [7.506, -28.011], [7.506, -13]] }
+  polyNE: &polyNE { kind: polygon, vertices: [[3.233, 5.6], [6.466, 0], [15.011, 0], [28.011, 7.506], [20.506, 20.506], [7.506, 13]] }
+  polySW: &polySW { kind: polygon, vertices: [[-3.233, -5.6], [-6.466, 0], [-15.011, 0], [-28.011, -7.506], [-20.506, -20.506], [-7.506, -13]] }
+  polySE: &polySE { kind: polygon, vertices: [[6.466, 0], [3.233, -5.6], [7.506, -13], [20.506, -20.506], [28.011, -7.506], [15.011, 0]] }
+  polyNW: &polyNW { kind: polygon, vertices: [[-6.466, 0], [-3.233, 5.6], [-7.506, 13], [-20.506, 20.506], [-28.011, 7.506], [-15.011, 0]] }
+
+_marker: &marker
+  type: aoe
+  time: 4
+  name: Element
+  telegraph: 44.1
+  damage: 0
+  damageType: "true"
+  showCastBar: false
+  showTelegraph: true
+
+_wave: &wave
+  type: aoe
+  name: Element
+  telegraph: 1.2
+  damage: 40
+  damageType: magical
+  avoidable: true
+  showCastBar: false
+  showTelegraph: false
+  flashBeforeResolve: { lead: 0.4 }
+
+# Reference diagrams define geometry, not textures. Radii are estimated from the arena:
+# bow circles cover a square and its corners (radius 11); harp covers the central hexagon (15).
+# Bell/sword cones reach beyond every platform (30).
+_implement: &implement
+  type: aoe
+  telegraph: 2.1
+  damage: 35
+  damageType: magical
+  avoidable: true
+  showCastBar: false
+  showTelegraph: true
+  color: "#8fd14f"
+
+_bow: &bow
+  <<: *implement
+  name: Aim
+
+_harp: &harp
+  <<: *implement
+  name: Romeo's Ballad
+  showCastBar: true
+  shape: { kind: circle, center: [0, 0], radius: 15 }
+
+_bell: &bell
+  <<: *implement
+  name: Wind Slash
+
+_sword: &sword
+  <<: *implement
+  name: Iainuki
+
+events:
+  - { id: place-index, type: teleport_boss, time: 0, name: The Index, bossId: boss, spots: [[0, 0]], facing: 0 }
+  # Keep the boss stationary and facing north for the entire encounter.
+  - id: keep-boss-still
+    type: aoe
+    time: 0
+    name: keep_boss_still
+    telegraph: 55
+    damage: 0
+    damageType: "true"
+    lockFacing: true
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: [0, 0], radius: 0.1 }
+
+  - id: omni-elements
+    type: aoe
+    time: 0
+    name: Omni-Elements
+    telegraph: 3.97
+    damage: 20
+    damageType: magical
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: [0, 0], radius: 30 }
+
+  - { <<: *marker, id: mark-n, shape: *polyN }
+  - { <<: *marker, id: mark-s, shape: *polyS }
+  - { <<: *marker, id: mark-ne, shape: *polyNE }
+  - { <<: *marker, id: mark-sw, shape: *polySW }
+  - { <<: *marker, id: mark-se, shape: *polySE }
+  - { <<: *marker, id: mark-nw, shape: *polyNW }
+
+  # Round 1, waves 1-3 (resolve 17.95 / 19.47 / 20.98).
+  - { <<: *wave, id: r1a-ns-n, time: 16.75, shape: *polyN, showCastBar: true }
+  - { <<: *wave, id: r1a-ns-s, time: 16.75, shape: *polyS }
+  - { <<: *wave, id: r1a-nesw-ne, time: 18.27, shape: *polyNE, showCastBar: true }
+  - { <<: *wave, id: r1a-nesw-sw, time: 18.27, shape: *polySW }
+  - { <<: *wave, id: r1a-senw-se, time: 19.78, shape: *polySE, showCastBar: true }
+  - { <<: *wave, id: r1a-senw-nw, time: 19.78, shape: *polyNW }
+
+  # Round 1, waves 4-6 (resolve 22.47 / 23.97 / 25.48).
+  - { <<: *wave, id: r1b-ns-n, time: 21.27, shape: *polyN, showCastBar: true }
+  - { <<: *wave, id: r1b-ns-s, time: 21.27, shape: *polyS }
+  - { <<: *wave, id: r1b-nesw-ne, time: 22.77, shape: *polyNE, showCastBar: true }
+  - { <<: *wave, id: r1b-nesw-sw, time: 22.77, shape: *polySW }
+  - { <<: *wave, id: r1b-senw-se, time: 24.28, shape: *polySE, showCastBar: true }
+  - { <<: *wave, id: r1b-senw-nw, time: 24.28, shape: *polyNW }
+
+  # Round 2, waves 1-3 (resolve 40.54 / 42.05 / 43.57).
+  - { <<: *wave, id: r2a-ns-n, time: 39.34, shape: *polyN, showCastBar: true }
+  - { <<: *wave, id: r2a-ns-s, time: 39.34, shape: *polyS }
+  - { <<: *wave, id: r2a-nesw-ne, time: 40.85, shape: *polyNE, showCastBar: true }
+  - { <<: *wave, id: r2a-nesw-sw, time: 40.85, shape: *polySW }
+  - { <<: *wave, id: r2a-senw-se, time: 42.37, shape: *polySE, showCastBar: true }
+  - { <<: *wave, id: r2a-senw-nw, time: 42.37, shape: *polyNW }
+
+  # Round 2, waves 4-6 (resolve 45.06 / 46.55 / 48.07).
+  - { <<: *wave, id: r2b-ns-n, time: 43.86, shape: *polyN, showCastBar: true }
+  - { <<: *wave, id: r2b-ns-s, time: 43.86, shape: *polyS }
+  - { <<: *wave, id: r2b-nesw-ne, time: 45.35, shape: *polyNE, showCastBar: true }
+  - { <<: *wave, id: r2b-nesw-sw, time: 45.35, shape: *polySW }
+  - { <<: *wave, id: r2b-senw-se, time: 46.87, shape: *polySE, showCastBar: true }
+  - { <<: *wave, id: r2b-senw-nw, time: 46.87, shape: *polyNW }
+
+  # Implement 1 (resolve 38.66): one of bow, harp, bell or sword.
+  - { <<: *bow, id: bow1-n, time: 36.56, showCastBar: true, shape: { kind: circle, center: [0, 20.506], radius: 11 } }
+  - { <<: *bow, id: bow1-ne, time: 36.56, shape: { kind: circle, center: [17.759, 10.253], radius: 11 } }
+  - { <<: *bow, id: bow1-se, time: 36.56, shape: { kind: circle, center: [17.759, -10.253], radius: 11 } }
+  - { <<: *bow, id: bow1-s, time: 36.56, shape: { kind: circle, center: [0, -20.506], radius: 11 } }
+  - { <<: *bow, id: bow1-sw, time: 36.56, shape: { kind: circle, center: [-17.759, -10.253], radius: 11 } }
+  - { <<: *bow, id: bow1-nw, time: 36.56, shape: { kind: circle, center: [-17.759, 10.253], radius: 11 } }
+  - { <<: *harp, id: harp1, time: 36.56 }
+  - { <<: *bell, id: bell1-n, time: 36.56, showCastBar: true, shape: { kind: cone, origin: [0, 0], direction: [0, 1], angleDeg: 60, length: 30 } }
+  - { <<: *bell, id: bell1-se, time: 36.56, shape: { kind: cone, origin: [0, 0], direction: [0.8660254, -0.5], angleDeg: 60, length: 30 } }
+  - { <<: *bell, id: bell1-sw, time: 36.56, shape: { kind: cone, origin: [0, 0], direction: [-0.8660254, -0.5], angleDeg: 60, length: 30 } }
+  - { <<: *sword, id: sword1-s, time: 36.56, showCastBar: true, shape: { kind: cone, origin: [0, 0], direction: [0, -1], angleDeg: 60, length: 30 } }
+  - { <<: *sword, id: sword1-ne, time: 36.56, shape: { kind: cone, origin: [0, 0], direction: [0.8660254, 0.5], angleDeg: 60, length: 30 } }
+  - { <<: *sword, id: sword1-nw, time: 36.56, shape: { kind: cone, origin: [0, 0], direction: [-0.8660254, 0.5], angleDeg: 60, length: 30 } }
+
+  # Implement 2 (resolve 52.85): one of bow, harp, bell or sword.
+  - { <<: *bow, id: bow2-n, time: 50.82, telegraph: 2.03, showCastBar: true, shape: { kind: circle, center: [0, 20.506], radius: 11 } }
+  - { <<: *bow, id: bow2-ne, time: 50.82, telegraph: 2.03, shape: { kind: circle, center: [17.759, 10.253], radius: 11 } }
+  - { <<: *bow, id: bow2-se, time: 50.82, telegraph: 2.03, shape: { kind: circle, center: [17.759, -10.253], radius: 11 } }
+  - { <<: *bow, id: bow2-s, time: 50.82, telegraph: 2.03, shape: { kind: circle, center: [0, -20.506], radius: 11 } }
+  - { <<: *bow, id: bow2-sw, time: 50.82, telegraph: 2.03, shape: { kind: circle, center: [-17.759, -10.253], radius: 11 } }
+  - { <<: *bow, id: bow2-nw, time: 50.82, telegraph: 2.03, shape: { kind: circle, center: [-17.759, 10.253], radius: 11 } }
+  - { <<: *harp, id: harp2, time: 50.82, telegraph: 2.03 }
+  - { <<: *bell, id: bell2-n, time: 50.82, telegraph: 2.03, showCastBar: true, shape: { kind: cone, origin: [0, 0], direction: [0, 1], angleDeg: 60, length: 30 } }
+  - { <<: *bell, id: bell2-se, time: 50.82, telegraph: 2.03, shape: { kind: cone, origin: [0, 0], direction: [0.8660254, -0.5], angleDeg: 60, length: 30 } }
+  - { <<: *bell, id: bell2-sw, time: 50.82, telegraph: 2.03, shape: { kind: cone, origin: [0, 0], direction: [-0.8660254, -0.5], angleDeg: 60, length: 30 } }
+  - { <<: *sword, id: sword2-s, time: 50.82, telegraph: 2.03, showCastBar: true, shape: { kind: cone, origin: [0, 0], direction: [0, -1], angleDeg: 60, length: 30 } }
+  - { <<: *sword, id: sword2-ne, time: 50.82, telegraph: 2.03, shape: { kind: cone, origin: [0, 0], direction: [0.8660254, 0.5], angleDeg: 60, length: 30 } }
+  - { <<: *sword, id: sword2-nw, time: 50.82, telegraph: 2.03, shape: { kind: cone, origin: [0, 0], direction: [-0.8660254, 0.5], angleDeg: 60, length: 30 } }
+
+optionals:
+  rngLabels:
+    event-set-implement-1: { label: Implement 1, options: [Bow, Harp, Bell, Sword] }
+    event-set-implement-2: { label: Implement 2, options: [Bow, Harp, Bell, Sword] }
+    label-pairs-0: { label: N/S element }
+    label-pairs-1: { label: NE/SW element }
+    label-pairs-2: { label: SE/NW element }
+    time-shuffle-r1-first-first: { label: "Round 1: first pair", options: [N/S, NE/SW, SE/NW] }
+    time-shuffle-r1-first-1: { label: "Round 1: waves 2–3", options: [Reverse pair order, Listed pair order] }
+    time-shuffle-r1-second-first: { label: "Round 1: fourth pair", options: [First eligible pair, Second eligible pair] }
+    time-shuffle-r1-second-1: { label: "Round 1: waves 5–6", options: [Reverse pair order, Listed pair order] }
+    time-shuffle-r2-first-first: { label: "Round 2: first pair", options: [N/S, NE/SW, SE/NW] }
+    time-shuffle-r2-first-1: { label: "Round 2: waves 2–3", options: [Reverse pair order, Listed pair order] }
+    time-shuffle-r2-second-first: { label: "Round 2: fourth pair", options: [First eligible pair, Second eligible pair] }
+    time-shuffle-r2-second-1: { label: "Round 2: waves 5–6", options: [Reverse pair order, Listed pair order] }
+  # Which pair fires in which slot. Groups are listed pair-first in the same order in every entry, so
+  # `noRepeatAfter` can keep a pair from detonating twice across the halfway point.
+  timeShuffle:
+    - id: r1-first
+      rng: true
+      groups: [[r1a-ns-n, r1a-ns-s], [r1a-nesw-ne, r1a-nesw-sw], [r1a-senw-se, r1a-senw-nw]]
+    - id: r1-second
+      rng: true
+      noRepeatAfter: r1-first
+      groups: [[r1b-ns-n, r1b-ns-s], [r1b-nesw-ne, r1b-nesw-sw], [r1b-senw-se, r1b-senw-nw]]
+    - id: r2-first
+      rng: true
+      groups: [[r2a-ns-n, r2a-ns-s], [r2a-nesw-ne, r2a-nesw-sw], [r2a-senw-se, r2a-senw-nw]]
+    - id: r2-second
+      rng: true
+      noRepeatAfter: r2-first
+      groups: [[r2b-ns-n, r2b-ns-s], [r2b-nesw-ne, r2b-nesw-sw], [r2b-senw-se, r2b-senw-nw]]
+  combinations:
+    # Which element each pair is, drawn once and kept for the whole pull.
+    labels:
+      pairs:
+        rng: true
+        slots:
+          - [mark-n, mark-s, r1a-ns-n, r1a-ns-s, r1b-ns-n, r1b-ns-s, r2a-ns-n, r2a-ns-s, r2b-ns-n, r2b-ns-s]
+          - [mark-ne, mark-sw, r1a-nesw-ne, r1a-nesw-sw, r1b-nesw-ne, r1b-nesw-sw, r2a-nesw-ne, r2a-nesw-sw, r2b-nesw-ne, r2b-nesw-sw]
+          - [mark-se, mark-nw, r1a-senw-se, r1a-senw-nw, r1b-senw-se, r1b-senw-nw, r2a-senw-se, r2a-senw-nw, r2b-senw-se, r2b-senw-nw]
+        variants:
+          - { name: Blizzard IV, color: "#3aa0ff" }
+          - { name: Thunder IV, color: "#a855f7" }
+          - { name: Fire IV, color: "#ff7043" }
+    eventSets:
+      implement-1:
+        rng: true
+        sets:
+          - [bow1-n, bow1-ne, bow1-se, bow1-s, bow1-sw, bow1-nw]
+          - [harp1]
+          - [bell1-n, bell1-se, bell1-sw]
+          - [sword1-s, sword1-ne, sword1-nw]
+      implement-2:
+        rng: true
+        sets:
+          - [bow2-n, bow2-ne, bow2-se, bow2-s, bow2-sw, bow2-nw]
+          - [harp2]
+          - [bell2-n, bell2-se, bell2-sw]
+          - [sword2-s, sword2-ne, sword2-nw]

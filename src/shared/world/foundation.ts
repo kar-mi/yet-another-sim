@@ -34,7 +34,8 @@ export type AOEShape =
   | { kind: "circle"; center: Vec2; radius: number }
   | { kind: "donut"; center: Vec2; inner: number; outer: number }
   | { kind: "cone"; origin: Vec2; direction: Vec2; angleDeg: number; length: number }
-  | { kind: "rect"; origin: Vec2; direction: Vec2; width: number; length: number };
+  | { kind: "rect"; origin: Vec2; direction: Vec2; width: number; length: number }
+  | { kind: "polygon"; vertices: Vec2[] };
 
 // Arc relative to the boss's facing (radians). A directional attack only hits players whose
 // bearing from the boss is within `width/2` of `center`. center is measured clockwise from the

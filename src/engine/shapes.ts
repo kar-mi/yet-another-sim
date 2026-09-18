@@ -9,6 +9,18 @@ function circleContains(center: Vec2, radius: number, p: Vec2): boolean {
   return dx * dx + dz * dz <= radius * radius;
 }
 
+function polygonContains(vertices: Vec2[], p: Vec2): boolean {
+  let inside = false;
+  for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+    const xi = vertices[i].x, zi = vertices[i].z;
+    const xj = vertices[j].x, zj = vertices[j].z;
+    if (zi > p.z !== zj > p.z && p.x < ((xj - xi) * (p.z - zi)) / (zj - zi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
 export function pointInShape(shape: AOEShape, p: Vec2): boolean {
   switch (shape.kind) {
     case "circle":
@@ -41,6 +53,9 @@ export function pointInShape(shape: AOEShape, p: Vec2): boolean {
       const side = Math.abs(dot({ x: dx, z: dz }, perp));
       return fwd >= 0 && fwd <= shape.length && side <= shape.width / 2;
     }
+
+    case "polygon":
+      return polygonContains(shape.vertices, p);
   }
 }
 
@@ -61,19 +76,9 @@ export function isOnFloor(pos: Vec2, zones: ZoneShape[]): boolean {
         break;
       }
 
-      case "polygon": {
-        const { vertices } = zone;
-        let inside = false;
-        for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
-          const xi = vertices[i].x, zi = vertices[i].z;
-          const xj = vertices[j].x, zj = vertices[j].z;
-          if (zi > pos.z !== zj > pos.z && pos.x < ((xj - xi) * (pos.z - zi)) / (zj - zi) + xi) {
-            inside = !inside;
-          }
-        }
-        if (inside) return true;
+      case "polygon":
+        if (polygonContains(zone.vertices, pos)) return true;
         break;
-      }
     }
   }
   return false;

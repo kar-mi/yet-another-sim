@@ -51,6 +51,27 @@ export function describeDecisions(raid: RaidDef): DecisionDescription[] {
     add({ key: "order-swap", label: "Order swap", options: ["normal", "swapped"] });
   }
 
+  for (const entry of raid.optionals?.timeShuffle ?? []) {
+    if (!entry.rng) continue;
+    add({
+      key: `time-shuffle-${entry.id}-first`,
+      label: `${entry.id} first group`,
+      options: rangeLabels(entry.groups.length - (entry.noRepeatAfter ? 1 : 0), "eligible group"),
+    });
+    for (let i = entry.groups.length - 2; i > 0; i--) {
+      add({ key: `time-shuffle-${entry.id}-${i}`, label: `${entry.id} remaining order ${i}`, options: rangeLabels(i + 1, "order") });
+    }
+  }
+
+  for (const [key, spec] of Object.entries(combinations?.labels ?? {})) {
+    if (!spec.rng) continue;
+    spec.slots.forEach((_, slot) => add({
+      key: `label-${key}-${slot}`,
+      label: `${key} slot ${slot + 1}`,
+      options: spec.variants.map(variant => variant.name),
+    }));
+  }
+
   const sweep = raid.optionals?.divebombSweep;
   if (sweep?.rng) {
     add({ key: "divebomb-start", label: "Divebomb start", options: rangeLabels(sweep.events.length, "spot") });
@@ -97,5 +118,9 @@ export function validateRngConstraints(raid: RaidDef, value: unknown): RngConstr
     .filter(([key]) => key.startsWith("ending-"))
     .map(([, selection]) => selection);
   if (new Set(forcedEndings).size !== forcedEndings.length) return null;
+  for (const [key, spec] of Object.entries(raid.optionals?.combinations?.labels ?? {})) {
+    const forced = spec.slots.map((_, slot) => constraints[`label-${key}-${slot}`]).filter(value => value !== undefined);
+    if (new Set(forced).size !== forced.length) return null;
+  }
   return constraints;
 }

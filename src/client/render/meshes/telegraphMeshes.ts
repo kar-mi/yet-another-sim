@@ -1,6 +1,7 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
-import type { Mesh } from "@babylonjs/core/Meshes/mesh";
+import { Mesh } from "@babylonjs/core/Meshes/mesh";
+import { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData";
 import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
 import { CreateGround } from "@babylonjs/core/Meshes/Builders/groundBuilder";
 import { CreateRibbon } from "@babylonjs/core/Meshes/Builders/ribbonBuilder";
@@ -65,6 +66,17 @@ export function createShapeMesh(scene: Scene, id: string, shape: AOEShape): Mesh
         Y,
         shape.origin.z + dir.z * shape.length / 2,
       );
+      break;
+    }
+
+    case "polygon": {
+      const data = new VertexData();
+      data.positions = shape.vertices.flatMap(v => [v.x, Y, v.z]);
+      data.normals = shape.vertices.flatMap(() => [0, 1, 0]);
+      // Fan from vertex 0; the authored polygons are convex.
+      data.indices = shape.vertices.slice(2).flatMap((_, i) => [0, i + 1, i + 2]);
+      mesh = new Mesh(`tel-${id}`, scene);
+      data.applyToMesh(mesh);
       break;
     }
 

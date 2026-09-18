@@ -17,6 +17,7 @@ export function toAOEShape(shape: AOEEventDef["shape"]): AOEShape {
     case "donut": return { kind: "donut", center: toVec2(shape.center), inner: shape.inner, outer: shape.outer };
     case "cone": return { kind: "cone", origin: toVec2(shape.origin), direction: toVec2(shape.direction), angleDeg: shape.angleDeg, length: shape.length };
     case "rect": return { kind: "rect", origin: toVec2(shape.origin), direction: toVec2(shape.direction), width: shape.width, length: shape.length };
+    case "polygon": return { kind: "polygon", vertices: shape.vertices.map(toVec2) };
   }
 }
 

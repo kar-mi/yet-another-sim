@@ -60,6 +60,7 @@ export const AOEShapeSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("donut"), center: Vec2Schema, inner: z.number().nonnegative(), outer: z.number().positive() }),
   z.object({ kind: z.literal("cone"), origin: Vec2Schema.default([0, 0]), direction: Vec2Schema.default([0, 1]), angleDeg: z.number().positive(), length: z.number().positive() }),
   z.object({ kind: z.literal("rect"), origin: Vec2Schema.default([0, 0]), direction: Vec2Schema.default([0, 1]), width: z.number().positive(), length: z.number().positive() }),
+  z.object({ kind: z.literal("polygon"), vertices: z.array(Vec2Schema).min(3) }),
 ]).superRefine((shape, ctx) => {
   if (shape.kind === "donut" && shape.inner >= shape.outer) {
     ctx.addIssue({ code: "custom", message: "donut inner must be less than outer" });

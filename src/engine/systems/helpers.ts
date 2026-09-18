@@ -188,7 +188,13 @@ export function findInterceptor(players: Player[], src: Vec2, tgt: Vec2, exclude
 }
 
 export function shapeOrigin(shape: AOEShape): Vec2 {
-  return shape.kind === "circle" || shape.kind === "donut" ? shape.center : shape.origin;
+  if (shape.kind === "circle" || shape.kind === "donut") return shape.center;
+  // A polygon has no authored anchor, so knockbacks and follow-ups push from its vertex average.
+  if (shape.kind === "polygon") {
+    const sum = shape.vertices.reduce((acc, v) => ({ x: acc.x + v.x, z: acc.z + v.z }), { x: 0, z: 0 });
+    return { x: sum.x / shape.vertices.length, z: sum.z / shape.vertices.length };
+  }
+  return shape.origin;
 }
 
 export function didAct(intent: Intent | undefined): boolean {
