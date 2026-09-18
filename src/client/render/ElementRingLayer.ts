@@ -9,7 +9,7 @@ import { elementRingRadius } from "@shared/elementRing";
 import { createElementGlyph, type ElementGlyphHandle } from "./meshes/elementGlyphMeshes";
 
 // Ring and glyphs share one height so the glyphs sit on the ring line.
-const RING_Y = 1.0;
+const RING_Y = 2.0;
 const RING_COLOR = "#ffffff";
 const TUBE_RADIUS = 0.08;
 const SEGMENTS = 96;

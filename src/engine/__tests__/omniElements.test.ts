@@ -108,6 +108,22 @@ test("each round selects exactly one of bow or harp", () => {
   expect(kinds).toEqual(new Set(Object.keys(counts)));
 });
 
+test("implements have no cast bar or telegraph, only an impact flash exactly as Sealed Implements ends", () => {
+  const events = raid.events.flatMap(e => e.type === "aoe" && /^(bow|harp)[12]/.test(e.id) ? [e] : []);
+  expect(events.length).toBe(14);
+  for (const e of events) {
+    expect(e.showCastBar).toBe(false);
+    expect(e.telegraphMode).toBe("resolve");
+  }
+  const sealed = raid.events.flatMap(e => e.type === "aoe" && e.id.startsWith("sealed-implements-") ? [e] : []);
+  const resolves = [...new Set(events.map(e => +(e.t + e.telegraph).toFixed(2)))].sort();
+  expect(resolves).toEqual([37.66, 51.85]);
+  sealed.forEach((bar, i) => {
+    const gap = resolves[i]! - (bar.t + bar.telegraph);
+    expect(gap).toBeCloseTo(0, 5);
+  });
+});
+
 test("implement footprints match the circle references", () => {
   const directions = [0, 60, 120, 180, 240, 300];
   const at = (degrees: number, radius: number) => ({ x: Math.sin(degrees * Math.PI / 180) * radius, z: Math.cos(degrees * Math.PI / 180) * radius });

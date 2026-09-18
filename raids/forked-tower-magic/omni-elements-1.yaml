@@ -96,14 +96,18 @@ _orb: &orb
 
 # Reference diagrams define geometry, not textures. Radii are estimated from the arena:
 # bow circles cover a square and its corners (radius 11); harp covers the central hexagon (15).
+# Bow and harp have no cast bar or telegraph of their own: they hit exactly as the Sealed Implements
+# bar ends (37.66 / 51.85) and only flash on impact.
+# TODO: boss visual indicator for which implement (bow vs harp) is coming.
 _implement: &implement
   type: aoe
-  telegraph: 2.1
+  telegraph: 1.1
   damage: 35
   damageType: magical
   avoidable: true
   showCastBar: false
   showTelegraph: true
+  telegraphMode: resolve
   color: "#8fd14f"
 
 _bow: &bow
@@ -113,7 +117,6 @@ _bow: &bow
 _harp: &harp
   <<: *implement
   name: Romeo's Ballad
-  showCastBar: true
   shape: { kind: circle, center: [0, 0], radius: 15 }
 
 events:
@@ -144,8 +147,8 @@ events:
 
   - { <<: *castBar, id: elementary-expansion, time: 7.13, name: Elementary Expansion, telegraph: 2.99 }
   - { <<: *castBar, id: predict, time: 18.32, name: Predict, telegraph: 2.99 }
-  - { <<: *castBar, id: sealed-implements-1, time: 31.5, name: Sealed Implements, telegraph: 5.06 }
-  - { <<: *castBar, id: sealed-implements-2, time: 45.76, name: Sealed Implements, telegraph: 5.06 }
+  - { <<: *castBar, id: sealed-implements-1, time: 31.5, name: Sealed Implements, telegraph: 6.16 }
+  - { <<: *castBar, id: sealed-implements-2, time: 45.76, name: Sealed Implements, telegraph: 6.09 }
 
   # Elementary Absorption (instant) drops the platforms on this same tick; not modelled (see header).
   - { <<: *castBar, id: elementary-chemistry-cast, time: 58.01, name: Elementary Chemistry, telegraph: 19.97 }
@@ -200,8 +203,8 @@ events:
   - { <<: *wave, id: r2b-senw-se, time: 40.24, shape: *polySE, ring: *ring }
   - { <<: *wave, id: r2b-senw-nw, time: 40.24, shape: *polyNW }
 
-  # Implement 1 (resolve 38.66): bow or harp (Sealed Implements picks one of the two).
-  - { <<: *bow, id: bow1-n, time: 36.56, showCastBar: true, shape: { kind: circle, center: [0, 20.506], radius: 11 } }
+  # Implement 1 (resolve 37.66): bow or harp (Sealed Implements picks one of the two).
+  - { <<: *bow, id: bow1-n, time: 36.56, shape: { kind: circle, center: [0, 20.506], radius: 11 } }
   - { <<: *bow, id: bow1-ne, time: 36.56, shape: { kind: circle, center: [17.759, 10.253], radius: 11 } }
   - { <<: *bow, id: bow1-se, time: 36.56, shape: { kind: circle, center: [17.759, -10.253], radius: 11 } }
   - { <<: *bow, id: bow1-s, time: 36.56, shape: { kind: circle, center: [0, -20.506], radius: 11 } }
@@ -209,14 +212,14 @@ events:
   - { <<: *bow, id: bow1-nw, time: 36.56, shape: { kind: circle, center: [-17.759, 10.253], radius: 11 } }
   - { <<: *harp, id: harp1, time: 36.56 }
 
-  # Implement 2 (resolve 52.85): bow or harp (Sealed Implements picks one of the two).
-  - { <<: *bow, id: bow2-n, time: 50.82, telegraph: 2.03, showCastBar: true, shape: { kind: circle, center: [0, 20.506], radius: 11 } }
-  - { <<: *bow, id: bow2-ne, time: 50.82, telegraph: 2.03, shape: { kind: circle, center: [17.759, 10.253], radius: 11 } }
-  - { <<: *bow, id: bow2-se, time: 50.82, telegraph: 2.03, shape: { kind: circle, center: [17.759, -10.253], radius: 11 } }
-  - { <<: *bow, id: bow2-s, time: 50.82, telegraph: 2.03, shape: { kind: circle, center: [0, -20.506], radius: 11 } }
-  - { <<: *bow, id: bow2-sw, time: 50.82, telegraph: 2.03, shape: { kind: circle, center: [-17.759, -10.253], radius: 11 } }
-  - { <<: *bow, id: bow2-nw, time: 50.82, telegraph: 2.03, shape: { kind: circle, center: [-17.759, 10.253], radius: 11 } }
-  - { <<: *harp, id: harp2, time: 50.82, telegraph: 2.03 }
+  # Implement 2 (resolve 51.85): bow or harp (Sealed Implements picks one of the two).
+  - { <<: *bow, id: bow2-n, time: 50.82, telegraph: 1.03, shape: { kind: circle, center: [0, 20.506], radius: 11 } }
+  - { <<: *bow, id: bow2-ne, time: 50.82, telegraph: 1.03, shape: { kind: circle, center: [17.759, 10.253], radius: 11 } }
+  - { <<: *bow, id: bow2-se, time: 50.82, telegraph: 1.03, shape: { kind: circle, center: [17.759, -10.253], radius: 11 } }
+  - { <<: *bow, id: bow2-s, time: 50.82, telegraph: 1.03, shape: { kind: circle, center: [0, -20.506], radius: 11 } }
+  - { <<: *bow, id: bow2-sw, time: 50.82, telegraph: 1.03, shape: { kind: circle, center: [-17.759, -10.253], radius: 11 } }
+  - { <<: *bow, id: bow2-nw, time: 50.82, telegraph: 1.03, shape: { kind: circle, center: [-17.759, 10.253], radius: 11 } }
+  - { <<: *harp, id: harp2, time: 50.82, telegraph: 1.03 }
 
   # TODO: element rings (Fire / Blizzard / Thunder III, hits at 33.32 / 38.34 / 52.37). Revisit with
   # the debuff design; the engine's `onlyCarriers` aoe flag and the *_iv_ring debuffs are kept for it.
