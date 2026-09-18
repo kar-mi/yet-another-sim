@@ -21,7 +21,7 @@ import { buildFloorAoe } from "../floorAoeBuild";
 import { atan2 } from "@shared/dmath";
 import {
   selectTargetPlayer, selectTargetPlayers, inPositionalArc, applyMechanicDamage, applyEffect,
-  effectsForMechanic, balancedEffectOrders, applyKnockback, shapeOrigin, isEffectActiveAt,
+  effectsForMechanic, balancedEffectOrders, applyKnockback, shapeOrigin, isEffectActiveAt, cleanseElementStacks,
 } from "./helpers";
 import { addResolvedAoeVisual } from "./effectResolvers";
 import { mechanicSource } from "./damageLog";
@@ -375,6 +375,7 @@ export function resolveAoe(ctx: TickContext): {
         if (hit) {
           applyMechanicDamage(ctx, player, mechanic.damage, mechanic.damageType, mechanicSource(ctx, mechanic.id, mechanic.name));
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });
+          if (player.alive) cleanseElementStacks(ctx, player, mechanic.name, players);
           const effectSpecs = player.alive
             ? (mechanic.applyEffects?.order === "shuffleBalanced"
               ? (balancedOrders[balancedOrderIndex++] ?? mechanic.applyEffects.effects)

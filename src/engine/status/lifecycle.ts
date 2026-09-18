@@ -41,6 +41,8 @@ export const STATUS_LIFECYCLE_REGISTRY: Record<EffectBehavior["kind"], StatusLif
   alternating: {},
   primordialCrust: { onExpiry: expiryDamageOnExpiry },
   accretion: { cleanseOnFullHp: true, onExpiry: expiryDamageOnExpiry },
+  elementCleanse: { onExpiry: expiryDamageOnExpiry },
+  elementVuln: {},
   motionCheck: { onExpiry: motionCheckOnExpiry },
   assignment: { onExpiry: expiryDamageOnExpiry },
 };
@@ -203,7 +205,7 @@ function plantOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): 
 }
 
 function expiryDamageOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
-  const behavior = effect.behavior as Extract<EffectBehavior, { kind: "primordialCrust" | "accretion" | "assignment" }>;
+  const behavior = effect.behavior as Extract<EffectBehavior, { kind: "primordialCrust" | "accretion" | "elementCleanse" | "assignment" }>;
   applyMechanicDamage(ctx, player, behavior.expiryDamage, behavior.expiryDamageType, effectSource(effect));
   if (!player.alive) ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: player.id, event: "hit" });
 }

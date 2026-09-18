@@ -5,6 +5,9 @@
 # round, ~1.5s apart, each detonating one pair; every element fires twice per round and the order is
 # two permutations with no repeat across the join.
 #
+# Elementary Chemistry (58.01-79.72): everyone gets 3 stacks of Elementary Deficiency and must take one
+# hit of each element from the trapezoid pads (three waves, alternating trapezoids) or die at 79.72.
+#
 # Runs through the Elementary Chemistry raidwide (79.42) and stops before All-Knowing Flames (86.18).
 # The arena stays index_arena_2 even after Elementary Absorption, since arenas can't swap mid-fight yet.
 
@@ -132,6 +135,31 @@ _harp: &harp
   name: Romeo's Ballad
   shape: { kind: circle, center: [0, 0], radius: 15 }
 
+# Elementary Chemistry pads: a blue circle in each trapezoid (radius-9 center, where the FFLogs hits
+# originate) with a floating sphere, up for the whole cast. Radius 2 is an estimate.
+_chemPad: &chemPad
+  type: aoe
+  time: 58.01
+  name: Chemistry Pad
+  telegraph: 19.97
+  damage: 0
+  damageType: "true"
+  showCastBar: false
+  showTelegraph: true
+  color: "#3a7bff"
+
+# Elementary Chemistry hit (hits 66.96 / 70.00 / 73.03): a small copy of a square's glyph appears 6s
+# out, glides into its own trapezoid's pad over the last 3s, and hits the pad in that pair's element.
+# Damage is an estimate; see elementary_deficiency for the stack cleanse and Resistance Down.
+_chemHit: &chemHit
+  type: aoe
+  name: Element
+  damage: 10
+  damageType: magical
+  showCastBar: false
+  showTelegraph: false
+  flashBeforeResolve: { lead: 0.4 }
+
 events:
   - { id: place-index, type: teleport_boss, time: 0, name: The Index, bossId: boss, spots: [[0, 0]], facing: 0 }
   # Keep the boss stationary and facing north for the entire encounter.
@@ -139,7 +167,7 @@ events:
     type: aoe
     time: 0
     name: keep_boss_still
-    telegraph: 82
+    telegraph: 90
     damage: 0
     damageType: "true"
     lockFacing: true
@@ -176,6 +204,38 @@ events:
     showCastBar: false
     showTelegraph: false
     shape: { kind: circle, center: [0, 0], radius: 30 }
+
+  # Elementary Deficiency (3 stacks) lands 0.5s into the cast. Each element's first hit drops a stack;
+  # stacks left at 79.72 are lethal (the Elementary Chemistry follow-up hit in FFLogs).
+  - { id: elementary-deficiency, type: apply_effect, time: 58.51, name: Elementary Deficiency, applyEffect: { ref: elementary_deficiency } }
+  - { <<: *chemPad, id: chem-pad-n, shape: { kind: circle, center: [0, 9], radius: 2 }, mover: { from: [0, 9], departAt: 77.98, scale: 0.35 } }
+  - { <<: *chemPad, id: chem-pad-ne, shape: { kind: circle, center: [7.794, 4.5], radius: 2 }, mover: { from: [7.794, 4.5], departAt: 77.98, scale: 0.35 } }
+  - { <<: *chemPad, id: chem-pad-se, shape: { kind: circle, center: [7.794, -4.5], radius: 2 }, mover: { from: [7.794, -4.5], departAt: 77.98, scale: 0.35 } }
+  - { <<: *chemPad, id: chem-pad-s, shape: { kind: circle, center: [0, -9], radius: 2 }, mover: { from: [0, -9], departAt: 77.98, scale: 0.35 } }
+  - { <<: *chemPad, id: chem-pad-sw, shape: { kind: circle, center: [-7.794, -4.5], radius: 2 }, mover: { from: [-7.794, -4.5], departAt: 77.98, scale: 0.35 } }
+  - { <<: *chemPad, id: chem-pad-nw, shape: { kind: circle, center: [-7.794, 4.5], radius: 2 }, mover: { from: [-7.794, 4.5], departAt: 77.98, scale: 0.35 } }
+
+  # Each wave hits three alternating trapezoids; wave 3 repeats wave 1 (`eventSets.chemistry` picks).
+  # First wave N/SE/SW.
+  - { <<: *chemHit, id: chem-a1-n, time: 60.9, telegraph: 6.06, shape: { kind: circle, center: [0, 9], radius: 2 }, glyph: { at: [0, 20.506] }, mover: { from: [0, 20.506], departAt: 63.93 } }
+  - { <<: *chemHit, id: chem-a1-se, time: 60.9, telegraph: 6.06, shape: { kind: circle, center: [7.794, -4.5], radius: 2 }, glyph: { at: [17.759, -10.253] }, mover: { from: [17.759, -10.253], departAt: 63.93 } }
+  - { <<: *chemHit, id: chem-a1-sw, time: 60.9, telegraph: 6.06, shape: { kind: circle, center: [-7.794, -4.5], radius: 2 }, glyph: { at: [-17.759, -10.253] }, mover: { from: [-17.759, -10.253], departAt: 63.93 } }
+  - { <<: *chemHit, id: chem-a2-s, time: 63.94, telegraph: 6.06, shape: { kind: circle, center: [0, -9], radius: 2 }, glyph: { at: [0, -20.506] }, mover: { from: [0, -20.506], departAt: 66.97 } }
+  - { <<: *chemHit, id: chem-a2-ne, time: 63.94, telegraph: 6.06, shape: { kind: circle, center: [7.794, 4.5], radius: 2 }, glyph: { at: [17.759, 10.253] }, mover: { from: [17.759, 10.253], departAt: 66.97 } }
+  - { <<: *chemHit, id: chem-a2-nw, time: 63.94, telegraph: 6.06, shape: { kind: circle, center: [-7.794, 4.5], radius: 2 }, glyph: { at: [-17.759, 10.253] }, mover: { from: [-17.759, 10.253], departAt: 66.97 } }
+  - { <<: *chemHit, id: chem-a3-n, time: 66.97, telegraph: 6.06, shape: { kind: circle, center: [0, 9], radius: 2 }, glyph: { at: [0, 20.506] }, mover: { from: [0, 20.506], departAt: 70 } }
+  - { <<: *chemHit, id: chem-a3-se, time: 66.97, telegraph: 6.06, shape: { kind: circle, center: [7.794, -4.5], radius: 2 }, glyph: { at: [17.759, -10.253] }, mover: { from: [17.759, -10.253], departAt: 70 } }
+  - { <<: *chemHit, id: chem-a3-sw, time: 66.97, telegraph: 6.06, shape: { kind: circle, center: [-7.794, -4.5], radius: 2 }, glyph: { at: [-17.759, -10.253] }, mover: { from: [-17.759, -10.253], departAt: 70 } }
+  # First wave S/NE/NW.
+  - { <<: *chemHit, id: chem-b1-s, time: 60.9, telegraph: 6.06, shape: { kind: circle, center: [0, -9], radius: 2 }, glyph: { at: [0, -20.506] }, mover: { from: [0, -20.506], departAt: 63.93 } }
+  - { <<: *chemHit, id: chem-b1-ne, time: 60.9, telegraph: 6.06, shape: { kind: circle, center: [7.794, 4.5], radius: 2 }, glyph: { at: [17.759, 10.253] }, mover: { from: [17.759, 10.253], departAt: 63.93 } }
+  - { <<: *chemHit, id: chem-b1-nw, time: 60.9, telegraph: 6.06, shape: { kind: circle, center: [-7.794, 4.5], radius: 2 }, glyph: { at: [-17.759, 10.253] }, mover: { from: [-17.759, 10.253], departAt: 63.93 } }
+  - { <<: *chemHit, id: chem-b2-n, time: 63.94, telegraph: 6.06, shape: { kind: circle, center: [0, 9], radius: 2 }, glyph: { at: [0, 20.506] }, mover: { from: [0, 20.506], departAt: 66.97 } }
+  - { <<: *chemHit, id: chem-b2-se, time: 63.94, telegraph: 6.06, shape: { kind: circle, center: [7.794, -4.5], radius: 2 }, glyph: { at: [17.759, -10.253] }, mover: { from: [17.759, -10.253], departAt: 66.97 } }
+  - { <<: *chemHit, id: chem-b2-sw, time: 63.94, telegraph: 6.06, shape: { kind: circle, center: [-7.794, -4.5], radius: 2 }, glyph: { at: [-17.759, -10.253] }, mover: { from: [-17.759, -10.253], departAt: 66.97 } }
+  - { <<: *chemHit, id: chem-b3-s, time: 66.97, telegraph: 6.06, shape: { kind: circle, center: [0, -9], radius: 2 }, glyph: { at: [0, -20.506] }, mover: { from: [0, -20.506], departAt: 70 } }
+  - { <<: *chemHit, id: chem-b3-ne, time: 66.97, telegraph: 6.06, shape: { kind: circle, center: [7.794, 4.5], radius: 2 }, glyph: { at: [17.759, 10.253] }, mover: { from: [17.759, 10.253], departAt: 70 } }
+  - { <<: *chemHit, id: chem-b3-nw, time: 66.97, telegraph: 6.06, shape: { kind: circle, center: [-7.794, 4.5], radius: 2 }, glyph: { at: [-17.759, 10.253] }, mover: { from: [-17.759, 10.253], departAt: 70 } }
 
   - { <<: *marker, id: mark-n, shape: *polyN, glyph: { at: [0, 20.506] } }
   - { <<: *marker, id: mark-s, shape: *polyS, glyph: { at: [0, -20.506] } }
@@ -284,6 +344,7 @@ optionals:
     event-set-implement-1: { label: Implement 1, options: [Bow, Harp] }
     event-set-implement-2: { label: Implement 2, options: [Bow, Harp] }
     event-set-orbs: { label: Cleansing donut, options: [NW, NE, S] }
+    event-set-chemistry: { label: Chemistry first wave, options: [N/SE/SW, S/NE/NW] }
     label-pairs-0: { label: N/S element }
     label-pairs-1: { label: NE/SW element }
     label-pairs-2: { label: SE/NW element }
@@ -318,9 +379,9 @@ optionals:
       pairs:
         rng: true
         slots:
-          - [mark-n, mark-s, r1a-ns-n, r1a-ns-s, r1b-ns-n, r1b-ns-s, r2a-ns-n, r2a-ns-s, r2b-ns-n, r2b-ns-s, ring1-n, ring1-s, ring2-n, ring2-s, ring3-n, ring3-s]
-          - [mark-ne, mark-sw, r1a-nesw-ne, r1a-nesw-sw, r1b-nesw-ne, r1b-nesw-sw, r2a-nesw-ne, r2a-nesw-sw, r2b-nesw-ne, r2b-nesw-sw, ring1-ne, ring1-sw, ring2-ne, ring2-sw, ring3-ne, ring3-sw]
-          - [mark-se, mark-nw, r1a-senw-se, r1a-senw-nw, r1b-senw-se, r1b-senw-nw, r2a-senw-se, r2a-senw-nw, r2b-senw-se, r2b-senw-nw, ring1-se, ring1-nw, ring2-se, ring2-nw, ring3-se, ring3-nw]
+          - [mark-n, mark-s, r1a-ns-n, r1a-ns-s, r1b-ns-n, r1b-ns-s, r2a-ns-n, r2a-ns-s, r2b-ns-n, r2b-ns-s, ring1-n, ring1-s, ring2-n, ring2-s, ring3-n, ring3-s, chem-a1-n, chem-a2-s, chem-a3-n, chem-b1-s, chem-b2-n, chem-b3-s]
+          - [mark-ne, mark-sw, r1a-nesw-ne, r1a-nesw-sw, r1b-nesw-ne, r1b-nesw-sw, r2a-nesw-ne, r2a-nesw-sw, r2b-nesw-ne, r2b-nesw-sw, ring1-ne, ring1-sw, ring2-ne, ring2-sw, ring3-ne, ring3-sw, chem-a1-sw, chem-a2-ne, chem-a3-sw, chem-b1-ne, chem-b2-sw, chem-b3-ne]
+          - [mark-se, mark-nw, r1a-senw-se, r1a-senw-nw, r1b-senw-se, r1b-senw-nw, r2a-senw-se, r2a-senw-nw, r2b-senw-se, r2b-senw-nw, ring1-se, ring1-nw, ring2-se, ring2-nw, ring3-se, ring3-nw, chem-a1-se, chem-a2-nw, chem-a3-se, chem-b1-nw, chem-b2-se, chem-b3-nw]
         variants:
           - { name: Blizzard IV, color: "#3aa0ff", glyph: ice }
           - { name: Thunder IV, color: "#ffd84a", glyph: lightning }
@@ -363,3 +424,8 @@ optionals:
           - [orb-nw-donut, orb-ne-circle, orb-s-circle]
           - [orb-nw-circle, orb-ne-donut, orb-s-circle]
           - [orb-nw-circle, orb-ne-circle, orb-s-donut]
+      chemistry:
+        rng: true
+        sets:
+          - [chem-a1-n, chem-a1-se, chem-a1-sw, chem-a2-s, chem-a2-ne, chem-a2-nw, chem-a3-n, chem-a3-se, chem-a3-sw]
+          - [chem-b1-s, chem-b1-ne, chem-b1-nw, chem-b2-n, chem-b2-se, chem-b2-sw, chem-b3-s, chem-b3-ne, chem-b3-nw]

@@ -71,8 +71,9 @@ const AOEEventSchema = z.object({
   // `kind` usually comes from a label variant.
   ring: z.object({ center: Vec2Schema, radius: z.number().positive(), kind: ElementGlyphKindSchema.optional() }).optional(),
   // Render-only: an orb (sphere for a circle shape, torus for a donut) that waits at `from` until
-  // `departAt`, then travels straight to the shape center, arriving at resolve.
-  mover: z.object({ from: Vec2Schema, departAt: z.number().nonnegative() }).optional(),
+  // `departAt`, then travels straight to the shape center, arriving at resolve. `scale` sizes the orb
+  // (default 1).
+  mover: z.object({ from: Vec2Schema, departAt: z.number().nonnegative(), scale: z.number().positive().optional() }).optional(),
   bossId: z.string().min(1).optional(),
 });
 

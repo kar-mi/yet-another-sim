@@ -106,7 +106,7 @@ export function applyMechanicDamage(dc: DamageContext, player: Player, damage: n
   let dealt = damage;
   for (const effect of player.effects) {
     if (!isEffectActiveAt(effect, time)) continue;
-    const result = COMBAT_LIFECYCLE_REGISTRY[effect.behavior.kind].modifyDamage?.(effect, dealt, damageType);
+    const result = COMBAT_LIFECYCLE_REGISTRY[effect.behavior.kind].modifyDamage?.(effect, dealt, damageType, source.name);
     if (!result) continue;
     dealt = result.dealt;
     if (result.consume) matchingVulnIds.add(effect.id);
@@ -338,6 +338,21 @@ export function effectsForMechanic(mechanic: ActiveMechanic, randInt: (n: number
   const specs = mechanic.applyEffects.effects.slice();
   if (mechanic.applyEffects.order === "shuffle") return shuffledEffects(specs, randInt);
   return specs;
+}
+
+// A hit by mechanic `name` drops one stack from each active elementCleanse effect that lists it and
+// hasn't cleansed it yet, applying that element's mapped effect. The effect is removed at 0 stacks.
+export function cleanseElementStacks(dc: DamageContext, player: Player, name: string, players: Player[]): void {
+  for (const effect of player.effects.slice()) {
+    if (!isEffectActiveAt(effect, dc.time) || effect.behavior.kind !== "elementCleanse") continue;
+    const ref = effect.behavior.elements[name];
+    if (ref === undefined || effect.cleansedElements?.includes(name)) continue;
+    effect.cleansedElements = [...(effect.cleansedElements ?? []), name];
+    effect.stacks = Object.keys(effect.behavior.elements).length - effect.cleansedElements.length;
+    if (effect.stacks <= 0) player.effects = player.effects.filter(e => e !== effect);
+    const spec = resolveEffectRef({ ref });
+    if (spec) applyEffect(dc, player, spec, `${effect.id}-${ref}`, players);
+  }
 }
 
 // First active effect of a given behavior kind, or null.

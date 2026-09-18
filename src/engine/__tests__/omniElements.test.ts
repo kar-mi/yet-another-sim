@@ -334,7 +334,7 @@ test("the invisible opening cast keeps the boss stationary and facing north betw
   expect(world.bosses[0]!.facing).toBe(0);
   const lock = world.active.find(event => event.id === "keep-boss-still")!;
   expect(lock.resolved).toBe(false);
-  expect(lock.resolveAt).toBe(82);
+  expect(lock.resolveAt).toBe(90);
   expect(lock.showCastBar).toBe(false);
   expect(lock.floorAoe).toBeUndefined();
 });
@@ -363,4 +363,67 @@ test("all Omni RNG choices can be validated, forced and replayed", () => {
     }
   }
   expect(validateRngConstraints(raid, { "label-pairs-0": 0, "label-pairs-1": 0 })).toBeNull();
+});
+
+function chemistryWorld(hits: [string, number][]) {
+  const { optionals: _, sections: __, ...base } = rawRaid as Record<string, unknown>;
+  return createWorld(loadRaid({
+    ...base,
+    events: [
+      { id: "deficiency", type: "apply_effect", time: 1, name: "Elementary Deficiency", applyEffect: { ref: "elementary_deficiency" } },
+      ...hits.map(([name, at], i) => ({ id: `hit-${i}`, type: "aoe", time: at - 1, name, telegraph: 1, damage: 10, damageType: "magical", shape: { kind: "circle", center: [0, 0], radius: 30 } })),
+    ],
+  }), 3);
+}
+
+const deficiencyOf = (world: ReturnType<typeof createWorld>) => byId(world, "m1").effects.find(e => e.name === "Elementary Deficiency");
+
+test("Elementary Deficiency drops a stack per new element and clears after all three", () => {
+  let world = chemistryWorld([["Fire IV", 3], ["Blizzard IV", 5], ["Thunder IV", 7]]);
+  world = runTicks(world, {}, 2 * 60);
+  expect(deficiencyOf(world)?.stacks).toBe(3);
+  world = runTicks(world, {}, 2 * 60);
+  expect(deficiencyOf(world)?.stacks).toBe(2);
+  expect(byId(world, "m1").effects.some(e => e.name === "Fire Resistance Down II")).toBe(true);
+  world = runTicks(world, {}, 2 * 60);
+  expect(deficiencyOf(world)?.stacks).toBe(1);
+  world = runTicks(world, {}, 2 * 60);
+  expect(deficiencyOf(world)).toBeUndefined();
+  world = runTicks(world, {}, 20 * 60);
+  expect(world.players.every(p => p.alive)).toBe(true);
+});
+
+test("stacks left when Elementary Deficiency expires are lethal", () => {
+  let world = chemistryWorld([["Fire IV", 3], ["Blizzard IV", 5]]);
+  world = runTicks(world, {}, 22 * 60); // expires at 1 + 21.21
+  expect(deficiencyOf(world)?.stacks).toBe(1);
+  expect(byId(world, "m1").alive).toBe(true);
+  world = runTicks(world, {}, 1 * 60);
+  expect(byId(world, "m1").alive).toBe(false);
+});
+
+test("a repeat element drops no stack and is lethal under its Resistance Down", () => {
+  let world = chemistryWorld([["Fire IV", 3], ["Fire IV", 5]]);
+  world = runTicks(world, {}, 4 * 60);
+  expect(deficiencyOf(world)?.stacks).toBe(2);
+  world = runTicks(world, {}, 2 * 60);
+  expect(world.players.every(p => !p.alive)).toBe(true);
+});
+
+test("Elementary Chemistry hits alternate trapezoid triples in each pad's pair element", () => {
+  const hits = [66.96, 70, 73.03];
+  const seen = new Set<string>();
+  for (let seed = 1; seed <= 20; seed++) {
+    const events = preRollRaid(raid, seed).events;
+    const markName = new Map(events.filter(e => e.id.startsWith("mark-")).map(e => [e.id.slice(5), e.name]));
+    const chem = events.flatMap(e => e.type === "aoe" && /^chem-[ab]\d-/.test(e.id) ? [e] : []);
+    expect(chem).toHaveLength(9);
+    const waves = hits.map(hit => chem.filter(e => Math.abs(e.t + e.telegraph - hit) < 1e-6).map(e => e.id.split("-")[2]!).sort());
+    expect(waves.map(w => w.length)).toEqual([3, 3, 3]);
+    expect(waves[2]).toEqual(waves[0]!);
+    expect([...waves[0]!, ...waves[1]!].sort()).toEqual(["n", "ne", "nw", "s", "se", "sw"]);
+    seen.add(waves[0]!.join(","));
+    for (const e of chem) expect(e.name).toBe(markName.get(e.id.split("-")[2]!)!);
+  }
+  expect([...seen].sort()).toEqual(["n,se,sw", "ne,nw,s"]);
 });

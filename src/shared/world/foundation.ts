@@ -29,7 +29,7 @@ export type ElementGlyph = { at: Vec2; kind?: ElementGlyphKind };
 export type ElementRing = { center: Vec2; radius: number; kind?: ElementGlyphKind };
 // Render-only object that waits at `from` until `departAt`, then travels straight to its shape's
 // center, arriving at resolve (e.g. Index Cleansing orbs).
-export type Mover = { from: Vec2; departAt: number };
+export type Mover = { from: Vec2; departAt: number; scale?: number };
 export type Crystal = { id: string; element: CrystalElement; pos: Vec2; spawnAt: number };
 
 export type Waypoint = { t: number; pos: Vec2 };

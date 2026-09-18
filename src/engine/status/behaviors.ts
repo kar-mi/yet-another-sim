@@ -49,6 +49,8 @@ const BEHAVIOR_REGISTRY: Record<EffectBehavior["kind"], BehaviorModule> = {
   alternating: {},
   primordialCrust: { icon: () => ({ src: "primoridial_crust.png" }) },
   accretion: { icon: () => ({ src: "accretion.png" }) },
+  elementCleanse: {},
+  elementVuln: {},
   motionCheck: {},
   assignment: {},
 };

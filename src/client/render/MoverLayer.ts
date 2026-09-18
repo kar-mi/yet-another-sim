@@ -11,7 +11,8 @@ const MOVER_Y = 1.5;
 const DEFAULT_COLOR = "#ffffff";
 
 // Draws each unresolved mechanic's `mover` (see Mover): a sphere for a circle shape, a torus for a
-// donut, parked at `from` and then gliding to the shape center by resolve.
+// donut, parked at `from` and then gliding to the shape center by resolve. A mechanic with a `glyph`
+// is drawn by ElementGlyphLayer instead.
 export class MoverLayer {
   private movers = new Map<string, Mesh>();
 
@@ -20,7 +21,7 @@ export class MoverLayer {
   sync(mechanics: ActiveMechanic[], time: number): void {
     const wanted = new Map<string, ActiveMechanic>();
     for (const m of mechanics) {
-      if (m.resolved || !m.mover || (m.shape.kind !== "circle" && m.shape.kind !== "donut")) continue;
+      if (m.resolved || !m.mover || m.glyph || (m.shape.kind !== "circle" && m.shape.kind !== "donut")) continue;
       wanted.set(`${m.id}|${m.shape.kind}|${m.color ?? DEFAULT_COLOR}`, m);
     }
 
@@ -44,6 +45,7 @@ export class MoverLayer {
         mat.alpha = 0.9;
         mesh.material = mat;
         mesh.isPickable = false;
+        mesh.scaling.setAll(m.mover!.scale ?? 1);
         this.movers.set(key, mesh);
       }
       if (m.shape.kind !== "circle" && m.shape.kind !== "donut") continue;

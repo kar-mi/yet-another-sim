@@ -668,6 +668,48 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     countdown: { delay: 1, slices: 5 },
     behavior: { kind: "none" },
   },
+  // Index Elementary Chemistry. Each element's first hit drops a stack and applies its Resistance
+  // Down II (10s, per FFLogs); a second hit of that element while it's up is lethal. Stacks left at
+  // expiry (the 79.72 Elementary Chemistry follow-up) are lethal too.
+  elementary_deficiency: {
+    name: "Elementary Deficiency",
+    kind: "debuff",
+    duration: 21.21,
+    stacks: 3,
+    showTimer: false,
+    icon: "elementarydeficiency.png",
+    avoidable: true,
+    behavior: {
+      kind: "elementCleanse",
+      elements: { "Fire IV": "fire_resistance_down_ii", "Blizzard IV": "ice_resistance_down_ii", "Thunder IV": "lightning_resistance_down_ii" },
+      expiryDamage: 999999,
+      expiryDamageType: "true",
+    },
+  },
+  fire_resistance_down_ii: {
+    name: "Fire Resistance Down II",
+    kind: "debuff",
+    duration: 10,
+    group: "fire_resistance_down",
+    icon: "fire_res_down.png",
+    behavior: { kind: "elementVuln", mechanic: "Fire IV", multiplier: 20 },
+  },
+  ice_resistance_down_ii: {
+    name: "Ice Resistance Down II",
+    kind: "debuff",
+    duration: 10,
+    group: "ice_resistance_down",
+    icon: "ice_res_down.png",
+    behavior: { kind: "elementVuln", mechanic: "Blizzard IV", multiplier: 20 },
+  },
+  lightning_resistance_down_ii: {
+    name: "Lightning Resistance Down II",
+    kind: "debuff",
+    duration: 10,
+    group: "lightning_resistance_down",
+    icon: "lightning_res_down.png",
+    behavior: { kind: "elementVuln", mechanic: "Thunder IV", multiplier: 20 },
+  },
   // Placeholder for unit tests that need to exercise arbitrary/one-off behavior configs (name,
   // duration, and behavior are always overridden per-usage via `ref` overrides) rather than a
   // real named mechanic. Not used by any raid content.

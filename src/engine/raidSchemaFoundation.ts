@@ -189,6 +189,17 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     expiryDamageType: z.enum(["physical", "magical", "true"]).default("true"),
   }),
   z.object({
+    kind: z.literal("elementCleanse"),
+    elements: z.record(z.string().min(1), z.string().refine(ref => ref in DEBUFF_REGISTRY, "elements values must be keys in DEBUFF_REGISTRY")),
+    expiryDamage: z.number().nonnegative(),
+    expiryDamageType: z.enum(["physical", "magical", "true"]).default("true"),
+  }),
+  z.object({
+    kind: z.literal("elementVuln"),
+    mechanic: z.string().min(1),
+    multiplier: z.number().positive(),
+  }),
+  z.object({
     kind: z.literal("motionCheck"),
     required: z.enum(["move", "still"]),
     window: z.number().positive().default(0.5),

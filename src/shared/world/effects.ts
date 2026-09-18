@@ -36,6 +36,12 @@ export type EffectBehavior =
   | { kind: "primordialCrust"; expiryDamage: number; expiryDamageType: DamageType }
   // Cleansed by healing carrier to full HP. Uncleansed expiry is lethal.
   | { kind: "accretion"; expiryDamage: number; expiryDamageType: DamageType }
+  // One stack per key of `elements` (mechanic names). The first hit by each listed mechanic drops a
+  // stack and applies its mapped effect ref; a repeat of the same element drops nothing. Removed
+  // at 0 stacks; uncleansed expiry deals expiryDamage.
+  | { kind: "elementCleanse"; elements: Record<string, string>; expiryDamage: number; expiryDamageType: DamageType }
+  // Damage from mechanics named `mechanic` is multiplied while active (not consumed on hit).
+  | { kind: "elementVuln"; mechanic: string; multiplier: number }
   // At expiry, require voluntary move/jump activity (or stillness) in the final time window.
   // Failure launches the carrier, then applies damage when they land.
   | { kind: "motionCheck"; required: "move" | "still"; window: number; failureDamage: number; failureDamageType: DamageType; failureKnockupHeight: number }
@@ -105,6 +111,8 @@ export type StatusEffect = {
   // Limit Cut number (1–8) assigned by a limit_cut event. Used by bot solvers to place each
   // numbered player around the inter-inter-cardinal ring.
   limitCutNumber?: number;
+  // elementCleanse: the element names already cleansed.
+  cleansedElements?: string[];
 };
 
 // Generic "reassign" mechanic: distribute named charge debuffs across players, then re-balance to
