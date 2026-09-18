@@ -15,8 +15,8 @@ const PIE_COLOR = "#ff9a1f";
 // The top slice boundary sits this far clockwise of north.
 const PIE_ROTATION_DEG = 10;
 // Slice k spans clockwise from boundary k to k + 1. The slice just clockwise of the top boundary
-// empties first, then the rest empty going counter-clockwise around the pie.
-const DRAIN_ORDER = [0, 4, 3, 2, 1];
+// empties first, then the rest empty going clockwise around the pie.
+const DRAIN_ORDER = [0, 1, 2, 3, 4];
 
 // Draws the POV player's own countdown pie above their head (see EffectCountdown). Nobody else's
 // pie is drawn.

@@ -10,17 +10,21 @@ import { STATIC_ROOT } from "../staticBase";
 import { imageBillboardMaterial } from "./meshes/billboardMaterials";
 
 // Heights above the player's feet: the first ring floats at the knees, the second at the chest.
-const RING_HEIGHTS = [0.5, 1.3];
+const RING_HEIGHTS = [0.5, 0.8];
 const RING_HEIGHT_STEP = 0.4; // spacing for any ring past the listed heights
 const RADIUS = 0.7;
 const THICKNESS = 0.05;
 const ICON_SIZE = 0.4;
+// Icon bearings (degrees clockwise from north, fixed in the world). The knee ring's icons sit at
+// S/NW/NE and the chest ring's at N/SE/SW, so the two sets alternate; later rings repeat the pattern.
+const ICON_BEARINGS = [[180, 300, 60], [0, 120, 240]];
 
 type RingState = { key: string; root: TransformNode };
 
-// Draws a thin colored ring floating around each player for every active effect with a `ring`, each
-// at its own height (knees, then chest) so they never overlap, with its element icon as a billboard
-// on the ring's east point.
+// Draws a thin colored ring floating around a player for every active effect with a `ring` (the
+// renderer only shows the POV player's own, like the countdown pie), each
+// at its own height (knees, then chest) so they never overlap, with three billboard copies of its
+// element icon spaced evenly around it.
 export class PlayerEffectRingLayer {
   private rings = new Map<string, RingState>();
 
@@ -62,12 +66,16 @@ export class PlayerEffectRingLayer {
       torus.isPickable = false;
       torus.parent = root;
 
-      const icon = CreatePlane(`${name}-icon`, { size: ICON_SIZE }, this.scene);
-      icon.material = imageBillboardMaterial(this.scene, `${name}-icon-mat`, `${STATIC_ROOT}/element_icons/${effect.ring!.icon}`);
-      icon.billboardMode = Mesh.BILLBOARDMODE_ALL;
-      icon.position.set(RADIUS, height, 0);
-      icon.isPickable = false;
-      icon.parent = root;
+      const iconMaterial = imageBillboardMaterial(this.scene, `${name}-icon-mat`, `${STATIC_ROOT}/element_icons/${effect.ring!.icon}`);
+      ICON_BEARINGS[index % ICON_BEARINGS.length]!.forEach((bearing, i) => {
+        const a = (bearing * Math.PI) / 180;
+        const icon = CreatePlane(`${name}-icon-${i}`, { size: ICON_SIZE }, this.scene);
+        icon.material = iconMaterial;
+        icon.billboardMode = Mesh.BILLBOARDMODE_ALL;
+        icon.position.set(Math.sin(a) * RADIUS, height, Math.cos(a) * RADIUS);
+        icon.isPickable = false;
+        icon.parent = root;
+      });
     });
     return root;
   }

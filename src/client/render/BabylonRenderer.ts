@@ -377,7 +377,7 @@ export class BabylonRenderer implements Renderer {
     this.elementGlyphs.sync(world.active, world.time);
     this.elementRings.sync(world.active, world.time);
     this.movers.sync(world.active, world.time);
-    this.effectRings.sync(world.players, world.time, player => this.players.isVisible(player.id) && !(botsInvisible && player.control === "bot"));
+    this.effectRings.sync(world.players, world.time, player => player.id === povPlayer?.id);
     this.countdownPie.sync(povPlayer, world.time);
     this.hud.sync(world, povPlayer);
   }
