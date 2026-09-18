@@ -28,6 +28,7 @@ sections:
   - { id: raidwide, name: Omni-Elements, t: 0 }
   - { id: elements-1, name: Elements 1, t: 10.12 }
   - { id: orbs, name: Orbs, t: 22.31 }
+  - { id: rings, name: Rings, t: 27.32 }
   - { id: implement-1, name: Implement 1, t: 36.56 }
   - { id: elements-2, name: Elements 2, t: 32.71 }
   - { id: implement-2, name: Implement 2, t: 50.82 }
@@ -78,6 +79,18 @@ _castBar: &castBar
   showCastBar: true
   showTelegraph: false
   shape: { kind: circle, center: [0, 0], radius: 0.1 }
+
+# Ring hit: an invisible platform aoe that only hits its group's players carrying the platform's element.
+_ringHit: &ringHit
+  type: aoe
+  name: Element
+  telegraph: 6
+  damage: 999
+  damageType: "true"
+  avoidable: true
+  onlyCarriers: true
+  showCastBar: false
+  showTelegraph: false
 
 # Cleansing orbs: two circles and one donut. Each spawns 1s after Predict (22.31) in a trapezoid,
 # sits ~5s, then glides straight to the square one section clockwise (N trapezoid -> NE square) and
@@ -221,8 +234,41 @@ events:
   - { <<: *bow, id: bow2-nw, time: 50.82, telegraph: 1.03, shape: { kind: circle, center: [-17.759, 10.253], radius: 11 } }
   - { <<: *harp, id: harp2, time: 50.82, telegraph: 1.03 }
 
-  # TODO: element rings (Fire / Blizzard / Thunder III, hits at 33.32 / 38.34 / 52.37). Revisit with
-  # the debuff design; the engine's `onlyCarriers` aoe flag and the *_iv_ring debuffs are kept for it.
+  # Element rings (Fire / Blizzard / Thunder III, hits 33.32 / 38.34 / 52.37). `deals.rings` puts every
+  # player in one group and gives them two of the three elements; the rings and pie land 6s before the
+  # hit, and only that group's carriers of a platform's element are hit there.
+  # Group 1 (Predict), hit 33.32.
+  - { id: ring1-fire, type: apply_effect, time: 27.32, name: Fire IV, applyEffect: { ref: fire_iv_ring } }
+  - { id: ring1-blizzard, type: apply_effect, time: 27.32, name: Blizzard IV, applyEffect: { ref: blizzard_iv_ring } }
+  - { id: ring1-thunder, type: apply_effect, time: 27.32, name: Thunder IV, applyEffect: { ref: thunder_iv_ring } }
+  - { <<: *ringHit, id: ring1-n, time: 27.32, shape: *polyN }
+  - { <<: *ringHit, id: ring1-s, time: 27.32, shape: *polyS }
+  - { <<: *ringHit, id: ring1-ne, time: 27.32, shape: *polyNE }
+  - { <<: *ringHit, id: ring1-sw, time: 27.32, shape: *polySW }
+  - { <<: *ringHit, id: ring1-se, time: 27.32, shape: *polySE }
+  - { <<: *ringHit, id: ring1-nw, time: 27.32, shape: *polyNW }
+
+  # Group 2 (Sealed Implements 1), hit 38.34.
+  - { id: ring2-fire, type: apply_effect, time: 32.34, name: Fire IV, applyEffect: { ref: fire_iv_ring } }
+  - { id: ring2-blizzard, type: apply_effect, time: 32.34, name: Blizzard IV, applyEffect: { ref: blizzard_iv_ring } }
+  - { id: ring2-thunder, type: apply_effect, time: 32.34, name: Thunder IV, applyEffect: { ref: thunder_iv_ring } }
+  - { <<: *ringHit, id: ring2-n, time: 32.34, shape: *polyN }
+  - { <<: *ringHit, id: ring2-s, time: 32.34, shape: *polyS }
+  - { <<: *ringHit, id: ring2-ne, time: 32.34, shape: *polyNE }
+  - { <<: *ringHit, id: ring2-sw, time: 32.34, shape: *polySW }
+  - { <<: *ringHit, id: ring2-se, time: 32.34, shape: *polySE }
+  - { <<: *ringHit, id: ring2-nw, time: 32.34, shape: *polyNW }
+
+  # Group 3 (Sealed Implements 2), hit 52.37.
+  - { id: ring3-fire, type: apply_effect, time: 46.37, name: Fire IV, applyEffect: { ref: fire_iv_ring } }
+  - { id: ring3-blizzard, type: apply_effect, time: 46.37, name: Blizzard IV, applyEffect: { ref: blizzard_iv_ring } }
+  - { id: ring3-thunder, type: apply_effect, time: 46.37, name: Thunder IV, applyEffect: { ref: thunder_iv_ring } }
+  - { <<: *ringHit, id: ring3-n, time: 46.37, shape: *polyN }
+  - { <<: *ringHit, id: ring3-s, time: 46.37, shape: *polyS }
+  - { <<: *ringHit, id: ring3-ne, time: 46.37, shape: *polyNE }
+  - { <<: *ringHit, id: ring3-sw, time: 46.37, shape: *polySW }
+  - { <<: *ringHit, id: ring3-se, time: 46.37, shape: *polySE }
+  - { <<: *ringHit, id: ring3-nw, time: 46.37, shape: *polyNW }
 
   # Cleansing orbs (resolve 32.70).
   - { <<: *castBar, id: cleansing-cast, time: 31.73, name: Cleansing, telegraph: 0.97 }
@@ -272,13 +318,34 @@ optionals:
       pairs:
         rng: true
         slots:
-          - [mark-n, mark-s, r1a-ns-n, r1a-ns-s, r1b-ns-n, r1b-ns-s, r2a-ns-n, r2a-ns-s, r2b-ns-n, r2b-ns-s]
-          - [mark-ne, mark-sw, r1a-nesw-ne, r1a-nesw-sw, r1b-nesw-ne, r1b-nesw-sw, r2a-nesw-ne, r2a-nesw-sw, r2b-nesw-ne, r2b-nesw-sw]
-          - [mark-se, mark-nw, r1a-senw-se, r1a-senw-nw, r1b-senw-se, r1b-senw-nw, r2a-senw-se, r2a-senw-nw, r2b-senw-se, r2b-senw-nw]
+          - [mark-n, mark-s, r1a-ns-n, r1a-ns-s, r1b-ns-n, r1b-ns-s, r2a-ns-n, r2a-ns-s, r2b-ns-n, r2b-ns-s, ring1-n, ring1-s, ring2-n, ring2-s, ring3-n, ring3-s]
+          - [mark-ne, mark-sw, r1a-nesw-ne, r1a-nesw-sw, r1b-nesw-ne, r1b-nesw-sw, r2a-nesw-ne, r2a-nesw-sw, r2b-nesw-ne, r2b-nesw-sw, ring1-ne, ring1-sw, ring2-ne, ring2-sw, ring3-ne, ring3-sw]
+          - [mark-se, mark-nw, r1a-senw-se, r1a-senw-nw, r1b-senw-se, r1b-senw-nw, r2a-senw-se, r2a-senw-nw, r2b-senw-se, r2b-senw-nw, ring1-se, ring1-nw, ring2-se, ring2-nw, ring3-se, ring3-nw]
         variants:
           - { name: Blizzard IV, color: "#3aa0ff", glyph: ice }
           - { name: Thunder IV, color: "#ffd84a", glyph: lightning }
           - { name: Fire IV, color: "#ff3b30", glyph: fire }
+    # Everyone gets two of the three elements; the third is their safe platform.
+    deals:
+      rings:
+        rng: true
+        groups:
+          - size: 3
+            name: Predict
+            effects: [ring1-fire, ring1-blizzard, ring1-thunder]
+            aoes: [ring1-n, ring1-s, ring1-ne, ring1-sw, ring1-se, ring1-nw]
+          - size: 2
+            name: Implement 1
+            effects: [ring2-fire, ring2-blizzard, ring2-thunder]
+            aoes: [ring2-n, ring2-s, ring2-ne, ring2-sw, ring2-se, ring2-nw]
+          - size: 3
+            name: Implement 2
+            effects: [ring3-fire, ring3-blizzard, ring3-thunder]
+            aoes: [ring3-n, ring3-s, ring3-ne, ring3-sw, ring3-se, ring3-nw]
+        variants:
+          - { name: Fire safe, effects: [1, 2] }
+          - { name: Blizzard safe, effects: [0, 2] }
+          - { name: Thunder safe, effects: [0, 1] }
     eventSets:
       implement-1:
         rng: true

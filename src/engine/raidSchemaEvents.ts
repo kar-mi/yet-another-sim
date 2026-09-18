@@ -43,6 +43,8 @@ const AOEEventSchema = z.object({
   requireFullHp: z.boolean().default(false),
   // Only hit players carrying an active effect whose name equals this cast's name (after labels).
   onlyCarriers: z.boolean().optional(),
+  // Only these player ids can be hit (filled in per run by a `deals` pre-roll).
+  players: z.array(z.string().min(1)).optional(),
   // Directional gate: only hit players whose bearing from the boss is within this arc.
   // `center` (radians, clockwise from boss facing; 0 = front) and full `width` (radians).
   positional: z.object({

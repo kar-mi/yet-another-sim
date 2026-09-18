@@ -35,6 +35,7 @@ export type ActiveMechanic = {
   telegraphDuration?: number;
   requireFullHp?: boolean;
   onlyCarriers?: boolean;
+  players?: string[];
   anchor?: "boss";
   directionFrom?: "bossFacing";
   directionOffset?: number;
@@ -95,6 +96,7 @@ export type PendingEvent = {
   deferred?: boolean;
   requireFullHp?: boolean;
   onlyCarriers?: boolean;
+  players?: string[];
   showCastBar: boolean;
   showTelegraph: boolean;
   telegraphMode: TelegraphMode;

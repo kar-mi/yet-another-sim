@@ -460,6 +460,92 @@ function applyHeadSequence(
   };
 }
 
+type Deals = NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["deals"];
+
+// Seeded deal of the roster into each deal's groups, plus one variant per player. Always shuffles and
+// rolls every variant, so forcing a key never shifts later draws. Players forced into a group take
+// their seats first; the rest fill the remaining seats group by group in shuffled order. Rewrites the
+// groups' apply_effect `effects` to the members whose variant includes them (dropping any left with no
+// one) and limits the groups' `aoes` to their members.
+function applyDeals(
+  events: RaidDef["events"],
+  deals: Deals,
+  playerIds: string[],
+  rngState: number,
+  decisions: PreRollDecisions,
+  constraints: RngConstraints,
+): { events: RaidDef["events"]; rngState: number } {
+  if (!deals) return { events, rngState };
+
+  let nextState = rngState;
+  const recipients = new Map<string, string[]>();
+  const members = new Map<string, string[]>();
+  for (const [key, deal] of Object.entries(deals)) {
+    const order = playerIds.slice();
+    const rolledVariant: Record<string, number> = {};
+    if (deal.rng) {
+      for (let i = order.length - 1; i > 0; i--) {
+        const roll = randomInt(nextState, i + 1);
+        nextState = roll.state;
+        [order[i], order[roll.value]] = [order[roll.value]!, order[i]!];
+      }
+      for (const id of playerIds) {
+        const roll = randomInt(nextState, deal.variants.length);
+        nextState = roll.state;
+        rolledVariant[id] = roll.value;
+      }
+    }
+
+    const seats = deal.groups.map(group => group.size);
+    const groupOf: Record<string, number> = {};
+    if (deal.rng) {
+      for (const id of playerIds) {
+        const forced = constraints[`deal-${key}-${id}-group`];
+        if (forced !== undefined && seats[forced]! > 0) {
+          groupOf[id] = forced;
+          seats[forced]!--;
+        }
+      }
+    }
+    for (const id of order) {
+      if (groupOf[id] !== undefined) continue;
+      const open = seats.findIndex(left => left > 0);
+      if (open < 0) break;
+      groupOf[id] = open;
+      seats[open]!--;
+    }
+
+    for (const id of playerIds) {
+      const group = groupOf[id];
+      if (group === undefined) continue;
+      const variant = deal.rng ? selected(`deal-${key}-${id}-variant`, rolledVariant[id]!, constraints, decisions) : 0;
+      if (deal.rng) decisions[`deal-${key}-${id}-group`] = group;
+      const spec = deal.groups[group]!;
+      for (const effectIndex of deal.variants[variant]!.effects) {
+        const eventId = spec.effects[effectIndex]!;
+        recipients.set(eventId, [...(recipients.get(eventId) ?? []), id]);
+      }
+      for (const eventId of spec.aoes) members.set(eventId, [...(members.get(eventId) ?? []), id]);
+    }
+    for (const group of deal.groups) {
+      for (const eventId of group.effects) if (!recipients.has(eventId)) recipients.set(eventId, []);
+      for (const eventId of group.aoes) if (!members.has(eventId)) members.set(eventId, []);
+    }
+  }
+
+  return {
+    events: events.flatMap(e => {
+      if (e.type === "apply_effect" && recipients.has(e.id)) {
+        const players = recipients.get(e.id)!;
+        return players.length > 0 ? [{ ...e, players }] : [];
+      }
+      if (e.type === "aoe" && members.has(e.id)) return [{ ...e, players: members.get(e.id)! }];
+      return [e];
+    }) as RaidDef["events"],
+    rngState: nextState,
+  };
+}
+
 export function preRollRaid(raid: RaidDef, seed: number, constraints: RngConstraints = {}): {
   events: RaidDef["events"];
   plantPlan: Record<string, [number, number][]>;
@@ -490,8 +576,9 @@ export function preRollRaid(raid: RaidDef, seed: number, constraints: RngConstra
   const { events: sweptEvents, rngState: afterDivebombSweepRngState } = rotateDivebombSweep(shuffledEvents, raid.optionals?.divebombSweep, afterTimeShuffleRngState, decisions, constraints);
   const { events: selectedEvents, rngState: afterEventSetRngState } = applyEventSets(sweptEvents, raid.optionals?.combinations?.eventSets, afterDivebombSweepRngState, decisions, constraints);
   const { events: hazardEvents, rngState: afterBlackHoleRngState, blackHoleTethers } = applyBlackHoleSpots(selectedEvents, afterEventSetRngState, decisions, constraints);
-  const { events: headEvents, rngState } = applyHeadSequence(hazardEvents, raid.optionals?.headSequence, afterBlackHoleRngState, decisions, constraints);
-  const events = headEvents.map(e => {
+  const { events: headEvents, rngState: afterHeadSequenceRngState } = applyHeadSequence(hazardEvents, raid.optionals?.headSequence, afterBlackHoleRngState, decisions, constraints);
+  const { events: dealtEvents, rngState } = applyDeals(headEvents, raid.optionals?.combinations?.deals, raid.players.map(p => p.id), afterHeadSequenceRngState, decisions, constraints);
+  const events = dealtEvents.map(e => {
     const label = labels[e.id];
     const labelled = label === undefined ? e : {
       ...e,

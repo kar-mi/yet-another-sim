@@ -104,6 +104,7 @@ export function promotePending(
         armed: false,
         requireFullHp: event.requireFullHp,
         onlyCarriers: event.onlyCarriers,
+        players: event.players,
         anchor: event.anchor,
         directionFrom: event.directionFrom,
         directionOffset: event.directionOffset,

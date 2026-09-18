@@ -7,6 +7,7 @@ import { toAOEShape } from "../eventTransforms";
 import { elementRingRadius } from "@shared/elementRing";
 import { isFloorAoeVisible } from "@shared/floorAoe";
 import { moverPosition } from "@shared/mover";
+import { countdownSlicesLeft } from "@shared/countdown";
 import { describeDecisions, validateRngConstraints } from "../seedSearch";
 import { HUMAN, byId, roster, runTicks } from "./helpers";
 
@@ -240,6 +241,84 @@ test("an onlyCarriers aoe only hits players carrying an effect of the same name"
   const after = runTicks(world, {}, 4 * 60);
   expect(byId(after, "m1").alive).toBe(false);
   expect(byId(after, "m2").hp).toBe(byId(after, "m2").maxHp);
+});
+
+test("rings deal every player into groups of 3/2/3 with two of the three elements", () => {
+  const sizes = [3, 2, 3];
+  const applyAt = [27.32, 32.34, 46.37];
+  for (let seed = 1; seed <= 40; seed++) {
+    const events = preRollRaid(raid, seed).events;
+    const dealt = new Map<string, { groups: Set<number>; elements: string[]; times: Set<number> }>();
+    for (const event of events) {
+      const match = /^ring([123])-(fire|blizzard|thunder)$/.exec(event.id);
+      if (!match || event.type !== "apply_effect") continue;
+      for (const id of event.players ?? []) {
+        const entry = dealt.get(id) ?? { groups: new Set(), elements: [], times: new Set() };
+        entry.groups.add(Number(match[1]) - 1);
+        entry.elements.push(match[2]!);
+        entry.times.add(event.t);
+        dealt.set(id, entry);
+      }
+    }
+    expect([...dealt.keys()].sort()).toEqual(raid.players.map(p => p.id).sort());
+    const groupMembers: string[][] = [[], [], []];
+    for (const [id, entry] of dealt) {
+      expect(entry.groups.size).toBe(1);
+      expect(new Set(entry.elements).size).toBe(2);
+      expect(entry.elements).toHaveLength(2);
+      const group = [...entry.groups][0]!;
+      expect([...entry.times]).toEqual([applyAt[group]!]);
+      groupMembers[group]!.push(id);
+    }
+    expect(groupMembers.map(members => members.length)).toEqual(sizes);
+    for (const event of events) {
+      const match = /^ring([123])-(n|s|ne|sw|se|nw)$/.exec(event.id);
+      if (!match || event.type !== "aoe") continue;
+      expect([...event.players!].sort()).toEqual(groupMembers[Number(match[1]) - 1]!.slice().sort());
+      expect(event.t + event.telegraph).toBeCloseTo(applyAt[Number(match[1]) - 1]! + 6, 5);
+    }
+  }
+});
+
+test("a ring platform only hits its own group's carriers of its element", () => {
+  // N/S is Fire, NE/SW Blizzard. m1 and ot resolve at 33.32 carrying Blizzard + Thunder; h1 carries the
+  // same pair but resolves at 38.34, so the 33.32 platforms must spare it.
+  const constraints = {
+    "label-pairs-0": 2, "label-pairs-1": 0, "label-pairs-2": 1,
+    "deal-rings-m1-group": 0, "deal-rings-m1-variant": 0,
+    "deal-rings-ot-group": 0, "deal-rings-ot-variant": 0,
+    "deal-rings-h1-group": 1, "deal-rings-h1-variant": 0,
+  };
+  expect(validateRngConstraints(raid, constraints)).toEqual(constraints);
+  const world = createWorld({
+    ...raid,
+    events: raid.events.filter(event => event.id.startsWith("ring")),
+    optionals: { towerRng: false, combinations: {
+      labels: raid.optionals!.combinations!.labels,
+      deals: raid.optionals!.combinations!.deals,
+    } },
+    players: roster({ m1: { spawn: [0, 20.5] }, ot: { spawn: [17.76, 10.25] }, h1: { spawn: [17.76, 10.25] } }),
+  }, 3, constraints);
+  const firstHit = runTicks(world, {}, 34 * 60);
+  expect(byId(firstHit, "m1").hp).toBe(byId(firstHit, "m1").maxHp);
+  expect(byId(firstHit, "ot").alive).toBe(false);
+  expect(byId(firstHit, "h1").hp).toBe(byId(firstHit, "h1").maxHp);
+  const secondHit = runTicks(firstHit, {}, 5 * 60);
+  expect(byId(secondHit, "h1").alive).toBe(false);
+});
+
+test("ring deals reject more forced players than a group has seats", () => {
+  const forced = Object.fromEntries(["mt", "ot", "h1", "h2"].map(id => [`deal-rings-${id}-group`, 1]));
+  expect(validateRngConstraints(raid, forced)).toBeNull();
+});
+
+test("the ring pie holds for a second, then drains one slice a second to empty at the hit", () => {
+  const effect = { appliedAt: 10, countdown: { delay: 1, slices: 5 } };
+  expect(countdownSlicesLeft(effect, 10.5)).toBe(5);
+  expect(countdownSlicesLeft(effect, 11.5)).toBe(5);
+  expect(countdownSlicesLeft(effect, 12.5)).toBe(4);
+  expect(countdownSlicesLeft(effect, 15.5)).toBe(1);
+  expect(countdownSlicesLeft(effect, 16)).toBe(0);
 });
 
 test("the invisible opening cast keeps the boss stationary and facing north between attacks", () => {

@@ -634,24 +634,38 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
       damageType: "magical",
     },
   },
-  // Index Omni-Elements rings. Placeholders: names match the pair labels so an `onlyCarriers`
-  // platform AoE of the same element hits the carrier.
+  // Index Omni-Elements rings. Names match the pair labels so an `onlyCarriers` platform AoE of the
+  // same element hits the carrier. Hidden from the HUD: the carrier sees colored rings plus a pie that
+  // holds 1s then drains a slice a second, resolving 6s after landing (0.05s tail keeps it active on
+  // the resolve tick).
   fire_iv_ring: {
     name: "Fire IV",
     kind: "debuff",
-    duration: 10,
+    duration: 6.05,
+    visibility: "invisible",
+    showTimer: false,
+    ring: { color: "#ff3b30", icon: "fire.png" },
+    countdown: { delay: 1, slices: 5 },
     behavior: { kind: "none" },
   },
   blizzard_iv_ring: {
     name: "Blizzard IV",
     kind: "debuff",
-    duration: 10,
+    duration: 6.05,
+    visibility: "invisible",
+    showTimer: false,
+    ring: { color: "#3aa0ff", icon: "ice.png" },
+    countdown: { delay: 1, slices: 5 },
     behavior: { kind: "none" },
   },
   thunder_iv_ring: {
     name: "Thunder IV",
     kind: "debuff",
-    duration: 10,
+    duration: 6.05,
+    visibility: "invisible",
+    showTimer: false,
+    ring: { color: "#ffd84a", icon: "thunder.png" },
+    countdown: { delay: 1, slices: 5 },
     behavior: { kind: "none" },
   },
   // Placeholder for unit tests that need to exercise arbitrary/one-off behavior configs (name,

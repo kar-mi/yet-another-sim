@@ -38,6 +38,8 @@ import { DivebombLayer } from "./DivebombLayer";
 import { ElementGlyphLayer } from "./ElementGlyphLayer";
 import { ElementRingLayer } from "./ElementRingLayer";
 import { MoverLayer } from "./MoverLayer";
+import { PlayerEffectRingLayer } from "./PlayerEffectRingLayer";
+import { CountdownPieLayer } from "./CountdownPieLayer";
 import { WaymarkLayer } from "./WaymarkLayer";
 import { CrystalLayer } from "./CrystalLayer";
 import { setControlScheme } from "../input";
@@ -99,6 +101,8 @@ export class BabylonRenderer implements Renderer {
   private elementGlyphs!: ElementGlyphLayer;
   private elementRings!: ElementRingLayer;
   private movers!: MoverLayer;
+  private effectRings!: PlayerEffectRingLayer;
+  private countdownPie!: CountdownPieLayer;
   private waymarks!: WaymarkLayer;
   private crystals!: CrystalLayer;
   private hud!: HudOverlay;
@@ -240,6 +244,8 @@ export class BabylonRenderer implements Renderer {
     this.elementGlyphs = new ElementGlyphLayer(this.scene);
     this.elementRings = new ElementRingLayer(this.scene);
     this.movers = new MoverLayer(this.scene);
+    this.effectRings = new PlayerEffectRingLayer(this.scene);
+    this.countdownPie = new CountdownPieLayer(this.scene);
     this.hud = new HudOverlay(
       sessionId,
       this.localPlayerId,
@@ -371,6 +377,8 @@ export class BabylonRenderer implements Renderer {
     this.elementGlyphs.sync(world.active, world.time);
     this.elementRings.sync(world.active, world.time);
     this.movers.sync(world.active, world.time);
+    this.effectRings.sync(world.players, world.time, player => this.players.isVisible(player.id) && !(botsInvisible && player.control === "bot"));
+    this.countdownPie.sync(povPlayer, world.time);
     this.hud.sync(world, povPlayer);
   }
 
@@ -461,6 +469,8 @@ export class BabylonRenderer implements Renderer {
     this.elementGlyphs.dispose();
     this.elementRings.dispose();
     this.movers.dispose();
+    this.effectRings.dispose();
+    this.countdownPie.dispose();
     this.waymarks.dispose();
     this.crystals.dispose();
     this.healthBars.dispose();

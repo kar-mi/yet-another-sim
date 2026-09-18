@@ -109,6 +109,22 @@ const OptionalsSchema = z.object({
       rng: z.boolean().default(false),
       sets: z.array(z.array(EventIdSchema).min(1)).min(1),
     })).optional(),
+    // Seeded deal of the roster into groups (see applyDeals). Each player lands in one group and rolls
+    // one variant; the variant picks which of its group's apply_effect `effects` it receives, and the
+    // group's `aoes` are limited to its members. Group sizes must add up to the roster.
+    deals: z.record(z.string().min(1), z.object({
+      rng: z.boolean().default(false),
+      groups: z.array(z.object({
+        size: z.number().int().positive(),
+        name: z.string().min(1).optional(),
+        effects: z.array(EventIdSchema).min(1),
+        aoes: z.array(EventIdSchema).default([]),
+      })).min(1),
+      variants: z.array(z.object({
+        name: z.string().min(1).optional(),
+        effects: z.array(z.number().int().nonnegative()).min(1),
+      })).min(1),
+    })).optional(),
   }).optional(),
 }).optional();
 
@@ -672,6 +688,35 @@ export const RaidSchema = z.object({
               path: ["optionals", "combinations", "eventSets", key, "sets", setIndex, idIndex],
               message: `event set "${key}" references unknown event id "${id}"`,
             });
+          }
+        });
+      });
+    });
+  }
+
+  for (const [key, deal] of Object.entries(raid.optionals?.combinations?.deals ?? {})) {
+    const path = ["optionals", "combinations", "deals", key];
+    const total = deal.groups.reduce((sum, group) => sum + group.size, 0);
+    if (total !== raid.players.length) {
+      ctx.addIssue({ code: "custom", path: [...path, "groups"], message: `deal "${key}" group sizes add up to ${total}, not the roster size ${raid.players.length}` });
+    }
+    deal.groups.forEach((group, groupIndex) => {
+      for (const [field, type] of [["effects", "apply_effect"], ["aoes", "aoe"]] as const) {
+        group[field].forEach((id, idIndex) => {
+          const found = eventIds.get(id);
+          if (found?.type !== type) {
+            ctx.addIssue({
+              code: "custom",
+              path: [...path, "groups", groupIndex, field, idIndex],
+              message: found ? `deal "${key}" ${field} entry "${id}" must be an ${type} event` : `deal "${key}" references unknown event id "${id}"`,
+            });
+          }
+        });
+      }
+      deal.variants.forEach((variant, variantIndex) => {
+        variant.effects.forEach((effectIndex, i) => {
+          if (effectIndex >= group.effects.length) {
+            ctx.addIssue({ code: "custom", path: [...path, "variants", variantIndex, "effects", i], message: `deal "${key}" variant effect index ${effectIndex} is out of range for group ${groupIndex + 1}` });
           }
         });
       });

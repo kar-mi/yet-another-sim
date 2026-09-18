@@ -224,6 +224,7 @@ const aoe: MechanicModule = {
           deferred: e.deferred,
           requireFullHp: e.requireFullHp,
           onlyCarriers: e.onlyCarriers,
+          players: e.players,
           showCastBar: e.showCastBar,
           showTelegraph: e.showTelegraph,
           telegraphMode: e.telegraphMode,

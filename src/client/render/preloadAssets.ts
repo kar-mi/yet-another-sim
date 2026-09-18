@@ -27,6 +27,13 @@ const DEBUFF_ICONS = [
   "teleportent_up.png",
 ].map(file => `${STATIC_ROOT}/debuffs/${file}`);
 
+// Element ring icons (PlayerEffectRingLayer), static/element_icons/.
+const ELEMENT_ICONS = [
+  "fire.png",
+  "ice.png",
+  "thunder.png",
+].map(file => `${STATIC_ROOT}/element_icons/${file}`);
+
 const BUFF_ICONS = [
   "sprint.png",
   "armslength.png",
@@ -48,7 +55,7 @@ export function preloadAssets(): void {
 
   // Floor plans, markers and debuff icons load through the browser's image cache (<img> / Babylon
   // DOM-image textures), which an Image() request warms directly.
-  for (const url of [...Object.values(FLOOR_PLAN_IMAGES), ...HEAD_MARKER_ICONS, ...DEBUFF_ICONS, ...BUFF_ICONS, HAND_IMAGE_URL]) {
+  for (const url of [...Object.values(FLOOR_PLAN_IMAGES), ...HEAD_MARKER_ICONS, ...DEBUFF_ICONS, ...ELEMENT_ICONS, ...BUFF_ICONS, HAND_IMAGE_URL]) {
     new Image().src = url;
   }
 }

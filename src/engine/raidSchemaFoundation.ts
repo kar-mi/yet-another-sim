@@ -230,6 +230,15 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
   }
 });
 
+const EffectRingSchema = z.object({
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  icon: z.string().min(1),
+});
+const EffectCountdownSchema = z.object({
+  delay: z.number().nonnegative(),
+  slices: z.number().int().positive(),
+});
+
 const InlineApplyEffectSchema = z.object({
   name: z.string().min(1),
   kind: z.enum(["buff", "debuff"]),
@@ -247,6 +256,8 @@ const InlineApplyEffectSchema = z.object({
   marker: z.string().min(1).max(8).optional(), // short above-head marker shown while active
   markerIcon: z.string().min(1).optional(), // above-head marker image filename, served from /static/head_markers/
   markerIconScale: z.number().positive().optional(), // per-icon size multiplier (default 4)
+  ring: EffectRingSchema.optional(),     // colored ring around the player, icon from /static/element_icons/
+  countdown: EffectCountdownSchema.optional(), // carrier-only pie: full for `delay`s, then one slice per second
 });
 
 const EffectRefSchema = z.object({
@@ -265,6 +276,8 @@ const EffectRefSchema = z.object({
   marker: z.string().min(1).max(8).optional(),
   markerIcon: z.string().min(1).optional(),
   markerIconScale: z.number().positive().optional(),
+  ring: EffectRingSchema.optional(),
+  countdown: EffectCountdownSchema.optional(),
 });
 
 export const ApplyEffectSchema = z.union([InlineApplyEffectSchema, EffectRefSchema]).transform((effect, ctx) => {

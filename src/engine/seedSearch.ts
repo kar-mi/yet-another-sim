@@ -101,6 +101,22 @@ export function describeDecisions(raid: RaidDef): DecisionDescription[] {
     }
   }
 
+  for (const [key, deal] of Object.entries(combinations?.deals ?? {})) {
+    if (!deal.rng) continue;
+    for (const player of raid.players) {
+      add({
+        key: `deal-${key}-${player.id}-group`,
+        label: `${key}: ${player.id} group`,
+        options: deal.groups.map((group, i) => group.name ?? `group ${i + 1}`),
+      });
+      add({
+        key: `deal-${key}-${player.id}-variant`,
+        label: `${key}: ${player.id} variant`,
+        options: deal.variants.map((variant, i) => variant.name ?? `variant ${i + 1}`),
+      });
+    }
+  }
+
   return decisions;
 }
 
@@ -121,6 +137,13 @@ export function validateRngConstraints(raid: RaidDef, value: unknown): RngConstr
   for (const [key, spec] of Object.entries(raid.optionals?.combinations?.labels ?? {})) {
     const forced = spec.slots.map((_, slot) => constraints[`label-${key}-${slot}`]).filter(value => value !== undefined);
     if (new Set(forced).size !== forced.length) return null;
+  }
+  for (const [key, deal] of Object.entries(raid.optionals?.combinations?.deals ?? {})) {
+    const seats = deal.groups.map(group => group.size);
+    for (const player of raid.players) {
+      const forced = constraints[`deal-${key}-${player.id}-group`];
+      if (forced !== undefined && --seats[forced]! < 0) return null;
+    }
   }
   return constraints;
 }

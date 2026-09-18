@@ -42,6 +42,9 @@ export type EffectBehavior =
   // Generic assignment/priority marker (e.g. First/Second/Third in Line, Alpha/Beta). Pure HUD marker; deals expiryDamage on expiry. No cleanse path.
   | { kind: "assignment"; expiryDamage: number; expiryDamageType: DamageType };
 
+export type EffectRing = { color: string; icon: string };
+export type EffectCountdown = { delay: number; slices: number };
+
 export type EffectSpec = {
   name: string;
   kind: "buff" | "debuff";
@@ -60,6 +63,10 @@ export type EffectSpec = {
   // Optional above-head marker image: a bare filename served from /static/head_markers/.
   markerIcon?: string;
   markerIconScale?: number; // per-icon size multiplier (default 4)
+  // Optional colored ring drawn around the player; `icon` is a filename under /static/element_icons/.
+  ring?: EffectRing;
+  // Optional above-head pie countdown shown only to the carrier (see @shared/countdown).
+  countdown?: EffectCountdown;
 };
 
 export type EffectBundle = {
@@ -87,6 +94,10 @@ export type StatusEffect = {
   // Optional above-head marker image: a bare filename served from /static/head_markers/.
   markerIcon?: string;
   markerIconScale?: number; // per-icon size multiplier (default 4)
+  // Optional colored ring drawn around the player; `icon` is a filename under /static/element_icons/.
+  ring?: EffectRing;
+  // Optional above-head pie countdown shown only to the carrier (see @shared/countdown).
+  countdown?: EffectCountdown;
   // Set when a confusion debuff lands: the player it forces this player to walk toward.
   lockedTargetId?: string;
   // Plant slot index from the assigned combo. Used by bot solvers to place each arrow separately.

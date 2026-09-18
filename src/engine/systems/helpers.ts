@@ -284,6 +284,8 @@ export function applyEffect(dc: DamageContext, player: Player, spec: EffectSpec,
     marker: spec.marker,
     markerIcon: spec.markerIcon,
     markerIconScale: spec.markerIconScale,
+    ring: spec.ring,
+    countdown: spec.countdown,
     plantSlot,
     limitCutNumber,
   };
