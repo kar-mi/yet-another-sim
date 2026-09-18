@@ -65,6 +65,8 @@ RegisterAnimatable();
 
 const playerBarId = (id: string) => `player:${id}`;
 const bossCastBarId = (id: string) => `boss-cast:${id}`;
+const bossLayersKey = (bosses: Boss[]) =>
+  bosses.map(b => `${b.id}|${b.model}|${b.modelScale}|${b.radius}|${b.ringScale}|${b.ringColor}`).join(",");
 
 // Rate at which controller-camera acceleration ramps toward its target multiplier (~reaches it in <1s).
 const CAMERA_ACCEL_RAMP = 3;
@@ -292,18 +294,13 @@ export class BabylonRenderer implements Renderer {
       this.bossSideOrbLayers.set(boss.id, new BossSideOrbLayer(this.scene));
     }
     this.bossIds = bosses.map(b => b.id);
-    this.bossesKey = this.bossIds.join(",");
+    this.bossesKey = bossLayersKey(bosses);
   }
 
+  // Single-boss raids all use the id "boss", so the key must include the identity the layers are
+  // built from (model, scale, ring); otherwise switching raids keeps the previous raid's model.
   private bossSetChanged(bosses: Boss[]): boolean {
-    if (bosses.length !== this.bossIds.length) return true;
-    for (let i = 0; i < bosses.length; i++) {
-      if (bosses[i].id !== this.bossIds[i]) {
-        const bossesKey = bosses.map(b => b.id).join(",");
-        return bossesKey !== this.bossesKey;
-      }
-    }
-    return false;
+    return bossLayersKey(bosses) !== this.bossesKey;
   }
 
   private buildArena(zones: ZoneShape[], floorPlan: FloorPlan, key: string): void {
