@@ -57,7 +57,7 @@ test("an element keeps its pair for the whole pull", () => {
   const pairOf = new Map<string, string>();
   for (const event of events) {
     const pair = event.id.split("-")[1];
-    if (!pair || !event.id.startsWith("r")) continue;
+    if (!pair || !/^r[12][ab]-/.test(event.id)) continue;
     const seen = pairOf.get(event.name);
     if (seen === undefined) pairOf.set(event.name, pair);
     else expect(pair).toBe(seen);
@@ -90,9 +90,9 @@ test("pointInShape handles the authored pair polygon", () => {
   expect(pointInShape(northPair, { x: 0, z: 30 })).toBe(false);  // beyond the platform
 });
 
-test("each round selects exactly one of all four implements", () => {
+test("each round selects exactly one of bow or harp", () => {
   const kinds = new Set<string>();
-  const counts = { bow: 6, harp: 1, bell: 3, sword: 3 };
+  const counts = { bow: 6, harp: 1 };
   for (let seed = 1; seed <= 40; seed++) {
     const events = preRollRaid(raid, seed).events;
     for (const round of ["1", "2"]) {
@@ -106,7 +106,7 @@ test("each round selects exactly one of all four implements", () => {
   expect(kinds).toEqual(new Set(Object.keys(counts)));
 });
 
-test("implement footprints match the circle and cone references", () => {
+test("implement footprints match the circle references", () => {
   const directions = [0, 60, 120, 180, 240, 300];
   const at = (degrees: number, radius: number) => ({ x: Math.sin(degrees * Math.PI / 180) * radius, z: Math.cos(degrees * Math.PI / 180) * radius });
   for (const round of [1, 2]) {
@@ -119,19 +119,6 @@ test("implement footprints match the circle and cone references", () => {
       expect(hits("bow", degrees, 8)).toBe(false);
       expect(hits("harp", degrees, 9)).toBe(true);
       expect(hits("harp", degrees, 20.506)).toBe(false);
-      for (const radius of [9, 27]) {
-        expect(hits("bell", degrees, radius)).toBe(degrees % 120 === 0);
-        expect(hits("sword", degrees, radius)).toBe(degrees % 120 !== 0);
-      }
-    }
-    // Check the cone edges, not just their centerlines.
-    for (const [kind, axes] of [["bell", [0, 120, 240]], ["sword", [60, 180, 300]]] as const) {
-      for (const axis of axes) {
-        for (const sign of [-1, 1]) {
-          expect(hits(kind, axis + sign * 29, 20)).toBe(true);
-          expect(hits(kind, axis + sign * 31, 20)).toBe(false);
-        }
-      }
     }
   }
 });
@@ -149,6 +136,25 @@ test("waves are hidden until the final 0.4 seconds and disappear after impact", 
   expect(isFloorAoeVisible(visual, resolveAt + 0.001, true)).toBe(false);
 });
 
+test("a ring platform only hits carriers of its own element", () => {
+  // Fire is safe (ring players carry Blizzard + Thunder); N/S is Fire, NE/SW Blizzard, SE/NW Thunder.
+  const constraints = { "event-set-ring-1": 0, "label-pairs-0": 2, "label-pairs-1": 0, "label-pairs-2": 1 };
+  const world = createWorld({
+    ...raid,
+    events: raid.events.filter(event => event.id.startsWith("ring1-")),
+    optionals: { towerRng: false, combinations: {
+      labels: raid.optionals!.combinations!.labels,
+      eventSets: { "ring-1": raid.optionals!.combinations!.eventSets!["ring-1"]! },
+    } },
+    players: roster({ m1: { spawn: [0, 20.5] }, ot: { spawn: [17.76, 10.25] }, h1: { spawn: [17.76, -10.25] } }),
+  }, 3, constraints);
+  const after = runTicks(world, {}, 34 * 60);
+  expect(byId(after, "m1").alive).toBe(true);
+  expect(byId(after, "m1").hp).toBe(byId(after, "m1").maxHp);
+  expect(byId(after, "ot").alive).toBe(false);
+  expect(byId(after, "h1").alive).toBe(false);
+});
+
 test("the invisible opening cast keeps the boss stationary and facing north between attacks", () => {
   // Isolate the lock so damaging casts/markers cannot provide an accidental facing lock,
   // and the tank remains alive to pull the boss if the lock ends early.
@@ -162,7 +168,7 @@ test("the invisible opening cast keeps the boss stationary and facing north betw
   expect(world.bosses[0]!.facing).toBe(0);
   const lock = world.active.find(event => event.id === "keep-boss-still")!;
   expect(lock.resolved).toBe(false);
-  expect(lock.resolveAt).toBe(55);
+  expect(lock.resolveAt).toBe(82);
   expect(lock.showCastBar).toBe(false);
   expect(lock.floorAoe).toBeUndefined();
 });
@@ -183,8 +189,8 @@ test("all Omni RNG choices can be validated, forced and replayed", () => {
     }
     expect(validateRngConstraints(raid, { [choice.key]: choice.options.length })).toBeNull();
   }
-  for (let value = 0; value < 4; value++) {
-    const kind = ["bow", "harp", "bell", "sword"][value]!;
+  for (let value = 0; value < 2; value++) {
+    const kind = ["bow", "harp"][value]!;
     for (const round of [1, 2]) {
       const forced = preRollRaid(raid, 3, { [`event-set-implement-${round}`]: value });
       expect(forced.events.some(event => event.id.startsWith(`${kind}${round}`))).toBe(true);

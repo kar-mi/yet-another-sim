@@ -41,6 +41,8 @@ const AOEEventSchema = z.object({
   deferred: z.boolean().default(false),
   // Raidwide HP check: ignore position and deal damage to every alive player below full HP; spare players at full HP.
   requireFullHp: z.boolean().default(false),
+  // Only hit players carrying an active effect whose name equals this cast's name (after labels).
+  onlyCarriers: z.boolean().optional(),
   // Directional gate: only hit players whose bearing from the boss is within this arc.
   // `center` (radians, clockwise from boss facing; 0 = front) and full `width` (radians).
   positional: z.object({

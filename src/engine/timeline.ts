@@ -103,6 +103,7 @@ export function promotePending(
         telegraphDuration: event.deferred ? event.telegraph : undefined,
         armed: false,
         requireFullHp: event.requireFullHp,
+        onlyCarriers: event.onlyCarriers,
         anchor: event.anchor,
         directionFrom: event.directionFrom,
         directionOffset: event.directionOffset,

@@ -367,9 +367,10 @@ export function resolveAoe(ctx: TickContext): {
       for (const player of players) {
         if (!player.alive) continue;
         const inArc = !mechanic.positional || inPositionalArc(mechBoss, player.pos, mechanic.positional);
-        const hit = mechanic.requireFullHp
+        const carries = !mechanic.onlyCarriers || player.effects.some(e => e.name === mechanic.name && isEffectActiveAt(e, time));
+        const hit = carries && (mechanic.requireFullHp
           ? player.hp < player.maxHp
-          : pointInShape(mechanic.shape, player.pos) && inArc;
+          : pointInShape(mechanic.shape, player.pos) && inArc);
         if (hit) {
           applyMechanicDamage(ctx, player, mechanic.damage, mechanic.damageType, mechanicSource(ctx, mechanic.id, mechanic.name));
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });

@@ -34,6 +34,7 @@ export type ActiveMechanic = {
   armed?: boolean;
   telegraphDuration?: number;
   requireFullHp?: boolean;
+  onlyCarriers?: boolean;
   anchor?: "boss";
   directionFrom?: "bossFacing";
   directionOffset?: number;
@@ -87,6 +88,7 @@ export type PendingEvent = {
   // When true, this cleave is stored: it does not resolve at its own cast end; a linked bait arms it.
   deferred?: boolean;
   requireFullHp?: boolean;
+  onlyCarriers?: boolean;
   showCastBar: boolean;
   showTelegraph: boolean;
   telegraphMode: TelegraphMode;

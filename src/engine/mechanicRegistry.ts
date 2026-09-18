@@ -223,6 +223,7 @@ const aoe: MechanicModule = {
           bossStationary: e.bossStationary,
           deferred: e.deferred,
           requireFullHp: e.requireFullHp,
+          onlyCarriers: e.onlyCarriers,
           showCastBar: e.showCastBar,
           showTelegraph: e.showTelegraph,
           telegraphMode: e.telegraphMode,

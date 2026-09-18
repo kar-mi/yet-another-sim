@@ -634,6 +634,26 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
       damageType: "magical",
     },
   },
+  // Index Omni-Elements rings. Placeholders: names match the pair labels so an `onlyCarriers`
+  // platform AoE of the same element hits the carrier.
+  fire_iv_ring: {
+    name: "Fire IV",
+    kind: "debuff",
+    duration: 10,
+    behavior: { kind: "none" },
+  },
+  blizzard_iv_ring: {
+    name: "Blizzard IV",
+    kind: "debuff",
+    duration: 10,
+    behavior: { kind: "none" },
+  },
+  thunder_iv_ring: {
+    name: "Thunder IV",
+    kind: "debuff",
+    duration: 10,
+    behavior: { kind: "none" },
+  },
   // Placeholder for unit tests that need to exercise arbitrary/one-off behavior configs (name,
   // duration, and behavior are always overridden per-usage via `ref` overrides) rather than a
   // real named mechanic. Not used by any raid content.
