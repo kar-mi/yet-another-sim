@@ -15,7 +15,7 @@ name: Omni-Elements 1
 arena:
   generator: index_arena_2
 duration: 82
-boss: { id: chaos, pos: [0, 0] }
+boss: { id: index, pos: [0, 0] }
 
 players:
   - { id: mt, role: tank, spawn: [0, 9.5] }
@@ -113,8 +113,7 @@ _orb: &orb
 # Reference diagrams define geometry, not textures. Radii are estimated from the arena:
 # bow circles cover a square and its corners (radius 11); harp covers the central hexagon (15).
 # Bow and harp have no cast bar or telegraph of their own: they hit exactly as the Sealed Implements
-# bar ends (37.66 / 51.85) and only flash on impact.
-# TODO: boss visual indicator for which implement (bow vs harp) is coming.
+# bar ends (37.66 / 51.85) and only flash on impact. The Index outlines the chosen weapon during the cast.
 _implement: &implement
   type: aoe
   telegraph: 1.1
@@ -188,8 +187,12 @@ events:
 
   - { <<: *castBar, id: elementary-expansion, time: 7.13, name: Elementary Expansion, telegraph: 2.99 }
   - { <<: *castBar, id: predict, time: 18.32, name: Predict, telegraph: 2.99 }
-  - { <<: *castBar, id: sealed-implements-1, time: 31.5, name: Sealed Implements, telegraph: 6.16 }
-  - { <<: *castBar, id: sealed-implements-2, time: 45.76, name: Sealed Implements, telegraph: 6.09 }
+  # One cast bar per implement so the boss can outline the chosen weapon for the whole cast; the
+  # implement event sets keep exactly one of each pair.
+  - { <<: *castBar, id: sealed-implements-1-bow, time: 31.5, name: Sealed Implements, telegraph: 6.16 }
+  - { <<: *castBar, id: sealed-implements-1-harp, time: 31.5, name: Sealed Implements, telegraph: 6.16 }
+  - { <<: *castBar, id: sealed-implements-2-bow, time: 45.76, name: Sealed Implements, telegraph: 6.09 }
+  - { <<: *castBar, id: sealed-implements-2-harp, time: 45.76, name: Sealed Implements, telegraph: 6.09 }
 
   # Elementary Absorption (instant) drops the platforms on this same tick; not modelled (see header).
   - { <<: *castBar, id: elementary-chemistry-cast, time: 58.01, name: Elementary Chemistry, telegraph: 19.97 }
@@ -411,13 +414,13 @@ optionals:
       implement-1:
         rng: true
         sets:
-          - [bow1-n, bow1-ne, bow1-se, bow1-s, bow1-sw, bow1-nw]
-          - [harp1]
+          - [sealed-implements-1-bow, bow1-n, bow1-ne, bow1-se, bow1-s, bow1-sw, bow1-nw]
+          - [sealed-implements-1-harp, harp1]
       implement-2:
         rng: true
         sets:
-          - [bow2-n, bow2-ne, bow2-se, bow2-s, bow2-sw, bow2-nw]
-          - [harp2]
+          - [sealed-implements-2-bow, bow2-n, bow2-ne, bow2-se, bow2-s, bow2-sw, bow2-nw]
+          - [sealed-implements-2-harp, harp2]
       orbs:
         rng: true
         sets:

@@ -13,6 +13,7 @@ import type { Renderer } from "./Renderer";
 import type { Boss, World, ZoneShape, FloorPlan } from "@shared/types";
 import type { PlaybackState } from "@shared/protocol";
 import { selectBossSideOrbs } from "./bossSideOrbs";
+import { selectSealedImplement } from "./sealedImplement";
 import type { Settings, ControllerType } from "../settings";
 import { BossLayer } from "./BossLayer";
 import { BossRingLayer } from "./BossRingLayer";
@@ -335,8 +336,9 @@ export class BabylonRenderer implements Renderer {
     this.players.sync(world.players, world.time, botsInvisible);
     const povPlayer = resolvePovPlayer(world.players, this.localPlayerId, this.spectateTargetId);
     const sideOrbs = selectBossSideOrbs(world);
+    const sealedImplement = selectSealedImplement(world.active);
     for (const boss of world.bosses) {
-      this.bossLayers.get(boss.id)?.sync(boss);
+      this.bossLayers.get(boss.id)?.sync(boss, sealedImplement);
       this.bossRingLayers.get(boss.id)?.sync(boss);
       this.bossSideOrbLayers.get(boss.id)?.sync(boss, sideOrbs.get(boss.id), world.time);
       this.targetRingLayers.get(boss.id)?.sync(boss, povPlayer?.targetBossId === boss.id);

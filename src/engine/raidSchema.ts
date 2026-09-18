@@ -129,7 +129,7 @@ const OptionalsSchema = z.object({
 }).optional();
 
 // Exhaustive list of glb stems available under /static/model/. Add new boss models here.
-const BOSS_MODEL_NAMES = ["kefka", "chaos", "exdeath", "dragon_head"] as const;
+const BOSS_MODEL_NAMES = ["kefka", "chaos", "exdeath", "dragon_head", "index"] as const;
 export type BossModelName = (typeof BOSS_MODEL_NAMES)[number];
 const BossModelSchema = z.enum(BOSS_MODEL_NAMES);
 

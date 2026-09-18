@@ -103,6 +103,8 @@ test("each round selects exactly one of bow or harp", () => {
       expect(selected).toHaveLength(1);
       const [kind, count] = selected[0]!;
       expect(events.filter(e => e.id.startsWith(`${kind}${round}`))).toHaveLength(count);
+      // The surviving Sealed Implements cast bar names the same implement, so the boss can outline it.
+      expect(events.filter(e => e.id.startsWith(`sealed-implements-${round}-`)).map(e => e.id)).toEqual([`sealed-implements-${round}-${kind}`]);
       kinds.add(kind);
     }
   }
@@ -119,10 +121,12 @@ test("implements have no cast bar or telegraph, only an impact flash exactly as 
   const sealed = raid.events.flatMap(e => e.type === "aoe" && e.id.startsWith("sealed-implements-") ? [e] : []);
   const resolves = [...new Set(events.map(e => +(e.t + e.telegraph).toFixed(2)))].sort();
   expect(resolves).toEqual([37.66, 51.85]);
-  sealed.forEach((bar, i) => {
-    const gap = resolves[i]! - (bar.t + bar.telegraph);
+  expect(sealed).toHaveLength(4);
+  for (const bar of sealed) {
+    const round = Number(/^sealed-implements-([12])-/.exec(bar.id)![1]);
+    const gap = resolves[round - 1]! - (bar.t + bar.telegraph);
     expect(gap).toBeCloseTo(0, 5);
-  });
+  }
 });
 
 test("implement footprints match the circle references", () => {
