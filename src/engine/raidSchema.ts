@@ -4,7 +4,7 @@ import { BOSS_REGISTRY, BOSS_REGISTRY_IDS, DEFAULT_BOSS_ID, isBossRegistryId, ty
 import { BotSolversSchema } from "./raidSchemaBotSolvers";
 import { ArenaSchema, CrystalsSchema, WaymarkSchema } from "./raidSchemaFoundation";
 import { EventSchema } from "./raidSchemaEvents";
-import { EventIdSchema, RoleSchema, Vec2Schema, WaypointSchema } from "./raidSchemaPrimitives";
+import { ElementGlyphKindSchema, EventIdSchema, RoleSchema, Vec2Schema, WaypointSchema } from "./raidSchemaPrimitives";
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
@@ -101,6 +101,8 @@ const OptionalsSchema = z.object({
       variants: z.array(z.object({
         name: z.string().min(1),
         color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+        // Stamped onto slot events that author a `glyph`.
+        glyph: ElementGlyphKindSchema.optional(),
       })).min(1),
     }).refine(spec => spec.slots.length === spec.variants.length, "labels needs one variant per slot")).optional(),
     eventSets: z.record(z.string().min(1), z.object({

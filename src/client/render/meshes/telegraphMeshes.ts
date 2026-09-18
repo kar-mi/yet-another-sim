@@ -5,6 +5,7 @@ import { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData";
 import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
 import { CreateGround } from "@babylonjs/core/Meshes/Builders/groundBuilder";
 import { CreateRibbon } from "@babylonjs/core/Meshes/Builders/ribbonBuilder";
+import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveMechanic, AOEShape } from "@shared/types";
@@ -85,6 +86,24 @@ export function createShapeMesh(scene: Scene, id: string, shape: AOEShape): Mesh
   }
 
   return mesh;
+}
+
+// Edge-only mesh for a circle or polygon (a closed tube along the outline). Other shapes fall back
+// to the filled footprint.
+export function createShapeOutlineMesh(scene: Scene, id: string, shape: AOEShape): Mesh | null {
+  const Y = 0.03;
+  let points: Vector3[];
+  if (shape.kind === "polygon") {
+    points = shape.vertices.map(v => new Vector3(v.x, Y, v.z));
+  } else if (shape.kind === "circle") {
+    points = Array.from({ length: 64 }, (_, i) => {
+      const a = (i / 64) * Math.PI * 2;
+      return new Vector3(shape.center.x + Math.cos(a) * shape.radius, Y, shape.center.z + Math.sin(a) * shape.radius);
+    });
+  } else {
+    return createShapeMesh(scene, id, shape);
+  }
+  return CreateTube(`tel-outline-${id}`, { path: [...points, points[0]!], radius: 0.1, tessellation: 6, cap: 0 }, scene);
 }
 
 export function createTelegraphMesh(scene: Scene, mechanic: ActiveMechanic): Mesh | null {

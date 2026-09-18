@@ -230,6 +230,8 @@ const aoe: MechanicModule = {
           bossRelativeCenter: e.bossRelativeCenter,
           flashBeforeResolve: e.flashBeforeResolve,
           color: e.color,
+          outline: e.outline,
+          glyph: e.glyph && { at: toVec2(e.glyph.at), kind: e.glyph.kind },
         });
         break;
       case "targeted":

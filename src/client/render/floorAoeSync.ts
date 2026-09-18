@@ -4,11 +4,25 @@ import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { FloorAoe } from "@shared/floorAoe";
 import { isFloorAoeVisible } from "@shared/floorAoe";
-import { createShapeMesh } from "./meshes/telegraphMeshes";
+import { createShapeMesh, createShapeOutlineMesh } from "./meshes/telegraphMeshes";
 
 const DEFAULT_ALPHA = 0.5;
+const OUTLINE_ALPHA = 0.95;
+// Faint floor tint drawn under an outline in the same color.
+const OUTLINE_FILL_ALPHA = 0.15;
 
-type FloorAoeMeshEntry = { mesh: Mesh; source: FloorAoe };
+type FloorAoeMeshEntry = { mesh: Mesh; fill?: Mesh; source: FloorAoe };
+
+function createFloorMaterial(scene: Scene, name: string): StandardMaterial {
+  const mat = new StandardMaterial(name, scene);
+  mat.specularColor = new Color3(0, 0, 0);
+  mat.backFaceCulling = false;
+  // Donut ribbons (and any other hand-wound mesh) may face away from the hemispheric light
+  // depending on vertex winding; without this the surface lights with groundColor (black)
+  // regardless of diffuseColor. Two-sided lighting flips the normal for back-facing polygons.
+  mat.twoSidedLighting = true;
+  return mat;
+}
 export type FloorAoeMeshMap = Map<string, FloorAoeMeshEntry>;
 
 // Generic mesh lifecycle (create/update/dispose, keyed by FloorAoe.id) shared by every layer that
@@ -40,22 +54,33 @@ export function syncFloorAoeMeshes(
       entry = undefined;
     }
     if (!entry) {
-      const mesh = createShapeMesh(scene, aoe.id, aoe.shape);
+      const mesh = aoe.style === "outline"
+        ? createShapeOutlineMesh(scene, aoe.id, aoe.shape)
+        : createShapeMesh(scene, aoe.id, aoe.shape);
       if (!mesh) continue;
-      const mat = new StandardMaterial(`floor-aoe-mat-${aoe.id}`, scene);
-      mat.specularColor = new Color3(0, 0, 0);
-      mat.backFaceCulling = false;
-      // Donut ribbons (and any other hand-wound mesh) may face away from the hemispheric light
-      // depending on vertex winding; without this the surface lights with groundColor (black)
-      // regardless of diffuseColor. Two-sided lighting flips the normal for back-facing polygons.
-      mat.twoSidedLighting = true;
-      mesh.material = mat;
+      mesh.material = createFloorMaterial(scene, `floor-aoe-mat-${aoe.id}`);
       entry = { mesh, source: aoe };
+      if (aoe.style === "outline") {
+        // Parented so disposing the outline also disposes the fill and its material.
+        const fill = createShapeMesh(scene, `${aoe.id}-fill`, aoe.shape);
+        if (fill) {
+          fill.material = createFloorMaterial(scene, `floor-aoe-fill-mat-${aoe.id}`);
+          fill.parent = mesh;
+          entry.fill = fill;
+        }
+      }
       meshes.set(aoe.id, entry);
     }
     const mat = entry.mesh.material as StandardMaterial;
     mat.diffuseColor.copyFrom(Color3.FromHexString(aoe.color));
-    mat.alpha = aoe.alpha ?? DEFAULT_ALPHA;
+    // Outlines are thin tubes; light them flat so the edge reads as a solid line of color.
+    if (aoe.style === "outline") mat.emissiveColor.copyFrom(mat.diffuseColor);
+    mat.alpha = aoe.alpha ?? (aoe.style === "outline" ? OUTLINE_ALPHA : DEFAULT_ALPHA);
+    if (entry.fill) {
+      const fillMat = entry.fill.material as StandardMaterial;
+      fillMat.diffuseColor.copyFrom(mat.diffuseColor);
+      fillMat.alpha = OUTLINE_FILL_ALPHA;
+    }
   }
 }
 

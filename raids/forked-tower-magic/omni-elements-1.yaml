@@ -43,11 +43,13 @@ _shapes:
   polySE: &polySE { kind: polygon, vertices: [[6.466, 0], [3.233, -5.6], [7.506, -13], [20.506, -20.506], [28.011, -7.506], [15.011, 0]] }
   polyNW: &polyNW { kind: polygon, vertices: [[-6.466, 0], [-3.233, 5.6], [-7.506, 13], [-20.506, 20.506], [-28.011, 7.506], [-15.011, 0]] }
 
+# Platform element outline + glyph, held until the Elementary Chemistry raidwide (79.42).
 _marker: &marker
   type: aoe
   time: 4
   name: Element
-  telegraph: 44.1
+  telegraph: 75.42
+  outline: true
   damage: 0
   damageType: "true"
   showCastBar: false
@@ -166,12 +168,12 @@ events:
     showTelegraph: false
     shape: { kind: circle, center: [0, 0], radius: 30 }
 
-  - { <<: *marker, id: mark-n, shape: *polyN }
-  - { <<: *marker, id: mark-s, shape: *polyS }
-  - { <<: *marker, id: mark-ne, shape: *polyNE }
-  - { <<: *marker, id: mark-sw, shape: *polySW }
-  - { <<: *marker, id: mark-se, shape: *polySE }
-  - { <<: *marker, id: mark-nw, shape: *polyNW }
+  - { <<: *marker, id: mark-n, shape: *polyN, glyph: { at: [0, 20.506] } }
+  - { <<: *marker, id: mark-s, shape: *polyS, glyph: { at: [0, -20.506] } }
+  - { <<: *marker, id: mark-ne, shape: *polyNE, glyph: { at: [17.759, 10.253] } }
+  - { <<: *marker, id: mark-sw, shape: *polySW, glyph: { at: [-17.759, -10.253] } }
+  - { <<: *marker, id: mark-se, shape: *polySE, glyph: { at: [17.759, -10.253] } }
+  - { <<: *marker, id: mark-nw, shape: *polyNW, glyph: { at: [-17.759, 10.253] } }
 
   # Round 1, waves 1-3 (resolve 17.95 / 19.47 / 20.98).
   - { <<: *wave, id: r1a-ns-n, time: 16.75, shape: *polyN, showCastBar: true }
@@ -319,9 +321,9 @@ optionals:
           - [mark-ne, mark-sw, r1a-nesw-ne, r1a-nesw-sw, r1b-nesw-ne, r1b-nesw-sw, r2a-nesw-ne, r2a-nesw-sw, r2b-nesw-ne, r2b-nesw-sw, ring1-ne, ring1-sw, ring2-ne, ring2-sw, ring3-ne, ring3-sw]
           - [mark-se, mark-nw, r1a-senw-se, r1a-senw-nw, r1b-senw-se, r1b-senw-nw, r2a-senw-se, r2a-senw-nw, r2b-senw-se, r2b-senw-nw, ring1-se, ring1-nw, ring2-se, ring2-nw, ring3-se, ring3-nw]
         variants:
-          - { name: Blizzard IV, color: "#3aa0ff" }
-          - { name: Thunder IV, color: "#a855f7" }
-          - { name: Fire IV, color: "#ff7043" }
+          - { name: Blizzard IV, color: "#3aa0ff", glyph: ice }
+          - { name: Thunder IV, color: "#ffd84a", glyph: lightning }
+          - { name: Fire IV, color: "#ff3b30", glyph: fire }
     eventSets:
       implement-1:
         rng: true

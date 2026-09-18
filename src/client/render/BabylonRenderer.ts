@@ -35,6 +35,7 @@ import { HandLayer } from "./HandLayer";
 import { ForcedMarchLayer } from "./ForcedMarchLayer";
 import { HazardLayer } from "./HazardLayer";
 import { DivebombLayer } from "./DivebombLayer";
+import { ElementGlyphLayer } from "./ElementGlyphLayer";
 import { WaymarkLayer } from "./WaymarkLayer";
 import { CrystalLayer } from "./CrystalLayer";
 import { setControlScheme } from "../input";
@@ -91,6 +92,7 @@ export class BabylonRenderer implements Renderer {
   private forcedMarches!: ForcedMarchLayer;
   private hazards!: HazardLayer;
   private divebombs!: DivebombLayer;
+  private elementGlyphs!: ElementGlyphLayer;
   private waymarks!: WaymarkLayer;
   private crystals!: CrystalLayer;
   private hud!: HudOverlay;
@@ -229,6 +231,7 @@ export class BabylonRenderer implements Renderer {
     this.forcedMarches = new ForcedMarchLayer(this.scene);
     this.hazards = new HazardLayer(this.scene);
     this.divebombs = new DivebombLayer(this.scene);
+    this.elementGlyphs = new ElementGlyphLayer(this.scene);
     this.hud = new HudOverlay(
       sessionId,
       this.localPlayerId,
@@ -362,6 +365,7 @@ export class BabylonRenderer implements Renderer {
     this.forcedMarches.sync(world.forcedMarches, world.time);
     this.hazards.sync(world.hazards, world.time);
     this.divebombs.sync(world.divebombs, world.time);
+    this.elementGlyphs.sync(world.active, world.time);
     this.hud.sync(world, povPlayer);
   }
 
@@ -449,6 +453,7 @@ export class BabylonRenderer implements Renderer {
     this.forcedMarches.dispose();
     this.hazards.dispose();
     this.divebombs.dispose();
+    this.elementGlyphs.dispose();
     this.waymarks.dispose();
     this.crystals.dispose();
     this.healthBars.dispose();

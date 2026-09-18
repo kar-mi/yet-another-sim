@@ -22,6 +22,9 @@ export type WaymarkId = "A" | "B" | "C" | "D" | "1" | "2" | "3" | "4";
 export type Waymark = { mark: WaymarkId; pos: Vec2 };
 
 export type CrystalElement = "wind" | "fire" | "water" | "earth";
+// Render-only 3D element marker (Index platforms). `kind` is stamped by a label variant.
+export type ElementGlyphKind = "lightning" | "fire" | "ice";
+export type ElementGlyph = { at: Vec2; kind?: ElementGlyphKind };
 export type Crystal = { id: string; element: CrystalElement; pos: Vec2; spawnAt: number };
 
 export type Waypoint = { t: number; pos: Vec2 };

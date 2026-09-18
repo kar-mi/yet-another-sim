@@ -1,7 +1,7 @@
 import type { Vec2 } from "../math";
 import type { FloorAoe } from "../floorAoe";
 import type {
-  AOEShape, BossRelativeCenter, CrystalElement, DamageType, FlashBeforeResolve,
+  AOEShape, BossRelativeCenter, CrystalElement, DamageType, ElementGlyph, FlashBeforeResolve,
   PositionalArc, Role, TelegraphMode,
 } from "./foundation";
 import type { EffectBehavior, EffectBundle, EffectSpec, Knockback, Reassign } from "./effects";
@@ -60,6 +60,8 @@ export type ActiveMechanic = {
   // Ground telegraph color (hex). Kept alongside showTelegraph/telegraphMode/flashBeforeResolve so a
   // deferred cleave can rebuild floorAoe when a bait arms it (see buildFloorAoe).
   color?: string;
+  // Render-only: 3D element glyph drawn at `glyph.at` while the mechanic is unresolved.
+  glyph?: ElementGlyph;
 };
 
 export type PendingEvent = {
@@ -96,6 +98,9 @@ export type PendingEvent = {
   flashBeforeResolve?: FlashBeforeResolve;
   // Ground telegraph color (hex). Defaults to the standard danger red when omitted.
   color?: string;
+  // Render-only: draw the telegraph as an outline instead of a fill.
+  outline?: boolean;
+  glyph?: ElementGlyph;
 };
 
 export type PendingTargetedEvent = {

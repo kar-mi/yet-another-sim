@@ -12,4 +12,5 @@ export const WaypointSchema = z.preprocess(
 ).transform(({ time, pos }) => ({ t: time, pos }));
 export const EventIdSchema = z.string().min(1);
 export const RoleSchema = z.enum(["tank", "healer", "dps"]);
+export const ElementGlyphKindSchema = z.enum(["lightning", "fire", "ice"]);
 export const DebuffMatchSchema = z.union([z.string().min(1), z.array(z.string().min(1)).min(1)]);

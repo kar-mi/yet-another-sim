@@ -136,6 +136,24 @@ test("waves are hidden until the final 0.4 seconds and disappear after impact", 
   expect(isFloorAoeVisible(visual, resolveAt + 0.001, true)).toBe(false);
 });
 
+test("platform markers are outlines carrying their pair's element glyph until the Chemistry raidwide", () => {
+  const glyphFor: Record<string, string> = { "Blizzard IV": "ice", "Thunder IV": "lightning", "Fire IV": "fire" };
+  for (let seed = 1; seed <= 5; seed++) {
+    const markers = preRollRaid(raid, seed).events.filter(e => e.id.startsWith("mark-"));
+    expect(markers).toHaveLength(6);
+    for (const marker of markers) {
+      if (marker.type !== "aoe") throw new Error(`${marker.id} is not an aoe`);
+      expect(marker.outline).toBe(true);
+      expect(marker.glyph?.kind).toBe(glyphFor[marker.name] as never);
+      expect(marker.t + marker.telegraph).toBeCloseTo(79.42, 5);
+    }
+  }
+  const world = runTicks(createWorld(raid, 3), {}, 5 * 60);
+  const north = world.active.find(m => m.id === "mark-n")!;
+  expect(north.floorAoe?.style).toBe("outline");
+  expect(north.glyph?.at).toEqual({ x: 0, z: 20.506 });
+});
+
 test("a ring platform only hits carriers of its own element", () => {
   // Fire is safe (ring players carry Blizzard + Thunder); N/S is Fire, NE/SW Blizzard, SE/NW Thunder.
   const constraints = { "event-set-ring-1": 0, "label-pairs-0": 2, "label-pairs-1": 0, "label-pairs-2": 1 };

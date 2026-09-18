@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { DEBUFF_REGISTRY } from "./status/debuffs";
-import { EventIdSchema, RoleSchema, Vec2Schema } from "./raidSchemaPrimitives";
+import { ElementGlyphKindSchema, EventIdSchema, RoleSchema, Vec2Schema } from "./raidSchemaPrimitives";
 import { AOEShapeSchema, ApplyEffectSchema, ApplyEffectsSchema, KnockbackSchema } from "./raidSchemaFoundation";
 
 const TelegraphModeSchema = z.enum(["cast", "resolve"]);
@@ -61,6 +61,10 @@ const AOEEventSchema = z.object({
   }).optional(),
   // Render-only: ground telegraph color (hex). Defaults to the standard danger red when omitted.
   color: z.string().min(1).optional(),
+  // Render-only: draw the ground telegraph as an outline instead of a fill.
+  outline: z.boolean().optional(),
+  // Render-only: 3D element glyph at `at` while unresolved. `kind` usually comes from a label variant.
+  glyph: z.object({ at: Vec2Schema, kind: ElementGlyphKindSchema.optional() }).optional(),
   bossId: z.string().min(1).optional(),
 });
 

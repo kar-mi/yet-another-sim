@@ -272,13 +272,16 @@ function rollVariantOrder(
 
 // Seeded assignment of {name, color} variants to slots of event ids: the variants are shuffled and
 // dealt one per slot, so which mechanic identity lands on which group of events changes per run.
+type LabelVariant = NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["labels"] extends
+  Record<string, { variants: (infer V)[] }> | undefined ? V : never;
+
 function buildLabelPlan(
   labels: NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["labels"],
   rngState: number,
   decisions: PreRollDecisions,
   constraints: RngConstraints,
-): { labels: Record<string, { name: string; color?: string }>; rngState: number } {
-  const plan: Record<string, { name: string; color?: string }> = {};
+): { labels: Record<string, LabelVariant>; rngState: number } {
+  const plan: Record<string, LabelVariant> = {};
   if (!labels) return { labels: plan, rngState };
 
   let nextState = rngState;
@@ -490,7 +493,12 @@ export function preRollRaid(raid: RaidDef, seed: number, constraints: RngConstra
   const { events: headEvents, rngState } = applyHeadSequence(hazardEvents, raid.optionals?.headSequence, afterBlackHoleRngState, decisions, constraints);
   const events = headEvents.map(e => {
     const label = labels[e.id];
-    const labelled = label === undefined ? e : { ...e, name: label.name, ...(label.color !== undefined ? { color: label.color } : {}) };
+    const labelled = label === undefined ? e : {
+      ...e,
+      name: label.name,
+      ...(label.color !== undefined ? { color: label.color } : {}),
+      ...(label.glyph !== undefined && e.type === "aoe" && e.glyph ? { glyph: { ...e.glyph, kind: label.glyph } } : {}),
+    };
     return endingOffsets[e.id] === undefined
       ? labelled
       : { ...labelled, directionOffset: endingOffsets[e.id], ...(endingNames[e.id] !== undefined ? { name: endingNames[e.id] } : {}) };
