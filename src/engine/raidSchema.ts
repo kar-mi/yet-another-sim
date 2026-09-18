@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ROSTER, RaidIdSchema } from "@shared/protocol";
 import { BOSS_REGISTRY, BOSS_REGISTRY_IDS, DEFAULT_BOSS_ID, isBossRegistryId, type BossRegistryId } from "./bossRegistry";
 import { BotSolversSchema } from "./raidSchemaBotSolvers";
-import { CrystalsSchema, FloorPlanSchema, WaymarkSchema, ZoneShapeSchema } from "./raidSchemaFoundation";
+import { ArenaSchema, CrystalsSchema, WaymarkSchema } from "./raidSchemaFoundation";
 import { EventSchema } from "./raidSchemaEvents";
 import { EventIdSchema, RoleSchema, Vec2Schema, WaypointSchema } from "./raidSchemaPrimitives";
 
@@ -151,7 +151,7 @@ function resolveBossIdentity(overrides: BossIdentityOverrides, registryId: BossR
 
 export const RaidSchema = z.object({
   name: z.string().min(1),
-  arena: z.object({ zones: z.array(ZoneShapeSchema).min(1), floorPlan: FloorPlanSchema }),
+  arena: ArenaSchema,
   duration: z.number().positive(),
   boss: BossSchema,
   // Multi-boss: when present, takes precedence over `boss`. Each entry requires a unique id slug.

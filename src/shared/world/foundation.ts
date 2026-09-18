@@ -6,10 +6,13 @@ export type Control = "human" | "bot";
 
 export type Status = "running" | "cleared" | "wiped";
 
+// Top-down art for one zone, named here and resolved to a URL by the renderer (like FloorPlan).
+export type ZoneImage = "index-trapezoid" | "index-square";
+
 export type ZoneShape =
   | { kind: "circle"; center: Vec2; radius: number }
   | { kind: "rect"; center: Vec2; width: number; height: number }
-  | { kind: "polygon"; vertices: Vec2[] };
+  | { kind: "polygon"; vertices: Vec2[]; image?: ZoneImage };
 
 export type FloorPlan = "squares" | "dmu-p1" | "dmu-p2" | { color: string };
 

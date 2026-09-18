@@ -1,0 +1,19 @@
+# Index Arena Test — walk the generated Index floor. Swap the generator to index_arena_2 to see the
+# expanded state (platforms on all six edges, raised by Elementary Expansion mid-fight).
+
+name: Index Arena Test
+arena:
+  generator: index_arena_1
+duration: 60
+
+players:
+  - { id: mt, role: tank, spawn: { x: 0, z: 10 } }
+  - { id: ot, role: tank, spawn: { x: 7.07, z: 7.07 } }
+  - { id: h1, role: healer, spawn: { x: 10, z: 0 } }
+  - { id: h2, role: healer, spawn: { x: 7.07, z: -7.07 } }
+  - { id: r1, role: dps, spawn: { x: 0, z: -10 } }
+  - { id: r2, role: dps, spawn: { x: -7.07, z: -7.07 } }
+  - { id: m1, role: dps, spawn: { x: -10, z: 0 } }
+  - { id: m2, role: dps, spawn: { x: -7.07, z: 7.07 } }
+
+events: []

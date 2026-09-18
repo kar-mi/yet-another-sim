@@ -131,6 +131,26 @@ arena:
 - `rect`: axis-aligned, `width`/`height` > 0, centered on `center`.
 - `polygon`: at least 3 `vertices`.
 
+### Generated arenas
+
+A point is on the floor if it's inside **any** zone, so zones only ever add floor — there is no way
+to cut a hole with them. An arena that needs one (a ring, a platform with a gap in the middle) is
+built from a named generator in `src/engine/arenaGenerators.ts` instead of an inline list:
+
+```yaml
+arena:
+  generator: index_arena_1
+  floorPlan: { color: "#1f3852" }
+```
+
+Give `zones` or `generator`, never both. The generator runs at load and produces the same
+`ZoneShape` list the yaml would have, so nothing downstream knows the difference.
+
+| Generator | Shape |
+|---|---|
+| `index_arena_1` | Index. Six trapezoids forming a hexagon (apothem 13) around a hexagonal hole (apothem 5.6), plus square platforms flush with the S, NW and NE edges (side 15.01, reaching r 28). Nine zones. |
+| `index_arena_2` | The same arena after Elementary Expansion, with platforms on all six edges. Twelve zones. |
+
 ## Waymarks
 
 `waymarks` is an optional list of fixed reference markers drawn on the floor — the
