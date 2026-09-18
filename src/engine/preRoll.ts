@@ -498,6 +498,7 @@ export function preRollRaid(raid: RaidDef, seed: number, constraints: RngConstra
       name: label.name,
       ...(label.color !== undefined ? { color: label.color } : {}),
       ...(label.glyph !== undefined && e.type === "aoe" && e.glyph ? { glyph: { ...e.glyph, kind: label.glyph } } : {}),
+      ...(label.glyph !== undefined && e.type === "aoe" && e.ring ? { ring: { ...e.ring, kind: label.glyph } } : {}),
     };
     return endingOffsets[e.id] === undefined
       ? labelled

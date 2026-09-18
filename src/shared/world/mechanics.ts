@@ -1,7 +1,7 @@
 import type { Vec2 } from "../math";
 import type { FloorAoe } from "../floorAoe";
 import type {
-  AOEShape, BossRelativeCenter, CrystalElement, DamageType, ElementGlyph, FlashBeforeResolve,
+  AOEShape, BossRelativeCenter, CrystalElement, DamageType, ElementGlyph, ElementRing, FlashBeforeResolve,
   PositionalArc, Role, TelegraphMode,
 } from "./foundation";
 import type { EffectBehavior, EffectBundle, EffectSpec, Knockback, Reassign } from "./effects";
@@ -62,6 +62,8 @@ export type ActiveMechanic = {
   color?: string;
   // Render-only: 3D element glyph drawn at `glyph.at` while the mechanic is unresolved.
   glyph?: ElementGlyph;
+  // Render-only: ring growing to `ring.radius` over the cast (telegraphStart → resolveAt).
+  ring?: ElementRing;
 };
 
 export type PendingEvent = {
@@ -101,6 +103,7 @@ export type PendingEvent = {
   // Render-only: draw the telegraph as an outline instead of a fill.
   outline?: boolean;
   glyph?: ElementGlyph;
+  ring?: ElementRing;
 };
 
 export type PendingTargetedEvent = {

@@ -101,7 +101,7 @@ const OptionalsSchema = z.object({
       variants: z.array(z.object({
         name: z.string().min(1),
         color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
-        // Stamped onto slot events that author a `glyph`.
+        // Stamped onto slot events that author a `glyph` or `ring`.
         glyph: ElementGlyphKindSchema.optional(),
       })).min(1),
     }).refine(spec => spec.slots.length === spec.variants.length, "labels needs one variant per slot")).optional(),

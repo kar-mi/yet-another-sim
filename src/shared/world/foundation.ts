@@ -25,6 +25,8 @@ export type CrystalElement = "wind" | "fire" | "water" | "earth";
 // Render-only 3D element marker (Index platforms). `kind` is stamped by a label variant.
 export type ElementGlyphKind = "lightning" | "fire" | "ice";
 export type ElementGlyph = { at: Vec2; kind?: ElementGlyphKind };
+// Render-only ring that grows from `center` to `radius` over a cast, carrying element glyphs.
+export type ElementRing = { center: Vec2; radius: number; kind?: ElementGlyphKind };
 export type Crystal = { id: string; element: CrystalElement; pos: Vec2; spawnAt: number };
 
 export type Waypoint = { t: number; pos: Vec2 };

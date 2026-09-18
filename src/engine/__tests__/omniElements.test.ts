@@ -4,6 +4,7 @@ import { preRollRaid } from "../preRoll";
 import { loadRaid } from "../raidLoader";
 import { createWorld } from "../world";
 import { toAOEShape } from "../eventTransforms";
+import { elementRingRadius } from "@shared/elementRing";
 import { isFloorAoeVisible } from "@shared/floorAoe";
 import { describeDecisions, validateRngConstraints } from "../seedSearch";
 import { HUMAN, byId, roster, runTicks } from "./helpers";
@@ -123,17 +124,45 @@ test("implement footprints match the circle references", () => {
   }
 });
 
-test("waves are hidden until the final 0.4 seconds and disappear after impact", () => {
+test("each wave pair is announced by one ring that reaches the square centers as it hits", () => {
+  const glyphFor: Record<string, string> = { "Blizzard IV": "ice", "Thunder IV": "lightning", "Fire IV": "fire" };
+  for (const round of ["r1", "r2"] as const) {
+    const waves = preRollRaid(raid, 3).events.filter(e => e.type === "aoe" && /^r[12][ab]-/.test(e.id) && e.id.startsWith(round))
+      .flatMap(e => e.type === "aoe" ? [e] : []);
+    const byTime = new Map<number, typeof waves>();
+    for (const e of waves) byTime.set(e.t, [...(byTime.get(e.t) ?? []), e]);
+    expect(byTime.size).toBe(6);
+    for (const pair of byTime.values()) {
+      const ringed = pair.filter(e => e.ring);
+      expect(ringed).toHaveLength(1);
+      const wave = ringed[0]!;
+      expect(wave.ring?.radius).toBe(20.506);
+      expect(wave.ring?.kind).toBe(glyphFor[wave.name] as never);
+      expect(wave.showCastBar).toBe(false);
+    }
+  }
+  // Round 1's first ring leaves the boss as Elementary Expansion ends.
+  expect(wavesForSeed(3, "r1")[0]!.t).toBe(10.12);
+});
+
+test("ring radius grows linearly over the cast and the pair only flashes in the final 0.4s", () => {
+  const ring = { center: { x: 0, z: 0 }, radius: 20.506 };
+  expect(elementRingRadius(ring, 10, 17.83, 9)).toBe(0);
+  expect(elementRingRadius(ring, 10, 17.83, 10 + 7.83 / 2)).toBeCloseTo(10.253, 5);
+  expect(elementRingRadius(ring, 10, 17.83, 17.83)).toBe(20.506);
+  expect(elementRingRadius(ring, 10, 17.83, 30)).toBe(20.506);
+
   const first = wavesForSeed(3, "r1")[0]!;
-  let world = createWorld(raid, 3);
-  world = runTicks(world, {}, Math.ceil((first.t + 0.1) * 60));
-  const visual = world.active.find(event => event.id === first.id)!.floorAoe!;
+  const world = runTicks(createWorld(raid, 3), {}, Math.ceil((first.t + 0.1) * 60));
+  const active = world.active.filter(m => m.telegraphStart === first.t && /^r1[ab]-/.test(m.id));
+  expect(active).toHaveLength(2);
   const resolveAt = first.t + first.telegraph;
-  expect(isFloorAoeVisible(visual, first.t + 0.1, false)).toBe(false);
-  expect(isFloorAoeVisible(visual, resolveAt - 0.401, false)).toBe(false);
-  expect(isFloorAoeVisible(visual, resolveAt - 0.399, false)).toBe(true);
-  expect(isFloorAoeVisible(visual, resolveAt, false)).toBe(true);
-  expect(isFloorAoeVisible(visual, resolveAt + 0.001, true)).toBe(false);
+  for (const m of active) {
+    expect(isFloorAoeVisible(m.floorAoe!, first.t + 0.1, false)).toBe(false);
+    expect(isFloorAoeVisible(m.floorAoe!, resolveAt - 0.401, false)).toBe(false);
+    expect(isFloorAoeVisible(m.floorAoe!, resolveAt - 0.399, false)).toBe(true);
+    expect(isFloorAoeVisible(m.floorAoe!, resolveAt + 0.001, true)).toBe(false);
+  }
 });
 
 test("platform markers are outlines carrying their pair's element glyph until the Chemistry raidwide", () => {

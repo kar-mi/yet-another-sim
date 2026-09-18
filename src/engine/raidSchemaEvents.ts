@@ -65,6 +65,9 @@ const AOEEventSchema = z.object({
   outline: z.boolean().optional(),
   // Render-only: 3D element glyph at `at` while unresolved. `kind` usually comes from a label variant.
   glyph: z.object({ at: Vec2Schema, kind: ElementGlyphKindSchema.optional() }).optional(),
+  // Render-only: ring growing from `center` to `radius` over the cast, carrying six element glyphs.
+  // `kind` usually comes from a label variant.
+  ring: z.object({ center: Vec2Schema, radius: z.number().positive(), kind: ElementGlyphKindSchema.optional() }).optional(),
   bossId: z.string().min(1).optional(),
 });
 
