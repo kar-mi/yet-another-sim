@@ -1,20 +1,22 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
+import type { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { CreateTorus } from "@babylonjs/core/Meshes/Builders/torusBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveMechanic } from "@shared/types";
 import { moverPosition } from "@shared/mover";
+import { createCleansingOrb } from "./meshes/cleansingOrbMeshes";
 
 const MOVER_Y = 1.5;
 const DEFAULT_COLOR = "#ffffff";
 
 // Draws each unresolved mechanic's `mover` (see Mover): a sphere for a circle shape, a torus for a
-// donut, parked at `from` and then gliding to the shape center by resolve. A mechanic with a `glyph`
-// is drawn by ElementGlyphLayer instead.
+// donut (or, with `sprite`, the Cleansing orb billboards), parked at `from` and then gliding to the
+// shape center by resolve. A mechanic with a `glyph` is drawn by ElementGlyphLayer instead.
 export class MoverLayer {
-  private movers = new Map<string, Mesh>();
+  private movers = new Map<string, TransformNode>();
 
   constructor(private scene: Scene) {}
 
@@ -33,25 +35,30 @@ export class MoverLayer {
     }
 
     for (const [key, m] of wanted) {
+      if (m.shape.kind !== "circle" && m.shape.kind !== "donut") continue;
       let mesh = this.movers.get(key);
       if (!mesh) {
-        mesh = m.shape.kind === "donut"
-          ? CreateTorus(`mover-${m.id}`, { diameter: 2.4, thickness: 0.7, tessellation: 32 }, this.scene)
-          : CreateSphere(`mover-${m.id}`, { diameter: 2.4, segments: 16 }, this.scene);
-        const mat = new StandardMaterial(`mover-mat-${m.id}`, this.scene);
-        mat.diffuseColor = Color3.FromHexString(m.color ?? DEFAULT_COLOR);
-        mat.emissiveColor = mat.diffuseColor.scale(0.5);
-        mat.specularColor = Color3.White().scale(0.2);
-        mat.alpha = 0.9;
-        mesh.material = mat;
-        mesh.isPickable = false;
+        mesh = m.mover!.sprite ? createCleansingOrb(this.scene, m.id, m.shape.kind) : this.createOrb(m);
         mesh.scaling.setAll(m.mover!.scale ?? 1);
         this.movers.set(key, mesh);
       }
-      if (m.shape.kind !== "circle" && m.shape.kind !== "donut") continue;
       const pos = moverPosition(m.mover!, m.shape.center, m.resolveAt, time);
-      mesh.position.set(pos.x, MOVER_Y, pos.z);
+      mesh.position.set(pos.x, m.mover!.sprite ? 0 : MOVER_Y, pos.z);
     }
+  }
+
+  private createOrb(m: ActiveMechanic): Mesh {
+    const mesh = m.shape.kind === "donut"
+      ? CreateTorus(`mover-${m.id}`, { diameter: 2.4, thickness: 0.7, tessellation: 32 }, this.scene)
+      : CreateSphere(`mover-${m.id}`, { diameter: 2.4, segments: 16 }, this.scene);
+    const mat = new StandardMaterial(`mover-mat-${m.id}`, this.scene);
+    mat.diffuseColor = Color3.FromHexString(m.color ?? DEFAULT_COLOR);
+    mat.emissiveColor = mat.diffuseColor.scale(0.5);
+    mat.specularColor = Color3.White().scale(0.2);
+    mat.alpha = 0.9;
+    mesh.material = mat;
+    mesh.isPickable = false;
+    return mesh;
   }
 
   dispose(): void {

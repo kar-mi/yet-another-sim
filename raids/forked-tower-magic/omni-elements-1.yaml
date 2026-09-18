@@ -96,8 +96,9 @@ _ringHit: &ringHit
   showTelegraph: false
 
 # Cleansing orbs: two circles and one donut. Each spawns 1s after Predict (22.31) in a trapezoid,
-# sits ~5s, then glides straight to the square one section clockwise (N trapezoid -> NE square) and
-# detonates on the bow circle there at 32.70. The floor shape only flashes at detonation.
+# sits ~5s, then glides straight toward the square one section clockwise (N trapezoid -> NE square)
+# and detonates at 32.70 halfway between that square's center and its inner edge (r 16.753), where a
+# small blue pad marks the spot. The floor shape only flashes at detonation.
 _orb: &orb
   type: aoe
   name: Cleansing
@@ -335,12 +336,16 @@ events:
 
   # Cleansing orbs (resolve 32.70).
   - { <<: *castBar, id: cleansing-cast, time: 31.73, name: Cleansing, telegraph: 0.97 }
-  - { <<: *orb, id: orb-nw-circle, mover: { from: [-8.054, -4.65], departAt: 27.7 }, shape: { kind: circle, center: [-17.759, 10.253], radius: 11 } }
-  - { <<: *orb, id: orb-nw-donut, mover: { from: [-8.054, -4.65], departAt: 27.7 }, shape: { kind: donut, center: [-17.759, 10.253], inner: 5, outer: 11 } }
-  - { <<: *orb, id: orb-ne-circle, mover: { from: [0, 9.3], departAt: 27.7 }, shape: { kind: circle, center: [17.759, 10.253], radius: 11 } }
-  - { <<: *orb, id: orb-ne-donut, mover: { from: [0, 9.3], departAt: 27.7 }, shape: { kind: donut, center: [17.759, 10.253], inner: 5, outer: 11 } }
-  - { <<: *orb, id: orb-s-circle, mover: { from: [8.054, -4.65], departAt: 27.7 }, shape: { kind: circle, center: [0, -20.506], radius: 11 } }
-  - { <<: *orb, id: orb-s-donut, mover: { from: [8.054, -4.65], departAt: 27.7 }, shape: { kind: donut, center: [0, -20.506], inner: 5, outer: 11 } }
+  - { <<: *orb, id: orb-nw-circle, mover: { from: [-8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: circle, center: [-14.509, 8.377], radius: 11 } }
+  - { <<: *orb, id: orb-nw-donut, mover: { from: [-8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [-14.509, 8.377], inner: 5, outer: 16.5 } }
+  - { <<: *orb, id: orb-ne-circle, mover: { from: [0, 9.3], departAt: 27.7, sprite: true }, shape: { kind: circle, center: [14.509, 8.377], radius: 11 } }
+  - { <<: *orb, id: orb-ne-donut, mover: { from: [0, 9.3], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [14.509, 8.377], inner: 5, outer: 16.5 } }
+  - { <<: *orb, id: orb-s-circle, mover: { from: [8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: circle, center: [0, -16.753], radius: 11 } }
+  - { <<: *orb, id: orb-s-donut, mover: { from: [8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [0, -16.753], inner: 5, outer: 16.5 } }
+  # Where each orb will detonate, shown for all three regardless of which one is the donut.
+  - { <<: *chemPad, id: cleansing-pad-nw, time: 22.31, telegraph: 10.39, name: Cleansing Target, shape: { kind: circle, center: [-14.509, 8.377], radius: 2 } }
+  - { <<: *chemPad, id: cleansing-pad-ne, time: 22.31, telegraph: 10.39, name: Cleansing Target, shape: { kind: circle, center: [14.509, 8.377], radius: 2 } }
+  - { <<: *chemPad, id: cleansing-pad-s, time: 22.31, telegraph: 10.39, name: Cleansing Target, shape: { kind: circle, center: [0, -16.753], radius: 2 } }
 
 optionals:
   rngLabels:
