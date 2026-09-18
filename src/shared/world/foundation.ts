@@ -27,6 +27,9 @@ export type ElementGlyphKind = "lightning" | "fire" | "ice";
 export type ElementGlyph = { at: Vec2; kind?: ElementGlyphKind };
 // Render-only ring that grows from `center` to `radius` over a cast, carrying element glyphs.
 export type ElementRing = { center: Vec2; radius: number; kind?: ElementGlyphKind };
+// Render-only object that waits at `from` until `departAt`, then travels straight to its shape's
+// center, arriving at resolve (e.g. Index Cleansing orbs).
+export type Mover = { from: Vec2; departAt: number };
 export type Crystal = { id: string; element: CrystalElement; pos: Vec2; spawnAt: number };
 
 export type Waypoint = { t: number; pos: Vec2 };

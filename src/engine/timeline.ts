@@ -116,6 +116,7 @@ export function promotePending(
         color: event.color,
         glyph: event.glyph,
         ring: event.ring,
+        mover: event.mover,
         floorAoe: event.deferred ? undefined : buildFloorAoe({
           id: event.id, shape, color: event.color, showTelegraph, outline: event.outline,
           telegraphMode: event.telegraphMode, flashBeforeResolve: event.flashBeforeResolve, resolveAt,

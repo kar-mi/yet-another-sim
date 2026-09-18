@@ -27,7 +27,7 @@ players:
 sections:
   - { id: raidwide, name: Omni-Elements, t: 0 }
   - { id: elements-1, name: Elements 1, t: 10.12 }
-  - { id: orbs-ring-1, name: Orbs + Ring 1, t: 30.32 }
+  - { id: orbs, name: Orbs, t: 22.31 }
   - { id: implement-1, name: Implement 1, t: 36.56 }
   - { id: elements-2, name: Elements 2, t: 32.71 }
   - { id: implement-2, name: Implement 2, t: 50.82 }
@@ -79,26 +79,15 @@ _castBar: &castBar
   showTelegraph: false
   shape: { kind: circle, center: [0, 0], radius: 0.1 }
 
-# Rings: every player carries two element debuffs and must stand on the pair of the third element.
-# Each platform flashes its own element at resolve and only hits carriers of the same element.
-_ringHit: &ringHit
-  type: aoe
-  name: Element
-  telegraph: 3
-  damage: 999
-  damageType: "true"
-  avoidable: true
-  onlyCarriers: true
-  showCastBar: false
-  telegraphMode: resolve
-
-# Cleansing orbs sit on the bow circles at NW / NE / S; one of the three is a donut.
-# TODO: orb spawn/travel animation; they only show for the final 0.97s cast for now.
+# Cleansing orbs: two circles and one donut. Each spawns 1s after Predict (22.31) in a trapezoid,
+# sits ~5s, then glides straight to the square one section clockwise (N trapezoid -> NE square) and
+# detonates on the bow circle there at 32.70. The floor shape only flashes at detonation.
 _orb: &orb
   type: aoe
   name: Cleansing
-  time: 31.73
-  telegraph: 0.97
+  time: 22.31
+  telegraph: 10.39
+  telegraphMode: resolve
   damage: 40
   damageType: magical
   avoidable: true
@@ -229,64 +218,23 @@ events:
   - { <<: *bow, id: bow2-nw, time: 50.82, telegraph: 2.03, shape: { kind: circle, center: [-17.759, 10.253], radius: 11 } }
   - { <<: *harp, id: harp2, time: 50.82, telegraph: 2.03 }
 
-  # Ring 1 (resolve 33.32): debuffs land at 21.31; one set per safe element.
-  - { id: ring1-fire, type: apply_effect, time: 21.31, name: Fire IV, applyEffect: { ref: fire_iv_ring, duration: 12.31 } }
-  - { id: ring1-blizzard, type: apply_effect, time: 21.31, name: Blizzard IV, applyEffect: { ref: blizzard_iv_ring, duration: 12.31 } }
-  - { id: ring1-thunder, type: apply_effect, time: 21.31, name: Thunder IV, applyEffect: { ref: thunder_iv_ring, duration: 12.31 } }
-  - { <<: *castBar, id: ring1-cast-fire-safe, time: 30.32, name: Blizzard III + Thunder III, telegraph: 3 }
-  - { <<: *castBar, id: ring1-cast-blizzard-safe, time: 30.32, name: Fire III + Thunder III, telegraph: 3 }
-  - { <<: *castBar, id: ring1-cast-thunder-safe, time: 30.32, name: Fire III + Blizzard III, telegraph: 3 }
-  - { <<: *ringHit, id: ring1-n, time: 30.32, shape: *polyN }
-  - { <<: *ringHit, id: ring1-s, time: 30.32, shape: *polyS }
-  - { <<: *ringHit, id: ring1-ne, time: 30.32, shape: *polyNE }
-  - { <<: *ringHit, id: ring1-sw, time: 30.32, shape: *polySW }
-  - { <<: *ringHit, id: ring1-se, time: 30.32, shape: *polySE }
-  - { <<: *ringHit, id: ring1-nw, time: 30.32, shape: *polyNW }
-
-  # Ring 2 (resolve 38.34): debuffs land at 33.82; one set per safe element.
-  - { id: ring2-fire, type: apply_effect, time: 33.82, name: Fire IV, applyEffect: { ref: fire_iv_ring, duration: 4.82 } }
-  - { id: ring2-blizzard, type: apply_effect, time: 33.82, name: Blizzard IV, applyEffect: { ref: blizzard_iv_ring, duration: 4.82 } }
-  - { id: ring2-thunder, type: apply_effect, time: 33.82, name: Thunder IV, applyEffect: { ref: thunder_iv_ring, duration: 4.82 } }
-  - { <<: *castBar, id: ring2-cast-fire-safe, time: 35.34, name: Blizzard III + Thunder III, telegraph: 3 }
-  - { <<: *castBar, id: ring2-cast-blizzard-safe, time: 35.34, name: Fire III + Thunder III, telegraph: 3 }
-  - { <<: *castBar, id: ring2-cast-thunder-safe, time: 35.34, name: Fire III + Blizzard III, telegraph: 3 }
-  - { <<: *ringHit, id: ring2-n, time: 35.34, shape: *polyN }
-  - { <<: *ringHit, id: ring2-s, time: 35.34, shape: *polyS }
-  - { <<: *ringHit, id: ring2-ne, time: 35.34, shape: *polyNE }
-  - { <<: *ringHit, id: ring2-sw, time: 35.34, shape: *polySW }
-  - { <<: *ringHit, id: ring2-se, time: 35.34, shape: *polySE }
-  - { <<: *ringHit, id: ring2-nw, time: 35.34, shape: *polyNW }
-
-  # Ring 3 (resolve 52.37): debuffs land at 38.84; one set per safe element.
-  - { id: ring3-fire, type: apply_effect, time: 38.84, name: Fire IV, applyEffect: { ref: fire_iv_ring, duration: 13.83 } }
-  - { id: ring3-blizzard, type: apply_effect, time: 38.84, name: Blizzard IV, applyEffect: { ref: blizzard_iv_ring, duration: 13.83 } }
-  - { id: ring3-thunder, type: apply_effect, time: 38.84, name: Thunder IV, applyEffect: { ref: thunder_iv_ring, duration: 13.83 } }
-  - { <<: *castBar, id: ring3-cast-fire-safe, time: 49.37, name: Blizzard III + Thunder III, telegraph: 3 }
-  - { <<: *castBar, id: ring3-cast-blizzard-safe, time: 49.37, name: Fire III + Thunder III, telegraph: 3 }
-  - { <<: *castBar, id: ring3-cast-thunder-safe, time: 49.37, name: Fire III + Blizzard III, telegraph: 3 }
-  - { <<: *ringHit, id: ring3-n, time: 49.37, shape: *polyN }
-  - { <<: *ringHit, id: ring3-s, time: 49.37, shape: *polyS }
-  - { <<: *ringHit, id: ring3-ne, time: 49.37, shape: *polyNE }
-  - { <<: *ringHit, id: ring3-sw, time: 49.37, shape: *polySW }
-  - { <<: *ringHit, id: ring3-se, time: 49.37, shape: *polySE }
-  - { <<: *ringHit, id: ring3-nw, time: 49.37, shape: *polyNW }
+  # TODO: element rings (Fire / Blizzard / Thunder III, hits at 33.32 / 38.34 / 52.37). Revisit with
+  # the debuff design; the engine's `onlyCarriers` aoe flag and the *_iv_ring debuffs are kept for it.
 
   # Cleansing orbs (resolve 32.70).
-  - { <<: *orb, id: orb-nw-circle, shape: { kind: circle, center: [-17.759, 10.253], radius: 11 } }
-  - { <<: *orb, id: orb-nw-donut, showCastBar: true, shape: { kind: donut, center: [-17.759, 10.253], inner: 5, outer: 11 } }
-  - { <<: *orb, id: orb-ne-circle, shape: { kind: circle, center: [17.759, 10.253], radius: 11 } }
-  - { <<: *orb, id: orb-ne-donut, showCastBar: true, shape: { kind: donut, center: [17.759, 10.253], inner: 5, outer: 11 } }
-  - { <<: *orb, id: orb-s-circle, shape: { kind: circle, center: [0, -20.506], radius: 11 } }
-  - { <<: *orb, id: orb-s-donut, showCastBar: true, shape: { kind: donut, center: [0, -20.506], inner: 5, outer: 11 } }
+  - { <<: *castBar, id: cleansing-cast, time: 31.73, name: Cleansing, telegraph: 0.97 }
+  - { <<: *orb, id: orb-nw-circle, mover: { from: [-8.054, -4.65], departAt: 27.7 }, shape: { kind: circle, center: [-17.759, 10.253], radius: 11 } }
+  - { <<: *orb, id: orb-nw-donut, mover: { from: [-8.054, -4.65], departAt: 27.7 }, shape: { kind: donut, center: [-17.759, 10.253], inner: 5, outer: 11 } }
+  - { <<: *orb, id: orb-ne-circle, mover: { from: [0, 9.3], departAt: 27.7 }, shape: { kind: circle, center: [17.759, 10.253], radius: 11 } }
+  - { <<: *orb, id: orb-ne-donut, mover: { from: [0, 9.3], departAt: 27.7 }, shape: { kind: donut, center: [17.759, 10.253], inner: 5, outer: 11 } }
+  - { <<: *orb, id: orb-s-circle, mover: { from: [8.054, -4.65], departAt: 27.7 }, shape: { kind: circle, center: [0, -20.506], radius: 11 } }
+  - { <<: *orb, id: orb-s-donut, mover: { from: [8.054, -4.65], departAt: 27.7 }, shape: { kind: donut, center: [0, -20.506], inner: 5, outer: 11 } }
 
 optionals:
   rngLabels:
     event-set-implement-1: { label: Implement 1, options: [Bow, Harp] }
     event-set-implement-2: { label: Implement 2, options: [Bow, Harp] }
     event-set-orbs: { label: Cleansing donut, options: [NW, NE, S] }
-    event-set-ring-1: { label: "Ring 1: safe element", options: [Fire, Blizzard, Thunder] }
-    event-set-ring-2: { label: "Ring 2: safe element", options: [Fire, Blizzard, Thunder] }
-    event-set-ring-3: { label: "Ring 3: safe element", options: [Fire, Blizzard, Thunder] }
     label-pairs-0: { label: N/S element }
     label-pairs-1: { label: NE/SW element }
     label-pairs-2: { label: SE/NW element }
@@ -321,9 +269,9 @@ optionals:
       pairs:
         rng: true
         slots:
-          - [mark-n, mark-s, r1a-ns-n, r1a-ns-s, r1b-ns-n, r1b-ns-s, r2a-ns-n, r2a-ns-s, r2b-ns-n, r2b-ns-s, ring1-n, ring1-s, ring2-n, ring2-s, ring3-n, ring3-s]
-          - [mark-ne, mark-sw, r1a-nesw-ne, r1a-nesw-sw, r1b-nesw-ne, r1b-nesw-sw, r2a-nesw-ne, r2a-nesw-sw, r2b-nesw-ne, r2b-nesw-sw, ring1-ne, ring1-sw, ring2-ne, ring2-sw, ring3-ne, ring3-sw]
-          - [mark-se, mark-nw, r1a-senw-se, r1a-senw-nw, r1b-senw-se, r1b-senw-nw, r2a-senw-se, r2a-senw-nw, r2b-senw-se, r2b-senw-nw, ring1-se, ring1-nw, ring2-se, ring2-nw, ring3-se, ring3-nw]
+          - [mark-n, mark-s, r1a-ns-n, r1a-ns-s, r1b-ns-n, r1b-ns-s, r2a-ns-n, r2a-ns-s, r2b-ns-n, r2b-ns-s]
+          - [mark-ne, mark-sw, r1a-nesw-ne, r1a-nesw-sw, r1b-nesw-ne, r1b-nesw-sw, r2a-nesw-ne, r2a-nesw-sw, r2b-nesw-ne, r2b-nesw-sw]
+          - [mark-se, mark-nw, r1a-senw-se, r1a-senw-nw, r1b-senw-se, r1b-senw-nw, r2a-senw-se, r2a-senw-nw, r2b-senw-se, r2b-senw-nw]
         variants:
           - { name: Blizzard IV, color: "#3aa0ff", glyph: ice }
           - { name: Thunder IV, color: "#ffd84a", glyph: lightning }
@@ -345,21 +293,3 @@ optionals:
           - [orb-nw-donut, orb-ne-circle, orb-s-circle]
           - [orb-nw-circle, orb-ne-donut, orb-s-circle]
           - [orb-nw-circle, orb-ne-circle, orb-s-donut]
-      ring-1:
-        rng: true
-        sets:
-          - [ring1-blizzard, ring1-thunder, ring1-cast-fire-safe]
-          - [ring1-fire, ring1-thunder, ring1-cast-blizzard-safe]
-          - [ring1-fire, ring1-blizzard, ring1-cast-thunder-safe]
-      ring-2:
-        rng: true
-        sets:
-          - [ring2-blizzard, ring2-thunder, ring2-cast-fire-safe]
-          - [ring2-fire, ring2-thunder, ring2-cast-blizzard-safe]
-          - [ring2-fire, ring2-blizzard, ring2-cast-thunder-safe]
-      ring-3:
-        rng: true
-        sets:
-          - [ring3-blizzard, ring3-thunder, ring3-cast-fire-safe]
-          - [ring3-fire, ring3-thunder, ring3-cast-blizzard-safe]
-          - [ring3-fire, ring3-blizzard, ring3-cast-thunder-safe]

@@ -6,6 +6,7 @@ import { createWorld } from "../world";
 import { toAOEShape } from "../eventTransforms";
 import { elementRingRadius } from "@shared/elementRing";
 import { isFloorAoeVisible } from "@shared/floorAoe";
+import { moverPosition } from "@shared/mover";
 import { describeDecisions, validateRngConstraints } from "../seedSearch";
 import { HUMAN, byId, roster, runTicks } from "./helpers";
 
@@ -183,23 +184,46 @@ test("platform markers are outlines carrying their pair's element glyph until th
   expect(north.glyph?.at).toEqual({ x: 0, z: 20.506 });
 });
 
-test("a ring platform only hits carriers of its own element", () => {
-  // Fire is safe (ring players carry Blizzard + Thunder); N/S is Fire, NE/SW Blizzard, SE/NW Thunder.
-  const constraints = { "event-set-ring-1": 0, "label-pairs-0": 2, "label-pairs-1": 0, "label-pairs-2": 1 };
-  const world = createWorld({
-    ...raid,
-    events: raid.events.filter(event => event.id.startsWith("ring1-")),
-    optionals: { towerRng: false, combinations: {
-      labels: raid.optionals!.combinations!.labels,
-      eventSets: { "ring-1": raid.optionals!.combinations!.eventSets!["ring-1"]! },
-    } },
-    players: roster({ m1: { spawn: [0, 20.5] }, ot: { spawn: [17.76, 10.25] }, h1: { spawn: [17.76, -10.25] } }),
-  }, 3, constraints);
-  const after = runTicks(world, {}, 34 * 60);
-  expect(byId(after, "m1").alive).toBe(true);
-  expect(byId(after, "m1").hp).toBe(byId(after, "m1").maxHp);
-  expect(byId(after, "ot").alive).toBe(false);
-  expect(byId(after, "h1").alive).toBe(false);
+test("Cleansing orbs spawn in a trapezoid, then glide one section clockwise to detonate at 32.70", () => {
+  const bearing = (p: { x: number; z: number }) => (Math.atan2(p.x, p.z) * 180 / Math.PI + 360) % 360;
+  for (let seed = 1; seed <= 5; seed++) {
+    const orbs = preRollRaid(raid, seed).events.flatMap(e => e.type === "aoe" && e.id.startsWith("orb-") ? [e] : []);
+    expect(orbs.map(o => o.shape.kind).sort()).toEqual(["circle", "circle", "donut"]);
+    for (const orb of orbs) {
+      expect(orb.t).toBe(22.31);
+      expect(orb.t + orb.telegraph).toBeCloseTo(32.7, 5);
+      const shape = toAOEShape(orb.shape);
+      if (shape.kind !== "circle" && shape.kind !== "donut") throw new Error("orb shape");
+      const from = { x: orb.mover!.from[0], z: orb.mover!.from[1] };
+      expect(Math.hypot(from.x, from.z)).toBeCloseTo(9.3, 2);                        // trapezoid middle
+      expect((bearing(shape.center) - bearing(from) + 360) % 360).toBeCloseTo(60, 1); // one section clockwise
+    }
+  }
+});
+
+test("a mover sits until it departs, then arrives at its target exactly at resolve", () => {
+  const mover = { from: { x: 0, z: 9.3 }, departAt: 27.7 };
+  const to = { x: 17.759, z: 10.253 };
+  expect(moverPosition(mover, to, 32.7, 22.31)).toEqual(mover.from);
+  expect(moverPosition(mover, to, 32.7, 27.7)).toEqual(mover.from);
+  const half = moverPosition(mover, to, 32.7, 30.2);
+  expect(half.x).toBeCloseTo(8.8795, 4);
+  expect(half.z).toBeCloseTo(9.7765, 4);
+  expect(moverPosition(mover, to, 32.7, 32.7)).toEqual(to);
+});
+
+test("an onlyCarriers aoe only hits players carrying an effect of the same name", () => {
+  const { optionals: _, sections: __, ...base } = rawRaid as Record<string, unknown>;
+  const world = createWorld(loadRaid({
+    ...base,
+    events: [
+      { id: "mark", type: "apply_effect", time: 1, name: "Fire IV", players: ["m1"], applyEffect: { ref: "fire_iv_ring", duration: 5 } },
+      { id: "hit", type: "aoe", time: 1, name: "Fire IV", telegraph: 2, damage: 999, damageType: "true", onlyCarriers: true, shape: { kind: "circle", center: [0, 0], radius: 30 } },
+    ],
+  }), 3);
+  const after = runTicks(world, {}, 4 * 60);
+  expect(byId(after, "m1").alive).toBe(false);
+  expect(byId(after, "m2").hp).toBe(byId(after, "m2").maxHp);
 });
 
 test("the invisible opening cast keeps the boss stationary and facing north between attacks", () => {

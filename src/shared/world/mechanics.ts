@@ -1,7 +1,7 @@
 import type { Vec2 } from "../math";
 import type { FloorAoe } from "../floorAoe";
 import type {
-  AOEShape, BossRelativeCenter, CrystalElement, DamageType, ElementGlyph, ElementRing, FlashBeforeResolve,
+  AOEShape, BossRelativeCenter, CrystalElement, DamageType, ElementGlyph, ElementRing, FlashBeforeResolve, Mover,
   PositionalArc, Role, TelegraphMode,
 } from "./foundation";
 import type { EffectBehavior, EffectBundle, EffectSpec, Knockback, Reassign } from "./effects";
@@ -64,6 +64,8 @@ export type ActiveMechanic = {
   glyph?: ElementGlyph;
   // Render-only: ring growing to `ring.radius` over the cast (telegraphStart → resolveAt).
   ring?: ElementRing;
+  // Render-only: object travelling from `mover.from` to the shape center (see Mover).
+  mover?: Mover;
 };
 
 export type PendingEvent = {
@@ -104,6 +106,7 @@ export type PendingEvent = {
   outline?: boolean;
   glyph?: ElementGlyph;
   ring?: ElementRing;
+  mover?: Mover;
 };
 
 export type PendingTargetedEvent = {

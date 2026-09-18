@@ -233,6 +233,7 @@ const aoe: MechanicModule = {
           outline: e.outline,
           glyph: e.glyph && { at: toVec2(e.glyph.at), kind: e.glyph.kind },
           ring: e.ring && { center: toVec2(e.ring.center), radius: e.ring.radius, kind: e.ring.kind },
+          mover: e.mover && { from: toVec2(e.mover.from), departAt: e.mover.departAt },
         });
         break;
       case "targeted":
