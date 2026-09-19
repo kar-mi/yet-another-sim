@@ -354,6 +354,23 @@ test("polygon AOEs reject boss anchoring options they cannot honor", () => {
   expect(() => loadRaid({ ...baseRaid, events: [{ ...polygon, aimAtPlayer: "m1" }] })).toThrow(/does not support aimAtPlayer/);
 });
 
+test("linger extends a resolve-only flash past the default", () => {
+  const raid = loadRaid({
+    ...baseRaid,
+    events: [{
+      t: 1, name: "Late Flash", telegraph: 1, damage: 0, damageType: "true" as const,
+      shape: { kind: "circle", center: [0, 0], radius: 5 }, telegraphMode: "resolve", linger: 1,
+    }],
+  });
+  let world = runTicks(createWorld(raid), {}, Math.ceil(2.9 * 60)); // resolveAt=2
+  const flashed = world.active.find(m => m.name === "Late Flash");
+  expect(flashed?.resolved).toBe(true);
+  expect(flashed?.floorAoe?.resolveMode).toEqual({ kind: "resolve", lead: 0, trail: 1 });
+
+  world = runTicks(world, {}, Math.ceil(0.2 * 60));
+  expect(world.active.some(m => m.name === "Late Flash")).toBe(false);
+});
+
 test("a bait preserves the stored AOE's outline and opacity", () => {
   const raid = storedBaitRaid(0);
   const event = raid.events.find(event => event.id === "stored")!;

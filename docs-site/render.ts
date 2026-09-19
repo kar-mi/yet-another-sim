@@ -37,7 +37,7 @@ export function slugify(text: string): string {
     .replace(/ /g, "-");
 }
 
-export function plainText(html: string): string {
+function plainText(html: string): string {
   return html
     .replace(/<[^>]*>/g, "")
     .replace(/&lt;/g, "<")
@@ -93,7 +93,7 @@ interface RewriteResult {
   assets: string[];
 }
 
-export function rewriteLinks(html: string, options: RenderOptions): RewriteResult {
+function rewriteLinks(html: string, options: RenderOptions): RewriteResult {
   const links: LinkRef[] = [];
   const assets = new Set<string>();
 

@@ -15,6 +15,7 @@ export function buildFloorAoe(params: {
   alpha?: number;
   showTelegraph: boolean;
   telegraphMode?: TelegraphMode;
+  linger?: number;
   flashBeforeResolve?: FlashBeforeResolve;
   outline?: boolean;
   element?: ElementGlyphKind;
@@ -27,6 +28,7 @@ export function buildFloorAoe(params: {
     : undefined;
   const style = { ...(params.outline ? { style: "outline" as const } : {}), ...(params.alpha !== undefined ? { alpha: params.alpha } : {}), ...(params.element ? { element: params.element } : {}), ...(vfx ? { vfx } : {}) };
   const color = params.color ?? params.flashBeforeResolve?.color ?? DEFAULT_DANGER_COLOR;
+  const linger = params.linger ?? AOE_RESOLVE_LINGER;
 
   if (params.flashBeforeResolve) {
     // A cast-mode mechanic (not hidden by telegraphMode "resolve") is already shown for its whole
@@ -35,7 +37,7 @@ export function buildFloorAoe(params: {
       return new FloorAoe({ id, shape, color, ...style, resolveMode: { kind: "active" }, resolveAt });
     }
     // Hidden until the pre-hit lead window; telegraphMode "resolve" additionally lingers after impact.
-    const trail = params.telegraphMode === "resolve" ? AOE_RESOLVE_LINGER : 0;
+    const trail = params.telegraphMode === "resolve" ? linger : 0;
     return new FloorAoe({
       id, shape, color, ...style,
       resolveMode: { kind: "resolve", lead: params.flashBeforeResolve.lead, trail },
@@ -46,7 +48,7 @@ export function buildFloorAoe(params: {
   if (params.telegraphMode === "resolve") {
     return new FloorAoe({
       id, shape, color, ...style,
-      resolveMode: { kind: "resolve", lead: 0, trail: AOE_RESOLVE_LINGER },
+      resolveMode: { kind: "resolve", lead: 0, trail: linger },
       resolveAt,
     });
   }

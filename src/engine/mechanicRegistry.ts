@@ -228,6 +228,7 @@ const aoe: MechanicModule = {
           showCastBar: e.showCastBar,
           showTelegraph: e.showTelegraph,
           telegraphMode: e.telegraphMode,
+          linger: e.linger,
           bossRelativeCenter: e.bossRelativeCenter,
           flashBeforeResolve: e.flashBeforeResolve,
           color: e.color,

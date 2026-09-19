@@ -107,6 +107,7 @@ export type PendingEvent = {
   showCastBar: boolean;
   showTelegraph: boolean;
   telegraphMode: TelegraphMode;
+  linger?: number;
   bossRelativeCenter?: BossRelativeCenter;
   flashBeforeResolve?: FlashBeforeResolve;
   // Ground telegraph color (hex). Defaults to the standard danger red when omitted.

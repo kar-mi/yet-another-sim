@@ -55,6 +55,7 @@ const AOEEventSchema = z.object({
   showCastBar: z.boolean().default(false),
   showTelegraph: z.boolean().default(true),
   telegraphMode: TelegraphModeSchema.default("cast"),
+  linger: z.number().positive().optional(),
   bossRelativeCenter: BossRelativeCenterSchema.optional(),
   // Render-only: during the final `lead` seconds before resolve, flash the AoE footprint
   // in `color` (hex; defaults to light blue). Drawn even when showTelegraph is false.

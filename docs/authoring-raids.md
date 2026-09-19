@@ -255,6 +255,9 @@ Excerpt from `raids/debug/sample-raid.yaml`:
 
 The `shape` is required. See [Shapes](#shapes).
 
+With `telegraphMode: resolve`, `linger` sets how many seconds the resolved flash stays on the
+floor (> 0; defaults to 0.6).
+
 #### Knockback / knockup
 
 An `aoe` event may carry an optional `knockback` that **displaces** every player caught in
