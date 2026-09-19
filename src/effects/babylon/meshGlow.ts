@@ -9,7 +9,7 @@ import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import type { Scene } from "@babylonjs/core/scene";
 
-export type Range = { min: number; max: number };
+type Range = { min: number; max: number };
 
 export type MeshGlowOptions = {
   glowColor: Color4;
