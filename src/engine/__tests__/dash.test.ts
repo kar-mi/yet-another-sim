@@ -58,6 +58,18 @@ test("dash lands on the closest active debuff carrier", () => {
   expect(world.boss.pos).toEqual(byId(world, "m2").pos);
 });
 
+test("a dash preserves the linked AOE's outline and opacity", () => {
+  const raid = dashRaid({ to: [10, 0] });
+  const event = raid.events.find(event => event.id === "landing-aoe")!;
+  if (event.type !== "aoe") throw new Error("Expected landing AOE");
+  event.outline = true;
+  event.telegraphAlpha = 0.25;
+  const world = runTicks(createWorld(raid), {}, 61);
+  const aoe = world.active.find(mechanic => mechanic.id === "landing-aoe")!.floorAoe;
+  expect(aoe?.style).toBe("outline");
+  expect(aoe?.alpha).toBe(0.25);
+});
+
 test("closest and furthest dash destinations resolve at cast end", () => {
   const closest = runTicks(createWorld(dashRaid({ bait: "closest", role: "dps" })), {}, 61);
   expect(closest.boss.pos).toEqual(byId(closest, "m1").pos);

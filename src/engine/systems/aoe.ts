@@ -210,6 +210,7 @@ export function resolveAoe(ctx: TickContext): {
       stored.showCastBar = false;
       stored.floorAoe = buildFloorAoe({
         id: stored.id, shape: stored.shape, color: stored.color, showTelegraph: true,
+        outline: stored.outline, alpha: stored.telegraphAlpha,
         telegraphMode: stored.telegraphMode, flashBeforeResolve: stored.flashBeforeResolve,
         resolveAt: stored.resolveAt,
       });
@@ -298,6 +299,7 @@ export function resolveAoe(ctx: TickContext): {
       stored.showCastBar = false;
       stored.floorAoe = buildFloorAoe({
         id: stored.id, shape: stored.shape, color: stored.color, showTelegraph: true,
+        outline: stored.outline, alpha: stored.telegraphAlpha,
         telegraphMode: stored.telegraphMode, flashBeforeResolve: stored.flashBeforeResolve,
         resolveAt: stored.resolveAt,
       });

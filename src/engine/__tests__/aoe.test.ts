@@ -344,6 +344,18 @@ test("a deferred stored cleave stays dormant and hidden until its linked bait ar
   expect(byId(world, "m2").hp).toBe(DPS_HP);
 });
 
+test("a bait preserves the stored AOE's outline and opacity", () => {
+  const raid = storedBaitRaid(0);
+  const event = raid.events.find(event => event.id === "stored")!;
+  if (event.type !== "aoe") throw new Error("Expected stored AOE");
+  event.outline = true;
+  event.telegraphAlpha = 0.25;
+  const world = runTicks(createWorld(raid), {}, 5 * 60);
+  const aoe = world.active.find(mechanic => mechanic.id === "stored")!.floorAoe;
+  expect(aoe?.style).toBe("outline");
+  expect(aoe?.alpha).toBe(0.25);
+});
+
 test("a bait turns the boss to face its target and locks facing during the cast", () => {
   const world = runTicks(createWorld(storedBaitRaid(0)), {}, Math.ceil(5 * 60)); // mid bait cast (4..6)
   const h1 = byId(world, "h1");

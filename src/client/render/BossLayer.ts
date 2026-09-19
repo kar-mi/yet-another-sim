@@ -107,12 +107,13 @@ export class BossLayer {
   }
 
   dispose(): void {
-    if (this.modelRoots) {
+    if (this.indexModel) {
+      this.indexModel.dispose();
+      this.indexModel = null;
+    } else if (this.modelRoots) {
       for (const root of this.modelRoots) root.dispose();
-      this.modelRoots = null;
     }
-    this.indexModel?.dispose();
-    this.indexModel = null;
+    this.modelRoots = null;
     this.mesh?.dispose();
     this.mesh = null;
   }

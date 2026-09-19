@@ -61,6 +61,8 @@ export type ActiveMechanic = {
   // Ground telegraph color (hex). Kept alongside showTelegraph/telegraphMode/flashBeforeResolve so a
   // deferred cleave can rebuild floorAoe when a bait arms it (see buildFloorAoe).
   color?: string;
+  outline?: boolean;
+  telegraphAlpha?: number;
   // Element glyph shown while unresolved.
   glyph?: ElementGlyph;
   // Visual ring expanding during the cast.

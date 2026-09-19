@@ -117,7 +117,10 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
     }
   };
 
-  return { root, height: BODY_HEIGHT, highlight, dispose: () => glow.dispose() };
+  return { root, height: BODY_HEIGHT, highlight, dispose: () => {
+    glow.dispose();
+    root.dispose(false, true);
+  } };
 }
 
 // Faces point along ±Z; a missing back uses mirrored front art. Load meshes asynchronously.
@@ -309,6 +312,7 @@ function outlineMaterial(scene: Scene, name: string, url: string, width: number,
   tex.hasAlpha = true;
   void loadImage(url).then(image => {
     const ctx = tex.getContext() as CanvasRenderingContext2D;
+    if (!ctx) return; // The model may have been disposed while the image loaded.
     const steps = 24;
     for (let i = 0; i < steps; i++) {
       const angle = (i / steps) * Math.PI * 2;

@@ -115,6 +115,8 @@ export function promotePending(
         telegraphMode: event.telegraphMode,
         flashBeforeResolve: event.flashBeforeResolve,
         color: event.color,
+        outline: event.outline,
+        telegraphAlpha: event.telegraphAlpha,
         glyph: event.glyph,
         ring: event.ring,
         mover: event.mover,
