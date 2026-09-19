@@ -1418,3 +1418,68 @@ test("client message schema accepts bot invisibility toggle and rejects a non-bo
   expect(ClientMessageSchema.safeParse({ type: "setBotsInvisible", enabled: true }).success).toBe(true);
   expect(ClientMessageSchema.safeParse({ type: "setBotsInvisible", enabled: "yes" }).success).toBe(false);
 });
+
+test("only the host can set the shared replay", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.join("c2");
+  sent.length = 0;
+
+  session.handle("c2", { type: "setReplay", view: { pull: 1, playing: false, tick: 0 } });
+
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Only the host can control replays")).toBe(true);
+  expect(sent.some(entry => entry.message.type === "replay")).toBe(false);
+});
+
+test("host replay broadcasts to every client and stops a live pull", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.join("c2");
+  session.claimSlot("c1", "mt");
+  session.claimSlot("c2", "ot");
+  session.start("c1");
+  sent.length = 0;
+
+  session.handle("c1", { type: "setReplay", view: { pull: 2, playing: false, tick: 0 } });
+
+  expect(session.status).toBe("stopped");
+  expect(sent.filter(entry => entry.message.type === "started").map(entry => entry.clientId).sort()).toEqual(["c1", "c2"]);
+  const replays = sent.filter(entry => entry.message.type === "replay");
+  expect(replays.map(entry => entry.clientId).sort()).toEqual(["c1", "c2"]);
+  expect(replays[0].message).toEqual({ type: "replay", view: { pull: 2, playing: false, tick: 0 } });
+});
+
+test("late joiner receives the shared replay advanced by the elapsed time", () => {
+  let now = 1_000;
+  const { session, sent } = makeSession({ now: () => now });
+  session.join("c1");
+  session.handle("c1", { type: "setReplay", view: { pull: 1, playing: true, tick: 30 } });
+  now += 1_000;
+  sent.length = 0;
+
+  session.join("c2");
+
+  const replay = sent.find(entry => entry.clientId === "c2" && entry.message.type === "replay");
+  expect(replay?.message).toEqual({ type: "replay", view: { pull: 1, playing: true, tick: 90 } });
+});
+
+test("host leaving or disconnecting clears the shared replay", () => {
+  const { session, sent } = makeSession();
+  session.join("c1");
+  session.join("c2");
+  session.handle("c1", { type: "setReplay", view: { pull: 1, playing: false, tick: 0 } });
+  sent.length = 0;
+  session.leave("c1");
+  expect(sent.find(entry => entry.clientId === "c2" && entry.message.type === "replay")?.message).toEqual({ type: "replay", view: null });
+
+  session.handle("c1", { type: "setReplay", view: { pull: 1, playing: false, tick: 0 } });
+  sent.length = 0;
+  session.disconnectClient("c1");
+  expect(sent.find(entry => entry.clientId === "c2" && entry.message.type === "replay")?.message).toEqual({ type: "replay", view: null });
+});
+
+test("setReplay messages are validated", () => {
+  expect(ClientMessageSchema.safeParse({ type: "setReplay", view: null }).success).toBe(true);
+  expect(ClientMessageSchema.safeParse({ type: "setReplay", view: { pull: 1, playing: true, tick: -1 } }).success).toBe(false);
+  expect(ClientMessageSchema.safeParse({ type: "setReplay", view: { pull: 1.5, playing: true, tick: 0 } }).success).toBe(false);
+});

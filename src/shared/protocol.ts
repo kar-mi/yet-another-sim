@@ -135,6 +135,15 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     type: z.literal("setBotsInvisible"),
     enabled: z.boolean(),
   }),
+  // Host-only: the replay every client in the session should be watching, or null for the live sim.
+  z.strictObject({
+    type: z.literal("setReplay"),
+    view: z.strictObject({
+      pull: z.number().int().nonnegative(),
+      playing: z.boolean(),
+      tick: z.number().int().nonnegative(),
+    }).nullable(),
+  }),
   z.strictObject({
     type: z.literal("debugPosition"),
     playerId: PlayerIdSchema,
@@ -191,6 +200,9 @@ export type PlaybackState = "playing" | "paused" | "stopped" | "done";
 // missing value as false.
 export type Frame = { intents: Intents; botsInvincible: boolean; botsInvisible?: boolean };
 
+// Shared replay playback position. The recording itself is fetched over HTTP by each client.
+export type ReplayView = { pull: number; playing: boolean; tick: number };
+
 export type ServerMessage =
   | { type: "joined"; clientId: string }
   | {
@@ -223,4 +235,6 @@ export type ServerMessage =
   | { type: "sessionExpired" }
   // Incremental input frames to step locally. `startTick` is the tick index of the first frame.
   | { type: "frames"; startTick: number; frames: Frame[] }
+  // The replay the host is showing everyone (null = live sim). A playing view's tick is current as of send.
+  | { type: "replay"; view: ReplayView | null }
   | { type: "error"; message: string };

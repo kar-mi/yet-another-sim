@@ -53,6 +53,18 @@ export class ReplayTransport implements Transport {
     return this.cursor;
   }
 
+  isPlaying(): boolean {
+    return this.playing;
+  }
+
+  // Follow a host's playback position. Seeking re-simulates from tick 0, so skip it when already there.
+  sync(view: { playing: boolean; tick: number }): void {
+    const tick = Math.max(0, Math.min(this.replay.frames.length, Math.floor(view.tick)));
+    if (tick !== this.cursor) this.seek(tick);
+    if (view.playing) this.play();
+    else if (this.playing) this.pause();
+  }
+
   play(): void {
     if (this.playing || this.cursor >= this.replay.frames.length) return;
     this.playing = true;

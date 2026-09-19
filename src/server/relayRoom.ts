@@ -1,7 +1,7 @@
 import { createWorld } from "../engine/world";
 import { makeSeed } from "@shared/rng";
 import type { RaidDef } from "../engine/raidSchema";
-import { EMPTY_RAID_ID, MAX_OBSERVERS, type BotPatternOption, type ClientMessage, type Frame, type LobbySlot, type LobbyStatus, type ServerMessage } from "@shared/protocol";
+import { EMPTY_RAID_ID, MAX_OBSERVERS, type BotPatternOption, type ClientMessage, type Frame, type LobbySlot, type LobbyStatus, type ReplayView, type ServerMessage } from "@shared/protocol";
 import type { Intent, Intents, World } from "@shared/types";
 import { logger } from "@shared/logger";
 import { WAYMARK_PRESETS, isWaymarkPresetId } from "@shared/waymarkPresets";
@@ -56,6 +56,7 @@ export interface RelayRoomInitOptions {
 // socket; tests inject their own delivery.
 type Send = (clientId: string, message: ServerMessage | string) => void;
 const idleIntent: Intent = { move: { x: 0, z: 0 } };
+const TICKS_PER_SECOND = 60;
 
 // Transport-agnostic relay: owns lobby/pull state and the authoritative input log, and emits server
 // messages through the injected `send` sink. The colyseus integration lives in RelayServerRoom.
@@ -93,6 +94,8 @@ export class RelayRoom {
   private waymarkPresetId: string | null = null;
   private botPatternId: string | null = null;
   private lastSeed: number | null = null;
+  // The replay the host is showing everyone; `at` is when `tick` was set, to advance a playing view.
+  private replayView: (ReplayView & { at: number }) | null = null;
 
   // Authoritative input log: one merged-intent Frame per simulated tick since the pull started.
   // Owned by the relay; exposed for late-join / resync (`started` sends it in full to be replayed).
@@ -136,6 +139,7 @@ export class RelayRoom {
     this.clientIds.add(clientId);
     if (!this.hostClientId) this.hostClientId = clientId;
     this.sendLobby(clientId);
+    this.sendReplay(clientId);
     logger.info("session", "client joined", { session: this.id, clientId, clients: this.clientIds.size });
   }
 
@@ -195,6 +199,9 @@ export class RelayRoom {
         return;
       case "snapshot":
         this.acceptSnapshot(clientId, message.formatVersion, message.tick, message.world);
+        return;
+      case "setReplay":
+        this.setReplay(clientId, message.view);
         return;
     }
   }
@@ -315,6 +322,36 @@ export class RelayRoom {
     logger.info("session", "raid stopped", { session: this.id, raid: this.raidId });
   }
 
+  // Host picks (or exits) the replay the whole session watches. Opening one stops a live pull so
+  // nobody is left playing while everyone else watches the recording.
+  setReplay(clientId: string, view: ReplayView | null): void {
+    if (clientId !== this.hostClientId) {
+      this.sendError(clientId, "Only the host can control replays");
+      return;
+    }
+    const opening = view !== null && view.pull !== this.replayView?.pull;
+    if (opening && this.status !== "lobby" && this.status !== "stopped") this.stop(clientId);
+    this.replayView = view ? { ...view, at: this.now() } : null;
+    this.broadcastAll(this.replayMessage());
+  }
+
+  sendReplay(clientId: string): void {
+    this.sendTo(clientId, this.replayMessage());
+  }
+
+  private clearReplay(): void {
+    if (!this.replayView) return;
+    this.replayView = null;
+    this.broadcastAll(this.replayMessage());
+  }
+
+  private replayMessage(): ServerMessage {
+    const view = this.replayView;
+    if (!view) return { type: "replay", view: null };
+    const elapsed = view.playing ? Math.floor((this.now() - view.at) * TICKS_PER_SECOND / 1000) : 0;
+    return { type: "replay", view: { pull: view.pull, playing: view.playing, tick: view.tick + elapsed } };
+  }
+
   // Host returning to the lobby via Home. Stops the pull (so the session is joinable again) exactly
   // like stop(), except the leaving host is NOT sent a "started" message: it is headed to the lobby,
   // where showLobby treats any "started" as a re-entry and would bounce it back into a stale sim.
@@ -323,6 +360,7 @@ export class RelayRoom {
       this.sendError(clientId, "Only the host can leave to the lobby");
       return;
     }
+    this.clearReplay();
     if (this.status === "lobby") return;
 
     this.status = "stopped";
@@ -404,6 +442,7 @@ export class RelayRoom {
 
     this.broadcastLobby();
     if (hostChanged && this.status !== "lobby") this.broadcastPlayback();
+    if (hostChanged) this.clearReplay();
     return false;
   }
 

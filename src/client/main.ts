@@ -10,10 +10,11 @@ import { createRaidHudSelect } from "./ui/RaidHudSelect";
 import { createBotActionsModal } from "./ui/BotActionsModal";
 import { NetClient, connect } from "./net";
 import { ReplayTransport } from "./replayTransport";
+import { replayRepository } from "./replayRepository";
 import { collectReplayInsights } from "./replayInsights";
 import { createReplayReview } from "./ui/ReplayReview";
 import { preloadAssets } from "./render/preloadAssets";
-import { SessionIdSchema, type PlaybackState } from "@shared/protocol";
+import { SessionIdSchema, type PlaybackState, type ReplayView } from "@shared/protocol";
 import { consoleSink, logger, parseLevel } from "@shared/logger";
 import { HudLayoutManager } from "./ui/HudLayoutManager";
 import { initPerfHud } from "./perfMetrics";
@@ -139,8 +140,13 @@ async function main(): Promise<void> {
     let isHost = session.isHost;
     let raidId = session.raidId;
     let playbackState = session.playbackState;
-    // Set when the host picks a recording; the view loop then swaps the live sim for playback.
+    // Set when the host picks a recording (or a follower finishes loading the host's pick); the view
+    // loop then swaps the live sim for playback.
     let pendingReplay: LoadedReplay | null = null;
+    // The replay on screen, so a follower can apply the host's play/pause/seek to it.
+    let activeReplay: { pull: number; sync: (view: ReplayView) => void } | null = null;
+    // Bumped on every followed view change so a slow replay fetch that has been superseded is dropped.
+    let replayLoadGeneration = 0;
     let resolveView: (() => void) | null = null;
 
     const endView = () => {
@@ -153,11 +159,12 @@ async function main(): Promise<void> {
       endView();
     };
 
-    // Replay browsing belongs to the current host; the exit button only exists during playback.
+    // Replay browsing belongs to the current host; everyone else follows the host's replay, so only
+    // the host gets the exit button.
     const updateToolbar = () => {
       homeBtn.style.display = "block";
       replayBtn.style.display = isHost ? "block" : "none";
-      replayExitBtn.style.display = inReplay ? "block" : "none";
+      replayExitBtn.style.display = inReplay && isHost ? "block" : "none";
     };
 
     resolveHome = leaveSession;
@@ -177,12 +184,41 @@ async function main(): Promise<void> {
       updateToolbar();
     });
 
+    // Non-hosts mirror the host's shared replay: load a newly picked pull, sync the one on screen, or
+    // return to the live sim when the host exits. The host drives its own playback and ignores echoes.
+    const followReplay = (view: ReplayView | null) => {
+      if (isHost) return;
+      if (view === null) {
+        replayLoadGeneration += 1;
+        if (inReplay) endView();
+        return;
+      }
+      if (activeReplay?.pull === view.pull) {
+        activeReplay.sync(view);
+        return;
+      }
+      const token = ++replayLoadGeneration;
+      replayRepository.load(sessionId, view.pull).then(loaded => {
+        if (token !== replayLoadGeneration || leaving) return;
+        pendingReplay = { pull: view.pull, raidId: loaded.raidId, world: loaded.world, frames: loaded.frames };
+        endView();
+      }, error => {
+        if (token === replayLoadGeneration) logger.error("net", "failed to load shared replay", { pull: view.pull, err: error });
+      });
+    };
+    const offReplay = net.on("replay", message => followReplay(message.view));
+
     const replayBrowser = createReplayBrowser(sessionId, replay => {
       pendingReplay = replay;
+      net.send({ type: "setReplay", view: { pull: replay.pull, playing: false, tick: 0 } });
       endView();
     });
     const onReplayBtn = () => replayBrowser.open();
-    const onReplayExitBtn = () => { if (inReplay) endView(); };
+    const onReplayExitBtn = () => {
+      if (!inReplay) return;
+      net.send({ type: "setReplay", view: null });
+      endView();
+    };
     replayBtn.addEventListener("click", onReplayBtn);
     replayExitBtn.addEventListener("click", onReplayExitBtn);
 
@@ -223,7 +259,27 @@ async function main(): Promise<void> {
     };
 
     const startReplayView = async (replay: LoadedReplay): Promise<() => void> => {
+      const follower = !isHost;
       const transport = new ReplayTransport(replay);
+      // Host: every playback change is applied locally, then shared. Seek-bar drags fire per input
+      // event and each seek re-simulates from tick 0 on followers, so seeks are shared on a trailing timer.
+      let seekShareTimer: ReturnType<typeof setTimeout> | null = null;
+      const shareView = () => {
+        if (seekShareTimer) clearTimeout(seekShareTimer);
+        seekShareTimer = null;
+        net.send({ type: "setReplay", view: { pull: replay.pull, playing: transport.isPlaying(), tick: transport.currentTick() } });
+      };
+      const playback = follower
+        ? { play: () => {}, pause: () => {}, restart: () => {}, seek: (_tick: number) => {} }
+        : {
+          play: () => { transport.play(); shareView(); },
+          pause: () => { transport.pause(); shareView(); },
+          restart: () => { transport.restart(); shareView(); },
+          seek: (tick: number) => {
+            transport.seek(tick);
+            if (!seekShareTimer) seekShareTimer = setTimeout(shareView, 150);
+          },
+        };
       const replayNet = new NetClient(transport);
       await replayNet.open();
       replayNet.send({ type: "join", sessionId, raidId: replay.raidId });
@@ -234,9 +290,10 @@ async function main(): Promise<void> {
       const review = createReplayReview(collectReplayInsights(replay), {
         duration: () => transport.duration(),
         currentTick: () => transport.currentTick(),
-        pause: () => transport.pause(),
-        seek: tick => transport.seek(tick),
+        pause: playback.pause,
+        seek: playback.seek,
         spectate: playerId => replayRenderer.setSpectateTarget(playerId),
+        canSeek: !follower,
       }, hudLayout);
       hudLayout.setGroupSuppressed("hotbar", true);
       const dispose = await startSessionRuntime({
@@ -245,17 +302,32 @@ async function main(): Promise<void> {
         playbackState: "paused",
         readOnly: true,
         closeNet: true,
-        createRaidSelect: () => createRaidHudSelect(replayNet, replay.raidId, false, "paused", hudLayout, replay.world.seed, {}, transport, [], null, [], null, review),
+        createRaidSelect: () => createRaidHudSelect(replayNet, replay.raidId, false, "paused", hudLayout, replay.world.seed, {}, {
+          duration: () => transport.duration(),
+          currentTick: () => transport.currentTick(),
+          ...playback,
+          readOnly: follower,
+        }, [], null, [], null, review),
         syncKeybindLabels,
         updateController,
       }, settings);
+      if (follower) {
+        activeReplay = { pull: replay.pull, sync: view => transport.sync(view) };
+        // Catch up on any play/seek the host sent while this client was fetching the recording.
+        if (net.replayView?.pull === replay.pull) transport.sync(net.replayView);
+      }
       return () => {
+        if (seekShareTimer) clearTimeout(seekShareTimer);
+        activeReplay = null;
         review.dispose();
         hudLayout.setGroupSuppressed("hotbar", false);
         dispose();
         renderer = null;
       };
     };
+
+    // A client entering mid-replay joins the host's replay (the view was cached while in the lobby).
+    followReplay(net.replayView);
 
     // One iteration per view: the live sim, or a recording the host chose to watch.
     for (;;) {
@@ -273,6 +345,8 @@ async function main(): Promise<void> {
     }
 
     resolveHome = null;
+    replayLoadGeneration += 1;
+    offReplay();
     offExpire();
     offHost();
     offPlayback();

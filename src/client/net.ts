@@ -1,5 +1,5 @@
 import { ColyseusTransport } from "./colyseusTransport";
-import { type ClientMessage, type ServerMessage } from "@shared/protocol";
+import { type ClientMessage, type ReplayView, type ServerMessage } from "@shared/protocol";
 import type { Intent, World } from "@shared/types";
 import { LocalPredictor } from "./predictor";
 import { worldHash } from "@shared/worldHash";
@@ -32,6 +32,9 @@ const SNAPSHOT_INTERVAL = 600;
 
 export class NetClient {
   clientId: string | null = null;
+  // Latest shared replay from the server. Cached because it can arrive while the lobby screen is up,
+  // before the sim view has subscribed to "replay".
+  replayView: ReplayView | null = null;
 
   private readonly handlers = new Map<MessageType, Set<(message: ServerMessage) => void>>();
   private readonly replica = new SimulationReplica();
@@ -148,7 +151,10 @@ export class NetClient {
       this.applyStarted(message);
     } else if (message.type === "frames") {
       this.applyFrames(message);
+    } else if (message.type === "replay") {
+      this.replayView = message.view;
     } else if (message.type === "sessionExpired") {
+      this.replayView = null;
       this.lastJoin = null;
       this.claimedPlayerId = null;
       this.observing = false;
