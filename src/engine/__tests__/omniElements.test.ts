@@ -187,6 +187,26 @@ test("ring radius grows linearly over the cast and the pair only flashes in the 
   }
 });
 
+test("every labelled platform aoe carries its pair's element onto its floor telegraph", () => {
+  const glyphFor: Record<string, string> = { "Blizzard IV": "ice", "Thunder IV": "lightning", "Fire IV": "fire" };
+  for (let seed = 1; seed <= 5; seed++) {
+    const labelled = preRollRaid(raid, seed).events.filter(e => e.type === "aoe" && e.name in glyphFor);
+    // 6 markers, 24 waves, 18 rings, and the 9 chemistry hits the `chemistry` event set keeps.
+    expect(labelled.length).toBe(57);
+    for (const e of labelled) {
+      if (e.type !== "aoe") throw new Error(`${e.id} is not an aoe`);
+      expect(e.element).toBe(glyphFor[e.name] as never);
+    }
+  }
+
+  const first = wavesForSeed(3, "r1")[0]!;
+  const world = runTicks(createWorld(raid, 3), {}, Math.ceil((first.t + 0.1) * 60));
+  // The pair's second polygon has no glyph or ring, so this is the only way it learns its element.
+  const pair = world.active.filter(m => m.telegraphStart === first.t && /^r1[ab]-/.test(m.id));
+  expect(pair).toHaveLength(2);
+  for (const m of pair) expect(m.floorAoe?.element).toBe(glyphFor[first.name] as never);
+});
+
 test("platform markers are outlines carrying their pair's element glyph until the Chemistry raidwide", () => {
   const glyphFor: Record<string, string> = { "Blizzard IV": "ice", "Thunder IV": "lightning", "Fire IV": "fire" };
   for (let seed = 1; seed <= 5; seed++) {

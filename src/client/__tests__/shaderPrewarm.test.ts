@@ -8,9 +8,9 @@ import { FloorAoe } from "@shared/floorAoe";
 
 // Each shader effect first created mid-fight is a synchronous compile (a visible hitch), so the
 // material families the Omni Elements pull uses must already be compiled by prewarmShaders.
-test("prewarm covers floor telegraphs, element glyphs and element rings", async () => {
+test("prewarm covers floor telegraphs, element floors and bursts, element glyphs and element rings", async () => {
   const originalDocument = Object.getOwnPropertyDescriptor(globalThis, "document");
-  const context = new Proxy({}, { get: () => () => ({ width: 1 }), set: () => true });
+  const context = new Proxy({}, { get: () => () => ({ width: 1, addColorStop: () => {} }), set: () => true });
   Object.defineProperty(globalThis, "document", { configurable: true, value: {
     baseURI: "http://localhost/",
     removeEventListener: () => {},
@@ -23,6 +23,7 @@ test("prewarm covers floor telegraphs, element glyphs and element rings", async 
     const { syncFloorAoeMeshes } = await import("../render/floorAoeSync");
     const { createElementGlyph } = await import("../render/meshes/elementGlyphMeshes");
     const { ElementRingLayer } = await import("../render/ElementRingLayer");
+    const { spawnElementBurst } = await import("../render/elementVfx");
     new ArcRotateCamera("camera", 0, 1, 30, Vector3.Zero(), scene);
     new HemisphericLight("light", new Vector3(0, 1, 0), scene);
     const effects = () => Object.keys((engine as unknown as { _compiledEffects: object })._compiledEffects);
@@ -35,7 +36,10 @@ test("prewarm covers floor telegraphs, element glyphs and element rings", async 
     syncFloorAoeMeshes(scene, new Map(), [
       new FloorAoe({ id: "fill", shape, color: "#ff0000", resolveMode: { kind: "active" }, resolveAt: 10 }),
       new FloorAoe({ id: "outline", shape, color: "#ff0000", style: "outline", resolveMode: { kind: "active" }, resolveAt: 10 }),
+      new FloorAoe({ id: "ice-fill", shape, color: "#3aa0ff", element: "ice", resolveMode: { kind: "active" }, resolveAt: 10 }),
+      new FloorAoe({ id: "fire-outline", shape, color: "#ff3b30", element: "fire", style: "outline", resolveMode: { kind: "active" }, resolveAt: 10 }),
     ], 0, new Set());
+    spawnElementBurst(scene, "lightning", shape, "#ffd84a");
     createElementGlyph(scene, "glyph", "fire", "#ff4000", { x: 0, z: 0 });
     new ElementRingLayer(scene).sync([{
       id: "ring", shape, telegraphStart: 0, resolveAt: 2, resolved: false, ring: { center: { x: 0, z: 0 }, radius: 20 },

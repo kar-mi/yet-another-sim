@@ -4,6 +4,7 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { createShapeMesh } from "./meshes/telegraphMeshes";
 import { glyphBillboardMaterial } from "./meshes/billboardMaterials";
+import { createElementFloorMaterial, prewarmElementBurst } from "./elementVfx";
 import { createFloorMaterial } from "./floorAoeSync";
 
 // Pre-compile the shader effects for the material families that first appear mid-fight, so the
@@ -43,6 +44,12 @@ export function prewarmShaders(scene: Scene): void {
       plane.material = glyphBillboardMaterial(scene, "__prewarm_marker_mat", "__prewarm_marker_tex", "!", "#ffffff");
       return plane;
     },
+    // Element floor pattern (one effect for all three elements).
+    () => {
+      const plane = CreatePlane("__prewarm_element_floor", { size: 1 }, scene);
+      plane.material = createElementFloorMaterial(scene, "__prewarm_element_floor_mat");
+      return plane;
+    },
   ];
 
   for (const make of warmups) {
@@ -53,4 +60,5 @@ export function prewarmShaders(scene: Scene): void {
     if (mesh && mat) mat.forceCompilation(mesh, () => mesh.dispose(false, true));
     else mesh?.dispose(false, true);
   }
+  prewarmElementBurst(scene);
 }

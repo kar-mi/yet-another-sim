@@ -122,7 +122,7 @@ export function promotePending(
         mover: event.mover,
         floorAoe: event.deferred ? undefined : buildFloorAoe({
           id: event.id, shape, color: event.color, alpha: event.telegraphAlpha, showTelegraph, outline: event.outline,
-          telegraphMode: event.telegraphMode, flashBeforeResolve: event.flashBeforeResolve, resolveAt,
+          telegraphMode: event.telegraphMode, flashBeforeResolve: event.flashBeforeResolve, element: event.element, resolveAt,
         }),
       });
     } else {

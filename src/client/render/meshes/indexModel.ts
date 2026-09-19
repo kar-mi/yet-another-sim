@@ -1,5 +1,6 @@
 import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { GlowLayer } from "@babylonjs/core/Layers/glowLayer";
+import { Constants } from "@babylonjs/core/Engines/constants";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
@@ -16,7 +17,7 @@ import { applyAlphaTest } from "./billboardMaterials";
 const INDEX_IMAGE_ROOT = `${STATIC_ROOT}/model/boss/index/`;
 
 const BODY_HEIGHT = 8;
-const BODY_DEPTH = 1.2;
+const BODY_DEPTH = 0.6;
 // Image aspect ratios and hem positions, used to align the robe with the floor.
 const FRONT = { aspect: 1024 / 834, hem: 740 / 834 };
 const BACK = { aspect: 1024 / 838, hem: 772 / 838 };
@@ -27,12 +28,18 @@ const WEAPON_DEPTH = 0.3;
 const WEAPON_HEIGHT_ABOVE_GROUND = 3;
 // Place weapons ahead of the body’s front face (+Z).
 const WEAPON_FORWARD = 1.5;
-const OUTLINE_PX = 24;
+const OUTLINE_PX = 40;
 const OUTLINE_COLOR = "#8fd14f"; // the implement aoe color in omni-elements-1.yaml
+// Emissive above 1 brightens the outline past the aoe color without changing its hue.
+const OUTLINE_BRIGHTNESS = 1.4;
 // Pulse the highlighted weapon’s glow.
 const GLOW_COLOR = new Color4(0.35, 1, 0.25, 1);
-const GLOW_INTENSITY = { min: 0.5, max: 1 };
+const GLOW_INTENSITY = { min: 0.9, max: 1.6 };
 const GLOW_PULSE_SECONDS = 1.2;
+// Translucent sphere of light around the highlighted weapon, sized from its longest side.
+const HALO_COLOR = new Color3(0.55, 1, 0.4);
+const HALO_SIZE = 1.5;
+const HALO_ALPHA = { min: 0.45, max: 0.8 };
 
 // Sample the silhouette every CELL_PX pixels.
 const CELL_PX = 4;
@@ -41,7 +48,7 @@ const WALL_SHADE = { up: 0.9, side: 0.75, down: 0.55 };
 // Weapon offsets in boss-local space (+X right, +Z forward).
 const WEAPONS = [
   { name: "bow", width: 648, height: 789, x: 5.45 },
-  { name: "bell", width: 266, height: 440, x: 3.25 },
+  { name: "bell", width: 266, height: 440, x: 3.05, scale: 1.5 },
   { name: "harp", width: 424, height: 789, x: -2.68 },
   { name: "sword", width: 341, height: 789, x: -4.65 },
 ] as const;
@@ -79,6 +86,7 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
     const face: Face = { url, width: weapon.width * WEAPON_UNITS_PER_PX, height: weapon.height * WEAPON_UNITS_PER_PX, y: 0 };
     const node = slab(scene, `${name}-weapon-${weapon.name}`, face, null, WEAPON_DEPTH);
     node.position.set(weapon.x, WEAPON_HEIGHT_ABOVE_GROUND, WEAPON_FORWARD);
+    if ("scale" in weapon) node.scaling.setAll(weapon.scale);
     node.parent = root;
 
     // The slab hides the outline except beyond its silhouette.
@@ -95,8 +103,18 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
     weaponNodes.set(weapon.name, node);
   }
 
+  // Parented to the root, not a weapon, so the glow layer (which takes the weapon's child meshes)
+  // doesn't blur it into a solid blob.
+  const halo = CreatePlane(`${name}-halo`, { size: 1 }, scene);
+  halo.billboardMode = Mesh.BILLBOARDMODE_ALL;
+  halo.material = haloMaterial(scene, `${name}-halo`);
+  halo.isPickable = false;
+  halo.parent = root;
+  halo.setEnabled(false);
+  halo.material.forceCompilation(halo);
+
   // Disable an empty glow layer: an empty include list would glow everything.
-  const glow = new GlowLayer(`${name}-glow`, scene, { blurKernelSize: 64 });
+  const glow = new GlowLayer(`${name}-glow`, scene, { blurKernelSize: 96 });
   glow.customEmissiveColorSelector = (_mesh, _subMesh, _material, result) => result.copyFrom(GLOW_COLOR);
   glow.isEnabled = false;
   let glowing: Mesh[] = [];
@@ -127,9 +145,15 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
       glowWeapon = weapon;
     }
     glow.isEnabled = weapon !== null;
+    halo.setEnabled(weapon !== null);
     if (weapon) {
       const pulse = (1 - Math.cos((time / GLOW_PULSE_SECONDS) * Math.PI * 2)) / 2;
       glow.intensity = GLOW_INTENSITY.min + (GLOW_INTENSITY.max - GLOW_INTENSITY.min) * pulse;
+      const spec = WEAPONS.find(w => w.name === weapon)!;
+      const node = weaponNodes.get(weapon)!;
+      halo.position.copyFrom(node.position);
+      halo.scaling.setAll(Math.max(spec.width, spec.height) * WEAPON_UNITS_PER_PX * node.scaling.x * HALO_SIZE);
+      halo.material!.alpha = HALO_ALPHA.min + (HALO_ALPHA.max - HALO_ALPHA.min) * pulse;
     }
   };
 
@@ -329,7 +353,7 @@ function outlineMaterial(scene: Scene, name: string, url: string, width: number,
   void loadImage(url).then(image => {
     const ctx = tex.getContext() as CanvasRenderingContext2D;
     if (!ctx) return; // The model may have been disposed while the image loaded.
-    const steps = 24;
+    const steps = 32;
     for (let i = 0; i < steps; i++) {
       const angle = (i / steps) * Math.PI * 2;
       ctx.drawImage(image, OUTLINE_PX + Math.cos(angle) * OUTLINE_PX, OUTLINE_PX + Math.sin(angle) * OUTLINE_PX);
@@ -343,5 +367,35 @@ function outlineMaterial(scene: Scene, name: string, url: string, width: number,
 
   const mat = new StandardMaterial(`${name}-mat`, scene);
   applyAlphaTest(mat, tex);
+  mat.emissiveColor = new Color3(OUTLINE_BRIGHTNESS, OUTLINE_BRIGHTNESS, OUTLINE_BRIGHTNESS);
+  return mat;
+}
+
+// A soft sphere: faint in the middle so the weapon shows through, brightest toward the rim.
+function haloMaterial(scene: Scene, name: string): StandardMaterial {
+  const tex = new DynamicTexture(`${name}-tex`, { width: 128, height: 128 }, scene, false);
+  const ctx = tex.getContext();
+  const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, "rgba(255,255,255,0.2)");
+  g.addColorStop(0.6, "rgba(255,255,255,0.6)");
+  g.addColorStop(0.8, "rgba(255,255,255,0.3)");
+  g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 128);
+  tex.hasAlpha = true;
+  tex.update();
+
+  const mat = new StandardMaterial(`${name}-mat`, scene);
+  mat.emissiveTexture = tex;
+  mat.opacityTexture = tex;
+  mat.emissiveColor = HALO_COLOR;
+  mat.diffuseColor = new Color3(0, 0, 0);
+  mat.specularColor = new Color3(0, 0, 0);
+  mat.disableLighting = true;
+  mat.disableDepthWrite = true;
+  // The camera-facing plane cuts through the weapon slab; depth testing would clip it along a seam.
+  mat.depthFunction = Constants.ALWAYS;
+  mat.backFaceCulling = false;
+  mat.alphaMode = Constants.ALPHA_ADD;
   return mat;
 }
