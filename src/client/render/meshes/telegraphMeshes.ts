@@ -88,7 +88,7 @@ export function createShapeMesh(scene: Scene, id: string, shape: AOEShape): Mesh
   return mesh;
 }
 
-// Outline circles and polygons; use filled meshes for other shapes.
+// Outline circles and polygons; null for other shapes (callers draw them filled).
 export function createShapeOutlineMesh(scene: Scene, id: string, shape: AOEShape): Mesh | null {
   const Y = 0.03;
   let points: Vector3[];
@@ -100,7 +100,7 @@ export function createShapeOutlineMesh(scene: Scene, id: string, shape: AOEShape
       return new Vector3(shape.center.x + Math.cos(a) * shape.radius, Y, shape.center.z + Math.sin(a) * shape.radius);
     });
   } else {
-    return createShapeMesh(scene, id, shape);
+    return null;
   }
   return CreateTube(`tel-outline-${id}`, { path: [...points, points[0]!], radius: 0.1, tessellation: 6, cap: 0 }, scene);
 }

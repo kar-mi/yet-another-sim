@@ -7,6 +7,7 @@ import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import type { Scene } from "@babylonjs/core/scene";
+import { logger } from "@shared/logger";
 import { STATIC_ROOT } from "../../staticBase";
 import { applyAlphaTest } from "./billboardMaterials";
 
@@ -49,8 +50,8 @@ export type IndexWeapon = (typeof WEAPONS)[number]["name"];
 export type IndexModel = {
   root: Mesh;
   height: number;
-  // Call each frame to highlight and pulse one weapon.
-  highlight(weapon: IndexWeapon | null): void;
+  // Call each frame to highlight and pulse one weapon; time is sim seconds.
+  highlight(weapon: IndexWeapon | null, time: number): void;
   dispose(): void;
 };
 
@@ -100,7 +101,7 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
   let glowing: Mesh[] = [];
   let glowWeapon: IndexWeapon | null = null;
 
-  const highlight = (weapon: IndexWeapon | null) => {
+  const highlight = (weapon: IndexWeapon | null, time: number) => {
     for (const [name, outline] of outlines) outline.setEnabled(name === weapon);
     // Refresh as the weapon art loads.
     const meshes = weapon ? weaponNodes.get(weapon)!.getChildMeshes() : [];
@@ -112,7 +113,7 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
     }
     glow.isEnabled = weapon !== null;
     if (weapon) {
-      const pulse = (1 - Math.cos((performance.now() / 1000 / GLOW_PULSE_SECONDS) * Math.PI * 2)) / 2;
+      const pulse = (1 - Math.cos((time / GLOW_PULSE_SECONDS) * Math.PI * 2)) / 2;
       glow.intensity = GLOW_INTENSITY.min + (GLOW_INTENSITY.max - GLOW_INTENSITY.min) * pulse;
     }
   };
@@ -129,7 +130,7 @@ function slab(scene: Scene, name: string, front: Face, back: Face | null, depth:
   node.isPickable = false;
   void Promise.all([loadImage(front.url), back ? loadImage(back.url) : null]).then(([frontImage, backImage]) => {
     if (!node.isDisposed()) buildSlab(scene, node, front, frontImage, back && backImage ? { face: back, image: backImage } : null, depth);
-  });
+  }, err => logger.warn("render", "failed to load Index art", { name, err }));
   return node;
 }
 

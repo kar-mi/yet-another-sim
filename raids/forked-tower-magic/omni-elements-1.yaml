@@ -26,8 +26,8 @@ sections:
   - { id: elements-1, name: Elements 1, t: 10.12 }
   - { id: orbs, name: Orbs, t: 22.31 }
   - { id: rings, name: Rings, t: 27.32 }
-  - { id: implement-1, name: Implement 1, t: 36.56 }
   - { id: elements-2, name: Elements 2, t: 32.71 }
+  - { id: implement-1, name: Implement 1, t: 36.56 }
   - { id: implement-2, name: Implement 2, t: 50.82 }
   - { id: chemistry, name: Elementary Chemistry, t: 58.01 }
 
@@ -49,6 +49,7 @@ _marker: &marker
   outline: true
   damage: 0
   damageType: "true"
+  players: []
   showCastBar: false
   showTelegraph: true
 

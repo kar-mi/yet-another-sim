@@ -11,7 +11,7 @@ const OUTLINE_ALPHA = 0.95;
 // Faint floor tint drawn under an outline in the same color.
 const OUTLINE_FILL_ALPHA = 0.15;
 
-type FloorAoeMeshEntry = { mesh: Mesh; fill?: Mesh; source: FloorAoe };
+type FloorAoeMeshEntry = { mesh: Mesh; outline: boolean; fill?: Mesh; source: FloorAoe };
 
 function createFloorMaterial(scene: Scene, name: string): StandardMaterial {
   const mat = new StandardMaterial(name, scene);
@@ -52,13 +52,12 @@ export function syncFloorAoeMeshes(
       entry = undefined;
     }
     if (!entry) {
-      const mesh = aoe.style === "outline"
-        ? createShapeOutlineMesh(scene, aoe.id, aoe.shape)
-        : createShapeMesh(scene, aoe.id, aoe.shape);
+      const outline = aoe.style === "outline" ? createShapeOutlineMesh(scene, aoe.id, aoe.shape) : null;
+      const mesh = outline ?? createShapeMesh(scene, aoe.id, aoe.shape);
       if (!mesh) continue;
       mesh.material = createFloorMaterial(scene, `floor-aoe-mat-${aoe.id}`);
-      entry = { mesh, source: aoe };
-      if (aoe.style === "outline") {
+      entry = { mesh, outline: outline !== null, source: aoe };
+      if (outline) {
         // Dispose the fill with the outline.
         const fill = createShapeMesh(scene, `${aoe.id}-fill`, aoe.shape);
         if (fill) {
@@ -72,8 +71,8 @@ export function syncFloorAoeMeshes(
     const mat = entry.mesh.material as StandardMaterial;
     mat.diffuseColor.copyFrom(Color3.FromHexString(aoe.color));
     // Keep outlines bright regardless of lighting.
-    if (aoe.style === "outline") mat.emissiveColor.copyFrom(mat.diffuseColor);
-    mat.alpha = aoe.alpha ?? (aoe.style === "outline" ? OUTLINE_ALPHA : DEFAULT_ALPHA);
+    if (entry.outline) mat.emissiveColor.copyFrom(mat.diffuseColor);
+    mat.alpha = aoe.alpha ?? (entry.outline ? OUTLINE_ALPHA : DEFAULT_ALPHA);
     if (entry.fill) {
       const fillMat = entry.fill.material as StandardMaterial;
       fillMat.diffuseColor.copyFrom(mat.diffuseColor);

@@ -649,9 +649,19 @@ export const RaidSchema = z.object({
     });
   }
 
+  // Polygons are placed in world coordinates; the anchoring options would be silently ignored.
+  raid.events.forEach((event, i) => {
+    if (event.type !== "aoe" || event.shape.kind !== "polygon") return;
+    for (const field of ["anchor", "directionFrom", "aimAtPlayer", "bossRelativeCenter"] as const) {
+      if (event[field] !== undefined) {
+        ctx.addIssue({ code: "custom", path: ["events", i, field], message: `polygon aoe "${event.id}" does not support ${field}` });
+      }
+    }
+  });
+
   raid.events.forEach((event, i) => {
     if (event.type !== "aoe" || event.sideOrbAfter === undefined) return;
-    const issue = (field: string, message: string) => ctx.addIssue({ code: "custom", path: ["events", i, field], message });
+    const issue =(field: string, message: string) => ctx.addIssue({ code: "custom", path: ["events", i, field], message });
     if (event.bossId === undefined) issue("bossId", `sideOrbAfter aoe "${event.id}" must name the boss the orb hangs off`);
     if (event.color === undefined) issue("color", `sideOrbAfter aoe "${event.id}" must define the orb color`);
     if (event.directionFrom !== "bossFacing"

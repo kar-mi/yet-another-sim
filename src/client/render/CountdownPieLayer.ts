@@ -25,7 +25,7 @@ const PIE_ROTATION_DEG = 10;
 export class CountdownPieLayer {
   private plane: Mesh;
   private texture: DynamicTexture;
-  private drawn = -1;
+  private drawn = "";
 
   constructor(scene: Scene) {
     this.texture = new DynamicTexture("countdown-pie-tex", { width: TEXTURE_SIZE, height: TEXTURE_SIZE }, scene, true);
@@ -50,7 +50,8 @@ export class CountdownPieLayer {
       this.plane.setEnabled(false);
       return;
     }
-    if (left !== this.drawn) this.draw(left, effect.countdown!.slices);
+    const slices = effect.countdown!.slices;
+    if (`${left}/${slices}` !== this.drawn) this.draw(left, slices);
     this.plane.position.set(pov.pos.x, PIE_BOTTOM + PIE_SIZE / 2 + pov.y, pov.pos.z);
     this.plane.setEnabled(true);
   }
@@ -100,7 +101,7 @@ export class CountdownPieLayer {
     ctx.arc(c, c, outer * 0.3, 0, Math.PI * 2);
     ctx.fill();
     this.texture.update();
-    this.drawn = left;
+    this.drawn = `${left}/${slices}`;
   }
 
   dispose(): void {

@@ -91,7 +91,7 @@ export class BossLayer {
     }
   }
 
-  sync(boss: Boss, implement: SealedImplement | null = null): void {
+  sync(boss: Boss, time: number, implement: SealedImplement | null = null): void {
     if (!this.mesh) return;
     const modelHeight = this.modelTopY - BOSS_MODEL_RAISE;
     this.mesh.position.set(boss.pos.x, this.modelTopY - boss.sinkFraction * modelHeight, boss.pos.z);
@@ -99,7 +99,7 @@ export class BossLayer {
     if (this.modelRoots) {
       for (const root of this.modelRoots) root.setEnabled(boss.hp > 0 && !boss.hidden);
     }
-    this.indexModel?.highlight(boss.hp > 0 && !boss.hidden ? implement : null);
+    this.indexModel?.highlight(boss.hp > 0 && !boss.hidden ? implement : null, time);
   }
 
   getMesh(): Mesh | null {

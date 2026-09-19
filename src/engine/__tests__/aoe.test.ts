@@ -344,6 +344,16 @@ test("a deferred stored cleave stays dormant and hidden until its linked bait ar
   expect(byId(world, "m2").hp).toBe(DPS_HP);
 });
 
+test("polygon AOEs reject boss anchoring options they cannot honor", () => {
+  const polygon = {
+    id: "poly", type: "aoe", time: 1, name: "Poly", telegraph: 1, damage: 10, damageType: "magical",
+    shape: { kind: "polygon", vertices: [[0, 0], [1, 0], [0, 1]] },
+  };
+  expect(() => loadRaid({ ...baseRaid, events: [polygon] })).not.toThrow();
+  expect(() => loadRaid({ ...baseRaid, events: [{ ...polygon, anchor: "boss" }] })).toThrow(/does not support anchor/);
+  expect(() => loadRaid({ ...baseRaid, events: [{ ...polygon, aimAtPlayer: "m1" }] })).toThrow(/does not support aimAtPlayer/);
+});
+
 test("a bait preserves the stored AOE's outline and opacity", () => {
   const raid = storedBaitRaid(0);
   const event = raid.events.find(event => event.id === "stored")!;

@@ -337,7 +337,7 @@ export class BabylonRenderer implements Renderer {
     const sideOrbs = selectBossSideOrbs(world);
     const sealedImplement = selectSealedImplement(world.active);
     for (const boss of world.bosses) {
-      this.bossLayers.get(boss.id)?.sync(boss, sealedImplement);
+      this.bossLayers.get(boss.id)?.sync(boss, world.time, sealedImplement);
       this.bossRingLayers.get(boss.id)?.sync(boss);
       this.bossSideOrbLayers.get(boss.id)?.sync(boss, sideOrbs.get(boss.id), world.time);
       this.targetRingLayers.get(boss.id)?.sync(boss, povPlayer?.targetBossId === boss.id);

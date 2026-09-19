@@ -205,6 +205,26 @@ test("platform markers are outlines carrying their pair's element glyph until th
   expect(north.glyph?.at).toEqual({ x: 0, z: 20.506 });
 });
 
+test("platform markers resolving at 79.42 do not cleanse Elementary Deficiency", () => {
+  const source = rawRaid as {
+    events: { id: string }[];
+    optionals: { combinations: { labels: { pairs: { slots: string[][] } } } };
+  };
+  const pairs = source.optionals.combinations.labels.pairs;
+  const markerRaid = loadRaid({
+    ...source,
+    botPatterns: undefined,
+    events: source.events.filter(e => e.id.startsWith("mark-") || e.id === "elementary-deficiency"),
+    optionals: { combinations: { labels: { pairs: { ...pairs, slots: pairs.slots.map(slot => slot.filter(id => id.startsWith("mark-"))) } } } },
+  });
+  // ot idles at spawn on the NE trapezoid, inside mark-ne.
+  let world = runTicks(createWorld(markerRaid, 3), {}, Math.round(79.3 * 60));
+  const stacks = () => byId(world, "ot").effects.find(e => e.name === "Elementary Deficiency")?.stacks;
+  expect(stacks()).toBe(3);
+  world = runTicks(world, {}, Math.round(0.2 * 60));
+  expect(stacks()).toBe(3);
+});
+
 test("Cleansing orbs spawn in a trapezoid, then glide one section clockwise to detonate at 32.70", () => {
   const bearing = (p: { x: number; z: number }) => (Math.atan2(p.x, p.z) * 180 / Math.PI + 360) % 360;
   for (let seed = 1; seed <= 5; seed++) {
