@@ -109,7 +109,8 @@ _orb: &orb
   damageType: magical
   avoidable: true
   showCastBar: false
-  color: "#e0e0ff"
+  color: "#9a9ae0"
+  telegraphAlpha: 0.7
 
 # Reference diagrams define geometry, not textures. Radii are estimated from the arena:
 # bow circles cover a square and its corners (radius 11); harp covers the central hexagon (15).
@@ -337,15 +338,15 @@ events:
   # Cleansing orbs (resolve 32.70).
   - { <<: *castBar, id: cleansing-cast, time: 31.73, name: Cleansing, telegraph: 0.97 }
   - { <<: *orb, id: orb-nw-circle, mover: { from: [-8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: circle, center: [-14.509, 8.377], radius: 11 } }
-  - { <<: *orb, id: orb-nw-donut, mover: { from: [-8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [-14.509, 8.377], inner: 5, outer: 16.5 } }
+  - { <<: *orb, id: orb-nw-donut, mover: { from: [-8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [-14.509, 8.377], inner: 5, outer: 14.85 } }
   - { <<: *orb, id: orb-ne-circle, mover: { from: [0, 9.3], departAt: 27.7, sprite: true }, shape: { kind: circle, center: [14.509, 8.377], radius: 11 } }
-  - { <<: *orb, id: orb-ne-donut, mover: { from: [0, 9.3], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [14.509, 8.377], inner: 5, outer: 16.5 } }
+  - { <<: *orb, id: orb-ne-donut, mover: { from: [0, 9.3], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [14.509, 8.377], inner: 5, outer: 14.85 } }
   - { <<: *orb, id: orb-s-circle, mover: { from: [8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: circle, center: [0, -16.753], radius: 11 } }
-  - { <<: *orb, id: orb-s-donut, mover: { from: [8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [0, -16.753], inner: 5, outer: 16.5 } }
+  - { <<: *orb, id: orb-s-donut, mover: { from: [8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [0, -16.753], inner: 5, outer: 14.85 } }
   # Where each orb will detonate, shown for all three regardless of which one is the donut.
-  - { <<: *chemPad, id: cleansing-pad-nw, time: 22.31, telegraph: 10.39, name: Cleansing Target, shape: { kind: circle, center: [-14.509, 8.377], radius: 2 } }
-  - { <<: *chemPad, id: cleansing-pad-ne, time: 22.31, telegraph: 10.39, name: Cleansing Target, shape: { kind: circle, center: [14.509, 8.377], radius: 2 } }
-  - { <<: *chemPad, id: cleansing-pad-s, time: 22.31, telegraph: 10.39, name: Cleansing Target, shape: { kind: circle, center: [0, -16.753], radius: 2 } }
+  - { <<: *chemPad, id: cleansing-pad-nw, time: 22.31, telegraph: 10.39, name: Cleansing Target, color: "#4fc3ff", telegraphAlpha: 0.85, shape: { kind: circle, center: [-14.509, 8.377], radius: 1.5 } }
+  - { <<: *chemPad, id: cleansing-pad-ne, time: 22.31, telegraph: 10.39, name: Cleansing Target, color: "#4fc3ff", telegraphAlpha: 0.85, shape: { kind: circle, center: [14.509, 8.377], radius: 1.5 } }
+  - { <<: *chemPad, id: cleansing-pad-s, time: 22.31, telegraph: 10.39, name: Cleansing Target, color: "#4fc3ff", telegraphAlpha: 0.85, shape: { kind: circle, center: [0, -16.753], radius: 1.5 } }
 
 optionals:
   rngLabels:

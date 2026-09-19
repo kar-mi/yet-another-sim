@@ -106,6 +106,7 @@ export type PendingEvent = {
   color?: string;
   // Render-only: draw the telegraph as an outline instead of a fill.
   outline?: boolean;
+  telegraphAlpha?: number;
   glyph?: ElementGlyph;
   ring?: ElementRing;
   mover?: Mover;

@@ -10,7 +10,6 @@ import { createElementGlyph, type ElementGlyphHandle } from "./meshes/elementGly
 
 // Ring and glyphs share one height so the glyphs sit on the ring line.
 const RING_Y = 2.0;
-const RING_COLOR = "#ffffff";
 const TUBE_RADIUS = 0.08;
 const SEGMENTS = 96;
 const GLYPH_SCALE = 0.5;
@@ -27,8 +26,8 @@ function circlePath(cx: number, cz: number, radius: number): Vector3[] {
   });
 }
 
-// Draws each unresolved mechanic's `ring` (see ElementRing): a white outline circle growing over the
-// cast, with six element glyphs (in the mechanic's color) riding on it.
+// Draws each unresolved mechanic's `ring` (see ElementRing): an outline circle growing over the
+// cast, with six element glyphs riding on it, both in the mechanic's color.
 export class ElementRingLayer {
   private rings = new Map<string, RingHandle>();
 
@@ -59,7 +58,7 @@ export class ElementRingLayer {
       if (!handle) {
         const tube = CreateTube(`ring-${m.id}`, { path, radius: TUBE_RADIUS, tessellation: 6, cap: 0, updatable: true }, this.scene);
         const mat = new StandardMaterial(`ring-mat-${m.id}`, this.scene);
-        mat.diffuseColor = Color3.FromHexString(RING_COLOR);
+        mat.diffuseColor = Color3.FromHexString(color);
         mat.emissiveColor = mat.diffuseColor.clone();
         mat.specularColor = new Color3(0, 0, 0);
         mat.disableLighting = true;

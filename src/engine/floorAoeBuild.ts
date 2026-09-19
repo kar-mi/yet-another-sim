@@ -12,6 +12,7 @@ export function buildFloorAoe(params: {
   id: string;
   shape: AOEShape;
   color?: string;
+  alpha?: number;
   showTelegraph: boolean;
   telegraphMode?: TelegraphMode;
   flashBeforeResolve?: FlashBeforeResolve;
@@ -19,7 +20,7 @@ export function buildFloorAoe(params: {
   resolveAt: number;
 }): FloorAoe | undefined {
   const { id, shape, resolveAt } = params;
-  const style = params.outline ? { style: "outline" as const } : {};
+  const style = { ...(params.outline ? { style: "outline" as const } : {}), ...(params.alpha !== undefined ? { alpha: params.alpha } : {}) };
   const color = params.color ?? params.flashBeforeResolve?.color ?? DEFAULT_DANGER_COLOR;
 
   if (params.flashBeforeResolve) {

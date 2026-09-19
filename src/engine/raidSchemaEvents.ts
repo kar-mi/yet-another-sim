@@ -65,6 +65,8 @@ const AOEEventSchema = z.object({
   color: z.string().min(1).optional(),
   // Render-only: draw the ground telegraph as an outline instead of a fill.
   outline: z.boolean().optional(),
+  // Render-only: fixed opacity for the ground telegraph (default 0.5 fill / 0.95 outline).
+  telegraphAlpha: z.number().min(0).max(1).optional(),
   // Render-only: 3D element glyph at `at` while unresolved. `kind` usually comes from a label variant.
   glyph: z.object({ at: Vec2Schema, kind: ElementGlyphKindSchema.optional() }).optional(),
   // Render-only: ring growing from `center` to `radius` over the cast, carrying six element glyphs.
