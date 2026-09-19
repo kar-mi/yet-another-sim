@@ -5,7 +5,7 @@
 
 import type { Player } from "@shared/types";
 import { sortForDisplay, statusIcon } from "@status";
-import { STATIC_ROOT } from "../staticBase";
+import { STATUS_ICON_ROOT } from "../staticBase";
 
 const EFFECT_TIMER_STEP = 0.25;
 
@@ -74,12 +74,12 @@ function buildEffectChip(
   let iconEl: HTMLElement;
   if (effect.icon) {
     const img = document.createElement("img");
-    img.src = `${STATIC_ROOT}/debuffs/${effect.icon}`;
+    img.src = `${STATUS_ICON_ROOT}/${effect.icon}`;
     img.alt = effect.name;
     iconEl = img;
   } else if (icon.src) {
     const img = document.createElement("img");
-    img.src = `${STATIC_ROOT}/debuffs/${icon.src}`;
+    img.src = `${STATUS_ICON_ROOT}/${icon.src}`;
     img.alt = effect.name;
     iconEl = img;
   } else {

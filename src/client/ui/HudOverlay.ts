@@ -19,7 +19,7 @@ import type { PlaybackState } from "@shared/protocol";
 import { clamp01 } from "@shared/math";
 import { createEffectRenderState, syncEffectChips, type EffectRenderState } from "./effectChips";
 import { remainingTime, requireStatus } from "@status";
-import { STATIC_ROOT } from "../staticBase";
+import { STATUS_ICON_ROOT } from "../staticBase";
 import {
   combinePositionFrames,
   invertFramePosition,
@@ -313,7 +313,7 @@ export class HudOverlay {
     el.hidden = true;
     const iconEl = document.createElement("img");
     iconEl.className = "yas-buff-icon";
-    iconEl.src = `${STATIC_ROOT}/buffs/${spec.icon}`;
+    iconEl.src = `${STATUS_ICON_ROOT}/${spec.icon}`;
     iconEl.alt = spec.name;
     const timerEl = document.createElement("span");
     timerEl.className = "yas-buff-timer";

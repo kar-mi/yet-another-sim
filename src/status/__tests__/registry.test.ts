@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { BEHAVIORS, STATUS_CATALOG, requireStatus, resolveStatus, statusIds, type StatusBehavior } from "@status";
+import { BEHAVIORS, STATUS_CATALOG, requireStatus, resolveStatus, statusIcon, statusIds, type StatusBehavior } from "@status";
 import { STATUS_BEHAVIOR_KINDS, StatusRefSchema, StatusSpecSchema } from "@status/schema";
 import { BUFF_TEMPLATES } from "../catalog/buffs";
 import { DEBUFF_TEMPLATES } from "../catalog/debuffs";
@@ -94,3 +94,19 @@ function linkedRefs(behavior: StatusBehavior): string[] {
   if (behavior.kind === "elementCleanse") return Object.values(behavior.elements);
   return [];
 }
+
+test("every icon a status can show exists in the package icon folder", async () => {
+  const folder = `${import.meta.dir}/../icons`;
+  const icons = new Set<string>();
+  for (const template of Object.values(STATUS_CATALOG)) {
+    for (const icon of [template.icon, template.markerIcon, template.ring?.icon]) if (icon) icons.add(icon);
+  }
+  for (let n = 1; n <= 8; n++) icons.add(`limit${n}_head.png`);
+  for (const [ref, template] of Object.entries(STATUS_CATALOG)) {
+    const src = statusIcon({ ...template, ref, id: ref, appliedAt: 0 }).src;
+    if (src) icons.add(src);
+  }
+  const missing: string[] = [];
+  for (const icon of icons) if (!(await Bun.file(`${folder}/${icon}`).exists())) missing.push(icon);
+  expect(missing).toEqual([]);
+});

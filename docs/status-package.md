@@ -24,8 +24,15 @@ src/status/
   operations.ts     # apply, refresh, remove, consume, and every status query
   lifecycle.ts      # the per-tick dispatch (ticks, full-HP cleanses, expiries, culling)
   schema.ts         # zod validation for authored references (`@status/schema`)
+  icons/            # every status image (HUD icons, above-head markers, ring icons), served at /status-icons/
   index.ts          # the public entry point (`@status`)
 ```
+
+A template's `icon`, `markerIcon` and `ring.icon`, and the fallback icons behaviors name, are
+filenames in `icons/`. The package
+only names them; the server serves the folder at `/status-icons/` and the client loads from there
+(`STATUS_ICON_ROOT` in `src/client/staticBase.ts`). The registry tests fail if a template names an
+icon that is not in the folder.
 
 `src/shared/world/effects.ts` re-exports the package types under their existing names
 (`EffectSpec`, `StatusEffect`, `EffectBehavior`, …), and `src/shared/world/foundation.ts`

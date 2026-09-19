@@ -1327,7 +1327,7 @@ them. Use a different template instead.
 | `duration` | no       | Seconds the effect lasts (> 0). |
 | `visibility` | no     | `"visible"` (default) shows in the HUD; `"invisible"` stores the effect without a HUD chip. |
 | `priority` | no       | `true` renders this visible effect before normal HUD chips; order stays stable within each band. |
-| `icon`     | no       | HUD icon filename served from `static/debuffs/` (e.g. `"magic-vuln.png"`). Falls back to a generic glyph chosen from the behavior when omitted. |
+| `icon`     | no       | HUD icon filename in `src/status/icons/` (e.g. `"magic-vuln.png"`). Falls back to a generic glyph chosen from the behavior when omitted. |
 | `marker`   | no       | Short text rendered above the player while the effect is active. Works even when `visibility` is `"invisible"`. |
 | `behavior` | no       | Parameters for the template's behavior (see below); `kind` must match the template. |
 

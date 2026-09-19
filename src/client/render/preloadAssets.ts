@@ -3,16 +3,16 @@ import { DEFAULT_PLAYER_MODEL_FILE, PLAYER_MODEL_FILES, PLAYER_MODEL_ROOT } from
 import { FLOOR_PLAN_IMAGES } from "./meshes/arenaMeshes";
 import { HAND_IMAGE_URL } from "./meshes/handMeshes";
 import { CLEANSING_ORB_RUNE_URL } from "./meshes/cleansingOrbMeshes";
-import { STATIC_ROOT } from "../staticBase";
+import { STATUS_ICON_ROOT } from "../staticBase";
 
 // Above-head marker icons (PlayerLayer.syncMarkers) and HUD debuff icons (effectChips) load lazily
-// the first time a mechanic applies them mid-pull. Keep these lists in sync with static/head_markers/
-// and static/debuffs/ (plus the buff-bar icons in static/buffs/) so new icons are warmed too.
+// the first time a mechanic applies them mid-pull. Keep these lists in sync with src/status/icons/
+// so new icons are warmed too.
 const HEAD_MARKER_ICONS = [
   "cone_processed.png",
   "defam_processed.png",
   "stack_processed.png",
-].map(file => `${STATIC_ROOT}/head_markers/${file}`);
+].map(file => `${STATUS_ICON_ROOT}/${file}`);
 
 const DEBUFF_ICONS = [
   "bind.png",
@@ -26,19 +26,19 @@ const DEBUFF_ICONS = [
   "teleportent_left.png",
   "teleportent_right.png",
   "teleportent_up.png",
-].map(file => `${STATIC_ROOT}/debuffs/${file}`);
+].map(file => `${STATUS_ICON_ROOT}/${file}`);
 
-// Element ring icons (PlayerEffectRingLayer), static/element_icons/.
+// Element ring icons (PlayerEffectRingLayer).
 const ELEMENT_ICONS = [
   "fire.png",
   "ice.png",
   "thunder.png",
-].map(file => `${STATIC_ROOT}/element_icons/${file}`);
+].map(file => `${STATUS_ICON_ROOT}/${file}`);
 
 const BUFF_ICONS = [
   "sprint.png",
   "armslength.png",
-].map(file => `${STATIC_ROOT}/buffs/${file}`);
+].map(file => `${STATUS_ICON_ROOT}/${file}`);
 
 // Warm the browser cache for every static asset up front so a later raid change / first session entry
 // renders models and icons from cache instead of downloading after the pull has already started.

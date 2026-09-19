@@ -10,7 +10,7 @@ import { logger } from "@shared/logger";
 import type { Player } from "@shared/types";
 import { hasActiveStatus } from "@status";
 import { length, sub } from "@shared/math";
-import { STATIC_ROOT } from "../staticBase";
+import { STATIC_ROOT, STATUS_ICON_ROOT } from "../staticBase";
 import { glyphBillboardMaterial, imageBillboardMaterial } from "@effects/babylon";
 import { computeVisiblePlayerIds } from "./playerVisibility";
 
@@ -238,7 +238,7 @@ export class PlayerLayer {
         ? imageBillboardMaterial(
           this.scene,
           `player-marker-mat-${player.id}-${effect.id}`,
-          `${STATIC_ROOT}/head_markers/${markerIcon}`,
+          `${STATUS_ICON_ROOT}/${markerIcon}`,
         )
         : glyphBillboardMaterial(
           this.scene,
