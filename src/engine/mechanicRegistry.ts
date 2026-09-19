@@ -235,6 +235,7 @@ const aoe: MechanicModule = {
           telegraphAlpha: e.telegraphAlpha,
           glyph: e.glyph && { at: toVec2(e.glyph.at), kind: e.glyph.kind },
           ring: e.ring && { center: toVec2(e.ring.center), radius: e.ring.radius, kind: e.ring.kind },
+          element: e.element,
           mover: e.mover && { from: toVec2(e.mover.from), departAt: e.mover.departAt, scale: e.mover.scale, sprite: e.mover.sprite },
         });
         break;

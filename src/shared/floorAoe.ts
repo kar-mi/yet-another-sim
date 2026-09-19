@@ -8,7 +8,7 @@
 // FloorAoe embedded in World state must still work after a JSON round-trip loses its prototype.
 // Visibility logic therefore lives in the standalone isFloorAoeVisible function below, not a method.
 
-import type { AOEShape } from "./types";
+import type { AOEShape, ElementGlyphKind } from "./types";
 
 export type FloorAoeResolveMode =
   | { kind: "active" }
@@ -36,6 +36,8 @@ export class FloorAoe {
   readonly alpha?: number;
   // "outline" draws only the shape edge instead of a filled footprint.
   readonly style?: "outline";
+  // Element pattern drawn over the footprint (render-only).
+  readonly element?: ElementGlyphKind;
   readonly resolveMode: FloorAoeResolveMode;
   readonly resolveAt: number;
 
@@ -45,6 +47,7 @@ export class FloorAoe {
     color: string;
     alpha?: number;
     style?: "outline";
+    element?: ElementGlyphKind;
     resolveMode: FloorAoeResolveMode;
     resolveAt: number;
   }) {
@@ -53,6 +56,7 @@ export class FloorAoe {
     this.color = params.color;
     this.alpha = params.alpha;
     this.style = params.style;
+    this.element = params.element;
     this.resolveMode = params.resolveMode;
     this.resolveAt = params.resolveAt;
   }

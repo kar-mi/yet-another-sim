@@ -4,7 +4,7 @@
 // Shared by every construction site that promotes a pending mechanic into an active one (or
 // re-anchors its shape mid-lifetime) so the mapping only lives in one place.
 
-import type { AOEShape, TelegraphMode, FlashBeforeResolve } from "@shared/types";
+import type { AOEShape, TelegraphMode, FlashBeforeResolve, ElementGlyphKind } from "@shared/types";
 import { FloorAoe, DEFAULT_DANGER_COLOR } from "@shared/floorAoe";
 import { AOE_RESOLVE_LINGER } from "@shared/constants";
 
@@ -17,10 +17,11 @@ export function buildFloorAoe(params: {
   telegraphMode?: TelegraphMode;
   flashBeforeResolve?: FlashBeforeResolve;
   outline?: boolean;
+  element?: ElementGlyphKind;
   resolveAt: number;
 }): FloorAoe | undefined {
   const { id, shape, resolveAt } = params;
-  const style = { ...(params.outline ? { style: "outline" as const } : {}), ...(params.alpha !== undefined ? { alpha: params.alpha } : {}) };
+  const style = { ...(params.outline ? { style: "outline" as const } : {}), ...(params.alpha !== undefined ? { alpha: params.alpha } : {}), ...(params.element ? { element: params.element } : {}) };
   const color = params.color ?? params.flashBeforeResolve?.color ?? DEFAULT_DANGER_COLOR;
 
   if (params.flashBeforeResolve) {

@@ -1,7 +1,7 @@
 import type { Vec2 } from "../math";
 import type { FloorAoe } from "../floorAoe";
 import type {
-  AOEShape, BossRelativeCenter, CrystalElement, DamageType, ElementGlyph, ElementRing, FlashBeforeResolve, Mover,
+  AOEShape, BossRelativeCenter, CrystalElement, DamageType, ElementGlyph, ElementGlyphKind, ElementRing, FlashBeforeResolve, Mover,
   PositionalArc, Role, TelegraphMode,
 } from "./foundation";
 import type { EffectBehavior, EffectBundle, EffectSpec, Knockback, Reassign } from "./effects";
@@ -111,6 +111,7 @@ export type PendingEvent = {
   telegraphAlpha?: number;
   glyph?: ElementGlyph;
   ring?: ElementRing;
+  element?: ElementGlyphKind;
   mover?: Mover;
 };
 

@@ -71,6 +71,8 @@ const AOEEventSchema = z.object({
   glyph: z.object({ at: Vec2Schema, kind: ElementGlyphKindSchema.optional() }).optional(),
   // Ring expands to radius during the cast; label variants can supply kind.
   ring: z.object({ center: Vec2Schema, radius: z.number().positive(), kind: ElementGlyphKindSchema.optional() }).optional(),
+  // Element pattern on the floor telegraph; label variants with a glyph supply it.
+  element: ElementGlyphKindSchema.optional(),
   // Orb waits at from until departAt, then reaches the shape center at resolve.
   // Scale defaults to 1; sprite selects the Cleansing billboard.
   mover: z.object({ from: Vec2Schema, departAt: z.number().nonnegative(), scale: z.number().positive().optional(), sprite: z.boolean().optional() }).optional(),
