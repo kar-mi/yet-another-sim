@@ -40,7 +40,7 @@ lands everywhere it should.
 | Primitive | Drawn by |
 |-----------|----------|
 | `createShapeMesh` / `createShapeOutlineMesh` | the telegraph layer and every other footprint (the inverse "?" telegraph, gazes, stacks) |
-| `syncFloorAoeMeshes` | every layer that renders a `FloorAoe` |
+| `syncFloorTelegraphs` | every layer that renders a `FloorAoe` |
 | `createGroundCircle` | spread/stack areas, forced-march zones, tower soak counters |
 | `createGlowRing` | boss target rings, player status rings, the "?" mechanic ring |
 | `createLine` / `updateLine` | tethers and line links |
@@ -55,7 +55,7 @@ factories call into the package for their shared parts and keep their own distin
 A factory returns a small handle owning its own geometry and private material, and the caller
 disposes it. The exception is anything cached per scene: the element floor materials (shared per
 element/colour/alpha) and the burst dot texture belong to the scene, and a caller must never
-dispose them. `syncFloorAoeMeshes` encodes this — it frees an outline's own material but leaves a
+dispose them. `syncFloorTelegraphs` encodes this — it frees an outline's own material but leaves a
 shared element material alone, because other AoEs on screen are still drawing with it.
 
 ## FloorAoe is plain data

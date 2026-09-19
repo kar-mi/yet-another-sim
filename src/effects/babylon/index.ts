@@ -1,5 +1,5 @@
 export { createShapeMesh, createShapeOutlineMesh } from "./shapeGeometry";
-export { syncFloorAoeMeshes, disposeFloorAoeMeshes, type FloorAoeMeshMap } from "./groundAoe";
+export { syncFloorTelegraphs, disposeFloorTelegraphs, type FloorTelegraphMap } from "./floorTelegraphs";
 export { createGroundCircle, disposeGroundCircle, type GroundCircle } from "./groundCircle";
 export { createGlowRing, type GlowRing } from "./glowRing";
 export { createLine, updateLine } from "./line";

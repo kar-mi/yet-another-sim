@@ -6,7 +6,7 @@ import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTextur
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveGaze } from "@shared/types";
 
-// A gaze with a carrier cone (gz.floorAoe set) is rendered separately via FloorAoe/syncFloorAoeMeshes.
+// A gaze with a carrier cone (gz.floorAoe set) is rendered separately via FloorAoe/syncFloorTelegraphs.
 // A gaze mechanic is shown as an upright rectangular board (default to the north) carrying an
 // eye icon. A plain open eye means "look away" (facing it is lethal); an eye with a yellow "?"
 // means the reverse — you must face it. The board faces the arena centre. The reverse state is

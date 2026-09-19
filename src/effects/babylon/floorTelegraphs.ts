@@ -12,9 +12,9 @@ const OUTLINE_ALPHA = 0.95;
 // Faint floor tint drawn under an outline in the same color.
 const OUTLINE_FILL_ALPHA = 0.15;
 
-type FloorAoeMeshEntry = { mesh: Mesh; outline: boolean; fill?: Mesh; source: FloorAoe };
+type FloorTelegraphEntry = { mesh: Mesh; outline: boolean; fill?: Mesh; source: FloorAoe };
 
-export function createFloorMaterial(scene: Scene, name: string): StandardMaterial {
+export function createFloorTelegraphMaterial(scene: Scene, name: string): StandardMaterial {
   const mat = new StandardMaterial(name, scene);
   mat.specularColor = new Color3(0, 0, 0);
   mat.backFaceCulling = false;
@@ -22,7 +22,7 @@ export function createFloorMaterial(scene: Scene, name: string): StandardMateria
   mat.twoSidedLighting = true;
   return mat;
 }
-export type FloorAoeMeshMap = Map<string, FloorAoeMeshEntry>;
+export type FloorTelegraphMap = Map<string, FloorTelegraphEntry>;
 
 // The element pattern is drawn whenever the AoE has an element, unless vfx.floor turns it off.
 function patternElement(aoe: FloorAoe): FloorAoe["element"] {
@@ -33,7 +33,7 @@ function patternAlpha(aoe: FloorAoe, base: number): number {
   return base * (aoe.vfx?.floor?.intensity ?? 1);
 }
 
-function disposeEntry(entry: FloorAoeMeshEntry): void {
+function disposeEntry(entry: FloorTelegraphEntry): void {
   if (!patternElement(entry.source)) {
     entry.mesh.dispose(false, true);
     return;
@@ -45,9 +45,9 @@ function disposeEntry(entry: FloorAoeMeshEntry): void {
 
 // Mesh lifecycle (create/update/dispose, keyed by FloorAoe.id): the one place a FloorAoe's geometry
 // and color/alpha become a Babylon mesh.
-export function syncFloorAoeMeshes(
+export function syncFloorTelegraphs(
   scene: Scene,
-  meshes: FloorAoeMeshMap,
+  meshes: FloorTelegraphMap,
   aoes: FloorAoe[],
   time: number,
   resolvedIds: ReadonlySet<string>,
@@ -77,7 +77,7 @@ export function syncFloorAoeMeshes(
       if (!mesh) continue;
       mesh.material = element && !outline
         ? elementFloorMaterial(scene, element, aoe.color, patternAlpha(aoe, aoe.alpha ?? DEFAULT_ALPHA))
-        : createFloorMaterial(scene, `floor-aoe-mat-${aoe.id}`);
+        : createFloorTelegraphMaterial(scene, `floor-telegraph-mat-${aoe.id}`);
       entry = { mesh, outline: outline !== null, source: aoe };
       if (outline) {
         // Dispose the fill with the outline.
@@ -85,7 +85,7 @@ export function syncFloorAoeMeshes(
         if (fill) {
           fill.material = element
             ? elementFloorMaterial(scene, element, aoe.color, patternAlpha(aoe, OUTLINE_FILL_ALPHA))
-            : createFloorMaterial(scene, `floor-aoe-fill-mat-${aoe.id}`);
+            : createFloorTelegraphMaterial(scene, `floor-telegraph-fill-mat-${aoe.id}`);
           fill.parent = mesh;
           entry.fill = fill;
         }
@@ -107,7 +107,7 @@ export function syncFloorAoeMeshes(
   }
 }
 
-export function disposeFloorAoeMeshes(meshes: FloorAoeMeshMap): void {
+export function disposeFloorTelegraphs(meshes: FloorTelegraphMap): void {
   for (const entry of meshes.values()) disposeEntry(entry);
   meshes.clear();
 }

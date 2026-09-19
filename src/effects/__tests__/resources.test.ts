@@ -4,7 +4,7 @@ import { Scene } from "@babylonjs/core/scene";
 import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { FloorAoe } from "@effects";
-import { createMeshGlow, disposeFloorAoeMeshes, syncFloorAoeMeshes, type FloorAoeMeshMap } from "@effects/babylon";
+import { createMeshGlow, disposeFloorTelegraphs, syncFloorTelegraphs, type FloorTelegraphMap } from "@effects/babylon";
 
 let originalDocument: PropertyDescriptor | undefined;
 
@@ -35,9 +35,9 @@ const aoe = (id: string, element?: "fire" | "ice") => new FloorAoe({
 // Babylon creates its "default material" lazily on the first mesh, so counts are only comparable
 // after one warm-up cycle.
 function warmUp(scene: Scene): { meshes: number; materials: number } {
-  const meshes: FloorAoeMeshMap = new Map();
-  syncFloorAoeMeshes(scene, meshes, [aoe("warm-up")], 0, new Set());
-  disposeFloorAoeMeshes(meshes);
+  const meshes: FloorTelegraphMap = new Map();
+  syncFloorTelegraphs(scene, meshes, [aoe("warm-up")], 0, new Set());
+  disposeFloorTelegraphs(meshes);
   return { meshes: scene.meshes.length, materials: scene.materials.length };
 }
 
@@ -55,11 +55,11 @@ function withScene<T>(run: (scene: Scene) => T): T {
 test("repeated create/remove cycles leave no meshes or materials behind", () => {
   withScene(scene => {
     const baseline = warmUp(scene);
-    const meshes: FloorAoeMeshMap = new Map();
+    const meshes: FloorTelegraphMap = new Map();
     for (let i = 0; i < 20; i++) {
-      syncFloorAoeMeshes(scene, meshes, [aoe("cycle")], 0, new Set());
+      syncFloorTelegraphs(scene, meshes, [aoe("cycle")], 0, new Set());
       expect(meshes.size).toBe(1);
-      syncFloorAoeMeshes(scene, meshes, [], 0, new Set());
+      syncFloorTelegraphs(scene, meshes, [], 0, new Set());
       expect(meshes.size).toBe(0);
     }
     expect(scene.meshes.length).toBe(baseline.meshes);
@@ -70,16 +70,16 @@ test("repeated create/remove cycles leave no meshes or materials behind", () => 
 test("outlined AoEs dispose their fill and its material with the outline", () => {
   withScene(scene => {
     const baseline = warmUp(scene);
-    const meshes: FloorAoeMeshMap = new Map();
+    const meshes: FloorTelegraphMap = new Map();
     const outlined = new FloorAoe({
       id: "outlined",
       shape: { kind: "donut", center: { x: 0, z: 0 }, inner: 2, outer: 5 },
       color: "#00ff00", style: "outline",
       resolveMode: { kind: "active" }, resolveAt: 10,
     });
-    syncFloorAoeMeshes(scene, meshes, [outlined], 0, new Set());
+    syncFloorTelegraphs(scene, meshes, [outlined], 0, new Set());
     expect(scene.meshes.length).toBeGreaterThan(baseline.meshes);
-    disposeFloorAoeMeshes(meshes);
+    disposeFloorTelegraphs(meshes);
     expect(scene.meshes.length).toBe(baseline.meshes);
     expect(scene.materials.length).toBe(baseline.materials);
   });
@@ -87,8 +87,8 @@ test("outlined AoEs dispose their fill and its material with the outline", () =>
 
 test("simultaneous element AoEs share one pattern material, and it survives removing one", () => {
   withScene(scene => {
-    const meshes: FloorAoeMeshMap = new Map();
-    syncFloorAoeMeshes(scene, meshes, [aoe("a", "fire"), aoe("b", "fire"), aoe("c", "ice")], 0, new Set());
+    const meshes: FloorTelegraphMap = new Map();
+    syncFloorTelegraphs(scene, meshes, [aoe("a", "fire"), aoe("b", "fire"), aoe("c", "ice")], 0, new Set());
     const fireA = meshes.get("a")!.mesh.material;
     const fireB = meshes.get("b")!.mesh.material;
     const ice = meshes.get("c")!.mesh.material;
@@ -96,7 +96,7 @@ test("simultaneous element AoEs share one pattern material, and it survives remo
     expect(fireA).not.toBe(ice!);
 
     // Dropping one fire AoE must not dispose the material the other is still drawing with.
-    syncFloorAoeMeshes(scene, meshes, [aoe("b", "fire")], 0, new Set());
+    syncFloorTelegraphs(scene, meshes, [aoe("b", "fire")], 0, new Set());
     expect(meshes.get("b")!.mesh.material).toBe(fireA!);
     expect(scene.materials).toContain(fireA!);
   });
@@ -105,8 +105,8 @@ test("simultaneous element AoEs share one pattern material, and it survives remo
 test("scene teardown after effects are live does not throw", () => {
   const engine = new NullEngine();
   const scene = new Scene(engine);
-  const meshes: FloorAoeMeshMap = new Map();
-  syncFloorAoeMeshes(scene, meshes, [aoe("live", "fire"), aoe("plain")], 0, new Set());
+  const meshes: FloorTelegraphMap = new Map();
+  syncFloorTelegraphs(scene, meshes, [aoe("live", "fire"), aoe("plain")], 0, new Set());
   const glow = createMeshGlow(scene, "teardown-glow", new Mesh("teardown-root", scene), {
     glowColor: new Color4(1, 1, 1, 1),
     haloColor: new Color3(1, 1, 1),

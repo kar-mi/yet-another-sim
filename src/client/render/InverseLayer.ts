@@ -2,11 +2,11 @@ import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveInverse, Boss } from "@shared/types";
 import { createQuestionRingForInverse, updateQuestionRingForInverse } from "./meshes/inverseMeshes";
 import type { QuestionRingMeshes } from "@effects/babylon";
-import { syncFloorAoeMeshes, disposeFloorAoeMeshes, type FloorAoeMeshMap } from "@effects/babylon";
+import { syncFloorTelegraphs, disposeFloorTelegraphs, type FloorTelegraphMap } from "@effects/babylon";
 
 export class InverseLayer {
   private rings = new Map<string, QuestionRingMeshes>();
-  private footprints: FloorAoeMeshMap = new Map();
+  private footprints: FloorTelegraphMap = new Map();
 
   constructor(private scene: Scene) {}
 
@@ -31,7 +31,7 @@ export class InverseLayer {
     // Shown-shape telegraph footprints are always drawn; hidden shapes are intentionally not rendered.
     const aoes = inversions.flatMap(inv => inv.floorAoes ?? []);
     const resolvedIds = new Set(inversions.filter(inv => inv.resolved).flatMap(inv => (inv.floorAoes ?? []).map(a => a.id)));
-    syncFloorAoeMeshes(this.scene, this.footprints, aoes, time, resolvedIds);
+    syncFloorTelegraphs(this.scene, this.footprints, aoes, time, resolvedIds);
   }
 
   dispose(): void {
@@ -39,6 +39,6 @@ export class InverseLayer {
       for (const mesh of ring.all) mesh.dispose(false, true);
     }
     this.rings.clear();
-    disposeFloorAoeMeshes(this.footprints);
+    disposeFloorTelegraphs(this.footprints);
   }
 }

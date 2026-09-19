@@ -20,7 +20,7 @@ test("prewarm covers floor telegraphs, element floors and bursts, element glyphs
   const scene = new Scene(engine);
   try {
     const { prewarmShaders } = await import("@effects/babylon");
-    const { syncFloorAoeMeshes } = await import("@effects/babylon");
+    const { syncFloorTelegraphs } = await import("@effects/babylon");
     const { createElementGlyph } = await import("@effects/babylon");
     const { ElementRingLayer } = await import("../render/ElementRingLayer");
     const { spawnElementBurst } = await import("@effects/babylon");
@@ -33,7 +33,7 @@ test("prewarm covers floor telegraphs, element floors and bursts, element glyphs
     const warmed = new Set(effects());
 
     const shape = { kind: "circle", center: { x: 0, z: 0 }, radius: 3 } as const;
-    syncFloorAoeMeshes(scene, new Map(), [
+    syncFloorTelegraphs(scene, new Map(), [
       new FloorAoe({ id: "fill", shape, color: "#ff0000", resolveMode: { kind: "active" }, resolveAt: 10 }),
       new FloorAoe({ id: "outline", shape, color: "#ff0000", style: "outline", resolveMode: { kind: "active" }, resolveAt: 10 }),
       new FloorAoe({ id: "ice-fill", shape, color: "#3aa0ff", element: "ice", resolveMode: { kind: "active" }, resolveAt: 10 }),

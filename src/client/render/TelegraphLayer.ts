@@ -1,7 +1,7 @@
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveMechanic } from "@shared/types";
 import type { FloorAoe } from "@effects";
-import { syncFloorAoeMeshes, disposeFloorAoeMeshes, spawnElementBurst, type FloorAoeMeshMap } from "@effects/babylon";
+import { syncFloorTelegraphs, disposeFloorTelegraphs, spawnElementBurst, type FloorTelegraphMap } from "@effects/babylon";
 
 // Only burst for hits that landed within this long of now, so replay seeks don't replay old bursts.
 const BURST_WINDOW = 0.3;
@@ -15,7 +15,7 @@ function burstElement(aoe: FloorAoe): FloorAoe["element"] {
 }
 
 export class TelegraphLayer {
-  private meshes: FloorAoeMeshMap = new Map();
+  private meshes: FloorTelegraphMap = new Map();
   // Element AoEs waiting for their hit, and ones already burst (kept while present so each bursts once).
   private pendingBursts = new Map<string, FloorAoe>();
   private burstIds = new Set<string>();
@@ -32,7 +32,7 @@ export class TelegraphLayer {
     this.lastTime = time;
     const aoes = mechanics.filter(m => m.floorAoe).map(m => m.floorAoe!);
     const resolvedIds = new Set(mechanics.filter(m => m.resolved).map(m => m.id));
-    syncFloorAoeMeshes(this.scene, this.meshes, aoes, time, resolvedIds);
+    syncFloorTelegraphs(this.scene, this.meshes, aoes, time, resolvedIds);
     this.syncBursts(aoes, time);
   }
 
@@ -65,7 +65,7 @@ export class TelegraphLayer {
   }
 
   dispose(): void {
-    disposeFloorAoeMeshes(this.meshes);
+    disposeFloorTelegraphs(this.meshes);
     this.pendingBursts.clear();
     this.burstIds.clear();
     this.lastTime = 0;

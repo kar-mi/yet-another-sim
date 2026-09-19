@@ -5,7 +5,7 @@ import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { createShapeMesh } from "./shapeGeometry";
 import { glyphBillboardMaterial } from "./billboards";
 import { createElementFloorMaterial, prewarmElementBurst } from "./elementVfx";
-import { createFloorMaterial } from "./groundAoe";
+import { createFloorTelegraphMaterial } from "./floorTelegraphs";
 
 // Pre-compile one representative of each material family that first appears mid-fight, so the
 // first telegraph or head marker doesn't stall on a synchronous shader compile. Runs once at init,
@@ -15,7 +15,7 @@ export function prewarmShaders(scene: Scene): void {
     // Floor AOE telegraph (two-sided lighting). Every shape and the outline fill share its defines.
     () => {
       const mesh = createShapeMesh(scene, "__prewarm_floor", { kind: "circle", center: { x: 0, z: 0 }, radius: 1 });
-      if (mesh) mesh.material = createFloorMaterial(scene, "__prewarm_floor_mat");
+      if (mesh) mesh.material = createFloorTelegraphMaterial(scene, "__prewarm_floor_mat");
       return mesh;
     },
     // Lit translucent color material (element glyphs, mover orbs).
