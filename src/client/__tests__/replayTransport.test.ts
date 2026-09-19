@@ -69,3 +69,30 @@ describe("ReplayTransport self-correcting deliver", () => {
     }
   });
 });
+
+describe("ReplayTransport sync", () => {
+  test("seeks only when the tick changes, clamps to the duration, and follows play/pause", () => {
+    const transport = new ReplayTransport({ raidId: "", world: {} as World, frames: makeFrames(100) });
+    const started: number[] = [];
+    transport.onMessage(message => {
+      if (message.type === "started") started.push(message.tick);
+    });
+
+    transport.sync({ playing: false, tick: 40 });
+    expect(started).toEqual([40]);
+    expect(transport.isPlaying()).toBe(false);
+
+    transport.sync({ playing: false, tick: 40 });
+    expect(started).toEqual([40]);
+
+    transport.sync({ playing: true, tick: 40 });
+    expect(transport.isPlaying()).toBe(true);
+    transport.sync({ playing: false, tick: 40 });
+    expect(transport.isPlaying()).toBe(false);
+
+    transport.sync({ playing: false, tick: 500 });
+    expect(started).toEqual([40, 100]);
+    expect(transport.currentTick()).toBe(100);
+    transport.close();
+  });
+});

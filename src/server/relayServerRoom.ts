@@ -166,6 +166,7 @@ export class RelayServerRoom extends Room {
         if (parsed.data.type === "join") {
           this.relay.touch();
           this.relay.sendLobby(client.sessionId);
+          this.relay.sendReplay(client.sessionId);
           return;
         }
         if (parsed.data.type === "setRaid") {

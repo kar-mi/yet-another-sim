@@ -51,6 +51,30 @@ function createQuad(scene: Scene, vertices: Vec2[]): Mesh {
   return mesh;
 }
 
+// Gray walls hanging below a floor polygon so it reads as a solid slab.
+function createSlabSides(scene: Scene, vertices: Vec2[]): Mesh {
+  const thickness = 0.5;
+  const data = new VertexData();
+  data.positions = vertices.flatMap((p, i) => {
+    const q = vertices[(i + 1) % vertices.length]!;
+    return [p.x, 0, p.z, q.x, 0, q.z, q.x, -thickness, q.z, p.x, -thickness, p.z];
+  });
+  data.indices = vertices.flatMap((_, i) => [4 * i, 4 * i + 1, 4 * i + 2, 4 * i, 4 * i + 2, 4 * i + 3]);
+
+  const mesh = new Mesh("floor-sides", scene);
+  data.applyToMesh(mesh);
+  mesh.isPickable = false;
+  const mat = new StandardMaterial("floor-sides-mat", scene);
+  mat.diffuseColor = new Color3(0, 0, 0);
+  mat.emissiveColor = new Color3(0.25, 0.25, 0.27);
+  mat.specularColor = new Color3(0, 0, 0);
+  mat.disableLighting = true;
+  mat.backFaceCulling = false;
+  mat.freeze();
+  mesh.material = mat;
+  return mesh;
+}
+
 // Show crosshatching until the floor image loads.
 function createImageQuad(scene: Scene, vertices: Vec2[], imageUrl: string): Mesh {
   const placeholder = createQuad(scene, vertices);
@@ -62,6 +86,8 @@ function createImageQuad(scene: Scene, vertices: Vec2[], imageUrl: string): Mesh
   placeholderMat.backFaceCulling = false;
   placeholder.material = placeholderMat;
   placeholderMat.freeze();
+
+  createSlabSides(scene, vertices).parent = placeholder;
 
   const top = createQuad(scene, vertices);
   top.parent = placeholder; // disposed with the parent via mesh.dispose(false, true)

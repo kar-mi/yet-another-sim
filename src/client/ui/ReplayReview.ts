@@ -20,6 +20,8 @@ export type ReplayReviewControls = {
   pause: () => void;
   seek: (tick: number) => void;
   spectate: (playerId: string) => void;
+  // False for clients following the host's replay: no section picker, and row clicks only spectate.
+  canSeek?: boolean;
 };
 
 export type ReplayReview = {
@@ -106,7 +108,7 @@ export function createReplayReview(
   document.body.appendChild(panel);
   hudLayout.register("replayevents", panel, { dragHandle });
 
-  const sectionPicker = insights.sections.length > 0 ? createSectionPicker(insights.sections, controls) : null;
+  const sectionPicker = controls.canSeek !== false && insights.sections.length > 0 ? createSectionPicker(insights.sections, controls) : null;
 
   const rowElements = new Map<string, HTMLElement>();
 

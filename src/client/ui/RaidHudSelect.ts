@@ -33,7 +33,7 @@ export async function createRaidHudSelect(
   hudLayout: HudLayoutManager,
   initialWorldSeed: number | null = null,
   initialRngConstraints: Record<string, number> = {},
-  replay?: { duration: () => number; currentTick: () => number; play: () => void; pause: () => void; restart: () => void; seek: (tick: number) => void },
+  replay?: { duration: () => number; currentTick: () => number; play: () => void; pause: () => void; restart: () => void; seek: (tick: number) => void; readOnly?: boolean },
   initialRngDecisions: DecisionDescription[] = [],
   initialWaymarkPresetId: string | null = null,
   initialBotPatternOptions: BotPatternOption[] = [],
@@ -216,7 +216,7 @@ export async function createRaidHudSelect(
   document.body.appendChild(modal);
 
   const controls = el("div", { className: "yas-playback-controls" });
-  const canControl = () => !!replay || isHost;
+  const canControl = () => replay ? !replay.readOnly : isHost;
   const makePlaybackBtn = (labelText: string, onClick: () => void) => {
     const btn = el("button", { type: "button", textContent: labelText, disabled: !canControl() });
     btn.addEventListener("click", () => {
@@ -260,6 +260,7 @@ export async function createRaidHudSelect(
     value: "0",
     step: "1",
     ariaLabel: "Replay seek",
+    disabled: !!replay.readOnly,
   }) : null;
   seek?.addEventListener("input", () => {
     draggingSeek = true;
@@ -273,6 +274,7 @@ export async function createRaidHudSelect(
     type: "text",
     value: "00:00",
     ariaLabel: "Replay timestamp",
+    disabled: !!replay.readOnly,
   }) : null;
   const durationLabel = replay ? el("span", {
     className: "yas-replay-duration",
