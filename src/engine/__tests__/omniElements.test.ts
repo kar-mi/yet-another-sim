@@ -167,7 +167,7 @@ test("each wave pair is announced by one ring that reaches the square centers as
   expect(wavesForSeed(3, "r1")[0]!.t).toBe(10.12);
 });
 
-test("ring radius grows linearly over the cast and the pair only flashes on impact for 1s", () => {
+test("ring radius grows linearly over the cast and the pair only flashes on impact for 0.5s", () => {
   const ring = { center: { x: 0, z: 0 }, radius: 20.506 };
   expect(elementRingRadius(ring, 10, 17.83, 9)).toBe(0);
   expect(elementRingRadius(ring, 10, 17.83, 10 + 7.83 / 2)).toBeCloseTo(10.253, 5);
@@ -182,8 +182,8 @@ test("ring radius grows linearly over the cast and the pair only flashes on impa
   for (const m of active) {
     expect(isFloorAoeVisible(m.floorAoe!, first.t + 0.1, false)).toBe(false);
     expect(isFloorAoeVisible(m.floorAoe!, resolveAt - 0.001, false)).toBe(false);
-    expect(isFloorAoeVisible(m.floorAoe!, resolveAt + 0.999, true)).toBe(true);
-    expect(isFloorAoeVisible(m.floorAoe!, resolveAt + 1.001, true)).toBe(false);
+    expect(isFloorAoeVisible(m.floorAoe!, resolveAt + 0.499, true)).toBe(true);
+    expect(isFloorAoeVisible(m.floorAoe!, resolveAt + 0.501, true)).toBe(false);
   }
 });
 
