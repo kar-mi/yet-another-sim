@@ -55,6 +55,7 @@ const GenericSolverRuleSchema = z.object({
   spots: z.record(z.string().min(1), SolverSpotSchema).optional(),
   spot: SolverSpotSchema.optional(),
   safeSpots: z.array(SolverSpotSchema).min(1).optional(),
+  dangerHorizon: z.number().positive().optional(), // safeSpots: only dangers resolving within this many seconds
   // Limit Cut ring placement; `spots[n-1]` (relative/polar) is rotated by the basis of the limit cut
   // named in when.mechanic (see GenericSolverRule.limitCutSpread).
   limitCutSpread: z.object({ spots: z.array(z.union([RelativeSpotSchema, PolarSpotSchema])).min(1) }).optional(),
@@ -117,8 +118,8 @@ const GenericSolverRuleSchema = z.object({
   if ((rule.when.soaks !== undefined || rule.frame === "matched") && rule.when.mechanic === undefined) {
     ctx.addIssue({ code: "custom", path: ["when"], message: "when.soaks and frame: \"matched\" require when.mechanic" });
   }
-  if (rule.safeSpots !== undefined && rule.when.mechanic === undefined) {
-    ctx.addIssue({ code: "custom", path: ["safeSpots"], message: "safeSpots requires when.mechanic naming the AOE(s) to avoid" });
+  if (rule.dangerHorizon !== undefined && (rule.safeSpots === undefined || rule.when.mechanic === undefined)) {
+    ctx.addIssue({ code: "custom", path: ["dangerHorizon"], message: "dangerHorizon requires safeSpots and when.mechanic" });
   }
   if (rule.safeSpots !== undefined && (rule.spot !== undefined || rule.spots !== undefined)) {
     ctx.addIssue({ code: "custom", path: ["safeSpots"], message: "safeSpots cannot be combined with spot / spots" });

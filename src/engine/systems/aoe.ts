@@ -21,7 +21,7 @@ import { buildFloorAoe } from "../floorAoeBuild";
 import { atan2 } from "@shared/dmath";
 import {
   selectTargetPlayer, selectTargetPlayers, inPositionalArc, applyMechanicDamage, applyEffect,
-  effectsForMechanic, balancedEffectOrders, applyKnockback, shapeOrigin, isEffectActiveAt, cleanseElementStacks,
+  effectsForMechanic, balancedEffectOrders, applyKnockback, shapeOrigin, isEffectActiveAt, aoeCanHitPlayer, cleanseElementStacks,
 } from "./helpers";
 import { addResolvedAoeVisual } from "./effectResolvers";
 import { mechanicSource } from "./damageLog";
@@ -367,9 +367,7 @@ export function resolveAoe(ctx: TickContext): {
       for (const player of players) {
         if (!player.alive) continue;
         const inArc = !mechanic.positional || inPositionalArc(mechBoss, player.pos, mechanic.positional);
-        const carries = !mechanic.onlyCarriers || player.effects.some(e => e.name === mechanic.name && isEffectActiveAt(e, time));
-        const targeted = !mechanic.players || mechanic.players.includes(player.id);
-        const hit = carries && targeted && (mechanic.requireFullHp
+        const hit = aoeCanHitPlayer(mechanic, player, time) && (mechanic.requireFullHp
           ? player.hp < player.maxHp
           : pointInShape(mechanic.shape, player.pos) && inArc);
         if (hit) {

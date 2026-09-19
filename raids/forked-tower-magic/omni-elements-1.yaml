@@ -12,6 +12,7 @@
 # The arena stays index_arena_2 even after Elementary Absorption, since arenas can't swap mid-fight yet.
 
 name: Omni-Elements 1
+botPatterns: omni-elements-1-bots
 arena:
   generator: index_arena_2
 duration: 82
@@ -62,6 +63,7 @@ _marker: &marker
 # A wave has no cast bar; its ring leaves the boss at cast start and reaches the square centers
 # (20.506) as the pair detonates, and the pair flashes its color for the final 0.4s. Round 1's first ring leaves as Elementary Expansion ends.
 _wave: &wave
+  labels: [wave]
   type: aoe
   name: Element
   telegraph: 7.83
@@ -100,6 +102,7 @@ _ringHit: &ringHit
 # and detonates at 32.70 1 unit inside the midpoint of that square's center and inner edge (r 15.753), where a
 # small blue pad marks the spot. The floor shape only flashes at detonation.
 _orb: &orb
+  labels: [orb]
   type: aoe
   name: Cleansing
   time: 22.31
@@ -198,13 +201,13 @@ events:
 
   # Elementary Absorption (instant) drops the platforms on this same tick; not modelled (see header).
   - { <<: *castBar, id: elementary-chemistry-cast, time: 58.01, name: Elementary Chemistry, telegraph: 19.97 }
-  # The biggest raidwide of the fight; in game it needs ~80% mitigation.
+  # The biggest raidwide of the fight; in game it needs ~80% mitigation, which the sim lacks, so 45 here.
   - id: elementary-chemistry
     type: aoe
     time: 77.98
     name: Elementary Chemistry
     telegraph: 1.44
-    damage: 80
+    damage: 45
     damageType: magical
     showCastBar: false
     showTelegraph: false
@@ -306,34 +309,34 @@ events:
   - { id: ring1-fire, type: apply_effect, time: 27.32, name: Fire IV, applyEffect: { ref: fire_iv_ring } }
   - { id: ring1-blizzard, type: apply_effect, time: 27.32, name: Blizzard IV, applyEffect: { ref: blizzard_iv_ring } }
   - { id: ring1-thunder, type: apply_effect, time: 27.32, name: Thunder IV, applyEffect: { ref: thunder_iv_ring } }
-  - { <<: *ringHit, id: ring1-n, time: 27.32, shape: *polyN }
-  - { <<: *ringHit, id: ring1-s, time: 27.32, shape: *polyS }
-  - { <<: *ringHit, id: ring1-ne, time: 27.32, shape: *polyNE }
-  - { <<: *ringHit, id: ring1-sw, time: 27.32, shape: *polySW }
-  - { <<: *ringHit, id: ring1-se, time: 27.32, shape: *polySE }
-  - { <<: *ringHit, id: ring1-nw, time: 27.32, shape: *polyNW }
+  - { <<: *ringHit, id: ring1-n, time: 27.32, shape: *polyN, labels: [ring1] }
+  - { <<: *ringHit, id: ring1-s, time: 27.32, shape: *polyS, labels: [ring1] }
+  - { <<: *ringHit, id: ring1-ne, time: 27.32, shape: *polyNE, labels: [ring1] }
+  - { <<: *ringHit, id: ring1-sw, time: 27.32, shape: *polySW, labels: [ring1] }
+  - { <<: *ringHit, id: ring1-se, time: 27.32, shape: *polySE, labels: [ring1] }
+  - { <<: *ringHit, id: ring1-nw, time: 27.32, shape: *polyNW, labels: [ring1] }
 
   # Group 2 (Sealed Implements 1), hit 38.34.
   - { id: ring2-fire, type: apply_effect, time: 32.34, name: Fire IV, applyEffect: { ref: fire_iv_ring } }
   - { id: ring2-blizzard, type: apply_effect, time: 32.34, name: Blizzard IV, applyEffect: { ref: blizzard_iv_ring } }
   - { id: ring2-thunder, type: apply_effect, time: 32.34, name: Thunder IV, applyEffect: { ref: thunder_iv_ring } }
-  - { <<: *ringHit, id: ring2-n, time: 32.34, shape: *polyN }
-  - { <<: *ringHit, id: ring2-s, time: 32.34, shape: *polyS }
-  - { <<: *ringHit, id: ring2-ne, time: 32.34, shape: *polyNE }
-  - { <<: *ringHit, id: ring2-sw, time: 32.34, shape: *polySW }
-  - { <<: *ringHit, id: ring2-se, time: 32.34, shape: *polySE }
-  - { <<: *ringHit, id: ring2-nw, time: 32.34, shape: *polyNW }
+  - { <<: *ringHit, id: ring2-n, time: 32.34, shape: *polyN, labels: [ring2] }
+  - { <<: *ringHit, id: ring2-s, time: 32.34, shape: *polyS, labels: [ring2] }
+  - { <<: *ringHit, id: ring2-ne, time: 32.34, shape: *polyNE, labels: [ring2] }
+  - { <<: *ringHit, id: ring2-sw, time: 32.34, shape: *polySW, labels: [ring2] }
+  - { <<: *ringHit, id: ring2-se, time: 32.34, shape: *polySE, labels: [ring2] }
+  - { <<: *ringHit, id: ring2-nw, time: 32.34, shape: *polyNW, labels: [ring2] }
 
   # Group 3 (Sealed Implements 2), hit 52.37.
   - { id: ring3-fire, type: apply_effect, time: 46.37, name: Fire IV, applyEffect: { ref: fire_iv_ring } }
   - { id: ring3-blizzard, type: apply_effect, time: 46.37, name: Blizzard IV, applyEffect: { ref: blizzard_iv_ring } }
   - { id: ring3-thunder, type: apply_effect, time: 46.37, name: Thunder IV, applyEffect: { ref: thunder_iv_ring } }
-  - { <<: *ringHit, id: ring3-n, time: 46.37, shape: *polyN }
-  - { <<: *ringHit, id: ring3-s, time: 46.37, shape: *polyS }
-  - { <<: *ringHit, id: ring3-ne, time: 46.37, shape: *polyNE }
-  - { <<: *ringHit, id: ring3-sw, time: 46.37, shape: *polySW }
-  - { <<: *ringHit, id: ring3-se, time: 46.37, shape: *polySE }
-  - { <<: *ringHit, id: ring3-nw, time: 46.37, shape: *polyNW }
+  - { <<: *ringHit, id: ring3-n, time: 46.37, shape: *polyN, labels: [ring3] }
+  - { <<: *ringHit, id: ring3-s, time: 46.37, shape: *polyS, labels: [ring3] }
+  - { <<: *ringHit, id: ring3-ne, time: 46.37, shape: *polyNE, labels: [ring3] }
+  - { <<: *ringHit, id: ring3-sw, time: 46.37, shape: *polySW, labels: [ring3] }
+  - { <<: *ringHit, id: ring3-se, time: 46.37, shape: *polySE, labels: [ring3] }
+  - { <<: *ringHit, id: ring3-nw, time: 46.37, shape: *polyNW, labels: [ring3] }
 
   # Cleansing orbs (resolve 32.70).
   - { <<: *castBar, id: cleansing-cast, time: 31.73, name: Cleansing, telegraph: 0.97 }

@@ -3,6 +3,7 @@ import { add, sub, scale, normalize, length, dot } from "@shared/math";
 import { cos, sin } from "@shared/dmath";
 import type { FrameRef, GenericSolverRule, Player, World } from "@shared/types";
 import { pointInShape } from "./shapes";
+import { aoeCanHitPlayer } from "./systems/helpers";
 
 // A live unresolved mechanic the generic solver can match against. `labels`/`group`/`pos` are carried
 // from the authored event (towers have a position; targeted/bait/aoe carry labels+group but no pos).
@@ -478,23 +479,31 @@ export function genericSolverWaypoint(
       continue; // bot has no number yet: fall through to the next rule
     }
     if (rule.safeSpots) {
-      if (rule.frame === undefined) continue;
-      const north = frameNorth(rule.frame, matched, world);
-      if (!north) continue;
-      const rightSign = rule.mirrorLateral && rule.frame !== "matched"
-        ? genericFrameRightSign(rule.frame, world)
-        : 1;
-      const forwardSign = rule.mirrorForward && rule.frame !== "matched"
-        ? genericFrameForwardSign(rule.frame, world)
-        : 1;
-      const origin = originOffset(rule, world);
-      if (!origin) continue;
-      const required = Array.isArray(rule.when.mechanic) ? rule.when.mechanic : [rule.when.mechanic!];
+      // Unframed candidates are absolute world spots.
+      let candidates = rule.safeSpots;
+      if (rule.frame !== undefined) {
+        const north = frameNorth(rule.frame, matched, world);
+        if (!north) continue;
+        const rightSign = rule.mirrorLateral && rule.frame !== "matched"
+          ? genericFrameRightSign(rule.frame, world)
+          : 1;
+        const forwardSign = rule.mirrorForward && rule.frame !== "matched"
+          ? genericFrameForwardSign(rule.frame, world)
+          : 1;
+        const origin = originOffset(rule, world);
+        if (!origin) continue;
+        candidates = rule.safeSpots.map(spot => add(origin, frameToWorld(spot, north, rightSign, forwardSign)));
+      }
+      // Dangers are the live AOEs named by when.mechanic (none without it) that can hit this bot,
+      // optionally only those resolving within dangerHorizon seconds.
+      const required = rule.when.mechanic === undefined ? [] : Array.isArray(rule.when.mechanic) ? rule.when.mechanic : [rule.when.mechanic];
+      const horizon = rule.dangerHorizon;
       const dangers = world.active.filter(event => !event.resolved
         && event.telegraphStart <= world.time && world.time <= event.resolveAt
-        && required.some(id => idOrLabelMatches(id, event.id, event.labels)));
-      const safe = rule.safeSpots
-        .map(spot => add(origin, frameToWorld(spot, north, rightSign, forwardSign)))
+        && (horizon === undefined || event.resolveAt - world.time <= horizon)
+        && required.some(id => idOrLabelMatches(id, event.id, event.labels))
+        && aoeCanHitPlayer(event, player, world.time));
+      const safe = candidates
         .filter(target => dangers.every(event => !pointInShape(event.shape, target)))
         .sort((a, b) => length(sub(a, player.pos)) - length(sub(b, player.pos)))[0];
       if (safe) return safe;

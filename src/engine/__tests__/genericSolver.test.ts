@@ -152,10 +152,42 @@ test("safeSpots chooses the nearest framed candidate outside the matched live AO
   expect(genericSolverWaypoint(player({ pos: { x: 2, z: 2 } }), w)).toEqual({ x: 2, z: 12 });
 });
 
-test("safeSpots schema requires a mechanic and forbids a competing fixed spot", () => {
+test("unframed safeSpots are absolute; ignore dangers that can't hit the bot; ties go to the first listed", () => {
+  const circle = { kind: "circle", center: { x: 0, z: 0 }, radius: 5 };
+  const w = world({
+    time: 2,
+    active: [
+      { id: "fire", name: "Fire IV", labels: ["ring"], onlyCarriers: true, telegraphStart: 0, resolveAt: 5, resolved: false, shape: circle },
+      { id: "other", name: "Ice", labels: ["ring"], players: ["p2"], telegraphStart: 0, resolveAt: 5, resolved: false, shape: { ...circle, center: { x: 10, z: 0 } } },
+    ],
+    botSolvers: { generic: [{ when: { mechanic: "ring" }, safeSpots: [{ x: 0, z: 0 }, { x: 10, z: 0 }, { x: -10, z: 0 }] }] },
+  });
+  const carrier = player({ pos: { x: 1, z: 0 }, effects: [{ name: "Fire IV", appliedAt: 0, duration: 6 }] });
+  // The carrier is hit by the fire circle but not by p2's ice circle; +x and -x are equally near.
+  expect(genericSolverWaypoint(carrier, w)).toEqual({ x: 10, z: 0 });
+  expect(genericSolverWaypoint(player({ pos: { x: 1, z: 0 } }), w)).toEqual({ x: 0, z: 0 });
+});
+
+test("safeSpots without a mechanic is the nearest candidate", () => {
+  const w = world({ botSolvers: { generic: [{ when: { static: true }, safeSpots: [{ x: 0, z: 9 }, { x: 8, z: 4 }] }] } });
+  expect(genericSolverWaypoint(player({ pos: { x: 7, z: 3 } }), w)).toEqual({ x: 8, z: 4 });
+});
+
+test("dangerHorizon only avoids dangers resolving within the horizon", () => {
+  const w = (time: number) => world({
+    time,
+    active: [{ id: "wave-1", telegraphStart: 0, resolveAt: 8, resolved: false, shape: { kind: "circle", center: { x: 0, z: 0 }, radius: 2 } }],
+    botSolvers: { generic: [{ when: { mechanic: "wave-1" }, dangerHorizon: 1.2, safeSpots: [{ x: 0, z: 0 }, { x: 3, z: 0 }] }] },
+  });
+  const bot = player({ pos: { x: 0, z: 0 } });
+  expect(genericSolverWaypoint(bot, w(6))).toEqual({ x: 0, z: 0 });
+  expect(genericSolverWaypoint(bot, w(7))).toEqual({ x: 3, z: 0 });
+});
+
+test("safeSpots schema forbids a competing fixed spot; dangerHorizon needs a mechanic", () => {
   expect(() => loadBotPatterns({
-    players: {}, solvers: { generic: [{ when: { static: true }, frame: [{ boss: { from: "position" } }], safeSpots: [{ r: 2, z: 12 }] }] },
-  })).toThrow(/requires when.mechanic/);
+    players: {}, solvers: { generic: [{ when: { static: true }, dangerHorizon: 1, safeSpots: [{ x: 2, z: 12 }] }] },
+  })).toThrow(/dangerHorizon requires/);
   expect(() => loadBotPatterns({
     players: {}, solvers: { generic: [{ when: { mechanic: "fire" }, frame: [{ boss: { from: "position" } }], spot: { r: 2, z: 2 }, safeSpots: [{ r: 2, z: 12 }] }] },
   })).toThrow(/cannot be combined/);

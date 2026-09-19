@@ -205,6 +205,14 @@ export function isEffectActiveAt(effect: StatusEffect, time: number): boolean {
   return effect.appliedAt + effect.duration > time;
 }
 
+// Whether an aoe's per-player filters let it hit this player: a `players` list (deals) and
+// `onlyCarriers` (the player must carry an active effect named like the aoe). Position is not checked.
+export function aoeCanHitPlayer(mechanic: Pick<ActiveMechanic, "name" | "onlyCarriers" | "players">, player: Player, time: number): boolean {
+  const carries = !mechanic.onlyCarriers || player.effects.some(e => e.name === mechanic.name && isEffectActiveAt(e, time));
+  const targeted = !mechanic.players || mechanic.players.includes(player.id);
+  return carries && targeted;
+}
+
 export function effectActiveDt(effect: StatusEffect, previousTime: number, time: number): number {
   const activeStart = Math.max(previousTime, effect.appliedAt);
   const activeEnd = Math.min(time, effect.appliedAt + effect.duration);
