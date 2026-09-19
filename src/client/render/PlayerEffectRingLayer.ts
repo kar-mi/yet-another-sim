@@ -28,7 +28,8 @@ export class PlayerEffectRingLayer {
 
   sync(players: Player[], time: number, isVisible: (player: Player) => boolean): void {
     for (const player of players) {
-      const effects = player.alive
+      // Build only for visible players: a ring set is 2 materials, a texture and 4 meshes each.
+      const effects = player.alive && isVisible(player)
         ? player.effects.filter(effect => effect.ring && effect.appliedAt + effect.duration > time)
         : [];
       const key = effects.map(effect => `${effect.id}:${effect.ring!.color}:${effect.ring!.icon}`).join("|");
@@ -41,7 +42,6 @@ export class PlayerEffectRingLayer {
       }
       if (!state) continue;
       state.root.position.set(player.pos.x, player.y, player.pos.z);
-      state.root.setEnabled(isVisible(player));
     }
   }
 

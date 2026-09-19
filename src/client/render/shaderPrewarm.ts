@@ -1,10 +1,10 @@
 import type { Scene } from "@babylonjs/core/scene";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
-import type { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
-import type { ActiveMechanic } from "@shared/types";
-import { createTelegraphMesh } from "./meshes/telegraphMeshes";
+import { createShapeMesh } from "./meshes/telegraphMeshes";
 import { glyphBillboardMaterial } from "./meshes/billboardMaterials";
+import { createFloorMaterial } from "./floorAoeSync";
 
 // Pre-compile the shader effects for the material families that first appear mid-fight, so the
 // initial AOE telegraph / head marker doesn't trigger a synchronous shader compile on the main
@@ -14,12 +14,28 @@ import { glyphBillboardMaterial } from "./meshes/billboardMaterials";
 // effect persists). Add a family by appending one factory to `warmups`.
 export function prewarmShaders(scene: Scene): void {
   const warmups: Array<() => Mesh | null> = [
-    // AOE telegraph ground shape. The circle representative shares material defines with the
-    // cone/rect/donut variants, so one compile warms them all.
-    () => createTelegraphMesh(scene, {
-      id: "__prewarm_telegraph",
-      shape: { kind: "circle", center: { x: 0, z: 0 }, radius: 1 },
-    } as unknown as ActiveMechanic),
+    // Floor AOE telegraph (two-sided lighting). Every shape and the outline fill share its defines.
+    () => {
+      const mesh = createShapeMesh(scene, "__prewarm_floor", { kind: "circle", center: { x: 0, z: 0 }, radius: 1 });
+      if (mesh) mesh.material = createFloorMaterial(scene, "__prewarm_floor_mat");
+      return mesh;
+    },
+    // Lit translucent color material (element glyphs, mover orbs).
+    () => {
+      const plane = CreatePlane("__prewarm_lit", { size: 1 }, scene);
+      const mat = new StandardMaterial("__prewarm_lit_mat", scene);
+      mat.alpha = 0.9;
+      plane.material = mat;
+      return plane;
+    },
+    // Unlit color material (element ring tube, player effect ring torus).
+    () => {
+      const plane = CreatePlane("__prewarm_unlit", { size: 1 }, scene);
+      const mat = new StandardMaterial("__prewarm_unlit_mat", scene);
+      mat.disableLighting = true;
+      plane.material = mat;
+      return plane;
+    },
     // Head-marker billboard (alpha-test + emissive + unlit). The glyph and image variants share the
     // same StandardMaterial defines, so the glyph (no network fetch) warms both.
     () => {
