@@ -6,8 +6,8 @@ import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 
-// Updatable tube between two or more points: tethers, line links and any other drawn connection.
-// Reposition with updateLine, which rewrites the vertices of the existing geometry.
+// Updatable tube between two or more points. Reposition with updateLine, which rewrites the
+// vertices of the existing geometry rather than rebuilding it.
 export function createLine(scene: Scene, name: string, path: Vector3[], color: Color3, radius: number): Mesh {
   const material = new StandardMaterial(`${name}-mat`, scene);
   material.diffuseColor = color;

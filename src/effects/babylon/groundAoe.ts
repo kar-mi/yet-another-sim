@@ -43,9 +43,8 @@ function disposeEntry(entry: FloorAoeMeshEntry): void {
   entry.mesh.dispose(false, entry.outline);
 }
 
-// Generic mesh lifecycle (create/update/dispose, keyed by FloorAoe.id) shared by every layer that
-// draws a floor telegraph. This is the one place a FloorAoe's geometry + color/alpha get turned
-// into a Babylon mesh, replacing the bespoke per-layer coloring each render layer used to do.
+// Mesh lifecycle (create/update/dispose, keyed by FloorAoe.id): the one place a FloorAoe's geometry
+// and color/alpha become a Babylon mesh.
 export function syncFloorAoeMeshes(
   scene: Scene,
   meshes: FloorAoeMeshMap,

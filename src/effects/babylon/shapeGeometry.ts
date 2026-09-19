@@ -9,8 +9,7 @@ import type { Scene } from "@babylonjs/core/scene";
 import type { AOEShape } from "../index";
 import { normalize } from "@shared/math";
 
-// Geometry-only ground mesh for an AOE shape (no material). Shared by the telegraph layer
-// and other layers that need to draw a shape footprint (e.g. the inverse "?" telegraph).
+// Geometry-only ground mesh for an AOE shape; the caller supplies the material.
 export function createShapeMesh(scene: Scene, id: string, shape: AOEShape): Mesh | null {
   const Y = 0.01;
   let mesh: Mesh;

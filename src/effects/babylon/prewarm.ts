@@ -7,12 +7,9 @@ import { glyphBillboardMaterial } from "./billboards";
 import { createElementFloorMaterial, prewarmElementBurst } from "./elementVfx";
 import { createFloorMaterial } from "./groundAoe";
 
-// Pre-compile the shader effects for the material families that first appear mid-fight, so the
-// initial AOE telegraph / head marker doesn't trigger a synchronous shader compile on the main
-// thread (a visible hitch). Babylon caches compiled effects by their defines until the engine is
-// disposed, so warming one representative of each family covers every later instance. Runs once at
-// init off the gameplay path; the temp mesh + material are disposed after compilation (the cached
-// effect persists). Add a family by appending one factory to `warmups`.
+// Pre-compile one representative of each material family that first appears mid-fight, so the
+// first telegraph or head marker doesn't stall on a synchronous shader compile. Runs once at init,
+// off the gameplay path. See docs/effects-package.md for why one instance covers the family.
 export function prewarmShaders(scene: Scene): void {
   const warmups: Array<() => Mesh | null> = [
     // Floor AOE telegraph (two-sided lighting). Every shape and the outline fill share its defines.

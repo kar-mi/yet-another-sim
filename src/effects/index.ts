@@ -1,12 +1,5 @@
-// The single constructor for a visualized floor AoE (circle/donut/cone/rect telegraph). Any
-// mechanic that needs to draw a floor shape builds one of these; the underlying AOEShape stays on
-// the mechanic itself for hit-testing/knockback-origin, this is purely the render-facing wrapper
-// (shape + color + when it's visible relative to resolution).
-//
-// Kept as a plain-data class (no instance methods): World is JSON.stringify'd for lockstep hashing
-// (shared/worldHash.ts) and JSON.parse'd back out of replay files (server/replayReader.ts), so a
-// FloorAoe embedded in World state must still work after a JSON round-trip loses its prototype.
-// Visibility logic therefore lives in the standalone isFloorAoeVisible function below, not a method.
+// Renderer-independent visual vocabulary: footprint shapes, the FloorAoe telegraph wrapper and the
+// authored vfx overrides. See docs/effects-package.md.
 
 import type { Vec2 } from "@shared/math";
 
@@ -23,20 +16,16 @@ export type AOEShape =
   | { kind: "polygon"; vertices: Vec2[] };
 
 // Authoring overrides for the effects an AoE draws. Every field is optional and an omitted one
-// keeps the effect's built-in preset; see docs/authoring-raids.md.
+// keeps the effect's built-in preset; the reference is in docs/authoring-raids.md.
 type FloorVfx = {
-  // Draw the element pattern over the footprint. Defaults to on whenever the AoE has an element.
   element?: boolean;
-  // Multiplies the pattern's opacity.
   intensity?: number;
 };
 
 type Range = { min: number; max: number };
 
 export type BurstVfx = {
-  // Bursts are suppressed on outlined AoEs unless this turns them on.
   enabled?: boolean;
-  // Burst with a different element than the floor pattern.
   element?: ElementGlyphKind;
   color?: string;
   count?: number;
@@ -51,7 +40,6 @@ export type WeaponGlowVfx = {
   pulsePeriod?: number;
 };
 
-// Carried on the FloorAoe, so it survives deferred re-anchoring and replay round-trips.
 export type FloorAoeVfx = { floor?: FloorVfx; burst?: BurstVfx };
 
 export type Vfx = FloorAoeVfx & { weaponGlow?: WeaponGlowVfx };
@@ -65,16 +53,15 @@ export type FloorAoeResolveMode =
 const FLOOR_AOE_DEFAULT_LEAD = 0.5;
 const FLOOR_AOE_DEFAULT_TRAIL = 0.2;
 
-// Default colors, matching the conventions each render layer used to hardcode. `color` is required
-// on FloorAoe itself (no implicit convention inside the class or the renderer); these are supplied
-// explicitly by the engine construction sites when a mechanic doesn't author its own override, so
-// existing raid content keeps its current look without needing a mass content migration.
+// Supplied by the engine construction sites when a mechanic authors no color of its own.
 export const DEFAULT_DANGER_COLOR = "#ff260d";     // standard unresolved telegraph red
 export const DEFAULT_STACK_COLOR = "#4db2ff";      // "stack here" blue
 export const DEFAULT_INVERTED_COLOR = "#6699ff";   // inverse "?" shown-shape / flash-before-resolve blue
 export const DEFAULT_GAZE_NORMAL_COLOR = "#408cff";  // carrier cone: honest "look away" eye
 export const DEFAULT_GAZE_REVERSE_COLOR = "#ff591a"; // carrier cone: "?" eye (face me)
 
+// Plain data, no instance methods: a FloorAoe has to survive the JSON round-trip that lockstep
+// hashing and replay reading put the World through, so visibility lives in isFloorAoeVisible below.
 export class FloorAoe {
   readonly id: string;
   readonly shape: AOEShape;
