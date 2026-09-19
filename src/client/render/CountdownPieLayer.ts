@@ -7,26 +7,21 @@ import type { Player } from "@shared/types";
 import { countdownSlicesLeft } from "@shared/countdown";
 import { applyAlphaTest } from "./meshes/billboardMaterials";
 
-// The pie's bottom edge sits this high above the player's feet, just over the head.
+// Height above the player’s feet.
 const PIE_BOTTOM = 2.3;
 const PIE_SIZE = 2;
 const TEXTURE_SIZE = 128;
-// Black spikes point outward from the end of each slice separator. The texture keeps room for them
-// outside the pie, and the plane grows to match so the pie itself stays PIE_SIZE across.
+// Reserve space for spikes without shrinking the pie.
 const SPIKE_PX = 12;
 const SPIKE_BASE_PX = 12;
 const EDGE_PX = 4;
 const PIE_RADIUS_PX = TEXTURE_SIZE / 2 - EDGE_PX - SPIKE_PX;
 const PLANE_SIZE = PIE_SIZE * (TEXTURE_SIZE / 2 - EDGE_PX) / PIE_RADIUS_PX;
 const PIE_COLOR = "#ff9a1f";
-// The top slice boundary sits this far clockwise of north.
+// Top boundary offset, clockwise from north.
 const PIE_ROTATION_DEG = 10;
-// Slice k spans clockwise from boundary k to k + 1. The slice just clockwise of the top boundary
-// empties first, then the rest empty going clockwise around the pie.
-const DRAIN_ORDER = [0, 1, 2, 3, 4];
 
-// Draws the POV player's own countdown pie above their head (see EffectCountdown). Nobody else's
-// pie is drawn.
+// Show the POV player’s countdown above their head.
 export class CountdownPieLayer {
   private plane: Mesh;
   private texture: DynamicTexture;
@@ -67,13 +62,10 @@ export class CountdownPieLayer {
     const step = (Math.PI * 2) / slices;
     // Bearing clockwise from north -> canvas angle (0 = east, clockwise on screen).
     const angle = (k: number) => (PIE_ROTATION_DEG * Math.PI) / 180 + k * step - Math.PI / 2;
-    const order = slices === DRAIN_ORDER.length ? DRAIN_ORDER : Array.from({ length: slices }, (_, i) => i);
-    const gone = new Set(order.slice(0, slices - left));
 
     ctx.clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
     ctx.fillStyle = PIE_COLOR;
-    for (let k = 0; k < slices; k++) {
-      if (gone.has(k)) continue;
+    for (let k = slices - left; k < slices; k++) {
       ctx.beginPath();
       ctx.moveTo(c, c);
       ctx.arc(c, c, outer, angle(k), angle(k + 1));

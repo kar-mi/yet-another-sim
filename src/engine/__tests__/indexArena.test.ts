@@ -39,8 +39,7 @@ test("the hole is a hexagon, not a circle", () => {
 });
 
 test("the hub is a hexagon", () => {
-  // Reaches the circumradius toward a vertex but stops at the apothem mid-edge: a circle could do
-  // neither. (Past a vertex is not probed: the platforms are flush, so their corners sit there.)
+  // Check the hexagon’s vertex radius and mid-edge apothem.
   for (const angle of VERTICES) {
     expect(isOnFloor(at(angle, toCircumradius(OUTER_APOTHEM) - 0.1), base)).toBe(true);
   }

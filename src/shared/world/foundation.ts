@@ -6,7 +6,7 @@ export type Control = "human" | "bot";
 
 export type Status = "running" | "cleared" | "wiped";
 
-// Top-down art for one zone, named here and resolved to a URL by the renderer (like FloorPlan).
+// Zone art resolved by the renderer.
 export type ZoneImage = "index-trapezoid" | "index-square";
 
 export type ZoneShape =
@@ -22,13 +22,12 @@ export type WaymarkId = "A" | "B" | "C" | "D" | "1" | "2" | "3" | "4";
 export type Waymark = { mark: WaymarkId; pos: Vec2 };
 
 export type CrystalElement = "wind" | "fire" | "water" | "earth";
-// Render-only 3D element marker (Index platforms). `kind` is stamped by a label variant.
+// Element glyph; label variants can supply kind.
 export type ElementGlyphKind = "lightning" | "fire" | "ice";
 export type ElementGlyph = { at: Vec2; kind?: ElementGlyphKind };
-// Render-only ring that grows from `center` to `radius` over a cast, carrying element glyphs.
+// Visual ring expanding during a cast.
 export type ElementRing = { center: Vec2; radius: number; kind?: ElementGlyphKind };
-// Render-only object that waits at `from` until `departAt`, then travels straight to its shape's
-// center, arriving at resolve (e.g. Index Cleansing orbs). `sprite` draws it as billboard images.
+// Wait at from until departAt, then reach the shape center at resolve.
 export type Mover = { from: Vec2; departAt: number; scale?: number; sprite?: boolean };
 export type Crystal = { id: string; element: CrystalElement; pos: Vec2; spawnAt: number };
 

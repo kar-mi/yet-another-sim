@@ -41,9 +41,9 @@ const AOEEventSchema = z.object({
   deferred: z.boolean().default(false),
   // Raidwide HP check: ignore position and deal damage to every alive player below full HP; spare players at full HP.
   requireFullHp: z.boolean().default(false),
-  // Only hit players carrying an active effect whose name equals this cast's name (after labels).
+  // Require an active effect with the cast’s name.
   onlyCarriers: z.boolean().optional(),
-  // Only these player ids can be hit (filled in per run by a `deals` pre-roll).
+  // Restrict hits to these players; deals fills this per run.
   players: z.array(z.string().min(1)).optional(),
   // Directional gate: only hit players whose bearing from the boss is within this arc.
   // `center` (radians, clockwise from boss facing; 0 = front) and full `width` (radians).
@@ -63,18 +63,16 @@ const AOEEventSchema = z.object({
   }).optional(),
   // Render-only: ground telegraph color (hex). Defaults to the standard danger red when omitted.
   color: z.string().min(1).optional(),
-  // Render-only: draw the ground telegraph as an outline instead of a fill.
+  // Render the telegraph as an outline.
   outline: z.boolean().optional(),
-  // Render-only: fixed opacity for the ground telegraph (default 0.5 fill / 0.95 outline).
+  // Telegraph opacity (default: 0.5 fill, 0.95 outline).
   telegraphAlpha: z.number().min(0).max(1).optional(),
-  // Render-only: 3D element glyph at `at` while unresolved. `kind` usually comes from a label variant.
+  // Element glyph; label variants can supply kind.
   glyph: z.object({ at: Vec2Schema, kind: ElementGlyphKindSchema.optional() }).optional(),
-  // Render-only: ring growing from `center` to `radius` over the cast, carrying six element glyphs.
-  // `kind` usually comes from a label variant.
+  // Ring expands to radius during the cast; label variants can supply kind.
   ring: z.object({ center: Vec2Schema, radius: z.number().positive(), kind: ElementGlyphKindSchema.optional() }).optional(),
-  // Render-only: an orb (sphere for a circle shape, torus for a donut) that waits at `from` until
-  // `departAt`, then travels straight to the shape center, arriving at resolve. `scale` sizes the orb
-  // (default 1). `sprite` draws the Cleansing orb billboard (rune orb + circle/donut indicator) instead.
+  // Orb waits at from until departAt, then reaches the shape center at resolve.
+  // Scale defaults to 1; sprite selects the Cleansing billboard.
   mover: z.object({ from: Vec2Schema, departAt: z.number().nonnegative(), scale: z.number().positive().optional(), sprite: z.boolean().optional() }).optional(),
   bossId: z.string().min(1).optional(),
 });

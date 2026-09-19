@@ -4,7 +4,7 @@ export type SealedImplement = "bow" | "harp";
 
 const SEALED_IMPLEMENTS_CAST = /^sealed-implements-\d+-(bow|harp)$/;
 
-// The Index's weapon to outline while its Sealed Implements cast bar is up (omni-elements-1.yaml).
+// Select the weapon for the active Sealed Implements cast.
 export function selectSealedImplement(active: ActiveMechanic[]): SealedImplement | null {
   for (const mechanic of active) {
     if (mechanic.resolved) continue;

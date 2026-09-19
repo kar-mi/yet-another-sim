@@ -8,7 +8,7 @@ import type { ActiveMechanic } from "@shared/types";
 import { elementRingRadius } from "@shared/elementRing";
 import { createElementGlyph, type ElementGlyphHandle } from "./meshes/elementGlyphMeshes";
 
-// Ring and glyphs share one height so the glyphs sit on the ring line.
+// Align glyphs with the ring.
 const RING_Y = 2.0;
 const TUBE_RADIUS = 0.08;
 const SEGMENTS = 96;
@@ -26,8 +26,7 @@ function circlePath(cx: number, cz: number, radius: number): Vector3[] {
   });
 }
 
-// Draws each unresolved mechanic's `ring` (see ElementRing): an outline circle growing over the
-// cast, with six element glyphs riding on it, both in the mechanic's color.
+// Expand a ring with six element glyphs during the cast.
 export class ElementRingLayer {
   private rings = new Map<string, RingHandle>();
 
@@ -50,7 +49,7 @@ export class ElementRingLayer {
     for (const [key, m] of wanted) {
       const ring = m.ring!;
       const color = m.color ?? DEFAULT_COLOR;
-      // Keep a visible minimum so the tube builder never gets a degenerate zero-radius path.
+      // Avoid a zero-radius tube.
       const radius = Math.max(0.05, elementRingRadius(ring, m.telegraphStart, m.resolveAt, time));
       const path = circlePath(ring.center.x, ring.center.z, radius);
 

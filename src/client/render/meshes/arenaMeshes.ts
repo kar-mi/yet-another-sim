@@ -19,17 +19,13 @@ export const FLOOR_PLAN_IMAGES: Record<Exclude<Extract<FloorPlan, string>, "squa
   "dmu-p2": `${STATIC_ROOT}/arena_raid_imgs/dmu/p2-cropped.webp`,
 };
 
-// Zone-image name -> top-down art. The quad's first two vertices carry the near edge, the last two
-// the far edge, so a texture maps v=0 at the near edge and v=1 at the far edge.
+// Top-down art for textured arena zones.
 const ZONE_IMAGES: Record<ZoneImage, string> = {
   "index-trapezoid": `${STATIC_ROOT}/arena_raid_imgs/index/trapezoid.webp`,
   "index-square": `${STATIC_ROOT}/arena_raid_imgs/index/square.webp`,
 };
 
-// UVs are projected onto the quad's own axes rather than run across it parametrically. Stretching a
-// texture corner-to-corner would widen it toward the far edge on a trapezoid, where that edge is
-// longer than the near one; a planar projection keeps every motif at its true proportions and lets
-// the outline simply crop whatever falls outside it.
+// Project UVs onto local axes to avoid stretching trapezoid textures.
 function createQuad(scene: Scene, vertices: Vec2[]): Mesh {
   const [a, b, c, d] = vertices as [Vec2, Vec2, Vec2, Vec2];
   const axis = { x: (c.x + d.x) / 2 - (a.x + b.x) / 2, z: (c.z + d.z) / 2 - (a.z + b.z) / 2 };
@@ -44,9 +40,7 @@ function createQuad(scene: Scene, vertices: Vec2[]): Mesh {
 
   const data = new VertexData();
   data.positions = vertices.flatMap(p => [p.x, 0, p.z]);
-  // v is inverted because Babylon's default invertY puts the top of the image at v = 1: without
-  // this the near edge samples the far end of the art, which on a trapezoid means the wide outer
-  // edge reads the texture's narrow end and its corners fall outside the art entirely.
+  // Invert v to align the art’s narrow end with the trapezoid’s near edge.
   data.uvs = vertices.flatMap((_, i) => [(us[i]! - uMin) / uSpan, 1 - (vs[i]! - vMin) / vSpan]);
   data.normals = vertices.flatMap(() => [0, 1, 0]);
   data.indices = [0, 1, 2, 0, 2, 3];
@@ -57,8 +51,7 @@ function createQuad(scene: Scene, vertices: Vec2[]): Mesh {
   return mesh;
 }
 
-// A quad floor carrying top-down art, mirroring createFloorPlanCircle: a crosshatch stand-in shows
-// until the image is decoded, then the textured copy is revealed in its place.
+// Show crosshatching until the floor image loads.
 function createImageQuad(scene: Scene, vertices: Vec2[], imageUrl: string): Mesh {
   const placeholder = createQuad(scene, vertices);
   const placeholderMat = new StandardMaterial("floor-plan-placeholder-mat", scene);
@@ -76,9 +69,7 @@ function createImageQuad(scene: Scene, vertices: Vec2[], imageUrl: string): Mesh
   top.setEnabled(false);
 
   const mat = new StandardMaterial("floor-plan-mat", scene);
-  // The art sits directly over the stand-in and has the same outline, so the stand-in just stays
-  // put underneath rather than being hidden — it is the parent, and disabling it would take the
-  // art with it.
+  // Keep the placeholder parent enabled so its image child stays visible.
   const reveal = () => {
     if (top.isDisposed()) return;
     top.setEnabled(true);

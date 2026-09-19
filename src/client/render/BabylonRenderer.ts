@@ -304,8 +304,7 @@ export class BabylonRenderer implements Renderer {
     this.bossesKey = bossLayersKey(bosses);
   }
 
-  // Single-boss raids all use the id "boss", so the key must include the identity the layers are
-  // built from (model, scale, ring); otherwise switching raids keeps the previous raid's model.
+  // Include model and ring settings: different raids can share the same boss id.
   private bossSetChanged(bosses: Boss[]): boolean {
     return bossLayersKey(bosses) !== this.bossesKey;
   }

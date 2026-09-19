@@ -634,10 +634,7 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
       damageType: "magical",
     },
   },
-  // Index Omni-Elements rings. Names match the pair labels so an `onlyCarriers` platform AoE of the
-  // same element hits the carrier. Hidden from the HUD: the carrier sees colored rings plus a pie that
-  // holds 1s then drains a slice a second, resolving 6s after landing (0.05s tail keeps it active on
-  // the resolve tick).
+  // Ring names match onlyCarriers AOEs. The 0.05s tail keeps them active on the hit tick.
   fire_iv_ring: {
     name: "Fire IV",
     kind: "debuff",
@@ -668,9 +665,7 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     countdown: { delay: 1, slices: 5 },
     behavior: { kind: "none" },
   },
-  // Index Elementary Chemistry. Each element's first hit drops a stack and applies its Resistance
-  // Down II (10s, per FFLogs); a second hit of that element while it's up is lethal. Stacks left at
-  // expiry (the 79.72 Elementary Chemistry follow-up) are lethal too.
+  // Each new element removes a stack and applies resistance down; repeats and expiry are lethal.
   elementary_deficiency: {
     name: "Elementary Deficiency",
     kind: "debuff",

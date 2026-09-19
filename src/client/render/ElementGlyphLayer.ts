@@ -4,12 +4,11 @@ import { moverPosition } from "@shared/mover";
 import { createElementGlyph, type ElementGlyphHandle } from "./meshes/elementGlyphMeshes";
 
 const DEFAULT_COLOR = "#ffffff";
-// A glyph with a `mover` is a smaller copy that grows in over GROW_IN seconds, then rides the mover.
+// Moving glyphs grow to half size before travelling.
 const MOVING_SCALE = 0.5;
 const GROW_IN = 1;
 
-// Draws each unresolved mechanic's `glyph` (see ElementGlyph). Keyed by id + kind + color so a new
-// pull that re-rolls the element under the same id rebuilds the mesh.
+// Include kind and color in the key to handle rerolled elements.
 export class ElementGlyphLayer {
   private glyphs = new Map<string, ElementGlyphHandle>();
 

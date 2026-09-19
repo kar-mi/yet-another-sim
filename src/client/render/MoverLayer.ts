@@ -12,9 +12,7 @@ import { createCleansingOrb } from "./meshes/cleansingOrbMeshes";
 const MOVER_Y = 1.5;
 const DEFAULT_COLOR = "#ffffff";
 
-// Draws each unresolved mechanic's `mover` (see Mover): a sphere for a circle shape, a torus for a
-// donut (or, with `sprite`, the Cleansing orb billboards), parked at `from` and then gliding to the
-// shape center by resolve. A mechanic with a `glyph` is drawn by ElementGlyphLayer instead.
+// Move orbs toward their AOE centers. ElementGlyphLayer handles glyph movers.
 export class MoverLayer {
   private movers = new Map<string, TransformNode>();
 

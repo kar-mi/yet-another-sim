@@ -17,9 +17,7 @@ function createFloorMaterial(scene: Scene, name: string): StandardMaterial {
   const mat = new StandardMaterial(name, scene);
   mat.specularColor = new Color3(0, 0, 0);
   mat.backFaceCulling = false;
-  // Donut ribbons (and any other hand-wound mesh) may face away from the hemispheric light
-  // depending on vertex winding; without this the surface lights with groundColor (black)
-  // regardless of diffuseColor. Two-sided lighting flips the normal for back-facing polygons.
+  // Light both faces so reversed winding does not black out donut ribbons.
   mat.twoSidedLighting = true;
   return mat;
 }
@@ -61,7 +59,7 @@ export function syncFloorAoeMeshes(
       mesh.material = createFloorMaterial(scene, `floor-aoe-mat-${aoe.id}`);
       entry = { mesh, source: aoe };
       if (aoe.style === "outline") {
-        // Parented so disposing the outline also disposes the fill and its material.
+        // Dispose the fill with the outline.
         const fill = createShapeMesh(scene, `${aoe.id}-fill`, aoe.shape);
         if (fill) {
           fill.material = createFloorMaterial(scene, `floor-aoe-fill-mat-${aoe.id}`);
@@ -73,7 +71,7 @@ export function syncFloorAoeMeshes(
     }
     const mat = entry.mesh.material as StandardMaterial;
     mat.diffuseColor.copyFrom(Color3.FromHexString(aoe.color));
-    // Outlines are thin tubes; light them flat so the edge reads as a solid line of color.
+    // Keep outlines bright regardless of lighting.
     if (aoe.style === "outline") mat.emissiveColor.copyFrom(mat.diffuseColor);
     mat.alpha = aoe.alpha ?? (aoe.style === "outline" ? OUTLINE_ALPHA : DEFAULT_ALPHA);
     if (entry.fill) {

@@ -8,9 +8,7 @@ const raid = applyBotPatterns(
   loadBotPatterns(Bun.YAML.parse(await Bun.file("raids/forked-tower-magic/omni-elements-1-bots.yaml").text())),
 );
 
-// The only damage by the end should be the Omni-Elements raidwide (20), one Chemistry pad hit per
-// element (10 each) and the Elementary Chemistry raidwide (45); an extra hit, a second hit of one
-// element, or a leftover Elementary Deficiency stack shows up as lost HP or a death.
+// Expect only raidwides and one Chemistry hit per element; any extra damage fails.
 const EXPECTED_DAMAGE = 20 + 3 * 10 + 45;
 
 const variants: Record<string, number>[] = [];

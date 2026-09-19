@@ -1,13 +1,9 @@
 players: {}
 
-# Omni-Elements 1: the party lives together on the N side and only moves to solve a mechanic.
-# Bots walk in straight lines, and the central hole plus the gaps between squares drop them off the
-# floor, so every move below is radial, between neighboring trapezoids, or a chord across trapezoids.
-#
-# Spot sets (absolute, +z north, +x east):
+# Gather north. Route straight-line moves around the central hole and gaps between squares.
+# Spots use world coordinates (+z north, +x east).
 _spots:
-  # Either side of each trapezoid seam, 1.5 from the seam at r 10.74. The first spot (N side of the
-  # N/NE seam) is home; its NE-side twin is the wave dodge.
+  # Spots flank trapezoid seams; the first two are home and the wave dodge.
   seam: &seam
     - { x: 4.071, z: 10.051 }
     - { x: 6.669, z: 8.551 }
@@ -32,8 +28,7 @@ _spots:
   padS: &padS { x: 0, z: -9 }
   padSW: &padSW { x: -7.794, z: -4.5 }
   padNW: &padNW { x: -7.794, z: 4.5 }
-  # Orb-safe spots: the N/SE/SW squares at r 15.5 (outside every orb variant), plus the three donut
-  # centers (a circle orb covers its own center, so only the donut's survives).
+  # N/SE/SW squares plus donut centers; AOE filtering excludes circle centers.
   orb: &orb
     - { x: 0, z: 15.5 }
     - { x: 13.423, z: -7.75 }
@@ -42,16 +37,14 @@ _spots:
     - { x: 0, z: -15.753 }
     - { x: -13.642, z: 7.877 }
 
-# Walk to the N pad one neighboring pad at a time (~1.5s per hop), used from spawn and to regroup
-# before Elementary Chemistry. Ties go to the first listed spot.
+# Reach north via neighboring pads (~1.5s per hop); ties use list order.
 _hop:
   - &hop0 { when: { static: true }, safeSpots: [*padN, *padNE, *padNW, *padSE, *padSW, *padS] }
   - &hop1 { when: { static: true }, safeSpots: [*padN, *padNE, *padNW, *padSE, *padSW] }
   - &hop2 { when: { static: true }, safeSpots: [*padN, *padNE, *padNW] }
   - &hop3 { when: { static: true }, spot: *padN }
 
-# Ring carriers hold two of the three elements; the player-aware danger filter leaves only the
-# platforms of their third element.
+# Carrier filtering leaves platforms of the player’s missing element safe.
 _rings:
   fireIce: &fireIce [Fire IV, Blizzard IV]
   fireThunder: &fireThunder [Fire IV, Thunder IV]
@@ -66,8 +59,7 @@ solvers:
     - { <<: *hop3, startAt: 4.8, endAt: 6.4 }
     - { when: { static: true }, startAt: 6.4, endAt: 10.1, spot: { x: 4.071, z: 10.051 } }
 
-    # Element waves: only the next wave to land counts, so the group steps across the seam when the
-    # wave is theirs and otherwise stays put. Stragglers use the seam beside them.
+    # Avoid the next wave by stepping across the nearest seam.
     - &waves { when: { mechanic: wave }, startAt: 10.1, endAt: 25.5, dangerHorizon: 1.2, safeSpots: *seam }
 
     # Cleansing orbs + Predict rings: carriers take the nearest orb-safe spot on their safe pair.
@@ -80,9 +72,8 @@ solvers:
     - { <<: *ring1, when: { mechanic: ring1, debuff: *iceThunder } }
     - { when: { static: true }, startAt: 25.5, endAt: 33.33, spot: { x: 0, z: 15.5 } }
 
-    # Sealed Implements 1 + Implement 1 rings. Bow: inner trapezoids; harp: squares. Harp carriers
-    # walk into their safe trapezoid first, since neighboring squares aren't connected.
-    # The implement lands before the ring hit; hold the solved spot until then.
+    # Bow: inner trapezoids. Harp: enter a safe trapezoid before its square.
+    # Hold the solved spot between the implement and ring hits.
     - { when: { static: true }, startAt: 37.66, endAt: 38.35, freeze: true }
     - &ring2Bow { when: { mechanic: ring2, debuff: *fireIce, selectedEvent: sealed-implements-1-bow }, startAt: 33.33, endAt: 38.35, safeSpots: *trap }
     - { <<: *ring2Bow, when: { mechanic: ring2, debuff: *fireThunder, selectedEvent: sealed-implements-1-bow } }
@@ -98,8 +89,7 @@ solvers:
 
     - { <<: *waves, startAt: 38.35, endAt: 48.1 }
 
-    # Sealed Implements 2 + Implement 2 rings. Everyone starts at a seam, from which a straight walk
-    # to any nearby square stays on the floor, so harp carriers go directly.
+    # From a seam, harp carriers can reach their nearest safe square directly.
     - { when: { static: true }, startAt: 51.85, endAt: 52.4, freeze: true }
     - &ring3Bow { when: { mechanic: ring3, debuff: *fireIce, selectedEvent: sealed-implements-2-bow }, startAt: 48.1, endAt: 52.4, safeSpots: *trap }
     - { <<: *ring3Bow, when: { mechanic: ring3, debuff: *fireThunder, selectedEvent: sealed-implements-2-bow } }
@@ -116,8 +106,7 @@ solvers:
     - { <<: *hop2, startAt: 55.6, endAt: 57.2 }
     - { <<: *hop3, startAt: 57.2, endAt: 58.8 }
 
-    # Elementary Chemistry: stand on the pad being hit, stepping clockwise from N when N isn't hit.
-    # N, NE, SE, S belong to pairs 0, 1, 2, 0, so either order takes each element once.
+    # Follow the active pads clockwise from north to take each element once.
     - { when: { selectedEvent: chem-a1-n }, startAt: 58.8, endAt: 66.97, spot: *padN }
     - { when: { selectedEvent: chem-a2-ne }, startAt: 66.97, endAt: 70.0, spot: *padNE }
     - { when: { selectedEvent: chem-a3-se }, startAt: 70.0, endAt: 73.03, spot: *padSE }

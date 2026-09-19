@@ -54,9 +54,7 @@ const OptionalsSchema = z.object({
     rng: z.boolean().default(false),
     groups: z.array(z.array(EventIdSchema).min(1)).length(2),
   }).optional(),
-  // Seeded per-run permutation of cast times across groups of events (see shuffleEventTimes). Each
-  // entry deals its groups' authored time/telegraph back out in a shuffled order; `noRepeatAfter`
-  // names an earlier entry whose last group this entry's first group may not repeat.
+  // Shuffle group timings; noRepeatAfter prevents repeating the preceding entry’s last group.
   timeShuffle: z.array(z.object({
     id: z.string().min(1),
     rng: z.boolean().default(false),
@@ -93,8 +91,7 @@ const OptionalsSchema = z.object({
         name: z.string().min(1).optional(),
       })).min(1),
     }).optional(),
-    // Seeded assignment of {name, color} variants across slots of event ids (see buildLabelPlan).
-    // Variants and slots pair up one-to-one, so a raid can roll which mechanic identity lands where.
+    // Assign one name/color/glyph variant per event slot.
     labels: z.record(z.string().min(1), z.object({
       rng: z.boolean().default(false),
       slots: z.array(z.array(EventIdSchema).min(1)).min(1),
@@ -109,9 +106,7 @@ const OptionalsSchema = z.object({
       rng: z.boolean().default(false),
       sets: z.array(z.array(EventIdSchema).min(1)).min(1),
     })).optional(),
-    // Seeded deal of the roster into groups (see applyDeals). Each player lands in one group and rolls
-    // one variant; the variant picks which of its group's apply_effect `effects` it receives, and the
-    // group's `aoes` are limited to its members. Group sizes must add up to the roster.
+    // Deal the roster into groups; variants choose effects, and AOEs target group members.
     deals: z.record(z.string().min(1), z.object({
       rng: z.boolean().default(false),
       groups: z.array(z.object({

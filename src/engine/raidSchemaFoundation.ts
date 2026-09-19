@@ -39,9 +39,7 @@ export const ZoneShapeSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("polygon"), vertices: z.array(Vec2Schema).min(3), image: z.enum(["index-trapezoid", "index-square"]).optional() }),
 ]);
 
-// A raid gives either an explicit `zones` list or a `generator` name, never both. Generators exist
-// for shapes that can't reasonably be written by hand (see arenaGenerators.ts); either way the rest
-// of the engine only ever sees a resolved `zones` array.
+// Accept zones or a generator; expose resolved zones to the engine.
 export const ArenaSchema = z.object({
   zones: z.array(ZoneShapeSchema).min(1).optional(),
   generator: z.enum(ARENA_GENERATOR_IDS).optional(),

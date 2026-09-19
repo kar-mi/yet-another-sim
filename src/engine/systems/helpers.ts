@@ -189,7 +189,7 @@ export function findInterceptor(players: Player[], src: Vec2, tgt: Vec2, exclude
 
 export function shapeOrigin(shape: AOEShape): Vec2 {
   if (shape.kind === "circle" || shape.kind === "donut") return shape.center;
-  // A polygon has no authored anchor, so knockbacks and follow-ups push from its vertex average.
+  // Use the vertex average as a polygon’s knockback origin.
   if (shape.kind === "polygon") {
     const sum = shape.vertices.reduce((acc, v) => ({ x: acc.x + v.x, z: acc.z + v.z }), { x: 0, z: 0 });
     return { x: sum.x / shape.vertices.length, z: sum.z / shape.vertices.length };
@@ -205,8 +205,7 @@ export function isEffectActiveAt(effect: StatusEffect, time: number): boolean {
   return effect.appliedAt + effect.duration > time;
 }
 
-// Whether an aoe's per-player filters let it hit this player: a `players` list (deals) and
-// `onlyCarriers` (the player must carry an active effect named like the aoe). Position is not checked.
+// Check player and carrier filters, independent of position.
 export function aoeCanHitPlayer(mechanic: Pick<ActiveMechanic, "name" | "onlyCarriers" | "players">, player: Player, time: number): boolean {
   const carries = !mechanic.onlyCarriers || player.effects.some(e => e.name === mechanic.name && isEffectActiveAt(e, time));
   const targeted = !mechanic.players || mechanic.players.includes(player.id);
@@ -348,8 +347,7 @@ export function effectsForMechanic(mechanic: ActiveMechanic, randInt: (n: number
   return specs;
 }
 
-// A hit by mechanic `name` drops one stack from each active elementCleanse effect that lists it and
-// hasn't cleansed it yet, applying that element's mapped effect. The effect is removed at 0 stacks.
+// Cleanse each element once, apply its mapped effect, and remove the debuff at zero stacks.
 export function cleanseElementStacks(dc: DamageContext, player: Player, name: string, players: Player[]): void {
   for (const effect of player.effects.slice()) {
     if (!isEffectActiveAt(effect, dc.time) || effect.behavior.kind !== "elementCleanse") continue;

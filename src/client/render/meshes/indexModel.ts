@@ -10,15 +10,12 @@ import type { Scene } from "@babylonjs/core/scene";
 import { STATIC_ROOT } from "../../staticBase";
 import { applyAlphaTest } from "./billboardMaterials";
 
-// The Index is a set of extruded drawings: slabs whose front, back and side walls all come from one
-// grid of the front art's silhouette, so the faces and walls meet exactly. The front and back art are
-// painted onto those faces, with his four weapons hovering beside him as thinner slabs.
+// Extrude the Index’s body and weapons from their image silhouettes.
 const INDEX_IMAGE_ROOT = `${STATIC_ROOT}/model/boss/index/`;
 
 const BODY_HEIGHT = 8;
 const BODY_DEPTH = 1.2;
-// static/model/boss/index/{front,back}.png: width / height, and the robe hem's row as a fraction of the
-// height, so each face is placed with its hem on the ground instead of its transparent margin.
+// Image aspect ratios and hem positions, used to align the robe with the floor.
 const FRONT = { aspect: 1024 / 834, hem: 740 / 834 };
 const BACK = { aspect: 1024 / 838, hem: 772 / 838 };
 
@@ -26,22 +23,20 @@ const BACK = { aspect: 1024 / 838, hem: 772 / 838 };
 const WEAPON_UNITS_PER_PX = 3.5 / 789;
 const WEAPON_DEPTH = 0.3;
 const WEAPON_HEIGHT_ABOVE_GROUND = 3;
-// Toward his facing (+Z), clear of the body slab's front face at BODY_DEPTH / 2.
+// Place weapons ahead of the body’s front face (+Z).
 const WEAPON_FORWARD = 1.5;
 const OUTLINE_PX = 24;
 const OUTLINE_COLOR = "#8fd14f"; // the implement aoe color in omni-elements-1.yaml
-// The highlighted weapon also blooms through a GlowLayer, pulsing between these intensities.
+// Pulse the highlighted weapon’s glow.
 const GLOW_COLOR = new Color4(0.35, 1, 0.25, 1);
 const GLOW_INTENSITY = { min: 0.5, max: 1 };
 const GLOW_PULSE_SECONDS = 1.2;
 
-// The silhouette grid samples the art every CELL_PX pixels; walls are shaded by which way they face.
+// Sample the silhouette every CELL_PX pixels.
 const CELL_PX = 4;
 const WALL_SHADE = { up: 0.9, side: 0.75, down: 0.55 };
 
-// Boss-local +X is his right (he faces +Z), so from his right to left: bow, bell, harp, sword. At
-// weapon height the robe spans x 2.46..-1.66 and the staff stands at x -3.7, so the harp sits
-// between the robe and the staff and the sword just past it.
+// Weapon offsets in boss-local space (+X right, +Z forward).
 const WEAPONS = [
   { name: "bow", width: 648, height: 789, x: 5.45 },
   { name: "bell", width: 266, height: 440, x: 3.25 },
@@ -54,7 +49,7 @@ export type IndexWeapon = (typeof WEAPONS)[number]["name"];
 export type IndexModel = {
   root: Mesh;
   height: number;
-  // Outlines and glows one weapon (or none); call every frame so the glow pulses.
+  // Call each frame to highlight and pulse one weapon.
   highlight(weapon: IndexWeapon | null): void;
   dispose(): void;
 };
@@ -84,7 +79,7 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
     node.position.set(weapon.x, WEAPON_HEIGHT_ABOVE_GROUND, WEAPON_FORWARD);
     node.parent = root;
 
-    // Sits in the slab's middle plane, so the slab hides it except where it grows past the silhouette.
+    // The slab hides the outline except beyond its silhouette.
     const outline = CreatePlane(`${name}-weapon-${weapon.name}-outline`, {
       width: (weapon.width + 2 * OUTLINE_PX) * WEAPON_UNITS_PER_PX,
       height: (weapon.height + 2 * OUTLINE_PX) * WEAPON_UNITS_PER_PX,
@@ -98,8 +93,7 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
     weaponNodes.set(weapon.name, node);
   }
 
-  // Only the highlighted weapon's meshes are in the glow (an empty include list would glow everything,
-  // so the layer is disabled instead), and they bloom in one flat color whatever their material.
+  // Disable an empty glow layer: an empty include list would glow everything.
   const glow = new GlowLayer(`${name}-glow`, scene, { blurKernelSize: 64 });
   glow.customEmissiveColorSelector = (_mesh, _subMesh, _material, result) => result.copyFrom(GLOW_COLOR);
   glow.isEnabled = false;
@@ -108,7 +102,7 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
 
   const highlight = (weapon: IndexWeapon | null) => {
     for (const [name, outline] of outlines) outline.setEnabled(name === weapon);
-    // The slab's meshes arrive once its art loads, so refresh until they are all in.
+    // Refresh as the weapon art loads.
     const meshes = weapon ? weaponNodes.get(weapon)!.getChildMeshes() : [];
     if (weapon !== glowWeapon || meshes.length !== glowing.length) {
       for (const mesh of glowing) glow.removeIncludedOnlyMesh(mesh);
@@ -126,8 +120,7 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
   return { root, height: BODY_HEIGHT, highlight, dispose: () => glow.dispose() };
 }
 
-// `front` faces +Z and `back` faces -Z, `depth` apart. A null `back` shows the front art from behind
-// (mirrored, as the far side of the same solid). Meshes are added once the art has loaded.
+// Faces point along ±Z; a missing back uses mirrored front art. Load meshes asynchronously.
 function slab(scene: Scene, name: string, front: Face, back: Face | null, depth: number): Mesh {
   const node = new Mesh(name, scene);
   node.isPickable = false;
@@ -277,8 +270,7 @@ function canvasOf(image: HTMLImageElement): HTMLCanvasElement {
   return canvas;
 }
 
-// The art with its edge colors smeared outward by a cell, so a solid cell that is only partly covered
-// by the drawing has no transparent (black) texels on its face.
+// Extend edge colors by one cell to prevent black texels along the silhouette.
 function bleed(image: HTMLImageElement | HTMLCanvasElement): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = image.width;
@@ -294,15 +286,14 @@ function bleed(image: HTMLImageElement | HTMLCanvasElement): HTMLCanvasElement {
   return canvas;
 }
 
-// The back art over the front art seen from behind, so wherever the back drawing doesn't cover the
-// front's silhouette the slab shows the front's colors instead of a hole.
+// Fill gaps in the back silhouette with mirrored front art.
 function backCanvas(frontArt: HTMLCanvasElement, front: Face, backImage: HTMLImageElement, back: Face): HTMLCanvasElement {
   const wb = backImage.width, hb = backImage.height;
   const canvas = document.createElement("canvas");
   canvas.width = wb;
   canvas.height = hb;
   const ctx = canvas.getContext("2d")!;
-  // Front pixel -> slab position -> back pixel (the back face is seen from -Z, so x runs the other way).
+  // Map front pixels to back pixels, reversing x.
   const sx = (wb * front.width) / (frontArt.width * back.width);
   const sy = (hb * front.height) / (frontArt.height * back.height);
   ctx.setTransform(-sx, 0, 0, sy, wb * (0.5 + (0.5 * front.width) / back.width), hb * (0.5 - (front.y - back.y) / back.height - (0.5 * front.height) / back.height));

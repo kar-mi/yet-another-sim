@@ -49,10 +49,8 @@ export type GenericSolverRule = {
   mirrorForward?: boolean;
   spots?: Record<string, Vec2>; // per-player spot; wins over spot
   spot?: Vec2;                   // one spot for every matching bot
-  // Candidate spots transformed through frame/origin like `spot` (absolute when unframed). The
-  // solver chooses the nearest candidate outside every live AOE matched by when.mechanic that can hit
-  // this bot (its `players` / `onlyCarriers` filters); without when.mechanic it is simply the nearest
-  // candidate. Ties go to the first listed.
+  // Choose the nearest candidate safe from matching AOEs that can hit this bot; ties use list order.
+  // Use frame/origin when framed, otherwise world coordinates.
   safeSpots?: Vec2[];
   // safeSpots only: ignore dangers resolving more than this many seconds from now.
   dangerHorizon?: number;

@@ -36,11 +36,9 @@ export type EffectBehavior =
   | { kind: "primordialCrust"; expiryDamage: number; expiryDamageType: DamageType }
   // Cleansed by healing carrier to full HP. Uncleansed expiry is lethal.
   | { kind: "accretion"; expiryDamage: number; expiryDamageType: DamageType }
-  // One stack per key of `elements` (mechanic names). The first hit by each listed mechanic drops a
-  // stack and applies its mapped effect ref; a repeat of the same element drops nothing. Removed
-  // at 0 stacks; uncleansed expiry deals expiryDamage.
+  // Each new element hit removes a stack and applies its mapped effect; remaining stacks deal expiry damage.
   | { kind: "elementCleanse"; elements: Record<string, string>; expiryDamage: number; expiryDamageType: DamageType }
-  // Damage from mechanics named `mechanic` is multiplied while active (not consumed on hit).
+  // Multiply matching mechanic damage without consuming the effect.
   | { kind: "elementVuln"; mechanic: string; multiplier: number }
   // At expiry, require voluntary move/jump activity (or stillness) in the final time window.
   // Failure launches the carrier, then applies damage when they land.
@@ -69,9 +67,9 @@ export type EffectSpec = {
   // Optional above-head marker image: a bare filename served from /static/head_markers/.
   markerIcon?: string;
   markerIconScale?: number; // per-icon size multiplier (default 4)
-  // Optional colored ring drawn around the player; `icon` is a filename under /static/element_icons/.
+  // Player ring; icon filename under /static/element_icons/.
   ring?: EffectRing;
-  // Optional above-head pie countdown shown only to the carrier (see @shared/countdown).
+  // Countdown above the carrier’s head.
   countdown?: EffectCountdown;
 };
 
@@ -100,9 +98,9 @@ export type StatusEffect = {
   // Optional above-head marker image: a bare filename served from /static/head_markers/.
   markerIcon?: string;
   markerIconScale?: number; // per-icon size multiplier (default 4)
-  // Optional colored ring drawn around the player; `icon` is a filename under /static/element_icons/.
+  // Player ring; icon filename under /static/element_icons/.
   ring?: EffectRing;
-  // Optional above-head pie countdown shown only to the carrier (see @shared/countdown).
+  // Countdown above the carrier’s head.
   countdown?: EffectCountdown;
   // Set when a confusion debuff lands: the player it forces this player to walk toward.
   lockedTargetId?: string;

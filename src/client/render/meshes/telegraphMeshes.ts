@@ -88,8 +88,7 @@ export function createShapeMesh(scene: Scene, id: string, shape: AOEShape): Mesh
   return mesh;
 }
 
-// Edge-only mesh for a circle or polygon (a closed tube along the outline). Other shapes fall back
-// to the filled footprint.
+// Outline circles and polygons; use filled meshes for other shapes.
 export function createShapeOutlineMesh(scene: Scene, id: string, shape: AOEShape): Mesh | null {
   const Y = 0.03;
   let points: Vector3[];

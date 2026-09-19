@@ -1,5 +1,4 @@
-# Index Arena Test — walk the generated Index floor. Swap the generator to index_arena_2 to see the
-# expanded state (platforms on all six edges, raised by Elementary Expansion mid-fight).
+# Walk the Index floor; use index_arena_2 for all six platforms.
 
 name: Index Arena Test
 arena:

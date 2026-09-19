@@ -132,10 +132,7 @@ function applyOrderSwap(
   return { events: result as RaidDef["events"], rngState: roll.state };
 }
 
-// Seeded per-run permutation of cast times across groups of events: each entry collects its groups'
-// authored (t, telegraph) slots and deals them back out shuffled, so an authored wave order becomes a
-// random one while the events themselves stay put. Groups at the same index across entries are
-// assumed to describe the same thing, which is what `noRepeatAfter` compares.
+// Shuffle group timings. Matching group indices identify the same pair across entries.
 function shuffleEventTimes(
   events: RaidDef["events"],
   timeShuffle: NonNullable<RaidDef["optionals"]>["timeShuffle"] | undefined,
@@ -159,8 +156,7 @@ function shuffleEventTimes(
 
     const order = entry.groups.map((_, i) => i);
     if (entry.rng) {
-      // The first slot is drawn from the allowed groups directly rather than by rejection, so the
-      // number of rolls never depends on the outcome and a pinned decision replays identically.
+      // Draw directly from eligible groups so pinned choices preserve later RNG draws.
       const forbiddenFirst = entry.noRepeatAfter === undefined ? -1 : lastGroupOf[entry.noRepeatAfter] ?? -1;
       const allowed = order.filter(i => i !== forbiddenFirst);
       const firstRoll = randomInt(nextState, allowed.length);
@@ -245,8 +241,7 @@ function rotateDivebombSweep(
 
 type EndingCombination = NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["endings"];
 
-// Shuffle once, then fill forced slots without assigning the same variant twice.
-// Labels and directional endings share the same per-slot override semantics.
+// Shuffle variants, then fill forced slots without duplicates.
 function rollVariantOrder(
   count: number,
   rngState: number,
@@ -270,8 +265,7 @@ function rollVariantOrder(
   return { order: arranged, rngState };
 }
 
-// Seeded assignment of {name, color} variants to slots of event ids: the variants are shuffled and
-// dealt one per slot, so which mechanic identity lands on which group of events changes per run.
+// Assign one name/color/glyph variant per event slot.
 type LabelVariant = NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["labels"] extends
   Record<string, { variants: (infer V)[] }> | undefined ? V : never;
 
@@ -462,11 +456,8 @@ function applyHeadSequence(
 
 type Deals = NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["deals"];
 
-// Seeded deal of the roster into each deal's groups, plus one variant per player. Always shuffles and
-// rolls every variant, so forcing a key never shifts later draws. Players forced into a group take
-// their seats first; the rest fill the remaining seats group by group in shuffled order. Rewrites the
-// groups' apply_effect `effects` to the members whose variant includes them (dropping any left with no
-// one) and limits the groups' `aoes` to their members.
+// Deal players into groups and select their effects and AOEs.
+// Always consume all RNG draws so forced choices leave later rolls unchanged.
 function applyDeals(
   events: RaidDef["events"],
   deals: Deals,

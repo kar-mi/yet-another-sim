@@ -61,11 +61,11 @@ export type ActiveMechanic = {
   // Ground telegraph color (hex). Kept alongside showTelegraph/telegraphMode/flashBeforeResolve so a
   // deferred cleave can rebuild floorAoe when a bait arms it (see buildFloorAoe).
   color?: string;
-  // Render-only: 3D element glyph drawn at `glyph.at` while the mechanic is unresolved.
+  // Element glyph shown while unresolved.
   glyph?: ElementGlyph;
-  // Render-only: ring growing to `ring.radius` over the cast (telegraphStart → resolveAt).
+  // Visual ring expanding during the cast.
   ring?: ElementRing;
-  // Render-only: object travelling from `mover.from` to the shape center (see Mover).
+  // Visual mover travelling to the shape center.
   mover?: Mover;
 };
 
@@ -104,7 +104,7 @@ export type PendingEvent = {
   flashBeforeResolve?: FlashBeforeResolve;
   // Ground telegraph color (hex). Defaults to the standard danger red when omitted.
   color?: string;
-  // Render-only: draw the telegraph as an outline instead of a fill.
+  // Outline telegraph.
   outline?: boolean;
   telegraphAlpha?: number;
   glyph?: ElementGlyph;

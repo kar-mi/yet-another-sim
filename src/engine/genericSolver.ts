@@ -494,8 +494,7 @@ export function genericSolverWaypoint(
         if (!origin) continue;
         candidates = rule.safeSpots.map(spot => add(origin, frameToWorld(spot, north, rightSign, forwardSign)));
       }
-      // Dangers are the live AOEs named by when.mechanic (none without it) that can hit this bot,
-      // optionally only those resolving within dangerHorizon seconds.
+      // Avoid matching AOEs that can hit this bot within the danger horizon.
       const required = rule.when.mechanic === undefined ? [] : Array.isArray(rule.when.mechanic) ? rule.when.mechanic : [rule.when.mechanic];
       const horizon = rule.dangerHorizon;
       const dangers = world.active.filter(event => !event.resolved

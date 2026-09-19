@@ -37,7 +37,7 @@ export class BossLayer {
     else void this.loadModel(mesh, `${boss.model}.glb`);
   }
 
-  // The Index has no glb; it is built from flat drawings (see meshes/indexModel.ts).
+  // Build the Index from drawings instead of a GLB.
   private buildIndex(anchor: Mesh, bossId: string): void {
     const model = buildIndexModel(this.scene, `boss-${bossId}-index`);
     const modelTop = BOSS_MODEL_RAISE + model.height * this.modelScale;

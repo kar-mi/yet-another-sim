@@ -15,14 +15,11 @@ const GAP = 0.15;   // vertical gap between the two halves
 
 export type ElementGlyphHandle = {
   root: TransformNode;
-  // Pose the glyph for render time `time` (seconds).
+  // Animate at time in seconds.
   animate: (time: number) => void;
 };
 
-// Index element marker. Positive rotation.y is clockwise seen from above.
-//   lightning: two triangular pyramids tip-to-base (a rhombus), spinning CCW together.
-//   fire: a cube split into two slabs; top spins CW, bottom CCW.
-//   ice: a plain sphere.
+// Lightning spins counterclockwise; fire halves counter-rotate; ice stays still.
 export function createElementGlyph(scene: Scene, id: string, kind: ElementGlyphKind, color: string, at: Vec2, scale = 1): ElementGlyphHandle {
   const root = new TransformNode(`glyph-${id}`, scene);
   root.position.set(at.x, GLYPH_Y * scale, at.z);

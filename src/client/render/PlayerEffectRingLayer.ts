@@ -9,22 +9,18 @@ import type { Player } from "@shared/types";
 import { STATIC_ROOT } from "../staticBase";
 import { imageBillboardMaterial } from "./meshes/billboardMaterials";
 
-// Heights above the player's feet: the first ring floats at the knees, the second at the chest.
+// Ring heights above the player’s feet.
 const RING_HEIGHTS = [0.5, 0.8];
 const RING_HEIGHT_STEP = 0.4; // spacing for any ring past the listed heights
 const RADIUS = 0.7;
 const THICKNESS = 0.05;
 const ICON_SIZE = 0.4;
-// Icon bearings (degrees clockwise from north, fixed in the world). The knee ring's icons sit at
-// S/NW/NE and the chest ring's at N/SE/SW, so the two sets alternate; later rings repeat the pattern.
+// Alternate icon bearings between rings (degrees clockwise from north).
 const ICON_BEARINGS = [[180, 300, 60], [0, 120, 240]];
 
 type RingState = { key: string; root: TransformNode };
 
-// Draws a thin colored ring floating around a player for every active effect with a `ring` (the
-// renderer only shows the POV player's own, like the countdown pie), each
-// at its own height (knees, then chest) so they never overlap, with three billboard copies of its
-// element icon spaced evenly around it.
+// Stack effect rings with three element icons each; visibility follows the POV.
 export class PlayerEffectRingLayer {
   private rings = new Map<string, RingState>();
 

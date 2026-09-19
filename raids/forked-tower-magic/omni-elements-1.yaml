@@ -1,17 +1,8 @@
-# The Index - Omni-Elements 1. t=0 is the Omni-Elements begincast; every time below is measured from
-# the ranked clears cached in scripts/raid_analyzer/.cache (see .claude/plans for the derivation).
-#
-# Each opposite pair of platforms (trapezoid + square) is one element, assigned per run. Six waves per
-# round, ~1.5s apart, each detonating one pair; every element fires twice per round and the order is
-# two permutations with no repeat across the join.
-#
-# Elementary Chemistry (58.01-79.72): everyone gets 3 stacks of Elementary Deficiency and must take one
-# hit of each element from the trapezoid pads (three waves, alternating trapezoids) or die at 79.72.
-#
-# Waves, orbs and implements are avoidable: each hit adds a Thrice Come Ruin stack, and the third kills.
-#
-# Runs through the Elementary Chemistry raidwide (79.42) and stops before All-Knowing Flames (86.18).
-# The arena stays index_arena_2 even after Elementary Absorption, since arenas can't swap mid-fight yet.
+# The Index - Omni-Elements 1; timings relative to the opening cast, from cached raid logs.
+# Opposite platform pairs share an element. Each round fires two permutations, with no repeat at the join.
+# Chemistry requires one hit per element; uncleansed stacks kill at 79.72.
+# Waves, orbs and implements add Thrice Come Ruin; the third stack kills.
+# Ends before All-Knowing Flames. The expanded arena stays up after Absorption (no mid-fight swap).
 
 name: Omni-Elements 1
 botPatterns: omni-elements-1-bots
@@ -40,8 +31,7 @@ sections:
   - { id: implement-2, name: Implement 2, t: 50.82 }
   - { id: chemistry, name: Elementary Chemistry, t: 58.01 }
 
-# One pair end = the trapezoid wedge plus the square platform flush against it. Hexagon apothem 13,
-# hole apothem 5.6, platform side 15.011 (src/engine/arenaGenerators.ts).
+# Each pair end combines a trapezoid and square; dimensions match arenaGenerators.ts.
 _shapes:
   polyN: &polyN { kind: polygon, vertices: [[-3.233, 5.6], [3.233, 5.6], [7.506, 13], [7.506, 28.011], [-7.506, 28.011], [-7.506, 13]] }
   polyS: &polyS { kind: polygon, vertices: [[3.233, -5.6], [-3.233, -5.6], [-7.506, -13], [-7.506, -28.011], [7.506, -28.011], [7.506, -13]] }
@@ -62,8 +52,7 @@ _marker: &marker
   showCastBar: false
   showTelegraph: true
 
-# A wave has no cast bar; its ring leaves the boss at cast start and reaches the square centers
-# (20.506) as the pair detonates, and the pair flashes its color for the final 0.4s. Round 1's first ring leaves as Elementary Expansion ends.
+# The ring reaches the square centers at impact; platforms flash for the final 0.4s.
 _wave: &wave
   applyEffect: { ref: thrice_come_ruin }
   labels: [wave]
@@ -100,10 +89,8 @@ _ringHit: &ringHit
   showCastBar: false
   showTelegraph: false
 
-# Cleansing orbs: two circles and one donut. Each spawns 1s after Predict (22.31) in a trapezoid,
-# sits ~5s, then glides straight toward the square one section clockwise (N trapezoid -> NE square)
-# and detonates at 32.70 1 unit inside the midpoint of that square's center and inner edge (r 15.753), where a
-# small blue pad marks the spot. The floor shape only flashes at detonation.
+# Two circle orbs and one donut spawn at 22.31, wait ~5s, then move one section clockwise.
+# They hit the blue pads at radius 15.753 at 32.70; floor AOEs flash only on impact.
 _orb: &orb
   applyEffect: { ref: thrice_come_ruin }
   labels: [orb]
@@ -119,10 +106,8 @@ _orb: &orb
   color: "#9a9ae0"
   telegraphAlpha: 0.85
 
-# Reference diagrams define geometry, not textures. Radii are estimated from the arena:
-# bow circles cover a square and its corners (radius 11); harp covers the central hexagon (15).
-# Bow and harp have no cast bar or telegraph of their own: they hit exactly as the Sealed Implements
-# bar ends (37.66 / 51.85) and only flash on impact. The Index outlines the chosen weapon during the cast.
+# Estimated radii: bow 11 (squares), harp 15 (central hexagon).
+# Hits at cast end (37.66 / 51.85), with impact-only telegraphs and a highlighted weapon.
 _implement: &implement
   applyEffect: { ref: thrice_come_ruin }
   type: aoe
@@ -144,8 +129,7 @@ _harp: &harp
   name: Romeo's Ballad
   shape: { kind: circle, center: [0, 0], radius: 15 }
 
-# Elementary Chemistry pads: a blue circle in each trapezoid (radius-9 center, where the FFLogs hits
-# originate) with a floating sphere, up for the whole cast. Radius 2 is an estimate.
+# Chemistry pads at radius 9 with floating spheres; pad radius 2 is estimated.
 _chemPad: &chemPad
   type: aoe
   time: 58.01
@@ -157,9 +141,8 @@ _chemPad: &chemPad
   showTelegraph: true
   color: "#3a7bff"
 
-# Elementary Chemistry hit (hits 66.96 / 70.00 / 73.03): a small copy of a square's glyph appears 6s
-# out, glides into its own trapezoid's pad over the last 3s, and hits the pad in that pair's element.
-# Damage is an estimate; see elementary_deficiency for the stack cleanse and Resistance Down.
+# Chemistry glyphs appear 6s before impact and travel to their pads over the last 3s.
+# Hits at 66.96 / 70.00 / 73.03; damage is estimated.
 _chemHit: &chemHit
   type: aoe
   name: Element
@@ -197,8 +180,7 @@ events:
 
   - { <<: *castBar, id: elementary-expansion, time: 7.13, name: Elementary Expansion, telegraph: 2.99 }
   - { <<: *castBar, id: predict, time: 18.32, name: Predict, telegraph: 2.99 }
-  # One cast bar per implement so the boss can outline the chosen weapon for the whole cast; the
-  # implement event sets keep exactly one of each pair.
+  # Event sets retain one implement cast bar per round.
   - { <<: *castBar, id: sealed-implements-1-bow, time: 31.5, name: Sealed Implements, telegraph: 6.16 }
   - { <<: *castBar, id: sealed-implements-1-harp, time: 31.5, name: Sealed Implements, telegraph: 6.16 }
   - { <<: *castBar, id: sealed-implements-2-bow, time: 45.76, name: Sealed Implements, telegraph: 6.09 }
@@ -206,7 +188,7 @@ events:
 
   # Elementary Absorption (instant) drops the platforms on this same tick; not modelled (see header).
   - { <<: *castBar, id: elementary-chemistry-cast, time: 58.01, name: Elementary Chemistry, telegraph: 19.97 }
-  # The biggest raidwide of the fight; in game it needs ~80% mitigation, which the sim lacks, so 45 here.
+  # Use 45 damage because the sim lacks the mitigation required in game.
   - id: elementary-chemistry
     type: aoe
     time: 77.98
@@ -218,8 +200,7 @@ events:
     showTelegraph: false
     shape: { kind: circle, center: [0, 0], radius: 30 }
 
-  # Elementary Deficiency (3 stacks) lands 0.5s into the cast. Each element's first hit drops a stack;
-  # stacks left at 79.72 are lethal (the Elementary Chemistry follow-up hit in FFLogs).
+  # Three stacks land 0.5s into the cast; cleanse one per element before 79.72.
   - { id: elementary-deficiency, type: apply_effect, time: 58.51, name: Elementary Deficiency, applyEffect: { ref: elementary_deficiency } }
   - { <<: *chemPad, id: chem-pad-n, shape: { kind: circle, center: [0, 9], radius: 2 }, mover: { from: [0, 9], departAt: 77.98, scale: 0.35 } }
   - { <<: *chemPad, id: chem-pad-ne, shape: { kind: circle, center: [7.794, 4.5], radius: 2 }, mover: { from: [7.794, 4.5], departAt: 77.98, scale: 0.35 } }
@@ -307,10 +288,7 @@ events:
   - { <<: *bow, id: bow2-nw, time: 50.82, telegraph: 1.03, shape: { kind: circle, center: [-17.759, 10.253], radius: 11 } }
   - { <<: *harp, id: harp2, time: 50.82, telegraph: 1.03 }
 
-  # Element rings (Fire / Blizzard / Thunder III, hits 33.32 / 38.34 / 52.37). `deals.rings` puts every
-  # player in one group and gives them two of the three elements; the rings and pie land 6s before the
-  # hit, and only that group's carriers of a platform's element are hit there.
-  # Group 1 (Predict), hit 33.32.
+  # Deals give each player two elements in one group. Rings land 6s before that group’s hit.
   - { id: ring1-fire, type: apply_effect, time: 27.32, name: Fire IV, applyEffect: { ref: fire_iv_ring } }
   - { id: ring1-blizzard, type: apply_effect, time: 27.32, name: Blizzard IV, applyEffect: { ref: blizzard_iv_ring } }
   - { id: ring1-thunder, type: apply_effect, time: 27.32, name: Thunder IV, applyEffect: { ref: thunder_iv_ring } }
@@ -373,8 +351,7 @@ optionals:
     time-shuffle-r2-first-1: { label: "Round 2: waves 2–3", options: [Reverse pair order, Listed pair order] }
     time-shuffle-r2-second-first: { label: "Round 2: fourth pair", options: [First eligible pair, Second eligible pair] }
     time-shuffle-r2-second-1: { label: "Round 2: waves 5–6", options: [Reverse pair order, Listed pair order] }
-  # Which pair fires in which slot. Groups are listed pair-first in the same order in every entry, so
-  # `noRepeatAfter` can keep a pair from detonating twice across the halfway point.
+  # Keep pair indices aligned so noRepeatAfter prevents repeats across the join.
   timeShuffle:
     - id: r1-first
       rng: true

@@ -304,8 +304,7 @@ test("rings deal every player into groups of 3/2/3 with two of the three element
 });
 
 test("a ring platform only hits its own group's carriers of its element", () => {
-  // N/S is Fire, NE/SW Blizzard. m1 and ot resolve at 33.32 carrying Blizzard + Thunder; h1 carries the
-  // same pair but resolves at 38.34, so the 33.32 platforms must spare it.
+  // m1 and ot resolve on Fire at 33.32; h1 has the same rings but resolves later.
   const constraints = {
     "label-pairs-0": 2, "label-pairs-1": 0, "label-pairs-2": 1,
     "deal-rings-m1-group": 0, "deal-rings-m1-variant": 0,
@@ -345,8 +344,7 @@ test("the ring pie holds for a second, then drains one slice a second to empty a
 });
 
 test("the invisible opening cast keeps the boss stationary and facing north between attacks", () => {
-  // Isolate the lock so damaging casts/markers cannot provide an accidental facing lock,
-  // and the tank remains alive to pull the boss if the lock ends early.
+  // Remove other facing locks and keep the tank alive to expose an early unlock.
   const world = runTicks(createWorld({
     ...raid,
     events: raid.events.filter(event => ["place-index", "keep-boss-still"].includes(event.id)),
