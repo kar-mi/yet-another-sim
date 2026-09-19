@@ -1,7 +1,7 @@
 import type { AOEShape, EffectResolver, Player } from "@shared/types";
 import { length, sub } from "@shared/math";
 import type { TickContext } from "./context";
-import { isStatusActive, removeStatuses } from "@status";
+import { closestOtherAliveActor, isStatusActive, removeStatuses } from "@status";
 import { hitPlayersInShape, resolveStackShare } from "./strikes";
 import { mechanicSource } from "./damageLog";
 import { TARGETED_LINGER } from "@shared/constants";
@@ -45,20 +45,6 @@ function carriersWithActiveEffect(
   return triggered;
 }
 
-function nearestOtherAlivePlayer(players: Player[], carrier: Player): Player | null {
-  let nearest: Player | null = null;
-  let nearestDist = Infinity;
-  for (const player of players) {
-    if (!player.alive || player.id === carrier.id) continue;
-    const dist = length(sub(player.pos, carrier.pos));
-    if (dist < nearestDist) {
-      nearest = player;
-      nearestDist = dist;
-    }
-  }
-  return nearest;
-}
-
 function removeTriggeredEffects(triggered: Array<{ player: Player; effectIds: string[] }>): void {
   for (const { player, effectIds } of triggered) removeStatuses(player, effectIds);
 }
@@ -86,7 +72,7 @@ export function triggerEffectResolver(ctx: TickContext, resolver: EffectResolver
   } else {
     for (const { player: carrier } of triggered) {
       if (!carrier.alive) continue;
-      const target = nearestOtherAlivePlayer(players, carrier);
+      const target = closestOtherAliveActor(carrier, players);
       if (!target) continue;
       const direction = sub(target.pos, carrier.pos);
       if (length(direction) <= 1e-6) continue;

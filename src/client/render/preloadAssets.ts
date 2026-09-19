@@ -4,41 +4,7 @@ import { FLOOR_PLAN_IMAGES } from "./meshes/arenaMeshes";
 import { HAND_IMAGE_URL } from "./meshes/handMeshes";
 import { CLEANSING_ORB_RUNE_URL } from "./meshes/cleansingOrbMeshes";
 import { STATUS_ICON_ROOT } from "../staticBase";
-
-// Above-head marker icons (PlayerLayer.syncMarkers) and HUD debuff icons (effectChips) load lazily
-// the first time a mechanic applies them mid-pull. Keep these lists in sync with src/status/icons/
-// so new icons are warmed too.
-const HEAD_MARKER_ICONS = [
-  "cone_processed.png",
-  "defam_processed.png",
-  "stack_processed.png",
-].map(file => `${STATUS_ICON_ROOT}/${file}`);
-
-const DEBUFF_ICONS = [
-  "bind.png",
-  "confuse.png",
-  "double-trouble.png",
-  "dynamic_fluid.png",
-  "entropy.png",
-  "sleep.png",
-  "stun.png",
-  "teleportent_down.png",
-  "teleportent_left.png",
-  "teleportent_right.png",
-  "teleportent_up.png",
-].map(file => `${STATUS_ICON_ROOT}/${file}`);
-
-// Element ring icons (PlayerEffectRingLayer).
-const ELEMENT_ICONS = [
-  "fire.png",
-  "ice.png",
-  "thunder.png",
-].map(file => `${STATUS_ICON_ROOT}/${file}`);
-
-const BUFF_ICONS = [
-  "sprint.png",
-  "armslength.png",
-].map(file => `${STATUS_ICON_ROOT}/${file}`);
+import { statusAssetManifest } from "@status";
 
 // Warm the browser cache for every static asset up front so a later raid change / first session entry
 // renders models and icons from cache instead of downloading after the pull has already started.
@@ -54,9 +20,10 @@ export function preloadAssets(): void {
     void fetch(url).then(res => res.blob()).catch(() => {});
   }
 
-  // Floor plans, markers and debuff icons load through the browser's image cache (<img> / Babylon
-  // DOM-image textures), which an Image() request warms directly.
-  for (const url of [...Object.values(FLOOR_PLAN_IMAGES), ...HEAD_MARKER_ICONS, ...DEBUFF_ICONS, ...ELEMENT_ICONS, ...BUFF_ICONS, HAND_IMAGE_URL, CLEANSING_ORB_RUNE_URL]) {
+  // Floor plans and the complete status asset manifest load through the browser's image cache
+  // (<img> / Babylon DOM-image textures), which an Image() request warms directly.
+  const statusAssets = statusAssetManifest().map(file => `${STATUS_ICON_ROOT}/${file}`);
+  for (const url of [...Object.values(FLOOR_PLAN_IMAGES), ...statusAssets, HAND_IMAGE_URL, CLEANSING_ORB_RUNE_URL]) {
     new Image().src = url;
   }
 }

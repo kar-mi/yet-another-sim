@@ -118,6 +118,20 @@ export function isInputDisabled(actor: Pick<StatusActor, "effects">, time: numbe
   return actor.effects.some(status => isStatusActive(status, time) && handlerOf(status.behavior).disablesInput === true);
 }
 
+export function closestOtherAliveActor<A extends Pick<StatusActor, "id" | "pos" | "alive">>(actor: A, actors: readonly A[]): A | null {
+  let closest: A | null = null;
+  let closestDistance = Infinity;
+  for (const candidate of actors) {
+    if (candidate === actor || candidate.id === actor.id || !candidate.alive) continue;
+    const distance = length(sub(candidate.pos, actor.pos));
+    if (distance < closestDistance) {
+      closest = candidate;
+      closestDistance = distance;
+    }
+  }
+  return closest;
+}
+
 export type MovementControl = { frozen: boolean; forcedWalk?: StatusInstance };
 
 export function movementControl(actor: StatusActor, time: number): MovementControl {

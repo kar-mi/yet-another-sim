@@ -73,6 +73,7 @@ export interface Settings {
   uiScale: number;
   uiFont: "pixel" | "readable";
   renderedPlayerHealthBars: boolean;
+  minimapZoom: number;
   hudLayout: Partial<Record<HudGroupId, HudGroupLayout>>;
 }
 
@@ -103,6 +104,7 @@ const DEFAULTS: Settings = {
   uiScale: 1.25,
   uiFont: "readable",
   renderedPlayerHealthBars: false,
+  minimapZoom: 2,
   hudLayout: { ...DEFAULT_HUD_LAYOUT },
 };
 
@@ -127,6 +129,7 @@ export function loadSettings(): Settings {
       ...saved,
       keyBindings: { ...DEFAULT_BINDINGS, ...saved.keyBindings },
       controllerBindings: { ...DEFAULT_CONTROLLER_BINDINGS, ...saved.controllerBindings },
+      minimapZoom: typeof saved.minimapZoom === "number" ? Math.min(4, Math.max(1, saved.minimapZoom)) : DEFAULTS.minimapZoom,
       hudLayout: { ...DEFAULT_HUD_LAYOUT, ...saved.hudLayout },
     };
   } catch {

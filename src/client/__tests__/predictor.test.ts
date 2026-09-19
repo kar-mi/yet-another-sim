@@ -31,3 +31,18 @@ test("sprint prediction clears an existing cooldown and supports recasts until d
   player = predictor.predict(player, zones, 0, cast, dt);
   expect(player.pos.x - before).toBeCloseTo(MOVE_SPEED * dt);
 });
+
+test("prediction applies speed statuses received after its initial authoritative seed", () => {
+  const predictor = new LocalPredictor();
+  const zones = [{ kind: "circle" as const, center: { x: 0, z: 0 }, radius: 100 }];
+  let player = { ...createWorld(createEmptyRaid()).players[0]!, pos: { x: 0, z: 0 } };
+  const move = { move: { x: 1, z: 0 } };
+
+  player = predictor.predict(player, zones, 0, move, 0.1);
+  player = predictor.predict({
+    ...player,
+    effects: [...player.effects, { ...SPRINT, id: "raid-sprint", appliedAt: 0 }],
+  }, zones, 0.1, move, 0.1);
+
+  expect(player.pos.x).toBeCloseTo(MOVE_SPEED * 0.1 + MOVE_SPEED * SPRINT_MULTIPLIER * 0.1);
+});

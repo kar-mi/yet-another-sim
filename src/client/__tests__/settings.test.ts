@@ -29,7 +29,9 @@ afterEach(() => {
 
 describe("HUD layout settings", () => {
   test("uses the complete default layout when no settings are saved", () => {
-    expect(loadSettings().hudLayout).toEqual(DEFAULT_HUD_LAYOUT);
+    const settings = loadSettings();
+    expect(settings.hudLayout).toEqual(DEFAULT_HUD_LAYOUT);
+    expect(settings.minimapZoom).toBe(2);
   });
 
   test("preserves saved groups and fills missing groups from the defaults", () => {
@@ -59,5 +61,13 @@ describe("HUD layout settings", () => {
     values.set("yas_settings", "not json");
 
     expect(loadSettings().hudLayout).toEqual(DEFAULT_HUD_LAYOUT);
+  });
+
+  test("restores a valid minimap zoom and clamps an invalid saved value", () => {
+    values.set("yas_settings", JSON.stringify({ minimapZoom: 2.5 }));
+    expect(loadSettings().minimapZoom).toBe(2.5);
+
+    values.set("yas_settings", JSON.stringify({ minimapZoom: 9 }));
+    expect(loadSettings().minimapZoom).toBe(4);
   });
 });

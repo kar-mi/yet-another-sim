@@ -105,7 +105,7 @@ interface CtrlSlotView {
 }
 
 export class HudOverlay {
-  private readonly minimap = new Minimap();
+  private readonly minimap = new Minimap(zoom => this.onSettingsChange({ ...this.currentSettings, minimapZoom: zoom }));
   private root: HTMLDivElement;
   private statusEl: HTMLDivElement;
   private hpFill: HTMLDivElement;
@@ -497,6 +497,7 @@ export class HudOverlay {
 
   applySettings(settings: Settings): void {
     this.currentSettings = { ...settings };
+    this.minimap.setZoom(settings.minimapZoom);
     this.modeToggleBtn.textContent = settings.hotbarMode === "controller" ? "⌨" : "🎮";
     const isCtrl = settings.hotbarMode === "controller";
     this.kbmHotbar.style.display = isCtrl ? "none" : "flex";

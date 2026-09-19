@@ -1,5 +1,6 @@
 import type { StatusBehavior, StatusOverrides, StatusRef, StatusSpec, StatusTemplate } from "./types";
 import { statusTemplate } from "./catalog";
+import { StatusSpecSchema } from "./validation";
 
 export type ResolveResult = { ok: true; spec: StatusSpec } | { ok: false; error: string };
 
@@ -28,7 +29,12 @@ function overrideTemplate(ref: string, template: StatusTemplate, overrides: Stat
   const behavior = overrides.behavior === undefined
     ? template.behavior
     : { ...template.behavior, ...overrides.behavior } as StatusBehavior;
-  return { ok: true, spec: { ...template, ...overrides, kind: template.kind, behavior, ref } };
+  const parsed = StatusSpecSchema.safeParse({ ...template, ...overrides, kind: template.kind, behavior, ref });
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map(issue => `${issue.path.join(".") || "status"}: ${issue.message}`).join("; ");
+    return { ok: false, error: `status "${ref}" is invalid: ${issues}` };
+  }
+  return { ok: true, spec: parsed.data as StatusSpec };
 }
 
 function unwrap(result: ResolveResult): StatusSpec {

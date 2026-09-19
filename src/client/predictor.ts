@@ -9,7 +9,7 @@ import type { Intent, Player, ZoneShape } from "@shared/types";
 import { add, sub, scale, normalize, length } from "@shared/math";
 import { atan2 } from "@shared/dmath";
 import { MOVE_SPEED, JUMP_SPEED, GRAVITY, SPRINT_COOLDOWN } from "@shared/constants";
-import { applyStatus, isInputDisabled, movementSpeedMultiplier, requireStatus, type ApplyEnv, type StatusActor } from "@status";
+import { applyStatus, isInputDisabled, isStatusActive, movementSpeedMultiplier, requireStatus, type ApplyEnv, type StatusActor } from "@status";
 import { isOnFloor } from "../engine/shapes";
 
 const SNAP_THRESHOLD = 3;  // yalms: divergence past this hard-resets (teleport, forced march, respawn)
@@ -45,6 +45,7 @@ export class LocalPredictor {
     }
 
     if (!this.active) this.seed(authLocal, time);
+    this.reconcileStatuses(authLocal);
     const statusActor = this.statusActor!;
 
     // Predict sprint locally so the speed boost is instant (mirrors playerMovement.ts). Gated on the
@@ -105,5 +106,16 @@ export class LocalPredictor {
     this.statusActor = { ...authLocal, effects: authLocal.effects.slice() };
     this.sprintCooldown = authLocal.sprintCooldown;
     this.active = true;
+  }
+
+  private reconcileStatuses(authLocal: Player): void {
+    const localSprint = this.statusActor!.effects.find(effect =>
+      effect.id === `${authLocal.id}-sprint`
+      && isStatusActive(effect, this.clock)
+      && !authLocal.effects.some(authoritative => authoritative.id === effect.id));
+    this.statusActor = {
+      ...this.statusActor!,
+      effects: localSprint ? [...authLocal.effects, localSprint] : authLocal.effects.slice(),
+    };
   }
 }
