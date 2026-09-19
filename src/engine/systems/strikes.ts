@@ -19,13 +19,21 @@ export function hitPlayersInShape(ctx: TickContext, shape: AOEShape, damage: num
   }
 }
 
-export function resolveStackShare(ctx: TickContext, shape: AOEShape, stack: { damage: number; requiredCount: number }, damageType: DamageType, source: DamageSource): boolean {
+export function resolveStackShare(
+  ctx: TickContext,
+  shape: AOEShape,
+  stack: { damage: number; requiredCount: number },
+  damageType: DamageType,
+  source: DamageSource,
+  afterDamage?: (soaker: TickContext["players"][number]) => void,
+): boolean {
   const soakers = ctx.players.filter(player => player.alive && pointInShape(shape, player.pos));
   const success = soakers.length >= stack.requiredCount;
   const per = success ? stack.damage / soakers.length : stack.damage;
   for (const soaker of soakers) {
     applyMechanicDamage(ctx, soaker, per, damageType, source);
     ctx.log.push({ t: ctx.time, mechanic: source.name, playerId: soaker.id, event: "hit" });
+    afterDamage?.(soaker);
   }
   return success;
 }

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { BEHAVIORS, STATUS_CATALOG, requireStatus, resolveStatus, statusIcon, statusIds, type StatusBehavior } from "@status";
+import { BEHAVIORS, STATUS_CATALOG, requireStatus, resolveStatus, statusAssetManifest, statusIds, type StatusBehavior } from "@status";
 import { STATUS_BEHAVIOR_KINDS, StatusRefSchema, StatusSpecSchema } from "@status/schema";
 import { BUFF_TEMPLATES } from "../catalog/buffs";
 import { DEBUFF_TEMPLATES } from "../catalog/debuffs";
@@ -68,6 +68,14 @@ test("identity changes are rejected", () => {
   expect(resolveStatus({ ref: "magic_vulnerability", behavior: { kind: "mitigation" } })).toMatchObject({ ok: false });
   expect(resolveStatus({ ref: "not_registered" })).toMatchObject({ ok: false });
   expect(resolveStatus({ ref: "magic_vulnerability", kind: "debuff", behavior: { kind: "vuln" } })).toMatchObject({ ok: true });
+  expect(resolveStatus({ ref: "sprint", behavior: { multiplier: -1 } })).toMatchObject({ ok: false });
+});
+
+test("status asset manifest includes catalog presentation, behavior fallbacks, and generated markers", () => {
+  const assets = new Set(statusAssetManifest());
+  expect(assets.has("acceleration_bomb.png")).toBe(true);
+  expect(assets.has("teleportent_left.png")).toBe(true);
+  expect(assets.has("limit8_head.png")).toBe(true);
 });
 
 test("authored statuses must be registered references", () => {
@@ -97,15 +105,7 @@ function linkedRefs(behavior: StatusBehavior): string[] {
 
 test("every icon a status can show exists in the package icon folder", async () => {
   const folder = `${import.meta.dir}/../icons`;
-  const icons = new Set<string>();
-  for (const template of Object.values(STATUS_CATALOG)) {
-    for (const icon of [template.icon, template.markerIcon, template.ring?.icon]) if (icon) icons.add(icon);
-  }
-  for (let n = 1; n <= 8; n++) icons.add(`limit${n}_head.png`);
-  for (const [ref, template] of Object.entries(STATUS_CATALOG)) {
-    const src = statusIcon({ ...template, ref, id: ref, appliedAt: 0 }).src;
-    if (src) icons.add(src);
-  }
+  const icons = statusAssetManifest();
   const missing: string[] = [];
   for (const icon of icons) if (!(await Bun.file(`${folder}/${icon}`).exists())) missing.push(icon);
   expect(missing).toEqual([]);

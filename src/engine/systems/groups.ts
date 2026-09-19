@@ -5,9 +5,8 @@ import type { TickContext } from "./context";
 import { applyStatus } from "@status";
 import { statusServices } from "./statusServices";
 import type { ActiveGroupMechanic, PendingGroupEvent, AOEShape } from "@shared/types";
-import { pointInShape } from "../shapes";
-import { applyMechanicDamage } from "./helpers";
 import { mechanicSource } from "./damageLog";
+import { resolveStackShare } from "./strikes";
 import { cullResolved } from "./util";
 import { TARGETED_LINGER } from "@shared/constants";
 import { FloorAoe, DEFAULT_STACK_COLOR } from "@effects";
@@ -16,7 +15,7 @@ export function resolveGroups(ctx: TickContext): {
   groupMechanics: ActiveGroupMechanic[];
   pendingGroups: PendingGroupEvent[];
 } {
-  const { players, log, time, groupChoices, randInt } = ctx;
+  const { players, time, groupChoices, randInt } = ctx;
   const remainingPendingGroups: PendingGroupEvent[] = [];
   const groupMechanics: ActiveGroupMechanic[] = ctx.world.groupMechanics.map(g => ({ ...g }));
   for (const pg of ctx.world.pendingGroups) {
@@ -81,16 +80,11 @@ export function resolveGroups(ctx: TickContext): {
       const marked = players.find(p => p.id === gm.markedPlayerId);
       if (marked?.alive) {
         const circle: AOEShape = { kind: "circle", center: marked.pos, radius: gm.radius };
-        const soakers = players.filter(p => p.alive && pointInShape(circle, p.pos));
-        const success = soakers.length >= gm.requiredCount;
-        const per = success ? gm.damage / soakers.length : gm.damage;
-        for (const player of soakers) {
-          applyMechanicDamage(ctx, player, per, gm.damageType, mechanicSource(ctx, gm.id, gm.name));
-          log.push({ t: time, mechanic: gm.name, playerId: player.id, event: "hit" });
+        const success = resolveStackShare(ctx, circle, gm, gm.damageType, mechanicSource(ctx, gm.id, gm.name), player => {
           if (gm.applyEffect && player.alive) {
             applyStatus(player, gm.applyEffect, `${gm.id}-${player.id}-eff`, statusServices(ctx));
           }
-        }
+        });
         gm.outcome = success ? "success" : "failure";
       }
       gm.resolved = true;

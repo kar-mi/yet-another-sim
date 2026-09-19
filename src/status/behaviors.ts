@@ -21,6 +21,7 @@ import type {
 } from "./types";
 import { activeDuring, expiresWithin, removeInstance, replaceInstance, statusSource } from "./state";
 import { requireStatus } from "./resolve";
+import { closestOtherAliveActor } from "./operations";
 
 type Instance<K extends StatusBehaviorKind> = StatusInstance & { behavior: BehaviorOf<K> };
 
@@ -52,6 +53,7 @@ export type BehaviorHandler<K extends StatusBehaviorKind> = {
   slot?: { stamp: (behavior: BehaviorOf<K>, direction: [number, number]) => BehaviorOf<K> };
   displaySlot?: (status: Instance<K>) => number | undefined;
   icon?: (status: Instance<K>) => StatusIcon;
+  assetFiles?: readonly string[];
 };
 
 type BehaviorRegistry = { [K in StatusBehaviorKind]: BehaviorHandler<K> };
@@ -74,15 +76,17 @@ export const BEHAVIORS: BehaviorRegistry = {
     icon: status => ({ glyph: status.behavior.condition === "moving" ? "🔥" : status.behavior.condition === "idle" ? "❄" : "🩸" }),
   },
   confusion: {
-    onApply: (_status, actor, env) => ({ lockedTargetId: closestOtherActor(actor, env.actors)?.id }),
+    onApply: (_status, actor, env) => ({ lockedTargetId: closestOtherAliveActor(actor, env.actors)?.id }),
     disablesInput: true,
     forcedWalk: status => ({ targetId: status.lockedTargetId, ...status.behavior }),
     icon: () => ({ src: "confuse.png" }),
+    assetFiles: ["confuse.png"],
   },
   sleep: {
     disablesInput: true,
     freezes: true,
     icon: () => ({ src: "sleep.png" }),
+    assetFiles: ["sleep.png"],
   },
   burstSpread: { onExpiry: burstSpreadOnExpiry },
   effectBurst: { onExpiry: effectBurstOnExpiry },
@@ -96,11 +100,13 @@ export const BEHAVIORS: BehaviorRegistry = {
     slot: { stamp: (behavior, direction) => ({ ...behavior, direction }) },
     displaySlot: status => status.plantSlot,
     icon: status => ({ src: teleportentIcon(status.behavior.direction) }),
+    assetFiles: ["teleportent_down.png", "teleportent_left.png", "teleportent_right.png", "teleportent_up.png"],
   },
   directionalKnockback: {
     modifyKnockback: directionalKnockback,
     requiredFacing: behavior => behavior.requiredFacing,
     icon: status => ({ src: `${status.behavior.requiredFacing === "toward" ? "headwind" : "tailwind"}.png` }),
+    assetFiles: ["headwind.png", "tailwind.png"],
   },
   escalating: {
     reapplyKey: behavior => behavior.escalationKey,
@@ -338,20 +344,6 @@ function directionalKnockback(behavior: BehaviorOf<"directionalKnockback">, acto
   const isFacingAway = dot(facing, direction) > 0;
   const correct = behavior.requiredFacing === "away" ? isFacingAway : !isFacingAway;
   return { ...knockback, distance: correct ? behavior.distance : behavior.doubledDistance };
-}
-
-function closestOtherActor(self: StatusActor, actors: readonly StatusActor[]): StatusActor | null {
-  let best: StatusActor | null = null;
-  let bestDist = Infinity;
-  for (const actor of actors) {
-    if (actor === self || actor.id === self.id || !actor.alive) continue;
-    const dist = length(sub(actor.pos, self.pos));
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = actor;
-    }
-  }
-  return best;
 }
 
 function teleportentIcon([x, z]: [number, number]): string {
