@@ -218,9 +218,9 @@ test("Cleansing orbs spawn in a trapezoid, then glide one section clockwise to d
       const from = { x: orb.mover!.from[0], z: orb.mover!.from[1] };
       expect(Math.hypot(from.x, from.z)).toBeCloseTo(9.3, 2);                        // trapezoid middle
       expect((bearing(shape.center) - bearing(from) + 360) % 360).toBeCloseTo(60, 1); // one section clockwise
-      expect(Math.hypot(shape.center.x, shape.center.z)).toBeCloseTo(16.753, 2);      // square center / inner edge midpoint
-      if (shape.kind === "donut") expect([shape.inner, shape.outer]).toEqual([5, 14.85]);
-      else expect(shape.radius).toBe(11);
+      expect(Math.hypot(shape.center.x, shape.center.z)).toBeCloseTo(15.753, 2);      // 1 inside the square center / inner edge midpoint
+      if (shape.kind === "donut") expect([shape.inner, shape.outer]).toEqual([4.5, 14.85]);
+      else expect(shape.radius).toBe(9.9);
       expect(orb.mover!.sprite).toBe(true);
     }
   }
@@ -234,7 +234,7 @@ test("each Cleansing orb destination has a blue floor pad while the orbs are up"
   for (const pad of pads) {
     const shape = toAOEShape(pad.shape);
     if (shape.kind !== "circle") throw new Error("pad shape");
-    expect(shape.radius).toBe(1.5);
+    expect(shape.radius).toBe(1.35);
     expect(pad.damage).toBe(0);
     expect(pad.t + pad.telegraph).toBeCloseTo(32.7, 5);
     expect(orbs.some(o => { const s = toAOEShape(o.shape); return (s.kind === "circle" || s.kind === "donut") && s.center.x === shape.center.x && s.center.z === shape.center.z; })).toBe(true);

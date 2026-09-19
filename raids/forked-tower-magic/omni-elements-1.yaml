@@ -97,7 +97,7 @@ _ringHit: &ringHit
 
 # Cleansing orbs: two circles and one donut. Each spawns 1s after Predict (22.31) in a trapezoid,
 # sits ~5s, then glides straight toward the square one section clockwise (N trapezoid -> NE square)
-# and detonates at 32.70 halfway between that square's center and its inner edge (r 16.753), where a
+# and detonates at 32.70 1 unit inside the midpoint of that square's center and inner edge (r 15.753), where a
 # small blue pad marks the spot. The floor shape only flashes at detonation.
 _orb: &orb
   type: aoe
@@ -110,7 +110,7 @@ _orb: &orb
   avoidable: true
   showCastBar: false
   color: "#9a9ae0"
-  telegraphAlpha: 0.7
+  telegraphAlpha: 0.85
 
 # Reference diagrams define geometry, not textures. Radii are estimated from the arena:
 # bow circles cover a square and its corners (radius 11); harp covers the central hexagon (15).
@@ -337,16 +337,16 @@ events:
 
   # Cleansing orbs (resolve 32.70).
   - { <<: *castBar, id: cleansing-cast, time: 31.73, name: Cleansing, telegraph: 0.97 }
-  - { <<: *orb, id: orb-nw-circle, mover: { from: [-8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: circle, center: [-14.509, 8.377], radius: 11 } }
-  - { <<: *orb, id: orb-nw-donut, mover: { from: [-8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [-14.509, 8.377], inner: 5, outer: 14.85 } }
-  - { <<: *orb, id: orb-ne-circle, mover: { from: [0, 9.3], departAt: 27.7, sprite: true }, shape: { kind: circle, center: [14.509, 8.377], radius: 11 } }
-  - { <<: *orb, id: orb-ne-donut, mover: { from: [0, 9.3], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [14.509, 8.377], inner: 5, outer: 14.85 } }
-  - { <<: *orb, id: orb-s-circle, mover: { from: [8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: circle, center: [0, -16.753], radius: 11 } }
-  - { <<: *orb, id: orb-s-donut, mover: { from: [8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [0, -16.753], inner: 5, outer: 14.85 } }
+  - { <<: *orb, id: orb-nw-circle, mover: { from: [-8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: circle, center: [-13.642, 7.877], radius: 9.9 } }
+  - { <<: *orb, id: orb-nw-donut, mover: { from: [-8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [-13.642, 7.877], inner: 4.5, outer: 14.85 } }
+  - { <<: *orb, id: orb-ne-circle, mover: { from: [0, 9.3], departAt: 27.7, sprite: true }, shape: { kind: circle, center: [13.642, 7.877], radius: 9.9 } }
+  - { <<: *orb, id: orb-ne-donut, mover: { from: [0, 9.3], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [13.642, 7.877], inner: 4.5, outer: 14.85 } }
+  - { <<: *orb, id: orb-s-circle, mover: { from: [8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: circle, center: [0, -15.753], radius: 9.9 } }
+  - { <<: *orb, id: orb-s-donut, mover: { from: [8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [0, -15.753], inner: 4.5, outer: 14.85 } }
   # Where each orb will detonate, shown for all three regardless of which one is the donut.
-  - { <<: *chemPad, id: cleansing-pad-nw, time: 22.31, telegraph: 10.39, name: Cleansing Target, color: "#4fc3ff", telegraphAlpha: 0.85, shape: { kind: circle, center: [-14.509, 8.377], radius: 1.5 } }
-  - { <<: *chemPad, id: cleansing-pad-ne, time: 22.31, telegraph: 10.39, name: Cleansing Target, color: "#4fc3ff", telegraphAlpha: 0.85, shape: { kind: circle, center: [14.509, 8.377], radius: 1.5 } }
-  - { <<: *chemPad, id: cleansing-pad-s, time: 22.31, telegraph: 10.39, name: Cleansing Target, color: "#4fc3ff", telegraphAlpha: 0.85, shape: { kind: circle, center: [0, -16.753], radius: 1.5 } }
+  - { <<: *chemPad, id: cleansing-pad-nw, time: 22.31, telegraph: 10.39, name: Cleansing Target, color: "#4fc3ff", telegraphAlpha: 0.85, shape: { kind: circle, center: [-13.642, 7.877], radius: 1.35 } }
+  - { <<: *chemPad, id: cleansing-pad-ne, time: 22.31, telegraph: 10.39, name: Cleansing Target, color: "#4fc3ff", telegraphAlpha: 0.85, shape: { kind: circle, center: [13.642, 7.877], radius: 1.35 } }
+  - { <<: *chemPad, id: cleansing-pad-s, time: 22.31, telegraph: 10.39, name: Cleansing Target, color: "#4fc3ff", telegraphAlpha: 0.85, shape: { kind: circle, center: [0, -15.753], radius: 1.35 } }
 
 optionals:
   rngLabels:
