@@ -10,6 +10,8 @@
 
 import type { Vec2 } from "@shared/math";
 
+export type WaymarkId = "A" | "B" | "C" | "D" | "1" | "2" | "3" | "4";
+
 // Element glyph; label variants can supply kind.
 export type ElementGlyphKind = "lightning" | "fire" | "ice";
 

@@ -1,6 +1,6 @@
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 
-type CircleAxis = "x" | "z";
+export type CircleAxis = "x" | "z";
 
 function circlePoint(cx: number, cz: number, radius: number, y: number, angle: number, axis: CircleAxis): Vector3 {
   return axis === "z"
@@ -8,11 +8,11 @@ function circlePoint(cx: number, cz: number, radius: number, y: number, angle: n
     : new Vector3(cx + Math.cos(angle) * radius, y, cz + Math.sin(angle) * radius);
 }
 
-export function circlePath(cx: number, cz: number, radius: number, y: number, segments = 48): Vector3[] {
+export function circlePath(cx: number, cz: number, radius: number, y: number, segments = 48, axis: CircleAxis = "x"): Vector3[] {
   const pts: Vector3[] = [];
   for (let i = 0; i <= segments; i++) {
     const angle = (i / segments) * Math.PI * 2;
-    pts.push(circlePoint(cx, cz, radius, y, angle, "x"));
+    pts.push(circlePoint(cx, cz, radius, y, angle, axis));
   }
   return pts;
 }

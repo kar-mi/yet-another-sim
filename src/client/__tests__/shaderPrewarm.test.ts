@@ -21,7 +21,7 @@ test("prewarm covers floor telegraphs, element floors and bursts, element glyphs
   try {
     const { prewarmShaders } = await import("@effects/babylon");
     const { syncFloorAoeMeshes } = await import("@effects/babylon");
-    const { createElementGlyph } = await import("../render/meshes/elementGlyphMeshes");
+    const { createElementGlyph } = await import("@effects/babylon");
     const { ElementRingLayer } = await import("../render/ElementRingLayer");
     const { spawnElementBurst } = await import("@effects/babylon");
     new ArcRotateCamera("camera", 0, 1, 30, Vector3.Zero(), scene);

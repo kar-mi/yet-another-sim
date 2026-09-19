@@ -1,7 +1,7 @@
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveInverse, Boss } from "@shared/types";
 import { createQuestionRingForInverse, updateQuestionRingForInverse } from "./meshes/inverseMeshes";
-import type { QuestionRingMeshes } from "./meshes/questionRingMeshes";
+import type { QuestionRingMeshes } from "@effects/babylon";
 import { syncFloorAoeMeshes, disposeFloorAoeMeshes, type FloorAoeMeshMap } from "@effects/babylon";
 
 export class InverseLayer {

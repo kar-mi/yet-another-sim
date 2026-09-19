@@ -5,7 +5,7 @@ import {
   QUESTION_RING_DEFAULT_Y,
   updateQuestionRing,
   type QuestionRingMeshes,
-} from "./questionRingMeshes";
+} from "@effects/babylon";
 
 // Each inverse mechanic gets ONE ring around the boss. The ring colour identifies the mechanic
 // (e.g. blue = floor AOE, red = line AOE) and its height is authored per mechanic. The orbs

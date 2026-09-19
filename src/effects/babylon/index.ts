@@ -1,5 +1,15 @@
 export { createShapeMesh, createShapeOutlineMesh } from "./shapeGeometry";
 export { createFloorMaterial, syncFloorAoeMeshes, disposeFloorAoeMeshes, type FloorAoeMeshMap } from "./groundAoe";
+export { createGroundCircle, disposeGroundCircle, type GroundCircle, type GroundCircleOptions } from "./groundCircle";
+export { createGlowRing, type GlowRing, type GlowRingOptions } from "./glowRing";
+export { createLine, updateLine } from "./line";
+export { circlePath, filteredCirclePaths } from "./paths";
 export { createElementFloorMaterial, elementFloorMaterial, spawnElementBurst } from "./elementVfx";
+export { createElementGlyph, type ElementGlyphHandle } from "./elementGlyph";
+export { createQuestionRing, updateQuestionRing, QUESTION_RING_DEFAULT_Y, type QuestionRingMeshes } from "./questionRing";
+export { createWaymarkMeshes } from "./waymark";
+export { createCountdownPie, COUNTDOWN_PIE_PLANE_RATIO, type CountdownPie } from "./countdownPie";
+export { spreadMarkerMaterial, stackMarkerMaterial } from "./markers";
+export { createMeshGlow, type MeshGlow, type MeshGlowOptions } from "./meshGlow";
 export { applyAlphaTest, glyphBillboardMaterial, imageBillboardMaterial } from "./billboards";
 export { prewarmShaders } from "./prewarm";

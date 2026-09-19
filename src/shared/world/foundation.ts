@@ -1,7 +1,7 @@
 import type { Vec2 } from "../math";
 
-export type { AOEShape, ElementGlyphKind } from "@effects";
-import type { ElementGlyphKind } from "@effects";
+export type { AOEShape, ElementGlyphKind, WaymarkId } from "@effects";
+import type { ElementGlyphKind, WaymarkId } from "@effects";
 
 export type Role = "tank" | "healer" | "dps";
 
@@ -21,7 +21,6 @@ export type FloorPlan = "squares" | "dmu-p1" | "dmu-p2" | { color: string };
 
 export type Arena = { zones: ZoneShape[]; floorPlan: FloorPlan };
 
-export type WaymarkId = "A" | "B" | "C" | "D" | "1" | "2" | "3" | "4";
 export type Waymark = { mark: WaymarkId; pos: Vec2 };
 
 export type CrystalElement = "wind" | "fire" | "water" | "earth";

@@ -1,13 +1,13 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
-import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
 import { CreateGround } from "@babylonjs/core/Meshes/Builders/groundBuilder";
 import { CreateRibbon } from "@babylonjs/core/Meshes/Builders/ribbonBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveForcedMarch } from "@shared/types";
 import { normalize } from "@shared/math";
+import { createGroundCircle } from "@effects/babylon";
 
 // A forced-march trap is drawn as a translucent floor ring with a bright arrow pointing in the
 // teleport direction. The first player to step inside is flung `distance` along the arrow; the
@@ -29,17 +29,15 @@ export function createForcedMarchMeshes(scene: Scene, fm: ActiveForcedMarch): Fo
   const perp = { x: dir.z, z: -dir.x };
 
   // Floor disc for the trigger zone.
-  const zone = CreateDisc(`fm-zone-${fm.id}`, { radius: fm.radius, tessellation: 64 }, scene);
-  zone.rotation.x = Math.PI / 2;
+  const { mesh: zone, material: zoneMat } = createGroundCircle(scene, `fm-zone-${fm.id}`, {
+    radius: fm.radius,
+    y: Y,
+    color: ZONE_COLOR,
+    emissive: ZONE_COLOR.scale(0.4),
+    alpha: 0.35,
+    tessellation: 64,
+  });
   zone.position.set(fm.pos.x, Y, fm.pos.z);
-  zone.isPickable = false;
-  const zoneMat = new StandardMaterial(`fm-zone-mat-${fm.id}`, scene);
-  zoneMat.diffuseColor = ZONE_COLOR;
-  zoneMat.emissiveColor = ZONE_COLOR.scale(0.4);
-  zoneMat.specularColor = new Color3(0, 0, 0);
-  zoneMat.backFaceCulling = false;
-  zoneMat.alpha = 0.35;
-  zone.material = zoneMat;
 
   // Arrow: a rectangular shaft plus a triangular head, both flat on the floor, pointing along dir.
   const total = fm.radius * 1.6;

@@ -2,12 +2,10 @@ import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
-import { CreateTorus } from "@babylonjs/core/Meshes/Builders/torusBuilder";
-import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Player } from "@shared/types";
 import { STATIC_ROOT } from "../staticBase";
-import { imageBillboardMaterial } from "@effects/babylon";
+import { createGlowRing, imageBillboardMaterial } from "@effects/babylon";
 
 // Ring heights above the player’s feet.
 const RING_HEIGHTS = [0.5, 0.8];
@@ -51,15 +49,13 @@ export class PlayerEffectRingLayer {
       const last = RING_HEIGHTS.length - 1;
       const height = RING_HEIGHTS[Math.min(index, last)]! + Math.max(0, index - last) * RING_HEIGHT_STEP;
       const name = `effect-ring-${playerId}-${effect.id}`;
-      const color = Color3.FromHexString(effect.ring!.color);
-      const material = new StandardMaterial(`${name}-mat`, this.scene);
-      material.diffuseColor = color;
-      material.emissiveColor = color;
-      material.disableLighting = true;
-      const torus = CreateTorus(name, { diameter: RADIUS * 2, thickness: THICKNESS, tessellation: 64 }, this.scene);
+      const { mesh: torus } = createGlowRing(this.scene, name, {
+        diameter: RADIUS * 2,
+        thickness: THICKNESS,
+        color: Color3.FromHexString(effect.ring!.color),
+        tessellation: 64,
+      });
       torus.position.y = height;
-      torus.material = material;
-      torus.isPickable = false;
       torus.parent = root;
 
       const iconMaterial = imageBillboardMaterial(this.scene, `${name}-icon-mat`, `${STATIC_ROOT}/element_icons/${effect.ring!.icon}`);

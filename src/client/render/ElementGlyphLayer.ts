@@ -1,7 +1,7 @@
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveMechanic } from "@shared/types";
 import { moverPosition } from "@shared/mover";
-import { createElementGlyph, type ElementGlyphHandle } from "./meshes/elementGlyphMeshes";
+import { createElementGlyph, type ElementGlyphHandle } from "@effects/babylon";
 
 const DEFAULT_COLOR = "#ffffff";
 // Moving glyphs grow to half size before travelling.
