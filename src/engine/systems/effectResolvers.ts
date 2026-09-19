@@ -1,8 +1,8 @@
 import type { AOEShape, EffectResolver, Player } from "@shared/types";
 import { length, sub } from "@shared/math";
-import { pointInShape } from "../shapes";
 import type { TickContext } from "./context";
-import { applyMechanicDamage, isEffectActiveAt } from "./helpers";
+import { isStatusActive, removeStatuses } from "@status";
+import { hitPlayersInShape, resolveStackShare } from "./strikes";
 import { mechanicSource } from "./damageLog";
 import { TARGETED_LINGER } from "@shared/constants";
 import { FloorAoe, DEFAULT_DANGER_COLOR } from "@effects";
@@ -38,7 +38,7 @@ function carriersWithActiveEffect(
   const triggered: Array<{ player: Player; effectIds: string[] }> = [];
   for (const player of carriers) {
     const effectIds = player.effects
-      .filter(effect => effect.name === resolver.effectName && isEffectActiveAt(effect, time))
+      .filter(effect => effect.name === resolver.effectName && isStatusActive(effect, time))
       .map(effect => effect.id);
     if (effectIds.length > 0) triggered.push({ player, effectIds });
   }
@@ -60,14 +60,11 @@ function nearestOtherAlivePlayer(players: Player[], carrier: Player): Player | n
 }
 
 function removeTriggeredEffects(triggered: Array<{ player: Player; effectIds: string[] }>): void {
-  for (const { player, effectIds } of triggered) {
-    const ids = new Set(effectIds);
-    player.effects = player.effects.filter(effect => !ids.has(effect.id));
-  }
+  for (const { player, effectIds } of triggered) removeStatuses(player, effectIds);
 }
 
 export function triggerEffectResolver(ctx: TickContext, resolver: EffectResolver, carriers: Player[]): Player[] {
-  const { players, log, time } = ctx;
+  const { players, time } = ctx;
   const triggered = carriersWithActiveEffect(carriers, resolver, time);
   if (triggered.length === 0) return [];
 
@@ -77,24 +74,14 @@ export function triggerEffectResolver(ctx: TickContext, resolver: EffectResolver
       if (!carrier.alive) continue;
       const circle: AOEShape = { kind: "circle", center: carrier.pos, radius: action.radius };
       addResolvedAoeVisual(ctx, `${resolver.id}-${carrier.id}-visual`, resolver.name, circle);
-      for (const player of players) {
-        if (!player.alive || !pointInShape(circle, player.pos)) continue;
-        applyMechanicDamage(ctx, player, action.damage, action.damageType, mechanicSource(ctx, resolver.id, resolver.name));
-        log.push({ t: time, mechanic: resolver.name, playerId: player.id, event: "hit" });
-      }
+      hitPlayersInShape(ctx, circle, action.damage, action.damageType, mechanicSource(ctx, resolver.id, resolver.name));
     }
   } else if (action.kind === "stack") {
     for (const { player: carrier } of triggered) {
       if (!carrier.alive) continue;
       const circle: AOEShape = { kind: "circle", center: carrier.pos, radius: action.radius };
       addResolvedAoeVisual(ctx, `${resolver.id}-${carrier.id}-visual`, resolver.name, circle);
-      const soakers = players.filter(player => player.alive && pointInShape(circle, player.pos));
-      const success = soakers.length >= action.requiredCount;
-      const per = success ? action.damage / soakers.length : action.damage;
-      for (const player of soakers) {
-        applyMechanicDamage(ctx, player, per, action.damageType, mechanicSource(ctx, resolver.id, resolver.name));
-        log.push({ t: time, mechanic: resolver.name, playerId: player.id, event: "hit" });
-      }
+      resolveStackShare(ctx, circle, action, action.damageType, mechanicSource(ctx, resolver.id, resolver.name));
     }
   } else {
     for (const { player: carrier } of triggered) {
@@ -111,11 +98,7 @@ export function triggerEffectResolver(ctx: TickContext, resolver: EffectResolver
         length: action.length,
       };
       addResolvedAoeVisual(ctx, `${resolver.id}-${carrier.id}-visual`, resolver.name, cone);
-      for (const player of players) {
-        if (!player.alive || player.id === carrier.id || !pointInShape(cone, player.pos)) continue;
-        applyMechanicDamage(ctx, player, action.damage, action.damageType, mechanicSource(ctx, resolver.id, resolver.name));
-        log.push({ t: time, mechanic: resolver.name, playerId: player.id, event: "hit" });
-      }
+      hitPlayersInShape(ctx, cone, action.damage, action.damageType, mechanicSource(ctx, resolver.id, resolver.name), { excludeId: carrier.id });
     }
   }
 

@@ -3,7 +3,9 @@
 
 import type { TickContext } from "./context";
 import type { ActiveLineLink, PendingLineLink } from "@shared/types";
-import { selectLineLinkTargets, applyEffect, applyKnockback } from "./helpers";
+import { applyStatus, overrideStatus, removeStatus } from "@status";
+import { selectLineLinkTargets, knockbackPlayer } from "./helpers";
+import { statusServices } from "./statusServices";
 import { cullResolved } from "./util";
 import { LINE_LINK_LINGER } from "@shared/constants";
 
@@ -29,13 +31,8 @@ export function resolveLineLinks(ctx: TickContext): {
       const targets = selectLineLinkTargets(players, pendingLink.pos, target);
       const resolveAt = pendingLink.t + pendingLink.resolveAfter;
       for (const target of targets) {
-        applyEffect(ctx, target, {
-          name: pendingLink.hiddenDebuffName,
-          kind: "debuff",
-          duration: Math.max(0.01, resolveAt - time),
-          behavior: { kind: "none" },
-          visibility: "invisible",
-        }, `${pendingLink.id}-${target.id}-hidden`, players);
+        const hidden = overrideStatus(pendingLink.hiddenDebuff, { duration: Math.max(0.01, resolveAt - time), visibility: "invisible" });
+        applyStatus(target, hidden, `${pendingLink.id}-${target.id}-hidden`, statusServices(ctx));
       }
       lineLinks.push({
         id: pendingLink.id,
@@ -46,7 +43,7 @@ export function resolveLineLinks(ctx: TickContext): {
         resolveAt,
         target,
         targetPlayerIds: targets.map(target => target.id),
-        hiddenDebuffName: pendingLink.hiddenDebuffName,
+        hiddenDebuff: pendingLink.hiddenDebuff,
         applyEffect: pendingLink.applyEffect,
         knockback: pendingLink.knockback,
         visual: pendingLink.visual,
@@ -63,12 +60,10 @@ export function resolveLineLinks(ctx: TickContext): {
       for (const targetId of link.targetPlayerIds) {
         const target = players.find(p => p.id === targetId);
         if (!target) continue;
-        target.effects = target.effects.filter(e => e.id !== `${link.id}-${target.id}-hidden`);
+        removeStatus(target, `${link.id}-${target.id}-hidden`);
         if (target.alive) {
-          if (link.applyEffect) applyEffect(ctx, target, link.applyEffect, `${link.id}-${target.id}-eff`, players);
-          if (link.knockback && target.antiKbActive <= 0) {
-            applyKnockback(target, link.knockback, link.knockback.origin ?? link.pos, time);
-          }
+          if (link.applyEffect) applyStatus(target, link.applyEffect, `${link.id}-${target.id}-eff`, statusServices(ctx));
+          if (link.knockback) knockbackPlayer(target, link.knockback, link.knockback.origin ?? link.pos, time);
           log.push({ t: time, mechanic: link.name, playerId: target.id, event: "hit" });
         }
       }

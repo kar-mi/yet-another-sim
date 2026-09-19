@@ -2,9 +2,11 @@
 // random member to mark; at resolve split the unavoidable damage across whoever stacks in.
 
 import type { TickContext } from "./context";
+import { applyStatus } from "@status";
+import { statusServices } from "./statusServices";
 import type { ActiveGroupMechanic, PendingGroupEvent, AOEShape } from "@shared/types";
 import { pointInShape } from "../shapes";
-import { applyMechanicDamage, applyEffect } from "./helpers";
+import { applyMechanicDamage } from "./helpers";
 import { mechanicSource } from "./damageLog";
 import { cullResolved } from "./util";
 import { TARGETED_LINGER } from "@shared/constants";
@@ -86,7 +88,7 @@ export function resolveGroups(ctx: TickContext): {
           applyMechanicDamage(ctx, player, per, gm.damageType, mechanicSource(ctx, gm.id, gm.name));
           log.push({ t: time, mechanic: gm.name, playerId: player.id, event: "hit" });
           if (gm.applyEffect && player.alive) {
-            applyEffect(ctx, player, gm.applyEffect, `${gm.id}-${player.id}-eff`, players);
+            applyStatus(player, gm.applyEffect, `${gm.id}-${player.id}-eff`, statusServices(ctx));
           }
         }
         gm.outcome = success ? "success" : "failure";

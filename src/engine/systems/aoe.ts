@@ -3,6 +3,8 @@
 // mechanic past its resolveAt with FFXIV snapshot semantics (damage, effects, knockback).
 
 import type { TickContext } from "./context";
+import { applyStatus, isStatusActive, notifyMechanicHit, slotStatus } from "@status";
+import { statusServices } from "./statusServices";
 import type {
   ActiveMechanic, PendingEvent, PendingTargetedEvent, PendingBaitEvent, PendingDashEvent, PendingEffectBurst,
   Player, Role, Boss, AOEShape, DashDestination,
@@ -20,8 +22,8 @@ import { FloorAoe, DEFAULT_DANGER_COLOR } from "@effects";
 import { buildFloorAoe } from "../floorAoeBuild";
 import { atan2 } from "@shared/dmath";
 import {
-  selectTargetPlayer, selectTargetPlayers, inPositionalArc, applyMechanicDamage, applyEffect,
-  effectsForMechanic, balancedEffectOrders, applyKnockback, shapeOrigin, isEffectActiveAt, aoeCanHitPlayer, cleanseElementStacks,
+  selectTargetPlayer, selectTargetPlayers, inPositionalArc, applyMechanicDamage,
+  effectsForMechanic, balancedEffectOrders, knockbackPlayer, shapeOrigin, aoeCanHitPlayer,
 } from "./helpers";
 import { addResolvedAoeVisual } from "./effectResolvers";
 import { mechanicSource } from "./damageLog";
@@ -45,7 +47,7 @@ function selectBaitTarget(
 function baitDirectionOffset(target: Player, directionOffsetByEffect: Record<string, number> | undefined, time: number): number | undefined {
   if (!directionOffsetByEffect) return undefined;
   for (const effect of target.effects) {
-    if (isEffectActiveAt(effect, time) && directionOffsetByEffect[effect.name] !== undefined) {
+    if (isStatusActive(effect, time) && directionOffsetByEffect[effect.name] !== undefined) {
       return directionOffsetByEffect[effect.name];
     }
   }
@@ -62,7 +64,7 @@ function selectDashDestination(
   if ("to" in destination) return { ...destination.to };
   if ("debuff" in destination) {
     const carriers = players.filter(player => player.alive
-      && player.effects.some(effect => effect.name === destination.debuff && isEffectActiveAt(effect, time)));
+      && player.effects.some(effect => effect.name === destination.debuff && isStatusActive(effect, time)));
     const carrier = selectTargetPlayer(carriers, boss.pos, "closest");
     return carrier ? { ...carrier.pos } : { ...boss.pos };
   }
@@ -129,7 +131,7 @@ export function resolveAoe(ctx: TickContext): {
   const remainingPendingEffectBursts: PendingEffectBurst[] = [];
   for (const pb of ctx.world.pendingEffectBursts) {
     if (pb.t <= time) {
-      const carriers = players.filter(p => p.alive && p.effects.some(e => e.name === pb.effectName && isEffectActiveAt(e, time)));
+      const carriers = players.filter(p => p.alive && p.effects.some(e => e.name === pb.effectName && isStatusActive(e, time)));
       const inverted = pb.questionMark ?? (pb.rng ? ctx.randFloat() < 0.5 : false);
       const shape = inverted ? pb.hiddenShape : pb.shownShape;
       carriers.forEach((carrier, i) => {
@@ -334,7 +336,7 @@ export function resolveAoe(ctx: TickContext): {
             if (!player.alive || !pointInShape(circle, player.pos)) continue;
             applyMechanicDamage(ctx, player, mechanic.damage, mechanic.damageType, mechanicSource(ctx, mechanic.id, mechanic.name));
             log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });
-            if (mechanic.applyEffect) applyEffect(ctx, player, mechanic.applyEffect, `${mechanic.id}-${player.id}-eff`, players);
+            if (mechanic.applyEffect) applyStatus(player, mechanic.applyEffect, `${mechanic.id}-${player.id}-eff`, statusServices(ctx));
           }
         }
         mechanic.resolved = true;
@@ -377,31 +379,24 @@ export function resolveAoe(ctx: TickContext): {
         if (hit) {
           applyMechanicDamage(ctx, player, mechanic.damage, mechanic.damageType, mechanicSource(ctx, mechanic.id, mechanic.name));
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });
-          if (player.alive) cleanseElementStacks(ctx, player, mechanic.name, players);
+          if (player.alive) notifyMechanicHit(player, mechanic.name, statusServices(ctx));
           const effectSpecs = player.alive
             ? (mechanic.applyEffects?.order === "shuffleBalanced"
               ? (balancedOrders[balancedOrderIndex++] ?? mechanic.applyEffects.effects)
               : effectsForMechanic(mechanic, randInt))
             : [];
           for (const [effectIndex, effectSpec] of effectSpecs.entries()) {
-            // For a plant debuff, stamp this player's assigned heading from the combination plan.
-            // The slot can be remapped so timer/application order stays separate from combo order.
-            let spec = effectSpec;
-            let plantSlot: number | undefined;
-            if (spec.behavior.kind === "plant") {
-              const plantIndex = player.effects.filter(e => e.behavior.kind === "plant").length;
-              plantSlot = ctx.world.plantDebuffOrder?.[plantIndex] ?? plantIndex;
-              const dir = ctx.world.plantPlan[player.id]?.[plantSlot];
-              if (dir) spec = { ...spec, behavior: { ...spec.behavior, direction: dir } };
-            }
+            const { spec, slot } = slotStatus(player, effectSpec, index => {
+              const planSlot = ctx.world.plantDebuffOrder?.[index] ?? index;
+              return { slot: planSlot, direction: ctx.world.plantPlan[player.id]?.[planSlot] };
+            });
             const effectId = effectSpecs.length === 1
               ? `${mechanic.id}-${player.id}-eff`
               : `${mechanic.id}-${player.id}-eff-${effectIndex}`;
-            applyEffect(ctx, player, spec, effectId, players, plantSlot);
+            applyStatus(player, spec, effectId, statusServices(ctx), { plantSlot: slot });
           }
-          if (mechanic.knockback && player.alive && player.antiKbActive <= 0) {
-            const origin = mechanic.knockback.origin ?? shapeOrigin(mechanic.shape);
-            applyKnockback(player, mechanic.knockback, origin, time);
+          if (mechanic.knockback && player.alive) {
+            knockbackPlayer(player, mechanic.knockback, mechanic.knockback.origin ?? shapeOrigin(mechanic.shape), time);
           }
         } else {
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "cleared" });

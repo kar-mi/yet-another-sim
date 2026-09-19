@@ -65,13 +65,15 @@ src/
   server/   # Colyseus host: rooms, frame relay, WebSocket transport, metrics
   client/   # browser: Babylon renderer, input, netcode, prediction, UI
   effects/  # renderer-independent visual primitives the client draws with (see below)
+  status/   # buffs and debuffs: catalog, validation, lifecycle and behavior dispatch (see below)
 raids/      # YAML-authored encounters, grouped by category folder
 docs/       # this folder
 ```
 
-`@shared/*`, `@effects` and `@effects/*` are TypeScript path aliases (see `tsconfig.json`). The
-effects package is documented separately in [The effects package](effects-package.md); its import
-boundary is enforced by a test. The
+`@shared/*`, `@effects`, `@effects/*`, `@status` and `@status/*` are TypeScript path aliases (see
+`tsconfig.json`). The effects package is documented separately in
+[The effects package](effects-package.md) and the status package in
+[The status package](status-package.md); both import boundaries are enforced by tests. The
 **engine runs on both the server and every client** — that shared execution is the heart of the
 networking model below.
 
@@ -270,4 +272,5 @@ state *after* that event resolved. See [Authoring Raids](authoring-raids.md#repl
 - [Authoring Bot Patterns](authoring-bot-patterns.md)
 - [Movement & Scale](movement-and-scale.md)
 - [The Effects Package](effects-package.md)
+- [The Status Package](status-package.md)
 - [Finding Debuffs](finding_debuffs.md)

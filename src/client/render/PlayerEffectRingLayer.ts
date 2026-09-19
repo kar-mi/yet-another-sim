@@ -4,7 +4,7 @@ import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Player } from "@shared/types";
-import { STATIC_ROOT } from "../staticBase";
+import { STATUS_ICON_ROOT } from "../staticBase";
 import { createGlowRing, imageBillboardMaterial } from "@effects/babylon";
 
 // Ring heights above the player’s feet.
@@ -58,7 +58,7 @@ export class PlayerEffectRingLayer {
       torus.position.y = height;
       torus.parent = root;
 
-      const iconMaterial = imageBillboardMaterial(this.scene, `${name}-icon-mat`, `${STATIC_ROOT}/element_icons/${effect.ring!.icon}`);
+      const iconMaterial = imageBillboardMaterial(this.scene, `${name}-icon-mat`, `${STATUS_ICON_ROOT}/${effect.ring!.icon}`);
       ICON_BEARINGS[index % ICON_BEARINGS.length]!.forEach((bearing, i) => {
         const a = (bearing * Math.PI) / 180;
         const icon = CreatePlane(`${name}-icon-${i}`, { size: ICON_SIZE }, this.scene);

@@ -1,20 +1,23 @@
-// Phase 4: continuous status effects and effect expiry. Tick dots (respecting move/idle
-// conditions), fire burstSpread and plant (Tele-Trouncing) expiry effects, then drop
-// expired effects. Plant traps are appended to ctx.forcedMarches (built in phase 1c) for next tick.
+// Phase 4: resolve scheduled status follow-ups and twisters, record voluntary motion, then let the
+// status package tick, cleanse, expire and cull every player's statuses.
 
 import type { TickContext } from "./context";
-import { applyPendingBurstSpreadFollowUp, applyPendingTwister, STATUS_LIFECYCLE_REGISTRY } from "../status/lifecycle";
-import { isEffectActiveAt } from "./helpers";
+import { resolveBurstFollowUp, tickStatuses } from "@status";
+import { statusServices } from "./statusServices";
+import { addResolvedAoeVisual } from "./effectResolvers";
+import { hitPlayersInShape } from "./strikes";
 
 export function applyStatusEffects(ctx: TickContext): void {
-  const { players, time, previousTime, actedByPlayer } = ctx;
+  const { players, time, actedByPlayer } = ctx;
+  const services = statusServices(ctx);
   const remainingFollowUps = [];
   for (const pending of ctx.pendingBurstSpreadFollowUps) {
     if (pending.t > time) {
       remainingFollowUps.push(pending);
       continue;
     }
-    applyPendingBurstSpreadFollowUp(ctx, pending);
+    const origin = ctx.world.crystals.find(crystal => crystal.element === pending.originCrystal)?.pos ?? { x: 0, z: 0 };
+    resolveBurstFollowUp(services, pending.id, { key: pending.id, name: pending.name, avoidable: pending.avoidable === true }, pending.followUp, origin);
   }
   ctx.pendingBurstSpreadFollowUps = remainingFollowUps;
   const remainingTwisters = [];
@@ -23,39 +26,16 @@ export function applyStatusEffects(ctx: TickContext): void {
       remainingTwisters.push(pending);
       continue;
     }
-    applyPendingTwister(ctx, pending);
+    hitPlayersInShape(ctx, pending.shape, pending.damage, pending.damageType,
+      { key: pending.id, name: pending.name, avoidable: pending.avoidable === true });
+    addResolvedAoeVisual(ctx, `${pending.id}-twister`, pending.name, pending.shape);
   }
   ctx.pendingTwisters = remainingTwisters;
-  // Crystal-origin follow-ups share one origin across all carriers of a mechanic, so they resolve
-  // once per tick (keyed by mechanic + element) rather than once per carrier — otherwise N carriers
-  // each fire `count` overlapping AOEs from the same crystal.
-  const scratch = { resolvedCrystalFollowUps: new Set<string>(), resolvedPairedSpreadStacks: new Set<string>() };
   for (const player of players) {
     const intent = ctx.intents[player.id];
     if (intent?.jump || (intent !== undefined && (intent.move.x !== 0 || intent.move.z !== 0))) {
       player.lastMotionAt = time;
     }
-    if (player.alive && !player.invincible) {
-      const acted = actedByPlayer.get(player.id) ?? false;
-      for (const effect of player.effects) {
-        STATUS_LIFECYCLE_REGISTRY[effect.behavior.kind].onTick?.(effect, player, ctx, acted);
-        if (!player.alive) break;
-      }
-    }
-    // Accretion: cleansed by being healed to full HP (heal fires before status effects in sim.ts).
-    if (player.alive && player.hp >= player.maxHp) {
-      player.effects = player.effects.filter(e => !(isEffectActiveAt(e, time) && STATUS_LIFECYCLE_REGISTRY[e.behavior.kind].cleanseOnFullHp === true));
-    }
-    // Plant (Tele-Trouncing): when its debuff expires, place a teleport trap (forced march) at the
-    // player's spot. It stays inert for `armDelay` (so the placer can step off) before triggering.
-    // PrimordialCrust / Accretion: uncleansed expiry deals a lethal burst to the carrier.
-    if (player.alive) {
-      for (const effect of player.effects) {
-        const expiry = effect.appliedAt + effect.duration;
-        if (expiry <= previousTime || expiry > time) continue;
-        STATUS_LIFECYCLE_REGISTRY[effect.behavior.kind].onExpiry?.(effect, player, ctx, scratch);
-      }
-    }
-    player.effects = player.effects.filter(effect => isEffectActiveAt(effect, time));
   }
+  tickStatuses(services, player => actedByPlayer.get(player.id) ?? false);
 }

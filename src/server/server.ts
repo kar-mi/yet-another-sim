@@ -14,6 +14,7 @@ import { REPLAY_FORMAT_VERSION, type ReplayErrorResponse } from "@shared/replay"
 const ROOT = join(import.meta.dir, "..", "..");
 const BUNDLE_DIR = join(ROOT, ".bundle");
 const STATIC_DIR = join(ROOT, "static");
+const STATUS_ICON_DIR = join(ROOT, "src", "status", "icons");
 const PORT = Number(Bun.env.PORT || 3000);
 
 const SECURITY_HEADERS: Record<string, string> = {
@@ -33,6 +34,14 @@ const SECURITY_HEADERS: Record<string, string> = {
 
 function cacheControlForBundlePath(path: string): string {
   return path === "index.html" ? "no-cache" : "public, max-age=31536000, immutable";
+}
+
+async function sendAsset(req: any, res: any, prefix: string, dir: string): Promise<void> {
+  const rel = String(req.path ?? "").slice(prefix.length);
+  if (!/^[A-Za-z0-9_\-./]+$/.test(rel) || rel.includes("..")) return res.status(404).send("Not found");
+  const file = Bun.file(join(dir, rel));
+  if (!(await file.exists())) return res.status(404).send("Not found");
+  await sendFile(res, file, "public, max-age=3600");
 }
 
 function publicAddressForPort(port: number): string {
@@ -125,13 +134,8 @@ const serverOptions: ServerOptions = {
         res.status(400).send("Invalid session id");
       }
     });
-    app.get("/static/*splat", async (req: any, res: any) => {
-      const rel = String(req.path ?? "").slice("/static/".length);
-      if (!/^[A-Za-z0-9_\-./]+$/.test(rel) || rel.includes("..")) return res.status(404).send("Not found");
-      const file = Bun.file(join(STATIC_DIR, rel));
-      if (!(await file.exists())) return res.status(404).send("Not found");
-      await sendFile(res, file, "public, max-age=3600");
-    });
+    app.get("/static/*splat", (req: any, res: any) => sendAsset(req, res, "/static/", STATIC_DIR));
+    app.get("/status-icons/*splat", (req: any, res: any) => sendAsset(req, res, "/status-icons/", STATUS_ICON_DIR));
     app.get("/{*splat}", async (req: any, res: any) => {
       const path = String(req.path ?? "/");
       const relPath = path === "/" ? "index.html" : path.slice(1);

@@ -3,7 +3,10 @@ import { tick } from "../sim";
 import { createWorld } from "../world";
 import { createEmptyRaid } from "../../server/sessionRaid";
 import { byId, effect, withPlayerEffect } from "./helpers";
-import { ANTI_KB_DURATION, SPRINT_DURATION } from "@shared/constants";
+import { remainingTime, requireStatus } from "@status";
+
+const SPRINT_DURATION = requireStatus("sprint").duration;
+const ANTI_KB_DURATION = requireStatus("arms_length").duration;
 
 const idle = { move: { x: 0, z: 0 } };
 const cast = { ...idle, sprint: true, antiKnockback: true, provoke: true };
@@ -19,8 +22,10 @@ test("no cooldowns clears timers, allows recasts, and restores normal cooldowns 
     world = tick(world, { mt: cast }, dt);
     expect(byId(world, "mt")).toMatchObject({
       cooldownsDisabled: true, sprintCooldown: 0, antiKbCooldown: 0, provokeCooldown: 0,
-      sprintActive: SPRINT_DURATION - dt, antiKbActive: ANTI_KB_DURATION - dt,
     });
+    expect(remainingTime(byId(world, "mt"), "sprint", world.time)).toBe(SPRINT_DURATION);
+    expect(remainingTime(byId(world, "mt"), "arms_length", world.time)).toBe(ANTI_KB_DURATION);
+    expect(byId(world, "mt").effects.filter(status => status.ref === "sprint")).toHaveLength(1);
     expect(world.boss.threat.mt).toBeGreaterThan(world.boss.threat.ot!);
   }
   expect(byId(world, "ot").cooldownsDisabled).toBe(false);
@@ -41,7 +46,9 @@ test("no cooldowns preserves role restrictions and buff expiration", () => {
   world = tick(world, { m1: { ...cast, toggleCooldowns: true } }, dt);
   expect(world.boss.threat.m1).toBe(threat);
   for (let i = 0; i < (SPRINT_DURATION + ANTI_KB_DURATION + 1) * 60; i++) world = tick(world, {}, dt);
-  expect(byId(world, "m1")).toMatchObject({ sprintActive: 0, antiKbActive: 0, cooldownsDisabled: true });
+  expect(byId(world, "m1").cooldownsDisabled).toBe(true);
+  expect(remainingTime(byId(world, "m1"), "sprint", world.time)).toBe(0);
+  expect(remainingTime(byId(world, "m1"), "arms_length", world.time)).toBe(0);
 });
 
 test("sleep and death block the personal cooldown toggle", () => {

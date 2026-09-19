@@ -634,7 +634,7 @@ Unlike `tether_source`, these lines do not retarget or get intercepted. Excerpt 
 | `target.count` | no | Number of eligible targets selected. Defaults to `1`, or to `playerIds.length` when `playerIds` is supplied. |
 | `rng` | no | With `target.roleGroups`, pick a seeded random role group. Without `rng`, choose the first group. |
 | `link` | no | With `target.roleGroups`, take the complement of the referenced line link's chosen role group. The source line link must appear earlier, or earlier in the file when `t` is the same. |
-| `hiddenDebuff` | yes | `DEBUFF_REGISTRY` key for the hidden simulation debuff applied while the line is active. It does not show in the HUD; duration/behavior are engine-controlled, only the registry entry's `name` is used. |
+| `hiddenDebuff` | yes | Status catalog id of a debuff applied while the line is active. The engine keeps the registered status (name, icon, behavior) but forces it invisible and sets its duration to end at resolve; it is removed at resolve, so its expiry behavior never fires. |
 | `applyEffect` | no | Visible buff/debuff applied to the linked player at resolve. |
 | `knockback` | no | Knockback applied to each stored target at resolve; defaults to origin `pos` unless `knockback.origin` is set. |
 | `visual` | no | `{ kind: statue }` draws a rectangular statue at `pos`; dimensions default if omitted. |
@@ -677,7 +677,7 @@ burst of `breakDamage` (vulnerabilities apply per the pair's `damageType`). Exce
 | `breakDistance` | yes | Extra separation (> 0) the pair must add beyond their starting distance to break the chain. |
 | `breakDamage` | yes | Burst damage dealt to both members if the chain isn't broken in time (≥ 0). |
 | `damageType` | yes | `"physical"`, `"magical"`, or `"true"`. |
-| `debuff` | yes | `DEBUFF_REGISTRY` key for the debuff shown on both members until they break or get hit; duration/behavior are engine-controlled, only the registry entry's `name` is used. |
+| `debuff` | yes | Status catalog id of the debuff shown on both members until they break or get hit. The engine keeps the registered status and sets its duration to the break window; the chain removes it on break or burst, so its expiry behavior never fires. |
 | `showCastBar` | no | Show the cast bar during the telegraph. Default `false`. |
 
 ### `group` — random shared-damage stack
@@ -1293,47 +1293,43 @@ bind them to the boss.
 ## Effects
 
 `applyEffect` (on aoe/targeted/tower/group/line_link/tether_source/etc.) uses the same effect shape
-everywhere. It can be either a `ref` to a registered status, or inline metadata + a behavior:
-
-```yaml
-applyEffect:
-  name: Physical Vulnerability
-  kind: buff        # buffs may still be authored inline
-  duration: 8
-  behavior: { kind: vuln, damageType: physical, multiplier: 1.5 }
-```
-
-**Debuffs must be registered.** Every debuff (`kind: debuff`) must exist as an entry in
-`DEBUFF_REGISTRY` (`src/engine/status/debuffs.ts`) and be referenced with `ref` — an inline
-`kind: debuff` object is rejected by the schema. Buffs (`BUFF_REGISTRY`) are not enforced this way
-and may still be authored inline. Excerpt from `raids/debug/debuff-test.yaml`:
+everywhere: a `ref` to a status registered in the status catalog, plus optional overrides for this
+usage. Excerpt from `raids/debug/debuff-test.yaml`:
 
 ```yaml
 applyEffect:
   ref: physical_vulnerability
 ```
 
-`ref` resolves the named registry entry and merges any of the fields below on top of it (e.g. a
-one-off `duration` or `behavior` override for this usage only):
+**Statuses must be registered.** Every buff and debuff is a template in `src/status/catalog/buffs.ts`
+or `src/status/catalog/debuffs.ts`, referenced by its id. An inline status object without a `ref` is
+rejected by the schema. See [The status package](status-package.md) for how the catalog and its
+behaviors work.
+
+`ref` resolves the catalog template and merges any of the fields below on top of it (e.g. a one-off
+`duration` or `behavior` parameter for this usage only):
 
 ```yaml
 applyEffect:
-  ref: unbecoming
-  duration: 5           # overrides the registry's duration for this usage
-  behavior: { multiplier: 2 }  # shallow-merged onto the registry's behavior
+  ref: magic_vulnerability
+  duration: 5                  # overrides the template's duration for this usage
+  behavior: { multiplier: 2 }  # shallow-merged onto the template's behavior
 ```
 
-| Field      | Required (inline) | Notes |
+A template's identity is fixed: an override may restate `kind` or `behavior.kind`, but may not change
+them. Use a different template instead.
+
+| Field      | Required | Notes |
 |------------|----------|-------|
-| `ref`      | —        | Alternative to inline authoring: a `DEBUFF_REGISTRY`/`BUFF_REGISTRY` key. Any other field here overrides the registry entry for this usage. |
-| `name`     | yes      | Display name. |
-| `kind`     | yes      | `"buff"` or `"debuff"` — inline `kind: debuff` is rejected; use `ref` instead. |
-| `duration` | yes      | Seconds the effect lasts (> 0). |
-| `visibility` | no    | `"visible"` (default) shows in the HUD; `"invisible"` stores the effect without a HUD chip. |
-| `priority` | no | `true` renders this visible effect before normal HUD chips; order stays stable within each band. |
-| `icon`     | no       | HUD icon filename served from `static/debuffs/` (e.g. `"magic-vuln.png"`). Falls back to a generic glyph chosen from the behavior when omitted. |
+| `ref`      | yes      | Status catalog id. Every other field overrides the template for this usage. |
+| `name`     | no       | Display name, also what carrier-matching mechanics compare against. |
+| `kind`     | no       | `"buff"` or `"debuff"`; must match the template. |
+| `duration` | no       | Seconds the effect lasts (> 0). |
+| `visibility` | no     | `"visible"` (default) shows in the HUD; `"invisible"` stores the effect without a HUD chip. |
+| `priority` | no       | `true` renders this visible effect before normal HUD chips; order stays stable within each band. |
+| `icon`     | no       | HUD icon filename in `src/status/icons/` (e.g. `"magic-vuln.png"`). Falls back to a generic glyph chosen from the behavior when omitted. |
 | `marker`   | no       | Short text rendered above the player while the effect is active. Works even when `visibility` is `"invisible"`. |
-| `behavior` | yes      | One of the behaviors below. |
+| `behavior` | no       | Parameters for the template's behavior (see below); `kind` must match the template. |
 
 Normal `aoe` events can instead use `applyEffects` to apply multiple effects from one cast.
 Excerpt from `raids/dancing-mad-ultimate/graven-image-3.yaml`:
@@ -1351,8 +1347,10 @@ applyEffects:
 (for two effects and eight hit players, four players get each first effect). This changes which
 effect lands first, not the combo slot mapping from `optionals.combinations.plant.debuffOrder`.
 
-Behavior fragments represented by `raids/debug/debuff-test.yaml`, `raids/debug/cc-test.yaml`,
-`raids/debug/debuff-tower-test.yaml`, and `raids/dancing-mad-ultimate/graven-image-3.yaml`:
+Behaviors are declared on catalog templates. The fragments below show their parameters, which a
+`ref` may also override. Examples from the templates used by `raids/debug/debuff-test.yaml`,
+`raids/debug/cc-test.yaml`, `raids/debug/debuff-tower-test.yaml`, and
+`raids/dancing-mad-ultimate/graven-image-3.yaml`:
 
 ```yaml
 behavior: { kind: none }
@@ -1411,38 +1409,27 @@ behavior: { kind: plant, direction: option, distance: 6.5, radius: 1.7, armDelay
       damage: 80
       damageType: magical
   ```
-- **primordialCrust** — "survive a lethal hit" cleanse mechanic. When a hit would reduce the carrier's HP to 0 or below, the hit instead leaves them at **1 HP** and the debuff is removed (cleansed). If the debuff expires while still on the carrier (uncleansed), it deals `expiryDamage` of `expiryDamageType` — which kills at any HP. `expiryDamageType` defaults to `"true"`.
+- **expiryDamage** — deals `expiryDamage` of `expiryDamageType` to the carrier if the status is still on them when it expires. `expiryDamageType` defaults to `"true"`. Two optional rules add a cleanse path:
+  - `surviveLethal: true` — "survive a lethal hit" (Primordial Crust). When a hit would reduce the carrier's HP to 0 or below, the hit instead leaves them at **1 HP** and the status is removed.
 
-  > **Note:** The cleanse only fires for discrete mechanic hits routed through `applyMechanicDamage` (AOEs, targeted events, etc.). Continuous DoT ticks in `statusEffects` do not trigger the cleanse — this matches FFXIV's mechanic and is intentional.
+    > **Note:** The cleanse only fires for discrete mechanic hits routed through `applyMechanicDamage` (AOEs, targeted events, etc.). Continuous DoT ticks do not trigger it — this matches FFXIV's mechanic and is intentional.
+  - `cleanseAtFullHp: true` — "heal to full" (Accretion). The status is removed whenever the carrier's HP reaches their maximum HP (i.e. after a `heal` event fires).
 
-  ```yaml
-  behavior:
-    kind: primordialCrust
-    expiryDamage: 999999
-    expiryDamageType: "true"
-  ```
+    > **Authoring note:** The cleanse fires on any tick where the carrier is at full HP, not only on the exact tick of a `heal` event. Apply Accretion only **after** reducing the carrier's HP (e.g. via a `set_hp` event), otherwise the debuff self-cleanses on the very next tick.
 
-- **accretion** — "heal to full" cleanse mechanic. The debuff is removed whenever the carrier's HP reaches their maximum HP (i.e. after a `heal` event fires). If the debuff expires while still on the carrier (uncleansed), it deals `expiryDamage` of `expiryDamageType` — which kills at any HP. `expiryDamageType` defaults to `"true"`.
-
-  > **Authoring note:** The cleanse fires on any tick where the carrier is at full HP, not only on the exact tick of a `heal` event. Apply Accretion only **after** reducing the carrier's HP (e.g. via a `set_hp` event), otherwise the debuff self-cleanses on the very next tick.
+  Without either rule it is a plain priority/group marker (First/Second/Third in Line, Alpha, Beta) whose expiry is a placeholder punishment. Encounter names and icons belong on the template.
 
   ```yaml
-  behavior:
-    kind: accretion
-    expiryDamage: 999999
-    expiryDamageType: "true"
+  behavior: { kind: expiryDamage, expiryDamage: 999999, surviveLethal: true }   # Primordial Crust
+  behavior: { kind: expiryDamage, expiryDamage: 999999, cleanseAtFullHp: true } # Accretion
+  behavior: { kind: expiryDamage, expiryDamage: 20 }                            # First in Line
   ```
 
-- **assignment** — Generic priority/group marker (e.g. First/Second/Third in Line, Alpha, Beta). Pure HUD marker with no built-in resolution logic. When the debuff expires it deals `expiryDamage` of `expiryDamageType` to the carrier (placeholder until a raid wires up its own mechanic). There is no cleanse path — it always expires. Authors must set `icon` (filename from `/static/debuffs/`) and optionally `marker` for the short HUD label. `expiryDamageType` defaults to `"true"`.
+- **motionCheck** — At expiry, requires a voluntary horizontal move or jump (`required: "move"`) or no such action (`required: "still"`) during the final `window` seconds. Failure uses a vertical knockup and deals `failureDamage` after its calculated flight time. Facing, sprint, forced movement, and confusion do not count. The knockup ignores knockback immunity.
 
-- **motionCheck** — At expiry, requires a voluntary horizontal move or jump (`required: "move"`) or no such action (`required: "still"`) during the final `window` seconds. Failure uses a vertical knockup and deals `failureDamage` after its calculated flight time. Facing, sprint, forced movement, and confusion do not count.
+- **movementSpeed** — multiplies movement speed by `multiplier` while active (Sprint).
 
-  ```yaml
-  behavior:
-    kind: assignment
-    expiryDamage: 20
-    expiryDamageType: "true"
-  ```
+- **knockbackImmunity** — blocks mechanic knockback while active (Arm's Length). Forced movement that is not a knockback, and a failed motion check's knockup, still apply.
 
 - **plant** — Tele-Trouncing "plant": the HUD shows an arrow along `direction` (`{ x, z }`). When the debuff **expires** it places a teleport trap (a `forced_march`) at the player's position. The trap is **inert for `armDelay` seconds** (so the placer can step off), then triggers on contact — the first player to enter its `radius` is frozen for `tpDelay` seconds (the windup), then **instantly teleported** `distance` units along `direction` (measured from their own spot, so it lands purely along the heading). An untriggered trap expires `duration` seconds after it arms. The placed arrow renders via the forced-march layer; nothing is drawn under the player during the debuff. `direction` is a non-zero `{ x, z }` vector **or** the string `"option"` (defer to the combination plan — it resolves to a placeholder the plan overrides per player; see [Optional combinations](#optional-combinations)). `radius` defaults `3`, `armDelay` `3`, `duration` `10`, `tpDelay` `0.7`.
 
@@ -1759,17 +1746,18 @@ Damage dealt by a **status effect** — a dot, an expiry punishment, a burst, a 
 — is classified on the effect instead, and the tag travels with it through application and any
 delayed resolution:
 
-```yaml
-    applyEffect:
-      name: Acceleration Bomb
-      kind: buff
-      duration: 5
-      avoidable: true      # only detonates on a carrier who moved
-      behavior: { kind: motionCheck, required: still, window: 0.5, failureDamage: 999, failureKnockupHeight: 1 }
+```ts
+acceleration_bomb: {
+  name: "Acceleration Bomb",
+  kind: "debuff",
+  duration: 5,
+  avoidable: true,      // only detonates on a carrier who moved
+  behavior: { kind: "motionCheck", required: "still", window: 0.5, failureDamage: 999, failureDamageType: "true", failureKnockupHeight: 1 },
+},
 ```
 
-Registered debuffs carry the flag in `DEBUFF_REGISTRY` (`src/engine/status/debuffs.ts`) so every raid
-using them agrees. A `ref:` may still override it per raid, like any other field.
+Catalog templates carry the flag (`src/status/catalog/debuffs.ts`) so every raid using them agrees.
+A `ref:` may still override it per raid, like any other field.
 
 A dot's per-tick damage is deliberately not recorded as a hit — it would emit sixty rows a second —
 but a death it causes is.

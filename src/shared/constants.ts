@@ -4,13 +4,10 @@
 
 export const MOVE_SPEED = 6;
 export const BOSS_MOVE_SPEED = 3; // units/s; slightly slower than players
-export const SPRINT_MULTIPLIER = 1.3;
 export const JUMP_SPEED = 9;
 export const GRAVITY = 24;
 export const DEATH_FLOOR_Y = -10; // players die after falling this far below the arena floor
-export const SPRINT_DURATION = 10;
 export const SPRINT_COOLDOWN = 60;
-export const ANTI_KB_DURATION = 5;    // seconds the anti-knockback buff negates knockback
 export const ANTI_KB_COOLDOWN = 120;  // seconds before anti-knockback can be used again
 export const PROVOKE_COOLDOWN = 30;   // seconds before a tank can provoke again
 export const PROVOKE_LEAD = 1;        // threat set above the current max so the tank becomes target

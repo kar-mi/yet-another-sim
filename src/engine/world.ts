@@ -31,9 +31,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed(), constraint
     maxHp: ROLE_HP[p.role],
     mp: 10000,
     maxMp: 10000,
-    sprintActive: 0,
     sprintCooldown: 0,
-    antiKbActive: 0,
     antiKbCooldown: 0,
     provokeCooldown: 0,
     targetBossId: "",   // filled in below once bosses are built

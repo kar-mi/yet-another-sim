@@ -9,9 +9,7 @@ import type {
   PositionalArc,
   LineLinkTarget,
   DamageType,
-  StatusEffect,
   EffectSpec,
-  EffectBehavior,
   Intent,
   ActiveMechanic,
   Knockback,
@@ -21,9 +19,8 @@ import type { Vec2 } from "@shared/math";
 import { sub, scale, normalize, length, dot } from "@shared/math";
 import { GRAVITY, KNOCKBACK_FRICTION, INTERCEPT_THRESHOLD } from "@shared/constants";
 import { sin, cos, acos } from "@shared/dmath";
-import { COMBAT_LIFECYCLE_REGISTRY } from "../status/combatLifecycle";
-import { resolveEffectRef } from "../status/registry";
-import { effectSource, recordAvoidableHit, recordDeath, type DamageContext, type DamageSource } from "./damageLog";
+import { applyDamageModifiers, isKnockbackImmune, isStatusActive, modifyKnockback, surviveLethal } from "@status";
+import { recordAvoidableHit, recordDeath, type DamageContext, type DamageSource } from "./damageLog";
 
 export function topThreatTarget(players: Player[], threat: Record<string, number>): string | null {
   let best: string | null = null;
@@ -99,21 +96,9 @@ export function selectLineLinkTargets(
 // the hit and are then consumed when the base damage is > 0). Respects invincibility.
 // `source` also drives replay recording; a hit on an already-dead player records nothing.
 export function applyMechanicDamage(dc: DamageContext, player: Player, damage: number, damageType: DamageType, source: DamageSource): void {
-  const time = dc.time;
   const wasAlive = player.alive;
   const hpBefore = player.hp;
-  const matchingVulnIds = new Set<string>();
-  let dealt = damage;
-  for (const effect of player.effects) {
-    if (!isEffectActiveAt(effect, time)) continue;
-    const result = COMBAT_LIFECYCLE_REGISTRY[effect.behavior.kind].modifyDamage?.(effect, dealt, damageType, source.name);
-    if (!result) continue;
-    dealt = result.dealt;
-    if (result.consume) matchingVulnIds.add(effect.id);
-  }
-  if (matchingVulnIds.size > 0 && damage > 0) {
-    player.effects = player.effects.filter(effect => !matchingVulnIds.has(effect.id));
-  }
+  const dealt = applyDamageModifiers(player, damage, damageType, source.name, dc.time);
   if (!player.invincible) {
     player.hp = Math.max(0, player.hp - dealt);
   }
@@ -135,11 +120,8 @@ export function applyMechanicLethal(dc: DamageContext, player: Player, source: D
 }
 
 function resolveLethalHit(dc: DamageContext, player: Player, source: DamageSource, wasAlive: boolean): void {
-  const time = dc.time;
-  const survivor = player.effects.find(e => isEffectActiveAt(e, time) && COMBAT_LIFECYCLE_REGISTRY[e.behavior.kind].onLethal?.(e, player) === true);
-  if (survivor) {
+  if (surviveLethal(player, dc.time)) {
     player.hp = 1;
-    player.effects = player.effects.filter(e => e !== survivor);
   } else {
     player.alive = false;
     if (wasAlive) recordDeath(dc, player, source);
@@ -201,39 +183,27 @@ export function didAct(intent: Intent | undefined): boolean {
   return !!intent && (length(intent.move) > 0 || intent.jump === true || intent.sprint === true);
 }
 
-export function isEffectActiveAt(effect: StatusEffect, time: number): boolean {
-  return effect.appliedAt + effect.duration > time;
-}
-
 // Check player and carrier filters, independent of position.
 export function aoeCanHitPlayer(mechanic: Pick<ActiveMechanic, "name" | "onlyCarriers" | "players">, player: Player, time: number): boolean {
-  const carries = !mechanic.onlyCarriers || player.effects.some(e => e.name === mechanic.name && isEffectActiveAt(e, time));
+  const carries = !mechanic.onlyCarriers || player.effects.some(e => e.name === mechanic.name && isStatusActive(e, time));
   const targeted = !mechanic.players || mechanic.players.includes(player.id);
   return carries && targeted;
 }
 
-export function effectActiveDt(effect: StatusEffect, previousTime: number, time: number): number {
-  const activeStart = Math.max(previousTime, effect.appliedAt);
-  const activeEnd = Math.min(time, effect.appliedAt + effect.duration);
-  return Math.max(0, activeEnd - activeStart);
+export function knockbackPlayer(player: Player, knockback: Knockback, origin: Vec2, time: number): void {
+  if (isKnockbackImmune(player, time)) return;
+  applyKnockback(player, knockback, origin, time);
 }
 
 export function applyKnockback(player: Player, knockback: Knockback, origin: Vec2, time: number): void {
   player.botWaypointResumeAfter = time;
   const away = sub(player.pos, origin);
   const dir = length(away) > 0 ? normalize(away) : { x: 1, z: 0 }; // player on origin: arbitrary dir
-  let { distance, height } = knockback;
-
-  const modifier = player.effects.find(e => isEffectActiveAt(e, time) && COMBAT_LIFECYCLE_REGISTRY[e.behavior.kind].modifyKnockback !== undefined);
-  if (modifier) {
-    ({ distance, height } = COMBAT_LIFECYCLE_REGISTRY[modifier.behavior.kind].modifyKnockback!(modifier, player, knockback, origin, time));
-    player.effects = player.effects.filter(e => e !== modifier);
-  }
+  const { distance, height } = modifyKnockback(player, knockback, origin, time);
   if (height > 0) {
     // Projectile arc: rise to peak `height`, travel `distance` horizontally over the flight.
-    const vUp = Math.sqrt(2 * GRAVITY * height);
-    const flightTime = (2 * vUp) / GRAVITY;
-    player.verticalVelocity = vUp;
+    const flightTime = launchAirtime(height);
+    player.verticalVelocity = Math.sqrt(2 * GRAVITY * height);
     player.knockbackVelocity = scale(dir, distance / flightTime);
   } else {
     // Ground slide: friction brings it to rest after exactly `distance`.
@@ -241,80 +211,8 @@ export function applyKnockback(player: Player, knockback: Knockback, origin: Vec
   }
 }
 
-function effectReapplicationKey(behavior: EffectBehavior): string | undefined {
-  if (behavior.kind === "escalating") return behavior.escalationKey;
-  if (behavior.kind === "alternating") return behavior.alternationKey;
-  return undefined;
-}
-
-export function applyEffect(dc: DamageContext, player: Player, spec: EffectSpec, id: string, players: Player[], plantSlot?: number, limitCutNumber?: number): void {
-  const time = dc.time;
-  const incoming = spec.behavior;
-  const key = effectReapplicationKey(incoming);
-  const existing = key === undefined ? undefined : player.effects.find(effect =>
-    isEffectActiveAt(effect, time)
-    && effect.behavior.kind === incoming.kind
-    && effectReapplicationKey(effect.behavior) === key
-  );
-  if (existing) {
-    const behavior = existing.behavior;
-    if (behavior.kind === "alternating" && existing.name !== spec.name) {
-      player.effects = player.effects.filter(effect => effect !== existing);
-    } else if (behavior.kind === "escalating" || behavior.kind === "alternating") {
-      const damage = behavior.kind === "escalating" ? behavior.escalateDamage : behavior.repeatDamage;
-      const damageType = behavior.kind === "escalating" ? behavior.escalateDamageType : behavior.repeatDamageType;
-      const nextRef = behavior.kind === "escalating" ? behavior.escalateTo : behavior.repeatApply;
-      if (damage !== undefined) applyMechanicDamage(dc, player, damage, damageType ?? "true", effectSource(existing));
-      if (nextRef !== undefined) {
-        if (behavior.kind === "escalating") player.effects = player.effects.filter(effect => effect !== existing);
-        const next = resolveEffectRef({ ref: nextRef });
-        if (next) applyEffect(dc, player, next, id, players, plantSlot, limitCutNumber);
-      }
-      return;
-    }
-  }
-
-  const effect: StatusEffect = {
-    id,
-    name: spec.name,
-    kind: spec.kind,
-    avoidable: spec.avoidable,
-    appliedAt: time,
-    duration: spec.duration,
-    stacks: spec.stacks,
-    behavior: spec.behavior,
-    visibility: spec.visibility,
-    priority: spec.priority,
-    group: spec.group,
-    showTimer: spec.showTimer,
-    icon: spec.icon,
-    marker: spec.marker,
-    markerIcon: spec.markerIcon,
-    markerIconScale: spec.markerIconScale,
-    ring: spec.ring,
-    countdown: spec.countdown,
-    plantSlot,
-    limitCutNumber,
-  };
-  if (spec.group) player.effects = player.effects.filter(existing =>
-    !isEffectActiveAt(existing, time) || existing.group !== spec.group);
-  player.effects = [
-    ...player.effects,
-    {
-      ...effect,
-      ...COMBAT_LIFECYCLE_REGISTRY[spec.behavior.kind].onApply?.(effect, player, players, spec),
-    },
-  ];
-}
-
-export function consumeEffectStacks(player: Player, effectName: string, stacks: number, time: number): void {
-  const effect = player.effects.find(e => e.name === effectName && isEffectActiveAt(e, time));
-  if (!effect) return;
-  if (effect.stacks === undefined || effect.stacks <= stacks) {
-    player.effects = player.effects.filter(e => e !== effect);
-  } else {
-    effect.stacks -= stacks;
-  }
+export function launchAirtime(height: number): number {
+  return (2 * Math.sqrt(2 * GRAVITY * height)) / GRAVITY;
 }
 
 function shuffledEffects(specs: EffectSpec[], randInt: (n: number) => number): EffectSpec[] {
@@ -345,26 +243,4 @@ export function effectsForMechanic(mechanic: ActiveMechanic, randInt: (n: number
   const specs = mechanic.applyEffects.effects.slice();
   if (mechanic.applyEffects.order === "shuffle") return shuffledEffects(specs, randInt);
   return specs;
-}
-
-// Cleanse each element once, apply its mapped effect, and remove the debuff at zero stacks.
-export function cleanseElementStacks(dc: DamageContext, player: Player, name: string, players: Player[]): void {
-  for (const effect of player.effects.slice()) {
-    if (!isEffectActiveAt(effect, dc.time) || effect.behavior.kind !== "elementCleanse") continue;
-    const ref = effect.behavior.elements[name];
-    if (ref === undefined || effect.cleansedElements?.includes(name)) continue;
-    effect.cleansedElements = [...(effect.cleansedElements ?? []), name];
-    effect.stacks = Object.keys(effect.behavior.elements).length - effect.cleansedElements.length;
-    if (effect.stacks <= 0) player.effects = player.effects.filter(e => e !== effect);
-    const spec = resolveEffectRef({ ref });
-    if (spec) applyEffect(dc, player, spec, `${effect.id}-${ref}`, players);
-  }
-}
-
-// First active effect of a given behavior kind, or null.
-export function activeEffectOfKind(player: Player, time: number, kind: EffectBehavior["kind"]): StatusEffect | null {
-  for (const effect of player.effects) {
-    if (isEffectActiveAt(effect, time) && effect.behavior.kind === kind) return effect;
-  }
-  return null;
 }

@@ -6,20 +6,21 @@
 
 import type { Player, Reassign, ReassignCharge } from "@shared/types";
 import type { TickContext } from "./context";
-import { applyEffect, isEffectActiveAt } from "./helpers";
+import { applyStatus, isStatusActive } from "@status";
+import { statusServices } from "./statusServices";
 
 // The charge kind currently active on a player (matched by the charge effect's name), or undefined.
 function activeChargeKind(player: Player, time: number, kindByEffectName: Map<string, string>): string | undefined {
   for (const effect of player.effects) {
     const kind = kindByEffectName.get(effect.name);
-    if (kind && isEffectActiveAt(effect, time)) return kind;
+    if (kind && isStatusActive(effect, time)) return kind;
   }
   return undefined;
 }
 
 function applyCharge(ctx: TickContext, player: Player, charge: ReassignCharge, idPrefix: string): void {
-  applyEffect(ctx, player, charge.effect, `${idPrefix}-charge`, ctx.players);
-  if (charge.marker) applyEffect(ctx, player, charge.marker, `${idPrefix}-marker`, ctx.players);
+  applyStatus(player, charge.effect, `${idPrefix}-charge`, statusServices(ctx));
+  if (charge.marker) applyStatus(player, charge.marker, `${idPrefix}-marker`, statusServices(ctx));
 }
 
 export function resolveReassigns(ctx: TickContext): { reassigns: Reassign[] } {

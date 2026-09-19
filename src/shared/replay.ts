@@ -2,8 +2,8 @@ import type { Frame } from "./protocol";
 import type { MechanicSection, World } from "./types";
 
 
-export const REPLAY_FORMAT_VERSION = 2;
-export const SNAPSHOT_FORMAT_VERSION = 1;
+export const REPLAY_FORMAT_VERSION = 3;
+export const SNAPSHOT_FORMAT_VERSION = 2;
 
 export type ReplaySummary = {
   pull: number;

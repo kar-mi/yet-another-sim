@@ -10,7 +10,7 @@ const stackCharge = {
 };
 
 const seededStack: StatusEffect = {
-  id: "seed", name: "Stack Charge", kind: "debuff", appliedAt: 0, duration: 100,
+  id: "seed", ref: "stack_charge", name: "Stack Charge", kind: "debuff", appliedAt: 0, duration: 100,
   behavior: { kind: "none" }, visibility: "invisible",
 };
 

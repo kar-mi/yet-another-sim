@@ -3,28 +3,30 @@
 // threat table (provoke), the log, and the actedByPlayer map (read later by status-effect dots).
 
 import type { TickContext } from "./context";
-import type { EffectBehavior } from "@shared/types";
 import { add, sub, scale, normalize, length } from "@shared/math";
 import { isOnFloor } from "../shapes";
 import { atan2 } from "@shared/dmath";
-import { activeEffectOfKind, didAct, applyMechanicDamage } from "./helpers";
-import { FALL_SOURCE, effectSource, recordDeath } from "./damageLog";
+import { applyStatus, movementControl, movementSpeedMultiplier, requireStatus, resolveForcedWalk } from "@status";
+import { didAct } from "./helpers";
+import { FALL_SOURCE, recordDeath } from "./damageLog";
+import { statusServices } from "./statusServices";
 import {
-  MOVE_SPEED, SPRINT_MULTIPLIER, JUMP_SPEED, GRAVITY, DEATH_FLOOR_Y,
-  SPRINT_DURATION, SPRINT_COOLDOWN, ANTI_KB_DURATION, ANTI_KB_COOLDOWN,
+  MOVE_SPEED, JUMP_SPEED, GRAVITY, DEATH_FLOOR_Y, SPRINT_COOLDOWN, ANTI_KB_COOLDOWN,
   PROVOKE_COOLDOWN, PROVOKE_LEAD, KNOCKBACK_FRICTION,
 } from "@shared/constants";
+
+const SPRINT = requireStatus("sprint");
+const ARMS_LENGTH = requireStatus("arms_length");
 
 export function applyPlayerMovement(ctx: TickContext): void {
   const { players, bosses, log, time, dt, intents, actedByPlayer } = ctx;
   for (const player of players) {
     if (!player.alive) continue;
-    // Sleep disables all input for its duration; confusion overrides movement (handled below).
-    const asleep = activeEffectOfKind(player, time, "sleep") !== null;
-    const confusion = asleep ? null : activeEffectOfKind(player, time, "confusion");
-    const intent = asleep ? undefined : intents[player.id];
+    const control = movementControl(player, time);
+    const forcedWalk = control.forcedWalk;
+    const intent = control.frozen ? undefined : intents[player.id];
     if (intents[player.id]?.solverDirected) player.botWaypointResumeAfter = ctx.previousTime;
-    actedByPlayer.set(player.id, didAct(intent) || confusion !== null);
+    actedByPlayer.set(player.id, didAct(intent) || forcedWalk !== undefined);
 
     if (intent?.toggleCooldowns) player.cooldownsDisabled = !player.cooldownsDisabled;
     if (player.cooldownsDisabled) {
@@ -38,14 +40,13 @@ export function applyPlayerMovement(ctx: TickContext): void {
     }
 
     if (intent?.sprint && player.sprintCooldown <= 0) {
-      player.sprintActive = SPRINT_DURATION;
+      applyStatus(player, SPRINT, `${player.id}-sprint`, statusServices(ctx));
       player.sprintCooldown = player.cooldownsDisabled ? 0 : SPRINT_COOLDOWN;
     }
     if (player.sprintCooldown > 0) player.sprintCooldown = Math.max(0, player.sprintCooldown - dt);
-    if (player.sprintActive > 0) player.sprintActive = Math.max(0, player.sprintActive - dt);
 
     if (intent?.antiKnockback && player.antiKbCooldown <= 0) {
-      player.antiKbActive = ANTI_KB_DURATION;
+      applyStatus(player, ARMS_LENGTH, `${player.id}-arms-length`, statusServices(ctx));
       player.antiKbCooldown = player.cooldownsDisabled ? 0 : ANTI_KB_COOLDOWN;
     }
 
@@ -73,25 +74,16 @@ export function applyPlayerMovement(ctx: TickContext): void {
       player.invincible = !player.invincible;
     }
     if (player.antiKbCooldown > 0) player.antiKbCooldown = Math.max(0, player.antiKbCooldown - dt);
-    if (player.antiKbActive > 0) player.antiKbActive = Math.max(0, player.antiKbActive - dt);
 
     // Forced movement (knockback/knockup) suppresses normal input while it carries the player.
     const beingKnocked = length(player.knockbackVelocity) > 1e-6;
-    const speed = player.sprintActive > 0 ? MOVE_SPEED * SPRINT_MULTIPLIER : MOVE_SPEED;
-    if (!beingKnocked && confusion) {
-      // Confusion: walk toward the locked target. On contact the target takes the hit and it ends.
-      const target = players.find(p => p.id === confusion.lockedTargetId && p.alive);
-      const cb = confusion.behavior as Extract<EffectBehavior, { kind: "confusion" }>;
-      if (target) {
-        const toTarget = sub(target.pos, player.pos);
-        if (length(toTarget) <= cb.radius) {
-          applyMechanicDamage(ctx, target, cb.damage, cb.damageType, effectSource(confusion));
-          player.effects = player.effects.filter(e => e.id !== confusion.id);
-          log.push({ t: time, mechanic: confusion.name, playerId: target.id, event: "hit" });
-        } else {
-          player.pos = add(player.pos, scale(normalize(toTarget), MOVE_SPEED * dt));
-          player.facing = atan2(toTarget.x, toTarget.z);
-        }
+    const speed = MOVE_SPEED * movementSpeedMultiplier(player, time);
+    if (!beingKnocked && forcedWalk) {
+      const destination = resolveForcedWalk(player, forcedWalk, statusServices(ctx));
+      if (destination) {
+        const toTarget = sub(destination, player.pos);
+        player.pos = add(player.pos, scale(normalize(toTarget), MOVE_SPEED * dt));
+        player.facing = atan2(toTarget.x, toTarget.z);
       }
     } else if (!beingKnocked && intent && length(intent.move) > 0) {
       player.pos = add(player.pos, scale(normalize(intent.move), speed * dt));

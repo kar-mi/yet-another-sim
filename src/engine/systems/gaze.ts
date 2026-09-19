@@ -3,8 +3,10 @@
 // last movement direction, so "looking away" means flicking the stick away then stopping.
 
 import type { TickContext } from "./context";
+import { applyStatus } from "@status";
+import { statusServices } from "./statusServices";
 import type { ActiveGaze, PendingGaze, AOEShape } from "@shared/types";
-import { applyMechanicDamage, applyEffect, applyKnockback, isLookingAt } from "./helpers";
+import { applyMechanicDamage, knockbackPlayer, isLookingAt } from "./helpers";
 import { mechanicSource } from "./damageLog";
 import { pointInShape } from "../shapes";
 import { cullResolved } from "./util";
@@ -79,10 +81,10 @@ export function resolveGazes(ctx: TickContext): {
           applyMechanicDamage(ctx, player, gz.damage, gz.damageType, mechanicSource(ctx, gz.id, gz.name));
           log.push({ t: time, mechanic: gz.name, playerId: player.id, event: "hit" });
           if (gz.applyEffect && player.alive) {
-            applyEffect(ctx, player, gz.applyEffect, `${gz.id}-${player.id}-eff`, players);
+            applyStatus(player, gz.applyEffect, `${gz.id}-${player.id}-eff`, statusServices(ctx));
           }
-          if (gz.knockback && player.alive && player.antiKbActive <= 0) {
-            applyKnockback(player, gz.knockback, gz.knockback.origin ?? gz.pos, time);
+          if (gz.knockback && player.alive) {
+            knockbackPlayer(player, gz.knockback, gz.knockback.origin ?? gz.pos, time);
           }
         } else {
           log.push({ t: time, mechanic: gz.name, playerId: player.id, event: "cleared" });

@@ -18,7 +18,8 @@ import type { Settings, ControllerType } from "../settings";
 import type { PlaybackState } from "@shared/protocol";
 import { clamp01 } from "@shared/math";
 import { createEffectRenderState, syncEffectChips, type EffectRenderState } from "./effectChips";
-import { STATIC_ROOT } from "../staticBase";
+import { remainingTime, requireStatus } from "@status";
+import { STATUS_ICON_ROOT } from "../staticBase";
 import {
   combinePositionFrames,
   invertFramePosition,
@@ -43,12 +44,12 @@ import {
 declare const __YAS_DEBUG__: boolean | undefined;
 
 
-const BUFF_SPECS = [
-  { icon: "sprint.png", name: "Sprint", read: (p: Player) => p.sprintActive },
-  { icon: "armslength.png", name: "Arm's Length", read: (p: Player) => p.antiKbActive },
-] as const;
+const BUFF_SPECS = ["sprint", "arms_length"].map(ref => {
+  const { name, icon } = requireStatus(ref);
+  return { icon: icon!, name, read: (p: Player, time: number) => remainingTime(p, ref, time) };
+});
 
-type BuffChip = { el: HTMLSpanElement; timerEl: HTMLSpanElement; read: (p: Player) => number; text: string };
+type BuffChip = { el: HTMLSpanElement; timerEl: HTMLSpanElement; read: (p: Player, time: number) => number; text: string };
 
 const DEBUG_ENABLED = typeof __YAS_DEBUG__ !== "undefined" && __YAS_DEBUG__;
 const DEBUG_POSITION_ENABLED = DEBUG_ENABLED;
@@ -65,7 +66,7 @@ type PartyRow = {
 
 
 // Reads a skill's live cooldown/active state off a player snapshot.
-type SkillRead = (p: Player) => { activeSecs: number; cooldownSecs: number; cooldownMax: number };
+type SkillRead = (p: Player, time: number) => { activeSecs: number; cooldownSecs: number; cooldownMax: number };
 
 // A skill with a cooldown (sprint/anti-kb/provoke). Drives both the static keyboard hotbar
 // and the layer-aware controller hotbar.
@@ -207,8 +208,8 @@ export class HudOverlay {
       this.positionReadoutEl = null;
     }
     this.skillSpecs = [
-      { action: "sprint", tankOnly: false, read: p => ({ activeSecs: p.sprintActive, cooldownSecs: p.sprintCooldown, cooldownMax: SPRINT_COOLDOWN }) },
-      { action: "antiKnockback", tankOnly: false, read: p => ({ activeSecs: p.antiKbActive, cooldownSecs: p.antiKbCooldown, cooldownMax: ANTI_KB_COOLDOWN }) },
+      { action: "sprint", tankOnly: false, read: (p, time) => ({ activeSecs: remainingTime(p, "sprint", time), cooldownSecs: p.sprintCooldown, cooldownMax: SPRINT_COOLDOWN }) },
+      { action: "antiKnockback", tankOnly: false, read: (p, time) => ({ activeSecs: remainingTime(p, "arms_length", time), cooldownSecs: p.antiKbCooldown, cooldownMax: ANTI_KB_COOLDOWN }) },
       { action: "provoke", tankOnly: true, read: p => ({ activeSecs: 0, cooldownSecs: p.provokeCooldown, cooldownMax: PROVOKE_COOLDOWN }) },
     ];
     this.kbSkillSlots = this.skillSpecs.map(spec => {
@@ -312,7 +313,7 @@ export class HudOverlay {
     el.hidden = true;
     const iconEl = document.createElement("img");
     iconEl.className = "yas-buff-icon";
-    iconEl.src = `${STATIC_ROOT}/buffs/${spec.icon}`;
+    iconEl.src = `${STATUS_ICON_ROOT}/${spec.icon}`;
     iconEl.alt = spec.name;
     const timerEl = document.createElement("span");
     timerEl.className = "yas-buff-timer";
@@ -630,7 +631,7 @@ export class HudOverlay {
     syncEffectChips(this.debuffTrackerEl, this.debuffTrackerState, p, world.time, "yas-debuff", "debuff");
 
     for (const chip of this.buffChips) {
-      const secs = chip.read(p);
+      const secs = chip.read(p, world.time);
       chip.el.hidden = secs <= 0;
       const text = `${Math.ceil(secs)}s`;
       if (chip.text !== text) {
@@ -655,16 +656,16 @@ export class HudOverlay {
         for (const slot of view.slots) slot.style.display = isTank ? "" : "none";
         if (!isTank) continue;
       }
-      const { activeSecs, cooldownSecs, cooldownMax } = view.read(p);
+      const { activeSecs, cooldownSecs, cooldownMax } = view.read(p, world.time);
       view.prevCooldown = this.renderSkillSlots(view.slots, view.cdOverlays, activeSecs, cooldownSecs, cooldownMax, view.prevCooldown);
     }
 
-    if (this.currentSettings?.hotbarMode === "controller") this.syncControllerHotbar(p, isTank);
+    if (this.currentSettings?.hotbarMode === "controller") this.syncControllerHotbar(p, isTank, world.time);
   }
 
   // Projects the active modifier layer onto the 8 controller button cells: each cell shows the
   // action bound to {activeModifier, button} (icon/label + cooldown), or is cleared if unbound.
-  private syncControllerHotbar(p: Player, isTank: boolean): void {
+  private syncControllerHotbar(p: Player, isTank: boolean, time: number): void {
     const bindings = this.currentSettings.controllerBindings;
     const active = getActiveModifier();
     const glyphs = CONTROLLER_GLYPHS[this.currentControllerType];
@@ -688,7 +689,7 @@ export class HudOverlay {
       view.name.textContent = ACTIONS[actionId].label;
       const spec = this.skillSpecs.find(s => s.action === actionId);
       if (spec) {
-        const { activeSecs, cooldownSecs, cooldownMax } = spec.read(p);
+        const { activeSecs, cooldownSecs, cooldownMax } = spec.read(p, time);
         const prev = this.ctrlPrevCooldown.get(actionId) ?? 0;
         const next = this.renderSkillSlots(
           [view.el],

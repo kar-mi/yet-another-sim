@@ -160,7 +160,7 @@ const lineLinks: MechanicModule = {
       rng: e.rng,
       link: e.link,
       target: e.target,
-      hiddenDebuffName: e.hiddenDebuffName,
+      hiddenDebuff: e.hiddenDebuff,
       applyEffect: e.applyEffect,
       knockback: e.knockback && toKnockback(e.knockback),
       visual: e.visual,
@@ -185,7 +185,7 @@ const chains: MechanicModule = {
         breakDistance: e.breakDistance,
         breakDamage: e.breakDamage,
         damageType: e.damageType,
-        debuffName: e.debuffName,
+        debuff: e.debuff,
         showCastBar: e.showCastBar,
       });
     });

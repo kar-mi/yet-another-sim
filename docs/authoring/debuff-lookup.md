@@ -1,7 +1,7 @@
 # Looking up debuff icons
 
-Every debuff an encounter applies must be registered in `DEBUFF_REGISTRY`
-(`src/engine/status/debuffs.ts`) and referenced from YAML with `ref:`. Registering one needs two
+Every debuff an encounter applies must be registered in the status catalog
+(`src/status/catalog/debuffs.ts`) and referenced from YAML with `ref:`. Registering one needs two
 things you do not have yet: the status's exact in-game name, and its icon.
 
 Both come from [XIVAPI](https://v2.xivapi.com). This page is the short version of how to get them.
@@ -46,18 +46,18 @@ https://v2.xivapi.com/api/asset/ui/icon/215000/215905_hr1.tex?format=png
 The two numbers are the icon's folder and its id — `215905` lives in the `215000` folder. The
 `_hr1` suffix is the high-resolution variant, which is what you want.
 
-Save it into `static/debuffs/` using a lower-case, underscore-separated filename that matches the
+Save it into `src/status/icons/` using a lower-case, underscore-separated filename that matches the
 status:
 
 ```text
-static/debuffs/tailwind.png
+src/status/icons/tailwind.png
 ```
 
-That directory is served directly, and the registry entry refers to files by name only.
+The server serves that directory at `/status-icons/`, and the catalog entry refers to files by name only.
 
 ## 3. Register the debuff
 
-Add an entry to `DEBUFF_REGISTRY` keyed by a snake-case id:
+Add an entry to `DEBUFFS` in `src/status/catalog/debuffs.ts` keyed by a snake-case id:
 
 ```ts
 tailwind: {
@@ -70,7 +70,7 @@ tailwind: {
 ```
 
 - `name` is what the HUD shows and what mechanics match on when they refer to carriers by name.
-- `icon` is the filename under `static/debuffs/`. Leaving it out falls back to a generic glyph
+- `icon` is the filename under `src/status/icons/`. Leaving it out falls back to a generic glyph
   chosen from the behavior.
 - `behavior` is what the debuff actually does. `{ kind: "none" }` is a marker with no effect, which
   is common — plenty of debuffs exist only so that another event can find their carriers.

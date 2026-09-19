@@ -2,9 +2,11 @@
 // wrong-role ones) on success, or hit the whole raid with failure damage when undersoaked.
 
 import type { TickContext } from "./context";
+import { applyStatus, consumeStacks } from "@status";
+import { statusServices } from "./statusServices";
 import type { ActiveTower, PendingTower, AOEShape, Player } from "@shared/types";
 import { pointInShape } from "../shapes";
-import { applyEffect, applyKnockback, applyMechanicDamage, applyMechanicLethal, consumeEffectStacks } from "./helpers";
+import { knockbackPlayer, applyMechanicDamage, applyMechanicLethal } from "./helpers";
 import { mechanicSource } from "./damageLog";
 import { triggerEffectResolver } from "./effectResolvers";
 import { cullResolved } from "./util";
@@ -79,10 +81,10 @@ export function resolveTowers(ctx: TickContext): {
           }
           for (const p of validSoakers) {
             if (!p.alive) continue;
-            if (tower.applyEffect) applyEffect(ctx, p, tower.applyEffect, `${tower.id}-${p.id}-eff`, players);
-            if (tower.consumeEffect) consumeEffectStacks(p, tower.consumeEffect.effectName, tower.consumeEffect.stacks, time);
-            if (tower.knockback && p.antiKbActive <= 0) {
-              applyKnockback(p, tower.knockback, tower.knockback.origin ?? tower.pos, time);
+            if (tower.applyEffect) applyStatus(p, tower.applyEffect, `${tower.id}-${p.id}-eff`, statusServices(ctx));
+            if (tower.consumeEffect) consumeStacks(p, tower.consumeEffect.effectName, tower.consumeEffect.stacks, time);
+            if (tower.knockback) {
+              knockbackPlayer(p, tower.knockback, tower.knockback.origin ?? tower.pos, time);
             }
             log.push({ t: time, mechanic: tower.name, playerId: p.id, event: "cleared" });
           }

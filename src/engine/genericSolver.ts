@@ -3,6 +3,7 @@ import { add, sub, scale, normalize, length, dot } from "@shared/math";
 import { cos, sin } from "@shared/dmath";
 import type { FrameRef, GenericSolverRule, Player, World } from "@shared/types";
 import { pointInShape } from "./shapes";
+import { urgentSlot } from "@status";
 import { aoeCanHitPlayer } from "./systems/helpers";
 
 // A live unresolved mechanic the generic solver can match against. `labels`/`group`/`pos` are carried
@@ -159,22 +160,10 @@ function directionName(direction: [number, number]): "up" | "down" | "left" | "r
   return undefined;
 }
 
-// The plant slot (short/long) of the bot's most urgent active plant debuff (earliest expiry).
-function activePlantSlot(player: Player): number | undefined {
-  let active: Player["effects"][number] | undefined;
-  for (const effect of player.effects) {
-    if (effect.behavior.kind !== "plant") continue;
-    if (!active || effect.appliedAt + effect.duration < active.appliedAt + active.duration) {
-      active = effect;
-    }
-  }
-  return active?.plantSlot;
-}
-
 // The bot's assigned plant combo as a space-joined key (e.g. "right right"), or undefined when it
 // has no active plant debuff / no assigned plan. Mirrors the placement keys in the generic rules.
 function plantComboKey(player: Player, world: World): string | undefined {
-  if (activePlantSlot(player) === undefined) return undefined;
+  if (urgentSlot(player) === undefined) return undefined;
   const combo = world.plantPlan[player.id];
   if (!combo?.length) return undefined;
   const names = combo.map(directionName);
@@ -203,7 +192,7 @@ function ruleMatches(rule: GenericSolverRule, player: Player, world: World, mech
   }
   if (plant !== undefined) {
     if (plantComboKey(player, world) !== plant) return null;
-    if (plantSlot !== undefined && activePlantSlot(player) !== plantSlot) return null;
+    if (plantSlot !== undefined && urgentSlot(player) !== plantSlot) return null;
   }
   if (selectedEvent !== undefined) {
     const required = Array.isArray(selectedEvent) ? selectedEvent : [selectedEvent];

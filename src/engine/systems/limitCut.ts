@@ -1,6 +1,7 @@
 import type { TickContext } from "./context";
 import type { ActiveLimitCut, PendingLimitCut } from "@shared/types";
-import { applyEffect } from "./helpers";
+import { applyStatus, overrideStatus } from "@status";
+import { statusServices } from "./statusServices";
 
 export function resolveLimitCuts(ctx: TickContext): { remaining: PendingLimitCut[]; limitCuts: ActiveLimitCut[] } {
   const { players, log, time, randInt } = ctx;
@@ -22,7 +23,7 @@ export function resolveLimitCuts(ctx: TickContext): { remaining: PendingLimitCut
     }
     for (let i = 0; i < shuffled.length; i++) {
       const target = shuffled[i];
-      applyEffect(ctx, target, { ...plc.effect, markerIcon: `limit${i + 1}_head.png` }, `${plc.id}-${target.id}-lc`, players, undefined, i + 1);
+      applyStatus(target, overrideStatus(plc.effect, { markerIcon: `limit${i + 1}_head.png` }), `${plc.id}-${target.id}-lc`, statusServices(ctx), { limitCutNumber: i + 1 });
       log.push({ t: time, mechanic: plc.name, playerId: target.id, event: "hit" });
     }
     // Surface the fired limit cut so bot-solver rules can gate on it via when.mechanic.

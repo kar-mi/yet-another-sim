@@ -1,7 +1,8 @@
 import type { TickContext } from "./context";
+import { applyStatus, refreshStatus } from "@status";
+import { statusServices } from "./statusServices";
 import type { ActiveHazard, PendingHazard } from "@shared/types";
 import { length, sub } from "@shared/math";
-import { applyEffect } from "./helpers";
 
 export function resolveHazards(ctx: TickContext): {
   hazards: ActiveHazard[];
@@ -38,11 +39,8 @@ export function resolveHazards(ctx: TickContext): {
       if (!hazard.spots.some(spot => length(sub(player.pos, spot)) <= hazard.radius)) continue;
 
       const id = `${hazard.id}-${player.id}`;
-      const idx = player.effects.findIndex(effect => effect.id === id);
-      if (idx >= 0) {
-        player.effects = player.effects.map((effect, i) => i === idx ? { ...effect, appliedAt: time } : effect);
-      } else {
-        applyEffect(ctx, player, hazard.applyEffect, id, players);
+      if (!refreshStatus(player, id, time)) {
+        applyStatus(player, hazard.applyEffect, id, statusServices(ctx));
         log.push({ t: time, mechanic: hazard.name, playerId: player.id, event: "hit" });
       }
     }

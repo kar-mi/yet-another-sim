@@ -113,7 +113,7 @@ test("tower failure damage uses the pipeline for typed modifiers, survival, and 
         effects: [...player.effects, effect({
           id: "crust",
           name: "Primordial Crust",
-          behavior: { kind: "primordialCrust", expiryDamage: 999999, expiryDamageType: "true" },
+          behavior: { kind: "expiryDamage", expiryDamage: 999999, expiryDamageType: "true", surviveLethal: true },
         })],
       };
       if (player.id === "m1") return { ...player, invincible: true };
@@ -127,7 +127,7 @@ test("tower failure damage uses the pipeline for typed modifiers, survival, and 
   expect(after.players.find(p => p.id === "mt")!.effects.some(e => e.name === "Magic Vulnerability")).toBe(false);
   expect(after.players.find(p => p.id === "h1")!.hp).toBe(1);
   expect(after.players.find(p => p.id === "h1")!.alive).toBe(true);
-  expect(after.players.find(p => p.id === "h1")!.effects.some(e => e.behavior.kind === "primordialCrust")).toBe(false);
+  expect(after.players.find(p => p.id === "h1")!.effects.some(e => e.name === "Primordial Crust")).toBe(false);
   expect(after.players.find(p => p.id === "m1")!.hp).toBe(DPS_HP);
   expect(after.players.find(p => p.id === "m1")!.alive).toBe(true);
 });
@@ -158,7 +158,7 @@ test("wrong-role tower punishment is guaranteed lethal except for invincibility 
         effects: [...player.effects, effect({
           id: "crust",
           name: "Primordial Crust",
-          behavior: { kind: "primordialCrust", expiryDamage: 999999, expiryDamageType: "true" },
+          behavior: { kind: "expiryDamage", expiryDamage: 999999, expiryDamageType: "true", surviveLethal: true },
         })],
       };
       if (player.id === "r1") return { ...player, invincible: true };
@@ -175,7 +175,7 @@ test("wrong-role tower punishment is guaranteed lethal except for invincibility 
   expect(mt.hp).toBe(0);
   expect(m1.alive).toBe(true);
   expect(m1.hp).toBe(1);
-  expect(m1.effects.some(e => e.behavior.kind === "primordialCrust")).toBe(false);
+  expect(m1.effects.some(e => e.name === "Primordial Crust")).toBe(false);
   expect(r1.alive).toBe(true);
   expect(r1.hp).toBe(DPS_HP);
 });

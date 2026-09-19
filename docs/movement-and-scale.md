@@ -11,7 +11,9 @@ engine constants govern it; the client just sends intents and renders snapshots.
 | Constant | Value | Meaning |
 |----------|-------|---------|
 | `MOVE_SPEED` | `6` | Run speed in units/s (= FFXIV yalms/s). |
-| `SPRINT_MULTIPLIER` | `1.3` | Sprint multiplies run speed → 7.8 units/s. |
+
+Sprint is the `sprint` status in `src/status/catalog/buffs.ts`: a `movementSpeed` multiplier of
+`1.3` (→ 7.8 units/s) for 10 s. The engine and client prediction both read it from there.
 
 A standard single-circle arena is **radius ≈ 20** (FFXIV's common arena size).
 Author distances, radii, spawns, and waymarks directly in yalms.

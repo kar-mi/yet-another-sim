@@ -91,7 +91,7 @@ test("one-hit survivor effect saves a player from lethal chain burst", () => {
   const crust = effect({
     id: "crust",
     name: "Primordial Crust",
-    behavior: { kind: "primordialCrust", expiryDamage: 999999, expiryDamageType: "true" },
+    behavior: { kind: "expiryDamage", expiryDamage: 999999, expiryDamageType: "true", surviveLethal: true },
   });
   const world = {
     ...initial,
@@ -103,6 +103,6 @@ test("one-hit survivor effect saves a player from lethal chain burst", () => {
 
   expect(human(after).alive).toBe(true);
   expect(human(after).hp).toBe(1);
-  expect(human(after).effects.some(e => e.behavior.kind === "primordialCrust")).toBe(false);
+  expect(human(after).effects.some(e => e.name === "Primordial Crust")).toBe(false);
 });
 

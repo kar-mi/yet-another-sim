@@ -11,7 +11,9 @@
     "paths": {
       "@shared/*": ["./src/shared/*"],
       "@effects": ["./src/effects/index.ts"],
-      "@effects/*": ["./src/effects/*"]
+      "@effects/*": ["./src/effects/*"],
+      "@status": ["./src/status/index.ts"],
+      "@status/*": ["./src/status/*"]
     }
   },
   "include": ["src/**/*", "scripts/**/*", "docs-site/**/*"],

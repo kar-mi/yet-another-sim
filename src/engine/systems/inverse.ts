@@ -3,9 +3,11 @@
 // hidden shape is the lethal one.
 
 import type { TickContext } from "./context";
+import { applyStatus } from "@status";
+import { statusServices } from "./statusServices";
 import type { ActiveInverse, PendingInverse } from "@shared/types";
 import { pointInShape } from "../shapes";
-import { applyMechanicDamage, applyEffect, applyKnockback, shapeOrigin } from "./helpers";
+import { applyMechanicDamage, knockbackPlayer, shapeOrigin } from "./helpers";
 import { mechanicSource } from "./damageLog";
 import { cullResolved } from "./util";
 import { FloorAoe, DEFAULT_DANGER_COLOR, DEFAULT_INVERTED_COLOR } from "@effects";
@@ -63,10 +65,10 @@ export function resolveInversions(ctx: TickContext): {
           applyMechanicDamage(ctx, player, inv.damage, inv.damageType, mechanicSource(ctx, inv.id, inv.name));
           log.push({ t: time, mechanic: inv.name, playerId: player.id, event: "hit" });
           if (inv.applyEffect && player.alive) {
-            applyEffect(ctx, player, inv.applyEffect, `${inv.id}-${player.id}-eff`, players);
+            applyStatus(player, inv.applyEffect, `${inv.id}-${player.id}-eff`, statusServices(ctx));
           }
-          if (inv.knockback && player.alive && player.antiKbActive <= 0) {
-            applyKnockback(player, inv.knockback, inv.knockback.origin ?? shapeOrigin(hitShape), time);
+          if (inv.knockback && player.alive) {
+            knockbackPlayer(player, inv.knockback, inv.knockback.origin ?? shapeOrigin(hitShape), time);
           }
         } else {
           log.push({ t: time, mechanic: inv.name, playerId: player.id, event: "cleared" });

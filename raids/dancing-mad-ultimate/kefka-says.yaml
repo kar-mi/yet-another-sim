@@ -24,19 +24,18 @@ players:
   - { id: m1, role: dps, spawn: { x: -5.66, z: -5.66 } }
   - { id: m2, role: dps, spawn: { x: 5.66, z: -5.66 } }
 
-_noBehavior: &noBehavior { kind: none }
-_water: &water { ref: compressed_water, behavior: *noBehavior }
-_fakeWater: &fakeWater { ref: fake_compressed_water, behavior: *noBehavior }
-_lightning: &lightning { ref: forked_lightning, behavior: *noBehavior }
-_fakeLightning: &fakeLightning { ref: fake_forked_lightning, behavior: *noBehavior }
-_shriek: &shriek { ref: cursed_shriek, behavior: *noBehavior }
-_fakeShriek: &fakeShriek { ref: fake_cursed_shriek, behavior: *noBehavior }
-_entropy: &entropy { ref: entropy, behavior: *noBehavior }
-_fakeEntropy: &fakeEntropy { ref: fake_entropy, behavior: *noBehavior }
-_fluid: &fluid { ref: dynamic_fluid, behavior: *noBehavior }
-_fakeFluid: &fakeFluid { ref: fake_dynamic_fluid, behavior: *noBehavior }
-_field: &field { ref: allagan_field, behavior: *noBehavior }
-_beyond: &beyond { ref: beyond_death, behavior: *noBehavior }
+_water: &water { ref: compressed_water_marker }
+_fakeWater: &fakeWater { ref: fake_compressed_water_marker }
+_lightning: &lightning { ref: forked_lightning_marker }
+_fakeLightning: &fakeLightning { ref: fake_forked_lightning_marker }
+_shriek: &shriek { ref: cursed_shriek_marker }
+_fakeShriek: &fakeShriek { ref: fake_cursed_shriek_marker }
+_entropy: &entropy { ref: entropy_marker }
+_fakeEntropy: &fakeEntropy { ref: fake_entropy_marker }
+_fluid: &fluid { ref: dynamic_fluid_marker }
+_fakeFluid: &fakeFluid { ref: fake_dynamic_fluid_marker }
+_field: &field { ref: allagan_field_marker }
+_beyond: &beyond { ref: beyond_death_marker }
 
 optionals:
   rngLabels:

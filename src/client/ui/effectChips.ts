@@ -4,8 +4,8 @@
 // otherwise just ticks the countdown timers. Extracted from HudOverlay.
 
 import type { Player } from "@shared/types";
-import { effectIcon } from "../../engine/status/behaviors";
-import { STATIC_ROOT } from "../staticBase";
+import { sortForDisplay, statusIcon } from "@status";
+import { STATUS_ICON_ROOT } from "../staticBase";
 
 const EFFECT_TIMER_STEP = 0.25;
 
@@ -51,19 +51,7 @@ function activeEffectIds(player: Player, time: number, kind: EffectKind | null =
 }
 
 function sortedActiveVisibleEffects(player: Player, time: number, kind: EffectKind | null = null): Player["effects"] {
-  const effects: Array<{ effect: Player["effects"][number]; index: number }> = [];
-  for (let index = 0; index < player.effects.length; index++) {
-    const effect = player.effects[index];
-    if (isActiveVisibleEffect(effect, time, kind)) effects.push({ effect, index });
-  }
-  effects.sort((a, b) => {
-    if (a.effect.priority !== b.effect.priority) return a.effect.priority ? -1 : 1;
-    const aPlant = a.effect.behavior.kind === "plant";
-    const bPlant = b.effect.behavior.kind === "plant";
-    if (aPlant && bPlant) return (a.effect.plantSlot ?? a.index) - (b.effect.plantSlot ?? b.index);
-    return a.index - b.index;
-  });
-  return effects.map(entry => entry.effect);
+  return sortForDisplay(player.effects, effect => isActiveVisibleEffect(effect, time, kind));
 }
 
 function effectTimerBucket(time: number): number {
@@ -82,16 +70,16 @@ function buildEffectChip(
   const effectEl = document.createElement("span");
   effectEl.className = `${className} ${className}-${effect.kind}`;
   effectEl.title = effect.name;
-  const icon = effectIcon(effect);
+  const icon = statusIcon(effect);
   let iconEl: HTMLElement;
   if (effect.icon) {
     const img = document.createElement("img");
-    img.src = `${STATIC_ROOT}/debuffs/${effect.icon}`;
+    img.src = `${STATUS_ICON_ROOT}/${effect.icon}`;
     img.alt = effect.name;
     iconEl = img;
   } else if (icon.src) {
     const img = document.createElement("img");
-    img.src = `${STATIC_ROOT}/debuffs/${icon.src}`;
+    img.src = `${STATUS_ICON_ROOT}/${icon.src}`;
     img.alt = effect.name;
     iconEl = img;
   } else {
