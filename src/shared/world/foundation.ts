@@ -2,6 +2,8 @@ import type { Vec2 } from "../math";
 
 export type { AOEShape, ElementGlyphKind, WaymarkId } from "@effects";
 import type { ElementGlyphKind, WaymarkId } from "@effects";
+export type { CrystalElement, DamageType } from "@status";
+import type { CrystalElement } from "@status";
 
 export type Role = "tank" | "healer" | "dps";
 
@@ -23,7 +25,6 @@ export type Arena = { zones: ZoneShape[]; floorPlan: FloorPlan };
 
 export type Waymark = { mark: WaymarkId; pos: Vec2 };
 
-export type CrystalElement = "wind" | "fire" | "water" | "earth";
 export type ElementGlyph = { at: Vec2; kind?: ElementGlyphKind };
 // Visual ring expanding during a cast.
 export type ElementRing = { center: Vec2; radius: number; kind?: ElementGlyphKind };
@@ -33,7 +34,6 @@ export type Crystal = { id: string; element: CrystalElement; pos: Vec2; spawnAt:
 
 export type Waypoint = { t: number; pos: Vec2 };
 
-export type DamageType = "physical" | "magical" | "true";
 export type TelegraphMode = "cast" | "resolve";
 export type FlashBeforeResolve = { lead: number; color?: string };
 

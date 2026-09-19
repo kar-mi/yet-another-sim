@@ -113,6 +113,12 @@ export const NAV: NavSection[] = [
         description: "What src/effects owns, its import boundary, which renderer layers share each visual primitive, and how effect resources are disposed.",
       },
       {
+        source: "docs/status-package.md",
+        url: "/developer/status-package/",
+        title: "The status package",
+        description: "The buff and debuff catalog, reference and override rules, the behavior registry, engine services and the import boundary of src/status.",
+      },
+      {
         source: "docs/deterministic-lockstep.md",
         url: "/developer/deterministic-lockstep/",
         title: "Deterministic lockstep",

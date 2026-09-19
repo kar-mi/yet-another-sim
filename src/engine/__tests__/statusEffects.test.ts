@@ -194,10 +194,9 @@ test("mitigation reduces repeated matching hits without being consumed", () => {
         damage: 0,
         damageType: "magical" as const,
         applyEffect: {
+          ref: "tank_limit_break",
           name: "Tank LB",
-          kind: "buff" as const,
-          duration: 10,
-          behavior: { kind: "mitigation" as const, damageType: "magical" as const, multiplier: 0.1 },
+          behavior: { damageType: "magical" as const },
         },
         shape: { kind: "circle" as const, center: [0, 0] as Vec, radius: 10 },
       },
@@ -350,7 +349,7 @@ test("escalating keys are scoped", () => {
     {
       type: "apply_effect", t: 0, name: "Other", players: [HUMAN],
       applyEffect: {
-        ref: "debug_test_debuff",
+        ref: "debug_test_escalating",
         name: "Other Escalation",
         duration: 30,
         behavior: { kind: "escalating", escalationKey: "other", escalateDamage: 1 },
@@ -441,7 +440,7 @@ test("assignment debuff deals expiryDamage on expiry tick, nothing before", () =
     name: "First in Line",
     appliedAt: 0,
     duration: 1,
-    behavior: { kind: "assignment" as const, expiryDamage: 30, expiryDamageType: "true" as const },
+    behavior: { kind: "expiryDamage" as const, expiryDamage: 30, expiryDamageType: "true" as const },
   });
   const world = withEffect(createWorld(loadRaid(baseRaid)), assignEffect);
   // Before expiry: no damage.

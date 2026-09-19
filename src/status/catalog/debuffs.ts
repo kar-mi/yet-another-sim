@@ -1,6 +1,6 @@
-import type { EffectSpec } from "@shared/types";
+import type { StatusTemplate } from "../types";
 
-export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
+const DEBUFFS = {
   growing_dread: {
     name: "Growing Dread",
     kind: "debuff",
@@ -89,7 +89,6 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     name: "Confusion",
     kind: "debuff",
     duration: 6,
-    // Friendly fire: a confused player walking into someone is a failed cleanse/kite.
     avoidable: true,
     behavior: { kind: "confusion", damage: 50, damageType: "true", radius: 1.5 },
   },
@@ -132,17 +131,16 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     duration: 200,
     showTimer: false,
     icon: "primoridial_crust.png",
-    // Lethal only when the debuff expires uncleansed.
     avoidable: true,
-    behavior: { kind: "primordialCrust", expiryDamage: 999999, expiryDamageType: "true" },
+    behavior: { kind: "expiryDamage", expiryDamage: 999999, expiryDamageType: "true", surviveLethal: true },
   },
   accretion: {
     name: "Accretion",
     kind: "debuff",
     duration: 11,
-    // Lethal only when the carrier was not healed to full in time.
+    icon: "accretion.png",
     avoidable: true,
-    behavior: { kind: "accretion", expiryDamage: 999999, expiryDamageType: "true" },
+    behavior: { kind: "expiryDamage", expiryDamage: 999999, expiryDamageType: "true", cleanseAtFullHp: true },
   },
   first_in_line: {
     name: "First in Line",
@@ -150,7 +148,7 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     duration: 200,
     showTimer: false,
     icon: "first_in_line.png",
-    behavior: { kind: "assignment", expiryDamage: 20, expiryDamageType: "true" },
+    behavior: { kind: "expiryDamage", expiryDamage: 20, expiryDamageType: "true" },
   },
   second_in_line: {
     name: "Second in Line",
@@ -158,7 +156,7 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     duration: 200,
     showTimer: false,
     icon: "second_in_line.png",
-    behavior: { kind: "assignment", expiryDamage: 20, expiryDamageType: "true" },
+    behavior: { kind: "expiryDamage", expiryDamage: 20, expiryDamageType: "true" },
   },
   third_in_line: {
     name: "Third in Line",
@@ -166,7 +164,7 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     duration: 200,
     showTimer: false,
     icon: "third_in_line.png",
-    behavior: { kind: "assignment", expiryDamage: 20, expiryDamageType: "true" },
+    behavior: { kind: "expiryDamage", expiryDamage: 20, expiryDamageType: "true" },
   },
   accretion_duty: {
     name: "Accretion Duty",
@@ -189,14 +187,14 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     kind: "debuff",
     duration: 20,
     icon: "alpha.png",
-    behavior: { kind: "assignment", expiryDamage: 20, expiryDamageType: "true" },
+    behavior: { kind: "expiryDamage", expiryDamage: 20, expiryDamageType: "true" },
   },
   beta: {
     name: "Beta",
     kind: "debuff",
     duration: 20,
     icon: "beta.png",
-    behavior: { kind: "assignment", expiryDamage: 20, expiryDamageType: "true" },
+    behavior: { kind: "expiryDamage", expiryDamage: 20, expiryDamageType: "true" },
   },
   dash_target: {
     name: "Dash Target",
@@ -295,7 +293,7 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     duration: 200,
     showTimer: false,
     icon: "alpha.png",
-    behavior: { kind: "assignment", expiryDamage: 0, expiryDamageType: "true" },
+    behavior: { kind: "expiryDamage", expiryDamage: 0, expiryDamageType: "true" },
   },
   fated_hero: {
     name: "Fated Hero",
@@ -303,7 +301,7 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     duration: 200,
     showTimer: false,
     icon: "beta.png",
-    behavior: { kind: "assignment", expiryDamage: 0, expiryDamageType: "true" },
+    behavior: { kind: "expiryDamage", expiryDamage: 0, expiryDamageType: "true" },
   },
   bowels_headwind: {
     name: "Headwind",
@@ -473,7 +471,6 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     kind: "debuff",
     duration: 5,
     icon: "cursed_shriek.png",
-    // Gaze: hits only players who failed to look away.
     avoidable: true,
     behavior: { kind: "carrierGaze", cone: { angleDeg: 90, length: 20 }, damage: 20, damageType: "true" },
   },
@@ -482,7 +479,6 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     kind: "debuff",
     duration: 5,
     icon: "cursed_shriek.png",
-    // Reverse gaze: hits only players who failed to look at it.
     avoidable: true,
     behavior: { kind: "reverseCarrierGaze", damage: 20, damageType: "true" },
   },
@@ -491,7 +487,6 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     kind: "debuff",
     duration: 5,
     icon: "allagan_field.png",
-    // Damage only on a failed wound check.
     avoidable: true,
     behavior: { kind: "effectCheck", compare: ["wound", "origin"], expect: "differs", failureDamage: 999, failureDamageType: "true" },
   },
@@ -500,7 +495,6 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     kind: "debuff",
     duration: 5,
     icon: "beyond_death.png",
-    // Damage only on a failed wound check.
     avoidable: true,
     behavior: { kind: "effectCheck", compare: ["wound", "origin"], expect: "matches", failureDamage: 999, failureDamageType: "true" },
   },
@@ -525,7 +519,6 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     kind: "debuff",
     duration: 5,
     icon: "acceleration_bomb.png",
-    // Damage only when the carrier moved inside the check window.
     avoidable: true,
     behavior: { kind: "motionCheck", required: "still", window: 0.5, failureDamage: 999, failureDamageType: "true", failureKnockupHeight: 1 },
   },
@@ -533,14 +526,10 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     name: "Fake Acceleration Bomb",
     kind: "debuff",
     duration: 5,
-    // Damage only when the carrier stood still inside the check window.
     avoidable: true,
     icon: "acceleration_bomb.png",
     behavior: { kind: "motionCheck", required: "move", window: 0.5, failureDamage: 999, failureDamageType: "true", failureKnockupHeight: 1 },
   },
-  // Hidden/marker tags for chain and line_link mechanics: engine-hardcoded duration and
-  // behavior:none regardless of what's set here (see chains.ts / lineLinks.ts); the registry
-  // entry only supplies the registered name.
   chain_bond: {
     name: "Chain Bond",
     kind: "debuff",
@@ -573,7 +562,6 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     markerIconScale: 2.5,
     behavior: { kind: "none" },
   },
-  // Debug/demo-raid-only entries below (not used by any real fight script).
   debug_doom: {
     name: "Doom",
     kind: "debuff",
@@ -634,7 +622,6 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
       damageType: "magical",
     },
   },
-  // Ring names match onlyCarriers AOEs. The 0.05s tail keeps them active on the hit tick.
   fire_iv_ring: {
     name: "Fire IV",
     kind: "debuff",
@@ -665,7 +652,6 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     countdown: { delay: 1, slices: 5 },
     behavior: { kind: "none" },
   },
-  // Each new element removes a stack and applies resistance down; repeats and expiry are lethal.
   elementary_deficiency: {
     name: "Elementary Deficiency",
     kind: "debuff",
@@ -705,13 +691,65 @@ export const DEBUFF_REGISTRY: Record<string, EffectSpec> = {
     icon: "lightning_res_down.png",
     behavior: { kind: "elementVuln", mechanic: "Thunder IV", multiplier: 20 },
   },
-  // Placeholder for unit tests that need to exercise arbitrary/one-off behavior configs (name,
-  // duration, and behavior are always overridden per-usage via `ref` overrides) rather than a
-  // real named mechanic. Not used by any raid content.
   debug_test_debuff: {
     name: "Test Debuff",
     kind: "debuff",
     duration: 1,
     behavior: { kind: "none" },
   },
-} satisfies Record<string, EffectSpec>;
+  forced_march_hold: {
+    name: "Forced March",
+    kind: "debuff",
+    duration: 1,
+    behavior: { kind: "sleep" },
+  },
+  motion_check_landing: {
+    name: "Motion Check",
+    kind: "debuff",
+    duration: 1,
+    visibility: "invisible",
+    behavior: { kind: "expiryDamage", expiryDamage: 0, expiryDamageType: "true" },
+  },
+  debug_test_burst_spread: {
+    name: "Test Burst Spread",
+    kind: "debuff",
+    duration: 1,
+    behavior: { kind: "burstSpread", radius: 3, damage: 0, damageType: "magical", knockbackDistance: 6, selfShape: "circle" },
+  },
+  debug_test_plant: {
+    name: "Test Plant",
+    kind: "debuff",
+    duration: 1,
+    behavior: { kind: "plant", direction: [0, 1], distance: 6, radius: 3, armDelay: 3, duration: 10, tpDelay: 0.7 },
+  },
+  debug_test_escalating: {
+    name: "Test Escalating",
+    kind: "debuff",
+    duration: 1,
+    behavior: { kind: "escalating", escalationKey: "debug_test", escalateDamage: 0, escalateDamageType: "true" },
+  },
+} satisfies Record<string, StatusTemplate>;
+
+const KEFKA_SAYS_MARKED = [
+  "compressed_water",
+  "fake_compressed_water",
+  "forked_lightning",
+  "fake_forked_lightning",
+  "cursed_shriek",
+  "fake_cursed_shriek",
+  "entropy",
+  "fake_entropy",
+  "dynamic_fluid",
+  "fake_dynamic_fluid",
+  "allagan_field",
+  "beyond_death",
+] as const satisfies readonly (keyof typeof DEBUFFS)[];
+
+function markerOf(template: StatusTemplate): StatusTemplate {
+  return { ...template, behavior: { kind: "none" } };
+}
+
+export const DEBUFF_TEMPLATES: Readonly<Record<string, StatusTemplate>> = {
+  ...DEBUFFS,
+  ...Object.fromEntries(KEFKA_SAYS_MARKED.map(id => [`${id}_marker`, markerOf(DEBUFFS[id])])),
+};

@@ -2,7 +2,12 @@ import { expect, test } from "bun:test";
 import { LocalPredictor } from "../predictor";
 import { createWorld } from "../../engine/world";
 import { createEmptyRaid } from "../../server/sessionRaid";
-import { MOVE_SPEED, SPRINT_DURATION, SPRINT_MULTIPLIER } from "@shared/constants";
+import { MOVE_SPEED } from "@shared/constants";
+import { requireStatus } from "@status";
+
+const SPRINT = requireStatus("sprint");
+const SPRINT_DURATION = SPRINT.duration;
+const SPRINT_MULTIPLIER = SPRINT.behavior.kind === "movementSpeed" ? SPRINT.behavior.multiplier : 1;
 
 test("sprint prediction clears an existing cooldown and supports recasts until disabled", () => {
   const predictor = new LocalPredictor();

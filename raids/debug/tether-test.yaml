@@ -56,7 +56,4 @@ events:
     tetherKind: buff
     buffName: Regen
     applyEffect:
-      name: Regen
-      kind: buff
-      duration: 15
-      behavior: { kind: none }
+      ref: regen

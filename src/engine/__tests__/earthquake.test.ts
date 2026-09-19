@@ -66,7 +66,7 @@ test("primordialCrust converts a lethal hit to 1 HP and removes the debuff", () 
   const after = runTicks(createWorld(raid), noMove, Math.ceil(2 * 60));
   expect(human(after).alive).toBe(true);
   expect(human(after).hp).toBe(1);
-  expect(human(after).effects.some(e => e.behavior.kind === "primordialCrust")).toBe(false);
+  expect(human(after).effects.some(e => e.name === "Primordial Crust")).toBe(false);
 });
 
 test("primordialCrust expiry burst kills uncleansed carrier", () => {
@@ -75,7 +75,7 @@ test("primordialCrust expiry burst kills uncleansed carrier", () => {
     name: "Primordial Crust",
     appliedAt: 0,
     duration: 1,
-    behavior: { kind: "primordialCrust" as const, expiryDamage: 999999, expiryDamageType: "true" as const },
+    behavior: { kind: "expiryDamage" as const, expiryDamage: 999999, expiryDamageType: "true" as const, surviveLethal: true },
   });
   const world = withEffect(createWorld(loadRaid(baseRaid)), crustEffect);
   const after = runTicks(world, noMove, Math.ceil(2 * 60));
@@ -88,7 +88,7 @@ test("primordialCrust expiry does not fire before expiry tick", () => {
     name: "Primordial Crust",
     appliedAt: 0,
     duration: 10,
-    behavior: { kind: "primordialCrust" as const, expiryDamage: 999999, expiryDamageType: "true" as const },
+    behavior: { kind: "expiryDamage" as const, expiryDamage: 999999, expiryDamageType: "true" as const, surviveLethal: true },
   });
   const world = withEffect(createWorld(loadRaid(baseRaid)), crustEffect);
   const after = runTicks(world, noMove, Math.ceil(5 * 60));
@@ -104,7 +104,7 @@ test("accretion is removed when healed to full HP", () => {
     name: "Accretion",
     appliedAt: 0,
     duration: 30,
-    behavior: { kind: "accretion" as const, expiryDamage: 999999, expiryDamageType: "true" as const },
+    behavior: { kind: "expiryDamage" as const, expiryDamage: 999999, expiryDamageType: "true" as const, cleanseAtFullHp: true },
   });
   const raid = loadRaid({
     ...baseRaid,
@@ -117,11 +117,11 @@ test("accretion is removed when healed to full HP", () => {
   };
   // Just before the heal: accretion still present.
   const before = runTicks(world, noMove, Math.ceil(0.9 * 60));
-  expect(human(before).effects.some(e => e.behavior.kind === "accretion")).toBe(true);
+  expect(human(before).effects.some(e => e.name === "Accretion")).toBe(true);
   // After the heal: hp restored to max → accretion cleansed.
   const after = runTicks(world, noMove, Math.ceil(1.1 * 60));
   expect(human(after).alive).toBe(true);
-  expect(human(after).effects.some(e => e.behavior.kind === "accretion")).toBe(false);
+  expect(human(after).effects.some(e => e.name === "Accretion")).toBe(false);
 });
 
 test("accretion expiry burst kills uncleansed carrier", () => {
@@ -132,7 +132,7 @@ test("accretion expiry burst kills uncleansed carrier", () => {
     name: "Accretion",
     appliedAt: 0,
     duration: 1,
-    behavior: { kind: "accretion" as const, expiryDamage: 999999, expiryDamageType: "true" as const },
+    behavior: { kind: "expiryDamage" as const, expiryDamage: 999999, expiryDamageType: "true" as const, cleanseAtFullHp: true },
   });
   const worldBase = withEffect(createWorld(loadRaid(baseRaid)), accretionEffect);
   const world = {
@@ -149,7 +149,7 @@ test("accretion is not removed when hp is below max", () => {
     name: "Accretion",
     appliedAt: 0,
     duration: 10,
-    behavior: { kind: "accretion" as const, expiryDamage: 999999, expiryDamageType: "true" as const },
+    behavior: { kind: "expiryDamage" as const, expiryDamage: 999999, expiryDamageType: "true" as const, cleanseAtFullHp: true },
   });
   // Player stays at less than full HP throughout — no heal, no removal.
   const world = {
@@ -159,5 +159,5 @@ test("accretion is not removed when hp is below max", () => {
     ),
   };
   const after = runTicks(world, noMove, Math.ceil(5 * 60));
-  expect(human(after).effects.some(e => e.behavior.kind === "accretion")).toBe(true);
+  expect(human(after).effects.some(e => e.name === "Accretion")).toBe(true);
 });

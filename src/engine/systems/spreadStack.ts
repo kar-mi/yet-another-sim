@@ -4,8 +4,7 @@
 
 import type { TickContext } from "./context";
 import type { ActiveSpreadStack, PendingSpreadStack, AOEShape } from "@shared/types";
-import { pointInShape } from "../shapes";
-import { applyMechanicDamage } from "./helpers";
+import { hitPlayersInShape, resolveStackShare } from "./strikes";
 import { mechanicSource } from "./damageLog";
 import { cullResolved } from "./util";
 import { TARGETED_LINGER } from "@shared/constants";
@@ -14,7 +13,7 @@ export function resolveSpreadStacks(ctx: TickContext): {
   spreadStacks: ActiveSpreadStack[];
   pendingSpreadStacks: PendingSpreadStack[];
 } {
-  const { players, log, time, randFloat, randInt } = ctx;
+  const { players, time, randFloat, randInt } = ctx;
   const remainingPendingSpreadStacks: PendingSpreadStack[] = [];
   const spreadStacks: ActiveSpreadStack[] = ctx.world.spreadStacks.map(s => ({ ...s }));
   for (const ps of ctx.world.pendingSpreadStacks) {
@@ -58,23 +57,13 @@ export function resolveSpreadStacks(ctx: TickContext): {
           const owner = players.find(p => p.id === id && p.alive);
           if (!owner) continue;
           const circle: AOEShape = { kind: "circle", center: owner.pos, radius: ss.spread.radius };
-          for (const player of players) {
-            if (!player.alive || !pointInShape(circle, player.pos)) continue;
-            applyMechanicDamage(ctx, player, ss.spread.damage, ss.damageType, mechanicSource(ctx, ss.id, ss.name, "spread"));
-            log.push({ t: time, mechanic: ss.name, playerId: player.id, event: "hit" });
-          }
+          hitPlayersInShape(ctx, circle, ss.spread.damage, ss.damageType, mechanicSource(ctx, ss.id, ss.name, "spread"));
         }
         for (const id of stackIds) {
           const marked = players.find(p => p.id === id && p.alive);
           if (!marked) continue;
           const circle: AOEShape = { kind: "circle", center: marked.pos, radius: ss.stack.radius };
-          const soakers = players.filter(p => p.alive && pointInShape(circle, p.pos));
-          const success = soakers.length >= ss.stack.requiredCount;
-          const per = success ? ss.stack.damage / soakers.length : ss.stack.damage;
-          for (const player of soakers) {
-            applyMechanicDamage(ctx, player, per, ss.damageType, mechanicSource(ctx, ss.id, ss.name, "stack"));
-            log.push({ t: time, mechanic: ss.name, playerId: player.id, event: "hit" });
-          }
+          resolveStackShare(ctx, circle, ss.stack, ss.damageType, mechanicSource(ctx, ss.id, ss.name, "stack"));
         }
         ss.outcome = "success";
       } else if (actual === "spread") {
@@ -82,11 +71,7 @@ export function resolveSpreadStacks(ctx: TickContext): {
         const owners = players.filter(p => p.alive);
         for (const owner of owners) {
           const circle: AOEShape = { kind: "circle", center: owner.pos, radius: ss.spread.radius };
-          for (const player of players) {
-            if (!player.alive || !pointInShape(circle, player.pos)) continue;
-            applyMechanicDamage(ctx, player, ss.spread.damage, ss.damageType, mechanicSource(ctx, ss.id, ss.name, "spread"));
-            log.push({ t: time, mechanic: ss.name, playerId: player.id, event: "hit" });
-          }
+          hitPlayersInShape(ctx, circle, ss.spread.damage, ss.damageType, mechanicSource(ctx, ss.id, ss.name, "spread"));
         }
       } else {
         // One shared stack per marked player (one per group). For each: soakers inside split the
@@ -96,14 +81,7 @@ export function resolveSpreadStacks(ctx: TickContext): {
           const marked = players.find(p => p.id === id);
           if (!marked?.alive) continue;
           const circle: AOEShape = { kind: "circle", center: marked.pos, radius: ss.stack.radius };
-          const soakers = players.filter(p => p.alive && pointInShape(circle, p.pos));
-          const success = soakers.length >= ss.stack.requiredCount;
-          if (!success) allSucceeded = false;
-          const per = success ? ss.stack.damage / soakers.length : ss.stack.damage;
-          for (const player of soakers) {
-            applyMechanicDamage(ctx, player, per, ss.damageType, mechanicSource(ctx, ss.id, ss.name, "stack"));
-            log.push({ t: time, mechanic: ss.name, playerId: player.id, event: "hit" });
-          }
+          if (!resolveStackShare(ctx, circle, ss.stack, ss.damageType, mechanicSource(ctx, ss.id, ss.name, "stack"))) allSucceeded = false;
         }
         ss.outcome = allSucceeded ? "success" : "failure";
       }

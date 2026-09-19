@@ -1,10 +1,12 @@
 // Phase 2b: chains. Promote pending pairs, bind the debuff at cast end, break on separation, burst
-// on expiry. The chain entity is authoritative; the debuff is display-only.
+// on expiry. The chain entity is authoritative; its registered debuff spans the break window.
 
 import type { TickContext } from "./context";
-import type { ActiveChain, PendingChain, EffectSpec } from "@shared/types";
+import type { ActiveChain, PendingChain } from "@shared/types";
 import { length, sub } from "@shared/math";
-import { applyEffect, applyMechanicDamage } from "./helpers";
+import { applyStatus, overrideStatus, removeStatus } from "@status";
+import { applyMechanicDamage } from "./helpers";
+import { statusServices } from "./statusServices";
 import { mechanicSource } from "./damageLog";
 import { CHAIN_LINGER } from "@shared/constants";
 
@@ -28,7 +30,7 @@ export function resolveChains(ctx: TickContext): {
         breakDistance: pc.breakDistance,
         breakDamage: pc.breakDamage,
         damageType: pc.damageType,
-        debuffName: pc.debuffName,
+        debuff: pc.debuff,
         showCastBar: pc.showCastBar,
         resolved: false,
         broken: false,
@@ -51,14 +53,9 @@ export function resolveChains(ctx: TickContext): {
       chain.resolved = true;
       const startDist = a && b ? length(sub(a.pos, b.pos)) : 0;
       chain.breakAt = startDist + chain.breakDistance;
-      const spec: EffectSpec = {
-        name: chain.debuffName,
-        kind: "debuff",
-        duration: chain.expireAt - chain.resolveAt,
-        behavior: { kind: "none" },
-      };
-      if (a?.alive) applyEffect(ctx, a, spec, aEffId, players);
-      if (b?.alive) applyEffect(ctx, b, spec, bEffId, players);
+      const spec = overrideStatus(chain.debuff, { duration: chain.expireAt - chain.resolveAt });
+      if (a?.alive) applyStatus(a, spec, aEffId, statusServices(ctx));
+      if (b?.alive) applyStatus(b, spec, bEffId, statusServices(ctx));
     }
 
     if (chain.resolved && chain.outcome === undefined) {
@@ -67,8 +64,8 @@ export function resolveChains(ctx: TickContext): {
         chain.broken = true;
         chain.outcome = "broken";
         chain.finishedAt = time;
-        a.effects = a.effects.filter(e => e.id !== aEffId);
-        b.effects = b.effects.filter(e => e.id !== bEffId);
+        removeStatus(a, aEffId);
+        removeStatus(b, bEffId);
         log.push({ t: time, mechanic: chain.name, playerId: chain.a, event: "cleared" });
         log.push({ t: time, mechanic: chain.name, playerId: chain.b, event: "cleared" });
       } else if (time >= chain.expireAt) {
@@ -78,7 +75,7 @@ export function resolveChains(ctx: TickContext): {
         for (const member of [a, b]) {
           if (!member?.alive) continue;
           applyMechanicDamage(ctx, member, chain.breakDamage, chain.damageType, mechanicSource(ctx, chain.id, chain.name));
-          member.effects = member.effects.filter(e => e.id !== `${chain.id}-${member.id}-eff`);
+          removeStatus(member, `${chain.id}-${member.id}-eff`);
           log.push({ t: time, mechanic: chain.name, playerId: member.id, event: "hit" });
         }
       }

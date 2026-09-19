@@ -154,6 +154,16 @@ test("reports an unsupported version even when the frame data behind it is corru
   });
 });
 
+test("rejects replays recorded in the previous format", async () => {
+  await writePull(8, `${headerLine({ formatVersion: REPLAY_FORMAT_VERSION - 1 })}
+`);
+
+  await expect(loadReplay(SESSION, 8)).rejects.toMatchObject({
+    code: "unsupported_format",
+    receivedVersion: REPLAY_FORMAT_VERSION - 1,
+  });
+});
+
 test("returns null for a missing replay", async () => {
   expect(await loadReplay(SESSION, 99)).toBeNull();
 });

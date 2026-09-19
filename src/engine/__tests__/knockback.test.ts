@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { remainingTime } from "@status";
 import { computeBotIntents } from "../botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
@@ -125,17 +126,17 @@ test("anti-knockback has a 5s duration and 120s cooldown", () => {
   const raid = loadRaid(baseRaid);
   let w = tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 }, antiKnockback: true } }, 1 / 60);
   let p = human(w);
-  expect(p.antiKbActive).toBeGreaterThan(4.9);
+  expect(remainingTime(p, "arms_length", w.time)).toBeGreaterThan(4.9);
   expect(p.antiKbCooldown).toBeGreaterThan(119);
 
   // After 5s the buff has expired but the cooldown is still running.
   w = runTicks(w, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(5.1 * 60));
   p = human(w);
-  expect(p.antiKbActive).toBe(0);
+  expect(remainingTime(p, "arms_length", w.time)).toBe(0);
   expect(p.antiKbCooldown).toBeGreaterThan(0);
 
   // Pressing again while on cooldown does nothing.
   w = tick(w, { [HUMAN]: { move: { x: 0, z: 0 }, antiKnockback: true } }, 1 / 60);
-  expect(human(w).antiKbActive).toBe(0);
+  expect(remainingTime(human(w), "arms_length", w.time)).toBe(0);
 });
 

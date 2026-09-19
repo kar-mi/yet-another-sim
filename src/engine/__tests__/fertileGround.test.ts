@@ -5,13 +5,22 @@ import { atan2 } from "@shared/dmath";
 import { preRollRaid } from "../preRoll";
 import { loadRaid } from "../raidLoader";
 import { validateRngConstraints } from "../seedSearch";
-import { resolveEffectRef } from "../status/registry";
-import { applyEffect } from "../systems/helpers";
+import type { Player, World } from "@shared/types";
+import { applyStatus, requireStatus, type ApplyEnv } from "@status";
+import { applyMechanicDamage } from "../systems/helpers";
 import { createWorld } from "../world";
 import { baseRaid, human, loadRaid as loadTestRaid, noMove, roster, runTicks } from "./helpers";
 
 const rawRaid = Bun.YAML.parse(await Bun.file(`${import.meta.dir}/../../../raids/forked-tower-magic/fertile-ground.yaml`).text());
 const raid = loadRaid(rawRaid);
+
+function worldEnv(world: World): ApplyEnv<Player> {
+  return {
+    time: world.time,
+    actors: world.players,
+    damage: (target, amount, damageType, source) => applyMechanicDamage(world, target, amount, damageType, source),
+  };
+}
 
 function statusFixture() {
   const world = createWorld(loadRaid(baseRaid), 1);
@@ -21,7 +30,7 @@ function statusFixture() {
     world,
     player,
     apply(ref: string, behavior?: Record<string, unknown>) {
-      applyEffect(world, player, resolveEffectRef({ ref, behavior })!, `hit-${id++}`, world.players);
+      applyStatus(player, requireStatus(ref, { behavior }), `hit-${id++}`, worldEnv(world));
     },
   };
 }
@@ -159,7 +168,7 @@ test("a north head's beam applies blue east and purple west, swapping opposite c
   for (const [i, player] of world.players.entries()) {
     player.pos = { x: i % 2 === 0 ? 5 : -5, z: i < 4 ? 18 : -18 };
     player.effects = [];
-    applyEffect(world, player, resolveEffectRef({ ref: i % 2 === 0 ? "growing_panic" : "growing_dread" })!, `color-${i}`, world.players);
+    applyStatus(player, requireStatus(i % 2 === 0 ? "growing_panic" : "growing_dread"), `color-${i}`, worldEnv(world));
   }
   world = runTicks(world, noMove, 72);
   for (const [i, player] of world.players.entries()) {

@@ -1,10 +1,10 @@
 import type { Vec2 } from "../math";
 import type { FloorAoe, Vfx } from "@effects";
 import type {
-  AOEShape, BossRelativeCenter, CrystalElement, DamageType, ElementGlyph, ElementGlyphKind, ElementRing, FlashBeforeResolve, Mover,
+  AOEShape, BossRelativeCenter, DamageType, ElementGlyph, ElementGlyphKind, ElementRing, FlashBeforeResolve, Mover,
   PositionalArc, Role, TelegraphMode,
 } from "./foundation";
-import type { EffectBehavior, EffectBundle, EffectSpec, Knockback, Reassign } from "./effects";
+import type { EffectBundle, EffectSpec, Knockback, Reassign } from "./effects";
 
 export type ActiveMechanic = {
   id: string;
@@ -498,24 +498,7 @@ export type PendingApplyEffect = {
   effectChoiceComplement?: boolean;
 };
 
-export type PendingBurstSpreadFollowUp = {
-  id: string;
-  t: number;
-  name: string;
-  avoidable?: boolean;
-  originCrystal: CrystalElement;
-  followUp: NonNullable<Extract<EffectBehavior, { kind: "burstSpread" }>["followUp"]>;
-};
-
-export type PendingTwister = {
-  id: string;
-  t: number;
-  name: string;
-  avoidable?: boolean;
-  shape: AOEShape;
-  damage: number;
-  damageType: DamageType;
-};
+export type { PendingFollowUp as PendingBurstSpreadFollowUp, PendingTwister } from "@status";
 
 export type ActiveGroupMechanic = {
   id: string;
@@ -613,7 +596,7 @@ export type ActiveLineLink = {
   resolveAt: number;
   target: LineLinkTarget;
   targetPlayerIds: string[];
-  hiddenDebuffName: string;
+  hiddenDebuff: EffectSpec;
   applyEffect?: EffectSpec;
   knockback?: Knockback;
   visual?: LineLinkVisual;
@@ -630,7 +613,7 @@ export type PendingLineLink = {
   rng: boolean;
   link?: string;
   target: LineLinkTarget;
-  hiddenDebuffName: string;
+  hiddenDebuff: EffectSpec;
   applyEffect?: EffectSpec;
   knockback?: Knockback;
   visual?: LineLinkVisual;
@@ -648,7 +631,7 @@ export type ActiveChain = {
   breakAt?: number;      // absolute threshold = starting distance + breakDistance, set at resolve
   breakDamage: number;
   damageType: DamageType;
-  debuffName: string;
+  debuff: EffectSpec;
   showCastBar: boolean;
   resolved: boolean;     // cast finished, debuff applied, line shown
   broken: boolean;       // pair separated in time (success)
@@ -667,7 +650,7 @@ export type PendingChain = {
   breakDistance: number;
   breakDamage: number;
   damageType: DamageType;
-  debuffName: string;
+  debuff: EffectSpec;
   showCastBar: boolean;
 };
 

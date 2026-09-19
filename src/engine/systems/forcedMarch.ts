@@ -6,7 +6,8 @@
 import type { TickContext } from "./context";
 import type { ActiveForcedMarch, PendingForcedMarch } from "@shared/types";
 import { add, sub, normalize, scale, length } from "@shared/math";
-import { applyEffect } from "./helpers";
+import { applyStatus, requireStatus } from "@status";
+import { statusServices } from "./statusServices";
 import { FORCED_MARCH_LINGER } from "@shared/constants";
 import { atan2 } from "@shared/dmath";
 
@@ -33,12 +34,7 @@ export function resolveForcedMarches(ctx: TickContext): PendingForcedMarch[] {
         fm.triggeredAt = time;
         fm.capturedPlayerId = entrant.id;
         fm.capturedFrom = { x: entrant.pos.x, z: entrant.pos.z };
-        // A transient sleep effect holds them still for the windup + recovery window.
-        applyEffect(ctx, entrant, {
-          name: fm.name, kind: "debuff",
-          duration: fm.preDelay + fm.postDelay,
-          behavior: { kind: "sleep" },
-        }, `${fm.id}-freeze`, players);
+        applyStatus(entrant, requireStatus("forced_march_hold", { name: fm.name, duration: fm.preDelay + fm.postDelay }), `${fm.id}-freeze`, statusServices(ctx));
       }
     } else if (fm.triggered && !fm.teleported && time >= fm.triggeredAt! + fm.preDelay) {
       // windup (preDelay) elapsed: instantly teleport the captured player to the destination.

@@ -1,7 +1,7 @@
 # Looking up debuff icons
 
-Every debuff an encounter applies must be registered in `DEBUFF_REGISTRY`
-(`src/engine/status/debuffs.ts`) and referenced from YAML with `ref:`. Registering one needs two
+Every debuff an encounter applies must be registered in the status catalog
+(`src/status/catalog/debuffs.ts`) and referenced from YAML with `ref:`. Registering one needs two
 things you do not have yet: the status's exact in-game name, and its icon.
 
 Both come from [XIVAPI](https://v2.xivapi.com). This page is the short version of how to get them.
@@ -57,7 +57,7 @@ That directory is served directly, and the registry entry refers to files by nam
 
 ## 3. Register the debuff
 
-Add an entry to `DEBUFF_REGISTRY` keyed by a snake-case id:
+Add an entry to `DEBUFFS` in `src/status/catalog/debuffs.ts` keyed by a snake-case id:
 
 ```ts
 tailwind: {

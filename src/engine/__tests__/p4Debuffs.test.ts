@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { DEBUFF_REGISTRY } from "../status/debuffs";
+import { STATUS_CATALOG } from "@status";
 
 const pairs = [
   ["entropy", "fake_entropy"],
@@ -12,24 +12,24 @@ const pairs = [
 
 test("P4 fake debuffs have distinct names and share their real debuff icons", () => {
   for (const [realKey, fakeKey] of pairs) {
-    const real = DEBUFF_REGISTRY[realKey];
-    const fake = DEBUFF_REGISTRY[fakeKey];
+    const real = STATUS_CATALOG[realKey];
+    const fake = STATUS_CATALOG[fakeKey];
     expect(fake.name).toBe(`Fake ${real.name}`);
     expect(fake.icon).toBe(real.icon);
   }
 });
 
 test("P4 fake debuffs encode the inverse outcome directly", () => {
-  expect(DEBUFF_REGISTRY.entropy.behavior).toMatchObject({ kind: "effectBurst", shape: "circle" });
-  expect(DEBUFF_REGISTRY.fake_entropy.behavior).toMatchObject({ kind: "effectBurst", shape: "donut" });
-  expect(DEBUFF_REGISTRY.dynamic_fluid.behavior).toMatchObject({ kind: "effectBurst", shape: "donut" });
-  expect(DEBUFF_REGISTRY.fake_dynamic_fluid.behavior).toMatchObject({ kind: "effectBurst", shape: "circle" });
-  expect(DEBUFF_REGISTRY.compressed_water.behavior).toMatchObject({ kind: "pairedSpreadStack", role: "stack" });
-  expect(DEBUFF_REGISTRY.fake_compressed_water.behavior).toMatchObject({ kind: "pairedSpreadStack", role: "spread" });
-  expect(DEBUFF_REGISTRY.forked_lightning.behavior).toMatchObject({ kind: "pairedSpreadStack", role: "spread" });
-  expect(DEBUFF_REGISTRY.fake_forked_lightning.behavior).toMatchObject({ kind: "pairedSpreadStack", role: "stack" });
-  expect(DEBUFF_REGISTRY.cursed_shriek.behavior.kind).toBe("carrierGaze");
-  expect(DEBUFF_REGISTRY.fake_cursed_shriek.behavior.kind).toBe("reverseCarrierGaze");
-  expect(DEBUFF_REGISTRY.acceleration_bomb.behavior).toMatchObject({ kind: "motionCheck", required: "still" });
-  expect(DEBUFF_REGISTRY.fake_acceleration_bomb.behavior).toMatchObject({ kind: "motionCheck", required: "move" });
+  expect(STATUS_CATALOG.entropy.behavior).toMatchObject({ kind: "effectBurst", shape: "circle" });
+  expect(STATUS_CATALOG.fake_entropy.behavior).toMatchObject({ kind: "effectBurst", shape: "donut" });
+  expect(STATUS_CATALOG.dynamic_fluid.behavior).toMatchObject({ kind: "effectBurst", shape: "donut" });
+  expect(STATUS_CATALOG.fake_dynamic_fluid.behavior).toMatchObject({ kind: "effectBurst", shape: "circle" });
+  expect(STATUS_CATALOG.compressed_water.behavior).toMatchObject({ kind: "pairedSpreadStack", role: "stack" });
+  expect(STATUS_CATALOG.fake_compressed_water.behavior).toMatchObject({ kind: "pairedSpreadStack", role: "spread" });
+  expect(STATUS_CATALOG.forked_lightning.behavior).toMatchObject({ kind: "pairedSpreadStack", role: "spread" });
+  expect(STATUS_CATALOG.fake_forked_lightning.behavior).toMatchObject({ kind: "pairedSpreadStack", role: "stack" });
+  expect(STATUS_CATALOG.cursed_shriek.behavior.kind).toBe("carrierGaze");
+  expect(STATUS_CATALOG.fake_cursed_shriek.behavior.kind).toBe("reverseCarrierGaze");
+  expect(STATUS_CATALOG.acceleration_bomb.behavior).toMatchObject({ kind: "motionCheck", required: "still" });
+  expect(STATUS_CATALOG.fake_acceleration_bomb.behavior).toMatchObject({ kind: "motionCheck", required: "move" });
 });

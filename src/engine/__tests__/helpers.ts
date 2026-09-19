@@ -102,6 +102,7 @@ export function withControl(world: World, playerId: string, control: "human" | "
 export function effect(overrides: Partial<StatusEffect> = {}): StatusEffect {
   return {
     id: "effect-1",
+    ref: "debug_test_debuff",
     name: "Effect",
     kind: "debuff",
     appliedAt: 0,

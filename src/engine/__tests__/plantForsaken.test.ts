@@ -13,7 +13,7 @@ test("plant debuff order maps timers to combo slots independently", () => {
     damage: 0,
     damageType: "magical" as const,
     applyEffect: {
-      ref: "debug_test_debuff",
+      ref: "debug_test_plant",
       name,
       duration,
       behavior: { kind: "plant" as const, direction: "option" as const, distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
@@ -71,13 +71,13 @@ test("applyEffects can shuffle plant timer order without changing combo slot ord
         order: "shuffle" as const,
         effects: [
           {
-            ref: "debug_test_debuff",
+            ref: "debug_test_plant",
             name: "Plant (short)",
             duration: 7,
             behavior: { kind: "plant" as const, direction: "option" as const, distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
           },
           {
-            ref: "debug_test_debuff",
+            ref: "debug_test_plant",
             name: "Plant (long)",
             duration: 10,
             behavior: { kind: "plant" as const, direction: "option" as const, distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
@@ -124,13 +124,13 @@ test("applyEffects can balance shuffled plant timer order across a hit list", ()
         order: "shuffleBalanced" as const,
         effects: [
           {
-            ref: "debug_test_debuff",
+            ref: "debug_test_plant",
             name: "Plant (short)",
             duration: 7,
             behavior: { kind: "plant" as const, direction: "option" as const, distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
           },
           {
-            ref: "debug_test_debuff",
+            ref: "debug_test_plant",
             name: "Plant (long)",
             duration: 10,
             behavior: { kind: "plant" as const, direction: "option" as const, distance: 8, radius: 3, armDelay: 3, duration: 10, tpDelay: 1 },
@@ -195,7 +195,7 @@ test("plant combinations assign each player a per-slot heading from their group'
   };
   const plantEvent = (name: string) => ({
     t: 0.1, name, telegraph: 0.1, damage: 0, damageType: "magical",
-    applyEffect: { ref: "debug_test_debuff", name, duration: 20, behavior: { kind: "plant", direction: [1, 0], distance: 8, armDelay: 3 } },
+    applyEffect: { ref: "debug_test_plant", name, duration: 20, behavior: { kind: "plant", direction: [1, 0], distance: 8, armDelay: 3 } },
     shape: { kind: "circle", center: [0, 0], radius: 25 },
   });
   const raid = loadRaid({ ...baseRaid, optionals, events: [plantEvent("Plant A"), plantEvent("Plant B")] });
@@ -309,7 +309,7 @@ test("plant direction \"option\" parses to a concrete vector (overridden by the 
     ...baseRaid,
     events: [{
       t: 1, name: "Plant", telegraph: 1, damage: 0, damageType: "magical",
-      applyEffect: { ref: "debug_test_debuff", name: "Plant", duration: 7, behavior: { kind: "plant", direction: "option", distance: 8 } },
+      applyEffect: { ref: "debug_test_plant", name: "Plant", duration: 7, behavior: { kind: "plant", direction: "option", distance: 8 } },
       shape: { kind: "circle", center: [0, 0], radius: 25 },
     }],
   });

@@ -2,8 +2,9 @@
 // by count, optionally a random subset).
 
 import type { TickContext } from "./context";
+import { applyStatus } from "@status";
+import { statusServices } from "./statusServices";
 import type { EffectSpec, PendingApplyEffect } from "@shared/types";
-import { applyEffect } from "./helpers";
 
 function selectedEffect(pae: PendingApplyEffect, groupChoices: Record<string, number>, randInt: (n: number) => number): EffectSpec {
   if (!pae.applyEffectChoices) return pae.applyEffect!;
@@ -58,7 +59,7 @@ export function resolveApplyEffects(ctx: TickContext): PendingApplyEffect[] {
     }
     const effect = selectedEffect(pae, groupChoices, randInt);
     for (const target of pool) {
-      applyEffect(ctx, target, effect, `${pae.id}-${target.id}-eff`, players);
+      applyStatus(target, effect, `${pae.id}-${target.id}-eff`, statusServices(ctx));
       log.push({ t: time, mechanic: pae.name, playerId: target.id, event: "hit" });
     }
   }

@@ -8,11 +8,12 @@
 import type { Intent, Player, ZoneShape } from "@shared/types";
 import { add, sub, scale, normalize, length } from "@shared/math";
 import { atan2 } from "@shared/dmath";
-import { MOVE_SPEED, SPRINT_MULTIPLIER, JUMP_SPEED, GRAVITY, SPRINT_DURATION, SPRINT_COOLDOWN } from "@shared/constants";
-import { hasInputDisablingEffect } from "../engine/status/behaviors";
+import { MOVE_SPEED, JUMP_SPEED, GRAVITY, SPRINT_COOLDOWN } from "@shared/constants";
+import { applyStatus, isInputDisabled, movementSpeedMultiplier, requireStatus, type ApplyEnv, type StatusActor } from "@status";
 import { isOnFloor } from "../engine/shapes";
 
 const SNAP_THRESHOLD = 3;  // yalms: divergence past this hard-resets (teleport, forced march, respawn)
+const SPRINT = requireStatus("sprint");
 
 export class LocalPredictor {
   private active = false;
@@ -20,7 +21,8 @@ export class LocalPredictor {
   private facing = 0;
   private y = 0;
   private verticalVelocity = 0;
-  private sprintActive = 0;
+  private clock = 0;
+  private statusActor: StatusActor | null = null;
   private sprintCooldown = 0;
 
   reset(): void {
@@ -36,26 +38,27 @@ export class LocalPredictor {
     const forced =
       !authLocal.alive ||
       length(authLocal.knockbackVelocity) > 1e-6 ||
-      hasInputDisablingEffect(authLocal, time);
+      isInputDisabled(authLocal, time);
     if (forced) {
-      this.seed(authLocal);
+      this.seed(authLocal, time);
       return authLocal;
     }
 
-    if (!this.active) this.seed(authLocal);
+    if (!this.active) this.seed(authLocal, time);
+    const statusActor = this.statusActor!;
 
     // Predict sprint locally so the speed boost is instant (mirrors playerMovement.ts). Gated on the
     // predicted cooldown so we don't speed up when the server would reject the sprint.
+    this.clock += dt;
     if (authLocal.cooldownsDisabled) this.sprintCooldown = 0;
     if (intent.sprint && this.sprintCooldown <= 0) {
-      this.sprintActive = SPRINT_DURATION;
+      applyStatus(statusActor, SPRINT, `${authLocal.id}-sprint`, this.statusEnv());
       this.sprintCooldown = authLocal.cooldownsDisabled ? 0 : SPRINT_COOLDOWN;
     }
     if (this.sprintCooldown > 0) this.sprintCooldown = Math.max(0, this.sprintCooldown - dt);
-    if (this.sprintActive > 0) this.sprintActive = Math.max(0, this.sprintActive - dt);
 
     // Integrate input — mirrors playerMovement.ts locomotion.
-    const speed = this.sprintActive > 0 ? MOVE_SPEED * SPRINT_MULTIPLIER : MOVE_SPEED;
+    const speed = MOVE_SPEED * movementSpeedMultiplier(statusActor, this.clock);
     if (length(intent.move) > 0) {
       this.pos = add(this.pos, scale(normalize(intent.move), speed * dt));
       this.facing = intent.facing ?? atan2(intent.move.x, intent.move.z);
@@ -89,12 +92,17 @@ export class LocalPredictor {
     return { ...authLocal, pos: { ...this.pos }, facing: this.facing, y: this.y };
   }
 
-  private seed(authLocal: Player): void {
+  private statusEnv(): ApplyEnv {
+    return { time: this.clock, actors: [], damage: () => {} };
+  }
+
+  private seed(authLocal: Player, time: number): void {
     this.pos = { ...authLocal.pos };
     this.facing = authLocal.facing;
     this.y = authLocal.y;
     this.verticalVelocity = authLocal.verticalVelocity;
-    this.sprintActive = authLocal.sprintActive;
+    this.clock = time;
+    this.statusActor = { ...authLocal, effects: authLocal.effects.slice() };
     this.sprintCooldown = authLocal.sprintCooldown;
     this.active = true;
   }

@@ -2,8 +2,9 @@
 // linked event) and apply a visible effect to the chosen member.
 
 import type { TickContext } from "./context";
+import { applyStatus } from "@status";
+import { statusServices } from "./statusServices";
 import type { PendingEffectSelect } from "@shared/types";
-import { applyEffect } from "./helpers";
 
 export function resolveEffectSelects(ctx: TickContext): PendingEffectSelect[] {
   const { players, log, time, groupChoices, randInt } = ctx;
@@ -25,7 +26,7 @@ export function resolveEffectSelects(ctx: TickContext): PendingEffectSelect[] {
       const targetId = members[randInt(members.length)];
       const target = players.find(p => p.id === targetId && p.alive);
       if (target) {
-        applyEffect(ctx, target, pe.applyEffect, `${pe.id}-${target.id}-eff`, players);
+        applyStatus(target, pe.applyEffect, `${pe.id}-${target.id}-eff`, statusServices(ctx));
         log.push({ t: time, mechanic: pe.name, playerId: target.id, event: "hit" });
       }
     } else {

@@ -18,9 +18,7 @@ export type Player = {
   maxHp: number;
   mp: number;
   maxMp: number;
-  sprintActive: number;   // seconds remaining on sprint
   sprintCooldown: number; // seconds remaining on cooldown
-  antiKbActive: number;   // seconds remaining on anti-knockback buff
   antiKbCooldown: number; // seconds remaining on anti-knockback cooldown
   provokeCooldown: number; // seconds remaining on provoke cooldown (tank threat grab)
   targetBossId: string;   // which boss this player is focused on (used by provoke + target ring)

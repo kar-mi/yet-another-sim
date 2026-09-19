@@ -97,9 +97,9 @@ than loading a broken encounter, so the feedback loop is a reload, not a debuggi
 
 Two rules catch most first-time mistakes:
 
-- **Debuffs must be registered.** Anything with `kind: debuff` has to exist in `DEBUFF_REGISTRY`
-  (`src/engine/status/debuffs.ts`) and be referenced by `ref:`. Inline debuff definitions are
-  rejected. Buffs are not restricted this way and may still be written inline.
+- **Statuses must be registered.** Every buff and debuff has to exist in the status catalog
+  (`src/status/catalog/buffs.ts` or `src/status/catalog/debuffs.ts`) and be referenced by `ref:`.
+  Inline status definitions are rejected.
 - **Ids must be unique** within a file, because events reference each other by id — a `bait` finds
   its stored cone that way, and a tower finds its resolvers that way.
 

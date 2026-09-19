@@ -109,8 +109,8 @@ test("status-effect damage is classified by the effect, and survives delayed res
   const world = runTicks(createWorld(raidWith([centeredAoe({
     damage: 0,
     applyEffect: {
-      name: "Bomb", kind: "buff", duration: 1, avoidable: true,
-      behavior: { kind: "effectBurst", shape: "circle", radius: 6, damage: 7, damageType: "true" },
+      ref: "entropy", name: "Bomb", duration: 1, avoidable: true,
+      behavior: { shape: "circle", radius: 6, damage: 7, damageType: "true" },
     },
   })], stacked)), noMove, 130);
   const recorded = hits(world);
@@ -123,8 +123,8 @@ test("an untagged status effect records no hits", () => {
   const world = runTicks(createWorld(raidWith([centeredAoe({
     damage: 0,
     applyEffect: {
-      name: "Bomb", kind: "buff", duration: 1,
-      behavior: { kind: "effectBurst", shape: "circle", radius: 6, damage: 7, damageType: "true" },
+      ref: "entropy", name: "Bomb", duration: 1,
+      behavior: { shape: "circle", radius: 6, damage: 7, damageType: "true" },
     },
   })], stacked)), noMove, 130);
   expect(hits(world)).toEqual([]);

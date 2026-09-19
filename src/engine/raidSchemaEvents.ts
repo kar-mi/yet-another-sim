@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { DEBUFF_REGISTRY } from "./status/debuffs";
+import { StatusBundleSchema, StatusIdSchema, StatusRefSchema } from "@status/schema";
 import { ElementGlyphKindSchema, EventIdSchema, RoleSchema, Vec2Schema } from "./raidSchemaPrimitives";
-import { AOEShapeSchema, ApplyEffectSchema, ApplyEffectsSchema, KnockbackSchema } from "./raidSchemaFoundation";
+import { AOEShapeSchema, KnockbackSchema } from "./raidSchemaFoundation";
 import { VfxSchema } from "@effects/schema";
 
 const TelegraphModeSchema = z.enum(["cast", "resolve"]);
@@ -23,8 +23,8 @@ const AOEEventSchema = z.object({
   // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
   avoidable: z.boolean().optional(),
   shape: AOEShapeSchema,
-  applyEffect: ApplyEffectSchema.optional(),
-  applyEffects: ApplyEffectsSchema.optional(),
+  applyEffect: StatusRefSchema.optional(),
+  applyEffects: StatusBundleSchema.optional(),
   knockback: KnockbackSchema.optional(),
   // Facing-relative anchoring for cone/rect: snapshot the boss at cast start.
   anchor: z.literal("boss").optional(),            // origin = boss.pos
@@ -101,7 +101,7 @@ const TargetedEventSchema = z.object({
   damageType: z.enum(["physical", "magical", "true"]),
   // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
   avoidable: z.boolean().optional(),
-  applyEffect: ApplyEffectSchema.optional(),
+  applyEffect: StatusRefSchema.optional(),
   showCastBar: z.boolean().default(false),
   showTelegraph: z.boolean().default(true),
   telegraphMode: TelegraphModeSchema.default("cast"),
@@ -166,7 +166,7 @@ const TetherSourceEventSchema = z.object({
   despawnAfter: z.number().positive().optional(),
   tetherKind: z.enum(["buff", "debuff"]),
   buffName: z.string().min(1),  // log/visual label; independent of applyEffect's own name
-  applyEffect: ApplyEffectSchema.optional(),
+  applyEffect: StatusRefSchema.optional(),
   showSource: z.boolean().default(true),
   beam: z.object({
     width: z.number().positive(),
@@ -174,7 +174,7 @@ const TetherSourceEventSchema = z.object({
     damage: z.number().nonnegative(),
     damageType: z.enum(["physical", "magical", "true"]).default("true"),
     avoidable: z.boolean().optional(),
-    applyEffect: ApplyEffectSchema.optional(),
+    applyEffect: StatusRefSchema.optional(),
     pointing: Vec2Schema.optional(),
   }).optional(),
 }).superRefine((ev, ctx) => {
@@ -234,18 +234,10 @@ const LineLinkEventSchema = z.object({
   rng: z.boolean().default(false),
   link: z.string().min(1).optional(),
   target: LineLinkTargetSchema,
-  hiddenDebuff: z.string().min(1),
-  applyEffect: ApplyEffectSchema.optional(),
+  hiddenDebuff: StatusIdSchema("debuff"),
+  applyEffect: StatusRefSchema.optional(),
   knockback: KnockbackSchema.optional(),
   visual: LineLinkVisualSchema.optional(),
-}).transform((event, ctx) => {
-  const spec = DEBUFF_REGISTRY[event.hiddenDebuff];
-  if (!spec) {
-    ctx.addIssue({ code: "custom", path: ["hiddenDebuff"], message: `unknown debuff ref "${event.hiddenDebuff}"` });
-    return z.NEVER;
-  }
-  const { hiddenDebuff, ...rest } = event;
-  return { ...rest, hiddenDebuffName: spec.name };
 });
 
 const TowerVisualSchema = z.object({
@@ -277,7 +269,7 @@ const TowerEventSchema = z.object({
   // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
   avoidable: z.boolean().optional(),
 
-  applyEffect: ApplyEffectSchema.optional(), // debuff applied to valid soakers on success
+  applyEffect: StatusRefSchema.optional(), // debuff applied to valid soakers on success
   consumeEffect: z.object({ effectName: z.string().min(1), stacks: z.number().int().positive().default(1) }).optional(),
   knockback: KnockbackSchema.optional(),     // knockback applied to valid soakers on success
   resolveEventIds: z.array(EventIdSchema).optional(), // effect_resolver ids invoked for valid inside soakers
@@ -331,16 +323,8 @@ const ChainEventSchema = z.object({
   damageType: z.enum(["physical", "magical", "true"]),
   // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
   avoidable: z.boolean().optional(),
-  debuff: z.string().min(1),            // registered debuff applied to both members at cast end
+  debuff: StatusIdSchema("debuff"),
   showCastBar: z.boolean().default(false),
-}).transform((event, ctx) => {
-  const spec = DEBUFF_REGISTRY[event.debuff];
-  if (!spec) {
-    ctx.addIssue({ code: "custom", path: ["debuff"], message: `unknown debuff ref "${event.debuff}"` });
-    return z.NEVER;
-  }
-  const { debuff, ...rest } = event;
-  return { ...rest, debuffName: spec.name };
 });
 
 const GroupEventSchema = z.object({
@@ -359,7 +343,7 @@ const GroupEventSchema = z.object({
   // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
   avoidable: z.boolean().optional(),
 
-  applyEffect: ApplyEffectSchema.optional(),
+  applyEffect: StatusRefSchema.optional(),
   showCastBar: z.boolean().default(false),
   showMarker: z.boolean().default(true),
   showTelegraph: z.boolean().default(true),
@@ -375,7 +359,7 @@ const EffectSelectEventSchema = z.object({
   groups: z.array(z.array(z.string().min(1)).min(1)).min(1),
   rng: z.boolean().default(false),
   link: z.string().min(1).optional(),
-  applyEffect: ApplyEffectSchema,
+  applyEffect: StatusRefSchema,
 });
 
 // Standalone "drop this effect on players now" event. No telegraph — it lands at time t.
@@ -392,8 +376,8 @@ const ApplyEffectEventSchema = z.object({
   count: z.number().int().positive().optional(),
   assignGroup: z.string().min(1).optional(),
   rng: z.boolean().default(false),
-  applyEffect: ApplyEffectSchema.optional(),
-  applyEffectChoices: z.tuple([ApplyEffectSchema, ApplyEffectSchema]).optional(),
+  applyEffect: StatusRefSchema.optional(),
+  applyEffectChoices: z.tuple([StatusRefSchema, StatusRefSchema]).optional(),
   effectChoiceGroup: z.string().min(1).optional(),
   effectChoiceComplement: z.boolean().optional(),
 }).superRefine((event, ctx) => {
@@ -428,7 +412,7 @@ const InverseEventSchema = z.object({
   color: z.string().min(1).optional(),
   rng: z.boolean().default(false),                  // randomize the "?" inversion (else not inverted)
   questionMark: z.boolean().optional(),            // authored override of the inversion state
-  applyEffect: ApplyEffectSchema.optional(),
+  applyEffect: StatusRefSchema.optional(),
   knockback: KnockbackSchema.optional(),
   showCastBar: z.boolean().default(false),
 }).superRefine((ev, ctx) => {
@@ -494,7 +478,7 @@ const GazeEventSchema = z.object({
   reverse: z.boolean().default(false),              // false (eye): hit if looking at it; true ("?" eye): hit if NOT looking
   rng: z.boolean().default(false),                  // randomize the reverse state at cast start (seeded)
   coneHalfAngle: z.number().positive().optional(), // half-angle (radians) counted as "looking at" it (default PI/2 = front 180)
-  applyEffect: ApplyEffectSchema.optional(),
+  applyEffect: StatusRefSchema.optional(),
   knockback: KnockbackSchema.optional(),
   showCastBar: z.boolean().default(false),
   visual: GazeVisualSchema.optional(),
@@ -547,7 +531,7 @@ const HazardEventSchema = z.object({
   radius: z.number().positive(),
   duration: z.number().positive(),
   armingTime: z.number().nonnegative().default(0),
-  applyEffect: ApplyEffectSchema,
+  applyEffect: StatusRefSchema,
 }).superRefine((ev, ctx) => {
   const hasSpots = ev.spots !== undefined && ev.spots.length > 0;
   if ((ev.blackHole !== undefined) === hasSpots) {
@@ -575,7 +559,7 @@ const DivebombEventSchema = z.object({
   // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
   avoidable: z.boolean().optional(),
 
-  applyEffect: ApplyEffectSchema.optional(),
+  applyEffect: StatusRefSchema.optional(),
   hitInterval: z.number().positive().optional(),
   teleportBoss: z.string().min(1).optional(),  // on cast start, move this boss to `from` (facing `to`) and unhide it
   hideBoss: z.string().min(1).optional(),       // on cast start, hide this boss's model
@@ -616,7 +600,7 @@ const EffectBurstEventSchema = z.object({
   damageType: z.enum(["physical", "magical", "true"]),
   // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
   avoidable: z.boolean().optional(),
-  applyEffect: ApplyEffectSchema.optional(),
+  applyEffect: StatusRefSchema.optional(),
   knockback: KnockbackSchema.optional(),
   showCastBar: z.boolean().default(false),
   showTelegraph: z.boolean().default(true),
@@ -664,8 +648,8 @@ const SetHpEventSchema = z.object({
 // should reach, dealt to the just-resolved players in roster order.
 const ReassignChargeSchema = z.object({
   kind: z.string().min(1),
-  effect: ApplyEffectSchema,
-  marker: ApplyEffectSchema.optional(),
+  effect: StatusRefSchema,
+  marker: StatusRefSchema.optional(),
 });
 const ReassignEventSchema = z.object({
   type: z.literal("reassign"),
@@ -693,7 +677,7 @@ const LimitCutEventSchema = z.object({
   id: EventIdSchema,
   time: z.number().nonnegative(),
   name: z.string().min(1),
-  effect: ApplyEffectSchema,
+  effect: StatusRefSchema,
   players: z.array(z.string().min(1)).min(1).optional(),
   role: RoleSchema.optional(),
   // Optional bot-solver placement basis (RNG-ready). `kefkaStart` is the direction Kefka's first
