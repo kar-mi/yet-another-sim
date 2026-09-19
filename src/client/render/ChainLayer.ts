@@ -7,7 +7,7 @@ import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveChain, Player } from "@shared/types";
-import { glyphBillboardMaterial } from "./meshes/billboardMaterials";
+import { glyphBillboardMaterial } from "@effects/babylon";
 
 const ICON_Y = 3.2;   // height of the chain icon above a player
 const LINE_Y = 1.0;   // height of the connecting tube

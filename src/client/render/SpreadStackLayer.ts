@@ -7,7 +7,7 @@ import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTextur
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveSpreadStack, Boss, Player } from "@shared/types";
-import { applyAlphaTest } from "./meshes/billboardMaterials";
+import { applyAlphaTest } from "@effects/babylon";
 import {
   createQuestionRing,
   QUESTION_RING_DEFAULT_Y,

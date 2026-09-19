@@ -6,7 +6,7 @@ import { CreateGround } from "@babylonjs/core/Meshes/Builders/groundBuilder";
 import { CreateRibbon } from "@babylonjs/core/Meshes/Builders/ribbonBuilder";
 import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import type { Scene } from "@babylonjs/core/scene";
-import type { AOEShape } from "@shared/types";
+import type { AOEShape } from "../index";
 import { normalize } from "@shared/math";
 
 // Geometry-only ground mesh for an AOE shape (no material). Shared by the telegraph layer

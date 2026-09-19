@@ -5,7 +5,7 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Player } from "@shared/types";
 import { countdownSlicesLeft } from "@shared/countdown";
-import { applyAlphaTest } from "./meshes/billboardMaterials";
+import { applyAlphaTest } from "@effects/babylon";
 
 // Height above the player’s feet.
 const PIE_BOTTOM = 2.3;

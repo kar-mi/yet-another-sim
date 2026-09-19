@@ -8,7 +8,7 @@ import { applyMechanicDamage, applyEffect } from "./helpers";
 import { mechanicSource } from "./damageLog";
 import { cullResolved } from "./util";
 import { TARGETED_LINGER } from "@shared/constants";
-import { FloorAoe, DEFAULT_STACK_COLOR } from "@shared/floorAoe";
+import { FloorAoe, DEFAULT_STACK_COLOR } from "@effects";
 
 export function resolveGroups(ctx: TickContext): {
   groupMechanics: ActiveGroupMechanic[];

@@ -8,7 +8,17 @@
 // FloorAoe embedded in World state must still work after a JSON round-trip loses its prototype.
 // Visibility logic therefore lives in the standalone isFloorAoeVisible function below, not a method.
 
-import type { AOEShape, ElementGlyphKind } from "./types";
+import type { Vec2 } from "@shared/math";
+
+// Element glyph; label variants can supply kind.
+export type ElementGlyphKind = "lightning" | "fire" | "ice";
+
+export type AOEShape =
+  | { kind: "circle"; center: Vec2; radius: number }
+  | { kind: "donut"; center: Vec2; inner: number; outer: number }
+  | { kind: "cone"; origin: Vec2; direction: Vec2; angleDeg: number; length: number }
+  | { kind: "rect"; origin: Vec2; direction: Vec2; width: number; length: number }
+  | { kind: "polygon"; vertices: Vec2[] };
 
 export type FloorAoeResolveMode =
   | { kind: "active" }

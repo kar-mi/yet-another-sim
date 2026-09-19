@@ -2,10 +2,10 @@ import type { Scene } from "@babylonjs/core/scene";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
-import { createShapeMesh } from "./meshes/telegraphMeshes";
-import { glyphBillboardMaterial } from "./meshes/billboardMaterials";
+import { createShapeMesh } from "./shapeGeometry";
+import { glyphBillboardMaterial } from "./billboards";
 import { createElementFloorMaterial, prewarmElementBurst } from "./elementVfx";
-import { createFloorMaterial } from "./floorAoeSync";
+import { createFloorMaterial } from "./groundAoe";
 
 // Pre-compile the shader effects for the material families that first appear mid-fight, so the
 // initial AOE telegraph / head marker doesn't trigger a synchronous shader compile on the main

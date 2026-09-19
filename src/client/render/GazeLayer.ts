@@ -1,7 +1,7 @@
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveGaze } from "@shared/types";
 import { createGazeMeshes, updateGazeMeshes, type GazeMeshes } from "./meshes/gazeMeshes";
-import { syncFloorAoeMeshes, disposeFloorAoeMeshes, type FloorAoeMeshMap } from "./floorAoeSync";
+import { syncFloorAoeMeshes, disposeFloorAoeMeshes, type FloorAoeMeshMap } from "@effects/babylon";
 
 export class GazeLayer {
   private gazes = new Map<string, GazeMeshes>();

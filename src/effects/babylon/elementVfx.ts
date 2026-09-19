@@ -6,7 +6,7 @@ import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { ParticleSystem } from "@babylonjs/core/Particles/particleSystem";
 import "@babylonjs/core/Particles/particleSystemComponent";
-import type { AOEShape, ElementGlyphKind } from "@shared/types";
+import type { AOEShape, ElementGlyphKind } from "../index";
 
 // Element-themed floor telegraphs: an animated world-space noise shader (frost / crackle / flame)
 // shared per (element, color, alpha), and a one-shot particle burst when an element AoE lands.

@@ -2,9 +2,9 @@ import type { Scene } from "@babylonjs/core/scene";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import type { FloorAoe } from "@shared/floorAoe";
-import { isFloorAoeVisible } from "@shared/floorAoe";
-import { createShapeMesh, createShapeOutlineMesh } from "./meshes/telegraphMeshes";
+import type { FloorAoe } from "../index";
+import { isFloorAoeVisible } from "../index";
+import { createShapeMesh, createShapeOutlineMesh } from "./shapeGeometry";
 import { elementFloorMaterial } from "./elementVfx";
 
 const DEFAULT_ALPHA = 0.5;

@@ -1,5 +1,8 @@
 import type { Vec2 } from "../math";
 
+export type { AOEShape, ElementGlyphKind } from "@effects";
+import type { ElementGlyphKind } from "@effects";
+
 export type Role = "tank" | "healer" | "dps";
 
 export type Control = "human" | "bot";
@@ -22,8 +25,6 @@ export type WaymarkId = "A" | "B" | "C" | "D" | "1" | "2" | "3" | "4";
 export type Waymark = { mark: WaymarkId; pos: Vec2 };
 
 export type CrystalElement = "wind" | "fire" | "water" | "earth";
-// Element glyph; label variants can supply kind.
-export type ElementGlyphKind = "lightning" | "fire" | "ice";
 export type ElementGlyph = { at: Vec2; kind?: ElementGlyphKind };
 // Visual ring expanding during a cast.
 export type ElementRing = { center: Vec2; radius: number; kind?: ElementGlyphKind };
@@ -36,13 +37,6 @@ export type Waypoint = { t: number; pos: Vec2 };
 export type DamageType = "physical" | "magical" | "true";
 export type TelegraphMode = "cast" | "resolve";
 export type FlashBeforeResolve = { lead: number; color?: string };
-
-export type AOEShape =
-  | { kind: "circle"; center: Vec2; radius: number }
-  | { kind: "donut"; center: Vec2; inner: number; outer: number }
-  | { kind: "cone"; origin: Vec2; direction: Vec2; angleDeg: number; length: number }
-  | { kind: "rect"; origin: Vec2; direction: Vec2; width: number; length: number }
-  | { kind: "polygon"; vertices: Vec2[] };
 
 // Arc relative to the boss's facing (radians). A directional attack only hits players whose
 // bearing from the boss is within `width/2` of `center`. center is measured clockwise from the

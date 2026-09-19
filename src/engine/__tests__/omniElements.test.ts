@@ -5,7 +5,7 @@ import { loadRaid } from "../raidLoader";
 import { createWorld } from "../world";
 import { toAOEShape } from "../eventTransforms";
 import { elementRingRadius } from "@shared/elementRing";
-import { isFloorAoeVisible } from "@shared/floorAoe";
+import { isFloorAoeVisible } from "@effects";
 import { moverPosition } from "@shared/mover";
 import { countdownSlicesLeft } from "@shared/countdown";
 import { describeDecisions, validateRngConstraints } from "../seedSearch";

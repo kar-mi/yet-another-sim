@@ -6,7 +6,7 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Boss } from "@shared/types";
 import { STATIC_ROOT } from "../../staticBase";
-import { imageBillboardMaterial } from "./billboardMaterials";
+import { imageBillboardMaterial } from "@effects/babylon";
 
 export const HAND_IMAGE_URL = `${STATIC_ROOT}/model/raid/hand.png`;
 

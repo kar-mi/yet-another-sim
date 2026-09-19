@@ -4,8 +4,8 @@ import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveGroupMechanic, Player } from "@shared/types";
-import { glyphBillboardMaterial } from "./meshes/billboardMaterials";
-import { syncFloorAoeMeshes, disposeFloorAoeMeshes, type FloorAoeMeshMap } from "./floorAoeSync";
+import { glyphBillboardMaterial } from "@effects/babylon";
+import { syncFloorAoeMeshes, disposeFloorAoeMeshes, type FloorAoeMeshMap } from "@effects/babylon";
 
 const ICON_Y = 3.2;    // height of the stack marker above the marked player
 

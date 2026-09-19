@@ -7,7 +7,7 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Player } from "@shared/types";
 import { STATIC_ROOT } from "../staticBase";
-import { imageBillboardMaterial } from "./meshes/billboardMaterials";
+import { imageBillboardMaterial } from "@effects/babylon";
 
 // Ring heights above the player’s feet.
 const RING_HEIGHTS = [0.5, 0.8];

@@ -4,7 +4,7 @@ import { Scene } from "@babylonjs/core/scene";
 import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
-import { FloorAoe } from "@shared/floorAoe";
+import { FloorAoe } from "@effects";
 
 // Each shader effect first created mid-fight is a synchronous compile (a visible hitch), so the
 // material families the Omni Elements pull uses must already be compiled by prewarmShaders.
@@ -19,11 +19,11 @@ test("prewarm covers floor telegraphs, element floors and bursts, element glyphs
   const engine = new NullEngine();
   const scene = new Scene(engine);
   try {
-    const { prewarmShaders } = await import("../render/shaderPrewarm");
-    const { syncFloorAoeMeshes } = await import("../render/floorAoeSync");
+    const { prewarmShaders } = await import("@effects/babylon");
+    const { syncFloorAoeMeshes } = await import("@effects/babylon");
     const { createElementGlyph } = await import("../render/meshes/elementGlyphMeshes");
     const { ElementRingLayer } = await import("../render/ElementRingLayer");
-    const { spawnElementBurst } = await import("../render/elementVfx");
+    const { spawnElementBurst } = await import("@effects/babylon");
     new ArcRotateCamera("camera", 0, 1, 30, Vector3.Zero(), scene);
     new HemisphericLight("light", new Vector3(0, 1, 0), scene);
     const effects = () => Object.keys((engine as unknown as { _compiledEffects: object })._compiledEffects);

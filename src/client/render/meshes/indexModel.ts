@@ -11,7 +11,7 @@ import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import type { Scene } from "@babylonjs/core/scene";
 import { logger } from "@shared/logger";
 import { STATIC_ROOT } from "../../staticBase";
-import { applyAlphaTest } from "./billboardMaterials";
+import { applyAlphaTest } from "@effects/babylon";
 
 // Extrude the Index’s body and weapons from their image silhouettes.
 const INDEX_IMAGE_ROOT = `${STATIC_ROOT}/model/boss/index/`;

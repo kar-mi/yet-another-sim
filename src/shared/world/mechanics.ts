@@ -1,5 +1,5 @@
 import type { Vec2 } from "../math";
-import type { FloorAoe } from "../floorAoe";
+import type { FloorAoe } from "@effects";
 import type {
   AOEShape, BossRelativeCenter, CrystalElement, DamageType, ElementGlyph, ElementGlyphKind, ElementRing, FlashBeforeResolve, Mover,
   PositionalArc, Role, TelegraphMode,

@@ -8,7 +8,7 @@ import { pointInShape } from "../shapes";
 import { applyMechanicDamage, applyEffect, applyKnockback, shapeOrigin } from "./helpers";
 import { mechanicSource } from "./damageLog";
 import { cullResolved } from "./util";
-import { FloorAoe, DEFAULT_DANGER_COLOR, DEFAULT_INVERTED_COLOR } from "@shared/floorAoe";
+import { FloorAoe, DEFAULT_DANGER_COLOR, DEFAULT_INVERTED_COLOR } from "@effects";
 
 export function resolveInversions(ctx: TickContext): {
   inversions: ActiveInverse[];

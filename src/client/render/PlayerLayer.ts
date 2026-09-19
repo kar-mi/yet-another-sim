@@ -10,7 +10,7 @@ import { logger } from "@shared/logger";
 import type { Player } from "@shared/types";
 import { length, sub } from "@shared/math";
 import { STATIC_ROOT } from "../staticBase";
-import { glyphBillboardMaterial, imageBillboardMaterial } from "./meshes/billboardMaterials";
+import { glyphBillboardMaterial, imageBillboardMaterial } from "@effects/babylon";
 import { computeVisiblePlayerIds } from "./playerVisibility";
 
 const PLAYER_CENTER_Y = 0.4;

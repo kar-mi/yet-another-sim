@@ -1,8 +1,8 @@
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveMechanic } from "@shared/types";
-import type { FloorAoe } from "@shared/floorAoe";
-import { syncFloorAoeMeshes, disposeFloorAoeMeshes, type FloorAoeMeshMap } from "./floorAoeSync";
-import { spawnElementBurst } from "./elementVfx";
+import type { FloorAoe } from "@effects";
+import { syncFloorAoeMeshes, disposeFloorAoeMeshes, type FloorAoeMeshMap } from "@effects/babylon";
+import { spawnElementBurst } from "@effects/babylon";
 
 // Only burst for hits that landed within this long of now, so replay seeks don't replay old bursts.
 const BURST_WINDOW = 0.3;

@@ -6,7 +6,7 @@ import { CreateTorus } from "@babylonjs/core/Meshes/Builders/torusBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import type { Scene } from "@babylonjs/core/scene";
-import { applyAlphaTest } from "./billboardMaterials";
+import { applyAlphaTest } from "@effects/babylon";
 
 const RING_RADIUS = 6;
 const RING_THICKNESS = 0.5;

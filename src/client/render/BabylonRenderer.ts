@@ -46,7 +46,7 @@ import { CrystalLayer } from "./CrystalLayer";
 import { setControlScheme } from "../input";
 import { computeWorldRenderKeys, getWorldRenderKeys } from "../worldRenderKeys";
 import type { HudLayoutManager } from "../ui/HudLayoutManager";
-import { prewarmShaders } from "./shaderPrewarm";
+import { prewarmShaders } from "@effects/babylon";
 import { buildCastCandidates, CAST_BAR_COLOR, castForBoss } from "../ui/hudPresentation";
 import { resolvePovPlayer } from "../pov";
 

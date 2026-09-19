@@ -16,7 +16,7 @@ function bossFor(bosses: Boss[], bossId?: string): Boss {
 import { pointInShape } from "../shapes";
 import { promotePending, anchorShape } from "../timeline";
 import { AOE_RESOLVE_LINGER, TARGETED_LINGER } from "@shared/constants";
-import { FloorAoe, DEFAULT_DANGER_COLOR } from "@shared/floorAoe";
+import { FloorAoe, DEFAULT_DANGER_COLOR } from "@effects";
 import { buildFloorAoe } from "../floorAoeBuild";
 import { atan2 } from "@shared/dmath";
 import {

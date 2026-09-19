@@ -5,7 +5,7 @@
 // re-anchors its shape mid-lifetime) so the mapping only lives in one place.
 
 import type { AOEShape, TelegraphMode, FlashBeforeResolve, ElementGlyphKind } from "@shared/types";
-import { FloorAoe, DEFAULT_DANGER_COLOR } from "@shared/floorAoe";
+import { FloorAoe, DEFAULT_DANGER_COLOR } from "@effects";
 import { AOE_RESOLVE_LINGER } from "@shared/constants";
 
 export function buildFloorAoe(params: {
