@@ -391,6 +391,69 @@ safe — all players are topped before the HP check runs. See also: [Heal / Accr
 |----------------|----------|-------|
 | `requireFullHp`| no       | `true` turns the AOE into a raidwide HP check. Shape is unused. Defaults to `false`. |
 
+#### Visual effects (`vfx`)
+
+Every `aoe` event draws a preset set of effects: the ground telegraph, an element pattern over it
+when `element` is set, an impact burst when that element AOE lands, and — on Index's Sealed
+Implements casts — a glow around the highlighted weapon. `vfx` overrides those presets. **Every
+field is optional, and an omitted field keeps the current preset**, so adding `vfx` to an event
+never changes anything you did not name.
+
+```yaml
+- id: outlined-burst
+  time: 44
+  name: Outlined Burst
+  telegraph: 3
+  damage: 0
+  damageType: magical
+  outline: true
+  element: ice
+  shape: { kind: donut, center: [14, 8], inner: 3, outer: 7 }
+  vfx:
+    burst:
+      enabled: true
+      element: fire
+      color: "#ff6a1f"
+      count: 240
+      size: { min: 0.4, max: 0.9 }
+      lifetime: { min: 0.3, max: 0.7 }
+```
+
+`vfx.floor` — the element pattern drawn over the footprint. Only applies when the event sets `element`.
+
+| Field       | Notes |
+|-------------|-------|
+| `element`   | `false` turns the animated pattern off, leaving a plain coloured footprint. Defaults to on. |
+| `intensity` | Multiplies the pattern's opacity (> 0, finite). `1` is the preset. |
+
+`vfx.burst` — the one-shot particle burst at resolve. Particles spawn across the real footprint, so
+rotated cones/rects and a donut's hole read correctly.
+
+| Field      | Notes |
+|------------|-------|
+| `enabled`  | `false` suppresses a burst that would otherwise fire. `true` is what turns a burst **on** for an `outline: true` AOE, which is otherwise silent. |
+| `element`  | `lightning`, `fire` or `ice`. Bursts with a different element than the floor pattern; also lets an AOE with no `element` burst at all. |
+| `color`    | `#rrggbb` particle tint. Defaults to the telegraph colour. |
+| `count`    | Particle count (positive integer, capped at 400). |
+| `size`     | `{ min, max }` particle size (≥ 0, `max` ≥ `min`). |
+| `lifetime` | `{ min, max }` particle lifetime in seconds (`min` > 0, `max` ≥ `min`). |
+
+`vfx.weaponGlow` — the pulsing glow and halo around the highlighted weapon. This applies **only** to
+Index's Sealed Implements casts (events whose id matches `sealed-implements-<n>-bow|harp`); it is
+ignored elsewhere.
+
+| Field         | Notes |
+|---------------|-------|
+| `enabled`     | `false` suppresses the highlight entirely. |
+| `color`       | `#rrggbb` for both the glow and the halo. |
+| `intensity`   | `{ min, max }` glow intensity swept by the pulse (≥ 0, `max` ≥ `min`). |
+| `pulsePeriod` | Seconds per pulse cycle (> 0). Lower is faster. |
+
+Overrides ride the mechanic through deferred (stored-cleave) re-anchoring and through replay
+recording, so a stored cleave armed by a `bait` keeps them.
+
+`raids/debug/vfx-test.yaml` draws every shape filled and outlined and exercises each override.
+
 ### `dash` — blink followed by a landing AOE
 
 A dash holds the boss in place during its windup, shows a landing marker that tracks the current

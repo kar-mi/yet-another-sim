@@ -22,6 +22,40 @@ export type AOEShape =
   | { kind: "rect"; origin: Vec2; direction: Vec2; width: number; length: number }
   | { kind: "polygon"; vertices: Vec2[] };
 
+// Authoring overrides for the effects an AoE draws. Every field is optional and an omitted one
+// keeps the effect's built-in preset; see docs/authoring-raids.md.
+type FloorVfx = {
+  // Draw the element pattern over the footprint. Defaults to on whenever the AoE has an element.
+  element?: boolean;
+  // Multiplies the pattern's opacity.
+  intensity?: number;
+};
+
+type Range = { min: number; max: number };
+
+export type BurstVfx = {
+  // Bursts are suppressed on outlined AoEs unless this turns them on.
+  enabled?: boolean;
+  // Burst with a different element than the floor pattern.
+  element?: ElementGlyphKind;
+  color?: string;
+  count?: number;
+  size?: Range;
+  lifetime?: Range;
+};
+
+export type WeaponGlowVfx = {
+  enabled?: boolean;
+  color?: string;
+  intensity?: Range;
+  pulsePeriod?: number;
+};
+
+// Carried on the FloorAoe, so it survives deferred re-anchoring and replay round-trips.
+export type FloorAoeVfx = { floor?: FloorVfx; burst?: BurstVfx };
+
+export type Vfx = FloorAoeVfx & { weaponGlow?: WeaponGlowVfx };
+
 export type FloorAoeResolveMode =
   | { kind: "active" }
   // Visible only in a window around resolveAt: [resolveAt - lead, resolveAt + trail].
@@ -50,6 +84,7 @@ export class FloorAoe {
   readonly style?: "outline";
   // Element pattern drawn over the footprint (render-only).
   readonly element?: ElementGlyphKind;
+  readonly vfx?: FloorAoeVfx;
   readonly resolveMode: FloorAoeResolveMode;
   readonly resolveAt: number;
 
@@ -60,6 +95,7 @@ export class FloorAoe {
     alpha?: number;
     style?: "outline";
     element?: ElementGlyphKind;
+    vfx?: FloorAoeVfx;
     resolveMode: FloorAoeResolveMode;
     resolveAt: number;
   }) {
@@ -69,6 +105,7 @@ export class FloorAoe {
     this.alpha = params.alpha;
     this.style = params.style;
     this.element = params.element;
+    this.vfx = params.vfx;
     this.resolveMode = params.resolveMode;
     this.resolveAt = params.resolveAt;
   }
@@ -83,3 +120,5 @@ export function isFloorAoeVisible(aoe: FloorAoe, time: number, resolved: boolean
   const trail = aoe.resolveMode.trail ?? FLOOR_AOE_DEFAULT_TRAIL;
   return time >= aoe.resolveAt - lead && time <= aoe.resolveAt + trail;
 }
+
+export { sampleShapePoint } from "./sampling";

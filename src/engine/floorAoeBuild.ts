@@ -5,7 +5,7 @@
 // re-anchors its shape mid-lifetime) so the mapping only lives in one place.
 
 import type { AOEShape, TelegraphMode, FlashBeforeResolve, ElementGlyphKind } from "@shared/types";
-import { FloorAoe, DEFAULT_DANGER_COLOR } from "@effects";
+import { FloorAoe, DEFAULT_DANGER_COLOR, type FloorAoeVfx } from "@effects";
 import { AOE_RESOLVE_LINGER } from "@shared/constants";
 
 export function buildFloorAoe(params: {
@@ -18,10 +18,14 @@ export function buildFloorAoe(params: {
   flashBeforeResolve?: FlashBeforeResolve;
   outline?: boolean;
   element?: ElementGlyphKind;
+  vfx?: FloorAoeVfx;
   resolveAt: number;
 }): FloorAoe | undefined {
   const { id, shape, resolveAt } = params;
-  const style = { ...(params.outline ? { style: "outline" as const } : {}), ...(params.alpha !== undefined ? { alpha: params.alpha } : {}), ...(params.element ? { element: params.element } : {}) };
+  const vfx = params.vfx?.floor || params.vfx?.burst
+    ? { floor: params.vfx.floor, burst: params.vfx.burst }
+    : undefined;
+  const style = { ...(params.outline ? { style: "outline" as const } : {}), ...(params.alpha !== undefined ? { alpha: params.alpha } : {}), ...(params.element ? { element: params.element } : {}), ...(vfx ? { vfx } : {}) };
   const color = params.color ?? params.flashBeforeResolve?.color ?? DEFAULT_DANGER_COLOR;
 
   if (params.flashBeforeResolve) {

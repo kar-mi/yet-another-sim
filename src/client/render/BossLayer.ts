@@ -9,7 +9,7 @@ import { logger } from "@shared/logger";
 import type { Boss } from "@shared/types";
 import { STATIC_ROOT } from "../staticBase";
 import { buildIndexModel, type IndexModel } from "./meshes/indexModel";
-import type { SealedImplement } from "./sealedImplement";
+import type { ImplementHighlight } from "./sealedImplement";
 
 export const BOSS_MODEL_ROOT = `${STATIC_ROOT}/model/boss/`;
 export const BOSS_MODEL_FILE = "chaos.glb"; // default model; kept for preloadAssets
@@ -91,7 +91,7 @@ export class BossLayer {
     }
   }
 
-  sync(boss: Boss, time: number, implement: SealedImplement | null = null): void {
+  sync(boss: Boss, time: number, implement: ImplementHighlight | null = null): void {
     if (!this.mesh) return;
     const modelHeight = this.modelTopY - BOSS_MODEL_RAISE;
     this.mesh.position.set(boss.pos.x, this.modelTopY - boss.sinkFraction * modelHeight, boss.pos.z);
@@ -99,7 +99,8 @@ export class BossLayer {
     if (this.modelRoots) {
       for (const root of this.modelRoots) root.setEnabled(boss.hp > 0 && !boss.hidden);
     }
-    this.indexModel?.highlight(boss.hp > 0 && !boss.hidden ? implement : null, time);
+    const visible = boss.hp > 0 && !boss.hidden ? implement : null;
+    this.indexModel?.highlight(visible?.weapon ?? null, time, visible?.glow);
   }
 
   getMesh(): Mesh | null {

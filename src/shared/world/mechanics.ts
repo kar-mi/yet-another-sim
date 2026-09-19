@@ -1,5 +1,5 @@
 import type { Vec2 } from "../math";
-import type { FloorAoe } from "@effects";
+import type { FloorAoe, Vfx } from "@effects";
 import type {
   AOEShape, BossRelativeCenter, CrystalElement, DamageType, ElementGlyph, ElementGlyphKind, ElementRing, FlashBeforeResolve, Mover,
   PositionalArc, Role, TelegraphMode,
@@ -69,6 +69,11 @@ export type ActiveMechanic = {
   ring?: ElementRing;
   // Visual mover travelling to the shape center.
   mover?: Mover;
+  // Element pattern on the footprint. Kept here (like color/outline) so a deferred cleave can
+  // rebuild floorAoe when a bait arms it.
+  element?: ElementGlyphKind;
+  // Authored effect overrides; weaponGlow is read by the boss layer, the rest ride the FloorAoe.
+  vfx?: Vfx;
 };
 
 export type PendingEvent = {
@@ -113,6 +118,7 @@ export type PendingEvent = {
   ring?: ElementRing;
   element?: ElementGlyphKind;
   mover?: Mover;
+  vfx?: Vfx;
 };
 
 export type PendingTargetedEvent = {

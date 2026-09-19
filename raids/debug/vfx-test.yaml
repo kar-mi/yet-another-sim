@@ -1,0 +1,113 @@
+# VFX Test — every AoE footprint shape drawn filled and outlined, plus the authorable
+# `vfx` overrides (floor pattern, impact burst, weapon glow). See docs/authoring-raids.md.
+
+name: VFX Test
+arena:
+  zones:
+    - kind: circle
+      center: { x: 0, z: 0 }
+      radius: 30
+duration: 60
+
+boss: { id: index, pos: [0, 0] }
+
+players:
+  - { id: mt, role: tank, spawn: [0, 24] }
+  - { id: ot, role: tank, spawn: [17, 17] }
+  - { id: h1, role: healer, spawn: [24, 0] }
+  - { id: h2, role: healer, spawn: [17, -17] }
+  - { id: r1, role: dps, spawn: [0, -24] }
+  - { id: r2, role: dps, spawn: [-17, -17] }
+  - { id: m1, role: dps, spawn: [-24, 0] }
+  - { id: m2, role: dps, spawn: [-17, 17] }
+
+sections:
+  - { id: filled, name: Filled Shapes, t: 0 }
+  - { id: outlined, name: Outlined Shapes, t: 18 }
+  - { id: overrides, name: VFX Overrides, t: 36 }
+
+_shape: &shape
+  type: aoe
+  telegraph: 3
+  damage: 0
+  damageType: magical
+  showCastBar: true
+
+events:
+  # Every shape, filled, each with its element pattern and default impact burst.
+  - { <<: *shape, id: fill-circle, time: 2, name: Filled Circle, element: fire, shape: { kind: circle, center: [-14, 10], radius: 5 } }
+  - { <<: *shape, id: fill-donut, time: 5, name: Filled Donut, element: ice, shape: { kind: donut, center: [0, 10], inner: 3, outer: 6 } }
+  - { <<: *shape, id: fill-cone, time: 8, name: Filled Cone, element: lightning, shape: { kind: cone, origin: [14, 8], direction: [0.6, 0.8], angleDeg: 70, length: 10 } }
+  - { <<: *shape, id: fill-rect, time: 11, name: Filled Rect, element: fire, shape: { kind: rect, origin: [-16, -8], direction: [1, -0.4], width: 6, length: 16 } }
+  - { <<: *shape, id: fill-polygon, time: 14, name: Filled Polygon, element: ice, shape: { kind: polygon, vertices: [[6, -6], [16, -4], [18, -14], [4, -16]] } }
+
+  # The same shapes as outlines. Outlines carry no burst unless vfx.burst.enabled says so.
+  - { <<: *shape, id: line-circle, time: 20, name: Outlined Circle, outline: true, shape: { kind: circle, center: [-14, 10], radius: 5 } }
+  - { <<: *shape, id: line-donut, time: 23, name: Outlined Donut, outline: true, shape: { kind: donut, center: [0, 10], inner: 3, outer: 6 } }
+  - { <<: *shape, id: line-cone, time: 26, name: Outlined Cone, outline: true, shape: { kind: cone, origin: [14, 8], direction: [0.6, 0.8], angleDeg: 70, length: 10 } }
+  - { <<: *shape, id: line-rect, time: 29, name: Outlined Rect, outline: true, shape: { kind: rect, origin: [-16, -8], direction: [1, -0.4], width: 6, length: 16 } }
+  - { <<: *shape, id: line-polygon, time: 32, name: Outlined Polygon, outline: true, shape: { kind: polygon, vertices: [[6, -6], [16, -4], [18, -14], [4, -16]] } }
+
+  # Floor pattern turned off entirely, leaving a plain coloured footprint.
+  - <<: *shape
+    id: vfx-floor-off
+    time: 38
+    name: Pattern Off
+    element: fire
+    shape: { kind: circle, center: [-14, 10], radius: 5 }
+    vfx: { floor: { element: false } }
+
+  # Floor pattern at double opacity.
+  - <<: *shape
+    id: vfx-floor-intense
+    time: 41
+    name: Pattern Intensified
+    element: ice
+    shape: { kind: circle, center: [0, 10], radius: 5 }
+    vfx: { floor: { intensity: 2 } }
+
+  # A burst on an outlined donut, in a different element and colour than the floor.
+  - <<: *shape
+    id: vfx-burst-outline
+    time: 44
+    name: Outlined Burst
+    outline: true
+    element: ice
+    shape: { kind: donut, center: [14, 8], inner: 3, outer: 7 }
+    vfx:
+      burst:
+        enabled: true
+        element: fire
+        color: "#ff6a1f"
+        count: 240
+        size: { min: 0.4, max: 0.9 }
+        lifetime: { min: 0.3, max: 0.7 }
+
+  # Burst suppressed on a filled element AoE that would normally have one.
+  - <<: *shape
+    id: vfx-burst-off
+    time: 47
+    name: Burst Off
+    element: lightning
+    shape: { kind: rect, origin: [-16, -8], direction: [1, -0.4], width: 6, length: 16 }
+    vfx: { burst: { enabled: false } }
+
+  # Weapon glow overrides on a Sealed Implements cast (the only highlight they apply to).
+  - <<: *shape
+    id: sealed-implements-1-bow
+    time: 50
+    name: Sealed Implements
+    telegraph: 6
+    showTelegraph: false
+    shape: { kind: circle, center: [0, 0], radius: 1 }
+    vfx:
+      weaponGlow:
+        color: "#4fc3ff"
+        intensity: { min: 0.4, max: 2.4 }
+        pulsePeriod: 0.4
+
+waymarks:
+  - { mark: A, pos: { x: 0, z: 22 } }
+  - { mark: B, pos: { x: 22, z: 0 } }
+  - { mark: C, pos: { x: 0, z: -22 } }
+  - { mark: D, pos: { x: -22, z: 0 } }

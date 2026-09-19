@@ -20,11 +20,20 @@ export type MeshGlowOptions = {
   blurKernelSize?: number;
 };
 
+// Per-highlight overrides; anything omitted falls back to the options the glow was built with.
+type MeshGlowHighlight = {
+  haloPosition?: Vector3;
+  haloScale?: number;
+  color?: Color3;
+  intensity?: Range;
+  pulseSeconds?: number;
+};
+
 export type MeshGlow = {
   // Compile the glow shaders for meshes whose art may still be loading.
   warm(meshes: Iterable<AbstractMesh>): void;
   // Light `meshes` and place the halo; null clears the highlight. `time` is in seconds.
-  highlight(meshes: AbstractMesh[] | null, time: number, haloPosition?: Vector3, haloScale?: number): void;
+  highlight(meshes: AbstractMesh[] | null, time: number, override?: MeshGlowHighlight): void;
   dispose(): void;
 };
 
@@ -42,8 +51,10 @@ export function createMeshGlow(scene: Scene, name: string, haloParent: Mesh, opt
 
   // Disable an empty glow layer: an empty include list would glow everything.
   const glow = new GlowLayer(name, scene, { blurKernelSize: options.blurKernelSize ?? 96 });
-  glow.customEmissiveColorSelector = (_mesh, _subMesh, _material, result) => result.copyFrom(options.glowColor);
+  const glowColor = options.glowColor.clone();
+  glow.customEmissiveColorSelector = (_mesh, _subMesh, _material, result) => result.copyFrom(glowColor);
   glow.isEnabled = false;
+  const haloMat = halo.material as StandardMaterial;
 
   let included: AbstractMesh[] = [];
   const warmed = new Set<AbstractMesh>();
@@ -57,7 +68,7 @@ export function createMeshGlow(scene: Scene, name: string, haloParent: Mesh, opt
         for (const subMesh of mesh.subMeshes) glow.isReady(subMesh, false);
       }
     },
-    highlight(meshes, time, haloPosition, haloScale) {
+    highlight(meshes, time, override) {
       const next = meshes ?? [];
       if (next.length !== included.length || next.some((mesh, i) => mesh !== included[i])) {
         for (const mesh of included) glow.removeIncludedOnlyMesh(mesh as Mesh);
@@ -67,11 +78,20 @@ export function createMeshGlow(scene: Scene, name: string, haloParent: Mesh, opt
       glow.isEnabled = meshes !== null;
       halo.setEnabled(meshes !== null);
       if (!meshes) return;
-      const pulse = (1 - Math.cos((time / options.pulseSeconds) * Math.PI * 2)) / 2;
-      glow.intensity = options.intensity.min + (options.intensity.max - options.intensity.min) * pulse;
-      if (haloPosition) halo.position.copyFrom(haloPosition);
-      if (haloScale !== undefined) halo.scaling.setAll(haloScale);
-      halo.material!.alpha = options.haloAlpha.min + (options.haloAlpha.max - options.haloAlpha.min) * pulse;
+      const color = override?.color;
+      if (color) {
+        glowColor.set(color.r, color.g, color.b, options.glowColor.a);
+        haloMat.emissiveColor.copyFrom(color);
+      } else {
+        glowColor.copyFrom(options.glowColor);
+        haloMat.emissiveColor.copyFrom(options.haloColor);
+      }
+      const intensity = override?.intensity ?? options.intensity;
+      const pulse = (1 - Math.cos((time / (override?.pulseSeconds ?? options.pulseSeconds)) * Math.PI * 2)) / 2;
+      glow.intensity = intensity.min + (intensity.max - intensity.min) * pulse;
+      if (override?.haloPosition) halo.position.copyFrom(override.haloPosition);
+      if (override?.haloScale !== undefined) halo.scaling.setAll(override.haloScale);
+      haloMat.alpha = options.haloAlpha.min + (options.haloAlpha.max - options.haloAlpha.min) * pulse;
     },
     dispose() {
       glow.dispose();

@@ -24,8 +24,17 @@ export function createFloorMaterial(scene: Scene, name: string): StandardMateria
 }
 export type FloorAoeMeshMap = Map<string, FloorAoeMeshEntry>;
 
+// The element pattern is drawn whenever the AoE has an element, unless vfx.floor turns it off.
+function patternElement(aoe: FloorAoe): FloorAoe["element"] {
+  return aoe.vfx?.floor?.element === false ? undefined : aoe.element;
+}
+
+function patternAlpha(aoe: FloorAoe, base: number): number {
+  return base * (aoe.vfx?.floor?.intensity ?? 1);
+}
+
 function disposeEntry(entry: FloorAoeMeshEntry): void {
-  if (!entry.source.element) {
+  if (!patternElement(entry.source)) {
     entry.mesh.dispose(false, true);
     return;
   }
@@ -63,19 +72,20 @@ export function syncFloorAoeMeshes(
       entry = undefined;
     }
     if (!entry) {
+      const element = patternElement(aoe);
       const outline = aoe.style === "outline" ? createShapeOutlineMesh(scene, aoe.id, aoe.shape) : null;
       const mesh = outline ?? createShapeMesh(scene, aoe.id, aoe.shape);
       if (!mesh) continue;
-      mesh.material = aoe.element && !outline
-        ? elementFloorMaterial(scene, aoe.element, aoe.color, aoe.alpha ?? DEFAULT_ALPHA)
+      mesh.material = element && !outline
+        ? elementFloorMaterial(scene, element, aoe.color, patternAlpha(aoe, aoe.alpha ?? DEFAULT_ALPHA))
         : createFloorMaterial(scene, `floor-aoe-mat-${aoe.id}`);
       entry = { mesh, outline: outline !== null, source: aoe };
       if (outline) {
         // Dispose the fill with the outline.
         const fill = createShapeMesh(scene, `${aoe.id}-fill`, aoe.shape);
         if (fill) {
-          fill.material = aoe.element
-            ? elementFloorMaterial(scene, aoe.element, aoe.color, OUTLINE_FILL_ALPHA)
+          fill.material = element
+            ? elementFloorMaterial(scene, element, aoe.color, patternAlpha(aoe, OUTLINE_FILL_ALPHA))
             : createFloorMaterial(scene, `floor-aoe-fill-mat-${aoe.id}`);
           fill.parent = mesh;
           entry.fill = fill;
@@ -84,13 +94,13 @@ export function syncFloorAoeMeshes(
       meshes.set(aoe.id, entry);
     }
     // Element materials bake color/alpha in at creation (FloorAoe is immutable).
-    if (aoe.element && !entry.outline) continue;
+    if (patternElement(aoe) && !entry.outline) continue;
     const mat = entry.mesh.material as StandardMaterial;
     mat.diffuseColor.copyFrom(Color3.FromHexString(aoe.color));
     // Keep outlines bright regardless of lighting.
     if (entry.outline) mat.emissiveColor.copyFrom(mat.diffuseColor);
     mat.alpha = aoe.alpha ?? (entry.outline ? OUTLINE_ALPHA : DEFAULT_ALPHA);
-    if (entry.fill && !aoe.element) {
+    if (entry.fill && !patternElement(aoe)) {
       const fillMat = entry.fill.material as StandardMaterial;
       fillMat.diffuseColor.copyFrom(mat.diffuseColor);
       fillMat.alpha = OUTLINE_FILL_ALPHA;

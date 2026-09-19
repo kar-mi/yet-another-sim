@@ -10,6 +10,7 @@ import type { Scene } from "@babylonjs/core/scene";
 import { logger } from "@shared/logger";
 import { STATIC_ROOT } from "../../staticBase";
 import { applyAlphaTest, createMeshGlow } from "@effects/babylon";
+import type { WeaponGlowVfx } from "@effects";
 
 // Extrude the Index’s body and weapons from their image silhouettes.
 const INDEX_IMAGE_ROOT = `${STATIC_ROOT}/model/boss/index/`;
@@ -57,7 +58,7 @@ export type IndexModel = {
   root: Mesh;
   height: number;
   // Call each frame to highlight and pulse one weapon; time is sim seconds.
-  highlight(weapon: IndexWeapon | null, time: number): void;
+  highlight(weapon: IndexWeapon | null, time: number, glow?: WeaponGlowVfx): void;
   dispose(): void;
 };
 
@@ -113,7 +114,7 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
     for (const node of weaponNodes.values()) yield* node.getChildMeshes();
   };
 
-  const highlight = (weapon: IndexWeapon | null, time: number) => {
+  const highlight = (weapon: IndexWeapon | null, time: number, override?: WeaponGlowVfx) => {
     // Weapon art loads asynchronously; warm whatever has arrived while nothing is highlighted.
     if (!weapon) glow.warm(weaponMeshes());
     for (const [name, outline] of outlines) outline.setEnabled(name === weapon);
@@ -123,12 +124,13 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
     }
     const spec = WEAPONS.find(w => w.name === weapon)!;
     const node = weaponNodes.get(weapon)!;
-    glow.highlight(
-      node.getChildMeshes(),
-      time,
-      node.position,
-      Math.max(spec.width, spec.height) * WEAPON_UNITS_PER_PX * node.scaling.x * HALO_SIZE,
-    );
+    glow.highlight(node.getChildMeshes(), time, {
+      haloPosition: node.position,
+      haloScale: Math.max(spec.width, spec.height) * WEAPON_UNITS_PER_PX * node.scaling.x * HALO_SIZE,
+      color: override?.color ? Color3.FromHexString(override.color) : undefined,
+      intensity: override?.intensity,
+      pulseSeconds: override?.pulsePeriod,
+    });
   };
 
   return { root, height: BODY_HEIGHT, highlight, dispose: () => {
