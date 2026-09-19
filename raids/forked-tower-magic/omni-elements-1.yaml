@@ -53,7 +53,7 @@ _marker: &marker
   showCastBar: false
   showTelegraph: true
 
-# The ring reaches the square centers at impact; platforms flash for the final 0.4s.
+# The ring reaches the square centers at impact; platforms flash on impact and stay 1s.
 _wave: &wave
   applyEffect: { ref: thrice_come_ruin }
   labels: [wave]
@@ -64,8 +64,9 @@ _wave: &wave
   damageType: magical
   avoidable: true
   showCastBar: false
-  showTelegraph: false
-  flashBeforeResolve: { lead: 0.4 }
+  showTelegraph: true
+  telegraphMode: resolve
+  linger: 1
 
 _ring: &ring { center: [0, 0], radius: 20.506 }
 
@@ -143,15 +144,16 @@ _chemPad: &chemPad
   color: "#3a7bff"
 
 # Chemistry glyphs appear 6s before impact and travel to their pads over the last 3s.
-# Hits at 66.96 / 70.00 / 73.03; damage is estimated.
+# Hits at 66.96 / 70.00 / 73.03, flashing on impact for 1s; damage is estimated.
 _chemHit: &chemHit
   type: aoe
   name: Element
   damage: 10
   damageType: magical
   showCastBar: false
-  showTelegraph: false
-  flashBeforeResolve: { lead: 0.4 }
+  showTelegraph: true
+  telegraphMode: resolve
+  linger: 1
 
 events:
   - { id: place-index, type: teleport_boss, time: 0, name: The Index, bossId: boss, spots: [[0, 0]], facing: 0 }

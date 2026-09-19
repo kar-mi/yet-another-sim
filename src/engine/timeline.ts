@@ -113,6 +113,7 @@ export function promotePending(
         showCastBar: event.showCastBar,
         showTelegraph,
         telegraphMode: event.telegraphMode,
+        lingerFor: event.linger,
         flashBeforeResolve: event.flashBeforeResolve,
         color: event.color,
         outline: event.outline,
@@ -124,7 +125,7 @@ export function promotePending(
         vfx: event.vfx,
         floorAoe: event.deferred ? undefined : buildFloorAoe({
           id: event.id, shape, color: event.color, alpha: event.telegraphAlpha, showTelegraph, outline: event.outline,
-          telegraphMode: event.telegraphMode, flashBeforeResolve: event.flashBeforeResolve, element: event.element,
+          telegraphMode: event.telegraphMode, linger: event.linger, flashBeforeResolve: event.flashBeforeResolve, element: event.element,
           vfx: event.vfx, resolveAt,
         }),
       });

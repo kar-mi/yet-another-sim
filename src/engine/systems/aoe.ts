@@ -212,7 +212,7 @@ export function resolveAoe(ctx: TickContext): {
         id: stored.id, shape: stored.shape, color: stored.color, showTelegraph: true,
         outline: stored.outline, alpha: stored.telegraphAlpha,
         element: stored.element, vfx: stored.vfx,
-        telegraphMode: stored.telegraphMode, flashBeforeResolve: stored.flashBeforeResolve,
+        telegraphMode: stored.telegraphMode, linger: stored.lingerFor, flashBeforeResolve: stored.flashBeforeResolve,
         resolveAt: stored.resolveAt,
       });
     }
@@ -302,7 +302,7 @@ export function resolveAoe(ctx: TickContext): {
         id: stored.id, shape: stored.shape, color: stored.color, showTelegraph: true,
         outline: stored.outline, alpha: stored.telegraphAlpha,
         element: stored.element, vfx: stored.vfx,
-        telegraphMode: stored.telegraphMode, flashBeforeResolve: stored.flashBeforeResolve,
+        telegraphMode: stored.telegraphMode, linger: stored.lingerFor, flashBeforeResolve: stored.flashBeforeResolve,
         resolveAt: stored.resolveAt,
       });
     }

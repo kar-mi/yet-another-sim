@@ -28,8 +28,8 @@ const WEAPON_HEIGHT_ABOVE_GROUND = 3;
 // Place weapons ahead of the body’s front face (+Z).
 const WEAPON_FORWARD = 1.5;
 const OUTLINE_PX = 40;
-const OUTLINE_COLOR = "#8fd14f"; // the implement aoe color in omni-elements-1.yaml
-// Emissive scale for the outline; 1 matches the aoe color.
+const OUTLINE_COLOR = "#4a7a2a"; // a darker shade of the implement aoe color (#8fd14f) in omni-elements-1.yaml
+// Emissive scale for the outline; 1 shows OUTLINE_COLOR unchanged.
 const OUTLINE_BRIGHTNESS = 1.0;
 // Pulse the highlighted weapon’s glow.
 const GLOW_COLOR = new Color4(0.15, 0.5, 0.1, 1);
@@ -38,7 +38,7 @@ const GLOW_PULSE_SECONDS = 1.2;
 // Translucent sphere of light around the highlighted weapon, sized from its longest side.
 const HALO_COLOR = new Color3(0.25, 0.55, 0.18);
 const HALO_SIZE = 1.5;
-const HALO_ALPHA = { min: 0.45, max: 0.8 };
+const HALO_ALPHA = { min: 0.15, max: 0.35 };
 
 // Sample the silhouette every CELL_PX pixels.
 const CELL_PX = 4;
@@ -124,7 +124,8 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
     }
     const spec = WEAPONS.find(w => w.name === weapon)!;
     const node = weaponNodes.get(weapon)!;
-    glow.highlight(node.getChildMeshes(), time, {
+    const outline = outlines.get(weapon);
+    glow.highlight(node.getChildMeshes(false, mesh => mesh !== outline), time, {
       haloPosition: node.position,
       haloScale: Math.max(spec.width, spec.height) * WEAPON_UNITS_PER_PX * node.scaling.x * HALO_SIZE,
       color: override?.color ? Color3.FromHexString(override.color) : undefined,
