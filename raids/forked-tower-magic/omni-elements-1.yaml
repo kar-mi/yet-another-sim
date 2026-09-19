@@ -334,6 +334,14 @@ events:
   - { <<: *chemPad, id: cleansing-pad-ne, time: 22.31, telegraph: 10.39, name: Cleansing Target, color: "#4fc3ff", telegraphAlpha: 0.85, shape: { kind: circle, center: [13.642, 7.877], radius: 1.35 } }
   - { <<: *chemPad, id: cleansing-pad-s, time: 22.31, telegraph: 10.39, name: Cleansing Target, color: "#4fc3ff", telegraphAlpha: 0.85, shape: { kind: circle, center: [0, -15.753], radius: 1.35 } }
 
+waymarks:
+  - { mark: A, pos: { x: 0, z: 9 } }
+  - { mark: B, pos: { x: -7.794, z: -4.5 } }
+  - { mark: C, pos: { x: 7.794, z: -4.5 } }
+  - { mark: "1", pos: { x: -7.794, z: 4.5 } }
+  - { mark: "2", pos: { x: 0, z: -9 } }
+  - { mark: "3", pos: { x: 7.794, z: 4.5 } }
+
 optionals:
   rngLabels:
     event-set-implement-1: { label: Implement 1, options: [Bow, Harp] }
