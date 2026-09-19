@@ -10,6 +10,7 @@ test.each([false, true])("disposing Index releases resources (images loaded: %s)
   const context = {
     drawImage: () => { draws++; },
     fillRect: () => {},
+    createRadialGradient: () => ({ addColorStop: () => {} }),
     setTransform: () => {},
     getImageData: () => ({ data: new Uint8ClampedArray(4 * 4 * 4).fill(255) }),
   };
