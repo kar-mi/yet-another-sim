@@ -8,6 +8,8 @@
 # Elementary Chemistry (58.01-79.72): everyone gets 3 stacks of Elementary Deficiency and must take one
 # hit of each element from the trapezoid pads (three waves, alternating trapezoids) or die at 79.72.
 #
+# Waves, orbs and implements are avoidable: each hit adds a Thrice Come Ruin stack, and the third kills.
+#
 # Runs through the Elementary Chemistry raidwide (79.42) and stops before All-Knowing Flames (86.18).
 # The arena stays index_arena_2 even after Elementary Absorption, since arenas can't swap mid-fight yet.
 
@@ -63,6 +65,7 @@ _marker: &marker
 # A wave has no cast bar; its ring leaves the boss at cast start and reaches the square centers
 # (20.506) as the pair detonates, and the pair flashes its color for the final 0.4s. Round 1's first ring leaves as Elementary Expansion ends.
 _wave: &wave
+  applyEffect: { ref: thrice_come_ruin }
   labels: [wave]
   type: aoe
   name: Element
@@ -102,6 +105,7 @@ _ringHit: &ringHit
 # and detonates at 32.70 1 unit inside the midpoint of that square's center and inner edge (r 15.753), where a
 # small blue pad marks the spot. The floor shape only flashes at detonation.
 _orb: &orb
+  applyEffect: { ref: thrice_come_ruin }
   labels: [orb]
   type: aoe
   name: Cleansing
@@ -120,6 +124,7 @@ _orb: &orb
 # Bow and harp have no cast bar or telegraph of their own: they hit exactly as the Sealed Implements
 # bar ends (37.66 / 51.85) and only flash on impact. The Index outlines the chosen weapon during the cast.
 _implement: &implement
+  applyEffect: { ref: thrice_come_ruin }
   type: aoe
   telegraph: 1.1
   damage: 35

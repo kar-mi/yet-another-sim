@@ -450,3 +450,11 @@ test("Elementary Chemistry hits alternate trapezoid triples in each pad's pair e
   }
   expect([...seen].sort()).toEqual(["n,se,sw", "ne,nw,s"]);
 });
+
+test("each avoidable hit adds a Thrice Come Ruin stack", () => {
+  // mt stands still on the N trapezoid, so its pair's two round-1 waves both land on it.
+  const world = runTicks(createWorld(raid, 3), {}, 26 * 60);
+  const mt = byId(world, "mt");
+  expect(mt.alive).toBe(true);
+  expect(mt.effects.find(effect => effect.name === "Thrice Come Ruin")?.stacks).toBe(2);
+});
