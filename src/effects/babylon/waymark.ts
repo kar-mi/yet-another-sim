@@ -5,8 +5,9 @@ import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
 import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { Waymark, WaymarkId } from "@shared/types";
-import { circlePath } from "./meshPaths";
+import type { Vec2 } from "@shared/math";
+import type { WaymarkId } from "../index";
+import { circlePath } from "./paths";
 
 // FFXIV waymark convention: letter/number pairs share a color.
 // A/1 red, B/2 yellow, C/3 blue, D/4 purple.
@@ -62,19 +63,19 @@ const GLYPH_STROKES: Record<WaymarkId, Stroke[]> = {
   "4": [line([0.34, -0.6], [0.34, 0.6]), line([-0.5, -0.02], [0.48, -0.02]), line([-0.22, 0.6], [-0.5, -0.02])],
 };
 
-export function createWaymarkMeshes(scene: Scene, waymark: Waymark): Mesh[] {
-  const color = WAYMARK_COLORS[waymark.mark];
-  const { x, z } = waymark.pos;
+export function createWaymarkMeshes(scene: Scene, mark: WaymarkId, pos: Vec2): Mesh[] {
+  const color = WAYMARK_COLORS[mark];
+  const { x, z } = pos;
 
   // Empty outlined shape on the floor: ring for letters, square border for numbers.
-  const path = isLetter(waymark.mark) ? circlePath(x, z, WAYMARK_HALF_SIZE, FLOOR_Y) : squarePath(x, z);
-  const floor = CreateTube(`wm-${waymark.mark}`, {
+  const path = isLetter(mark) ? circlePath(x, z, WAYMARK_HALF_SIZE, FLOOR_Y) : squarePath(x, z);
+  const floor = CreateTube(`wm-${mark}`, {
     path,
     radius: 0.09,
     tessellation: 8,
     cap: BabylonMesh.CAP_ALL,
   }, scene);
-  const floorMat = new StandardMaterial(`wm-mat-${waymark.mark}`, scene);
+  const floorMat = new StandardMaterial(`wm-mat-${mark}`, scene);
   floorMat.diffuseColor = color;
   floorMat.emissiveColor = color.scale(0.6);
   floorMat.specularColor = new Color3(0, 0, 0);
@@ -83,11 +84,11 @@ export function createWaymarkMeshes(scene: Scene, waymark: Waymark): Mesh[] {
 
   // Floating glyph that always faces the camera. It is built from stroke geometry,
   // not a textured plane, so there is no rectangular background to render.
-  const label = new BabylonMesh(`wm-label-${waymark.mark}`, scene);
+  const label = new BabylonMesh(`wm-label-${mark}`, scene);
   label.position.set(x, 2.5, z);
   label.billboardMode = BabylonMesh.BILLBOARDMODE_ALL;
   label.isPickable = false;
-  addGlyphStrokes(scene, label, waymark.mark, color);
+  addGlyphStrokes(scene, label, mark, color);
 
   return [floor, label];
 }

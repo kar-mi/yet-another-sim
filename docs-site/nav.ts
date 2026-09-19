@@ -107,6 +107,12 @@ export const NAV: NavSection[] = [
         description: "Local setup, the day-to-day loop, project layout, testing, building and deployment.",
       },
       {
+        source: "docs/effects-package.md",
+        url: "/developer/effects-package/",
+        title: "The effects package",
+        description: "What src/effects owns, its import boundary, which renderer layers share each visual primitive, and how effect resources are disposed.",
+      },
+      {
         source: "docs/deterministic-lockstep.md",
         url: "/developer/deterministic-lockstep/",
         title: "Deterministic lockstep",

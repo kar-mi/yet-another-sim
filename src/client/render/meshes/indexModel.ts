@@ -1,6 +1,4 @@
 import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
-import { GlowLayer } from "@babylonjs/core/Layers/glowLayer";
-import { Constants } from "@babylonjs/core/Engines/constants";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
@@ -11,7 +9,8 @@ import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import type { Scene } from "@babylonjs/core/scene";
 import { logger } from "@shared/logger";
 import { STATIC_ROOT } from "../../staticBase";
-import { applyAlphaTest } from "./billboardMaterials";
+import { applyAlphaTest, createMeshGlow } from "@effects/babylon";
+import type { GlowVfx } from "@effects";
 
 // Extrude the Index’s body and weapons from their image silhouettes.
 const INDEX_IMAGE_ROOT = `${STATIC_ROOT}/model/boss/index/`;
@@ -59,7 +58,7 @@ export type IndexModel = {
   root: Mesh;
   height: number;
   // Call each frame to highlight and pulse one weapon; time is sim seconds.
-  highlight(weapon: IndexWeapon | null, time: number): void;
+  highlight(weapon: IndexWeapon | null, time: number, glow?: GlowVfx): void;
   dispose(): void;
 };
 
@@ -103,58 +102,35 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
     weaponNodes.set(weapon.name, node);
   }
 
-  // Parented to the root, not a weapon, so the glow layer (which takes the weapon's child meshes)
-  // doesn't blur it into a solid blob.
-  const halo = CreatePlane(`${name}-halo`, { size: 1 }, scene);
-  halo.billboardMode = Mesh.BILLBOARDMODE_ALL;
-  halo.material = haloMaterial(scene, `${name}-halo`);
-  halo.isPickable = false;
-  halo.parent = root;
-  halo.setEnabled(false);
-  halo.material.forceCompilation(halo);
+  const glow = createMeshGlow(scene, `${name}-glow`, root, {
+    glowColor: GLOW_COLOR,
+    haloColor: HALO_COLOR,
+    intensity: GLOW_INTENSITY,
+    haloAlpha: HALO_ALPHA,
+    pulseSeconds: GLOW_PULSE_SECONDS,
+  });
 
-  // Disable an empty glow layer: an empty include list would glow everything.
-  const glow = new GlowLayer(`${name}-glow`, scene, { blurKernelSize: 96 });
-  glow.customEmissiveColorSelector = (_mesh, _subMesh, _material, result) => result.copyFrom(GLOW_COLOR);
-  glow.isEnabled = false;
-  let glowing: Mesh[] = [];
-  let glowWeapon: IndexWeapon | null = null;
-  // Compile each weapon mesh's glow shaders once its art has loaded, so the first highlight doesn't
-  // stall on a synchronous compile.
-  const glowWarmed = new Set<AbstractMesh>();
-  const warmGlow = () => {
-    if (glowWarmed.size === 0) glow.isLayerReady(); // creates the merge effect
-    for (const node of weaponNodes.values()) {
-      for (const mesh of node.getChildMeshes()) {
-        if (glowWarmed.has(mesh) || !mesh.material || !mesh.subMeshes) continue;
-        glowWarmed.add(mesh);
-        for (const subMesh of mesh.subMeshes) glow.isReady(subMesh, false);
-      }
-    }
+  const weaponMeshes = function* (): Generator<AbstractMesh> {
+    for (const node of weaponNodes.values()) yield* node.getChildMeshes();
   };
 
-  const highlight = (weapon: IndexWeapon | null, time: number) => {
-    if (!weapon) warmGlow();
+  const highlight = (weapon: IndexWeapon | null, time: number, override?: GlowVfx) => {
+    // Weapon art loads asynchronously; warm whatever has arrived while nothing is highlighted.
+    if (!weapon) glow.warm(weaponMeshes());
     for (const [name, outline] of outlines) outline.setEnabled(name === weapon);
-    // Refresh as the weapon art loads.
-    const meshes = weapon ? weaponNodes.get(weapon)!.getChildMeshes() : [];
-    if (weapon !== glowWeapon || meshes.length !== glowing.length) {
-      for (const mesh of glowing) glow.removeIncludedOnlyMesh(mesh);
-      for (const mesh of meshes) glow.addIncludedOnlyMesh(mesh as Mesh);
-      glowing = meshes as Mesh[];
-      glowWeapon = weapon;
+    if (!weapon) {
+      glow.highlight(null, time);
+      return;
     }
-    glow.isEnabled = weapon !== null;
-    halo.setEnabled(weapon !== null);
-    if (weapon) {
-      const pulse = (1 - Math.cos((time / GLOW_PULSE_SECONDS) * Math.PI * 2)) / 2;
-      glow.intensity = GLOW_INTENSITY.min + (GLOW_INTENSITY.max - GLOW_INTENSITY.min) * pulse;
-      const spec = WEAPONS.find(w => w.name === weapon)!;
-      const node = weaponNodes.get(weapon)!;
-      halo.position.copyFrom(node.position);
-      halo.scaling.setAll(Math.max(spec.width, spec.height) * WEAPON_UNITS_PER_PX * node.scaling.x * HALO_SIZE);
-      halo.material!.alpha = HALO_ALPHA.min + (HALO_ALPHA.max - HALO_ALPHA.min) * pulse;
-    }
+    const spec = WEAPONS.find(w => w.name === weapon)!;
+    const node = weaponNodes.get(weapon)!;
+    glow.highlight(node.getChildMeshes(), time, {
+      haloPosition: node.position,
+      haloScale: Math.max(spec.width, spec.height) * WEAPON_UNITS_PER_PX * node.scaling.x * HALO_SIZE,
+      color: override?.color ? Color3.FromHexString(override.color) : undefined,
+      intensity: override?.intensity,
+      pulseSeconds: override?.pulsePeriod,
+    });
   };
 
   return { root, height: BODY_HEIGHT, highlight, dispose: () => {
@@ -371,31 +347,3 @@ function outlineMaterial(scene: Scene, name: string, url: string, width: number,
   return mat;
 }
 
-// A soft sphere: faint in the middle so the weapon shows through, brightest toward the rim.
-function haloMaterial(scene: Scene, name: string): StandardMaterial {
-  const tex = new DynamicTexture(`${name}-tex`, { width: 128, height: 128 }, scene, false);
-  const ctx = tex.getContext();
-  const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-  g.addColorStop(0, "rgba(255,255,255,0.2)");
-  g.addColorStop(0.6, "rgba(255,255,255,0.6)");
-  g.addColorStop(0.8, "rgba(255,255,255,0.3)");
-  g.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 128, 128);
-  tex.hasAlpha = true;
-  tex.update();
-
-  const mat = new StandardMaterial(`${name}-mat`, scene);
-  mat.emissiveTexture = tex;
-  mat.opacityTexture = tex;
-  mat.emissiveColor = HALO_COLOR;
-  mat.diffuseColor = new Color3(0, 0, 0);
-  mat.specularColor = new Color3(0, 0, 0);
-  mat.disableLighting = true;
-  mat.disableDepthWrite = true;
-  // The camera-facing plane cuts through the weapon slab; depth testing would clip it along a seam.
-  mat.depthFunction = Constants.ALWAYS;
-  mat.backFaceCulling = false;
-  mat.alphaMode = Constants.ALPHA_ADD;
-  return mat;
-}

@@ -1,12 +1,11 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
-import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveMechanic } from "@shared/types";
 import { elementRingRadius } from "@shared/elementRing";
-import { createElementGlyph, type ElementGlyphHandle } from "./meshes/elementGlyphMeshes";
+import { circlePath, createElementGlyph, type ElementGlyphHandle } from "@effects/babylon";
 
 // Align glyphs with the ring.
 const RING_Y = 2.0;
@@ -18,13 +17,6 @@ const GLYPH_BEARINGS = [0, 60, 120, 180, 240, 300].map(deg => deg * Math.PI / 18
 const DEFAULT_COLOR = "#ffffff";
 
 type RingHandle = { tube: Mesh; glyphs: ElementGlyphHandle[] };
-
-function circlePath(cx: number, cz: number, radius: number): Vector3[] {
-  return Array.from({ length: SEGMENTS + 1 }, (_, i) => {
-    const a = (i / SEGMENTS) * Math.PI * 2;
-    return new Vector3(cx + Math.sin(a) * radius, RING_Y, cz + Math.cos(a) * radius);
-  });
-}
 
 // Expand a ring with six element glyphs during the cast.
 export class ElementRingLayer {
@@ -51,7 +43,7 @@ export class ElementRingLayer {
       const color = m.color ?? DEFAULT_COLOR;
       // Avoid a zero-radius tube.
       const radius = Math.max(0.05, elementRingRadius(ring, m.telegraphStart, m.resolveAt, time));
-      const path = circlePath(ring.center.x, ring.center.z, radius);
+      const path = circlePath(ring.center.x, ring.center.z, radius, RING_Y, SEGMENTS, "z");
 
       let handle = this.rings.get(key);
       if (!handle) {

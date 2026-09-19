@@ -1,11 +1,11 @@
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveGaze } from "@shared/types";
 import { createGazeMeshes, updateGazeMeshes, type GazeMeshes } from "./meshes/gazeMeshes";
-import { syncFloorAoeMeshes, disposeFloorAoeMeshes, type FloorAoeMeshMap } from "./floorAoeSync";
+import { syncFloorTelegraphs, disposeFloorTelegraphs, type FloorTelegraphMap } from "@effects/babylon";
 
 export class GazeLayer {
   private gazes = new Map<string, GazeMeshes>();
-  private cones: FloorAoeMeshMap = new Map();
+  private cones: FloorTelegraphMap = new Map();
 
   constructor(private scene: Scene) {}
 
@@ -32,7 +32,7 @@ export class GazeLayer {
 
     const aoes = visibleGazes.filter(g => g.floorAoe).map(g => g.floorAoe!);
     const resolvedIds = new Set(visibleGazes.filter(g => g.resolved).map(g => g.id));
-    syncFloorAoeMeshes(this.scene, this.cones, aoes, time, resolvedIds);
+    syncFloorTelegraphs(this.scene, this.cones, aoes, time, resolvedIds);
   }
 
   dispose(): void {
@@ -40,6 +40,6 @@ export class GazeLayer {
       for (const mesh of handle.all) mesh.dispose(false, true);
     }
     this.gazes.clear();
-    disposeFloorAoeMeshes(this.cones);
+    disposeFloorTelegraphs(this.cones);
   }
 }

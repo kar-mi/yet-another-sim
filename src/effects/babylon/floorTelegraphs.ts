@@ -2,9 +2,9 @@ import type { Scene } from "@babylonjs/core/scene";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import type { FloorAoe } from "@shared/floorAoe";
-import { isFloorAoeVisible } from "@shared/floorAoe";
-import { createShapeMesh, createShapeOutlineMesh } from "./meshes/telegraphMeshes";
+import type { FloorAoe } from "../index";
+import { isFloorAoeVisible } from "../index";
+import { createShapeMesh, createShapeOutlineMesh } from "./shapeGeometry";
 import { elementFloorMaterial } from "./elementVfx";
 
 const DEFAULT_ALPHA = 0.5;
@@ -12,9 +12,9 @@ const OUTLINE_ALPHA = 0.95;
 // Faint floor tint drawn under an outline in the same color.
 const OUTLINE_FILL_ALPHA = 0.15;
 
-type FloorAoeMeshEntry = { mesh: Mesh; outline: boolean; fill?: Mesh; source: FloorAoe };
+type FloorTelegraphEntry = { mesh: Mesh; outline: boolean; fill?: Mesh; source: FloorAoe };
 
-export function createFloorMaterial(scene: Scene, name: string): StandardMaterial {
+export function createFloorTelegraphMaterial(scene: Scene, name: string): StandardMaterial {
   const mat = new StandardMaterial(name, scene);
   mat.specularColor = new Color3(0, 0, 0);
   mat.backFaceCulling = false;
@@ -22,10 +22,19 @@ export function createFloorMaterial(scene: Scene, name: string): StandardMateria
   mat.twoSidedLighting = true;
   return mat;
 }
-export type FloorAoeMeshMap = Map<string, FloorAoeMeshEntry>;
+export type FloorTelegraphMap = Map<string, FloorTelegraphEntry>;
 
-function disposeEntry(entry: FloorAoeMeshEntry): void {
-  if (!entry.source.element) {
+// The element pattern is drawn whenever the AoE has an element, unless vfx.floor turns it off.
+function patternElement(aoe: FloorAoe): FloorAoe["element"] {
+  return aoe.vfx?.floor?.element === false ? undefined : aoe.element;
+}
+
+function patternAlpha(aoe: FloorAoe, base: number): number {
+  return base * (aoe.vfx?.floor?.intensity ?? 1);
+}
+
+function disposeEntry(entry: FloorTelegraphEntry): void {
+  if (!patternElement(entry.source)) {
     entry.mesh.dispose(false, true);
     return;
   }
@@ -34,12 +43,11 @@ function disposeEntry(entry: FloorAoeMeshEntry): void {
   entry.mesh.dispose(false, entry.outline);
 }
 
-// Generic mesh lifecycle (create/update/dispose, keyed by FloorAoe.id) shared by every layer that
-// draws a floor telegraph. This is the one place a FloorAoe's geometry + color/alpha get turned
-// into a Babylon mesh, replacing the bespoke per-layer coloring each render layer used to do.
-export function syncFloorAoeMeshes(
+// Mesh lifecycle (create/update/dispose, keyed by FloorAoe.id): the one place a FloorAoe's geometry
+// and color/alpha become a Babylon mesh.
+export function syncFloorTelegraphs(
   scene: Scene,
-  meshes: FloorAoeMeshMap,
+  meshes: FloorTelegraphMap,
   aoes: FloorAoe[],
   time: number,
   resolvedIds: ReadonlySet<string>,
@@ -63,20 +71,21 @@ export function syncFloorAoeMeshes(
       entry = undefined;
     }
     if (!entry) {
+      const element = patternElement(aoe);
       const outline = aoe.style === "outline" ? createShapeOutlineMesh(scene, aoe.id, aoe.shape) : null;
       const mesh = outline ?? createShapeMesh(scene, aoe.id, aoe.shape);
       if (!mesh) continue;
-      mesh.material = aoe.element && !outline
-        ? elementFloorMaterial(scene, aoe.element, aoe.color, aoe.alpha ?? DEFAULT_ALPHA)
-        : createFloorMaterial(scene, `floor-aoe-mat-${aoe.id}`);
+      mesh.material = element && !outline
+        ? elementFloorMaterial(scene, element, aoe.color, patternAlpha(aoe, aoe.alpha ?? DEFAULT_ALPHA))
+        : createFloorTelegraphMaterial(scene, `floor-telegraph-mat-${aoe.id}`);
       entry = { mesh, outline: outline !== null, source: aoe };
       if (outline) {
         // Dispose the fill with the outline.
         const fill = createShapeMesh(scene, `${aoe.id}-fill`, aoe.shape);
         if (fill) {
-          fill.material = aoe.element
-            ? elementFloorMaterial(scene, aoe.element, aoe.color, OUTLINE_FILL_ALPHA)
-            : createFloorMaterial(scene, `floor-aoe-fill-mat-${aoe.id}`);
+          fill.material = element
+            ? elementFloorMaterial(scene, element, aoe.color, patternAlpha(aoe, OUTLINE_FILL_ALPHA))
+            : createFloorTelegraphMaterial(scene, `floor-telegraph-fill-mat-${aoe.id}`);
           fill.parent = mesh;
           entry.fill = fill;
         }
@@ -84,13 +93,13 @@ export function syncFloorAoeMeshes(
       meshes.set(aoe.id, entry);
     }
     // Element materials bake color/alpha in at creation (FloorAoe is immutable).
-    if (aoe.element && !entry.outline) continue;
+    if (patternElement(aoe) && !entry.outline) continue;
     const mat = entry.mesh.material as StandardMaterial;
     mat.diffuseColor.copyFrom(Color3.FromHexString(aoe.color));
     // Keep outlines bright regardless of lighting.
     if (entry.outline) mat.emissiveColor.copyFrom(mat.diffuseColor);
     mat.alpha = aoe.alpha ?? (entry.outline ? OUTLINE_ALPHA : DEFAULT_ALPHA);
-    if (entry.fill && !aoe.element) {
+    if (entry.fill && !patternElement(aoe)) {
       const fillMat = entry.fill.material as StandardMaterial;
       fillMat.diffuseColor.copyFrom(mat.diffuseColor);
       fillMat.alpha = OUTLINE_FILL_ALPHA;
@@ -98,7 +107,7 @@ export function syncFloorAoeMeshes(
   }
 }
 
-export function disposeFloorAoeMeshes(meshes: FloorAoeMeshMap): void {
+export function disposeFloorTelegraphs(meshes: FloorTelegraphMap): void {
   for (const entry of meshes.values()) disposeEntry(entry);
   meshes.clear();
 }

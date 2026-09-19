@@ -2,11 +2,11 @@ import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
-import { CreateTorus } from "@babylonjs/core/Meshes/Builders/torusBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import type { Scene } from "@babylonjs/core/scene";
-import { applyAlphaTest } from "./billboardMaterials";
+import { applyAlphaTest } from "./billboards";
+import { createGlowRing } from "./glowRing";
 
 const RING_RADIUS = 6;
 const RING_THICKNESS = 0.5;
@@ -52,19 +52,11 @@ export function createQuestionRing(
   const all: Mesh[] = [];
   const materials: StandardMaterial[] = [];
 
-  const ring = CreateTorus(`${prefix}-ring-${id}`, {
+  const { mesh: ring, material: ringMat } = createGlowRing(scene, `${prefix}-ring-${id}`, {
     diameter: RING_RADIUS * 2,
     thickness: RING_THICKNESS,
-    tessellation: 48,
-  }, scene);
-  ring.isPickable = false;
-  const ringColor = Color3.FromHexString(ringColorHex);
-  const ringMat = new StandardMaterial(`${prefix}-ring-mat-${id}`, scene);
-  ringMat.diffuseColor = ringColor;
-  ringMat.emissiveColor = ringColor;
-  ringMat.specularColor = new Color3(0, 0, 0);
-  ringMat.disableLighting = true;
-  ring.material = ringMat;
+    color: Color3.FromHexString(ringColorHex),
+  });
   all.push(ring);
   materials.push(ringMat);
 

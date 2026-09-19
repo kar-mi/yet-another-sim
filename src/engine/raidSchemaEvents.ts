@@ -2,6 +2,7 @@ import { z } from "zod";
 import { DEBUFF_REGISTRY } from "./status/debuffs";
 import { ElementGlyphKindSchema, EventIdSchema, RoleSchema, Vec2Schema } from "./raidSchemaPrimitives";
 import { AOEShapeSchema, ApplyEffectSchema, ApplyEffectsSchema, KnockbackSchema } from "./raidSchemaFoundation";
+import { VfxSchema } from "@effects/schema";
 
 const TelegraphModeSchema = z.enum(["cast", "resolve"]);
 const BossRelativeCenterSchema = z.object({
@@ -73,6 +74,8 @@ const AOEEventSchema = z.object({
   ring: z.object({ center: Vec2Schema, radius: z.number().positive(), kind: ElementGlyphKindSchema.optional() }).optional(),
   // Element pattern on the floor telegraph; label variants with a glyph supply it.
   element: ElementGlyphKindSchema.optional(),
+  // Render-only effect overrides (floor pattern, impact burst, weapon glow). See docs/authoring-raids.md.
+  vfx: VfxSchema.optional(),
   // Orb waits at from until departAt, then reaches the shape center at resolve.
   // Scale defaults to 1; sprite selects the Cleansing billboard.
   mover: z.object({ from: Vec2Schema, departAt: z.number().nonnegative(), scale: z.number().positive().optional(), sprite: z.boolean().optional() }).optional(),

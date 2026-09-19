@@ -1,7 +1,6 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
-import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
 import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
@@ -10,7 +9,7 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveTower } from "@shared/types";
 import { clamp01 } from "@shared/math";
-import { circlePath } from "./meshPaths";
+import { circlePath, createGroundCircle } from "@effects/babylon";
 
 const DEFAULT_CYLINDER_COLOR = "#33ccff";
 const RING_Y = 0.03;
@@ -90,15 +89,14 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
       const a = Math.PI / 4 + (i / count) * Math.PI * 2; // start at 45° (intercardinal)
       const cx = x + Math.cos(a) * offsetR;
       const cz = z + Math.sin(a) * offsetR;
-      const c = CreateDisc(`tower-cnt-${tower.id}-${i}`, { radius: r, tessellation: 24 }, scene);
-      c.rotation.x = Math.PI / 2;
+      const { mesh: c, material: mat } = createGroundCircle(scene, `tower-cnt-${tower.id}-${i}`, {
+        radius: r,
+        y: CIRCLE_Y,
+        color: innerColor,
+        alpha: 1,
+        tessellation: 24,
+      });
       c.position.set(cx, CIRCLE_Y, cz);
-      c.isPickable = false;
-      const mat = new StandardMaterial(`tower-cnt-mat-${tower.id}-${i}`, scene);
-      mat.diffuseColor = innerColor;
-      mat.specularColor = new Color3(0, 0, 0);
-      mat.backFaceCulling = false;
-      c.material = mat;
       countCircles.push({ mesh: c, mat });
       all.push(c);
     }

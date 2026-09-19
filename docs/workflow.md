@@ -56,7 +56,7 @@ browser bundle or establish a client HMR pipeline.
 
 ## Project layout
 
-The codebase is split into four layers by trust boundary and runtime:
+The codebase is split by trust boundary and runtime:
 
 ```
 src/
@@ -64,11 +64,14 @@ src/
   engine/   # the pure deterministic simulation (tick), mechanic systems, raid loading/schema
   server/   # Colyseus host: rooms, frame relay, WebSocket transport, metrics
   client/   # browser: Babylon renderer, input, netcode, prediction, UI
+  effects/  # renderer-independent visual primitives the client draws with (see below)
 raids/      # YAML-authored encounters, grouped by category folder
 docs/       # this folder
 ```
 
-`@shared/*` is a TypeScript path alias (see `tsconfig.json`) resolving to `src/shared/*`. The
+`@shared/*`, `@effects` and `@effects/*` are TypeScript path aliases (see `tsconfig.json`). The
+effects package is documented separately in [The effects package](effects-package.md); its import
+boundary is enforced by a test. The
 **engine runs on both the server and every client** — that shared execution is the heart of the
 networking model below.
 
@@ -266,4 +269,5 @@ state *after* that event resolved. See [Authoring Raids](authoring-raids.md#repl
 - [Authoring Raids](authoring-raids.md)
 - [Authoring Bot Patterns](authoring-bot-patterns.md)
 - [Movement & Scale](movement-and-scale.md)
+- [The Effects Package](effects-package.md)
 - [Finding Debuffs](finding_debuffs.md)

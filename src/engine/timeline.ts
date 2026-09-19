@@ -120,9 +120,12 @@ export function promotePending(
         glyph: event.glyph,
         ring: event.ring,
         mover: event.mover,
+        element: event.element,
+        vfx: event.vfx,
         floorAoe: event.deferred ? undefined : buildFloorAoe({
           id: event.id, shape, color: event.color, alpha: event.telegraphAlpha, showTelegraph, outline: event.outline,
-          telegraphMode: event.telegraphMode, flashBeforeResolve: event.flashBeforeResolve, element: event.element, resolveAt,
+          telegraphMode: event.telegraphMode, flashBeforeResolve: event.flashBeforeResolve, element: event.element,
+          vfx: event.vfx, resolveAt,
         }),
       });
     } else {

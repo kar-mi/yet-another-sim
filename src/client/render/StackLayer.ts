@@ -4,14 +4,14 @@ import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveGroupMechanic, Player } from "@shared/types";
-import { glyphBillboardMaterial } from "./meshes/billboardMaterials";
-import { syncFloorAoeMeshes, disposeFloorAoeMeshes, type FloorAoeMeshMap } from "./floorAoeSync";
+import { glyphBillboardMaterial } from "@effects/babylon";
+import { syncFloorTelegraphs, disposeFloorTelegraphs, type FloorTelegraphMap } from "@effects/babylon";
 
 const ICON_Y = 3.2;    // height of the stack marker above the marked player
 
 export class StackLayer {
   private icons = new Map<string, Mesh>();   // group id -> billboard plane over the marked player
-  private circles: FloorAoeMeshMap = new Map();
+  private circles: FloorTelegraphMap = new Map();
   private iconMaterial: StandardMaterial | null = null;
 
   constructor(private scene: Scene) {}
@@ -53,7 +53,7 @@ export class StackLayer {
 
     const aoes = groups.filter(g => g.floorAoe).map(g => g.floorAoe!);
     const resolvedIds = new Set(groups.filter(g => g.resolved).map(g => g.id));
-    syncFloorAoeMeshes(this.scene, this.circles, aoes, time, resolvedIds);
+    syncFloorTelegraphs(this.scene, this.circles, aoes, time, resolvedIds);
   }
 
   private getIconMaterial(): StandardMaterial {
@@ -65,7 +65,7 @@ export class StackLayer {
   dispose(): void {
     for (const mesh of this.icons.values()) mesh.dispose();
     this.icons.clear();
-    disposeFloorAoeMeshes(this.circles);
+    disposeFloorTelegraphs(this.circles);
     this.iconMaterial?.dispose();
     this.iconMaterial = null;
   }

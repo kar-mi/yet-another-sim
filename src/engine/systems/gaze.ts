@@ -9,7 +9,7 @@ import { mechanicSource } from "./damageLog";
 import { pointInShape } from "../shapes";
 import { cullResolved } from "./util";
 import { sin, cos } from "@shared/dmath";
-import { FloorAoe, DEFAULT_GAZE_NORMAL_COLOR, DEFAULT_GAZE_REVERSE_COLOR } from "@shared/floorAoe";
+import { FloorAoe, DEFAULT_GAZE_NORMAL_COLOR, DEFAULT_GAZE_REVERSE_COLOR } from "@effects";
 
 export function resolveGazes(ctx: TickContext): {
   gazes: ActiveGaze[];

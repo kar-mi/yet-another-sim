@@ -6,7 +6,7 @@ import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Boss } from "@shared/types";
-import { filteredCirclePaths } from "./meshes/meshPaths";
+import { filteredCirclePaths } from "@effects/babylon";
 
 const RING_Y = 0.03;        // just above the floor, matching other ground meshes
 const INNER_SCALE = 0.9;    // inner ring radius relative to the outer (boss.radius)

@@ -5,7 +5,7 @@ import type { TickContext } from "./context";
 import { applyMechanicDamage, isEffectActiveAt } from "./helpers";
 import { mechanicSource } from "./damageLog";
 import { TARGETED_LINGER } from "@shared/constants";
-import { FloorAoe, DEFAULT_DANGER_COLOR } from "@shared/floorAoe";
+import { FloorAoe, DEFAULT_DANGER_COLOR } from "@effects";
 
 // One-shot visual: the mechanic already resolved this tick, so it's shown from right now through a
 // short post-hit linger rather than through a normal telegraph cast.

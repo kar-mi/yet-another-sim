@@ -13,7 +13,7 @@ test("the chosen implement is selected only while its Sealed Implements cast is 
     world.players.forEach(player => { player.invincible = true; });
     const at = (time: number) => {
       world = runTicks(world, noMove, Math.ceil((time - world.time) * 60));
-      return selectSealedImplement(world.active);
+      return selectSealedImplement(world.active)?.weapon ?? null;
     };
     const other = kind === "bow" ? "harp" : "bow";
 

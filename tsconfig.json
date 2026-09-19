@@ -9,7 +9,9 @@
     "noEmit": true,
     "types": ["bun-types"],
     "paths": {
-      "@shared/*": ["./src/shared/*"]
+      "@shared/*": ["./src/shared/*"],
+      "@effects": ["./src/effects/index.ts"],
+      "@effects/*": ["./src/effects/*"]
     }
   },
   "include": ["src/**/*", "scripts/**/*", "docs-site/**/*"],

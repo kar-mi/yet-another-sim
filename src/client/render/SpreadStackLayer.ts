@@ -2,18 +2,21 @@ import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
-import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
-import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
+import type { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveSpreadStack, Boss, Player } from "@shared/types";
-import { applyAlphaTest } from "./meshes/billboardMaterials";
 import {
+  createGroundCircle,
   createQuestionRing,
+  disposeGroundCircle,
   QUESTION_RING_DEFAULT_Y,
+  spreadMarkerMaterial,
+  stackMarkerMaterial,
   updateQuestionRing,
+  type GroundCircle,
   type QuestionRingMeshes,
-} from "./meshes/questionRingMeshes";
+} from "@effects/babylon";
 
 // The fire "?" ring mirrors the inverse mechanic's ring: one ring per mechanic identifies it
 // (fire colour), and two orbs encode real (dark blue) vs a lying "?" (reddish-orange + yellow "?").
@@ -21,14 +24,15 @@ const DEFAULT_RING_COLOR = "#f97316";
 
 const HEAD_Y = 2.4;        // downward spread triangle floating over a player
 const STACK_MARKER_Y = 2.6; // stack "ring with triangles in" flat disc, raised above the marked head
+const AREA_Y = 0.02;
 
 type Handle = {
   mech: ActiveSpreadStack;
   questionRing: QuestionRingMeshes;
   spread: Map<string, Mesh>;       // playerId -> downward head triangle
   stackMarkers: Map<string, Mesh>; // marked playerId (one per group) -> "ring with triangles in" disc
-  spreadAreas: Map<string, Mesh>;
-  stackAreas: Map<string, Mesh>;
+  spreadAreas: Map<string, GroundCircle>;
+  stackAreas: Map<string, GroundCircle>;
 };
 
 export class SpreadStackLayer {
@@ -114,90 +118,38 @@ export class SpreadStackLayer {
     return { mech, questionRing, spread: new Map(), stackMarkers: new Map(), spreadAreas: new Map(), stackAreas: new Map() };
   }
 
-  private syncAreas(areas: Map<string, Mesh>, ids: string[], playerMap: Map<string, Player>, radius: number, kind: "spread" | "stack", mechanicId: string): void {
+  private syncAreas(areas: Map<string, GroundCircle>, ids: string[], playerMap: Map<string, Player>, radius: number, kind: "spread" | "stack", mechanicId: string): void {
     const want = new Set(ids);
-    for (const [id, mesh] of areas) {
-      if (!want.has(id)) { mesh.dispose(); areas.delete(id); }
+    for (const [id, circle] of areas) {
+      if (!want.has(id)) { disposeGroundCircle(circle); areas.delete(id); }
     }
     for (const id of want) {
       const player = playerMap.get(id);
       if (!player) continue;
-      let mesh = areas.get(id);
-      if (!mesh) {
-        mesh = CreateDisc(`ss-${kind}-area-${mechanicId}-${id}`, { radius, tessellation: 48 }, this.scene);
-        mesh.rotation.x = Math.PI / 2;
-        mesh.isPickable = false;
-        const mat = new StandardMaterial(`ss-${kind}-area-mat-${mechanicId}-${id}`, this.scene);
-        mat.diffuseColor = kind === "spread" ? new Color3(1, 0.25, 0.1) : new Color3(0.3, 0.7, 1);
-        mat.emissiveColor.copyFrom(mat.diffuseColor);
-        mat.alpha = 0.35;
-        mat.backFaceCulling = false;
-        mesh.material = mat;
-        areas.set(id, mesh);
+      let circle = areas.get(id);
+      if (!circle) {
+        const color = kind === "spread" ? new Color3(1, 0.25, 0.1) : new Color3(0.3, 0.7, 1);
+        circle = createGroundCircle(this.scene, `ss-${kind}-area-${mechanicId}-${id}`, {
+          radius,
+          y: AREA_Y,
+          color,
+          emissive: color,
+          alpha: 0.35,
+        });
+        areas.set(id, circle);
       }
-      mesh.position.set(player.pos.x, 0.02, player.pos.z);
+      circle.mesh.position.set(player.pos.x, AREA_Y, player.pos.z);
     }
   }
 
   private getHeadMaterial(): StandardMaterial {
-    if (this.headMat) return this.headMat;
-    const tex = new DynamicTexture("ss-head-tex", { width: 256, height: 256 }, this.scene, false);
-    tex.hasAlpha = true;
-    const ctx = tex.getContext();
-    ctx.clearRect(0, 0, 256, 256);
-    // Downward-pointing triangle (apex at the bottom).
-    ctx.fillStyle = "#ff7a1f";
-    ctx.strokeStyle = "#ffd9a0";
-    ctx.lineWidth = 12;
-    ctx.beginPath();
-    ctx.moveTo(28, 40);
-    ctx.lineTo(228, 40);
-    ctx.lineTo(128, 220);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-    tex.update();
-    const mat = new StandardMaterial("ss-head-mat", this.scene);
-    applyAlphaTest(mat, tex);
-    this.headMat = mat;
-    return mat;
+    this.headMat ??= spreadMarkerMaterial(this.scene, "ss-head");
+    return this.headMat;
   }
 
   private getStackMarkerMaterial(): StandardMaterial {
-    if (this.stackMarkerMat) return this.stackMarkerMat;
-    // An orange "ring with triangles pointing in", drawn as a billboard over the head.
-    const tex = new DynamicTexture("ss-stack-marker-tex", { width: 256, height: 256 }, this.scene, false);
-    tex.hasAlpha = true;
-    const ctx = tex.getContext();
-    ctx.clearRect(0, 0, 256, 256);
-    const cx = 128, cy = 128, R = 118;
-    ctx.strokeStyle = "#ffae42";
-    ctx.lineWidth = 10;
-    ctx.beginPath();
-    ctx.arc(cx, cy, R, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.fillStyle = "#ff7a1f";
-    const n = 4, baseR = R - 6, tipR = R - 60, halfW = 26;
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2 - Math.PI / 2;
-      const perp = a + Math.PI / 2;
-      const tx = cx + Math.cos(a) * tipR, ty = cy + Math.sin(a) * tipR;
-      const b1x = cx + Math.cos(a) * baseR + Math.cos(perp) * halfW;
-      const b1y = cy + Math.sin(a) * baseR + Math.sin(perp) * halfW;
-      const b2x = cx + Math.cos(a) * baseR - Math.cos(perp) * halfW;
-      const b2y = cy + Math.sin(a) * baseR - Math.sin(perp) * halfW;
-      ctx.beginPath();
-      ctx.moveTo(tx, ty);
-      ctx.lineTo(b1x, b1y);
-      ctx.lineTo(b2x, b2y);
-      ctx.closePath();
-      ctx.fill();
-    }
-    tex.update();
-    const mat = new StandardMaterial("ss-stack-marker-mat", this.scene);
-    applyAlphaTest(mat, tex);
-    this.stackMarkerMat = mat;
-    return mat;
+    this.stackMarkerMat ??= stackMarkerMaterial(this.scene, "ss-stack-marker");
+    return this.stackMarkerMat;
   }
 
   private disposeHandle(handle: Handle): void {
@@ -207,9 +159,9 @@ export class SpreadStackLayer {
     handle.spread.clear();
     for (const mesh of handle.stackMarkers.values()) mesh.dispose();
     handle.stackMarkers.clear();
-    for (const mesh of handle.spreadAreas.values()) mesh.dispose();
+    for (const circle of handle.spreadAreas.values()) disposeGroundCircle(circle);
     handle.spreadAreas.clear();
-    for (const mesh of handle.stackAreas.values()) mesh.dispose();
+    for (const circle of handle.stackAreas.values()) disposeGroundCircle(circle);
     handle.stackAreas.clear();
   }
 

@@ -6,7 +6,8 @@ import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { ParticleSystem } from "@babylonjs/core/Particles/particleSystem";
 import "@babylonjs/core/Particles/particleSystemComponent";
-import type { AOEShape, ElementGlyphKind } from "@shared/types";
+import type { AOEShape, BurstVfx, ElementGlyphKind } from "../index";
+import { sampleShapePoint } from "../sampling";
 
 // Element-themed floor telegraphs: an animated world-space noise shader (frost / crackle / flame)
 // shared per (element, color, alpha), and a one-shot particle burst when an element AoE lands.
@@ -130,60 +131,83 @@ function dotTexture(scene: Scene): DynamicTexture {
   return state.dot;
 }
 
-// Center and half-extents of the footprint the burst spawns over; null for shapes we don't burst.
-function burstArea(shape: AOEShape): { x: number; z: number; ex: number; ez: number } | null {
-  if (shape.kind === "circle") return { x: shape.center.x, z: shape.center.z, ex: shape.radius * 0.7, ez: shape.radius * 0.7 };
-  if (shape.kind === "polygon") {
-    const xs = shape.vertices.map(v => v.x), zs = shape.vertices.map(v => v.z);
-    const minX = Math.min(...xs), maxX = Math.max(...xs), minZ = Math.min(...zs), maxZ = Math.max(...zs);
-    return { x: (minX + maxX) / 2, z: (minZ + maxZ) / 2, ex: (maxX - minX) / 3, ez: (maxZ - minZ) / 3 };
-  }
-  return null;
-}
+type ElementPreset = {
+  count: number;
+  color1: Color4;
+  direction1: Vector3;
+  direction2: Vector3;
+  gravity?: Vector3;
+  power: { min: number; max: number };
+  lifetime: { min: number; max: number };
+  size: { min: number; max: number };
+};
 
-export function spawnElementBurst(scene: Scene, kind: ElementGlyphKind, shape: AOEShape, color: string): void {
-  const area = burstArea(shape);
-  if (!area) return;
-  const base = Color3.FromHexString(color);
-  const ps = new ParticleSystem(`element-burst-${kind}`, 120, scene);
+const PRESETS: Record<ElementGlyphKind, ElementPreset> = {
+  ice: {
+    count: 90,
+    color1: new Color4(0.9, 0.97, 1, 1),
+    direction1: new Vector3(-1, 2, -1),
+    direction2: new Vector3(1, 3, 1),
+    gravity: new Vector3(0, -6, 0),
+    power: { min: 1.5, max: 3 },
+    lifetime: { min: 0.2, max: 0.35 },
+    size: { min: 0.2, max: 0.45 },
+  },
+  lightning: {
+    count: 110,
+    color1: new Color4(1, 1, 1, 1),
+    direction1: new Vector3(-1, 0.3, -1),
+    direction2: new Vector3(1, 1.5, 1),
+    power: { min: 6, max: 10 },
+    lifetime: { min: 0.08, max: 0.18 },
+    size: { min: 0.1, max: 0.25 },
+  },
+  fire: {
+    count: 100,
+    color1: new Color4(1, 0.8, 0.3, 1),
+    direction1: new Vector3(-0.3, 1, -0.3),
+    direction2: new Vector3(0.3, 1, 0.3),
+    gravity: new Vector3(0, 2, 0),
+    power: { min: 2, max: 4 },
+    lifetime: { min: 0.2, max: 0.4 },
+    size: { min: 0.3, max: 0.6 },
+  },
+};
+
+const BURST_Y = 0.1;
+// Capacity headroom over the preset count, so an authored count can exceed it.
+const MAX_PARTICLES = 400;
+
+// One-shot burst spread over the AoE's footprint. `overrides` come from the authored vfx.burst block.
+export function spawnElementBurst(scene: Scene, kind: ElementGlyphKind, shape: AOEShape, color: string, overrides?: BurstVfx): void {
+  const preset = PRESETS[kind];
+  const base = Color3.FromHexString(overrides?.color ?? color);
+  const ps = new ParticleSystem(`element-burst-${kind}`, MAX_PARTICLES, scene);
   ps.particleTexture = dotTexture(scene);
-  ps.emitter = new Vector3(area.x, 0.1, area.z);
-  ps.minEmitBox = new Vector3(-area.ex, 0, -area.ez);
-  ps.maxEmitBox = new Vector3(area.ex, 0, area.ez);
+  ps.emitter = Vector3.Zero();
+  // Spawn across the real footprint, so rotated shapes and donut holes read correctly.
+  ps.startPositionFunction = (worldMatrix, positionToUpdate) => {
+    const point = sampleShapePoint(shape);
+    Vector3.TransformCoordinatesFromFloatsToRef(point.x, BURST_Y, point.z, worldMatrix, positionToUpdate);
+  };
   ps.blendMode = ParticleSystem.BLENDMODE_ADD;
+  ps.color1 = preset.color1;
   ps.color2 = new Color4(base.r, base.g, base.b, 1);
   ps.colorDead = new Color4(base.r, base.g, base.b, 0);
+  ps.direction1 = preset.direction1;
+  ps.direction2 = preset.direction2;
+  if (preset.gravity) ps.gravity = preset.gravity;
+  ps.minEmitPower = preset.power.min;
+  ps.maxEmitPower = preset.power.max;
+  ps.minLifeTime = overrides?.lifetime?.min ?? preset.lifetime.min;
+  ps.maxLifeTime = overrides?.lifetime?.max ?? preset.lifetime.max;
+  ps.minSize = overrides?.size?.min ?? preset.size.min;
+  ps.maxSize = overrides?.size?.max ?? preset.size.max;
+  ps.manualEmitCount = Math.min(overrides?.count ?? preset.count, MAX_PARTICLES);
   ps.targetStopDuration = 0.1;
   // Not disposeOnStop: that frees particleTexture, which is the shared dot. Defer past the frame
   // because this fires mid-animate while the scene is iterating its particle systems.
   ps.onAnimationEnd = () => scene.onAfterRenderObservable.addOnce(() => ps.dispose(false));
-  if (kind === "ice") {
-    ps.manualEmitCount = 90;
-    ps.color1 = new Color4(0.9, 0.97, 1, 1);
-    ps.direction1 = new Vector3(-1, 2, -1);
-    ps.direction2 = new Vector3(1, 3, 1);
-    ps.gravity = new Vector3(0, -6, 0);
-    ps.minEmitPower = 1.5; ps.maxEmitPower = 3;
-    ps.minLifeTime = 0.2; ps.maxLifeTime = 0.35;
-    ps.minSize = 0.2; ps.maxSize = 0.45;
-  } else if (kind === "lightning") {
-    ps.manualEmitCount = 110;
-    ps.color1 = new Color4(1, 1, 1, 1);
-    ps.direction1 = new Vector3(-1, 0.3, -1);
-    ps.direction2 = new Vector3(1, 1.5, 1);
-    ps.minEmitPower = 6; ps.maxEmitPower = 10;
-    ps.minLifeTime = 0.08; ps.maxLifeTime = 0.18;
-    ps.minSize = 0.1; ps.maxSize = 0.25;
-  } else {
-    ps.manualEmitCount = 100;
-    ps.color1 = new Color4(1, 0.8, 0.3, 1);
-    ps.direction1 = new Vector3(-0.3, 1, -0.3);
-    ps.direction2 = new Vector3(0.3, 1, 0.3);
-    ps.gravity = new Vector3(0, 2, 0);
-    ps.minEmitPower = 2; ps.maxEmitPower = 4;
-    ps.minLifeTime = 0.2; ps.maxLifeTime = 0.4;
-    ps.minSize = 0.3; ps.maxSize = 0.6;
-  }
   ps.start();
 }
 

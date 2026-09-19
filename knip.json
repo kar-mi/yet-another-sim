@@ -1,7 +1,8 @@
 {
   "entry": [
     "src/client/main.ts",
-    "src/**/*.test.ts"
+    "src/**/*.test.ts",
+    "scripts/**/*.ts"
   ],
-  "project": ["src/**/*.ts"]
+  "project": ["src/**/*.ts", "docs-site/**/*.ts"]
 }

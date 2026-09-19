@@ -1,14 +1,14 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
-import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
-import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveLineLink, Player } from "@shared/types";
+import { createLine, updateLine } from "@effects/babylon";
 
 const LINE_COLOR = new Color3(0.25, 0.85, 1.0);
+const LINE_RADIUS = 0.08;
 const STATUE_COLOR = new Color3(0.45, 0.5, 0.58);
 
 export class LineLinkLayer {
@@ -79,22 +79,9 @@ export class LineLinkLayer {
         new Vector3(target.pos.x, 1.2, target.pos.z),
       ];
       if (oldLine) {
-        CreateTube(`${key}-line`, { path: points, instance: oldLine });
+        updateLine(oldLine, points);
       } else {
-        const mat = new StandardMaterial(`mat-line-link-${key}`, this.scene);
-        mat.diffuseColor = LINE_COLOR;
-        mat.emissiveColor = LINE_COLOR.scale(0.6);
-        mat.specularColor = new Color3(0.05, 0.05, 0.05);
-        const line = CreateTube(`${key}-line`, {
-          updatable: true,
-          path: points,
-          radius: 0.08,
-          tessellation: 8,
-          cap: BabylonMesh.CAP_ALL,
-        }, this.scene);
-        line.material = mat;
-        line.isPickable = false;
-        this.lines.set(key, line);
+        this.lines.set(key, createLine(this.scene, `${key}-line`, points, LINE_COLOR, LINE_RADIUS));
       }
     }
   }

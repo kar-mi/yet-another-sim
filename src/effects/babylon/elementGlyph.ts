@@ -7,7 +7,7 @@ import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { Vec2 } from "@shared/math";
-import type { ElementGlyphKind } from "@shared/types";
+import type { ElementGlyphKind } from "../index";
 
 const GLYPH_Y = 2.0;
 const SPIN = 1.2;   // rad/s
