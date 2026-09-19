@@ -81,7 +81,7 @@ export class Minimap {
   }
 
   private applyViewTransform(): void {
-    const focus = this.zoom > MIN_ZOOM && this.povPoint ? this.povPoint : { x: 100, y: 100 };
+    const focus = this.povPoint ?? { x: 100, y: 100 };
     this.view.setAttribute("transform", `translate(100 100) scale(${this.zoom}) translate(${-focus.x} ${-focus.y})`);
   }
 
