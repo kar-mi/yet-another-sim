@@ -243,9 +243,7 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
 
       const sessionEl = createElement("div", "yas-menu-session");
       sessionEl.append(
-        createElement("span", "yas-menu-session-label", "SESSION"),
-        createElement("span", "yas-menu-session-id", sessionId),
-        createElement("span", "yas-menu-note", `OBSERVERS ${message.observerCount}/${message.maxObservers}`),
+        createElement("span", "yas-menu-note", `Copy the page URL to invite others.`),
       );
 
       if (message.status === "lobby") {
