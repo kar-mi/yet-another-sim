@@ -10,7 +10,7 @@ import type { Scene } from "@babylonjs/core/scene";
 import { logger } from "@shared/logger";
 import { STATIC_ROOT } from "../../staticBase";
 import { applyAlphaTest, createMeshGlow } from "@effects/babylon";
-import type { WeaponGlowVfx } from "@effects";
+import type { GlowVfx } from "@effects";
 
 // Extrude the Index’s body and weapons from their image silhouettes.
 const INDEX_IMAGE_ROOT = `${STATIC_ROOT}/model/boss/index/`;
@@ -58,7 +58,7 @@ export type IndexModel = {
   root: Mesh;
   height: number;
   // Call each frame to highlight and pulse one weapon; time is sim seconds.
-  highlight(weapon: IndexWeapon | null, time: number, glow?: WeaponGlowVfx): void;
+  highlight(weapon: IndexWeapon | null, time: number, glow?: GlowVfx): void;
   dispose(): void;
 };
 
@@ -114,7 +114,7 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
     for (const node of weaponNodes.values()) yield* node.getChildMeshes();
   };
 
-  const highlight = (weapon: IndexWeapon | null, time: number, override?: WeaponGlowVfx) => {
+  const highlight = (weapon: IndexWeapon | null, time: number, override?: GlowVfx) => {
     // Weapon art loads asynchronously; warm whatever has arrived while nothing is highlighted.
     if (!weapon) glow.warm(weaponMeshes());
     for (const [name, outline] of outlines) outline.setEnabled(name === weapon);

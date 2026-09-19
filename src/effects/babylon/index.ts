@@ -2,7 +2,7 @@ export { createShapeMesh, createShapeOutlineMesh } from "./shapeGeometry";
 export { syncFloorTelegraphs, disposeFloorTelegraphs, type FloorTelegraphMap } from "./floorTelegraphs";
 export { createGroundCircle, disposeGroundCircle, type GroundCircle } from "./groundCircle";
 export { createGlowRing, type GlowRing } from "./glowRing";
-export { createLine, updateLine } from "./line";
+export { createLine, updateLine, setLineColor } from "./line";
 export { circlePath, filteredCirclePaths } from "./paths";
 export { spawnElementBurst } from "./elementVfx";
 export { createElementGlyph, type ElementGlyphHandle } from "./elementGlyph";

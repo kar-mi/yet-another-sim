@@ -3,14 +3,14 @@ import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Mesh as BabylonMesh } from "@babylonjs/core/Meshes/mesh";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
-import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import type { ActiveChain, Player } from "@shared/types";
-import { glyphBillboardMaterial } from "@effects/babylon";
+import { createLine, glyphBillboardMaterial, setLineColor, updateLine } from "@effects/babylon";
 
 const ICON_Y = 3.2;   // height of the chain icon above a player
 const LINE_Y = 1.0;   // height of the connecting tube
+const LINE_RADIUS = 0.1;
 const RED = new Color3(1.0, 0.2, 0.2);
 const GREEN = new Color3(0.3, 1.0, 0.4);
 const WHITE = new Color3(1.0, 1.0, 1.0);
@@ -80,25 +80,10 @@ export class ChainLayer {
         new Vector3(b.pos.x, LINE_Y, b.pos.z),
       ];
       if (oldLine) {
-        CreateTube(`${chain.id}-line`, { path: points, instance: oldLine });
-        const mat = oldLine.material as StandardMaterial;
-        mat.diffuseColor = color;
-        mat.emissiveColor = color.scale(0.6);
+        updateLine(oldLine, points);
+        setLineColor(oldLine, color);
       } else {
-        const mat = new StandardMaterial(`mat-${chain.id}-line`, this.scene);
-        mat.diffuseColor = color;
-        mat.emissiveColor = color.scale(0.6);
-        mat.specularColor = new Color3(0.05, 0.05, 0.05);
-        const line = CreateTube(`${chain.id}-line`, {
-          updatable: true,
-          path: points,
-          radius: 0.1,
-          tessellation: 8,
-          cap: BabylonMesh.CAP_ALL,
-        }, this.scene);
-        line.material = mat;
-        line.isPickable = false;
-        this.lines.set(chain.id, line);
+        this.lines.set(chain.id, createLine(this.scene, `${chain.id}-line`, points, color, LINE_RADIUS));
       }
     }
   }

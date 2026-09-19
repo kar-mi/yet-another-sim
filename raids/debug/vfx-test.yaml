@@ -101,7 +101,7 @@ events:
     showTelegraph: false
     shape: { kind: circle, center: [0, 0], radius: 1 }
     vfx:
-      weaponGlow:
+      glow:
         color: "#4fc3ff"
         intensity: { min: 0.4, max: 2.4 }
         pulsePeriod: 0.4

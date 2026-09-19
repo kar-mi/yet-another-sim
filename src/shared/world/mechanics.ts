@@ -72,7 +72,7 @@ export type ActiveMechanic = {
   // Element pattern on the footprint. Kept here (like color/outline) so a deferred cleave can
   // rebuild floorAoe when a bait arms it.
   element?: ElementGlyphKind;
-  // Authored effect overrides; weaponGlow is read by the boss layer, the rest ride the FloorAoe.
+  // Authored effect overrides; glow is read by the boss layer, the rest ride the FloorAoe.
   vfx?: Vfx;
 };
 

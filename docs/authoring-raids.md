@@ -438,9 +438,10 @@ rotated cones/rects and a donut's hole read correctly.
 | `size`     | `{ min, max }` particle size (≥ 0, `max` ≥ `min`). |
 | `lifetime` | `{ min, max }` particle lifetime in seconds (`min` > 0, `max` ≥ `min`). |
 
-`vfx.weaponGlow` — the pulsing glow and halo around the highlighted weapon. This applies **only** to
-Index's Sealed Implements casts (events whose id matches `sealed-implements-<n>-bow|harp`); it is
-ignored elsewhere.
+`vfx.glow` — a pulsing glow and halo around a highlighted object. The effect itself is generic (it
+lights any set of meshes), but the only highlight wired up today is Index's Sealed Implements
+weapon, so these overrides currently take effect on events whose id matches
+`sealed-implements-<n>-bow|harp` and are ignored elsewhere.
 
 | Field         | Notes |
 |---------------|-------|
@@ -448,6 +449,9 @@ ignored elsewhere.
 | `color`       | `#rrggbb` for both the glow and the halo. |
 | `intensity`   | `{ min, max }` glow intensity swept by the pulse (≥ 0, `max` ≥ `min`). |
 | `pulsePeriod` | Seconds per pulse cycle (> 0). Lower is faster. |
+
+The glow stays off until the highlighted object's art has loaded, so a `glow` on an object whose
+model is still downloading simply appears a moment later.
 
 Overrides ride the mechanic through deferred (stored-cleave) re-anchoring and through replay
 recording, so a stored cleave armed by a `bait` keeps them.

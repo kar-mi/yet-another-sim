@@ -136,11 +136,36 @@ test("a glow with no targets stays disabled instead of lighting the whole scene"
     glow.highlight(null, 0);
     expect(layer.isEnabled).toBe(false);
 
-    // An empty-but-present target list is still a highlight, so the layer turns on with
-    // an empty include list rather than an absent one (which would glow everything).
+    // An empty list must read as "nothing highlighted", exactly like null.
     glow.highlight([], 0);
-    expect(layer.isEnabled).toBe(true);
+    expect(layer.isEnabled).toBe(false);
     expect(() => glow.warm([])).not.toThrow();
     glow.dispose();
+  });
+});
+
+test("disposing a glow takes its halo mesh, material and texture with it", () => {
+  withScene(scene => {
+    const root = new Mesh("disposed-root", scene);
+    warmUp(scene);
+    const before = {
+      meshes: scene.meshes.length,
+      materials: scene.materials.length,
+      textures: scene.textures.length,
+    };
+    const glow = createMeshGlow(scene, "disposed-glow", root, {
+      glowColor: new Color4(1, 1, 1, 1),
+      haloColor: new Color3(1, 1, 1),
+      intensity: { min: 1, max: 2 },
+      haloAlpha: { min: 0.2, max: 0.6 },
+      pulseSeconds: 1,
+    });
+    expect(scene.meshes.length).toBeGreaterThan(before.meshes);
+    glow.dispose();
+    // The root mesh is the caller's; only the halo belongs to the handle.
+    expect(scene.meshes.length).toBe(before.meshes);
+    expect(scene.materials.length).toBe(before.materials);
+    expect(scene.textures.length).toBe(before.textures);
+    expect(scene.effectLayers.some(layer => layer.name === "disposed-glow")).toBe(false);
   });
 });

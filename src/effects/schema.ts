@@ -23,7 +23,7 @@ const BurstVfxSchema = z.object({
   lifetime: RangeSchema.refine(range => range.min > 0, "lifetime min must be positive").optional(),
 }).strict();
 
-const WeaponGlowVfxSchema = z.object({
+const GlowVfxSchema = z.object({
   enabled: z.boolean().optional(),
   color: HexColorSchema.optional(),
   intensity: RangeSchema.optional(),
@@ -33,5 +33,5 @@ const WeaponGlowVfxSchema = z.object({
 export const VfxSchema = z.object({
   floor: FloorVfxSchema.optional(),
   burst: BurstVfxSchema.optional(),
-  weaponGlow: WeaponGlowVfxSchema.optional(),
+  glow: GlowVfxSchema.optional(),
 }).strict();

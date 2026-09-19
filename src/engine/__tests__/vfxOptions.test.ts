@@ -42,9 +42,9 @@ test("burst overrides survive loading and reach the FloorAoe", () => {
   expect(mechanicAt("vfx-burst-off", 48)!.floorAoe!.vfx!.burst).toEqual({ enabled: false });
 });
 
-test("weaponGlow rides the mechanic, not the floor telegraph", () => {
+test("glow rides the mechanic, not the floor telegraph", () => {
   const mechanic = mechanicAt("sealed-implements-1-bow", 52)!;
-  expect(mechanic.vfx!.weaponGlow).toEqual({
+  expect(mechanic.vfx!.glow).toEqual({
     color: "#4fc3ff",
     intensity: { min: 0.4, max: 2.4 },
     pulsePeriod: 0.4,
@@ -96,11 +96,11 @@ test("a FloorAoe keeps its overrides and visibility across a JSON round-trip", (
 
 test("vfx validation rejects bad colors, ranges and non-finite numbers", () => {
   const ok = (vfx: unknown) => VfxSchema.safeParse(vfx).success;
-  expect(ok({ burst: { color: "#ff6a1f" }, weaponGlow: { intensity: { min: 1, max: 2 } } })).toBe(true);
+  expect(ok({ burst: { color: "#ff6a1f" }, glow: { intensity: { min: 1, max: 2 } } })).toBe(true);
   expect(ok({ burst: { color: "red" } })).toBe(false);
   expect(ok({ burst: { color: "#fff" } })).toBe(false);
-  expect(ok({ weaponGlow: { intensity: { min: 2, max: 1 } } })).toBe(false);
-  expect(ok({ weaponGlow: { pulsePeriod: 0 } })).toBe(false);
+  expect(ok({ glow: { intensity: { min: 2, max: 1 } } })).toBe(false);
+  expect(ok({ glow: { pulsePeriod: 0 } })).toBe(false);
   expect(ok({ floor: { intensity: Number.POSITIVE_INFINITY } })).toBe(false);
   expect(ok({ burst: { count: 1.5 } })).toBe(false);
   expect(ok({ burst: { lifetime: { min: 0, max: 1 } } })).toBe(false);
@@ -108,7 +108,7 @@ test("vfx validation rejects bad colors, ranges and non-finite numbers", () => {
 });
 
 test("Vfx splits into the floor-carried half and the mechanic-carried half", () => {
-  const vfx: Vfx = { floor: { intensity: 2 }, weaponGlow: { color: "#ffffff" } };
-  expect(vfx.weaponGlow).toBeDefined();
+  const vfx: Vfx = { floor: { intensity: 2 }, glow: { color: "#ffffff" } };
+  expect(vfx.glow).toBeDefined();
   expect(VfxSchema.safeParse(vfx).success).toBe(true);
 });

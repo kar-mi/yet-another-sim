@@ -32,7 +32,7 @@ type MeshGlowHighlight = {
 export type MeshGlow = {
   // Compile the glow shaders for meshes whose art may still be loading.
   warm(meshes: Iterable<AbstractMesh>): void;
-  // Light `meshes` and place the halo; null clears the highlight. `time` is in seconds.
+  // Light `meshes` and place the halo. `time` is in seconds; null or an empty list clears it.
   highlight(meshes: AbstractMesh[] | null, time: number, override?: MeshGlowHighlight): void;
   dispose(): void;
 };
@@ -75,9 +75,12 @@ export function createMeshGlow(scene: Scene, name: string, haloParent: Mesh, opt
         for (const mesh of next) glow.addIncludedOnlyMesh(mesh as Mesh);
         included = next;
       }
-      glow.isEnabled = meshes !== null;
-      halo.setEnabled(meshes !== null);
-      if (!meshes) return;
+      // Babylon skips the include filter when the list is empty, so an enabled layer with no
+      // targets glows every emissive mesh in the scene.
+      const lit = next.length > 0;
+      glow.isEnabled = lit;
+      halo.setEnabled(lit);
+      if (!lit) return;
       const color = override?.color;
       if (color) {
         glowColor.set(color.r, color.g, color.b, options.glowColor.a);
@@ -95,6 +98,7 @@ export function createMeshGlow(scene: Scene, name: string, haloParent: Mesh, opt
     },
     dispose() {
       glow.dispose();
+      halo.dispose(false, true);
     },
   };
 }

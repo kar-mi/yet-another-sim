@@ -33,7 +33,7 @@ export type BurstVfx = {
   lifetime?: Range;
 };
 
-export type WeaponGlowVfx = {
+export type GlowVfx = {
   enabled?: boolean;
   color?: string;
   intensity?: Range;
@@ -42,7 +42,7 @@ export type WeaponGlowVfx = {
 
 export type FloorAoeVfx = { floor?: FloorVfx; burst?: BurstVfx };
 
-export type Vfx = FloorAoeVfx & { weaponGlow?: WeaponGlowVfx };
+export type Vfx = FloorAoeVfx & { glow?: GlowVfx };
 
 export type FloorAoeResolveMode =
   | { kind: "active" }

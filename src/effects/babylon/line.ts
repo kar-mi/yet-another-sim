@@ -8,10 +8,12 @@ import type { Scene } from "@babylonjs/core/scene";
 
 // Updatable tube between two or more points. Reposition with updateLine, which rewrites the
 // vertices of the existing geometry rather than rebuilding it.
+const EMISSIVE_SCALE = 0.6;
+
 export function createLine(scene: Scene, name: string, path: Vector3[], color: Color3, radius: number): Mesh {
   const material = new StandardMaterial(`${name}-mat`, scene);
   material.diffuseColor = color;
-  material.emissiveColor = color.scale(0.6);
+  material.emissiveColor = color.scale(EMISSIVE_SCALE);
   material.specularColor = new Color3(0.05, 0.05, 0.05);
   const line = CreateTube(name, {
     updatable: true,
@@ -27,4 +29,10 @@ export function createLine(scene: Scene, name: string, path: Vector3[], color: C
 
 export function updateLine(line: Mesh, path: Vector3[]): void {
   CreateTube(line.name, { path, instance: line });
+}
+
+export function setLineColor(line: Mesh, color: Color3): void {
+  const material = line.material as StandardMaterial;
+  material.diffuseColor = color;
+  material.emissiveColor = color.scale(EMISSIVE_SCALE);
 }

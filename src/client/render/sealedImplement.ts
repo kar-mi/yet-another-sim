@@ -1,9 +1,9 @@
 import type { ActiveMechanic } from "@shared/types";
-import type { WeaponGlowVfx } from "@effects";
+import type { GlowVfx } from "@effects";
 
 type SealedImplement = "bow" | "harp";
 
-export type ImplementHighlight = { weapon: SealedImplement; glow?: WeaponGlowVfx };
+export type ImplementHighlight = { weapon: SealedImplement; glow?: GlowVfx };
 
 const SEALED_IMPLEMENTS_CAST = /^sealed-implements-\d+-(bow|harp)$/;
 
@@ -13,7 +13,7 @@ export function selectSealedImplement(active: ActiveMechanic[]): ImplementHighli
     if (mechanic.resolved) continue;
     const match = SEALED_IMPLEMENTS_CAST.exec(mechanic.id);
     if (!match) continue;
-    const glow = mechanic.vfx?.weaponGlow;
+    const glow = mechanic.vfx?.glow;
     return glow?.enabled === false ? null : { weapon: match[1] as SealedImplement, glow };
   }
   return null;

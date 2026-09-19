@@ -44,7 +44,7 @@ lands everywhere it should.
 | `createGroundCircle` | spread/stack areas, forced-march zones, tower soak counters |
 | `createGlowRing` | boss target rings, player status rings, the "?" mechanic ring |
 | `createLine` / `updateLine` | tethers and line links |
-| `createMeshGlow` | the Index weapon highlight |
+| `createMeshGlow` | any highlighted object; currently the Index weapon |
 
 Art that only one mechanic uses — the boss-side orbs, the forced-march arrow, the tower pillar and
 falling object — deliberately stays a separate factory in `src/client/render/meshes/`. Those
@@ -80,8 +80,10 @@ disposed, so warming one instance covers every later one; the temporary mesh and
 disposed afterwards and the cached effect persists.
 
 Add a family by appending one factory to the `warmups` array in `src/effects/babylon/prewarm.ts`.
-Weapon art loads asynchronously, so the weapon glow warms separately, from
-`MeshGlow.warm` whenever nothing is highlighted.
+Model art loads asynchronously, so `createMeshGlow` warms separately: call `MeshGlow.warm` with
+whatever meshes have arrived whenever nothing is highlighted. A glow with no target meshes stays
+disabled — Babylon skips its include filter when the list is empty, which would otherwise light
+every emissive mesh in the scene.
 
 ## Authoring controls
 

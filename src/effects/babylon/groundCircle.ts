@@ -18,6 +18,7 @@ export type GroundCircleOptions = {
 export function createGroundCircle(scene: Scene, name: string, options: GroundCircleOptions): GroundCircle {
   const mesh = CreateDisc(name, { radius: options.radius, tessellation: options.tessellation ?? 48 }, scene);
   mesh.rotation.x = Math.PI / 2;
+  mesh.position.y = options.y;
   mesh.isPickable = false;
   const material = new StandardMaterial(`${name}-mat`, scene);
   material.diffuseColor = options.color;
