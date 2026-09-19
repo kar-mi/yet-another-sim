@@ -16,7 +16,7 @@ import type { GlowVfx } from "@effects";
 const INDEX_IMAGE_ROOT = `${STATIC_ROOT}/model/boss/index/`;
 
 const BODY_HEIGHT = 8;
-const BODY_DEPTH = 0.6;
+const BODY_DEPTH = 0.3;
 // Image aspect ratios and hem positions, used to align the robe with the floor.
 const FRONT = { aspect: 1024 / 834, hem: 740 / 834 };
 const BACK = { aspect: 1024 / 838, hem: 772 / 838 };
@@ -29,14 +29,14 @@ const WEAPON_HEIGHT_ABOVE_GROUND = 3;
 const WEAPON_FORWARD = 1.5;
 const OUTLINE_PX = 40;
 const OUTLINE_COLOR = "#8fd14f"; // the implement aoe color in omni-elements-1.yaml
-// Emissive above 1 brightens the outline past the aoe color without changing its hue.
-const OUTLINE_BRIGHTNESS = 1.4;
+// Emissive scale for the outline; 1 matches the aoe color.
+const OUTLINE_BRIGHTNESS = 1.0;
 // Pulse the highlighted weapon’s glow.
-const GLOW_COLOR = new Color4(0.35, 1, 0.25, 1);
-const GLOW_INTENSITY = { min: 0.9, max: 1.6 };
+const GLOW_COLOR = new Color4(0.15, 0.5, 0.1, 1);
+const GLOW_INTENSITY = { min: 0.6, max: 1.0 };
 const GLOW_PULSE_SECONDS = 1.2;
 // Translucent sphere of light around the highlighted weapon, sized from its longest side.
-const HALO_COLOR = new Color3(0.55, 1, 0.4);
+const HALO_COLOR = new Color3(0.25, 0.55, 0.18);
 const HALO_SIZE = 1.5;
 const HALO_ALPHA = { min: 0.45, max: 0.8 };
 
