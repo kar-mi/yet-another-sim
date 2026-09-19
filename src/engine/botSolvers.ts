@@ -33,6 +33,7 @@ export function toBotSolvers(raid: RaidDef): World["botSolvers"] {
       spots: rule.spots && toSpots(rule.spots),
       spot: rule.spot && toSpot(rule.spot),
       safeSpots: rule.safeSpots?.map(toSpot),
+      dangerHorizon: rule.dangerHorizon,
       limitCutSpread: rule.limitCutSpread && { spots: rule.limitCutSpread.spots.map(toSpot) },
       freeze: rule.freeze,
       nearestEdge: rule.nearestEdge,

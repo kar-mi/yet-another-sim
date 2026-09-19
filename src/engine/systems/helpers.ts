@@ -106,7 +106,7 @@ export function applyMechanicDamage(dc: DamageContext, player: Player, damage: n
   let dealt = damage;
   for (const effect of player.effects) {
     if (!isEffectActiveAt(effect, time)) continue;
-    const result = COMBAT_LIFECYCLE_REGISTRY[effect.behavior.kind].modifyDamage?.(effect, dealt, damageType);
+    const result = COMBAT_LIFECYCLE_REGISTRY[effect.behavior.kind].modifyDamage?.(effect, dealt, damageType, source.name);
     if (!result) continue;
     dealt = result.dealt;
     if (result.consume) matchingVulnIds.add(effect.id);
@@ -188,7 +188,13 @@ export function findInterceptor(players: Player[], src: Vec2, tgt: Vec2, exclude
 }
 
 export function shapeOrigin(shape: AOEShape): Vec2 {
-  return shape.kind === "circle" || shape.kind === "donut" ? shape.center : shape.origin;
+  if (shape.kind === "circle" || shape.kind === "donut") return shape.center;
+  // Use the vertex average as a polygon’s knockback origin.
+  if (shape.kind === "polygon") {
+    const sum = shape.vertices.reduce((acc, v) => ({ x: acc.x + v.x, z: acc.z + v.z }), { x: 0, z: 0 });
+    return { x: sum.x / shape.vertices.length, z: sum.z / shape.vertices.length };
+  }
+  return shape.origin;
 }
 
 export function didAct(intent: Intent | undefined): boolean {
@@ -197,6 +203,13 @@ export function didAct(intent: Intent | undefined): boolean {
 
 export function isEffectActiveAt(effect: StatusEffect, time: number): boolean {
   return effect.appliedAt + effect.duration > time;
+}
+
+// Check player and carrier filters, independent of position.
+export function aoeCanHitPlayer(mechanic: Pick<ActiveMechanic, "name" | "onlyCarriers" | "players">, player: Player, time: number): boolean {
+  const carries = !mechanic.onlyCarriers || player.effects.some(e => e.name === mechanic.name && isEffectActiveAt(e, time));
+  const targeted = !mechanic.players || mechanic.players.includes(player.id);
+  return carries && targeted;
 }
 
 export function effectActiveDt(effect: StatusEffect, previousTime: number, time: number): number {
@@ -278,6 +291,8 @@ export function applyEffect(dc: DamageContext, player: Player, spec: EffectSpec,
     marker: spec.marker,
     markerIcon: spec.markerIcon,
     markerIconScale: spec.markerIconScale,
+    ring: spec.ring,
+    countdown: spec.countdown,
     plantSlot,
     limitCutNumber,
   };
@@ -330,6 +345,20 @@ export function effectsForMechanic(mechanic: ActiveMechanic, randInt: (n: number
   const specs = mechanic.applyEffects.effects.slice();
   if (mechanic.applyEffects.order === "shuffle") return shuffledEffects(specs, randInt);
   return specs;
+}
+
+// Cleanse each element once, apply its mapped effect, and remove the debuff at zero stacks.
+export function cleanseElementStacks(dc: DamageContext, player: Player, name: string, players: Player[]): void {
+  for (const effect of player.effects.slice()) {
+    if (!isEffectActiveAt(effect, dc.time) || effect.behavior.kind !== "elementCleanse") continue;
+    const ref = effect.behavior.elements[name];
+    if (ref === undefined || effect.cleansedElements?.includes(name)) continue;
+    effect.cleansedElements = [...(effect.cleansedElements ?? []), name];
+    effect.stacks = Object.keys(effect.behavior.elements).length - effect.cleansedElements.length;
+    if (effect.stacks <= 0) player.effects = player.effects.filter(e => e !== effect);
+    const spec = resolveEffectRef({ ref });
+    if (spec) applyEffect(dc, player, spec, `${effect.id}-${ref}`, players);
+  }
 }
 
 // First active effect of a given behavior kind, or null.

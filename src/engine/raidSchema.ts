@@ -2,9 +2,9 @@ import { z } from "zod";
 import { ROSTER, RaidIdSchema } from "@shared/protocol";
 import { BOSS_REGISTRY, BOSS_REGISTRY_IDS, DEFAULT_BOSS_ID, isBossRegistryId, type BossRegistryId } from "./bossRegistry";
 import { BotSolversSchema } from "./raidSchemaBotSolvers";
-import { CrystalsSchema, FloorPlanSchema, WaymarkSchema, ZoneShapeSchema } from "./raidSchemaFoundation";
+import { ArenaSchema, CrystalsSchema, WaymarkSchema } from "./raidSchemaFoundation";
 import { EventSchema } from "./raidSchemaEvents";
-import { EventIdSchema, RoleSchema, Vec2Schema, WaypointSchema } from "./raidSchemaPrimitives";
+import { ElementGlyphKindSchema, EventIdSchema, RoleSchema, Vec2Schema, WaypointSchema } from "./raidSchemaPrimitives";
 
 const PlayerDefSchema = z.object({
   id: z.string().min(1),
@@ -54,6 +54,13 @@ const OptionalsSchema = z.object({
     rng: z.boolean().default(false),
     groups: z.array(z.array(EventIdSchema).min(1)).length(2),
   }).optional(),
+  // Shuffle group timings; noRepeatAfter prevents repeating the preceding entry’s last group.
+  timeShuffle: z.array(z.object({
+    id: z.string().min(1),
+    rng: z.boolean().default(false),
+    noRepeatAfter: z.string().min(1).optional(),
+    groups: z.array(z.array(EventIdSchema).min(1)).min(2),
+  })).min(1).optional(),
   // Seeded per-run rotation of a divebomb sweep around its canonical ring (see rotateDivebombSweep).
   // `events` lists the divebomb ids in canonical sweep order (the list index is each dash's number).
   // `limitCut` (optional) names a limit cut whose placement basis is derived from the rolled sweep.
@@ -84,15 +91,40 @@ const OptionalsSchema = z.object({
         name: z.string().min(1).optional(),
       })).min(1),
     }).optional(),
+    // Assign one name/color/glyph variant per event slot.
+    labels: z.record(z.string().min(1), z.object({
+      rng: z.boolean().default(false),
+      slots: z.array(z.array(EventIdSchema).min(1)).min(1),
+      variants: z.array(z.object({
+        name: z.string().min(1),
+        color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+        // Stamped onto slot events that author a `glyph` or `ring`.
+        glyph: ElementGlyphKindSchema.optional(),
+      })).min(1),
+    }).refine(spec => spec.slots.length === spec.variants.length, "labels needs one variant per slot")).optional(),
     eventSets: z.record(z.string().min(1), z.object({
       rng: z.boolean().default(false),
       sets: z.array(z.array(EventIdSchema).min(1)).min(1),
+    })).optional(),
+    // Deal the roster into groups; variants choose effects, and AOEs target group members.
+    deals: z.record(z.string().min(1), z.object({
+      rng: z.boolean().default(false),
+      groups: z.array(z.object({
+        size: z.number().int().positive(),
+        name: z.string().min(1).optional(),
+        effects: z.array(EventIdSchema).min(1),
+        aoes: z.array(EventIdSchema).default([]),
+      })).min(1),
+      variants: z.array(z.object({
+        name: z.string().min(1).optional(),
+        effects: z.array(z.number().int().nonnegative()).min(1),
+      })).min(1),
     })).optional(),
   }).optional(),
 }).optional();
 
 // Exhaustive list of glb stems available under /static/model/. Add new boss models here.
-const BOSS_MODEL_NAMES = ["kefka", "chaos", "exdeath", "dragon_head"] as const;
+const BOSS_MODEL_NAMES = ["kefka", "chaos", "exdeath", "dragon_head", "index"] as const;
 export type BossModelName = (typeof BOSS_MODEL_NAMES)[number];
 const BossModelSchema = z.enum(BOSS_MODEL_NAMES);
 
@@ -151,7 +183,7 @@ function resolveBossIdentity(overrides: BossIdentityOverrides, registryId: BossR
 
 export const RaidSchema = z.object({
   name: z.string().min(1),
-  arena: z.object({ zones: z.array(ZoneShapeSchema).min(1), floorPlan: FloorPlanSchema }),
+  arena: ArenaSchema,
   duration: z.number().positive(),
   boss: BossSchema,
   // Multi-boss: when present, takes precedence over `boss`. Each entry requires a unique id slug.
@@ -294,6 +326,62 @@ export const RaidSchema = z.object({
       }
     });
   });
+
+  const shuffleIds = new Set<string>();
+  raid.optionals?.timeShuffle?.forEach((entry, entryIndex) => {
+    if (shuffleIds.has(entry.id)) {
+      ctx.addIssue({ code: "custom", path: ["optionals", "timeShuffle", entryIndex, "id"], message: `duplicate timeShuffle id "${entry.id}"` });
+    }
+    if (entry.noRepeatAfter !== undefined && !shuffleIds.has(entry.noRepeatAfter)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["optionals", "timeShuffle", entryIndex, "noRepeatAfter"],
+        message: `timeShuffle noRepeatAfter "${entry.noRepeatAfter}" must name an earlier entry`,
+      });
+    }
+    shuffleIds.add(entry.id);
+    const previous = raid.optionals?.timeShuffle?.find(other => other.id === entry.noRepeatAfter);
+    if (previous && previous.groups.length !== entry.groups.length) {
+      ctx.addIssue({ code: "custom", path: ["optionals", "timeShuffle", entryIndex, "noRepeatAfter"], message: "timeShuffle noRepeatAfter entries must have the same number of groups" });
+    }
+    entry.groups.forEach((group, groupIndex) => {
+      let timing: { t: number; telegraph: number } | undefined;
+      group.forEach((id, idIndex) => {
+        const path = ["optionals", "timeShuffle", entryIndex, "groups", groupIndex, idIndex];
+        const event = raid.events.find(e => e.id === id);
+        if (!event) {
+          ctx.addIssue({ code: "custom", path, message: `timeShuffle references unknown event id "${id}"` });
+          return;
+        }
+        if (!("telegraph" in event)) {
+          ctx.addIssue({ code: "custom", path, message: `timeShuffle event "${id}" must have a telegraph` });
+          return;
+        }
+        const current = { t: event.t, telegraph: event.telegraph };
+        if (timing === undefined) {
+          timing = current;
+        } else if (timing.t !== current.t || timing.telegraph !== current.telegraph) {
+          ctx.addIssue({
+            code: "custom",
+            path,
+            message: `timeShuffle "${entry.id}" group ${groupIndex} events must share the same time and telegraph`,
+          });
+        }
+      });
+    });
+  });
+
+  for (const [key, spec] of Object.entries(raid.optionals?.combinations?.labels ?? {})) {
+    const seen = new Set<string>();
+    spec.slots.forEach((slot, slotIndex) => slot.forEach((id, idIndex) => {
+      const path = ["optionals", "combinations", "labels", key, "slots", slotIndex, idIndex];
+      if (eventIds.get(id)?.type !== "aoe") {
+        ctx.addIssue({ code: "custom", path, message: `label event "${id}" must reference an aoe event` });
+      }
+      if (seen.has(id)) ctx.addIssue({ code: "custom", path, message: `label event "${id}" must belong to only one slot` });
+      seen.add(id);
+    }));
+  }
 
   raid.events.forEach((event, i) => {
     if (event.type !== "tower") return;
@@ -561,9 +649,19 @@ export const RaidSchema = z.object({
     });
   }
 
+  // Polygons are placed in world coordinates; the anchoring options would be silently ignored.
+  raid.events.forEach((event, i) => {
+    if (event.type !== "aoe" || event.shape.kind !== "polygon") return;
+    for (const field of ["anchor", "directionFrom", "aimAtPlayer", "bossRelativeCenter"] as const) {
+      if (event[field] !== undefined) {
+        ctx.addIssue({ code: "custom", path: ["events", i, field], message: `polygon aoe "${event.id}" does not support ${field}` });
+      }
+    }
+  });
+
   raid.events.forEach((event, i) => {
     if (event.type !== "aoe" || event.sideOrbAfter === undefined) return;
-    const issue = (field: string, message: string) => ctx.addIssue({ code: "custom", path: ["events", i, field], message });
+    const issue =(field: string, message: string) => ctx.addIssue({ code: "custom", path: ["events", i, field], message });
     if (event.bossId === undefined) issue("bossId", `sideOrbAfter aoe "${event.id}" must name the boss the orb hangs off`);
     if (event.color === undefined) issue("color", `sideOrbAfter aoe "${event.id}" must define the orb color`);
     if (event.directionFrom !== "bossFacing"
@@ -595,6 +693,35 @@ export const RaidSchema = z.object({
               path: ["optionals", "combinations", "eventSets", key, "sets", setIndex, idIndex],
               message: `event set "${key}" references unknown event id "${id}"`,
             });
+          }
+        });
+      });
+    });
+  }
+
+  for (const [key, deal] of Object.entries(raid.optionals?.combinations?.deals ?? {})) {
+    const path = ["optionals", "combinations", "deals", key];
+    const total = deal.groups.reduce((sum, group) => sum + group.size, 0);
+    if (total !== raid.players.length) {
+      ctx.addIssue({ code: "custom", path: [...path, "groups"], message: `deal "${key}" group sizes add up to ${total}, not the roster size ${raid.players.length}` });
+    }
+    deal.groups.forEach((group, groupIndex) => {
+      for (const [field, type] of [["effects", "apply_effect"], ["aoes", "aoe"]] as const) {
+        group[field].forEach((id, idIndex) => {
+          const found = eventIds.get(id);
+          if (found?.type !== type) {
+            ctx.addIssue({
+              code: "custom",
+              path: [...path, "groups", groupIndex, field, idIndex],
+              message: found ? `deal "${key}" ${field} entry "${id}" must be an ${type} event` : `deal "${key}" references unknown event id "${id}"`,
+            });
+          }
+        });
+      }
+      deal.variants.forEach((variant, variantIndex) => {
+        variant.effects.forEach((effectIndex, i) => {
+          if (effectIndex >= group.effects.length) {
+            ctx.addIssue({ code: "custom", path: [...path, "variants", variantIndex, "effects", i], message: `deal "${key}" variant effect index ${effectIndex} is out of range for group ${groupIndex + 1}` });
           }
         });
       });

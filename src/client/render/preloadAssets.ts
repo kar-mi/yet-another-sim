@@ -2,6 +2,7 @@ import { BOSS_MODEL_FILE, BOSS_MODEL_ROOT } from "./BossLayer";
 import { DEFAULT_PLAYER_MODEL_FILE, PLAYER_MODEL_FILES, PLAYER_MODEL_ROOT } from "./PlayerLayer";
 import { FLOOR_PLAN_IMAGES } from "./meshes/arenaMeshes";
 import { HAND_IMAGE_URL } from "./meshes/handMeshes";
+import { CLEANSING_ORB_RUNE_URL } from "./meshes/cleansingOrbMeshes";
 import { STATIC_ROOT } from "../staticBase";
 
 // Above-head marker icons (PlayerLayer.syncMarkers) and HUD debuff icons (effectChips) load lazily
@@ -27,6 +28,13 @@ const DEBUFF_ICONS = [
   "teleportent_up.png",
 ].map(file => `${STATIC_ROOT}/debuffs/${file}`);
 
+// Element ring icons (PlayerEffectRingLayer), static/element_icons/.
+const ELEMENT_ICONS = [
+  "fire.png",
+  "ice.png",
+  "thunder.png",
+].map(file => `${STATIC_ROOT}/element_icons/${file}`);
+
 const BUFF_ICONS = [
   "sprint.png",
   "armslength.png",
@@ -48,7 +56,7 @@ export function preloadAssets(): void {
 
   // Floor plans, markers and debuff icons load through the browser's image cache (<img> / Babylon
   // DOM-image textures), which an Image() request warms directly.
-  for (const url of [...Object.values(FLOOR_PLAN_IMAGES), ...HEAD_MARKER_ICONS, ...DEBUFF_ICONS, ...BUFF_ICONS, HAND_IMAGE_URL]) {
+  for (const url of [...Object.values(FLOOR_PLAN_IMAGES), ...HEAD_MARKER_ICONS, ...DEBUFF_ICONS, ...ELEMENT_ICONS, ...BUFF_ICONS, HAND_IMAGE_URL, CLEANSING_ORB_RUNE_URL]) {
     new Image().src = url;
   }
 }

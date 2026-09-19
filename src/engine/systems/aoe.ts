@@ -21,7 +21,7 @@ import { buildFloorAoe } from "../floorAoeBuild";
 import { atan2 } from "@shared/dmath";
 import {
   selectTargetPlayer, selectTargetPlayers, inPositionalArc, applyMechanicDamage, applyEffect,
-  effectsForMechanic, balancedEffectOrders, applyKnockback, shapeOrigin, isEffectActiveAt,
+  effectsForMechanic, balancedEffectOrders, applyKnockback, shapeOrigin, isEffectActiveAt, aoeCanHitPlayer, cleanseElementStacks,
 } from "./helpers";
 import { addResolvedAoeVisual } from "./effectResolvers";
 import { mechanicSource } from "./damageLog";
@@ -210,6 +210,7 @@ export function resolveAoe(ctx: TickContext): {
       stored.showCastBar = false;
       stored.floorAoe = buildFloorAoe({
         id: stored.id, shape: stored.shape, color: stored.color, showTelegraph: true,
+        outline: stored.outline, alpha: stored.telegraphAlpha,
         telegraphMode: stored.telegraphMode, flashBeforeResolve: stored.flashBeforeResolve,
         resolveAt: stored.resolveAt,
       });
@@ -298,6 +299,7 @@ export function resolveAoe(ctx: TickContext): {
       stored.showCastBar = false;
       stored.floorAoe = buildFloorAoe({
         id: stored.id, shape: stored.shape, color: stored.color, showTelegraph: true,
+        outline: stored.outline, alpha: stored.telegraphAlpha,
         telegraphMode: stored.telegraphMode, flashBeforeResolve: stored.flashBeforeResolve,
         resolveAt: stored.resolveAt,
       });
@@ -367,12 +369,13 @@ export function resolveAoe(ctx: TickContext): {
       for (const player of players) {
         if (!player.alive) continue;
         const inArc = !mechanic.positional || inPositionalArc(mechBoss, player.pos, mechanic.positional);
-        const hit = mechanic.requireFullHp
+        const hit = aoeCanHitPlayer(mechanic, player, time) && (mechanic.requireFullHp
           ? player.hp < player.maxHp
-          : pointInShape(mechanic.shape, player.pos) && inArc;
+          : pointInShape(mechanic.shape, player.pos) && inArc);
         if (hit) {
           applyMechanicDamage(ctx, player, mechanic.damage, mechanic.damageType, mechanicSource(ctx, mechanic.id, mechanic.name));
           log.push({ t: time, mechanic: mechanic.name, playerId: player.id, event: "hit" });
+          if (player.alive) cleanseElementStacks(ctx, player, mechanic.name, players);
           const effectSpecs = player.alive
             ? (mechanic.applyEffects?.order === "shuffleBalanced"
               ? (balancedOrders[balancedOrderIndex++] ?? mechanic.applyEffects.effects)

@@ -8,6 +8,8 @@ import type { Scene } from "@babylonjs/core/scene";
 import { logger } from "@shared/logger";
 import type { Boss } from "@shared/types";
 import { STATIC_ROOT } from "../staticBase";
+import { buildIndexModel, type IndexModel } from "./meshes/indexModel";
+import type { SealedImplement } from "./sealedImplement";
 
 export const BOSS_MODEL_ROOT = `${STATIC_ROOT}/model/boss/`;
 export const BOSS_MODEL_FILE = "chaos.glb"; // default model; kept for preloadAssets
@@ -20,6 +22,7 @@ export class BossLayer {
   private modelRoots: AbstractMesh[] | null = null;
   private modelTopY = 0;
   private modelScale = 1;
+  private indexModel: IndexModel | null = null;
   private readonly scene: Scene;
 
   constructor(scene: Scene) {
@@ -30,7 +33,21 @@ export class BossLayer {
     const mesh = new Mesh(`boss-${boss.id}`, this.scene);
     this.mesh = mesh;
     this.modelScale = boss.modelScale;
-    void this.loadModel(mesh, `${boss.model}.glb`);
+    if (boss.model === "index") this.buildIndex(mesh, boss.id);
+    else void this.loadModel(mesh, `${boss.model}.glb`);
+  }
+
+  // Build the Index from drawings instead of a GLB.
+  private buildIndex(anchor: Mesh, bossId: string): void {
+    const model = buildIndexModel(this.scene, `boss-${bossId}-index`);
+    const modelTop = BOSS_MODEL_RAISE + model.height * this.modelScale;
+    model.root.scaling.setAll(this.modelScale);
+    model.root.position.y = BOSS_MODEL_RAISE - modelTop;
+    model.root.parent = anchor;
+    anchor.position.y = modelTop;
+    this.modelTopY = modelTop;
+    this.modelRoots = [model.root];
+    this.indexModel = model;
   }
 
   private async loadModel(anchor: Mesh, file: string): Promise<void> {
@@ -74,7 +91,7 @@ export class BossLayer {
     }
   }
 
-  sync(boss: Boss): void {
+  sync(boss: Boss, time: number, implement: SealedImplement | null = null): void {
     if (!this.mesh) return;
     const modelHeight = this.modelTopY - BOSS_MODEL_RAISE;
     this.mesh.position.set(boss.pos.x, this.modelTopY - boss.sinkFraction * modelHeight, boss.pos.z);
@@ -82,6 +99,7 @@ export class BossLayer {
     if (this.modelRoots) {
       for (const root of this.modelRoots) root.setEnabled(boss.hp > 0 && !boss.hidden);
     }
+    this.indexModel?.highlight(boss.hp > 0 && !boss.hidden ? implement : null, time);
   }
 
   getMesh(): Mesh | null {
@@ -89,10 +107,13 @@ export class BossLayer {
   }
 
   dispose(): void {
-    if (this.modelRoots) {
+    if (this.indexModel) {
+      this.indexModel.dispose();
+      this.indexModel = null;
+    } else if (this.modelRoots) {
       for (const root of this.modelRoots) root.dispose();
-      this.modelRoots = null;
     }
+    this.modelRoots = null;
     this.mesh?.dispose();
     this.mesh = null;
   }

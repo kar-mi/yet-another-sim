@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ARENA_GENERATOR_IDS, ARENA_GENERATORS } from "./arenaGenerators";
 import { EventIdSchema, RoleSchema, Vec2Schema } from "./raidSchemaPrimitives";
 import { resolveEffectRef } from "./status/registry";
 import { DEBUFF_REGISTRY } from "./status/debuffs";
@@ -27,7 +28,7 @@ const CrystalEntrySchema = z.preprocess(
 );
 export const CrystalsSchema = z.array(CrystalEntrySchema).optional();
 
-export const FloorPlanSchema = z.union([
+const FloorPlanSchema = z.union([
   z.enum(["squares", "dmu-p1", "dmu-p2"]),
   z.strictObject({ color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "floor color must be a six-digit hex color") }),
 ]).default("squares");
@@ -35,14 +36,29 @@ export const FloorPlanSchema = z.union([
 export const ZoneShapeSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("circle"), center: Vec2Schema, radius: z.number().positive() }),
   z.object({ kind: z.literal("rect"), center: Vec2Schema, width: z.number().positive(), height: z.number().positive() }),
-  z.object({ kind: z.literal("polygon"), vertices: z.array(Vec2Schema).min(3) }),
+  z.object({ kind: z.literal("polygon"), vertices: z.array(Vec2Schema).min(3), image: z.enum(["index-trapezoid", "index-square"]).optional() }),
 ]);
+
+// Accept zones or a generator; expose resolved zones to the engine.
+export const ArenaSchema = z.object({
+  zones: z.array(ZoneShapeSchema).min(1).optional(),
+  generator: z.enum(ARENA_GENERATOR_IDS).optional(),
+  floorPlan: FloorPlanSchema,
+}).superRefine((arena, ctx) => {
+  if (!arena.zones === !arena.generator) {
+    ctx.addIssue({ code: "custom", message: "arena needs exactly one of `zones` or `generator`" });
+  }
+}).transform(arena => ({
+  zones: arena.zones ?? ARENA_GENERATORS[arena.generator!](),
+  floorPlan: arena.floorPlan,
+}));
 
 export const AOEShapeSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("circle"), center: Vec2Schema, radius: z.number().positive() }),
   z.object({ kind: z.literal("donut"), center: Vec2Schema, inner: z.number().nonnegative(), outer: z.number().positive() }),
   z.object({ kind: z.literal("cone"), origin: Vec2Schema.default([0, 0]), direction: Vec2Schema.default([0, 1]), angleDeg: z.number().positive(), length: z.number().positive() }),
   z.object({ kind: z.literal("rect"), origin: Vec2Schema.default([0, 0]), direction: Vec2Schema.default([0, 1]), width: z.number().positive(), length: z.number().positive() }),
+  z.object({ kind: z.literal("polygon"), vertices: z.array(Vec2Schema).min(3) }),
 ]).superRefine((shape, ctx) => {
   if (shape.kind === "donut" && shape.inner >= shape.outer) {
     ctx.addIssue({ code: "custom", message: "donut inner must be less than outer" });
@@ -171,6 +187,17 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
     expiryDamageType: z.enum(["physical", "magical", "true"]).default("true"),
   }),
   z.object({
+    kind: z.literal("elementCleanse"),
+    elements: z.record(z.string().min(1), z.string().refine(ref => ref in DEBUFF_REGISTRY, "elements values must be keys in DEBUFF_REGISTRY")),
+    expiryDamage: z.number().nonnegative(),
+    expiryDamageType: z.enum(["physical", "magical", "true"]).default("true"),
+  }),
+  z.object({
+    kind: z.literal("elementVuln"),
+    mechanic: z.string().min(1),
+    multiplier: z.number().positive(),
+  }),
+  z.object({
     kind: z.literal("motionCheck"),
     required: z.enum(["move", "still"]),
     window: z.number().positive().default(0.5),
@@ -212,6 +239,15 @@ const EffectBehaviorSchema = z.discriminatedUnion("kind", [
   }
 });
 
+const EffectRingSchema = z.object({
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  icon: z.string().min(1),
+});
+const EffectCountdownSchema = z.object({
+  delay: z.number().nonnegative(),
+  slices: z.number().int().positive(),
+});
+
 const InlineApplyEffectSchema = z.object({
   name: z.string().min(1),
   kind: z.enum(["buff", "debuff"]),
@@ -229,6 +265,8 @@ const InlineApplyEffectSchema = z.object({
   marker: z.string().min(1).max(8).optional(), // short above-head marker shown while active
   markerIcon: z.string().min(1).optional(), // above-head marker image filename, served from /static/head_markers/
   markerIconScale: z.number().positive().optional(), // per-icon size multiplier (default 4)
+  ring: EffectRingSchema.optional(),     // colored ring around the player, icon from /static/element_icons/
+  countdown: EffectCountdownSchema.optional(), // carrier-only pie: full for `delay`s, then one slice per second
 });
 
 const EffectRefSchema = z.object({
@@ -247,6 +285,8 @@ const EffectRefSchema = z.object({
   marker: z.string().min(1).max(8).optional(),
   markerIcon: z.string().min(1).optional(),
   markerIconScale: z.number().positive().optional(),
+  ring: EffectRingSchema.optional(),
+  countdown: EffectCountdownSchema.optional(),
 });
 
 export const ApplyEffectSchema = z.union([InlineApplyEffectSchema, EffectRefSchema]).transform((effect, ctx) => {

@@ -17,6 +17,7 @@ export function toAOEShape(shape: AOEEventDef["shape"]): AOEShape {
     case "donut": return { kind: "donut", center: toVec2(shape.center), inner: shape.inner, outer: shape.outer };
     case "cone": return { kind: "cone", origin: toVec2(shape.origin), direction: toVec2(shape.direction), angleDeg: shape.angleDeg, length: shape.length };
     case "rect": return { kind: "rect", origin: toVec2(shape.origin), direction: toVec2(shape.direction), width: shape.width, length: shape.length };
+    case "polygon": return { kind: "polygon", vertices: shape.vertices.map(toVec2) };
   }
 }
 
@@ -28,6 +29,6 @@ export function toZoneShape(zone: RaidDef["arena"]["zones"][number]): ZoneShape 
   switch (zone.kind) {
     case "circle": return { kind: "circle", center: toVec2(zone.center), radius: zone.radius };
     case "rect": return { kind: "rect", center: toVec2(zone.center), width: zone.width, height: zone.height };
-    case "polygon": return { kind: "polygon", vertices: zone.vertices.map(toVec2) };
+    case "polygon": return { kind: "polygon", vertices: zone.vertices.map(toVec2), image: zone.image };
   }
 }

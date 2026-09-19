@@ -36,11 +36,18 @@ export type EffectBehavior =
   | { kind: "primordialCrust"; expiryDamage: number; expiryDamageType: DamageType }
   // Cleansed by healing carrier to full HP. Uncleansed expiry is lethal.
   | { kind: "accretion"; expiryDamage: number; expiryDamageType: DamageType }
+  // Each new element hit removes a stack and applies its mapped effect; remaining stacks deal expiry damage.
+  | { kind: "elementCleanse"; elements: Record<string, string>; expiryDamage: number; expiryDamageType: DamageType }
+  // Multiply matching mechanic damage without consuming the effect.
+  | { kind: "elementVuln"; mechanic: string; multiplier: number }
   // At expiry, require voluntary move/jump activity (or stillness) in the final time window.
   // Failure launches the carrier, then applies damage when they land.
   | { kind: "motionCheck"; required: "move" | "still"; window: number; failureDamage: number; failureDamageType: DamageType; failureKnockupHeight: number }
   // Generic assignment/priority marker (e.g. First/Second/Third in Line, Alpha/Beta). Pure HUD marker; deals expiryDamage on expiry. No cleanse path.
   | { kind: "assignment"; expiryDamage: number; expiryDamageType: DamageType };
+
+export type EffectRing = { color: string; icon: string };
+export type EffectCountdown = { delay: number; slices: number };
 
 export type EffectSpec = {
   name: string;
@@ -60,6 +67,10 @@ export type EffectSpec = {
   // Optional above-head marker image: a bare filename served from /static/head_markers/.
   markerIcon?: string;
   markerIconScale?: number; // per-icon size multiplier (default 4)
+  // Player ring; icon filename under /static/element_icons/.
+  ring?: EffectRing;
+  // Countdown above the carrier’s head.
+  countdown?: EffectCountdown;
 };
 
 export type EffectBundle = {
@@ -87,6 +98,10 @@ export type StatusEffect = {
   // Optional above-head marker image: a bare filename served from /static/head_markers/.
   markerIcon?: string;
   markerIconScale?: number; // per-icon size multiplier (default 4)
+  // Player ring; icon filename under /static/element_icons/.
+  ring?: EffectRing;
+  // Countdown above the carrier’s head.
+  countdown?: EffectCountdown;
   // Set when a confusion debuff lands: the player it forces this player to walk toward.
   lockedTargetId?: string;
   // Plant slot index from the assigned combo. Used by bot solvers to place each arrow separately.
@@ -94,6 +109,8 @@ export type StatusEffect = {
   // Limit Cut number (1–8) assigned by a limit_cut event. Used by bot solvers to place each
   // numbered player around the inter-inter-cardinal ring.
   limitCutNumber?: number;
+  // elementCleanse: the element names already cleansed.
+  cleansedElements?: string[];
 };
 
 // Generic "reassign" mechanic: distribute named charge debuffs across players, then re-balance to

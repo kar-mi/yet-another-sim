@@ -13,6 +13,7 @@ import type { Renderer } from "./Renderer";
 import type { Boss, World, ZoneShape, FloorPlan } from "@shared/types";
 import type { PlaybackState } from "@shared/protocol";
 import { selectBossSideOrbs } from "./bossSideOrbs";
+import { selectSealedImplement } from "./sealedImplement";
 import type { Settings, ControllerType } from "../settings";
 import { BossLayer } from "./BossLayer";
 import { BossRingLayer } from "./BossRingLayer";
@@ -35,6 +36,11 @@ import { HandLayer } from "./HandLayer";
 import { ForcedMarchLayer } from "./ForcedMarchLayer";
 import { HazardLayer } from "./HazardLayer";
 import { DivebombLayer } from "./DivebombLayer";
+import { ElementGlyphLayer } from "./ElementGlyphLayer";
+import { ElementRingLayer } from "./ElementRingLayer";
+import { MoverLayer } from "./MoverLayer";
+import { PlayerEffectRingLayer } from "./PlayerEffectRingLayer";
+import { CountdownPieLayer } from "./CountdownPieLayer";
 import { WaymarkLayer } from "./WaymarkLayer";
 import { CrystalLayer } from "./CrystalLayer";
 import { setControlScheme } from "../input";
@@ -62,6 +68,8 @@ RegisterAnimatable();
 
 const playerBarId = (id: string) => `player:${id}`;
 const bossCastBarId = (id: string) => `boss-cast:${id}`;
+const bossLayersKey = (bosses: Boss[]) =>
+  bosses.map(b => `${b.id}|${b.model}|${b.modelScale}|${b.radius}|${b.ringScale}|${b.ringColor}`).join(",");
 
 // Rate at which controller-camera acceleration ramps toward its target multiplier (~reaches it in <1s).
 const CAMERA_ACCEL_RAMP = 3;
@@ -91,6 +99,11 @@ export class BabylonRenderer implements Renderer {
   private forcedMarches!: ForcedMarchLayer;
   private hazards!: HazardLayer;
   private divebombs!: DivebombLayer;
+  private elementGlyphs!: ElementGlyphLayer;
+  private elementRings!: ElementRingLayer;
+  private movers!: MoverLayer;
+  private effectRings!: PlayerEffectRingLayer;
+  private countdownPie!: CountdownPieLayer;
   private waymarks!: WaymarkLayer;
   private crystals!: CrystalLayer;
   private hud!: HudOverlay;
@@ -229,6 +242,11 @@ export class BabylonRenderer implements Renderer {
     this.forcedMarches = new ForcedMarchLayer(this.scene);
     this.hazards = new HazardLayer(this.scene);
     this.divebombs = new DivebombLayer(this.scene);
+    this.elementGlyphs = new ElementGlyphLayer(this.scene);
+    this.elementRings = new ElementRingLayer(this.scene);
+    this.movers = new MoverLayer(this.scene);
+    this.effectRings = new PlayerEffectRingLayer(this.scene);
+    this.countdownPie = new CountdownPieLayer(this.scene);
     this.hud = new HudOverlay(
       sessionId,
       this.localPlayerId,
@@ -283,18 +301,12 @@ export class BabylonRenderer implements Renderer {
       this.bossSideOrbLayers.set(boss.id, new BossSideOrbLayer(this.scene));
     }
     this.bossIds = bosses.map(b => b.id);
-    this.bossesKey = this.bossIds.join(",");
+    this.bossesKey = bossLayersKey(bosses);
   }
 
+  // Include model and ring settings: different raids can share the same boss id.
   private bossSetChanged(bosses: Boss[]): boolean {
-    if (bosses.length !== this.bossIds.length) return true;
-    for (let i = 0; i < bosses.length; i++) {
-      if (bosses[i].id !== this.bossIds[i]) {
-        const bossesKey = bosses.map(b => b.id).join(",");
-        return bossesKey !== this.bossesKey;
-      }
-    }
-    return false;
+    return bossLayersKey(bosses) !== this.bossesKey;
   }
 
   private buildArena(zones: ZoneShape[], floorPlan: FloorPlan, key: string): void {
@@ -323,8 +335,9 @@ export class BabylonRenderer implements Renderer {
     this.players.sync(world.players, world.time, botsInvisible);
     const povPlayer = resolvePovPlayer(world.players, this.localPlayerId, this.spectateTargetId);
     const sideOrbs = selectBossSideOrbs(world);
+    const sealedImplement = selectSealedImplement(world.active);
     for (const boss of world.bosses) {
-      this.bossLayers.get(boss.id)?.sync(boss);
+      this.bossLayers.get(boss.id)?.sync(boss, world.time, sealedImplement);
       this.bossRingLayers.get(boss.id)?.sync(boss);
       this.bossSideOrbLayers.get(boss.id)?.sync(boss, sideOrbs.get(boss.id), world.time);
       this.targetRingLayers.get(boss.id)?.sync(boss, povPlayer?.targetBossId === boss.id);
@@ -362,6 +375,11 @@ export class BabylonRenderer implements Renderer {
     this.forcedMarches.sync(world.forcedMarches, world.time);
     this.hazards.sync(world.hazards, world.time);
     this.divebombs.sync(world.divebombs, world.time);
+    this.elementGlyphs.sync(world.active, world.time);
+    this.elementRings.sync(world.active, world.time);
+    this.movers.sync(world.active, world.time);
+    this.effectRings.sync(world.players, world.time, player => player.id === povPlayer?.id);
+    this.countdownPie.sync(povPlayer, world.time);
     this.hud.sync(world, povPlayer);
   }
 
@@ -449,6 +467,11 @@ export class BabylonRenderer implements Renderer {
     this.forcedMarches.dispose();
     this.hazards.dispose();
     this.divebombs.dispose();
+    this.elementGlyphs.dispose();
+    this.elementRings.dispose();
+    this.movers.dispose();
+    this.effectRings.dispose();
+    this.countdownPie.dispose();
     this.waymarks.dispose();
     this.crystals.dispose();
     this.healthBars.dispose();

@@ -223,12 +223,19 @@ const aoe: MechanicModule = {
           bossStationary: e.bossStationary,
           deferred: e.deferred,
           requireFullHp: e.requireFullHp,
+          onlyCarriers: e.onlyCarriers,
+          players: e.players,
           showCastBar: e.showCastBar,
           showTelegraph: e.showTelegraph,
           telegraphMode: e.telegraphMode,
           bossRelativeCenter: e.bossRelativeCenter,
           flashBeforeResolve: e.flashBeforeResolve,
           color: e.color,
+          outline: e.outline,
+          telegraphAlpha: e.telegraphAlpha,
+          glyph: e.glyph && { at: toVec2(e.glyph.at), kind: e.glyph.kind },
+          ring: e.ring && { center: toVec2(e.ring.center), radius: e.ring.radius, kind: e.ring.kind },
+          mover: e.mover && { from: toVec2(e.mover.from), departAt: e.mover.departAt, scale: e.mover.scale, sprite: e.mover.sprite },
         });
         break;
       case "targeted":

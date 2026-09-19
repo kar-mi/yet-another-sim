@@ -3,7 +3,7 @@ import type { AOEShape, DamageType, EffectBehavior, Player, StatusEffect } from 
 import type { Vec2 } from "@shared/math";
 import { pointInShape } from "../shapes";
 import { addResolvedAoeVisual } from "../systems/effectResolvers";
-import { applyEffect, applyKnockback, applyMechanicDamage, effectActiveDt, isLookingAt, selectTargetPlayers } from "../systems/helpers";
+import { applyEffect, applyKnockback, applyMechanicDamage, effectActiveDt, isLookingAt, selectTargetPlayers, shapeOrigin } from "../systems/helpers";
 import { effectSource, recordDeath, type DamageSource } from "../systems/damageLog";
 import { GRAVITY } from "@shared/constants";
 import { sin, cos } from "@shared/dmath";
@@ -41,6 +41,8 @@ export const STATUS_LIFECYCLE_REGISTRY: Record<EffectBehavior["kind"], StatusLif
   alternating: {},
   primordialCrust: { onExpiry: expiryDamageOnExpiry },
   accretion: { cleanseOnFullHp: true, onExpiry: expiryDamageOnExpiry },
+  elementCleanse: { onExpiry: expiryDamageOnExpiry },
+  elementVuln: {},
   motionCheck: { onExpiry: motionCheckOnExpiry },
   assignment: { onExpiry: expiryDamageOnExpiry },
 };
@@ -203,7 +205,7 @@ function plantOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): 
 }
 
 function expiryDamageOnExpiry(effect: StatusEffect, player: Player, ctx: TickContext): void {
-  const behavior = effect.behavior as Extract<EffectBehavior, { kind: "primordialCrust" | "accretion" | "assignment" }>;
+  const behavior = effect.behavior as Extract<EffectBehavior, { kind: "primordialCrust" | "accretion" | "elementCleanse" | "assignment" }>;
   applyMechanicDamage(ctx, player, behavior.expiryDamage, behavior.expiryDamageType, effectSource(effect));
   if (!player.alive) ctx.log.push({ t: ctx.time, mechanic: effect.name, playerId: player.id, event: "hit" });
 }
@@ -230,9 +232,7 @@ export function applyPendingBurstSpreadFollowUp(ctx: TickContext, pending: TickC
 }
 
 export function applyPendingTwister(ctx: TickContext, pending: TickContext["pendingTwisters"][number]): void {
-  const origin = pending.shape.kind === "circle" || pending.shape.kind === "donut"
-    ? pending.shape.center
-    : pending.shape.origin;
+  const origin = shapeOrigin(pending.shape);
   applyShapeHit(ctx, pending.shape, origin, pending.damage, pending.damageType, undefined, undefined,
     { key: pending.id, name: pending.name, avoidable: pending.avoidable === true });
   addResolvedAoeVisual(ctx, `${pending.id}-twister`, pending.name, pending.shape);

@@ -1,0 +1,116 @@
+players: {}
+
+# Gather north. Route straight-line moves around the central hole and gaps between squares.
+# Spots use world coordinates (+z north, +x east).
+_spots:
+  # Spots flank trapezoid seams; the first two are home and the wave dodge.
+  seam: &seam
+    - { x: 4.071, z: 10.051 }
+    - { x: 6.669, z: 8.551 }
+    - { x: 10.74, z: 1.5 }
+    - { x: 10.74, z: -1.5 }
+    - { x: 6.669, z: -8.551 }
+    - { x: 4.071, z: -10.051 }
+    - { x: -4.071, z: -10.051 }
+    - { x: -6.669, z: -8.551 }
+    - { x: -10.74, z: -1.5 }
+    - { x: -10.74, z: 1.5 }
+    - { x: -6.669, z: 8.551 }
+    - { x: -4.071, z: 10.051 }
+  # Trapezoid spots at r 8.5, clear of the bow circles (radius 11 on the square centers).
+  trap: &trap [{ x: 0, z: 8.5 }, { x: 7.361, z: 4.25 }, { x: 7.361, z: -4.25 }, { x: 0, z: -8.5 }, { x: -7.361, z: -4.25 }, { x: -7.361, z: 4.25 }]
+  # Square spots at r 17, outside the harp (radius 15).
+  square: &square [{ x: 0, z: 17 }, { x: 14.722, z: 8.5 }, { x: 14.722, z: -8.5 }, { x: 0, z: -17 }, { x: -14.722, z: -8.5 }, { x: -14.722, z: 8.5 }]
+  # Elementary Chemistry pad centers, listed N, NE, SE, S, SW, NW.
+  padN: &padN { x: 0, z: 9 }
+  padNE: &padNE { x: 7.794, z: 4.5 }
+  padSE: &padSE { x: 7.794, z: -4.5 }
+  padS: &padS { x: 0, z: -9 }
+  padSW: &padSW { x: -7.794, z: -4.5 }
+  padNW: &padNW { x: -7.794, z: 4.5 }
+  # N/SE/SW squares plus donut centers; AOE filtering excludes circle centers.
+  orb: &orb
+    - { x: 0, z: 15.5 }
+    - { x: 13.423, z: -7.75 }
+    - { x: -13.423, z: -7.75 }
+    - { x: 13.642, z: 7.877 }
+    - { x: 0, z: -15.753 }
+    - { x: -13.642, z: 7.877 }
+
+# Reach north via neighboring pads (~1.5s per hop); ties use list order.
+_hop:
+  - &hop0 { when: { static: true }, safeSpots: [*padN, *padNE, *padNW, *padSE, *padSW, *padS] }
+  - &hop1 { when: { static: true }, safeSpots: [*padN, *padNE, *padNW, *padSE, *padSW] }
+  - &hop2 { when: { static: true }, safeSpots: [*padN, *padNE, *padNW] }
+  - &hop3 { when: { static: true }, spot: *padN }
+
+# Carrier filtering leaves platforms of the player’s missing element safe.
+_rings:
+  fireIce: &fireIce [Fire IV, Blizzard IV]
+  fireThunder: &fireThunder [Fire IV, Thunder IV]
+  iceThunder: &iceThunder [Blizzard IV, Thunder IV]
+
+solvers:
+  generic:
+    # Opening: gather on the N pad, then take home.
+    - { <<: *hop0, startAt: 0, endAt: 1.6 }
+    - { <<: *hop1, startAt: 1.6, endAt: 3.2 }
+    - { <<: *hop2, startAt: 3.2, endAt: 4.8 }
+    - { <<: *hop3, startAt: 4.8, endAt: 6.4 }
+    - { when: { static: true }, startAt: 6.4, endAt: 10.1, spot: { x: 4.071, z: 10.051 } }
+
+    # Avoid the next wave by stepping across the nearest seam.
+    - &waves { when: { mechanic: wave }, startAt: 10.1, endAt: 25.5, dangerHorizon: 1.2, safeSpots: *seam }
+
+    # Cleansing orbs + Predict rings: carriers take the nearest orb-safe spot on their safe pair.
+    - &ring1Orbs { when: { mechanic: [ring1, orb], debuff: *fireIce }, startAt: 27.3, endAt: 33.33, safeSpots: *orb }
+    - { <<: *ring1Orbs, when: { mechanic: [ring1, orb], debuff: *fireThunder } }
+    - { <<: *ring1Orbs, when: { mechanic: [ring1, orb], debuff: *iceThunder } }
+    # After the orbs land, carriers hold their spot until the ring hits.
+    - &ring1 { when: { mechanic: ring1, debuff: *fireIce }, startAt: 27.3, endAt: 33.33, safeSpots: *orb }
+    - { <<: *ring1, when: { mechanic: ring1, debuff: *fireThunder } }
+    - { <<: *ring1, when: { mechanic: ring1, debuff: *iceThunder } }
+    - { when: { static: true }, startAt: 25.5, endAt: 33.33, spot: { x: 0, z: 15.5 } }
+
+    # Bow: inner trapezoids. Harp: enter a safe trapezoid before its square.
+    # Hold the solved spot between the implement and ring hits.
+    - { when: { static: true }, startAt: 37.66, endAt: 38.35, freeze: true }
+    - &ring2Bow { when: { mechanic: ring2, debuff: *fireIce, selectedEvent: sealed-implements-1-bow }, startAt: 33.33, endAt: 38.35, safeSpots: *trap }
+    - { <<: *ring2Bow, when: { mechanic: ring2, debuff: *fireThunder, selectedEvent: sealed-implements-1-bow } }
+    - { <<: *ring2Bow, when: { mechanic: ring2, debuff: *iceThunder, selectedEvent: sealed-implements-1-bow } }
+    - &ring2HarpIn { when: { mechanic: ring2, debuff: *fireIce, selectedEvent: sealed-implements-1-harp }, startAt: 33.33, endAt: 35.8, safeSpots: *trap }
+    - { <<: *ring2HarpIn, when: { mechanic: ring2, debuff: *fireThunder, selectedEvent: sealed-implements-1-harp } }
+    - { <<: *ring2HarpIn, when: { mechanic: ring2, debuff: *iceThunder, selectedEvent: sealed-implements-1-harp } }
+    - &ring2HarpOut { <<: *ring2HarpIn, startAt: 35.8, endAt: 38.35, safeSpots: *square }
+    - { <<: *ring2HarpOut, when: { mechanic: ring2, debuff: *fireThunder, selectedEvent: sealed-implements-1-harp } }
+    - { <<: *ring2HarpOut, when: { mechanic: ring2, debuff: *iceThunder, selectedEvent: sealed-implements-1-harp } }
+    - { when: { selectedEvent: sealed-implements-1-bow }, startAt: 33.33, endAt: 38.35, safeSpots: *trap }
+    - { when: { selectedEvent: sealed-implements-1-harp }, startAt: 33.33, endAt: 38.35, safeSpots: *square }
+
+    - { <<: *waves, startAt: 38.35, endAt: 48.1 }
+
+    # From a seam, harp carriers can reach their nearest safe square directly.
+    - { when: { static: true }, startAt: 51.85, endAt: 52.4, freeze: true }
+    - &ring3Bow { when: { mechanic: ring3, debuff: *fireIce, selectedEvent: sealed-implements-2-bow }, startAt: 48.1, endAt: 52.4, safeSpots: *trap }
+    - { <<: *ring3Bow, when: { mechanic: ring3, debuff: *fireThunder, selectedEvent: sealed-implements-2-bow } }
+    - { <<: *ring3Bow, when: { mechanic: ring3, debuff: *iceThunder, selectedEvent: sealed-implements-2-bow } }
+    - &ring3Harp { when: { mechanic: ring3, debuff: *fireIce, selectedEvent: sealed-implements-2-harp }, startAt: 48.1, endAt: 52.4, safeSpots: *square }
+    - { <<: *ring3Harp, when: { mechanic: ring3, debuff: *fireThunder, selectedEvent: sealed-implements-2-harp } }
+    - { <<: *ring3Harp, when: { mechanic: ring3, debuff: *iceThunder, selectedEvent: sealed-implements-2-harp } }
+    - { when: { selectedEvent: sealed-implements-2-bow }, startAt: 48.1, endAt: 52.4, safeSpots: *trap }
+    - { when: { selectedEvent: sealed-implements-2-harp }, startAt: 48.1, endAt: 52.4, safeSpots: *square }
+
+    # Regroup on the N pad.
+    - { <<: *hop0, startAt: 52.4, endAt: 54 }
+    - { <<: *hop1, startAt: 54, endAt: 55.6 }
+    - { <<: *hop2, startAt: 55.6, endAt: 57.2 }
+    - { <<: *hop3, startAt: 57.2, endAt: 58.8 }
+
+    # Follow the active pads clockwise from north to take each element once.
+    - { when: { selectedEvent: chem-a1-n }, startAt: 58.8, endAt: 66.97, spot: *padN }
+    - { when: { selectedEvent: chem-a2-ne }, startAt: 66.97, endAt: 70.0, spot: *padNE }
+    - { when: { selectedEvent: chem-a3-se }, startAt: 70.0, endAt: 73.03, spot: *padSE }
+    - { when: { selectedEvent: chem-b1-ne }, startAt: 58.8, endAt: 66.97, spot: *padNE }
+    - { when: { selectedEvent: chem-b2-se }, startAt: 66.97, endAt: 70.0, spot: *padSE }
+    - { when: { selectedEvent: chem-b3-s }, startAt: 70.0, endAt: 73.03, spot: *padS }
+    - { when: { static: true }, startAt: 73.03, freeze: true }

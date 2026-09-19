@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { DEBUFF_REGISTRY } from "./status/debuffs";
-import { EventIdSchema, RoleSchema, Vec2Schema } from "./raidSchemaPrimitives";
+import { ElementGlyphKindSchema, EventIdSchema, RoleSchema, Vec2Schema } from "./raidSchemaPrimitives";
 import { AOEShapeSchema, ApplyEffectSchema, ApplyEffectsSchema, KnockbackSchema } from "./raidSchemaFoundation";
 
 const TelegraphModeSchema = z.enum(["cast", "resolve"]);
@@ -41,6 +41,10 @@ const AOEEventSchema = z.object({
   deferred: z.boolean().default(false),
   // Raidwide HP check: ignore position and deal damage to every alive player below full HP; spare players at full HP.
   requireFullHp: z.boolean().default(false),
+  // Require an active effect with the cast’s name.
+  onlyCarriers: z.boolean().optional(),
+  // Restrict hits to these players; deals fills this per run.
+  players: z.array(z.string().min(1)).optional(),
   // Directional gate: only hit players whose bearing from the boss is within this arc.
   // `center` (radians, clockwise from boss facing; 0 = front) and full `width` (radians).
   positional: z.object({
@@ -59,6 +63,17 @@ const AOEEventSchema = z.object({
   }).optional(),
   // Render-only: ground telegraph color (hex). Defaults to the standard danger red when omitted.
   color: z.string().min(1).optional(),
+  // Render the telegraph as an outline.
+  outline: z.boolean().optional(),
+  // Telegraph opacity (default: 0.5 fill, 0.95 outline).
+  telegraphAlpha: z.number().min(0).max(1).optional(),
+  // Element glyph; label variants can supply kind.
+  glyph: z.object({ at: Vec2Schema, kind: ElementGlyphKindSchema.optional() }).optional(),
+  // Ring expands to radius during the cast; label variants can supply kind.
+  ring: z.object({ center: Vec2Schema, radius: z.number().positive(), kind: ElementGlyphKindSchema.optional() }).optional(),
+  // Orb waits at from until departAt, then reaches the shape center at resolve.
+  // Scale defaults to 1; sprite selects the Cleansing billboard.
+  mover: z.object({ from: Vec2Schema, departAt: z.number().nonnegative(), scale: z.number().positive().optional(), sprite: z.boolean().optional() }).optional(),
   bossId: z.string().min(1).optional(),
 });
 

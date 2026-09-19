@@ -4,7 +4,7 @@ import { dot, length, normalize, sub } from "@shared/math";
 import { sin, cos } from "@shared/dmath";
 
 type CombatLifecycleModule = {
-  modifyDamage?: (effect: StatusEffect, dealt: number, damageType: DamageType) => { dealt: number; consume?: boolean };
+  modifyDamage?: (effect: StatusEffect, dealt: number, damageType: DamageType, sourceName: string) => { dealt: number; consume?: boolean };
   onLethal?: (effect: StatusEffect, player: Player) => boolean;
   modifyKnockback?: (effect: StatusEffect, player: Player, knockback: Knockback, origin: Vec2, time: number) => Knockback;
   onApply?: (effect: StatusEffect, player: Player, players: Player[], spec: EffectSpec) => Partial<StatusEffect>;
@@ -30,6 +30,8 @@ export const COMBAT_LIFECYCLE_REGISTRY: Record<EffectBehavior["kind"], CombatLif
   alternating: {},
   primordialCrust: { onLethal: primordialCrustOnLethal },
   accretion: {},
+  elementCleanse: {},
+  elementVuln: { modifyDamage: modifyElementVuln },
   motionCheck: {},
   assignment: {},
 };
@@ -43,6 +45,11 @@ function modifyVuln(effect: StatusEffect, dealt: number, damageType: DamageType)
   const behavior = effect.behavior as Extract<EffectBehavior, { kind: "vuln" }>;
   if (behavior.damageType !== damageType) return { dealt };
   return { dealt: dealt * behavior.multiplier, consume: true };
+}
+
+function modifyElementVuln(effect: StatusEffect, dealt: number, _damageType: DamageType, sourceName: string): { dealt: number } {
+  const behavior = effect.behavior as Extract<EffectBehavior, { kind: "elementVuln" }>;
+  return { dealt: sourceName === behavior.mechanic ? dealt * behavior.multiplier : dealt };
 }
 
 function primordialCrustOnLethal(): boolean {

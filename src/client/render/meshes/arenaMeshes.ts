@@ -1,5 +1,6 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
-import type { Mesh } from "@babylonjs/core/Meshes/mesh";
+import { Mesh } from "@babylonjs/core/Meshes/mesh";
+import { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData";
 import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
 import { CreateGround } from "@babylonjs/core/Meshes/Builders/groundBuilder";
 import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
@@ -7,7 +8,8 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ZoneShape, FloorPlan } from "@shared/types";
+import type { ZoneShape, FloorPlan, ZoneImage } from "@shared/types";
+import type { Vec2 } from "@shared/math";
 import { logger } from "@shared/logger";
 import { STATIC_ROOT } from "../../staticBase";
 
@@ -17,9 +19,79 @@ export const FLOOR_PLAN_IMAGES: Record<Exclude<Extract<FloorPlan, string>, "squa
   "dmu-p2": `${STATIC_ROOT}/arena_raid_imgs/dmu/p2-cropped.webp`,
 };
 
+// Top-down art for textured arena zones.
+const ZONE_IMAGES: Record<ZoneImage, string> = {
+  "index-trapezoid": `${STATIC_ROOT}/arena_raid_imgs/index/trapezoid.webp`,
+  "index-square": `${STATIC_ROOT}/arena_raid_imgs/index/square.webp`,
+};
+
+// Project UVs onto local axes to avoid stretching trapezoid textures.
+function createQuad(scene: Scene, vertices: Vec2[]): Mesh {
+  const [a, b, c, d] = vertices as [Vec2, Vec2, Vec2, Vec2];
+  const axis = { x: (c.x + d.x) / 2 - (a.x + b.x) / 2, z: (c.z + d.z) / 2 - (a.z + b.z) / 2 };
+  const len = Math.hypot(axis.x, axis.z) || 1;
+  const along = { x: axis.x / len, z: axis.z / len };
+  const side = { x: along.z, z: -along.x };
+
+  const us = vertices.map(p => p.x * side.x + p.z * side.z);
+  const vs = vertices.map(p => p.x * along.x + p.z * along.z);
+  const uMin = Math.min(...us), uSpan = Math.max(...us) - uMin;
+  const vMin = Math.min(...vs), vSpan = Math.max(...vs) - vMin;
+
+  const data = new VertexData();
+  data.positions = vertices.flatMap(p => [p.x, 0, p.z]);
+  // Invert v to align the art’s narrow end with the trapezoid’s near edge.
+  data.uvs = vertices.flatMap((_, i) => [(us[i]! - uMin) / uSpan, 1 - (vs[i]! - vMin) / vSpan]);
+  data.normals = vertices.flatMap(() => [0, 1, 0]);
+  data.indices = [0, 1, 2, 0, 2, 3];
+
+  const mesh = new Mesh("floor", scene);
+  data.applyToMesh(mesh);
+  mesh.isPickable = false;
+  return mesh;
+}
+
+// Show crosshatching until the floor image loads.
+function createImageQuad(scene: Scene, vertices: Vec2[], imageUrl: string): Mesh {
+  const placeholder = createQuad(scene, vertices);
+  const placeholderMat = new StandardMaterial("floor-plan-placeholder-mat", scene);
+  placeholderMat.diffuseColor = new Color3(1, 1, 1);
+  placeholderMat.emissiveColor = new Color3(0.04, 0.04, 0.05);
+  placeholderMat.specularColor = new Color3(0, 0, 0);
+  placeholderMat.diffuseTexture = createCrosshatchTexture(scene);
+  placeholderMat.backFaceCulling = false;
+  placeholder.material = placeholderMat;
+  placeholderMat.freeze();
+
+  const top = createQuad(scene, vertices);
+  top.parent = placeholder; // disposed with the parent via mesh.dispose(false, true)
+  top.position.y = 0.005; // stay under the AOE telegraph plane at y = 0.01
+  top.setEnabled(false);
+
+  const mat = new StandardMaterial("floor-plan-mat", scene);
+  // Keep the placeholder parent enabled so its image child stays visible.
+  const reveal = () => {
+    if (top.isDisposed()) return;
+    top.setEnabled(true);
+    mat.freeze();
+  };
+  const tex = new Texture(imageUrl, scene, undefined, undefined, undefined, reveal);
+  tex.anisotropicFilteringLevel = 16;
+  mat.diffuseTexture = tex;
+  mat.emissiveTexture = tex; // self-lit so the art reads under the dim scene light
+  mat.emissiveColor = new Color3(1, 1, 1);
+  mat.specularColor = new Color3(0, 0, 0);
+  mat.backFaceCulling = false;
+  top.material = mat;
+  return placeholder;
+}
+
 export function createZoneMesh(scene: Scene, zone: ZoneShape, floorPlan: FloorPlan): Mesh | null {
   if (zone.kind === "circle" && typeof floorPlan === "string" && floorPlan !== "squares") {
     return createFloorPlanCircle(scene, zone, FLOOR_PLAN_IMAGES[floorPlan]);
+  }
+  if (zone.kind === "polygon" && zone.image && zone.vertices.length === 4) {
+    return createImageQuad(scene, zone.vertices, ZONE_IMAGES[zone.image]);
   }
 
   const mat = new StandardMaterial("floor-mat", scene);
@@ -61,9 +133,18 @@ export function createZoneMesh(scene: Scene, zone: ZoneShape, floorPlan: FloorPl
         tex.vScale = zone.height / tileWorld;
       }
       break;
-    case "polygon":
-      logger.warn("render", "polygon arena zones are not yet rendered");
-      return null;
+    case "polygon": {
+      if (zone.vertices.length !== 4) {
+        logger.warn("render", "only 4-sided polygon arena zones are rendered");
+        return null;
+      }
+      mesh = createQuad(scene, zone.vertices);
+      if (tex) {
+        tex.uScale = 1;
+        tex.vScale = 1;
+      }
+      break;
+    }
   }
   mesh.material = mat;
   mat.freeze(); // static floor: never animates, so skip per-frame shader re-evaluation

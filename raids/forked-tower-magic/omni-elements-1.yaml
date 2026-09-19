@@ -1,0 +1,434 @@
+# The Index - Omni-Elements 1; timings relative to the opening cast, from cached raid logs.
+# Opposite platform pairs share an element. Each round fires two permutations, with no repeat at the join.
+# Chemistry requires one hit per element; uncleansed stacks kill at 79.72.
+# Waves, orbs and implements add Thrice Come Ruin; the third stack kills.
+# Ends before All-Knowing Flames. The expanded arena stays up after Absorption (no mid-fight swap).
+
+name: Omni-Elements 1
+botPatterns: omni-elements-1-bots
+arena:
+  generator: index_arena_2
+duration: 82
+boss: { id: index, pos: [0, 0] }
+
+players:
+  - { id: mt, role: tank, spawn: [0, 9.5] }
+  - { id: ot, role: tank, spawn: [6.72, 6.72] }
+  - { id: h1, role: healer, spawn: [9.5, 0] }
+  - { id: h2, role: healer, spawn: [6.72, -6.72] }
+  - { id: r1, role: dps, spawn: [0, -9.5] }
+  - { id: r2, role: dps, spawn: [-6.72, -6.72] }
+  - { id: m1, role: dps, spawn: [-9.5, 0] }
+  - { id: m2, role: dps, spawn: [-6.72, 6.72] }
+
+sections:
+  - { id: raidwide, name: Omni-Elements, t: 0 }
+  - { id: elements-1, name: Elements 1, t: 10.12 }
+  - { id: orbs, name: Orbs, t: 22.31 }
+  - { id: rings, name: Rings, t: 27.32 }
+  - { id: elements-2, name: Elements 2, t: 32.71 }
+  - { id: implement-1, name: Implement 1, t: 36.56 }
+  - { id: implement-2, name: Implement 2, t: 50.82 }
+  - { id: chemistry, name: Elementary Chemistry, t: 58.01 }
+
+# Each pair end combines a trapezoid and square; dimensions match arenaGenerators.ts.
+_shapes:
+  polyN: &polyN { kind: polygon, vertices: [[-3.233, 5.6], [3.233, 5.6], [7.506, 13], [7.506, 28.011], [-7.506, 28.011], [-7.506, 13]] }
+  polyS: &polyS { kind: polygon, vertices: [[3.233, -5.6], [-3.233, -5.6], [-7.506, -13], [-7.506, -28.011], [7.506, -28.011], [7.506, -13]] }
+  polyNE: &polyNE { kind: polygon, vertices: [[3.233, 5.6], [6.466, 0], [15.011, 0], [28.011, 7.506], [20.506, 20.506], [7.506, 13]] }
+  polySW: &polySW { kind: polygon, vertices: [[-3.233, -5.6], [-6.466, 0], [-15.011, 0], [-28.011, -7.506], [-20.506, -20.506], [-7.506, -13]] }
+  polySE: &polySE { kind: polygon, vertices: [[6.466, 0], [3.233, -5.6], [7.506, -13], [20.506, -20.506], [28.011, -7.506], [15.011, 0]] }
+  polyNW: &polyNW { kind: polygon, vertices: [[-6.466, 0], [-3.233, 5.6], [-7.506, 13], [-20.506, 20.506], [-28.011, 7.506], [-15.011, 0]] }
+
+# Platform element outline + glyph, held until the Elementary Chemistry raidwide (79.42).
+_marker: &marker
+  type: aoe
+  time: 4
+  name: Element
+  telegraph: 75.42
+  outline: true
+  damage: 0
+  damageType: "true"
+  players: []
+  showCastBar: false
+  showTelegraph: true
+
+# The ring reaches the square centers at impact; platforms flash for the final 0.4s.
+_wave: &wave
+  applyEffect: { ref: thrice_come_ruin }
+  labels: [wave]
+  type: aoe
+  name: Element
+  telegraph: 7.83
+  damage: 40
+  damageType: magical
+  avoidable: true
+  showCastBar: false
+  showTelegraph: false
+  flashBeforeResolve: { lead: 0.4 }
+
+_ring: &ring { center: [0, 0], radius: 20.506 }
+
+# Cast bar with no damage or telegraph.
+_castBar: &castBar
+  type: aoe
+  damage: 0
+  damageType: "true"
+  showCastBar: true
+  showTelegraph: false
+  shape: { kind: circle, center: [0, 0], radius: 0.1 }
+
+# Ring hit: an invisible platform aoe that only hits its group's players carrying the platform's element.
+_ringHit: &ringHit
+  type: aoe
+  name: Element
+  telegraph: 6
+  damage: 999
+  damageType: "true"
+  avoidable: true
+  onlyCarriers: true
+  showCastBar: false
+  showTelegraph: false
+
+# Two circle orbs and one donut spawn at 22.31, wait ~5s, then move one section clockwise.
+# They hit the blue pads at radius 15.753 at 32.70; floor AOEs flash only on impact.
+_orb: &orb
+  applyEffect: { ref: thrice_come_ruin }
+  labels: [orb]
+  type: aoe
+  name: Cleansing
+  time: 22.31
+  telegraph: 10.39
+  telegraphMode: resolve
+  damage: 40
+  damageType: magical
+  avoidable: true
+  showCastBar: false
+  color: "#9a9ae0"
+  telegraphAlpha: 0.85
+
+# Estimated radii: bow 11 (squares), harp 15 (central hexagon).
+# Hits at cast end (37.66 / 51.85), with impact-only telegraphs and a highlighted weapon.
+_implement: &implement
+  applyEffect: { ref: thrice_come_ruin }
+  type: aoe
+  telegraph: 1.1
+  damage: 35
+  damageType: magical
+  avoidable: true
+  showCastBar: false
+  showTelegraph: true
+  telegraphMode: resolve
+  color: "#8fd14f"
+
+_bow: &bow
+  <<: *implement
+  name: Aim
+
+_harp: &harp
+  <<: *implement
+  name: Romeo's Ballad
+  shape: { kind: circle, center: [0, 0], radius: 15 }
+
+# Chemistry pads at radius 9 with floating spheres; pad radius 2 is estimated.
+_chemPad: &chemPad
+  type: aoe
+  time: 58.01
+  name: Chemistry Pad
+  telegraph: 19.97
+  damage: 0
+  damageType: "true"
+  showCastBar: false
+  showTelegraph: true
+  color: "#3a7bff"
+
+# Chemistry glyphs appear 6s before impact and travel to their pads over the last 3s.
+# Hits at 66.96 / 70.00 / 73.03; damage is estimated.
+_chemHit: &chemHit
+  type: aoe
+  name: Element
+  damage: 10
+  damageType: magical
+  showCastBar: false
+  showTelegraph: false
+  flashBeforeResolve: { lead: 0.4 }
+
+events:
+  - { id: place-index, type: teleport_boss, time: 0, name: The Index, bossId: boss, spots: [[0, 0]], facing: 0 }
+  # Keep the boss stationary and facing north for the entire encounter.
+  - id: keep-boss-still
+    type: aoe
+    time: 0
+    name: keep_boss_still
+    telegraph: 90
+    damage: 0
+    damageType: "true"
+    lockFacing: true
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: [0, 0], radius: 0.1 }
+
+  - id: omni-elements
+    type: aoe
+    time: 0
+    name: Omni-Elements
+    telegraph: 3.97
+    damage: 20
+    damageType: magical
+    showCastBar: true
+    showTelegraph: false
+    shape: { kind: circle, center: [0, 0], radius: 30 }
+
+  - { <<: *castBar, id: elementary-expansion, time: 7.13, name: Elementary Expansion, telegraph: 2.99 }
+  - { <<: *castBar, id: predict, time: 18.32, name: Predict, telegraph: 2.99 }
+  # Event sets retain one implement cast bar per round.
+  - { <<: *castBar, id: sealed-implements-1-bow, time: 31.5, name: Sealed Implements, telegraph: 6.16 }
+  - { <<: *castBar, id: sealed-implements-1-harp, time: 31.5, name: Sealed Implements, telegraph: 6.16 }
+  - { <<: *castBar, id: sealed-implements-2-bow, time: 45.76, name: Sealed Implements, telegraph: 6.09 }
+  - { <<: *castBar, id: sealed-implements-2-harp, time: 45.76, name: Sealed Implements, telegraph: 6.09 }
+
+  # Elementary Absorption (instant) drops the platforms on this same tick; not modelled (see header).
+  - { <<: *castBar, id: elementary-chemistry-cast, time: 58.01, name: Elementary Chemistry, telegraph: 19.97 }
+  # Use 45 damage because the sim lacks the mitigation required in game.
+  - id: elementary-chemistry
+    type: aoe
+    time: 77.98
+    name: Elementary Chemistry
+    telegraph: 1.44
+    damage: 45
+    damageType: magical
+    showCastBar: false
+    showTelegraph: false
+    shape: { kind: circle, center: [0, 0], radius: 30 }
+
+  # Three stacks land 0.5s into the cast; cleanse one per element before 79.72.
+  - { id: elementary-deficiency, type: apply_effect, time: 58.51, name: Elementary Deficiency, applyEffect: { ref: elementary_deficiency } }
+  - { <<: *chemPad, id: chem-pad-n, shape: { kind: circle, center: [0, 9], radius: 2 }, mover: { from: [0, 9], departAt: 77.98, scale: 0.35 } }
+  - { <<: *chemPad, id: chem-pad-ne, shape: { kind: circle, center: [7.794, 4.5], radius: 2 }, mover: { from: [7.794, 4.5], departAt: 77.98, scale: 0.35 } }
+  - { <<: *chemPad, id: chem-pad-se, shape: { kind: circle, center: [7.794, -4.5], radius: 2 }, mover: { from: [7.794, -4.5], departAt: 77.98, scale: 0.35 } }
+  - { <<: *chemPad, id: chem-pad-s, shape: { kind: circle, center: [0, -9], radius: 2 }, mover: { from: [0, -9], departAt: 77.98, scale: 0.35 } }
+  - { <<: *chemPad, id: chem-pad-sw, shape: { kind: circle, center: [-7.794, -4.5], radius: 2 }, mover: { from: [-7.794, -4.5], departAt: 77.98, scale: 0.35 } }
+  - { <<: *chemPad, id: chem-pad-nw, shape: { kind: circle, center: [-7.794, 4.5], radius: 2 }, mover: { from: [-7.794, 4.5], departAt: 77.98, scale: 0.35 } }
+
+  # Each wave hits three alternating trapezoids; wave 3 repeats wave 1 (`eventSets.chemistry` picks).
+  # First wave N/SE/SW.
+  - { <<: *chemHit, id: chem-a1-n, time: 60.9, telegraph: 6.06, shape: { kind: circle, center: [0, 9], radius: 2 }, glyph: { at: [0, 20.506] }, mover: { from: [0, 20.506], departAt: 63.93 } }
+  - { <<: *chemHit, id: chem-a1-se, time: 60.9, telegraph: 6.06, shape: { kind: circle, center: [7.794, -4.5], radius: 2 }, glyph: { at: [17.759, -10.253] }, mover: { from: [17.759, -10.253], departAt: 63.93 } }
+  - { <<: *chemHit, id: chem-a1-sw, time: 60.9, telegraph: 6.06, shape: { kind: circle, center: [-7.794, -4.5], radius: 2 }, glyph: { at: [-17.759, -10.253] }, mover: { from: [-17.759, -10.253], departAt: 63.93 } }
+  - { <<: *chemHit, id: chem-a2-s, time: 63.94, telegraph: 6.06, shape: { kind: circle, center: [0, -9], radius: 2 }, glyph: { at: [0, -20.506] }, mover: { from: [0, -20.506], departAt: 66.97 } }
+  - { <<: *chemHit, id: chem-a2-ne, time: 63.94, telegraph: 6.06, shape: { kind: circle, center: [7.794, 4.5], radius: 2 }, glyph: { at: [17.759, 10.253] }, mover: { from: [17.759, 10.253], departAt: 66.97 } }
+  - { <<: *chemHit, id: chem-a2-nw, time: 63.94, telegraph: 6.06, shape: { kind: circle, center: [-7.794, 4.5], radius: 2 }, glyph: { at: [-17.759, 10.253] }, mover: { from: [-17.759, 10.253], departAt: 66.97 } }
+  - { <<: *chemHit, id: chem-a3-n, time: 66.97, telegraph: 6.06, shape: { kind: circle, center: [0, 9], radius: 2 }, glyph: { at: [0, 20.506] }, mover: { from: [0, 20.506], departAt: 70 } }
+  - { <<: *chemHit, id: chem-a3-se, time: 66.97, telegraph: 6.06, shape: { kind: circle, center: [7.794, -4.5], radius: 2 }, glyph: { at: [17.759, -10.253] }, mover: { from: [17.759, -10.253], departAt: 70 } }
+  - { <<: *chemHit, id: chem-a3-sw, time: 66.97, telegraph: 6.06, shape: { kind: circle, center: [-7.794, -4.5], radius: 2 }, glyph: { at: [-17.759, -10.253] }, mover: { from: [-17.759, -10.253], departAt: 70 } }
+  # First wave S/NE/NW.
+  - { <<: *chemHit, id: chem-b1-s, time: 60.9, telegraph: 6.06, shape: { kind: circle, center: [0, -9], radius: 2 }, glyph: { at: [0, -20.506] }, mover: { from: [0, -20.506], departAt: 63.93 } }
+  - { <<: *chemHit, id: chem-b1-ne, time: 60.9, telegraph: 6.06, shape: { kind: circle, center: [7.794, 4.5], radius: 2 }, glyph: { at: [17.759, 10.253] }, mover: { from: [17.759, 10.253], departAt: 63.93 } }
+  - { <<: *chemHit, id: chem-b1-nw, time: 60.9, telegraph: 6.06, shape: { kind: circle, center: [-7.794, 4.5], radius: 2 }, glyph: { at: [-17.759, 10.253] }, mover: { from: [-17.759, 10.253], departAt: 63.93 } }
+  - { <<: *chemHit, id: chem-b2-n, time: 63.94, telegraph: 6.06, shape: { kind: circle, center: [0, 9], radius: 2 }, glyph: { at: [0, 20.506] }, mover: { from: [0, 20.506], departAt: 66.97 } }
+  - { <<: *chemHit, id: chem-b2-se, time: 63.94, telegraph: 6.06, shape: { kind: circle, center: [7.794, -4.5], radius: 2 }, glyph: { at: [17.759, -10.253] }, mover: { from: [17.759, -10.253], departAt: 66.97 } }
+  - { <<: *chemHit, id: chem-b2-sw, time: 63.94, telegraph: 6.06, shape: { kind: circle, center: [-7.794, -4.5], radius: 2 }, glyph: { at: [-17.759, -10.253] }, mover: { from: [-17.759, -10.253], departAt: 66.97 } }
+  - { <<: *chemHit, id: chem-b3-s, time: 66.97, telegraph: 6.06, shape: { kind: circle, center: [0, -9], radius: 2 }, glyph: { at: [0, -20.506] }, mover: { from: [0, -20.506], departAt: 70 } }
+  - { <<: *chemHit, id: chem-b3-ne, time: 66.97, telegraph: 6.06, shape: { kind: circle, center: [7.794, 4.5], radius: 2 }, glyph: { at: [17.759, 10.253] }, mover: { from: [17.759, 10.253], departAt: 70 } }
+  - { <<: *chemHit, id: chem-b3-nw, time: 66.97, telegraph: 6.06, shape: { kind: circle, center: [-7.794, 4.5], radius: 2 }, glyph: { at: [-17.759, 10.253] }, mover: { from: [-17.759, 10.253], departAt: 70 } }
+
+  - { <<: *marker, id: mark-n, shape: *polyN, glyph: { at: [0, 20.506] } }
+  - { <<: *marker, id: mark-s, shape: *polyS, glyph: { at: [0, -20.506] } }
+  - { <<: *marker, id: mark-ne, shape: *polyNE, glyph: { at: [17.759, 10.253] } }
+  - { <<: *marker, id: mark-sw, shape: *polySW, glyph: { at: [-17.759, -10.253] } }
+  - { <<: *marker, id: mark-se, shape: *polySE, glyph: { at: [17.759, -10.253] } }
+  - { <<: *marker, id: mark-nw, shape: *polyNW, glyph: { at: [-17.759, 10.253] } }
+
+  # Round 1, waves 1-3 (resolve 17.95 / 19.47 / 20.98).
+  - { <<: *wave, id: r1a-ns-n, time: 10.12, shape: *polyN, ring: *ring }
+  - { <<: *wave, id: r1a-ns-s, time: 10.12, shape: *polyS }
+  - { <<: *wave, id: r1a-nesw-ne, time: 11.64, shape: *polyNE, ring: *ring }
+  - { <<: *wave, id: r1a-nesw-sw, time: 11.64, shape: *polySW }
+  - { <<: *wave, id: r1a-senw-se, time: 13.15, shape: *polySE, ring: *ring }
+  - { <<: *wave, id: r1a-senw-nw, time: 13.15, shape: *polyNW }
+
+  # Round 1, waves 4-6 (resolve 22.47 / 23.97 / 25.48).
+  - { <<: *wave, id: r1b-ns-n, time: 14.64, shape: *polyN, ring: *ring }
+  - { <<: *wave, id: r1b-ns-s, time: 14.64, shape: *polyS }
+  - { <<: *wave, id: r1b-nesw-ne, time: 16.14, shape: *polyNE, ring: *ring }
+  - { <<: *wave, id: r1b-nesw-sw, time: 16.14, shape: *polySW }
+  - { <<: *wave, id: r1b-senw-se, time: 17.65, shape: *polySE, ring: *ring }
+  - { <<: *wave, id: r1b-senw-nw, time: 17.65, shape: *polyNW }
+
+  # Round 2, waves 1-3 (resolve 40.54 / 42.05 / 43.57).
+  - { <<: *wave, id: r2a-ns-n, time: 32.71, shape: *polyN, ring: *ring }
+  - { <<: *wave, id: r2a-ns-s, time: 32.71, shape: *polyS }
+  - { <<: *wave, id: r2a-nesw-ne, time: 34.22, shape: *polyNE, ring: *ring }
+  - { <<: *wave, id: r2a-nesw-sw, time: 34.22, shape: *polySW }
+  - { <<: *wave, id: r2a-senw-se, time: 35.74, shape: *polySE, ring: *ring }
+  - { <<: *wave, id: r2a-senw-nw, time: 35.74, shape: *polyNW }
+
+  # Round 2, waves 4-6 (resolve 45.06 / 46.55 / 48.07).
+  - { <<: *wave, id: r2b-ns-n, time: 37.23, shape: *polyN, ring: *ring }
+  - { <<: *wave, id: r2b-ns-s, time: 37.23, shape: *polyS }
+  - { <<: *wave, id: r2b-nesw-ne, time: 38.72, shape: *polyNE, ring: *ring }
+  - { <<: *wave, id: r2b-nesw-sw, time: 38.72, shape: *polySW }
+  - { <<: *wave, id: r2b-senw-se, time: 40.24, shape: *polySE, ring: *ring }
+  - { <<: *wave, id: r2b-senw-nw, time: 40.24, shape: *polyNW }
+
+  # Implement 1 (resolve 37.66): bow or harp (Sealed Implements picks one of the two).
+  - { <<: *bow, id: bow1-n, time: 36.56, shape: { kind: circle, center: [0, 20.506], radius: 11 } }
+  - { <<: *bow, id: bow1-ne, time: 36.56, shape: { kind: circle, center: [17.759, 10.253], radius: 11 } }
+  - { <<: *bow, id: bow1-se, time: 36.56, shape: { kind: circle, center: [17.759, -10.253], radius: 11 } }
+  - { <<: *bow, id: bow1-s, time: 36.56, shape: { kind: circle, center: [0, -20.506], radius: 11 } }
+  - { <<: *bow, id: bow1-sw, time: 36.56, shape: { kind: circle, center: [-17.759, -10.253], radius: 11 } }
+  - { <<: *bow, id: bow1-nw, time: 36.56, shape: { kind: circle, center: [-17.759, 10.253], radius: 11 } }
+  - { <<: *harp, id: harp1, time: 36.56 }
+
+  # Implement 2 (resolve 51.85): bow or harp (Sealed Implements picks one of the two).
+  - { <<: *bow, id: bow2-n, time: 50.82, telegraph: 1.03, shape: { kind: circle, center: [0, 20.506], radius: 11 } }
+  - { <<: *bow, id: bow2-ne, time: 50.82, telegraph: 1.03, shape: { kind: circle, center: [17.759, 10.253], radius: 11 } }
+  - { <<: *bow, id: bow2-se, time: 50.82, telegraph: 1.03, shape: { kind: circle, center: [17.759, -10.253], radius: 11 } }
+  - { <<: *bow, id: bow2-s, time: 50.82, telegraph: 1.03, shape: { kind: circle, center: [0, -20.506], radius: 11 } }
+  - { <<: *bow, id: bow2-sw, time: 50.82, telegraph: 1.03, shape: { kind: circle, center: [-17.759, -10.253], radius: 11 } }
+  - { <<: *bow, id: bow2-nw, time: 50.82, telegraph: 1.03, shape: { kind: circle, center: [-17.759, 10.253], radius: 11 } }
+  - { <<: *harp, id: harp2, time: 50.82, telegraph: 1.03 }
+
+  # Deals give each player two elements in one group. Rings land 6s before that group’s hit.
+  - { id: ring1-fire, type: apply_effect, time: 27.32, name: Fire IV, applyEffect: { ref: fire_iv_ring } }
+  - { id: ring1-blizzard, type: apply_effect, time: 27.32, name: Blizzard IV, applyEffect: { ref: blizzard_iv_ring } }
+  - { id: ring1-thunder, type: apply_effect, time: 27.32, name: Thunder IV, applyEffect: { ref: thunder_iv_ring } }
+  - { <<: *ringHit, id: ring1-n, time: 27.32, shape: *polyN, labels: [ring1] }
+  - { <<: *ringHit, id: ring1-s, time: 27.32, shape: *polyS, labels: [ring1] }
+  - { <<: *ringHit, id: ring1-ne, time: 27.32, shape: *polyNE, labels: [ring1] }
+  - { <<: *ringHit, id: ring1-sw, time: 27.32, shape: *polySW, labels: [ring1] }
+  - { <<: *ringHit, id: ring1-se, time: 27.32, shape: *polySE, labels: [ring1] }
+  - { <<: *ringHit, id: ring1-nw, time: 27.32, shape: *polyNW, labels: [ring1] }
+
+  # Group 2 (Sealed Implements 1), hit 38.34.
+  - { id: ring2-fire, type: apply_effect, time: 32.34, name: Fire IV, applyEffect: { ref: fire_iv_ring } }
+  - { id: ring2-blizzard, type: apply_effect, time: 32.34, name: Blizzard IV, applyEffect: { ref: blizzard_iv_ring } }
+  - { id: ring2-thunder, type: apply_effect, time: 32.34, name: Thunder IV, applyEffect: { ref: thunder_iv_ring } }
+  - { <<: *ringHit, id: ring2-n, time: 32.34, shape: *polyN, labels: [ring2] }
+  - { <<: *ringHit, id: ring2-s, time: 32.34, shape: *polyS, labels: [ring2] }
+  - { <<: *ringHit, id: ring2-ne, time: 32.34, shape: *polyNE, labels: [ring2] }
+  - { <<: *ringHit, id: ring2-sw, time: 32.34, shape: *polySW, labels: [ring2] }
+  - { <<: *ringHit, id: ring2-se, time: 32.34, shape: *polySE, labels: [ring2] }
+  - { <<: *ringHit, id: ring2-nw, time: 32.34, shape: *polyNW, labels: [ring2] }
+
+  # Group 3 (Sealed Implements 2), hit 52.37.
+  - { id: ring3-fire, type: apply_effect, time: 46.37, name: Fire IV, applyEffect: { ref: fire_iv_ring } }
+  - { id: ring3-blizzard, type: apply_effect, time: 46.37, name: Blizzard IV, applyEffect: { ref: blizzard_iv_ring } }
+  - { id: ring3-thunder, type: apply_effect, time: 46.37, name: Thunder IV, applyEffect: { ref: thunder_iv_ring } }
+  - { <<: *ringHit, id: ring3-n, time: 46.37, shape: *polyN, labels: [ring3] }
+  - { <<: *ringHit, id: ring3-s, time: 46.37, shape: *polyS, labels: [ring3] }
+  - { <<: *ringHit, id: ring3-ne, time: 46.37, shape: *polyNE, labels: [ring3] }
+  - { <<: *ringHit, id: ring3-sw, time: 46.37, shape: *polySW, labels: [ring3] }
+  - { <<: *ringHit, id: ring3-se, time: 46.37, shape: *polySE, labels: [ring3] }
+  - { <<: *ringHit, id: ring3-nw, time: 46.37, shape: *polyNW, labels: [ring3] }
+
+  # Cleansing orbs (resolve 32.70).
+  - { <<: *castBar, id: cleansing-cast, time: 31.73, name: Cleansing, telegraph: 0.97 }
+  - { <<: *orb, id: orb-nw-circle, mover: { from: [-8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: circle, center: [-13.642, 7.877], radius: 9.9 } }
+  - { <<: *orb, id: orb-nw-donut, mover: { from: [-8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [-13.642, 7.877], inner: 4.5, outer: 14.85 } }
+  - { <<: *orb, id: orb-ne-circle, mover: { from: [0, 9.3], departAt: 27.7, sprite: true }, shape: { kind: circle, center: [13.642, 7.877], radius: 9.9 } }
+  - { <<: *orb, id: orb-ne-donut, mover: { from: [0, 9.3], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [13.642, 7.877], inner: 4.5, outer: 14.85 } }
+  - { <<: *orb, id: orb-s-circle, mover: { from: [8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: circle, center: [0, -15.753], radius: 9.9 } }
+  - { <<: *orb, id: orb-s-donut, mover: { from: [8.054, -4.65], departAt: 27.7, sprite: true }, shape: { kind: donut, center: [0, -15.753], inner: 4.5, outer: 14.85 } }
+  # Where each orb will detonate, shown for all three regardless of which one is the donut.
+  - { <<: *chemPad, id: cleansing-pad-nw, time: 22.31, telegraph: 10.39, name: Cleansing Target, color: "#4fc3ff", telegraphAlpha: 0.85, shape: { kind: circle, center: [-13.642, 7.877], radius: 1.35 } }
+  - { <<: *chemPad, id: cleansing-pad-ne, time: 22.31, telegraph: 10.39, name: Cleansing Target, color: "#4fc3ff", telegraphAlpha: 0.85, shape: { kind: circle, center: [13.642, 7.877], radius: 1.35 } }
+  - { <<: *chemPad, id: cleansing-pad-s, time: 22.31, telegraph: 10.39, name: Cleansing Target, color: "#4fc3ff", telegraphAlpha: 0.85, shape: { kind: circle, center: [0, -15.753], radius: 1.35 } }
+
+waymarks:
+  - { mark: A, pos: { x: 0, z: 9 } }
+  - { mark: B, pos: { x: -7.794, z: -4.5 } }
+  - { mark: C, pos: { x: 7.794, z: -4.5 } }
+  - { mark: "1", pos: { x: -7.794, z: 4.5 } }
+  - { mark: "2", pos: { x: 0, z: -9 } }
+  - { mark: "3", pos: { x: 7.794, z: 4.5 } }
+
+optionals:
+  rngLabels:
+    event-set-implement-1: { label: Implement 1, options: [Bow, Harp] }
+    event-set-implement-2: { label: Implement 2, options: [Bow, Harp] }
+    event-set-orbs: { label: Cleansing donut, options: [NW, NE, S] }
+    event-set-chemistry: { label: Chemistry first wave, options: [N/SE/SW, S/NE/NW] }
+    label-pairs-0: { label: N/S element }
+    label-pairs-1: { label: NE/SW element }
+    label-pairs-2: { label: SE/NW element }
+    time-shuffle-r1-first-first: { label: "Round 1: first pair", options: [N/S, NE/SW, SE/NW] }
+    time-shuffle-r1-first-1: { label: "Round 1: waves 2–3", options: [Reverse pair order, Listed pair order] }
+    time-shuffle-r1-second-first: { label: "Round 1: fourth pair", options: [First eligible pair, Second eligible pair] }
+    time-shuffle-r1-second-1: { label: "Round 1: waves 5–6", options: [Reverse pair order, Listed pair order] }
+    time-shuffle-r2-first-first: { label: "Round 2: first pair", options: [N/S, NE/SW, SE/NW] }
+    time-shuffle-r2-first-1: { label: "Round 2: waves 2–3", options: [Reverse pair order, Listed pair order] }
+    time-shuffle-r2-second-first: { label: "Round 2: fourth pair", options: [First eligible pair, Second eligible pair] }
+    time-shuffle-r2-second-1: { label: "Round 2: waves 5–6", options: [Reverse pair order, Listed pair order] }
+  # Keep pair indices aligned so noRepeatAfter prevents repeats across the join.
+  timeShuffle:
+    - id: r1-first
+      rng: true
+      groups: [[r1a-ns-n, r1a-ns-s], [r1a-nesw-ne, r1a-nesw-sw], [r1a-senw-se, r1a-senw-nw]]
+    - id: r1-second
+      rng: true
+      noRepeatAfter: r1-first
+      groups: [[r1b-ns-n, r1b-ns-s], [r1b-nesw-ne, r1b-nesw-sw], [r1b-senw-se, r1b-senw-nw]]
+    - id: r2-first
+      rng: true
+      groups: [[r2a-ns-n, r2a-ns-s], [r2a-nesw-ne, r2a-nesw-sw], [r2a-senw-se, r2a-senw-nw]]
+    - id: r2-second
+      rng: true
+      noRepeatAfter: r2-first
+      groups: [[r2b-ns-n, r2b-ns-s], [r2b-nesw-ne, r2b-nesw-sw], [r2b-senw-se, r2b-senw-nw]]
+  combinations:
+    # Which element each pair is, drawn once and kept for the whole pull.
+    labels:
+      pairs:
+        rng: true
+        slots:
+          - [mark-n, mark-s, r1a-ns-n, r1a-ns-s, r1b-ns-n, r1b-ns-s, r2a-ns-n, r2a-ns-s, r2b-ns-n, r2b-ns-s, ring1-n, ring1-s, ring2-n, ring2-s, ring3-n, ring3-s, chem-a1-n, chem-a2-s, chem-a3-n, chem-b1-s, chem-b2-n, chem-b3-s]
+          - [mark-ne, mark-sw, r1a-nesw-ne, r1a-nesw-sw, r1b-nesw-ne, r1b-nesw-sw, r2a-nesw-ne, r2a-nesw-sw, r2b-nesw-ne, r2b-nesw-sw, ring1-ne, ring1-sw, ring2-ne, ring2-sw, ring3-ne, ring3-sw, chem-a1-sw, chem-a2-ne, chem-a3-sw, chem-b1-ne, chem-b2-sw, chem-b3-ne]
+          - [mark-se, mark-nw, r1a-senw-se, r1a-senw-nw, r1b-senw-se, r1b-senw-nw, r2a-senw-se, r2a-senw-nw, r2b-senw-se, r2b-senw-nw, ring1-se, ring1-nw, ring2-se, ring2-nw, ring3-se, ring3-nw, chem-a1-se, chem-a2-nw, chem-a3-se, chem-b1-nw, chem-b2-se, chem-b3-nw]
+        variants:
+          - { name: Blizzard IV, color: "#3aa0ff", glyph: ice }
+          - { name: Thunder IV, color: "#ffd84a", glyph: lightning }
+          - { name: Fire IV, color: "#ff3b30", glyph: fire }
+    # Everyone gets two of the three elements; the third is their safe platform.
+    deals:
+      rings:
+        rng: true
+        groups:
+          - size: 3
+            name: Predict
+            effects: [ring1-fire, ring1-blizzard, ring1-thunder]
+            aoes: [ring1-n, ring1-s, ring1-ne, ring1-sw, ring1-se, ring1-nw]
+          - size: 2
+            name: Implement 1
+            effects: [ring2-fire, ring2-blizzard, ring2-thunder]
+            aoes: [ring2-n, ring2-s, ring2-ne, ring2-sw, ring2-se, ring2-nw]
+          - size: 3
+            name: Implement 2
+            effects: [ring3-fire, ring3-blizzard, ring3-thunder]
+            aoes: [ring3-n, ring3-s, ring3-ne, ring3-sw, ring3-se, ring3-nw]
+        variants:
+          - { name: Fire safe, effects: [1, 2] }
+          - { name: Blizzard safe, effects: [0, 2] }
+          - { name: Thunder safe, effects: [0, 1] }
+    eventSets:
+      implement-1:
+        rng: true
+        sets:
+          - [sealed-implements-1-bow, bow1-n, bow1-ne, bow1-se, bow1-s, bow1-sw, bow1-nw]
+          - [sealed-implements-1-harp, harp1]
+      implement-2:
+        rng: true
+        sets:
+          - [sealed-implements-2-bow, bow2-n, bow2-ne, bow2-se, bow2-s, bow2-sw, bow2-nw]
+          - [sealed-implements-2-harp, harp2]
+      orbs:
+        rng: true
+        sets:
+          - [orb-nw-donut, orb-ne-circle, orb-s-circle]
+          - [orb-nw-circle, orb-ne-donut, orb-s-circle]
+          - [orb-nw-circle, orb-ne-circle, orb-s-donut]
+      chemistry:
+        rng: true
+        sets:
+          - [chem-a1-n, chem-a1-se, chem-a1-sw, chem-a2-s, chem-a2-ne, chem-a2-nw, chem-a3-n, chem-a3-se, chem-a3-sw]
+          - [chem-b1-s, chem-b1-ne, chem-b1-nw, chem-b2-n, chem-b2-se, chem-b2-sw, chem-b3-s, chem-b3-ne, chem-b3-nw]

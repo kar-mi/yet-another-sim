@@ -103,6 +103,8 @@ export function promotePending(
         telegraphDuration: event.deferred ? event.telegraph : undefined,
         armed: false,
         requireFullHp: event.requireFullHp,
+        onlyCarriers: event.onlyCarriers,
+        players: event.players,
         anchor: event.anchor,
         directionFrom: event.directionFrom,
         directionOffset: event.directionOffset,
@@ -113,8 +115,13 @@ export function promotePending(
         telegraphMode: event.telegraphMode,
         flashBeforeResolve: event.flashBeforeResolve,
         color: event.color,
+        outline: event.outline,
+        telegraphAlpha: event.telegraphAlpha,
+        glyph: event.glyph,
+        ring: event.ring,
+        mover: event.mover,
         floorAoe: event.deferred ? undefined : buildFloorAoe({
-          id: event.id, shape, color: event.color, showTelegraph,
+          id: event.id, shape, color: event.color, alpha: event.telegraphAlpha, showTelegraph, outline: event.outline,
           telegraphMode: event.telegraphMode, flashBeforeResolve: event.flashBeforeResolve, resolveAt,
         }),
       });

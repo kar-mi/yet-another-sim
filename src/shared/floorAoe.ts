@@ -34,6 +34,8 @@ export class FloorAoe {
   readonly shape: AOEShape;
   readonly color: string;
   readonly alpha?: number;
+  // "outline" draws only the shape edge instead of a filled footprint.
+  readonly style?: "outline";
   readonly resolveMode: FloorAoeResolveMode;
   readonly resolveAt: number;
 
@@ -42,6 +44,7 @@ export class FloorAoe {
     shape: AOEShape;
     color: string;
     alpha?: number;
+    style?: "outline";
     resolveMode: FloorAoeResolveMode;
     resolveAt: number;
   }) {
@@ -49,6 +52,7 @@ export class FloorAoe {
     this.shape = params.shape;
     this.color = params.color;
     this.alpha = params.alpha;
+    this.style = params.style;
     this.resolveMode = params.resolveMode;
     this.resolveAt = params.resolveAt;
   }

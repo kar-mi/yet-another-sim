@@ -49,9 +49,11 @@ export type GenericSolverRule = {
   mirrorForward?: boolean;
   spots?: Record<string, Vec2>; // per-player spot; wins over spot
   spot?: Vec2;                   // one spot for every matching bot
-  // Candidate spots transformed through frame/origin like `spot`. The solver chooses the nearest
-  // candidate outside every live AOE matched by when.mechanic. Requires when.mechanic.
+  // Choose the nearest candidate safe from matching AOEs that can hit this bot; ties use list order.
+  // Use frame/origin when framed, otherwise world coordinates.
   safeSpots?: Vec2[];
+  // safeSpots only: ignore dangers resolving more than this many seconds from now.
+  dangerHorizon?: number;
   // Limit Cut placement. Requires when.mechanic naming a fired limit cut (World.limitCuts): the
   // matched mechanic supplies the rotation basis. `spots[n-1]` is the placement for limit-cut number
   // n, authored relative to relative-north (lateral r in Vec2.x, like a frame spot); the solver

@@ -132,6 +132,61 @@ function applyOrderSwap(
   return { events: result as RaidDef["events"], rngState: roll.state };
 }
 
+// Shuffle group timings. Matching group indices identify the same pair across entries.
+function shuffleEventTimes(
+  events: RaidDef["events"],
+  timeShuffle: NonNullable<RaidDef["optionals"]>["timeShuffle"] | undefined,
+  rngState: number,
+  decisions: PreRollDecisions,
+  constraints: RngConstraints,
+): { events: RaidDef["events"]; rngState: number } {
+  if (!timeShuffle) return { events, rngState };
+
+  let nextState = rngState;
+  const byId = new Map(events.map(e => [e.id, e]));
+  const timingById = new Map<string, { t: number; telegraph: number }>();
+  const lastGroupOf: Record<string, number> = {};
+
+  for (const entry of timeShuffle) {
+    const slots = entry.groups.map(group => {
+      const head = byId.get(group[0]!);
+      if (!head || !("telegraph" in head)) throw new Error(`timeShuffle "${entry.id}" group head "${group[0]}" has no telegraph`);
+      return { t: head.t, telegraph: head.telegraph };
+    });
+
+    const order = entry.groups.map((_, i) => i);
+    if (entry.rng) {
+      // Draw directly from eligible groups so pinned choices preserve later RNG draws.
+      const forbiddenFirst = entry.noRepeatAfter === undefined ? -1 : lastGroupOf[entry.noRepeatAfter] ?? -1;
+      const allowed = order.filter(i => i !== forbiddenFirst);
+      const firstRoll = randomInt(nextState, allowed.length);
+      const first = allowed[selected(`time-shuffle-${entry.id}-first`, firstRoll.value, constraints, decisions)]!;
+      nextState = firstRoll.state;
+
+      const rest = order.filter(i => i !== first);
+      for (let i = rest.length - 1; i > 0; i--) {
+        const roll = randomInt(nextState, i + 1);
+        const j = selected(`time-shuffle-${entry.id}-${i}`, roll.value, constraints, decisions);
+        [rest[i], rest[j]] = [rest[j]!, rest[i]!];
+        nextState = roll.state;
+      }
+      order[first] = 0;
+      rest.forEach((groupIndex, slot) => { order[groupIndex] = slot + 1; });
+    }
+
+    entry.groups.forEach((group, groupIndex) => {
+      for (const id of group) timingById.set(id, slots[order[groupIndex]!]!);
+    });
+    lastGroupOf[entry.id] = order.indexOf(slots.length - 1);
+  }
+
+  const result = events.map(e => {
+    const timing = timingById.get(e.id);
+    return timing && "telegraph" in e ? { ...e, t: timing.t, telegraph: timing.telegraph } : e;
+  });
+  return { events: result as RaidDef["events"], rngState: nextState };
+}
+
 // Seeded per-run rotation of a divebomb sweep around its canonical ring: each numbered dash (its
 // index in `divebombSweep.events`) is remapped to a different canonical from/to pair by a random
 // start offset + direction. When `limitCut` is set, that limit cut's placement basis is derived
@@ -186,6 +241,58 @@ function rotateDivebombSweep(
 
 type EndingCombination = NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["endings"];
 
+// Shuffle variants, then fill forced slots without duplicates.
+function rollVariantOrder(
+  count: number,
+  rngState: number,
+  keyForSlot: (slot: number) => string,
+  decisions: PreRollDecisions,
+  constraints: RngConstraints,
+): { order: number[]; rngState: number } {
+  const order = Array.from({ length: count }, (_, i) => i);
+  for (let i = count - 1; i > 0; i--) {
+    const roll = randomInt(rngState, i + 1);
+    rngState = roll.state;
+    [order[i], order[roll.value]] = [order[roll.value]!, order[i]!];
+  }
+  const forced = new Set(order.map((_, slot) => constraints[keyForSlot(slot)]).filter(value => value !== undefined));
+  const remaining = order.filter(index => !forced.has(index));
+  const arranged = order.map((_, slot) => {
+    const value = constraints[keyForSlot(slot)] ?? remaining.shift()!;
+    decisions[keyForSlot(slot)] = value;
+    return value;
+  });
+  return { order: arranged, rngState };
+}
+
+// Assign one name/color/glyph variant per event slot.
+type LabelVariant = NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["labels"] extends
+  Record<string, { variants: (infer V)[] }> | undefined ? V : never;
+
+function buildLabelPlan(
+  labels: NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["labels"],
+  rngState: number,
+  decisions: PreRollDecisions,
+  constraints: RngConstraints,
+): { labels: Record<string, LabelVariant>; rngState: number } {
+  const plan: Record<string, LabelVariant> = {};
+  if (!labels) return { labels: plan, rngState };
+
+  let nextState = rngState;
+  for (const [key, spec] of Object.entries(labels)) {
+    const { order, rngState: afterLabels } = spec.rng
+      ? rollVariantOrder(spec.variants.length, nextState, slot => `label-${key}-${slot}`, decisions, constraints)
+      : { order: spec.variants.map((_, i) => i), rngState: nextState };
+    nextState = afterLabels;
+    spec.slots.forEach((slot, slotIndex) => {
+      const variant = spec.variants[order[slotIndex]!]!;
+      for (const id of slot) plan[id] = variant;
+    });
+  }
+
+  return { labels: plan, rngState: nextState };
+}
+
 function buildEndingPlan(
   endings: EndingCombination,
   rngState: number,
@@ -194,36 +301,14 @@ function buildEndingPlan(
 ): { endingOffsets: Record<string, number>; endingNames: Record<string, string>; rngState: number } {
   if (!endings) return { endingOffsets: {}, endingNames: {}, rngState };
 
-  const variants = endings.variants.map((variant, index) => ({ variant, index }));
-  let nextState = rngState;
-  if (endings.rng) {
-    for (let i = variants.length - 1; i > 0; i--) {
-      const roll = randomInt(nextState, i + 1);
-      nextState = roll.state;
-      [variants[i], variants[roll.value]] = [variants[roll.value]!, variants[i]!];
-    }
-  }
-
-  if (endings.rng) {
-    const forced = new Map<number, number>();
-    endings.events.forEach((_, slot) => {
-      const value = constraints[`ending-${slot}`];
-      if (value !== undefined) forced.set(slot, value);
-    });
-    const forcedValues = new Set(forced.values());
-    const remaining = variants.filter(entry => !forcedValues.has(entry.index));
-    const arranged = endings.events.map((_, slot) => {
-      const forcedValue = forced.get(slot);
-      return forcedValue === undefined ? remaining.shift()! : variants.find(entry => entry.index === forcedValue)!;
-    });
-    variants.splice(0, variants.length, ...arranged);
-  }
+  const { order, rngState: nextState } = endings.rng
+    ? rollVariantOrder(endings.variants.length, rngState, slot => `ending-${slot}`, decisions, constraints)
+    : { order: endings.variants.map((_, i) => i), rngState };
 
   const endingOffsets: Record<string, number> = {};
   const endingNames: Record<string, string> = {};
   endings.events.forEach((slot, i) => {
-    const { variant, index } = variants[i]!;
-    if (endings.rng) decisions[`ending-${i}`] = index;
+    const variant = endings.variants[order[i]!]!;
     // A slot is one event (forsaken) or a group sharing a variant (e.g. an implosion's cone pair).
     // A variant offset is one angle for all events in the slot, or one angle per event.
     const ids = Array.isArray(slot) ? slot : [slot];
@@ -369,6 +454,89 @@ function applyHeadSequence(
   };
 }
 
+type Deals = NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["deals"];
+
+// Deal players into groups and select their effects and AOEs.
+// Always consume all RNG draws so forced choices leave later rolls unchanged.
+function applyDeals(
+  events: RaidDef["events"],
+  deals: Deals,
+  playerIds: string[],
+  rngState: number,
+  decisions: PreRollDecisions,
+  constraints: RngConstraints,
+): { events: RaidDef["events"]; rngState: number } {
+  if (!deals) return { events, rngState };
+
+  let nextState = rngState;
+  const recipients = new Map<string, string[]>();
+  const members = new Map<string, string[]>();
+  for (const [key, deal] of Object.entries(deals)) {
+    const order = playerIds.slice();
+    const rolledVariant: Record<string, number> = {};
+    if (deal.rng) {
+      for (let i = order.length - 1; i > 0; i--) {
+        const roll = randomInt(nextState, i + 1);
+        nextState = roll.state;
+        [order[i], order[roll.value]] = [order[roll.value]!, order[i]!];
+      }
+      for (const id of playerIds) {
+        const roll = randomInt(nextState, deal.variants.length);
+        nextState = roll.state;
+        rolledVariant[id] = roll.value;
+      }
+    }
+
+    const seats = deal.groups.map(group => group.size);
+    const groupOf: Record<string, number> = {};
+    if (deal.rng) {
+      for (const id of playerIds) {
+        const forced = constraints[`deal-${key}-${id}-group`];
+        if (forced !== undefined && seats[forced]! > 0) {
+          groupOf[id] = forced;
+          seats[forced]!--;
+        }
+      }
+    }
+    for (const id of order) {
+      if (groupOf[id] !== undefined) continue;
+      const open = seats.findIndex(left => left > 0);
+      if (open < 0) break;
+      groupOf[id] = open;
+      seats[open]!--;
+    }
+
+    for (const id of playerIds) {
+      const group = groupOf[id];
+      if (group === undefined) continue;
+      const variant = deal.rng ? selected(`deal-${key}-${id}-variant`, rolledVariant[id]!, constraints, decisions) : 0;
+      if (deal.rng) decisions[`deal-${key}-${id}-group`] = group;
+      const spec = deal.groups[group]!;
+      for (const effectIndex of deal.variants[variant]!.effects) {
+        const eventId = spec.effects[effectIndex]!;
+        recipients.set(eventId, [...(recipients.get(eventId) ?? []), id]);
+      }
+      for (const eventId of spec.aoes) members.set(eventId, [...(members.get(eventId) ?? []), id]);
+    }
+    for (const group of deal.groups) {
+      for (const eventId of group.effects) if (!recipients.has(eventId)) recipients.set(eventId, []);
+      for (const eventId of group.aoes) if (!members.has(eventId)) members.set(eventId, []);
+    }
+  }
+
+  return {
+    events: events.flatMap(e => {
+      if (e.type === "apply_effect" && recipients.has(e.id)) {
+        const players = recipients.get(e.id)!;
+        return players.length > 0 ? [{ ...e, players }] : [];
+      }
+      if (e.type === "aoe" && members.has(e.id)) return [{ ...e, players: members.get(e.id)! }];
+      return [e];
+    }) as RaidDef["events"],
+    rngState: nextState,
+  };
+}
+
 export function preRollRaid(raid: RaidDef, seed: number, constraints: RngConstraints = {}): {
   events: RaidDef["events"];
   plantPlan: Record<string, [number, number][]>;
@@ -392,17 +560,28 @@ export function preRollRaid(raid: RaidDef, seed: number, constraints: RngConstra
     decisions[`crystals-${i}-swap`] = roll.swap;
   });
   const { events: rotatedEvents, rngState: afterTowerRngState } = rotateTowerWaves(raid.events, raid.optionals?.towerRng, afterCrystalRngState, decisions, constraints);
-  const { endingOffsets, endingNames, rngState: afterEndingRngState } = buildEndingPlan(raid.optionals?.combinations?.endings, afterTowerRngState, decisions, constraints);
+  const { labels, rngState: afterLabelRngState } = buildLabelPlan(raid.optionals?.combinations?.labels, afterTowerRngState, decisions, constraints);
+  const { endingOffsets, endingNames, rngState: afterEndingRngState } = buildEndingPlan(raid.optionals?.combinations?.endings, afterLabelRngState, decisions, constraints);
   const { events: swappedEvents, rngState: afterOrderSwapRngState } = applyOrderSwap(rotatedEvents, raid.optionals?.orderSwap, afterEndingRngState, decisions, constraints);
-  const { events: sweptEvents, rngState: afterDivebombSweepRngState } = rotateDivebombSweep(swappedEvents, raid.optionals?.divebombSweep, afterOrderSwapRngState, decisions, constraints);
+  const { events: shuffledEvents, rngState: afterTimeShuffleRngState } = shuffleEventTimes(swappedEvents, raid.optionals?.timeShuffle, afterOrderSwapRngState, decisions, constraints);
+  const { events: sweptEvents, rngState: afterDivebombSweepRngState } = rotateDivebombSweep(shuffledEvents, raid.optionals?.divebombSweep, afterTimeShuffleRngState, decisions, constraints);
   const { events: selectedEvents, rngState: afterEventSetRngState } = applyEventSets(sweptEvents, raid.optionals?.combinations?.eventSets, afterDivebombSweepRngState, decisions, constraints);
   const { events: hazardEvents, rngState: afterBlackHoleRngState, blackHoleTethers } = applyBlackHoleSpots(selectedEvents, afterEventSetRngState, decisions, constraints);
-  const { events: headEvents, rngState } = applyHeadSequence(hazardEvents, raid.optionals?.headSequence, afterBlackHoleRngState, decisions, constraints);
-  const events = headEvents.map(e =>
-    endingOffsets[e.id] === undefined
-      ? e
-      : { ...e, directionOffset: endingOffsets[e.id], ...(endingNames[e.id] !== undefined ? { name: endingNames[e.id] } : {}) },
-  ) as RaidDef["events"];
+  const { events: headEvents, rngState: afterHeadSequenceRngState } = applyHeadSequence(hazardEvents, raid.optionals?.headSequence, afterBlackHoleRngState, decisions, constraints);
+  const { events: dealtEvents, rngState } = applyDeals(headEvents, raid.optionals?.combinations?.deals, raid.players.map(p => p.id), afterHeadSequenceRngState, decisions, constraints);
+  const events = dealtEvents.map(e => {
+    const label = labels[e.id];
+    const labelled = label === undefined ? e : {
+      ...e,
+      name: label.name,
+      ...(label.color !== undefined ? { color: label.color } : {}),
+      ...(label.glyph !== undefined && e.type === "aoe" && e.glyph ? { glyph: { ...e.glyph, kind: label.glyph } } : {}),
+      ...(label.glyph !== undefined && e.type === "aoe" && e.ring ? { ring: { ...e.ring, kind: label.glyph } } : {}),
+    };
+    return endingOffsets[e.id] === undefined
+      ? labelled
+      : { ...labelled, directionOffset: endingOffsets[e.id], ...(endingNames[e.id] !== undefined ? { name: endingNames[e.id] } : {}) };
+  }) as RaidDef["events"];
 
   return {
     events,

@@ -1,7 +1,7 @@
 import type { Vec2 } from "../math";
 import type { FloorAoe } from "../floorAoe";
 import type {
-  AOEShape, BossRelativeCenter, CrystalElement, DamageType, FlashBeforeResolve,
+  AOEShape, BossRelativeCenter, CrystalElement, DamageType, ElementGlyph, ElementRing, FlashBeforeResolve, Mover,
   PositionalArc, Role, TelegraphMode,
 } from "./foundation";
 import type { EffectBehavior, EffectBundle, EffectSpec, Knockback, Reassign } from "./effects";
@@ -34,6 +34,8 @@ export type ActiveMechanic = {
   armed?: boolean;
   telegraphDuration?: number;
   requireFullHp?: boolean;
+  onlyCarriers?: boolean;
+  players?: string[];
   anchor?: "boss";
   directionFrom?: "bossFacing";
   directionOffset?: number;
@@ -59,6 +61,14 @@ export type ActiveMechanic = {
   // Ground telegraph color (hex). Kept alongside showTelegraph/telegraphMode/flashBeforeResolve so a
   // deferred cleave can rebuild floorAoe when a bait arms it (see buildFloorAoe).
   color?: string;
+  outline?: boolean;
+  telegraphAlpha?: number;
+  // Element glyph shown while unresolved.
+  glyph?: ElementGlyph;
+  // Visual ring expanding during the cast.
+  ring?: ElementRing;
+  // Visual mover travelling to the shape center.
+  mover?: Mover;
 };
 
 export type PendingEvent = {
@@ -87,6 +97,8 @@ export type PendingEvent = {
   // When true, this cleave is stored: it does not resolve at its own cast end; a linked bait arms it.
   deferred?: boolean;
   requireFullHp?: boolean;
+  onlyCarriers?: boolean;
+  players?: string[];
   showCastBar: boolean;
   showTelegraph: boolean;
   telegraphMode: TelegraphMode;
@@ -94,6 +106,12 @@ export type PendingEvent = {
   flashBeforeResolve?: FlashBeforeResolve;
   // Ground telegraph color (hex). Defaults to the standard danger red when omitted.
   color?: string;
+  // Outline telegraph.
+  outline?: boolean;
+  telegraphAlpha?: number;
+  glyph?: ElementGlyph;
+  ring?: ElementRing;
+  mover?: Mover;
 };
 
 export type PendingTargetedEvent = {

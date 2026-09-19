@@ -131,6 +131,26 @@ arena:
 - `rect`: axis-aligned, `width`/`height` > 0, centered on `center`.
 - `polygon`: at least 3 `vertices`.
 
+### Generated arenas
+
+A point is on the floor if it's inside **any** zone, so zones only ever add floor — there is no way
+to cut a hole with them. An arena that needs one (a ring, a platform with a gap in the middle) is
+built from a named generator in `src/engine/arenaGenerators.ts` instead of an inline list:
+
+```yaml
+arena:
+  generator: index_arena_1
+  floorPlan: { color: "#1f3852" }
+```
+
+Give `zones` or `generator`, never both. The generator runs at load and produces the same
+`ZoneShape` list the yaml would have, so nothing downstream knows the difference.
+
+| Generator | Shape |
+|---|---|
+| `index_arena_1` | Index. Six trapezoids forming a hexagon (apothem 13) around a hexagonal hole (apothem 5.6), plus square platforms flush with the S, NW and NE edges (side 15.01, reaching r 28). Nine zones. |
+| `index_arena_2` | The same arena after Elementary Expansion, with platforms on all six edges. Twelve zones. |
+
 ## Waymarks
 
 `waymarks` is an optional list of fixed reference markers drawn on the floor — the
@@ -1184,12 +1204,17 @@ shape: { kind: circle, center: { x: 0, z: 0 }, radius: 9 }
 shape: { kind: donut, center: { x: 0, z: 0 }, inner: 7, outer: 30 }
 shape: { kind: cone, origin: { x: 0, z: 0 }, direction: { x: 0, z: 1 }, angleDeg: 90, length: 22 }
 shape: { kind: rect, origin: { x: 0, z: 0 }, direction: { x: 1, z: 0 }, width: 6, length: 40 }
+shape: { kind: polygon, vertices: [[-7.5, 13], [7.5, 13], [7.5, 28], [-7.5, 28]] }
 ```
 
 - **circle** — `radius` > 0. A full-arena circle (radius = arena radius) is an unavoidable raid-wide hit.
 - **donut** — safe in the middle: hits between `inner` and `outer`. Requires `inner` < `outer` (`inner` ≥ 0, `outer` > 0).
 - **cone** — fans out from `origin` toward `direction` (a non-zero `{ x, z }` vector; magnitude doesn't matter, only heading). `angleDeg` is the full opening angle; `length` is the reach.
 - **rect** — a line/lane from `origin` extending along `direction` for `length`, `width` wide (centered on the line).
+- **polygon** — at least three `vertices` in arena coordinates, for footprints that follow arena
+  geometry (e.g. one of Index's trapezoid + platform pairs). The renderer triangulates it as a fan
+  from the first vertex, so keep it convex. A polygon has no `origin`/`center`, so a knockback pushes
+  from the average of its vertices unless `knockback.origin` says otherwise.
 
 For `cone`/`rect`, `origin` and `direction` are optional (default `{ x: 0, z: 0 }` / `{ x: 0, z: 1 }`) and can be
 left out when the event uses [`anchor`/`directionFrom`](#boss-anchored-cleaves-anchor--directionfrom) to
@@ -1407,6 +1432,58 @@ optionals:
   the `direction` written on the `plant` behavior in the event (which then only acts as a fallback
   for raids with no `optionals`). Give each `Tele-Trouncing` plant event a placeholder `direction`
   to satisfy the schema.
+
+### `timeShuffle`
+
+Permutes cast times across groups of events. Each entry collects its groups' authored
+`time`/`telegraph` (every event inside one group must share both) and deals those slots back out in a
+seeded order, so an authored wave order becomes a random one without touching shapes, ids or damage.
+`noRepeatAfter` names an earlier entry and stops this entry's first group from being the one that
+took the earlier entry's last slot — which is how Index's six element waves stay two clean
+permutations. Excerpt from `raids/forked-tower-magic/omni-elements-1.yaml`:
+
+```yaml
+optionals:
+  timeShuffle:
+    - id: r1-first
+      rng: true
+      groups: [[r1a-ns-n, r1a-ns-s], [r1a-nesw-ne, r1a-nesw-sw], [r1a-senw-se, r1a-senw-nw]]
+    - id: r1-second
+      rng: true
+      noRepeatAfter: r1-first
+      groups: [[r1b-ns-n, r1b-ns-s], [r1b-nesw-ne, r1b-nesw-sw], [r1b-senw-se, r1b-senw-nw]]
+```
+
+Groups at the same index across entries must describe the same thing (the same element, the same
+platform pair…), because that index is what `noRepeatAfter` compares.
+The linked entries must have the same number of groups. RNG controls expose the first eligible
+group and the remaining-order choices; eligible groups retain their listed order after excluding
+the previous last group. Pinning these choices preserves the no-repeat rule and RNG progression.
+
+### `labels`
+
+Deals `{ name, color }` variants out to slots of event ids, one variant per slot, seeded per run. Use
+it when the identity of a mechanic — not its geometry — is what changes between pulls: Index assigns
+an element to each pair of platforms this way, so every marker and wave on that pair shares one name
+and colour for the whole pull.
+RNG controls assign a variant to each slot; two slots cannot be forced to the same variant.
+Slots must reference AoE events, and an event may appear only once in a label assignment.
+
+```yaml
+optionals:
+  combinations:
+    labels:
+      pairs:
+        rng: true
+        slots:
+          - [mark-n, mark-s, r1a-ns-n, r1a-ns-s]
+          - [mark-ne, mark-sw, r1a-nesw-ne, r1a-nesw-sw]
+          - [mark-se, mark-nw, r1a-senw-se, r1a-senw-nw]
+        variants:
+          - { name: Blizzard IV, color: "#3aa0ff" }
+          - { name: Thunder IV, color: "#a855f7" }
+          - { name: Fire IV, color: "#ff7043" }
+```
 
 ### `pairings`
 
