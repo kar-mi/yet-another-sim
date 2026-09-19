@@ -1,4 +1,3 @@
-import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData";
@@ -6,9 +5,8 @@ import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
 import { CreateGround } from "@babylonjs/core/Meshes/Builders/groundBuilder";
 import { CreateRibbon } from "@babylonjs/core/Meshes/Builders/ribbonBuilder";
 import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
-import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveMechanic, AOEShape } from "@shared/types";
+import type { AOEShape } from "@shared/types";
 import { normalize } from "@shared/math";
 
 // Geometry-only ground mesh for an AOE shape (no material). Shared by the telegraph layer
@@ -103,16 +101,4 @@ export function createShapeOutlineMesh(scene: Scene, id: string, shape: AOEShape
     return null;
   }
   return CreateTube(`tel-outline-${id}`, { path: [...points, points[0]!], radius: 0.1, tessellation: 6, cap: 0 }, scene);
-}
-
-export function createTelegraphMesh(scene: Scene, mechanic: ActiveMechanic): Mesh | null {
-  const mesh = createShapeMesh(scene, mechanic.id, mechanic.shape);
-  if (!mesh) return null;
-
-  const mat = new StandardMaterial(`tel-mat-${mechanic.id}`, scene);
-  mat.diffuseColor = new Color3(1, 0.8, 0);
-  mat.specularColor = new Color3(0, 0, 0);
-  mat.backFaceCulling = false;
-  mesh.material = mat;
-  return mesh;
 }

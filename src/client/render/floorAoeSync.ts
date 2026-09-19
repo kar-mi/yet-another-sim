@@ -13,7 +13,7 @@ const OUTLINE_FILL_ALPHA = 0.15;
 
 type FloorAoeMeshEntry = { mesh: Mesh; outline: boolean; fill?: Mesh; source: FloorAoe };
 
-function createFloorMaterial(scene: Scene, name: string): StandardMaterial {
+export function createFloorMaterial(scene: Scene, name: string): StandardMaterial {
   const mat = new StandardMaterial(name, scene);
   mat.specularColor = new Color3(0, 0, 0);
   mat.backFaceCulling = false;

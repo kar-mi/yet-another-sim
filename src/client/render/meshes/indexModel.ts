@@ -3,6 +3,7 @@ import { GlowLayer } from "@babylonjs/core/Layers/glowLayer";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
+import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
@@ -100,8 +101,22 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
   glow.isEnabled = false;
   let glowing: Mesh[] = [];
   let glowWeapon: IndexWeapon | null = null;
+  // Compile each weapon mesh's glow shaders once its art has loaded, so the first highlight doesn't
+  // stall on a synchronous compile.
+  const glowWarmed = new Set<AbstractMesh>();
+  const warmGlow = () => {
+    if (glowWarmed.size === 0) glow.isLayerReady(); // creates the merge effect
+    for (const node of weaponNodes.values()) {
+      for (const mesh of node.getChildMeshes()) {
+        if (glowWarmed.has(mesh) || !mesh.material || !mesh.subMeshes) continue;
+        glowWarmed.add(mesh);
+        for (const subMesh of mesh.subMeshes) glow.isReady(subMesh, false);
+      }
+    }
+  };
 
   const highlight = (weapon: IndexWeapon | null, time: number) => {
+    if (!weapon) warmGlow();
     for (const [name, outline] of outlines) outline.setEnabled(name === weapon);
     // Refresh as the weapon art loads.
     const meshes = weapon ? weaponNodes.get(weapon)!.getChildMeshes() : [];
