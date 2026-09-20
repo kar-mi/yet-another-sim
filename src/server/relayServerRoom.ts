@@ -130,7 +130,7 @@ export class RelayServerRoom extends Room {
     }
     client.userData = { ...client.userData, ip, counted: true };
     connectedClients++;
-    client.send("s", { type: "joined", clientId: client.sessionId, participantId } satisfies ServerMessage);
+    client.send("s", { type: "joined", participantId } satisfies ServerMessage);
     this.relay.join(client.sessionId, participantId);
   }
 

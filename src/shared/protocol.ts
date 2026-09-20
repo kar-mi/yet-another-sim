@@ -211,7 +211,7 @@ export type Frame = { intents: Intents; botsInvincible: boolean; botsInvisible?:
 export type ReplayView = { pull: number; playing: boolean; tick: number };
 
 export type ServerMessage =
-  | { type: "joined"; clientId: string; participantId: string }
+  | { type: "joined"; participantId: string }
   | {
       type: "lobby";
       sessionId: string;

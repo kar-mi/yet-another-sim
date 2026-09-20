@@ -1,24 +1,33 @@
-import { EMPTY_RAID_ID, type RaidCategory } from "@shared/protocol";
+import type { RaidCategory } from "@shared/protocol";
 import { el } from "./dom";
 
 export interface RaidPicker {
   button: HTMLButtonElement;
   setRaidId: (raidId: string) => void;
   setEnabled: (enabled: boolean) => void;
-  close: () => void;
   dispose: () => void;
 }
 
-// A session starts with no raid picked; the workshop is entered from its own button, not selected here.
-const UNSELECTED: RaidCategory = {
-  id: "unselected",
-  name: "",
-  description: "",
-  raids: [{ id: EMPTY_RAID_ID, name: "SELECT RAID" }],
-};
+// Shown on the button before anything is picked. It is a prompt, never a row in the browser — every
+// option the list offers is a real raid.
+export const UNSELECTED_LABEL = "SELECT RAID";
 
-// Raid browser: a labelled trigger button plus a searchable category/raid modal. Used by the setup
-// screen, where the raid for the next pull is chosen.
+// An unselected or unknown raid id opens on the first category rather than inventing one.
+export function categoryForRaidId(categories: RaidCategory[], raidId: string): RaidCategory | null {
+  const separator = raidId.indexOf("/");
+  const prefix = separator === -1 ? null : raidId.slice(0, separator);
+  return (prefix === null ? null : categories.find(cat => cat.id === prefix)) ?? categories[0] ?? null;
+}
+
+export function raidLabelForId(categories: RaidCategory[], raidId: string): string {
+  for (const category of categories) {
+    const raid = category.raids.find(entry => entry.id === raidId);
+    if (raid) return raid.name;
+  }
+  return UNSELECTED_LABEL;
+}
+
+// Raid browser: a labelled trigger button plus a searchable category/raid modal.
 export function createRaidPicker(options: {
   categories: RaidCategory[];
   initialRaidId: string;
@@ -26,14 +35,8 @@ export function createRaidPicker(options: {
   onSelect: (raidId: string) => void;
 }): RaidPicker {
   const categories = options.categories;
-  const categoryForRaidId = (raidId: string): RaidCategory => {
-    if (raidId === EMPTY_RAID_ID) return UNSELECTED;
-    const prefix = raidId.slice(0, raidId.indexOf("/"));
-    return categories.find(cat => cat.id === prefix) ?? categories[0] ?? UNSELECTED;
-  };
-
   let selectedRaidId = options.initialRaidId;
-  let currentCategory = categoryForRaidId(selectedRaidId);
+  let currentCategory = categoryForRaidId(categories, selectedRaidId);
   let searchTerm = "";
 
   const raidName = el("span", { className: "yas-raid-open-name" });
@@ -47,12 +50,8 @@ export function createRaidPicker(options: {
     el("span", { className: "yas-raid-open-glyph", textContent: "▾" }),
   ]);
 
-  const raidLabelForId = (raidId: string): string => {
-    const category = categoryForRaidId(raidId);
-    return category.raids.find(raid => raid.id === raidId)?.name ?? category.raids[0]?.name ?? "";
-  };
   const updateButtonLabel = () => {
-    raidName.textContent = raidLabelForId(selectedRaidId);
+    raidName.textContent = raidLabelForId(categories, selectedRaidId);
   };
 
   const modal = el("div", { id: "yas-raid-modal" });
@@ -87,7 +86,7 @@ export function createRaidPicker(options: {
         el("div", { className: "yas-raid-cat-name", textContent: category.name }),
         el("div", { className: "yas-raid-cat-desc", textContent: category.description }),
       ]);
-      row.classList.toggle("is-active", normalizedSearch === "" && category.id === currentCategory.id);
+      row.classList.toggle("is-active", normalizedSearch === "" && category.id === currentCategory?.id);
       row.classList.toggle("is-dim", normalizedSearch !== "" && !hasMatch);
       row.addEventListener("click", () => {
         searchTerm = "";
@@ -102,8 +101,9 @@ export function createRaidPicker(options: {
 
   const renderRaids = () => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
-    const matches = normalizedSearch === ""
-      ? currentCategory.raids.map(raid => ({ category: currentCategory, raid }))
+    const active = currentCategory;
+    const matches = normalizedSearch === "" && active
+      ? active.raids.map(raid => ({ category: active, raid }))
       : categories.flatMap(category => category.raids
         .filter(raid => raid.name.toLowerCase().includes(normalizedSearch) || category.name.toLowerCase().includes(normalizedSearch))
         .map(raid => ({ category, raid })));
@@ -134,7 +134,7 @@ export function createRaidPicker(options: {
     if (button.disabled) return;
     searchTerm = "";
     searchInput.value = "";
-    currentCategory = categoryForRaidId(selectedRaidId);
+    currentCategory = categoryForRaidId(categories, selectedRaidId);
     renderCategories();
     renderRaids();
     modal.style.display = "flex";
@@ -165,7 +165,7 @@ export function createRaidPicker(options: {
     button,
     setRaidId: raidId => {
       selectedRaidId = raidId;
-      currentCategory = categoryForRaidId(raidId);
+      currentCategory = categoryForRaidId(categories, raidId);
       updateButtonLabel();
       if (modal.style.display !== "none") {
         renderCategories();
@@ -176,7 +176,6 @@ export function createRaidPicker(options: {
       button.disabled = !enabled;
       if (!enabled) close();
     },
-    close,
     dispose: () => {
       document.removeEventListener("keydown", onKeydown);
       modal.remove();

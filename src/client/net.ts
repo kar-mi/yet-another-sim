@@ -31,7 +31,6 @@ const HASH_INTERVAL = 300;
 const SNAPSHOT_INTERVAL = 600;
 
 export class NetClient {
-  clientId: string | null = null;
   participantId: string | null = null;
   // Latest shared replay from the server. Cached because it can arrive while the lobby screen is up,
   // before the sim view has subscribed to "replay".
@@ -42,7 +41,6 @@ export class NetClient {
   private readonly renderBuffer = new RenderSnapshotBuffer();
   private lastJoin: { sessionId: string; raidId: string; participantId: string } | null = null;
   private claimedPlayerId: string | null = null;
-  private observing = false;
   private isHost = false;
   private readonly predictor = new LocalPredictor();
   // True only while the pull is actively relaying frames (playing). Pause/stop/done leave the local
@@ -66,11 +64,7 @@ export class NetClient {
     }
     if (message.type === "claimSlot") this.claimedPlayerId = message.playerId;
     if (message.type === "releaseSlot" && this.claimedPlayerId === message.playerId) this.claimedPlayerId = null;
-    if (message.type === "claimObserver") {
-      this.claimedPlayerId = null;
-      this.observing = true;
-    }
-    if (message.type === "releaseObserver") this.observing = false;
+    if (message.type === "claimObserver") this.claimedPlayerId = null;
 
     return this.transport.send(message);
   }
@@ -130,12 +124,10 @@ export class NetClient {
 
   private handleMessage(message: ServerMessage): void {
     if (message.type === "joined") {
-      this.clientId = message.clientId;
       this.participantId = message.participantId;
     }
     if (message.type === "lobby") {
       this.claimedPlayerId = message.slots.find(slot => slot.claimedByYou || slot.queuedByYou)?.playerId ?? null;
-      this.observing = message.observingByYou || message.observerQueuedByYou;
       this.isHost = this.participantId !== null && this.participantId === message.hostParticipantId;
       this.predictor.reset();
     }
@@ -146,7 +138,6 @@ export class NetClient {
     }
     if (message.type === "started") {
       this.claimedPlayerId = message.yourPlayerId;
-      this.observing = message.yourPlayerId === null;
       this.applyStarted(message);
     } else if (message.type === "frames") {
       this.applyFrames(message);
@@ -156,7 +147,6 @@ export class NetClient {
       this.replayView = null;
       this.lastJoin = null;
       this.claimedPlayerId = null;
-      this.observing = false;
       this.isHost = false;
       this.playing = false;
       this.predictor.reset();
