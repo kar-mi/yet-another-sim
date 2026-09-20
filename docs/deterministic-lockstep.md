@@ -133,10 +133,12 @@ hash window and rate-caps reports so a client can't spam the relay.
 
 ## Server side: input log & frame relay
 
-- **`RelayRoom`** (`src/server/relayRoom.ts`) owns lobby/slot state and the
+- **`RelayRoom`** (`src/server/relayRoom.ts`) owns the session phase, slot state and the
   authoritative tick-0 `World`. It never calls `tick()`. Each tick it merges every
-  owned slot's latest intent into one `Frame` (move + facing carry forward; one-shot
-  actions like jump/sprint fire once) via `buildFrame()`.
+  **rostered** slot's latest intent into one `Frame` (move + facing carry forward; one-shot
+  actions like jump/sprint fire once) via `buildFrame()`. Ownership, the setup/workshop/raid
+  phases and the frozen pull roster are documented in
+  [Session lifecycle](./session-lifecycle.md).
 - **`FrameRelay`** (`src/server/frameRelay.ts`) drives the wall-clock 60Hz tick loop,
   appends each frame to `inputLog`, batches, and flushes to clients. A **shared
   scheduler** (one `setInterval` polling every 5ms) runs all active relays so N rooms
@@ -145,9 +147,12 @@ hash window and rate-caps reports so a client can't spam the relay.
   (bounded only by a `MAX_CATCHUP_SECONDS` clamp for pathological gaps like a debugger
   pause). Dropping ticks would make the authoritative position lag real input and never
   reconcile against client prediction.
-- `inputLog.length` *is* the current tick. On late join / resync the log is replayed
-  to rebuild the world. Snapshots (host sends one every `SNAPSHOT_INTERVAL = 600`
-  ticks) bound how much tail must be replayed.
+- `inputLog.length` *is* the current tick. On resync the log is replayed to rebuild the world.
+  Snapshots (host sends one every `SNAPSHOT_INTERVAL = 600` ticks) bound how much tail must be
+  replayed.
+- Snapshot + input-tail replay is a **recovery and workshop-sync path only**, never an admission
+  path into an authored pull: it is reachable solely for a participant already in the frozen roster.
+  The always-joinable arena is the workshop, which is unrecorded and has no frozen roster.
 
 ## Client side: stepping, snapshots & prediction
 

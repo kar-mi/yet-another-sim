@@ -8,11 +8,11 @@ experience beyond knowing what a tank, a healer and a DPS are.
 Open the simulator at [yetanothersim.com](https://yetanothersim.com).
 
 The landing screen has a single button, **CREATE NEW SESSION**. Pressing it generates a session id,
-puts it in the page URL as `?s=<id>`, and drops you into that session's lobby.
+puts it in the page URL as `?s=<id>`, and drops you into that session's **setup screen**.
 
 There is no "join by code" field: **you join a session by opening its URL**. Copy the page URL out
 of the address bar and send it to the people you want to practise with. Anyone who opens it lands
-in the same lobby.
+on the same setup screen.
 
 The first person to arrive is the **host**. The host is the only person who can pick the raid,
 change options, and start, pause, stop or restart a pull. Everyone else plays their character and
@@ -21,9 +21,25 @@ watches the host's decisions take effect.
 > If a session sits unused it eventually expires. When that happens the client shows a notice and
 > returns you to the landing screen; create a new session and share the new link.
 
+## The three phases of a session
+
+A session is always in one of three phases, and the setup screen tells you which:
+
+| Phase | What it is |
+|---|---|
+| **Setup** | The screen you land on. Claim a slot, then enter the waiting lobby. Nobody is in a world yet. |
+| **Waiting lobby** | An empty arena that is always joinable. Move around, try the camera, edit your HUD. Nothing is recorded. |
+| **Raid** | An authored pull. Its roster is frozen the moment it starts, so nobody can walk in mid-pull. |
+
+The host opens the waiting lobby from setup, then picks a raid from the HUD to load it.
+
+Your seat is tied to the browser tab, not to the connection: **reloading the page keeps your slot
+reservation**. A refresh during a live raid takes you out of that pull, but your seat is still
+yours for the next one.
+
 ## Claim a party slot
 
-The lobby lists the eight roster slots, always in the same order:
+The setup screen lists the eight roster slots, always in the same order:
 
 | Slot | Role | Conventional meaning |
 |---|---|---|
@@ -49,24 +65,36 @@ the pull without occupying a roster slot, and cannot claim a party slot at the s
 
 ### Joining while a pull is running
 
-If you arrive mid-pull, claiming a slot **queues** you rather than putting you in immediately, and
-the lobby says so: *"Raid in progress. The host must stop the raid for you to join."* Queued players
-enter on the next pull, once the host stops the current one.
+If you arrive mid-pull, claiming a slot **reserves** it rather than putting you in immediately, and
+the setup screen says so: *"Raid in progress. Your seat is reserved for the next pull."* The
+reservation holds until you release it; you enter on the next pull, once the host stops or restarts
+the current one.
+
+The waiting lobby has no frozen roster, so claiming a slot there puts you straight into the arena.
 
 ## Pick a raid
 
-Once the host presses **START**, everyone loads into the arena and the in-game HUD appears.
+**ENTER WAITING LOBBY** puts everyone who holds a slot or an observer seat into an empty arena. That
+is the right place to warm up on movement, or to sit while people file in.
 
-The **RAID** selector sits at the top of the screen. Only the host's is clickable; for everyone
-else it is a read-only label showing what is loaded.
+From there the **RAID** selector at the top of the screen is how you start a fight. Only the host's
+is clickable; for everyone else it is a read-only label showing what is loaded.
 
-Opening it shows the raid browser: categories on the left (**Default Lobby**, **Dancing Mad
-Ultimate**, **Debug**), raids on the right, and a search box that searches across every category at
-once. Picking a raid loads it for the whole session and starts it automatically after a short
-loading overlay — there is no separate confirm step.
+It opens the raid browser: categories on the left (**Dancing Mad Ultimate**, **Debug**), raids on
+the right, and a search box that searches across every category at once. **Picking a raid swaps
+everyone into it**, stopped at time zero and ready to go — the waiting lobby ends, but nothing runs
+until the host presses **START**.
 
-**Default Lobby** is an empty arena with no timeline. It is the right place to warm up on movement,
-or to sit while people file in.
+The same applies between pulls: once a raid is stopped or finished, picking a different one loads it
+at time zero, so you can move from fight to fight without returning to the waiting lobby. The one
+time the selector is locked is mid-pull — stop first.
+
+**START** also re-runs whatever is already selected, which is how you get back into the same fight
+after returning to the waiting lobby.
+
+A raid cannot outlive its host: if the host leaves, disconnects or reloads mid-pull, the pull ends
+and everyone still connected is returned to the waiting lobby with their seats intact. The same
+happens if every participant in the pull leaves.
 
 ## Practise against bots
 
@@ -93,7 +121,7 @@ The playback controls sit under the raid selector, and only the host may use the
 
 | Button | What it does |
 |---|---|
-| **START** / **PLAY** | Begins the pull, or resumes a paused one. Shows `START` when the raid is stopped. |
+| **START** / **PLAY** | Begins the pull, or resumes a paused one. Shows `START` in the waiting lobby and whenever the raid is stopped. |
 | **PAUSE** | Freezes the simulation where it is. |
 | **STOP** | Ends the pull, freezes the world, and saves the recording. |
 | **RESTART** | Runs the encounter again from time zero with a fresh seed. |
@@ -103,8 +131,9 @@ The playback controls sit under the raid selector, and only the host may use the
 **STOP is what saves a replay.** A pull that is restarted without stopping is not recorded, so if
 you want to review what just happened, stop first.
 
-The host also has an **OPTIONS** button, which stops the pull before opening so that changes cannot
-take effect halfway through a mechanic. It has three tabs:
+The host also has an **OPTIONS** button next to the raid selector. It stops a live pull before
+opening, so configuration can never change halfway through a mechanic; in the waiting lobby there is
+no pull to stop, so it just opens. It has three tabs:
 
 - **WAYMARK** — the ground-marker layout: `Default` (whatever the raid file authored), `Standard`,
   `Mirrored`, or `Wide`.

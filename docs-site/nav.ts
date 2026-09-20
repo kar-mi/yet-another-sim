@@ -124,6 +124,12 @@ export const NAV: NavSection[] = [
         title: "Deterministic lockstep",
         description: "The simulation model that keeps every client's world identical, and the rules engine changes must follow.",
       },
+      {
+        source: "docs/session-lifecycle.md",
+        url: "/developer/session-lifecycle/",
+        title: "Session lifecycle",
+        description: "Participant identity across a refresh, the setup/workshop/raid phases, slot reservations versus the frozen pull roster, and when a raid shuts down.",
+      },
     ],
   },
 ];

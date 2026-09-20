@@ -94,7 +94,7 @@ export function createBotActionsModal(net: NetClient, initial: BotActionsState):
 
   const disposeLobby = net.on("lobby", message => {
     state = {
-      isHost: net.clientId === message.hostClientId,
+      isHost: net.participantId === message.hostParticipantId,
       botsInvincible: message.botsInvincible,
       botsInvisible: message.botsInvisible,
     };
@@ -102,7 +102,7 @@ export function createBotActionsModal(net: NetClient, initial: BotActionsState):
     render();
   });
   const disposePlayback = net.on("playback", message => {
-    state = { ...state, isHost: net.clientId === message.hostClientId };
+    state = { ...state, isHost: net.participantId === message.hostParticipantId };
     if (!state.isHost) close();
     render();
   });

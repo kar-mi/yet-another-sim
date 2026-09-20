@@ -1,5 +1,5 @@
 import { Room, type AuthContext, type Client } from "@colyseus/core";
-import { ClientMessageSchema, EMPTY_RAID_ID, RaidIdSchema, SessionIdSchema, type ServerMessage } from "@shared/protocol";
+import { ClientMessageSchema, EMPTY_RAID_ID, ParticipantIdSchema, RaidIdSchema, SessionIdSchema, type ServerMessage } from "@shared/protocol";
 import { logger, createSessionLog } from "./logger";
 import { RAIDS_DIR } from "./raidCatalog";
 import { isOriginAllowed, parseAllowedOrigins } from "./origin";
@@ -40,11 +40,13 @@ interface RelayClientData {
   ip?: string;
   counted?: boolean;
   rate?: RateLimiter;
+  participantId?: string;
 }
 
 export interface RelayRoomOptions {
   sessionId?: string;
   raidId?: string;
+  participantId?: string;
 }
 
 export interface RelayServerDependencies {
@@ -103,13 +105,15 @@ export class RelayServerRoom extends Room {
     }
   }
 
-  onAuth(client: Client<{ userData: RelayClientData }>, _options: RelayRoomOptions, context: AuthContext): boolean {
+  onAuth(client: Client<{ userData: RelayClientData }>, options: RelayRoomOptions, context: AuthContext): boolean {
+    const participantId = ParticipantIdSchema.safeParse(options.participantId);
+    if (!participantId.success) return false;
     const origin = headerValue(context.headers, "origin");
     const host = headerValue(context.headers, "host") ?? "localhost";
     const requestUrl = "http://" + host + "/";
     if (!isOriginAllowed(origin ?? null, requestUrl, ALLOWED_ORIGINS)) return false;
     const ip = clientIpFor(headerValue(context.headers, "x-forwarded-for") ?? null, Array.isArray(context.ip) ? context.ip[0] : context.ip);
-    client.userData = { ip, rate: createMessageRateLimiter(MAX_WS_MSGS_PER_SEC) };
+    client.userData = { ip, rate: createMessageRateLimiter(MAX_WS_MSGS_PER_SEC), participantId: participantId.data };
     return true;
   }
 
@@ -119,10 +123,15 @@ export class RelayServerRoom extends Room {
       client.leave(4008, "Too many connections");
       return;
     }
+    const participantId = client.userData?.participantId;
+    if (!participantId) {
+      client.leave(4009, "Missing participant id");
+      return;
+    }
     client.userData = { ...client.userData, ip, counted: true };
     connectedClients++;
-    client.send("s", { type: "joined", clientId: client.sessionId } satisfies ServerMessage);
-    this.relay.join(client.sessionId);
+    client.send("s", { type: "joined", clientId: client.sessionId, participantId } satisfies ServerMessage);
+    this.relay.join(client.sessionId, participantId);
   }
 
   onLeave(client: Client<{ userData: RelayClientData }>): void {
@@ -163,22 +172,24 @@ export class RelayServerRoom extends Room {
         return;
       }
       try {
+        const participantId = client.userData?.participantId;
+        if (!participantId) return;
         if (parsed.data.type === "join") {
           this.relay.touch();
-          this.relay.sendLobby(client.sessionId);
-          this.relay.sendReplay(client.sessionId);
+          this.relay.sendLobby(participantId);
+          this.relay.sendReplay(participantId);
           return;
         }
         if (parsed.data.type === "setRaid") {
-          this.relay.setRaid(client.sessionId, parsed.data.raidId, await (this.dependencies.loadRaid ?? loadSessionRaid)(parsed.data.raidId, RAIDS_DIR));
+          this.relay.setRaid(participantId, parsed.data.raidId, await (this.dependencies.loadRaid ?? loadSessionRaid)(parsed.data.raidId, RAIDS_DIR));
           return;
         }
         if (parsed.data.type === "setBotPattern") {
-          const raid = await (this.dependencies.loadRaid ?? loadSessionRaid)(this.relay.raidId, RAIDS_DIR, parsed.data.patternId);
-          this.relay.setBotPattern(client.sessionId, parsed.data.patternId, raid);
+          const raid = await (this.dependencies.loadRaid ?? loadSessionRaid)(this.relay.selectedRaidId, RAIDS_DIR, parsed.data.patternId);
+          this.relay.setBotPattern(participantId, parsed.data.patternId, raid);
           return;
         }
-        this.relay.handle(client.sessionId, parsed.data);
+        this.relay.handle(participantId, parsed.data);
       } catch (err) {
         logger.error("net", "message handler failed", { clientId: client.sessionId, type: parsed.data.type, err });
         client.send("s", { type: "error", message: "Server error" } satisfies ServerMessage);

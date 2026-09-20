@@ -22,7 +22,7 @@ export class ReplayTransport implements Transport {
 
   send(message: ClientMessage): boolean {
     if (message.type === "join") {
-      this.handler({ type: "joined", clientId: this.clientId });
+      this.handler({ type: "joined", clientId: this.clientId, participantId: this.clientId });
       this.emitStarted(0);
       this.emitPlayback("paused");
     } else if (message.type === "play") {
@@ -98,7 +98,7 @@ export class ReplayTransport implements Transport {
   }
 
   private emitPlayback(state: "playing" | "paused"): void {
-    this.handler({ type: "playback", state, raidId: this.replay.raidId || EMPTY_RAID_ID, hostClientId: this.clientId, rngDecisions: [] });
+    this.handler({ type: "playback", state, phase: "raid", raidId: this.replay.raidId || EMPTY_RAID_ID, hostParticipantId: this.clientId, rngDecisions: [] });
   }
 
   private deliver(): void {
