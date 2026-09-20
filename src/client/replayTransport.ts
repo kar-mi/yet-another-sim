@@ -6,7 +6,7 @@ const TICK_MS = 1000 / 60;
 const MAX_CATCHUP_FRAMES = 240; // 4s at 60Hz; caps synchronous work per timer fire after e.g. a backgrounded tab
 
 export class ReplayTransport implements Transport {
-  private readonly clientId = crypto.randomUUID();
+  private readonly participantId = crypto.randomUUID();
   private handler: (message: ServerMessage) => void = () => {};
   private cursor = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -22,7 +22,7 @@ export class ReplayTransport implements Transport {
 
   send(message: ClientMessage): boolean {
     if (message.type === "join") {
-      this.handler({ type: "joined", clientId: this.clientId });
+      this.handler({ type: "joined", participantId: this.participantId });
       this.emitStarted(0);
       this.emitPlayback("paused");
     } else if (message.type === "play") {
@@ -98,7 +98,7 @@ export class ReplayTransport implements Transport {
   }
 
   private emitPlayback(state: "playing" | "paused"): void {
-    this.handler({ type: "playback", state, raidId: this.replay.raidId || EMPTY_RAID_ID, hostClientId: this.clientId, rngDecisions: [] });
+    this.handler({ type: "playback", state, phase: "raid", raidId: this.replay.raidId || EMPTY_RAID_ID, hostParticipantId: this.participantId, rngDecisions: [] });
   }
 
   private deliver(): void {

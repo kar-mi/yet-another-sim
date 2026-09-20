@@ -35,6 +35,7 @@ export const RAID_SEGMENT_REGEX = /^[a-z0-9][a-z0-9-]{0,63}$/;
 // Raid ids are an optional category prefix plus a raid segment, e.g. "debug/chain-test".
 export const RAID_ID_REGEX = /^[a-z0-9][a-z0-9-]{0,63}(\/[a-z0-9][a-z0-9-]{0,63})?$/;
 export const MAX_RAIDS = 50;
+export const PARTICIPANT_ID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const MAX_RAID_NAME_LENGTH = 60;
 
 export type RaidEntry = { id: string; name: string };
@@ -52,6 +53,7 @@ export function normalizeRaidName(name: unknown): string | null {
 
 export const RaidIdSchema = z.string().regex(RAID_ID_REGEX);
 export const SessionIdSchema = z.string().regex(RAID_SEGMENT_REGEX);
+export const ParticipantIdSchema = z.string().regex(PARTICIPANT_ID_REGEX);
 const PlayerIdSchema = z.string().min(1).max(64);
 
 const IntentVec2Schema = z.strictObject({
@@ -76,6 +78,7 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     type: z.literal("join"),
     sessionId: SessionIdSchema,
     raidId: RaidIdSchema,
+    participantId: ParticipantIdSchema,
   }),
   z.strictObject({
     type: z.literal("setRaid"),
@@ -97,6 +100,9 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
   }),
   z.strictObject({
     type: z.literal("start"),
+  }),
+  z.strictObject({
+    type: z.literal("enterWorkshop"),
   }),
   z.strictObject({
     type: z.literal("play"),
@@ -189,8 +195,9 @@ export type LobbySlot = {
   queuedByYou: boolean;
 };
 
-export type LobbyStatus = "lobby" | "running" | "paused" | "stopped" | "done";
-export type PlaybackState = "playing" | "paused" | "stopped" | "done";
+export type SessionPhase = "setup" | "workshop" | "raid";
+export type PlaybackState = "idle" | "playing" | "paused" | "stopped" | "done";
+export type TransitionReason = "hostLost" | "noParticipants";
 
 // One simulated tick's worth of authoritative input in server-relayed lockstep. `intents` holds the
 // merged human intents keyed by playerId (a slot is human-controlled this tick exactly when it has
@@ -204,14 +211,16 @@ export type Frame = { intents: Intents; botsInvincible: boolean; botsInvisible?:
 export type ReplayView = { pull: number; playing: boolean; tick: number };
 
 export type ServerMessage =
-  | { type: "joined"; clientId: string }
+  | { type: "joined"; participantId: string }
   | {
       type: "lobby";
       sessionId: string;
       raidId: string;
       raidName: string;
-      status: LobbyStatus;
-      hostClientId: string;
+      phase: SessionPhase;
+      playbackState: PlaybackState;
+      selectedRaidId: string;
+      hostParticipantId: string;
       slots: LobbySlot[];
       rngConstraints: Record<string, number>;
       rngDecisions: DecisionDescription[];
@@ -231,7 +240,8 @@ export type ServerMessage =
   // baseTick is the snapshot tick and frames is only the tail — the client adopts the world and
   // replays just the tail instead of the full log.
   | { type: "started"; world: World; baseTick: number; yourPlayerId: string | null; tick: number; frames: Frame[] }
-  | { type: "playback"; state: PlaybackState; raidId: string; hostClientId: string; rngDecisions: DecisionDescription[] }
+  | { type: "playback"; state: PlaybackState; phase: SessionPhase; raidId: string; hostParticipantId: string; rngDecisions: DecisionDescription[] }
+  | { type: "transition"; phase: SessionPhase; reason: TransitionReason }
   | { type: "sessionExpired" }
   // Incremental input frames to step locally. `startTick` is the tick index of the first frame.
   | { type: "frames"; startTick: number; frames: Frame[] }

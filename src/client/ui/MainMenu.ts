@@ -6,8 +6,8 @@ import {
   SessionIdSchema,
   normalizeRaidName,
   type LobbySlot,
-  type LobbyStatus,
   type PlaybackState,
+  type SessionPhase,
   type RaidCategory,
   type RaidEntry,
   type ServerMessage,
@@ -17,6 +17,7 @@ import {
 import type { World } from "@shared/types";
 import type { NetClient } from "../net";
 import { createElement } from "./dom";
+import { participantId } from "../participant";
 
 const LOBBY_SLOT_ORDER = ["mt", "ot", "h1", "h2", "m1", "m2", "r1", "r2"] as const;
 
@@ -108,18 +109,13 @@ export function showLanding(options?: { notice?: string }): Promise<string> {
   });
 }
 
-function playbackStateForLobby(status: LobbyStatus): PlaybackState {
-  if (status === "running" || status === "lobby") return "playing";
-  if (status === "paused") return "paused";
-  if (status === "done") return "done";
-  return "stopped";
-}
-
 type LobbyResult =
-  | { kind: "started"; world: World; yourPlayerId: string | null; sessionId: string; raidId: string; isHost: boolean; playbackState: PlaybackState; rngConstraints: Record<string, number>; rngDecisions: DecisionDescription[]; waymarkPresetId: string | null; botPatternOptions: BotPatternOption[]; botPatternId: string | null; botsInvincible: boolean; botsInvisible: boolean }
+  | { kind: "started"; world: World; yourPlayerId: string | null; sessionId: string; raidId: string; selectedRaidId: string; isHost: boolean; phase: SessionPhase; playbackState: PlaybackState; rngConstraints: Record<string, number>; rngDecisions: DecisionDescription[]; waymarkPresetId: string | null; botPatternOptions: BotPatternOption[]; botPatternId: string | null; botsInvincible: boolean; botsInvisible: boolean }
   | { kind: "expired" };
 
-export async function showLobby(net: NetClient, sessionId: string): Promise<LobbyResult> {
+// The setup screen: claim a seat, then enter the waiting lobby. Raid selection and pre-pull options
+// live in the in-sim HUD. Resolves once the server admits this client into a world.
+export async function showLobby(net: NetClient, sessionId: string, notice?: string): Promise<LobbyResult> {
   return new Promise((resolve) => {
     const overlay = document.createElement("div");
     overlay.id = "yas-menu";
@@ -192,23 +188,23 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
       return row;
     };
 
+    const subtitleFor = (message: LobbyMessage): string => {
+      if (message.phase === "setup") return "CLAIM PARTY SLOT";
+      if (message.phase === "workshop") return "WAITING LOBBY";
+      if (message.playbackState === "playing") return `${message.raidName.toUpperCase()} — IN PROGRESS`;
+      if (message.playbackState === "paused") return `${message.raidName.toUpperCase()} — PAUSED`;
+      if (message.playbackState === "done") return `${message.raidName.toUpperCase()} — FINISHED`;
+      return `${message.raidName.toUpperCase()} — STOPPED`;
+    };
+
     const renderLobby = (message: LobbyMessage) => {
       lastLobby = message;
-      const isDefaultLobby = message.raidId === EMPTY_RAID_ID;
-      const subtitle = message.status === "lobby"
-        ? `${message.raidName.toUpperCase()} — CLAIM PARTY SLOT`
-        : isDefaultLobby && message.status === "running"
-          ? `${message.raidName.toUpperCase()} — JOINABLE LOBBY`
-        : message.status === "running"
-          ? `${message.raidName.toUpperCase()} — IN PROGRESS, QUEUE FOR NEXT PULL`
-          : message.status === "paused"
-            ? `${message.raidName.toUpperCase()} — PAUSED, QUEUE FOR NEXT PULL`
-            : message.status === "stopped"
-              ? `${message.raidName.toUpperCase()} — STOPPED`
-              : `${message.raidName.toUpperCase()} — FINISHED`;
-      renderHeader(subtitle);
+      renderHeader(subtitleFor(message));
 
+      const isHost = net.participantId !== null && net.participantId === message.hostParticipantId;
       const claimedByMe = message.slots.some(slot => slot.claimedByYou || slot.queuedByYou);
+      const seatedByMe = claimedByMe || message.observingByYou || message.observerQueuedByYou;
+
       const slotList = createElement("div", "yas-lobby-slots");
       const slotsById = new Map(message.slots.map(slot => [slot.playerId, slot]));
       for (const playerId of LOBBY_SLOT_ORDER) {
@@ -217,41 +213,30 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
       }
       slotList.appendChild(renderObserverSlot(message, claimedByMe));
 
-      const isHost = net.clientId === message.hostClientId;
-      const canStart = message.status === "lobby" && (message.slots.some(slot => slot.claimed) || message.observingByYou);
-      const canResume = message.status === "paused" && (claimedByMe || message.observingByYou);
-      const canPlayStopped = message.status === "stopped" && (claimedByMe || message.observingByYou);
-      const canRestartDone = message.status === "done" && (claimedByMe || message.observingByYou);
-      const startLabel = message.status !== "lobby"
-        ? isDefaultLobby && message.status === "running"
-          ? "LOBBY ACTIVE"
-        : message.status === "running"
-          ? "IN PROGRESS"
-          : message.status === "paused"
-            ? "RESUME"
-            : message.status === "stopped"
-              ? "START"
-              : "RESTART"
-        : isHost ? "START" : "WAIT FOR HOST";
-      const startBtn = createElement("button", "yas-menu-start", startLabel);
-      startBtn.disabled = !isHost || (message.status === "paused" ? !canResume : message.status === "stopped" ? !canPlayStopped : message.status === "done" ? !canRestartDone : !canStart);
-      startBtn.addEventListener("click", () => net.send(message.status === "done" ? { type: "restart" } : message.status === "paused" || message.status === "stopped" ? { type: "play" } : { type: "start" }));
-      const queuedByMe = message.slots.some(slot => slot.queuedByYou) || message.observerQueuedByYou;
-      const queueWarning = queuedByMe && (message.status === "running" || message.status === "paused")
-        ? createElement("div", "yas-menu-queue-warning", "Raid in progress. The host must stop the raid for you to join.")
-        : null;
+      const canEnterWorkshop = isHost && (message.phase === "setup" || (message.phase === "raid" && message.playbackState !== "playing"));
+      const enterLabel = !isHost
+        ? "WAIT FOR HOST"
+        : message.phase === "raid"
+          ? "RETURN TO WAITING LOBBY"
+          : message.phase === "workshop"
+            ? "WAITING LOBBY OPEN"
+            : "ENTER WAITING LOBBY";
+      const enterBtn = createElement("button", "yas-menu-start", enterLabel);
+      enterBtn.disabled = !canEnterWorkshop;
+      enterBtn.addEventListener("click", () => net.send({ type: "enterWorkshop" }));
+
+      const waitNote = message.phase === "workshop" && !seatedByMe
+        ? createElement("div", "yas-menu-queue-warning", "Claim a slot or an observer seat to enter the waiting lobby.")
+        : message.phase === "raid" && seatedByMe
+          ? createElement("div", "yas-menu-queue-warning", "Raid in progress. Your seat is reserved for the next pull.")
+          : null;
 
       const sessionEl = createElement("div", "yas-menu-session");
-      sessionEl.append(
-        createElement("span", "yas-menu-note", `Copy the page URL to invite others.`),
-      );
+      sessionEl.append(createElement("span", "yas-menu-note", "Copy the page URL to invite others."));
 
-      if (message.status === "lobby") {
-        panel.append(sessionEl, slotList, startBtn);
-      } else {
-        panel.append(slotList, sessionEl, startBtn);
-        if (queueWarning) panel.appendChild(queueWarning);
-      }
+      panel.append(sessionEl, slotList, enterBtn);
+      if (waitNote) panel.appendChild(waitNote);
+      if (notice) showError(notice);
     };
 
     let lastLobby: LobbyMessage | null = null;
@@ -259,11 +244,26 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
     const disposers = [
       net.on("lobby", renderLobby),
       net.on("started", message => {
-        const raidId = lastLobby?.raidId ?? EMPTY_RAID_ID;
-        const isHost = net.clientId !== null && net.clientId === lastLobby?.hostClientId;
-        const playbackState = playbackStateForLobby(lastLobby?.status ?? "lobby");
+        const isHost = net.participantId !== null && net.participantId === lastLobby?.hostParticipantId;
         cleanup();
-        resolve({ kind: "started", world: message.world, yourPlayerId: message.yourPlayerId, sessionId, raidId, isHost, playbackState, rngConstraints: lastLobby?.rngConstraints ?? {}, rngDecisions: lastLobby?.rngDecisions ?? [], waymarkPresetId: lastLobby?.waymarkPresetId ?? null, botPatternOptions: lastLobby?.botPatternOptions ?? [], botPatternId: lastLobby?.botPatternId ?? null, botsInvincible: lastLobby?.botsInvincible ?? false, botsInvisible: lastLobby?.botsInvisible ?? false });
+        resolve({
+          kind: "started",
+          world: message.world,
+          yourPlayerId: message.yourPlayerId,
+          sessionId,
+          raidId: lastLobby?.raidId ?? EMPTY_RAID_ID,
+          selectedRaidId: lastLobby?.selectedRaidId ?? EMPTY_RAID_ID,
+          isHost,
+          phase: lastLobby?.phase ?? "workshop",
+          playbackState: lastLobby?.playbackState ?? "playing",
+          rngConstraints: lastLobby?.rngConstraints ?? {},
+          rngDecisions: lastLobby?.rngDecisions ?? [],
+          waymarkPresetId: lastLobby?.waymarkPresetId ?? null,
+          botPatternOptions: lastLobby?.botPatternOptions ?? [],
+          botPatternId: lastLobby?.botPatternId ?? null,
+          botsInvincible: lastLobby?.botsInvincible ?? false,
+          botsInvisible: lastLobby?.botsInvisible ?? false,
+        });
       }),
       net.on("sessionExpired", () => {
         cleanup();
@@ -273,6 +273,6 @@ export async function showLobby(net: NetClient, sessionId: string): Promise<Lobb
     ];
 
     renderHeader("WAITING FOR LOBBY");
-    net.send({ type: "join", sessionId, raidId: EMPTY_RAID_ID });
+    net.send({ type: "join", sessionId, raidId: EMPTY_RAID_ID, participantId: participantId() });
   });
 }

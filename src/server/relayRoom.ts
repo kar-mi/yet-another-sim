@@ -1,7 +1,7 @@
 import { createWorld } from "../engine/world";
 import { makeSeed } from "@shared/rng";
 import type { RaidDef } from "../engine/raidSchema";
-import { EMPTY_RAID_ID, MAX_OBSERVERS, type BotPatternOption, type ClientMessage, type Frame, type LobbySlot, type LobbyStatus, type ReplayView, type ServerMessage } from "@shared/protocol";
+import { EMPTY_RAID_ID, MAX_OBSERVERS, type BotPatternOption, type ClientMessage, type Frame, type LobbySlot, type PlaybackState, type ReplayView, type ServerMessage, type SessionPhase, type TransitionReason } from "@shared/protocol";
 import type { Intent, Intents, World } from "@shared/types";
 import { logger } from "@shared/logger";
 import { WAYMARK_PRESETS, isWaymarkPresetId } from "@shared/waymarkPresets";
@@ -9,7 +9,7 @@ import { describeDecisions, validateRngConstraints } from "../engine/seedSearch"
 import type { RngConstraints } from "../engine/preRoll";
 import { DesyncTracker } from "./desyncTracker";
 import { FrameRelay } from "./frameRelay";
-import { mergePendingIntent, type SessionLog } from "./sessionRaid";
+import { createEmptyRaid, mergePendingIntent, type SessionLog } from "./sessionRaid";
 import { PullSnapshot } from "./pullSnapshot";
 
 function botPatternOptionsFor(raid: RaidDef): BotPatternOption[] {
@@ -29,8 +29,6 @@ function sameConstraints(a: RngConstraints, b: RngConstraints): boolean {
 
 export const LOBBY_TIMEOUT_MS = 10 * 60 * 1000;
 export const EMPTY_LOBBY_TIMEOUT_MS = 90 * 1000;
-
-export type SessionStatus = LobbyStatus;
 
 export interface CapacitySnapshot {
   sessions: number;
@@ -52,30 +50,28 @@ export interface RelayRoomInitOptions {
   createSessionLog?: (sessionId: string) => SessionLog;
 }
 
-// Outbound sink: routes a server message to one client. The Colyseus adapter wires this to the
-// socket; tests inject their own delivery.
 type Send = (clientId: string, message: ServerMessage | string) => void;
 const idleIntent: Intent = { move: { x: 0, z: 0 } };
 const TICKS_PER_SECOND = 60;
 
-// Transport-agnostic relay: owns lobby/pull state and the authoritative input log, and emits server
-// messages through the injected `send` sink. The colyseus integration lives in RelayServerRoom.
 export class RelayRoom {
   id = "";
   raidId = "";
+  selectedRaidId = "";
+  phase: SessionPhase = "setup";
+  playback: PlaybackState = "idle";
   readonly slots = new Map<string, string | null>();
   readonly observers = new Set<string>();
-  status: SessionStatus = "lobby";
-  hostClientId = "";
-  raidRequestSeq = 0;
-  // The pull's initial (tick-0) world. The server never ticks it — clients run the engine. It is
-  // sent on `started` so a fresh/late client can rebuild the world by replaying the input log.
+  readonly pullRoster = new Map<string, string>();
+  readonly pullObservers = new Set<string>();
+  hostParticipantId = "";
   world!: World;
 
   private raid!: RaidDef;
-  private readonly clientIds = new Set<string>();
-  private readonly pendingSlots = new Map<string, string>();
-  private readonly pendingObservers = new Set<string>();
+  private selectedRaid!: RaidDef;
+  private readonly workshopRaid = createEmptyRaid();
+  private readonly connections = new Map<string, string>();
+  private readonly participants = new Map<string, string>();
   private send!: Send;
   private readonly latestIntents = new Map<string, Intent>();
   private now: () => number = Date.now;
@@ -94,11 +90,8 @@ export class RelayRoom {
   private waymarkPresetId: string | null = null;
   private botPatternId: string | null = null;
   private lastSeed: number | null = null;
-  // The replay the host is showing everyone; `at` is when `tick` was set, to advance a playing view.
   private replayView: (ReplayView & { at: number }) | null = null;
 
-  // Authoritative input log: one merged-intent Frame per simulated tick since the pull started.
-  // Owned by the relay; exposed for late-join / resync (`started` sends it in full to be replayed).
   get inputLog(): Frame[] {
     return this.relay.inputLog;
   }
@@ -107,13 +100,15 @@ export class RelayRoom {
     this.send = options.send;
     this.id = options.id;
     this.raidId = options.raidId;
+    this.selectedRaidId = options.raidId;
     this.raid = options.raid;
-    this.botPatternId = defaultBotPatternId(this.raid);
+    this.selectedRaid = options.raid;
+    this.botPatternId = defaultBotPatternId(this.selectedRaid);
     this.now = options.now ?? Date.now;
     this.lobbyTimeoutMs = options.lobbyTimeoutMs ?? LOBBY_TIMEOUT_MS;
     this.createSessionLog = options.createSessionLog ?? null;
     this.lastActivity = this.now();
-    this.desync = new DesyncTracker({ sessionId: this.id, now: this.now, onDesync: clientId => this.resync(clientId) });
+    this.desync = new DesyncTracker({ sessionId: this.id, now: this.now, onDesync: participantId => this.resync(participantId) });
     this.autoTick = options.autoTick ?? true;
     this.relay = new FrameRelay({
       now: this.now,
@@ -122,163 +117,187 @@ export class RelayRoom {
       buildFrame: () => this.buildFrame(),
       onFrames: (startTick, frames) => this.broadcastAll({ type: "frames", startTick, frames }),
       onCeiling: () => this.endPullDefensively(),
-      isRunning: () => this.status === "running",
+      isRunning: () => this.playback === "playing",
     });
 
-    for (const player of this.raid.players) this.slots.set(player.id, null);
+    for (const player of this.selectedRaid.players) this.slots.set(player.id, null);
     this.world = this.freshWorld();
     this.resetPull();
   }
 
-  private sendTo(clientId: string, message: ServerMessage | string): void {
+  private sendTo(participantId: string, message: ServerMessage | string): void {
+    const clientId = this.connections.get(participantId);
+    if (clientId === undefined) return;
     this.send(clientId, message);
   }
 
-  join(clientId: string): void {
+  join(clientId: string, participantId: string): void {
     this.touch();
-    this.clientIds.add(clientId);
-    if (!this.hostClientId) this.hostClientId = clientId;
-    this.sendLobby(clientId);
-    this.sendReplay(clientId);
-    logger.info("session", "client joined", { session: this.id, clientId, clients: this.clientIds.size });
+    const previousClientId = this.connections.get(participantId);
+    const reconnecting = previousClientId !== undefined;
+    if (previousClientId !== undefined) this.participants.delete(previousClientId);
+    this.connections.set(participantId, clientId);
+    this.participants.set(clientId, participantId);
+    if (!this.hostParticipantId) this.hostParticipantId = participantId;
+
+    if (reconnecting && this.phase === "raid") {
+      if (participantId === this.hostParticipantId) {
+        this.endRaidToWorkshop("hostLost");
+      } else if (this.leavePull(participantId)) {
+        if (this.pullIsAbandoned()) this.endRaidToWorkshop("noParticipants");
+        else this.broadcastLobby();
+      }
+    }
+
+    this.sendLobby(participantId);
+    this.sendReplay(participantId);
+    logger.info("session", "client joined", { session: this.id, participantId, clients: this.connections.size });
   }
 
-  handle(clientId: string, message: Exclude<ClientMessage, { type: "join" | "setRaid" | "setBotPattern" }>): void {
+  handle(participantId: string, message: Exclude<ClientMessage, { type: "join" | "setRaid" | "setBotPattern" }>): void {
     this.touch();
     switch (message.type) {
       case "claimSlot":
-        this.claimSlot(clientId, message.playerId);
+        this.claimSlot(participantId, message.playerId);
         return;
       case "releaseSlot":
-        this.releaseSlot(clientId, message.playerId);
+        this.releaseSlot(participantId, message.playerId);
         return;
       case "claimObserver":
-        this.claimObserver(clientId);
+        this.claimObserver(participantId);
         return;
       case "releaseObserver":
-        this.releaseObserver(clientId);
+        this.releaseObserver(participantId);
+        return;
+      case "enterWorkshop":
+        this.enterWorkshop(participantId);
         return;
       case "start":
-        this.start(clientId);
+        this.start(participantId);
         return;
       case "play":
-        this.play(clientId);
+        this.play(participantId);
         return;
       case "pause":
-        this.pause(clientId);
+        this.pause(participantId);
         return;
       case "stop":
-        this.stop(clientId);
+        this.stop(participantId);
         return;
       case "leave":
-        this.leave(clientId);
+        this.leave(participantId);
         return;
       case "restart":
-        this.restart(clientId);
+        this.restart(participantId);
         return;
       case "setRngConstraints":
-        this.applyRngConstraints(clientId, message.constraints);
+        this.applyRngConstraints(participantId, message.constraints);
         return;
       case "setWaymarkPreset":
-        this.setWaymarkPreset(clientId, message.presetId);
+        this.setWaymarkPreset(participantId, message.presetId);
         return;
       case "setBotsInvincible":
-        this.setBotsInvincible(clientId, message.enabled);
+        this.setBotsInvincible(participantId, message.enabled);
         return;
       case "setBotsInvisible":
-        this.setBotsInvisible(clientId, message.enabled);
+        this.setBotsInvisible(participantId, message.enabled);
         return;
       case "intent":
-        this.setIntent(clientId, message.intent);
+        this.setIntent(participantId, message.intent);
         return;
       case "simEnded":
-        this.simEnded(clientId, message.tick);
+        this.simEnded(participantId, message.tick);
         return;
       case "worldHash":
-        this.reportWorldHash(clientId, message.tick, message.hash);
+        this.reportWorldHash(participantId, message.tick, message.hash);
         return;
       case "snapshot":
-        this.acceptSnapshot(clientId, message.formatVersion, message.tick, message.world);
+        this.acceptSnapshot(participantId, message.formatVersion, message.tick, message.world);
         return;
       case "setReplay":
-        this.setReplay(clientId, message.view);
+        this.setReplay(participantId, message.view);
         return;
     }
   }
 
-  setRaid(clientId: string, raidId: string, raid: RaidDef): void {
+  setRaid(participantId: string, raidId: string, raid: RaidDef): void {
     this.touch();
-    if (clientId !== this.hostClientId) {
-      this.sendError(clientId, "Only the host can change the raid");
+    if (participantId !== this.hostParticipantId) {
+      this.sendError(participantId, "Only the host can change the raid");
       return;
     }
-    if (this.status === "running") {
-      this.sendError(clientId, "Stop or pause before changing raid");
+    if (this.phase === "raid" && this.playback === "playing") {
+      this.sendError(participantId, "Stop or pause before changing raid");
       return;
     }
-    if (raidId === this.raidId) return;
+    if (raidId === this.selectedRaidId) return;
 
-    const preserveOwners = this.status !== "lobby";
-    const previousSlots = new Map(this.slots);
-    const previousOwners = preserveOwners
-      ? [...previousSlots.values()].filter((ownerId): ownerId is string => ownerId !== null)
-      : [];
-    this.raidId = raidId;
-    this.raid = raid;
+    this.selectedRaidId = raidId;
+    this.selectedRaid = raid;
     this.rngConstraints = {};
     this.waymarkPresetId = null;
-    this.botPatternId = defaultBotPatternId(this.raid);
-    this.closePullLog();
-    this.slots.clear();
-    for (const player of this.raid.players) this.slots.set(player.id, preserveOwners ? previousSlots.get(player.id) ?? null : null);
-    const keptOwners = new Set([...this.slots.values()].filter((ownerId): ownerId is string => ownerId !== null));
-    const displacedOwners = previousOwners.filter(ownerId => !keptOwners.has(ownerId));
-    for (const ownerId of displacedOwners) {
-      const openPlayer = this.raid.players.find(player => this.slots.get(player.id) === null);
-      if (!openPlayer) break;
-      this.slots.set(openPlayer.id, ownerId);
-    }
-    this.latestIntents.clear();
-    if (this.status !== "lobby") this.promotePendingReservations();
-    this.world = this.freshWorld();
-    this.applyBotsInvincible();
-    this.resetPull();
-    if (this.status === "lobby") {
+    this.botPatternId = defaultBotPatternId(this.selectedRaid);
+
+    if (this.phase === "setup" || raidId === EMPTY_RAID_ID) {
+      this.raidId = raidId;
+      this.raid = raid;
+      this.world = this.freshWorld();
       this.broadcastLobby();
+      logger.info("session", "raid selected", { session: this.id, raid: this.selectedRaidId });
       return;
     }
 
-    this.status = "stopped";
     this.relay.stop();
-    this.broadcastPlayback();
+    this.closePullLog();
+    this.phase = "raid";
+    this.loadPull(raidId, raid, "stopped");
     this.broadcastLobby();
     this.broadcastStarted();
-    logger.info("session", "raid changed", { session: this.id, raid: this.raidId });
+    this.broadcastPlayback();
+    logger.info("session", "raid selected", { session: this.id, raid: this.selectedRaidId });
   }
 
-  play(clientId: string): void {
-    if (clientId !== this.hostClientId) {
-      this.sendError(clientId, "Only the host can play");
+  enterWorkshop(participantId: string): void {
+    if (participantId !== this.hostParticipantId) {
+      this.sendError(participantId, "Only the host can open the waiting lobby");
       return;
     }
-    if (this.status === "lobby") {
-      this.start(clientId);
-      return;
-    }
-    if (this.status === "running") return;
-    if (this.status === "done") {
-      this.sendError(clientId, "Cannot play after session ends");
+    if (this.phase === "workshop") return;
+    if (this.phase === "raid" && this.playback === "playing") {
+      this.sendError(participantId, "Stop the raid before opening the waiting lobby");
       return;
     }
 
-    const wasStopped = this.status === "stopped";
-    // Clients resume stepping from the frames that follow; the local world held while paused.
-    this.status = "running";
+    this.closePullLog();
+    this.phase = "workshop";
+    this.loadPull(EMPTY_RAID_ID, this.workshopRaid, "playing");
+    this.relay.start();
+    this.broadcastLobby();
+    this.broadcastStarted();
+    this.broadcastPlayback();
+    logger.info("session", "workshop opened", { session: this.id });
+  }
+
+  play(participantId: string): void {
+    if (participantId !== this.hostParticipantId) {
+      this.sendError(participantId, "Only the host can play");
+      return;
+    }
+    if (this.phase === "setup") {
+      this.sendError(participantId, "Open the waiting lobby before playing");
+      return;
+    }
+    if (this.playback === "playing") return;
+    if (this.playback === "done") {
+      this.sendError(participantId, "Cannot play after session ends");
+      return;
+    }
+
+    const wasStopped = this.playback === "stopped";
+    this.playback = "playing";
     if (wasStopped) this.openPullLog();
     this.relay.start();
     if (wasStopped) {
-      // Refresh clients still on the lobby screen before "started", so their stale lastLobby.status
-      // ("stopped") doesn't get read as the initial playback state for the resumed session.
       this.broadcastLobby();
       this.broadcastStarted();
     }
@@ -286,57 +305,49 @@ export class RelayRoom {
     logger.info("session", "resumed", { session: this.id, raid: this.raidId });
   }
 
-  pause(clientId: string): void {
-    if (clientId !== this.hostClientId) {
-      this.sendError(clientId, "Only the host can pause");
+  pause(participantId: string): void {
+    if (participantId !== this.hostParticipantId) {
+      this.sendError(participantId, "Only the host can pause");
       return;
     }
-    if (this.status !== "running") return;
+    if (this.playback !== "playing") return;
 
-    this.relay.flush(); // deliver everything up to the pause point before halting the relay
-    this.status = "paused";
+    this.relay.flush();
+    this.playback = "paused";
     this.relay.stop();
     this.broadcastPlayback();
     logger.info("session", "paused", { session: this.id, raid: this.raidId });
   }
 
-  stop(clientId: string): void {
-    if (clientId !== this.hostClientId) {
-      this.sendError(clientId, "Only the host can stop");
+  stop(participantId: string): void {
+    if (participantId !== this.hostParticipantId) {
+      this.sendError(participantId, "Only the host can stop");
       return;
     }
-    if (this.status === "lobby") return;
+    if (this.phase === "setup") return;
 
-    this.status = "stopped";
     this.relay.stop();
     this.closePullLog();
-    this.latestIntents.clear();
-    this.promotePendingReservations();
-    this.world = this.freshWorld();
-    this.applyBotsInvincible();
-    this.resetPull();
-    // Reset every client's local world to the fresh (frozen) one, then signal the stopped state.
+    this.loadPull(this.raidId, this.raid, "stopped");
     this.broadcastLobby();
     this.broadcastStarted();
     this.broadcastPlayback();
     logger.info("session", "raid stopped", { session: this.id, raid: this.raidId });
   }
 
-  // Host picks (or exits) the replay the whole session watches. Opening one stops a live pull so
-  // nobody is left playing while everyone else watches the recording.
-  setReplay(clientId: string, view: ReplayView | null): void {
-    if (clientId !== this.hostClientId) {
-      this.sendError(clientId, "Only the host can control replays");
+  setReplay(participantId: string, view: ReplayView | null): void {
+    if (participantId !== this.hostParticipantId) {
+      this.sendError(participantId, "Only the host can control replays");
       return;
     }
     const opening = view !== null && view.pull !== this.replayView?.pull;
-    if (opening && this.status !== "lobby" && this.status !== "stopped") this.stop(clientId);
+    if (opening && this.phase !== "setup" && this.playback !== "stopped") this.stop(participantId);
     this.replayView = view ? { ...view, at: this.now() } : null;
     this.broadcastAll(this.replayMessage());
   }
 
-  sendReplay(clientId: string): void {
-    this.sendTo(clientId, this.replayMessage());
+  sendReplay(participantId: string): void {
+    this.sendTo(participantId, this.replayMessage());
   }
 
   private clearReplay(): void {
@@ -352,254 +363,216 @@ export class RelayRoom {
     return { type: "replay", view: { pull: view.pull, playing: view.playing, tick: view.tick + elapsed } };
   }
 
-  // Host returning to the lobby via Home. Stops the pull (so the session is joinable again) exactly
-  // like stop(), except the leaving host is NOT sent a "started" message: it is headed to the lobby,
-  // where showLobby treats any "started" as a re-entry and would bounce it back into a stale sim.
-  leave(clientId: string): void {
-    if (clientId !== this.hostClientId) {
-      this.sendError(clientId, "Only the host can leave to the lobby");
+  leave(participantId: string): void {
+    if (participantId !== this.hostParticipantId) {
+      this.sendError(participantId, "Only the host can leave to the lobby");
       return;
     }
     this.clearReplay();
-    if (this.status === "lobby") return;
-
-    this.status = "stopped";
-    this.relay.stop();
-    this.closePullLog();
-    this.latestIntents.clear();
-    this.promotePendingReservations();
-    this.world = this.freshWorld();
-    this.applyBotsInvincible();
-    this.resetPull();
-
-    // Refresh the lobby before `started` so newly promoted clients derive the stopped state. Reset
-    // the remaining clients' worlds; the leaver is skipped so it stays in the menu.
-    this.broadcastLobby();
-    for (const id of this.clientIds) {
-      if (id === clientId) continue;
-      if (this.observers.has(id)) {
-        this.sendTo(id, this.startedMessage(null));
-        continue;
-      }
-      const playerId = this.playerForClient(id);
-      if (playerId) this.sendTo(id, this.startedMessage(playerId));
+    if (this.phase === "raid") {
+      this.endRaidToWorkshop(null, participantId);
+      logger.info("session", "host returned to setup", { session: this.id, raid: this.raidId });
     }
-    this.broadcastPlayback();
-    logger.info("session", "host returned to lobby", { session: this.id, raid: this.raidId });
   }
 
-  restart(clientId: string): void {
-    if (clientId !== this.hostClientId) {
-      this.sendError(clientId, "Only the host can restart");
+  restart(participantId: string): void {
+    if (participantId !== this.hostParticipantId) {
+      this.sendError(participantId, "Only the host can restart");
       return;
     }
-    if (this.status === "lobby") {
-      this.start(clientId);
+    if (this.phase === "setup") {
+      this.sendError(participantId, "Open the waiting lobby before restarting");
       return;
     }
 
-    this.status = "running";
-    this.latestIntents.clear();
-    this.promotePendingReservations();
-    this.world = this.freshWorld();
-    this.applyBotsInvincible();
-    this.resetPull();
+    this.relay.stop();
+    this.closePullLog();
+    this.loadPull(this.raidId, this.raid, "playing");
     this.openPullLog();
     this.relay.start();
     this.broadcastPlayback();
-    // Refresh clients still on the lobby screen before "started", so their stale lastLobby.status
-    // (e.g. "done") doesn't get read as the initial playback state for the restarted session.
     this.broadcastLobby();
     this.broadcastStarted();
     logger.info("session", "raid restarted", { session: this.id, raid: this.raidId });
   }
 
   disconnectClient(clientId: string): boolean {
+    const participantId = this.participants.get(clientId);
+    if (participantId === undefined) return false;
+    if (this.connections.get(participantId) !== clientId) {
+      this.participants.delete(clientId);
+      return false;
+    }
+
     this.touch();
-    this.clientIds.delete(clientId);
-    logger.info("session", "client disconnected", { session: this.id, clientId, clients: this.clientIds.size });
+    this.participants.delete(clientId);
+    this.connections.delete(participantId);
+    logger.info("session", "client disconnected", { session: this.id, participantId, clients: this.connections.size });
 
     for (const [playerId, ownerId] of this.slots) {
-      if (ownerId === clientId) {
-        this.slots.set(playerId, null);
-        this.latestIntents.delete(playerId);
-      }
+      if (ownerId === participantId) this.slots.set(playerId, null);
     }
-    this.observers.delete(clientId);
-    this.pendingSlots.delete(clientId);
-    this.pendingObservers.delete(clientId);
+    this.observers.delete(participantId);
+    this.leavePull(participantId);
 
-    const hostChanged = this.hostClientId === clientId;
+    const hostChanged = this.hostParticipantId === participantId;
     if (hostChanged) {
-      this.hostClientId = this.clientIds.values().next().value ?? "";
+      this.hostParticipantId = this.connections.keys().next().value ?? "";
     }
 
     this.applySlotControlsToWorld();
-    if (this.clientIds.size === 0) {
+    if (this.connections.size === 0) {
       this.dispose();
       return true;
     }
 
+    if (this.phase === "raid" && (hostChanged || this.pullIsAbandoned())) {
+      this.endRaidToWorkshop(hostChanged ? "hostLost" : "noParticipants");
+      if (hostChanged) this.clearReplay();
+      return false;
+    }
+
     this.broadcastLobby();
-    if (hostChanged && this.status !== "lobby") this.broadcastPlayback();
-    if (hostChanged) this.clearReplay();
+    if (hostChanged) {
+      this.broadcastPlayback();
+      this.clearReplay();
+    }
     return false;
   }
 
-  claimSlot(clientId: string, playerId: string): void {
+  claimSlot(participantId: string, playerId: string): void {
     if (!this.slots.has(playerId)) {
-      this.sendError(clientId, "Unknown player slot");
+      this.sendError(participantId, "Unknown player slot");
       return;
     }
-    if (this.observers.has(clientId) || this.pendingObservers.has(clientId)) {
-      this.sendError(clientId, "Leave observer mode before claiming a slot");
+    if (this.observers.has(participantId)) {
+      this.sendError(participantId, "Leave observer mode before claiming a slot");
       return;
     }
 
-    const ownedSlot = this.playerForClient(clientId);
+    const ownedSlot = this.playerForParticipant(participantId);
     if (ownedSlot === playerId) {
-      this.sendLobby(clientId);
+      this.sendLobby(participantId);
       return;
     }
-    if (ownedSlot && ownedSlot !== playerId) {
-      this.sendError(clientId, "You already claimed a slot");
-      return;
-    }
-
-    const pendingSlot = this.pendingSlots.get(clientId);
-    if (pendingSlot) {
-      if (pendingSlot === playerId) this.sendLobby(clientId);
-      else this.sendError(clientId, "You already queued for a slot");
+    if (ownedSlot) {
+      this.sendError(participantId, "You already claimed a slot");
       return;
     }
 
     const ownerId = this.slots.get(playerId);
-    const pendingOwnerId = this.pendingClientForPlayer(playerId);
-    if ((ownerId && ownerId !== clientId) || (pendingOwnerId && pendingOwnerId !== clientId)) {
-      this.sendError(clientId, "Slot is already claimed");
+    if (ownerId && ownerId !== participantId) {
+      this.sendError(participantId, "Slot is already claimed");
       return;
     }
 
-    if (this.raidId !== EMPTY_RAID_ID && (this.status === "running" || this.status === "paused")) {
-      this.pendingSlots.set(clientId, playerId);
+    this.slots.set(playerId, participantId);
+    if (this.pullIsLive()) {
       this.broadcastLobby();
       return;
     }
 
-    this.slots.set(playerId, clientId);
+    this.pullRoster.set(playerId, participantId);
     this.applySlotControlsToWorld();
     this.broadcastLobby();
-
-    if (this.status === "stopped" || (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused"))) {
-      this.sendTo(clientId, this.startedMessage(playerId));
+    if (this.phase === "workshop" || this.playback === "stopped") {
+      this.sendTo(participantId, this.startedMessage(playerId));
     }
   }
 
-  releaseSlot(clientId: string, playerId: string): void {
-    if (this.pendingSlots.get(clientId) === playerId) {
-      this.pendingSlots.delete(clientId);
-      this.broadcastLobby();
-      return;
-    }
-    if (this.slots.get(playerId) !== clientId) {
-      this.sendError(clientId, "You do not own that slot");
+  releaseSlot(participantId: string, playerId: string): void {
+    if (this.slots.get(playerId) !== participantId) {
+      this.sendError(participantId, "You do not own that slot");
       return;
     }
 
     this.slots.set(playerId, null);
-    this.latestIntents.delete(playerId);
-    this.applySlotControlsToWorld();
+    this.leavePull(participantId);
     this.broadcastLobby();
   }
 
-  claimObserver(clientId: string): void {
-    if (this.playerForClient(clientId) || this.pendingSlots.has(clientId)) {
-      this.sendError(clientId, "Release your slot before observing");
+  claimObserver(participantId: string): void {
+    if (this.playerForParticipant(participantId)) {
+      this.sendError(participantId, "Release your slot before observing");
       return;
     }
-    if (this.observers.has(clientId) || this.pendingObservers.has(clientId)) {
-      this.sendLobby(clientId);
+    if (this.observers.has(participantId)) {
+      this.sendLobby(participantId);
       return;
     }
-    if (this.observers.size + this.pendingObservers.size >= MAX_OBSERVERS) {
-      this.sendError(clientId, "Observer seats are full");
+    if (this.observers.size >= MAX_OBSERVERS) {
+      this.sendError(participantId, "Observer seats are full");
       return;
     }
 
-    if (this.raidId !== EMPTY_RAID_ID && (this.status === "running" || this.status === "paused")) {
-      this.pendingObservers.add(clientId);
+    this.observers.add(participantId);
+    if (this.pullIsLive()) {
       this.broadcastLobby();
       return;
     }
 
-    this.observers.add(clientId);
+    this.pullObservers.add(participantId);
     this.broadcastLobby();
-
-    if (this.raidId === EMPTY_RAID_ID && (this.status === "running" || this.status === "paused")) {
-      this.sendTo(clientId, this.startedMessage(null));
-    }
+    if (this.phase === "workshop") this.sendTo(participantId, this.startedMessage(null));
   }
 
-  releaseObserver(clientId: string): void {
-    if (this.pendingObservers.delete(clientId)) {
-      this.broadcastLobby();
-      return;
-    }
-    // Release is intentionally idempotent: a double-click or a stale Home cleanup can race the
-    // lobby broadcast that confirms the first release, and there is no state left to correct.
-    if (!this.observers.delete(clientId)) return;
+  releaseObserver(participantId: string): void {
+    if (!this.observers.delete(participantId)) return;
+    this.pullObservers.delete(participantId);
     this.broadcastLobby();
   }
 
-  start(clientId: string): void {
-    if (clientId !== this.hostClientId) {
-      this.sendError(clientId, "Only the host can start");
+  start(participantId: string): void {
+    if (participantId !== this.hostParticipantId) {
+      this.sendError(participantId, "Only the host can start");
       return;
     }
-    if (this.status !== "lobby") {
-      this.sendError(clientId, "Session already started");
+    if (this.phase !== "workshop") {
+      this.sendError(participantId, this.phase === "setup" ? "Open the waiting lobby before starting" : "Session already started");
       return;
     }
-    if (![...this.slots.values()].some(ownerId => ownerId !== null) && !this.observers.has(clientId)) {
-      this.sendError(clientId, "Claim a slot or observer seat before starting");
+    if (this.selectedRaidId === EMPTY_RAID_ID) {
+      this.sendError(participantId, "Select a raid before starting");
+      return;
+    }
+    if (![...this.slots.values()].some(ownerId => ownerId !== null) && !this.observers.has(participantId)) {
+      this.sendError(participantId, "Claim a slot or observer seat before starting");
       return;
     }
 
-    this.status = "running";
-    this.world = this.freshWorld();
-    this.applyBotsInvincible();
-    this.resetPull();
+    this.relay.stop();
+    this.closePullLog();
+    this.phase = "raid";
+    this.loadPull(this.selectedRaidId, this.selectedRaid, "playing");
     this.openPullLog();
-
+    this.broadcastLobby();
     this.broadcastStarted();
-
+    this.broadcastPlayback();
     this.relay.start();
     logger.info("session", "raid started", { session: this.id, raid: this.raidId });
   }
 
-  setIntent(clientId: string, intent: Intent): void {
-    if (this.status !== "running") return;
-    const playerId = this.playerForClient(clientId);
+  setIntent(participantId: string, intent: Intent): void {
+    if (this.playback !== "playing") return;
+    const playerId = this.rosterPlayerFor(participantId);
     if (!playerId) return;
     this.latestIntents.set(playerId, mergePendingIntent(this.latestIntents.get(playerId), intent));
   }
 
-  setBotsInvincible(clientId: string, enabled: boolean): void {
-    if (clientId !== this.hostClientId) {
-      this.sendError(clientId, "Only the host can change bot invincibility");
+  setBotsInvincible(participantId: string, enabled: boolean): void {
+    if (participantId !== this.hostParticipantId) {
+      this.sendError(participantId, "Only the host can change bot invincibility");
       return;
     }
 
-    // Bot invincibility rides in every frame; clients apply it deterministically as they step, so
-    // the change takes effect on the next relayed tick. `this.world` keeps it for late-join display.
     this.botsInvincible = enabled;
     this.applyBotsInvincible();
     this.broadcastLobby();
   }
 
-  setBotsInvisible(clientId: string, enabled: boolean): void {
-    if (clientId !== this.hostClientId) {
-      this.sendError(clientId, "Only the host can change bot invisibility");
+  setBotsInvisible(participantId: string, enabled: boolean): void {
+    if (participantId !== this.hostParticipantId) {
+      this.sendError(participantId, "Only the host can change bot invisibility");
       return;
     }
 
@@ -608,13 +581,13 @@ export class RelayRoom {
     this.broadcastLobby();
   }
 
-  setWaymarkPreset(clientId: string, presetId: string | null): void {
-    if (clientId !== this.hostClientId) {
-      this.sendError(clientId, "Only the host can set the waymark preset");
+  setWaymarkPreset(participantId: string, presetId: string | null): void {
+    if (participantId !== this.hostParticipantId) {
+      this.sendError(participantId, "Only the host can set the waymark preset");
       return;
     }
     if (presetId !== null && !isWaymarkPresetId(presetId)) {
-      this.sendError(clientId, "Unknown waymark preset");
+      this.sendError(participantId, "Unknown waymark preset");
       return;
     }
 
@@ -623,67 +596,56 @@ export class RelayRoom {
     this.broadcastLobby();
   }
 
-  // Called by RelayServerRoom after it has asynchronously re-resolved the raid with the chosen
-  // bot-pattern file applied (bot patterns are baked into RaidDef at file-load time, unlike the
-  // seed/waymark overrides, which apply lazily at freshWorld()).
-  setBotPattern(clientId: string, patternId: string, raid: RaidDef): void {
-    if (clientId !== this.hostClientId) {
-      this.sendError(clientId, "Only the host can set the bot pattern");
+  setBotPattern(participantId: string, patternId: string, raid: RaidDef): void {
+    if (participantId !== this.hostParticipantId) {
+      this.sendError(participantId, "Only the host can set the bot pattern");
       return;
     }
 
-    this.raid = raid;
+    this.selectedRaid = raid;
     this.botPatternId = patternId;
+    if (this.phase === "raid") this.raid = raid;
     this.refreshFrozenWorld();
     this.broadcastLobby();
   }
 
-  // The client stops the pull before opening the Options modal, so a waymark/bot-pattern change
-  // normally lands while idle (paused/stopped/done) rather than mid-pull. Rebuild the frozen world
-  // right away so the change is visible immediately instead of waiting for the next start/restart.
-  // No-op in "lobby" (nothing shown yet) and "running" (never applied mid-pull).
   private refreshFrozenWorld(): void {
-    if (this.status === "lobby" || this.status === "running") return;
+    if (this.phase === "setup" || this.playback === "playing") return;
     this.world = this.freshWorld();
     this.applyBotsInvincible();
     this.resetPull();
     this.broadcastStarted();
   }
 
-  private applyRngConstraints(clientId: string, constraints: Record<string, number>): void {
-    if (clientId !== this.hostClientId) {
-      this.sendError(clientId, "Only the host can set RNG constraints");
+  private applyRngConstraints(participantId: string, constraints: Record<string, number>): void {
+    if (participantId !== this.hostParticipantId) {
+      this.sendError(participantId, "Only the host can set RNG constraints");
       return;
     }
-    const validated = validateRngConstraints(this.raid, constraints);
+    const validated = validateRngConstraints(this.selectedRaid, constraints);
     if (validated === null) {
-      this.sendTo(clientId, { type: "rngConstraintsResult", ok: false });
+      this.sendTo(participantId, { type: "rngConstraintsResult", ok: false });
       return;
     }
     if (sameConstraints(validated, this.rngConstraints)) {
-      this.sendTo(clientId, { type: "rngConstraintsResult", ok: true });
+      this.sendTo(participantId, { type: "rngConstraintsResult", ok: true });
       return;
     }
     this.rngConstraints = validated;
     this.refreshFrozenWorld();
-    this.sendTo(clientId, { type: "rngConstraintsResult", ok: true });
+    this.sendTo(participantId, { type: "rngConstraintsResult", ok: true });
     this.broadcastLobby();
   }
 
-  // Advance the relay by one tick (produce a frame, broadcast unless batching). The server never runs
-  // `tick()`; clients do. Frame production/relay lives in FrameRelay.
   step(broadcast = true): void {
-    if (this.status !== "running") return;
+    if (this.playback !== "playing") return;
     this.relay.produceFrame();
     if (broadcast) this.relay.flush();
   }
 
-  // Merge each owned slot's latest intent into this tick's frame: move + facing carry forward between
-  // ticks; one-shot actions (jump/sprint/provoke/…) fire once. Injected into FrameRelay.buildFrame.
   private buildFrame(): Frame {
     const intents: Intents = {};
-    for (const [playerId, ownerId] of this.slots) {
-      if (!ownerId) continue;
+    for (const playerId of this.pullRoster.keys()) {
       const latestIntent = this.latestIntents.get(playerId) ?? idleIntent;
       intents[playerId] = latestIntent;
       this.latestIntents.set(playerId, { move: latestIntent.move, facing: latestIntent.facing });
@@ -691,21 +653,75 @@ export class RelayRoom {
     return { intents, botsInvincible: this.botsInvincible, botsInvisible: this.botsInvisible };
   }
 
-  // Reset per-pull state whenever a fresh tick-0 world is built (start/restart/stop/setRaid) so the
-  // input log, batching, and desync window start clean.
+  private loadPull(raidId: string, raid: RaidDef, playback: PlaybackState): void {
+    this.raidId = raidId;
+    this.raid = raid;
+    this.playback = playback;
+    this.latestIntents.clear();
+    this.freezeRoster();
+    this.world = this.freshWorld();
+    this.applyBotsInvincible();
+    this.resetPull();
+  }
+
+  private freezeRoster(): void {
+    this.pullRoster.clear();
+    for (const [playerId, ownerId] of this.slots) {
+      if (ownerId) this.pullRoster.set(playerId, ownerId);
+    }
+    this.pullObservers.clear();
+    for (const observerId of this.observers) this.pullObservers.add(observerId);
+  }
+
+  private leavePull(participantId: string): boolean {
+    let changed = this.pullObservers.delete(participantId);
+    for (const [playerId, ownerId] of this.pullRoster) {
+      if (ownerId !== participantId) continue;
+      this.pullRoster.delete(playerId);
+      this.latestIntents.delete(playerId);
+      changed = true;
+    }
+    if (changed) this.applySlotControlsToWorld();
+    return changed;
+  }
+
+  private pullIsLive(): boolean {
+    return this.phase === "raid" && (this.playback === "playing" || this.playback === "paused");
+  }
+
+  private pullIsAbandoned(): boolean {
+    for (const ownerId of this.pullRoster.values()) {
+      if (this.connections.has(ownerId)) return false;
+    }
+    for (const observerId of this.pullObservers) {
+      if (this.connections.has(observerId)) return false;
+    }
+    return true;
+  }
+
+  private endRaidToWorkshop(reason: TransitionReason | null, exclude?: string): void {
+    this.relay.stop();
+    this.closePullLog();
+    this.phase = "workshop";
+    this.loadPull(EMPTY_RAID_ID, this.workshopRaid, "playing");
+    this.relay.start();
+
+    if (reason) this.broadcastAll({ type: "transition", phase: "workshop", reason });
+    this.broadcastLobby();
+    this.broadcastStarted(exclude);
+    this.broadcastPlayback();
+    logger.info("session", "raid ended to workshop", { session: this.id, reason });
+  }
+
   private resetPull(): void {
     this.pullSnapshot.reset();
-    // The lobby has no mechanics, so its world never reaches a terminal status and the host never
-    // sends `simEnded`. Drop the grace slack so its pull ends exactly at the authored duration.
-    this.relay.reset(this.world.duration, this.raidId === EMPTY_RAID_ID ? 0 : undefined);
+    this.relay.reset(this.world.duration, this.phase === "workshop" ? 0 : undefined);
     this.desync.reset();
   }
 
   private openPullLog(): void {
     this.closePullLog();
-    // The empty raid is the interactive test lobby, not authored simulation content. Recording it
-    // creates noise in the replay browser and consumes the first pull number before a real raid.
-    if (this.raidId === EMPTY_RAID_ID) return;
+    if (this.phase !== "raid") return;
     this.pullNumber++;
     this.sessionLog = this.createSessionLog?.(`${this.id}-pull-${this.pullNumber}`) ?? null;
     this.sessionLog?.header(this.raidId, this.world);
@@ -716,72 +732,64 @@ export class RelayRoom {
     this.sessionLog = null;
   }
 
-  private acceptSnapshot(clientId: string, formatVersion: number, tick: number, world: unknown): void {
-    if (clientId !== this.hostClientId) return;
-    const error = this.pullSnapshot.accept(formatVersion, tick, world, this.inputLog.length, this.status === "running");
-    if (error) this.sendError(clientId, error);
+  private acceptSnapshot(participantId: string, formatVersion: number, tick: number, world: unknown): void {
+    if (participantId !== this.hostParticipantId) return;
+    const error = this.pullSnapshot.accept(formatVersion, tick, world, this.inputLog.length, this.playback === "playing");
+    if (error) this.sendError(participantId, error);
   }
 
   private startedMessage(playerId: string | null): ServerMessage {
     return this.pullSnapshot.startedMessage(this.world, this.inputLog, playerId);
   }
 
-  // The host's local sim reached a terminal state (wiped/cleared). Stop relaying and mark the pull
-  // done — equivalent authority to the host's `stop`, which it can already do at any time.
-  simEnded(clientId: string, tick: number): void {
-    if (clientId !== this.hostClientId) {
-      this.sendError(clientId, "Only the host can end the session");
+  simEnded(participantId: string, tick: number): void {
+    if (participantId !== this.hostParticipantId) {
+      this.sendError(participantId, "Only the host can end the session");
       return;
     }
-    if (this.status !== "running") return;
+    if (this.playback !== "playing") return;
     this.relay.flush();
-    this.status = "done";
+    this.playback = "done";
     this.relay.stop();
     this.closePullLog();
     this.broadcastPlayback();
     logger.info("session", "sim ended", { session: this.id, raid: this.raidId, tick, ticks: this.inputLog.length });
   }
 
-  // The relay hit its tick ceiling. For the lobby that IS the normal end (it has no terminal world
-  // status, so its ceiling sits exactly at the duration). For an authored raid it is defensive: a
-  // host that never sends `simEnded` would otherwise relay idle frames forever.
   private endPullDefensively(): void {
     this.relay.flush();
-    this.status = "done";
+    this.playback = "done";
     this.relay.stop();
     this.closePullLog();
     this.broadcastPlayback();
-    if (this.raidId === EMPTY_RAID_ID) {
-      logger.info("session", "lobby reached its duration", { session: this.id, ticks: this.inputLog.length });
+    if (this.phase === "workshop") {
+      logger.info("session", "workshop reached its duration", { session: this.id, ticks: this.inputLog.length });
     } else {
       logger.warn("session", "pull hit tick ceiling without simEnded", { session: this.id, ticks: this.inputLog.length });
     }
   }
 
-  // Desync detection is delegated to DesyncTracker; a flagged divergence resyncs the offender here.
-  reportWorldHash(clientId: string, tick: number, hash: number): void {
-    this.desync.report(clientId, tick, hash, clientId === this.hostClientId);
+  reportWorldHash(participantId: string, tick: number, hash: number): void {
+    this.desync.report(participantId, tick, hash, participantId === this.hostParticipantId);
   }
 
-  private resync(clientId: string): void {
-    if (this.observers.has(clientId)) {
-      this.sendTo(clientId, this.startedMessage(null));
+  private resync(participantId: string): void {
+    if (this.pullObservers.has(participantId)) {
+      this.sendTo(participantId, this.startedMessage(null));
       return;
     }
-    const playerId = this.playerForClient(clientId);
-    if (playerId) this.sendTo(clientId, this.startedMessage(playerId));
+    const playerId = this.rosterPlayerFor(participantId);
+    if (playerId) this.sendTo(participantId, this.startedMessage(playerId));
   }
 
   isExpired(now = this.now()): boolean {
-    if (this.status === "running") return false;
-    const timeout = this.isUnusedLobby() ? Math.min(EMPTY_LOBBY_TIMEOUT_MS, this.lobbyTimeoutMs) : this.lobbyTimeoutMs;
+    if (this.playback === "playing") return false;
+    const timeout = this.isUnusedSetup() ? Math.min(EMPTY_LOBBY_TIMEOUT_MS, this.lobbyTimeoutMs) : this.lobbyTimeoutMs;
     return now - this.lastActivity >= timeout;
   }
 
-  // A never-started lobby with no slot claimed — the cheap artifact a mass-create
-  // flood leaves behind. Once a slot is claimed or the raid starts, it is "in use".
-  private isUnusedLobby(): boolean {
-    return this.status === "lobby" && ![...this.slots.values()].some(owner => owner !== null);
+  private isUnusedSetup(): boolean {
+    return this.phase === "setup" && ![...this.slots.values()].some(owner => owner !== null);
   }
 
   dispose(): void {
@@ -793,40 +801,20 @@ export class RelayRoom {
     this.lastActivity = this.now();
   }
 
-  private playerForClient(clientId: string): string | null {
+  private playerForParticipant(participantId: string): string | null {
     for (const [playerId, ownerId] of this.slots) {
-      if (ownerId === clientId) return playerId;
+      if (ownerId === participantId) return playerId;
     }
     return null;
   }
 
-  private pendingClientForPlayer(playerId: string): string | null {
-    for (const [clientId, pendingPlayerId] of this.pendingSlots) {
-      if (pendingPlayerId === playerId) return clientId;
+  private rosterPlayerFor(participantId: string): string | null {
+    for (const [playerId, ownerId] of this.pullRoster) {
+      if (ownerId === participantId) return playerId;
     }
     return null;
   }
 
-  private promotePendingReservations(): void {
-    for (const [clientId, playerId] of this.pendingSlots) {
-      if (this.slots.has(playerId) && this.slots.get(playerId) === null) {
-        this.slots.set(playerId, clientId);
-      } else {
-        this.sendError(clientId, "Queued player slot is no longer available");
-      }
-    }
-    this.pendingSlots.clear();
-
-    for (const clientId of this.pendingObservers) {
-      if (this.observers.size < MAX_OBSERVERS) this.observers.add(clientId);
-      else this.sendError(clientId, "Observer seats are full");
-    }
-    this.pendingObservers.clear();
-  }
-
-  // Build a fresh world from the raid and stamp each slot's current control (a slot is "human"
-  // once a client owns it, otherwise "bot"). Raids no longer author control — it is purely a
-  // function of slot ownership.
   private freshWorld(): World {
     let seed = makeSeed();
     if (seed === this.lastSeed) seed = (seed + 1) >>> 0;
@@ -839,21 +827,16 @@ export class RelayRoom {
       waymarks: waymarkPreset ? waymarkPreset.marks : world.waymarks,
       players: world.players.map(player => ({
         ...player,
-        control: this.slots.get(player.id) ? "human" : "bot",
+        control: this.pullRoster.has(player.id) ? "human" : "bot",
       })),
     };
   }
 
   private applySlotControlsToWorld(): void {
-    const controlByPlayer = new Map<string, "human" | "bot">();
-    for (const [playerId, ownerId] of this.slots) {
-      controlByPlayer.set(playerId, ownerId ? "human" : "bot");
-    }
-
     this.world = {
       ...this.world,
       players: this.world.players.map(player => {
-        const control = controlByPlayer.get(player.id) ?? player.control;
+        const control = this.pullRoster.has(player.id) ? "human" : "bot";
         return {
           ...player,
           control,
@@ -873,16 +856,17 @@ export class RelayRoom {
     };
   }
 
-  private lobbyFor(clientId: string): ServerMessage {
+  private lobbyFor(participantId: string): ServerMessage {
     const slots: LobbySlot[] = this.world.players.map(player => {
       const ownerId = this.slots.get(player.id) ?? null;
+      const rostered = this.pullRoster.get(player.id) === participantId;
       return {
         playerId: player.id,
         role: player.role,
         control: player.control,
-        claimed: ownerId !== null || this.pendingClientForPlayer(player.id) !== null,
-        claimedByYou: ownerId === clientId,
-        queuedByYou: this.pendingSlots.get(clientId) === player.id,
+        claimed: ownerId !== null,
+        claimedByYou: ownerId === participantId && rostered,
+        queuedByYou: ownerId === participantId && !rostered,
       };
     });
 
@@ -891,58 +875,56 @@ export class RelayRoom {
       sessionId: this.id,
       raidId: this.raidId,
       raidName: this.raid.name,
-      status: this.status,
-      hostClientId: this.hostClientId,
+      phase: this.phase,
+      playbackState: this.playback,
+      selectedRaidId: this.selectedRaidId,
+      hostParticipantId: this.hostParticipantId,
       slots,
       rngConstraints: { ...this.rngConstraints },
-      rngDecisions: describeDecisions(this.raid),
+      rngDecisions: describeDecisions(this.selectedRaid),
       waymarkPresetId: this.waymarkPresetId,
-      botPatternOptions: botPatternOptionsFor(this.raid),
+      botPatternOptions: botPatternOptionsFor(this.selectedRaid),
       botPatternId: this.botPatternId,
       botsInvincible: this.botsInvincible,
       botsInvisible: this.botsInvisible,
-      observerCount: this.observers.size + this.pendingObservers.size,
+      observerCount: this.observers.size,
       maxObservers: MAX_OBSERVERS,
-      observingByYou: this.observers.has(clientId),
-      observerQueuedByYou: this.pendingObservers.has(clientId),
+      observingByYou: this.pullObservers.has(participantId),
+      observerQueuedByYou: this.observers.has(participantId) && !this.pullObservers.has(participantId),
     };
   }
 
-  sendLobby(clientId: string): void {
-    this.sendTo(clientId, this.lobbyFor(clientId));
+  sendLobby(participantId: string): void {
+    this.sendTo(participantId, this.lobbyFor(participantId));
   }
 
   private broadcastLobby(): void {
-    for (const clientId of this.clientIds) this.sendLobby(clientId);
+    for (const participantId of this.connections.keys()) this.sendLobby(participantId);
   }
 
   private broadcastPlayback(): void {
-    const state = this.status === "running" ? "playing" : this.status === "paused" ? "paused" : this.status === "done" ? "done" : "stopped";
-    this.broadcastAll({ type: "playback", state, raidId: this.raidId, hostClientId: this.hostClientId, rngDecisions: describeDecisions(this.raid) });
+    this.broadcastAll({ type: "playback", state: this.playback, phase: this.phase, raidId: this.raidId, hostParticipantId: this.hostParticipantId, rngDecisions: describeDecisions(this.selectedRaid) });
   }
 
-  private broadcastStarted(): void {
-    for (const connectedClientId of this.clientIds) {
-      if (this.observers.has(connectedClientId)) {
-        this.sendTo(connectedClientId, this.startedMessage(null));
+  private broadcastStarted(exclude?: string): void {
+    for (const participantId of this.connections.keys()) {
+      if (participantId === exclude) continue;
+      if (this.pullObservers.has(participantId)) {
+        this.sendTo(participantId, this.startedMessage(null));
         continue;
       }
-      const playerId = this.playerForClient(connectedClientId);
-      if (!playerId) {
-        this.sendError(connectedClientId, "Claim a slot to join the running session");
-        continue;
-      }
-      this.sendTo(connectedClientId, this.startedMessage(playerId));
+      const playerId = this.rosterPlayerFor(participantId);
+      if (playerId) this.sendTo(participantId, this.startedMessage(playerId));
     }
   }
 
   private broadcastAll(message: ServerMessage): void {
     const json = JSON.stringify(message);
-    for (const clientId of this.clientIds) this.sendTo(clientId, json);
+    for (const participantId of this.connections.keys()) this.sendTo(participantId, json);
   }
 
-  private sendError(clientId: string, message: string): void {
-    logger.warn("session", "rejected", { session: this.id, clientId, reason: message });
-    this.sendTo(clientId, { type: "error", message });
+  private sendError(participantId: string, message: string): void {
+    logger.warn("session", "rejected", { session: this.id, participantId, reason: message });
+    this.sendTo(participantId, { type: "error", message });
   }
 }

@@ -82,12 +82,19 @@ networking model below.
 This project uses **server-relayed deterministic lockstep**. Understanding this is essential before
 touching the engine, netcode, or server.
 
-1. **Join / lobby.** `ColyseusTransport` joins or creates the filtered `relay` room hosted by
-   `src/server/server.ts`. `RelayServerRoom` owns the Colyseus lifecycle, authentication, rate
-   limiting, and boundary validation; it delegates session behavior to the transport-independent
-   `RelayRoom`. Players claim slots; one client is the host.
-2. **Start.** The server builds a tick-0 `World` from the raid definition and sends it to clients
-   in a `started` message, alongside the input log so far.
+1. **Join / setup.** `ColyseusTransport` joins or creates the filtered `relay` room hosted by
+   `src/server/server.ts`, passing a stable per-tab `participantId` in the join options.
+   `RelayServerRoom` owns the Colyseus lifecycle, authentication, rate limiting, and boundary
+   validation; it delegates session behavior to the transport-independent `RelayRoom`. A session
+   moves through three phases — **setup** (slot reservations), **workshop** (the always-joinable,
+   unrecorded empty arena; the UI calls it the *waiting lobby*, and it is where the host picks the
+   raid and its options), and **raid** (an authored pull).
+2. **Start.** The host opens the workshop from setup, then picks a raid, which loads it at tick zero
+   in the `stopped` state; START runs it. Starting freezes
+   the current reservations into the **pull roster**; the server builds a tick-0 `World` from the
+   raid definition and sends it to the rostered clients in a `started` message, alongside the input
+   log so far. A reservation made after that point is queued for the next pull. A raid does not
+   outlive its host or its participants: losing either ends the pull back into the workshop.
 3. **The relay.** The server does **not** run the simulation. `FrameRelay` produces one `Frame` per
    tick at 60 Hz — each frame is just the merged player *intents* for that tick (plus a couple of
    flags). It broadcasts these frames and keeps an authoritative input log.
@@ -95,8 +102,9 @@ touching the engine, netcode, or server.
    relayed intents plus locally-computed bot intents. Because every client starts from the same
    seed and applies the same frames in the same order, every client computes a **byte-identical
    world** — no world state is streamed during play.
-5. **Late join / reconnect / resync.** A joining client replays the input log (optionally from a
-   host snapshot taken every `SNAPSHOT_INTERVAL` ticks) to fast-forward to the room's current tick.
+5. **Workshop join / resync.** A client entering the workshop, or one being resynced, replays the
+   input log (optionally from a host snapshot taken every `SNAPSHOT_INTERVAL` ticks) to fast-forward
+   to the room's current tick. This is never an admission path into a running authored pull.
 6. **Desync detection.** Clients periodically send a `worldHash` (`HASH_INTERVAL` ticks); the server
    compares them via `DesyncTracker` and resyncs any client that diverged.
 7. **Rendering.** `NetClient` coordinates a `RenderSnapshotBuffer`, which keeps a small snapshot

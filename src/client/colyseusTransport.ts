@@ -19,7 +19,7 @@ export class ColyseusTransport implements Transport {
 
   send(message: ClientMessage): boolean {
     if (message.type === "join") {
-      void this.join(message.sessionId, message.raidId).catch(err => {
+      void this.join(message.sessionId, message.raidId, message.participantId).catch(err => {
         this.messageHandler({ type: "error", message: err instanceof Error ? err.message : "Failed to join lobby" });
       });
       return true;
@@ -44,11 +44,11 @@ export class ColyseusTransport implements Transport {
     this.roomSessionId = "";
   }
 
-  private async join(sessionId: string, raidId: string): Promise<void> {
+  private async join(sessionId: string, raidId: string, participant: string): Promise<void> {
     if (!this.client) return;
     this.closing = false;
     if (this.room && this.roomSessionId === sessionId) {
-      this.room.send("c", { type: "join", sessionId, raidId });
+      this.room.send("c", { type: "join", sessionId, raidId, participantId: participant });
       return;
     }
     if (this.room) {
@@ -58,7 +58,7 @@ export class ColyseusTransport implements Transport {
       this.roomSessionId = "";
       await previousRoom.leave(true);
     }
-    const room = await this.client.joinOrCreate("relay", { sessionId, raidId });
+    const room = await this.client.joinOrCreate("relay", { sessionId, raidId, participantId: participant });
     this.room = room;
     this.roomSessionId = sessionId;
     room.onMessage("s", message => this.messageHandler(message as ServerMessage));

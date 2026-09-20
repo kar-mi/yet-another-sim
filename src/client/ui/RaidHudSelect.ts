@@ -1,15 +1,30 @@
-import { EMPTY_RAID_ID, type BotPatternOption, type DecisionDescription, type PlaybackState, type RaidCategory } from "@shared/protocol";
+import { EMPTY_RAID_ID, type BotPatternOption, type DecisionDescription, type PlaybackState, type SessionPhase } from "@shared/protocol";
 import { RAID_CHANGE_START_DELAY_MS } from "@shared/constants";
 import type { NetClient } from "../net";
-import { loadRaidCategories } from "./MainMenu";
-import { showLoadingOverlay } from "./LoadingOverlay";
 import { el } from "./dom";
+import { loadRaidCategories } from "./MainMenu";
+import { createRaidPicker } from "./RaidPicker";
+import { showLoadingOverlay } from "./LoadingOverlay";
 import type { HudLayoutManager } from "./HudLayoutManager";
 import { armRngConstraints, armWaymark, createOptionsModal } from "./OptionsModal";
 import { loadRngConstraints } from "../rngPrefs";
 import { loadWaymarkPreset } from "../waymarkPrefs";
 import type { ReplayReview } from "./ReplayReview";
 import { ticksToLabel } from "../replayReviewModel";
+
+export interface RaidHudSession {
+  raidId: string;
+  selectedRaidId: string;
+  isHost: boolean;
+  phase: SessionPhase;
+  playbackState: PlaybackState;
+  worldSeed?: number | null;
+  rngConstraints?: Record<string, number>;
+  rngDecisions?: DecisionDescription[];
+  waymarkPresetId?: string | null;
+  botPatternOptions?: BotPatternOption[];
+  botPatternId?: string | null;
+}
 
 function parseLabel(label: string): number | null {
   const trimmed = label.trim();
@@ -22,198 +37,41 @@ function parseLabel(label: string): number | null {
 }
 
 /**
- * In-sim HUD: raid picker modal + playback controls.
+ * In-sim HUD: the raid picker, the options modal, and playback controls.
  * Returns a disposer that tears down listeners and DOM.
  */
 export async function createRaidHudSelect(
   net: NetClient,
-  initialRaidId: string,
-  initialIsHost: boolean,
-  initialPlaybackState: PlaybackState,
   hudLayout: HudLayoutManager,
-  initialWorldSeed: number | null = null,
-  initialRngConstraints: Record<string, number> = {},
+  session: RaidHudSession,
   replay?: { duration: () => number; currentTick: () => number; play: () => void; pause: () => void; restart: () => void; seek: (tick: number) => void; readOnly?: boolean },
-  initialRngDecisions: DecisionDescription[] = [],
-  initialWaymarkPresetId: string | null = null,
-  initialBotPatternOptions: BotPatternOption[] = [],
-  initialBotPatternId: string | null = null,
   replayReview?: ReplayReview,
 ): Promise<() => void> {
-  let isHost = initialIsHost;
-  let lastState: PlaybackState = initialPlaybackState;
-  const defaultLobbyCategory: RaidCategory = {
-    id: "default-lobby",
-    name: "Default Lobby",
-    description: "Empty arena.",
-    raids: [{ id: EMPTY_RAID_ID, name: "Default Lobby" }],
-  };
-  const categories = [defaultLobbyCategory, ...await loadRaidCategories()];
-  const categoryForRaidId = (raidId: string): RaidCategory => {
-    if (raidId === EMPTY_RAID_ID) return defaultLobbyCategory;
-    const prefix = raidId.slice(0, raidId.indexOf("/"));
-    return categories.find(cat => cat.id === prefix) ?? defaultLobbyCategory;
-  };
-  let currentCategory = categoryForRaidId(initialRaidId);
+  let isHost = session.isHost;
+  let phase = session.phase;
+  let lastState = session.playbackState;
+  let activeRaidId = session.raidId;
+  let selectedRaidId = session.selectedRaidId;
 
   const wrapper = el("div", { id: "yas-raid-select" });
-
   const label = el("span", { className: "yas-session-label", textContent: "RAID" });
 
-  const raidName = el("span", { className: "yas-raid-open-name" });
-  const raidBtn = el("button", {
-    type: "button",
-    className: "yas-raid-open",
-    disabled: !isHost,
-    attrs: { "aria-haspopup": "dialog", "aria-expanded": "false" },
-  }, [
-    raidName,
-    el("span", { className: "yas-raid-open-glyph", textContent: "▾" }),
-  ]);
-  let activeRaidId = initialRaidId;
-  let currentWorldSeed = initialWorldSeed;
-  let rngConstraints = initialRngConstraints;
-  let selectedRaidId = initialRaidId;
-  let raidChangePending = false;
-  let resumePlaybackAfterModal = false;
-  let searchTerm = "";
-  let syncPlayback: (state: PlaybackState) => void = () => {};
-
-  const raidLabelForId = (raidId: string): string => {
-    const category = categoryForRaidId(raidId);
-    return category.raids.find(raid => raid.id === raidId)?.name ?? category.raids[0]?.name ?? "";
-  };
-  const updateButtonLabel = () => {
-    raidName.textContent = raidLabelForId(selectedRaidId);
-  };
-
-  const modal = el("div", { id: "yas-raid-modal" });
-  modal.style.display = "none";
-  const searchInput = el("input", {
-    className: "yas-raid-search",
-    type: "search",
-    placeholder: "Search raids...",
-    ariaLabel: "Search raids",
+  const picker = replay ? null : createRaidPicker({
+    categories: await loadRaidCategories().catch(() => []),
+    initialRaidId: selectedRaidId,
+    enabled: isHost,
+    onSelect: raidId => net.send({ type: "setRaid", raidId }),
   });
-  const catList = el("div", { className: "yas-raid-cat-list" });
-  const raidList = el("div", { className: "yas-raid-raid-list", attrs: { role: "listbox" } });
-  const modalPanel = el("div", { className: "yas-raid-modal-panel" }, [
-    el("div", { className: "yas-raid-modal-header" }, [
-      el("div", { className: "yas-menu-subtitle", textContent: "SELECT RAID" }),
-      searchInput,
-    ]),
-    el("div", { className: "yas-raid-modal-body" }, [
-      catList,
-      raidList,
-    ]),
-  ]);
-  modal.appendChild(modalPanel);
-
-  const renderCategories = () => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-    catList.replaceChildren();
-    for (const category of categories) {
-      const hasMatch = normalizedSearch === ""
-        || category.name.toLowerCase().includes(normalizedSearch)
-        || category.raids.some(raid => raid.name.toLowerCase().includes(normalizedSearch));
-      const row = el("button", { type: "button", className: "yas-raid-cat-option" }, [
-        el("div", { className: "yas-raid-cat-name", textContent: category.name }),
-        el("div", { className: "yas-raid-cat-desc", textContent: category.description }),
-      ]);
-      row.classList.toggle("is-active", normalizedSearch === "" && category.id === currentCategory.id);
-      row.classList.toggle("is-dim", normalizedSearch !== "" && !hasMatch);
-      row.addEventListener("click", () => {
-        searchTerm = "";
-        searchInput.value = "";
-        currentCategory = category;
-        renderCategories();
-        renderRaids();
-      });
-      catList.appendChild(row);
-    }
-  };
-
-  const renderRaids = () => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-    const matches = normalizedSearch === ""
-      ? currentCategory.raids.map(raid => ({ category: currentCategory, raid }))
-      : categories.flatMap(category => category.raids
-        .filter(raid => raid.name.toLowerCase().includes(normalizedSearch) || category.name.toLowerCase().includes(normalizedSearch))
-        .map(raid => ({ category, raid })));
-    raidList.replaceChildren();
-    if (matches.length === 0) {
-      raidList.appendChild(el("div", { className: "yas-raid-empty", textContent: "No raids match" }));
-      return;
-    }
-    for (const { category, raid } of matches) {
-      const row = el("button", {
-        type: "button",
-        className: "yas-raid-raid-option",
-        attrs: { role: "option", "aria-selected": String(raid.id === activeRaidId) },
-      }, [
-        el("span", { className: "yas-raid-raid-name", textContent: raid.name }),
-        el("span", { className: "yas-raid-raid-cat", textContent: category.name }),
-      ]);
-      row.classList.toggle("is-active", raid.id === activeRaidId);
-      row.addEventListener("click", () => {
-        requestRaidChange(raid.id);
-      });
-      raidList.appendChild(row);
-    }
-  };
-
-  const openModal = () => {
-    if (raidBtn.disabled) return;
-    resumePlaybackAfterModal = lastState === "playing";
-    if (resumePlaybackAfterModal) net.send({ type: "pause" });
-    searchTerm = "";
-    searchInput.value = "";
-    currentCategory = categoryForRaidId(activeRaidId);
-    renderCategories();
-    renderRaids();
-    modal.style.display = "flex";
-    raidBtn.setAttribute("aria-expanded", "true");
-    searchInput.focus();
-  };
-  const closeModal = (resumePlayback = true) => {
-    const wasOpen = modal.style.display !== "none";
-    modal.style.display = "none";
-    raidBtn.setAttribute("aria-expanded", "false");
-    if (!wasOpen || !resumePlayback || !resumePlaybackAfterModal || raidChangePending) return;
-    resumePlaybackAfterModal = false;
-    net.send({ type: "play" });
-  };
-
-  const requestRaidChange = (raidId: string) => {
-    if (!raidId) return;
-    selectedRaidId = raidId;
-    updateButtonLabel();
-    raidBtn.blur();
-    if (raidId === activeRaidId) {
-      closeModal();
-      return;
-    }
-    raidChangePending = true;
-    closeModal(false);
-    syncPlayback(lastState);
-    net.send({ type: "setRaid", raidId });
-  };
-
-  updateButtonLabel();
-  searchInput.addEventListener("input", () => {
-    searchTerm = searchInput.value;
-    renderCategories();
-    renderRaids();
+  const optionsModal = replay ? null : createOptionsModal(net, {
+    raidId: selectedRaidId,
+    currentSeed: session.worldSeed ?? null,
+    rngConstraints: session.rngConstraints ?? {},
+    rngDecisions: session.rngDecisions ?? [],
+    waymarkPresetId: session.waymarkPresetId ?? null,
+    botPatternOptions: session.botPatternOptions ?? [],
+    botPatternId: session.botPatternId ?? null,
+    isHost,
   });
-  raidBtn.addEventListener("click", openModal);
-  modal.addEventListener("click", event => { if (event.target === modal) closeModal(); });
-  const onKeydown = (event: KeyboardEvent) => {
-    if (event.key === "Escape") {
-      closeModal();
-    }
-  };
-  document.addEventListener("keydown", onKeydown);
-  document.body.appendChild(modal);
 
   const controls = el("div", { className: "yas-playback-controls" });
   const canControl = () => replay ? !replay.readOnly : isHost;
@@ -225,24 +83,20 @@ export async function createRaidHudSelect(
     });
     return btn;
   };
-  const playBtn = makePlaybackBtn("PLAY", () => replay ? replay.play() : net.send({ type: "play" }));
+  // In the waiting lobby this button starts the selected raid; everywhere else it resumes the pull.
+  const playBtn = makePlaybackBtn("PLAY", () => {
+    if (replay) replay.play();
+    else if (phase === "workshop") net.send({ type: "start" });
+    else net.send({ type: "play" });
+  });
   const pauseBtn = makePlaybackBtn("PAUSE", () => replay ? replay.pause() : net.send({ type: "pause" }));
   const stopBtn = makePlaybackBtn("STOP", () => net.send({ type: "stop" }));
   const restartBtn = makePlaybackBtn("RESTART", () => replay ? replay.restart() : net.send({ type: "restart" }));
-  const optionsModal = replay ? null : createOptionsModal(net, {
-    raidId: activeRaidId,
-    currentSeed: currentWorldSeed,
-    rngConstraints,
-    rngDecisions: initialRngDecisions,
-    waymarkPresetId: initialWaymarkPresetId,
-    botPatternOptions: initialBotPatternOptions,
-    botPatternId: initialBotPatternId,
-    isHost,
-  });
   const optionsBtn = replay ? null : makePlaybackBtn("OPTIONS", () => {
-    // Stop before opening: options must not change out from under a live pull, and stopping first
-    // lets the server apply waymark/bot-pattern changes to the frozen world immediately.
-    if (lastState !== "stopped") net.send({ type: "stop" });
+    // A live pull is stopped first: options must not change out from under it, and stopping lets the
+    // server apply waymark/bot-pattern changes to the frozen world immediately. The waiting lobby has
+    // no pull to protect, so it keeps running.
+    if (phase === "raid" && lastState !== "stopped") net.send({ type: "stop" });
     optionsModal?.open();
   });
   if (replay) {
@@ -296,88 +150,71 @@ export async function createRaidHudSelect(
     replayReview?.setPosition(replay.currentTick());
   }, 100) : null;
 
-  syncPlayback = (state: PlaybackState) => {
+  const syncPlayback = (state: PlaybackState) => {
     lastState = state;
-    playBtn.textContent = !replay && state === "stopped" ? "START" : "PLAY";
-    const locked = raidChangePending || !isHost;
-    raidBtn.disabled = locked;
-    if (locked) closeModal(false);
-    // Play can't resume a finished pull (the server rejects it) — steer the host to RESTART instead.
-    playBtn.disabled = raidChangePending || !canControl() || state === "playing" || state === "done";
-    pauseBtn.disabled = raidChangePending || !canControl() || state !== "playing";
-    stopBtn.disabled = raidChangePending || !canControl() || state === "stopped";
-    restartBtn.disabled = raidChangePending || !canControl();
-    if (optionsBtn) optionsBtn.disabled = raidChangePending || !isHost;
+    const waiting = !replay && phase === "workshop";
+    playBtn.textContent = waiting || (!replay && state === "stopped") ? "START" : "PLAY";
+    // Picking a raid starts it, so in the waiting lobby this button only re-runs the raid already
+    // selected — and there is nothing to run until one is.
+    playBtn.disabled = !canControl()
+      || (waiting ? selectedRaidId === EMPTY_RAID_ID : state === "playing" || state === "done");
+    pauseBtn.disabled = !canControl() || state !== "playing";
+    stopBtn.disabled = !canControl() || state === "stopped";
+    restartBtn.disabled = !canControl() || waiting;
+    // Swapping the raid mid-pull is the one thing the server refuses, so lock the picker there.
+    picker?.setEnabled(isHost && !(phase === "raid" && state === "playing"));
+    if (optionsBtn) optionsBtn.disabled = !isHost;
     optionsModal?.update({ isHost });
   };
 
+  // A raid swap replaces every client's world; cover the rebuild so it doesn't read as a freeze.
+  const onRaidId = (raidId: string) => {
+    if (raidId === activeRaidId) return;
+    activeRaidId = raidId;
+    showLoadingOverlay(RAID_CHANGE_START_DELAY_MS);
+  };
   const disposePlayback = net.on("playback", message => {
-    isHost = replay ? false : net.clientId === message.hostClientId;
-    if (message.raidId !== activeRaidId) showLoadingOverlay(RAID_CHANGE_START_DELAY_MS);
-    const wasRaidChangePending = raidChangePending;
-    activeRaidId = message.raidId;
-    raidChangePending = false;
-    if (wasRaidChangePending || message.state === "playing") resumePlaybackAfterModal = false;
-    currentCategory = categoryForRaidId(message.raidId);
-    selectedRaidId = message.raidId;
-    optionsModal?.update({ raidId: message.raidId, rngDecisions: message.rngDecisions });
-    updateButtonLabel();
-    if (modal.style.display !== "none") {
-      renderCategories();
-      renderRaids();
-    }
+    isHost = replay ? false : net.participantId === message.hostParticipantId;
+    phase = message.phase;
+    onRaidId(message.raidId);
+    optionsModal?.update({ rngDecisions: message.rngDecisions });
     syncPlayback(message.state);
   });
-  const disposeError = net.on("error", () => {
-    const shouldResume = resumePlaybackAfterModal;
-    raidChangePending = false;
-    resumePlaybackAfterModal = false;
-    currentCategory = categoryForRaidId(activeRaidId);
-    selectedRaidId = activeRaidId;
-    updateButtonLabel();
-    if (modal.style.display !== "none") {
-      renderCategories();
-      renderRaids();
-    }
-    syncPlayback(lastState);
-    if (shouldResume) net.send({ type: "play" });
-  });
   const disposeLobby = net.on("lobby", message => {
-    isHost = replay ? false : net.clientId === message.hostClientId;
-    activeRaidId = message.raidId;
-    rngConstraints = message.rngConstraints;
+    isHost = replay ? false : net.participantId === message.hostParticipantId;
+    phase = message.phase;
+    selectedRaidId = message.selectedRaidId;
+    onRaidId(message.raidId);
+    picker?.setRaidId(message.selectedRaidId);
     optionsModal?.update({
-      raidId: message.raidId,
-      rngConstraints,
+      raidId: message.selectedRaidId,
+      rngConstraints: message.rngConstraints,
       rngDecisions: message.rngDecisions,
       waymarkPresetId: message.waymarkPresetId,
       botPatternOptions: message.botPatternOptions,
       botPatternId: message.botPatternId,
       isHost,
     });
-    if (isHost && JSON.stringify(message.rngConstraints) !== JSON.stringify(loadRngConstraints(message.raidId))) {
-      armRngConstraints(net, message.raidId);
+    // Re-apply this browser's saved per-raid preferences after the server cleared them on a swap.
+    if (isHost && JSON.stringify(message.rngConstraints) !== JSON.stringify(loadRngConstraints(message.selectedRaidId))) {
+      armRngConstraints(net, message.selectedRaidId);
     }
-    if (isHost && message.waymarkPresetId === null && loadWaymarkPreset(message.raidId) !== null) {
-      armWaymark(net, message.raidId);
+    if (isHost && message.waymarkPresetId === null && loadWaymarkPreset(message.selectedRaidId) !== null) {
+      armWaymark(net, message.selectedRaidId);
     }
+    syncPlayback(message.playbackState);
   });
   const disposeStarted = net.on("started", message => {
-    currentWorldSeed = message.world.seed;
-    optionsModal?.update({ currentSeed: currentWorldSeed });
-    if (isHost) armWaymark(net, activeRaidId);
+    optionsModal?.update({ currentSeed: message.world.seed });
+    if (isHost) armWaymark(net, selectedRaidId);
   });
-  syncPlayback(initialPlaybackState);
+  syncPlayback(session.playbackState);
 
-  const selectRow = el("div", { className: "yas-raid-select-row" });
-  selectRow.append(raidBtn);
-  if (optionsBtn) {
-    const rngRow = el("div", { className: "yas-rng-controls" }, [optionsBtn]);
-    selectRow.appendChild(rngRow);
-  }
-  // A replay has nothing to select, so the raid selector is not built at all and its playback
-  // controls live in the seek window instead.
-  if (!replay) {
+  // A replay has nothing to select, so the selector is not built at all and its playback controls
+  // live in the seek window instead.
+  if (!replay && picker) {
+    const selectRow = el("div", { className: "yas-raid-select-row" }, [picker.button]);
+    if (optionsBtn) selectRow.appendChild(el("div", { className: "yas-rng-controls" }, [optionsBtn]));
     wrapper.append(label, selectRow, controls);
     document.body.appendChild(wrapper);
     hudLayout.register("raidselector", wrapper);
@@ -406,13 +243,11 @@ export async function createRaidHudSelect(
 
   return () => {
     disposePlayback();
-    disposeError();
     disposeLobby();
     disposeStarted();
+    picker?.dispose();
     optionsModal?.dispose();
     if (seekTimer) clearInterval(seekTimer);
-    document.removeEventListener("keydown", onKeydown);
-    modal.remove();
     if (!replay) {
       hudLayout.unregister("raidselector");
       wrapper.remove();

@@ -31,7 +31,7 @@ const HASH_INTERVAL = 300;
 const SNAPSHOT_INTERVAL = 600;
 
 export class NetClient {
-  clientId: string | null = null;
+  participantId: string | null = null;
   // Latest shared replay from the server. Cached because it can arrive while the lobby screen is up,
   // before the sim view has subscribed to "replay".
   replayView: ReplayView | null = null;
@@ -39,9 +39,8 @@ export class NetClient {
   private readonly handlers = new Map<MessageType, Set<(message: ServerMessage) => void>>();
   private readonly replica = new SimulationReplica();
   private readonly renderBuffer = new RenderSnapshotBuffer();
-  private lastJoin: { sessionId: string; raidId: string } | null = null;
+  private lastJoin: { sessionId: string; raidId: string; participantId: string } | null = null;
   private claimedPlayerId: string | null = null;
-  private observing = false;
   private isHost = false;
   private readonly predictor = new LocalPredictor();
   // True only while the pull is actively relaying frames (playing). Pause/stop/done leave the local
@@ -61,15 +60,11 @@ export class NetClient {
 
   send(message: ClientMessage): boolean {
     if (message.type === "join") {
-      this.lastJoin = { sessionId: message.sessionId, raidId: message.raidId };
+      this.lastJoin = { sessionId: message.sessionId, raidId: message.raidId, participantId: message.participantId };
     }
     if (message.type === "claimSlot") this.claimedPlayerId = message.playerId;
     if (message.type === "releaseSlot" && this.claimedPlayerId === message.playerId) this.claimedPlayerId = null;
-    if (message.type === "claimObserver") {
-      this.claimedPlayerId = null;
-      this.observing = true;
-    }
-    if (message.type === "releaseObserver") this.observing = false;
+    if (message.type === "claimObserver") this.claimedPlayerId = null;
 
     return this.transport.send(message);
   }
@@ -119,35 +114,30 @@ export class NetClient {
     this.transport.close();
   }
 
+  // The server keys reservations by participantId, so a rejoin restores them without replaying the
+  // claim — replaying it would race the server's own restore.
   private resumeSession(): void {
     if (!this.lastJoin) return;
     this.renderBuffer.reset();
-    const join = this.lastJoin;
-    const claim = this.claimedPlayerId;
-    const observing = this.observing;
-    this.send({ type: "join", sessionId: join.sessionId, raidId: join.raidId });
-    if (claim) this.send({ type: "claimSlot", playerId: claim });
-    if (observing) this.send({ type: "claimObserver" });
+    this.send({ type: "join", ...this.lastJoin });
   }
 
   private handleMessage(message: ServerMessage): void {
     if (message.type === "joined") {
-      this.clientId = message.clientId;
+      this.participantId = message.participantId;
     }
     if (message.type === "lobby") {
       this.claimedPlayerId = message.slots.find(slot => slot.claimedByYou || slot.queuedByYou)?.playerId ?? null;
-      this.observing = message.observingByYou || message.observerQueuedByYou;
-      this.isHost = this.clientId !== null && this.clientId === message.hostClientId;
+      this.isHost = this.participantId !== null && this.participantId === message.hostParticipantId;
       this.predictor.reset();
     }
     if (message.type === "playback") {
-      this.isHost = this.clientId !== null && this.clientId === message.hostClientId;
+      this.isHost = this.participantId !== null && this.participantId === message.hostParticipantId;
       this.playing = message.state === "playing";
       this.predictor.reset();
     }
     if (message.type === "started") {
       this.claimedPlayerId = message.yourPlayerId;
-      this.observing = message.yourPlayerId === null;
       this.applyStarted(message);
     } else if (message.type === "frames") {
       this.applyFrames(message);
@@ -157,7 +147,6 @@ export class NetClient {
       this.replayView = null;
       this.lastJoin = null;
       this.claimedPlayerId = null;
-      this.observing = false;
       this.isHost = false;
       this.playing = false;
       this.predictor.reset();

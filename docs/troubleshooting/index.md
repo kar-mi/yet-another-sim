@@ -42,8 +42,12 @@ everything else on the machine works, test from another network before reporting
 
 ## Slots and bots
 
-**You claimed a slot but did not spawn.** A pull was already running, so you were *queued* rather
-than seated — the lobby says so. The host must stop the pull before queued players enter.
+**You claimed a slot but did not spawn.** A pull was already running, so the slot was *reserved*
+rather than seated — the setup screen says so. The reservation holds, and you enter on the next
+pull once the host stops or restarts the current one. In the waiting lobby a claim seats you at once.
+
+**You reloaded the page and lost your place in the pull.** That is by design: a refresh takes you
+out of the running pull, but your slot reservation is kept and you rejoin on the next one.
 
 **You cannot claim any slot.** You already hold one, or you are in the observer slot. Release what
 you hold first; a player may occupy exactly one slot at a time.

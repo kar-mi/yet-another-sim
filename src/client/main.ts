@@ -9,12 +9,13 @@ import { initSettingsPanel } from "./ui/SettingsPanel";
 import { createRaidHudSelect } from "./ui/RaidHudSelect";
 import { createBotActionsModal } from "./ui/BotActionsModal";
 import { NetClient, connect } from "./net";
+import { participantId } from "./participant";
 import { ReplayTransport } from "./replayTransport";
 import { replayRepository } from "./replayRepository";
 import { collectReplayInsights } from "./replayInsights";
 import { createReplayReview } from "./ui/ReplayReview";
 import { preloadAssets } from "./render/preloadAssets";
-import { SessionIdSchema, type PlaybackState, type ReplayView } from "@shared/protocol";
+import { SessionIdSchema, type PlaybackState, type ReplayView, type SessionPhase } from "@shared/protocol";
 import { consoleSink, logger, parseLevel } from "@shared/logger";
 import { HudLayoutManager } from "./ui/HudLayoutManager";
 import { initPerfHud } from "./perfMetrics";
@@ -122,10 +123,13 @@ async function main(): Promise<void> {
     sessionId = await landing;
   }
 
-  // Each iteration is one sim session: pick a class in the lobby, play, click Home to come back.
+  // Each iteration is one sim session: claim a slot in setup, enter the workshop or a raid, click
+  // Home to come back.
+  let setupNotice: string | undefined;
   for (;;) {
     homeBtn.style.display = "none";
-    const lobby = showLobby(net, sessionId);
+    const lobby = showLobby(net, sessionId, setupNotice);
+    setupNotice = undefined;
     hideBootLoading();
     const lobbyResult = await lobby;
     if (lobbyResult.kind === "expired") {
@@ -135,10 +139,11 @@ async function main(): Promise<void> {
     const session = lobbyResult;
 
     let expired = false;
+    let autoReturned = false;
     let leaving = false;
     let inReplay = false;
     let isHost = session.isHost;
-    let raidId = session.raidId;
+    let phase: SessionPhase = session.phase;
     let playbackState = session.playbackState;
     // Set when the host picks a recording (or a follower finishes loading the host's pick); the view
     // loop then swaps the live sim for playback.
@@ -173,15 +178,24 @@ async function main(): Promise<void> {
       leaveSession();
     });
     const offHost = net.on("lobby", message => {
-      isHost = net.clientId === message.hostClientId;
-      raidId = message.raidId;
+      isHost = net.participantId === message.hostParticipantId;
+      phase = message.phase;
       updateToolbar();
     });
     const offPlayback = net.on("playback", message => {
-      isHost = net.clientId === message.hostClientId;
-      raidId = message.raidId;
+      isHost = net.participantId === message.hostParticipantId;
+      phase = message.phase;
       playbackState = message.state;
       updateToolbar();
+    });
+    // The server ended the raid on its own; drop back to setup rather than swapping the world out
+    // from under the view.
+    const offTransition = net.on("transition", message => {
+      autoReturned = true;
+      setupNotice = message.reason === "hostLost"
+        ? "The raid ended because its host left. Everyone is back in the waiting lobby."
+        : "The raid ended because no participants were left. Everyone is back in the waiting lobby.";
+      leaveSession();
     });
 
     // Non-hosts mirror the host's shared replay: load a newly picked pull, sync the one on screen, or
@@ -243,7 +257,19 @@ async function main(): Promise<void> {
         renderer: liveRenderer,
         net,
         playbackState,
-        createRaidSelect: () => createRaidHudSelect(net, raidId, isHost, playbackState, hudLayout, session.world.seed, session.rngConstraints, undefined, session.rngDecisions, session.waymarkPresetId, session.botPatternOptions, session.botPatternId),
+        createRaidSelect: () => createRaidHudSelect(net, hudLayout, {
+          raidId: session.raidId,
+          selectedRaidId: session.selectedRaidId,
+          isHost,
+          phase,
+          playbackState,
+          worldSeed: session.world.seed,
+          rngConstraints: session.rngConstraints,
+          rngDecisions: session.rngDecisions,
+          waymarkPresetId: session.waymarkPresetId,
+          botPatternOptions: session.botPatternOptions,
+          botPatternId: session.botPatternId,
+        }),
         syncKeybindLabels,
         updateController,
       }, settings);
@@ -282,7 +308,7 @@ async function main(): Promise<void> {
         };
       const replayNet = new NetClient(transport);
       await replayNet.open();
-      replayNet.send({ type: "join", sessionId, raidId: replay.raidId });
+      replayNet.send({ type: "join", sessionId, raidId: replay.raidId, participantId: participantId() });
 
       const replayRenderer = new BabylonRenderer(canvas, onSettingsChange, () => {}, null, hudLayout);
       renderer = replayRenderer;
@@ -302,12 +328,18 @@ async function main(): Promise<void> {
         playbackState: "paused",
         readOnly: true,
         closeNet: true,
-        createRaidSelect: () => createRaidHudSelect(replayNet, replay.raidId, false, "paused", hudLayout, replay.world.seed, {}, {
+        createRaidSelect: () => createRaidHudSelect(replayNet, hudLayout, {
+          raidId: replay.raidId,
+          selectedRaidId: replay.raidId,
+          isHost: false,
+          phase: "raid",
+          playbackState: "paused",
+        }, {
           duration: () => transport.duration(),
           currentTick: () => transport.currentTick(),
           ...playback,
           readOnly: follower,
-        }, [], null, [], null, review),
+        }, review),
         syncKeybindLabels,
         updateController,
       }, settings);
@@ -350,6 +382,7 @@ async function main(): Promise<void> {
     offExpire();
     offHost();
     offPlayback();
+    offTransition();
     replayBrowser.dispose();
     replayBtn.removeEventListener("click", onReplayBtn);
     replayExitBtn.removeEventListener("click", onReplayExitBtn);
@@ -361,12 +394,15 @@ async function main(): Promise<void> {
       sessionId = await showLanding({ notice: "Session expired" });
       continue;
     }
-    // Host leaving via Home stops the pull so the session is joinable again
-    // (claimSlot/claimObserver reject while running/paused). Uses `leave` rather than `stop` so the
-    // stop's "started" broadcast doesn't bounce the host straight back into the sim.
-    if (session.isHost) {
+    // A raid cannot outlive its host: leaving via Home ends the pull and returns everyone else to the
+    // workshop. Uses `leave` rather than `stop` so the broadcast "started" doesn't bounce the host
+    // straight back into the sim.
+    if (isHost) {
       net.send({ type: "leave" });
     }
+    // An automatic return to the workshop keeps every reservation standing for the next pull; only a
+    // deliberate Home gives the seat up.
+    if (autoReturned) continue;
     if (session.yourPlayerId) {
       net.send({ type: "releaseSlot", playerId: session.yourPlayerId });
     } else {
