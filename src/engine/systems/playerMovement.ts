@@ -4,7 +4,7 @@
 
 import type { TickContext } from "./context";
 import { add, sub, scale, normalize, length } from "@shared/math";
-import { isOnFloor } from "../shapes";
+import { isOnFloor } from "@arena";
 import { atan2 } from "@shared/dmath";
 import { applyStatus, movementControl, movementSpeedMultiplier, requireStatus, resolveForcedWalk } from "@status";
 import { didAct } from "./helpers";

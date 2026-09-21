@@ -1,10 +1,10 @@
-import type { World, Player, Boss, Arena, Waymark } from "@shared/types";
+import type { World, Player, Boss, Waymark } from "@shared/types";
 import type { Vec2 } from "@shared/math";
 import { makeSeed } from "@shared/rng";
 import type { RaidDef } from "./raidSchema";
 import { INITIAL_TANK_THREAT, PROVOKE_LEAD } from "@shared/constants";
 import { topThreatTarget } from "./systems/helpers";
-import { toVec2, toZoneShape } from "./eventTransforms";
+import { toVec2 } from "./eventTransforms";
 import { bucketEvent, type Collections } from "./mechanicRegistry";
 import { toBotSolvers } from "./botSolvers";
 import { preRollRaid, type RngConstraints } from "./preRoll";
@@ -13,7 +13,7 @@ import { collectAvoidableSources } from "./avoidableSources";
 export const ROLE_HP: Record<Player["role"], number> = { tank: 160, healer: 100, dps: 100 };
 
 export function createWorld(raid: RaidDef, seed: number = makeSeed(), constraints: RngConstraints = {}): World {
-  const arena: Arena = { zones: raid.arena.zones.map(toZoneShape), floorPlan: raid.arena.floorPlan };
+  const arena = raid.arena;
   const waymarks: Waymark[] = raid.waymarks?.map(w => ({ mark: w.mark, pos: toVec2(w.pos) })) ?? [];
 
   const players: Player[] = raid.players.map(p => ({

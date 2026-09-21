@@ -113,6 +113,12 @@ export const NAV: NavSection[] = [
         description: "What src/effects owns, its import boundary, which renderer layers share each visual primitive, and how effect resources are disposed.",
       },
       {
+        source: "docs/arena-package.md",
+        url: "/developer/arena-package/",
+        title: "The arena package",
+        description: "Arena types, schemas, generators, packaged floor images, floor membership, Babylon mesh creation, and import boundaries.",
+      },
+      {
         source: "docs/status-package.md",
         url: "/developer/status-package/",
         title: "The status package",

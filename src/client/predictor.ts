@@ -10,7 +10,7 @@ import { add, sub, scale, normalize, length } from "@shared/math";
 import { atan2 } from "@shared/dmath";
 import { MOVE_SPEED, JUMP_SPEED, GRAVITY, SPRINT_COOLDOWN } from "@shared/constants";
 import { applyStatus, isInputDisabled, isStatusActive, movementSpeedMultiplier, requireStatus, type ApplyEnv, type StatusActor } from "@status";
-import { isOnFloor } from "../engine/shapes";
+import { isOnFloor } from "@arena";
 
 const SNAP_THRESHOLD = 3;  // yalms: divergence past this hard-resets (teleport, forced march, respawn)
 const SPRINT = requireStatus("sprint");

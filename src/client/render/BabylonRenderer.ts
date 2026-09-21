@@ -9,8 +9,10 @@ import { Color3, Color4 } from "@babylonjs/core/Maths/math.color";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { Scene } from "@babylonjs/core/scene";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
+import type { Arena } from "@arena";
+import { createArenaMeshes } from "@arena/babylon";
 import type { Renderer } from "./Renderer";
-import type { Boss, World, ZoneShape, FloorPlan } from "@shared/types";
+import type { Boss, World } from "@shared/types";
 import type { PlaybackState } from "@shared/protocol";
 import { selectBossSideOrbs } from "./bossSideOrbs";
 import { selectSealedImplement } from "./sealedImplement";
@@ -20,7 +22,7 @@ import { BossRingLayer } from "./BossRingLayer";
 import { BossSideOrbLayer } from "./BossSideOrbLayer";
 import { TargetRingLayer } from "./TargetRingLayer";
 import { HealthBarLayer } from "./HealthBarLayer";
-import { createZoneMesh } from "./meshes/arenaMeshes";
+import { ARENA_IMAGE_ROOT } from "../staticBase";
 import { HudOverlay } from "../ui/HudOverlay";
 import { PlayerLayer } from "./PlayerLayer";
 import { TelegraphLayer } from "./TelegraphLayer";
@@ -208,7 +210,7 @@ export class BabylonRenderer implements Renderer {
     fillLight.specular = new Color3(0.2, 0.2, 0.2);
 
     const renderKeys = getWorldRenderKeys(world) ?? computeWorldRenderKeys(world);
-    this.buildArena(world.arena.zones, world.arena.floorPlan, renderKeys.arena);
+    this.buildArena(world.arena, renderKeys.arena);
     this.waymarks = new WaymarkLayer(this.scene);
     this.waymarks.sync(world.waymarks, renderKeys.waymarks);
     this.crystals = new CrystalLayer(this.scene);
@@ -309,13 +311,9 @@ export class BabylonRenderer implements Renderer {
     return bossLayersKey(bosses) !== this.bossesKey;
   }
 
-  private buildArena(zones: ZoneShape[], floorPlan: FloorPlan, key: string): void {
+  private buildArena(arena: Arena, key: string): void {
     for (const mesh of this.floorMeshes) mesh.dispose(false, true);
-    this.floorMeshes = [];
-    for (const zone of zones) {
-      const mesh = createZoneMesh(this.scene, zone, floorPlan);
-      if (mesh) this.floorMeshes.push(mesh);
-    }
+    this.floorMeshes = createArenaMeshes(this.scene, arena, ARENA_IMAGE_ROOT);
     this.arenaKey = key;
   }
 
@@ -325,7 +323,7 @@ export class BabylonRenderer implements Renderer {
 
   sync(world: World): void {
     const renderKeys = getWorldRenderKeys(world) ?? computeWorldRenderKeys(world);
-    if (renderKeys.arena !== this.arenaKey) this.buildArena(world.arena.zones, world.arena.floorPlan, renderKeys.arena);
+    if (renderKeys.arena !== this.arenaKey) this.buildArena(world.arena, renderKeys.arena);
     this.waymarks.sync(world.waymarks, renderKeys.waymarks);
     this.crystals.sync(world.crystals, world.time, renderKeys.crystals);
 
