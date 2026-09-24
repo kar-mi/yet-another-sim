@@ -4,8 +4,8 @@ import { existsSync, mkdirSync } from "node:fs";
 import { join } from "path";
 import { consoleSink, formatRecord, logger, parseLevel, type LogRecord, type Sink } from "@shared/logger";
 import type { SessionLog } from "./sessionRaid";
-import type { Frame } from "@shared/protocol";
-import { REPLAY_FORMAT_VERSION } from "@shared/replay";
+import type { Frame } from "@model/protocol";
+import { REPLAY_FORMAT_VERSION } from "@model/replay";
 
 const ROOT = join(import.meta.dir, "..", "..");
 const LOG_DIR = join(ROOT, "logs");

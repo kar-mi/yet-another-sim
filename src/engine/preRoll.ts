@@ -1,9 +1,9 @@
-import type { Crystal, World } from "@shared/types";
+import type { Crystal, World } from "@model/types";
 import { nextRandom, randomInt } from "@shared/rng";
 import { selectOrbLayout } from "./blackHoleOrbs";
 import { placeCrystals } from "./crystals";
-import { toVec2 } from "./eventTransforms";
-import type { RaidDef } from "./raidSchema";
+import { toVec2 } from "./schema/eventTransforms";
+import type { RaidDef } from "./schema/raidSchema";
 
 export type PreRollDecisions = Record<string, number>;
 export type RngConstraints = Readonly<Record<string, number>>;

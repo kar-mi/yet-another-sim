@@ -5,7 +5,7 @@
 // snapping. It never touches the authoritative world — mechanics, worldHash, and desync detection
 // stay server-tick authoritative (see "Option C" in the input-delay plan).
 
-import type { Intent, Player, ZoneShape } from "@shared/types";
+import type { Intent, Player, ZoneShape } from "@model/types";
 import { add, sub, scale, normalize, length } from "@shared/math";
 import { atan2 } from "@shared/dmath";
 import { MOVE_SPEED, JUMP_SPEED, GRAVITY, SPRINT_COOLDOWN } from "@shared/constants";

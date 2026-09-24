@@ -1,5 +1,5 @@
 import type { TickContext } from "./context";
-import type { ActiveLimitCut, PendingLimitCut } from "@shared/types";
+import type { ActiveLimitCut, PendingLimitCut } from "@model/types";
 import { applyStatus, overrideStatus } from "@status";
 import { statusServices } from "./statusServices";
 

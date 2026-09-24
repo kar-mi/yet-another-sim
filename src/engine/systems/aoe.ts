@@ -8,7 +8,7 @@ import { statusServices } from "./statusServices";
 import type {
   ActiveMechanic, PendingEvent, PendingTargetedEvent, PendingBaitEvent, PendingDashEvent, PendingEffectBurst,
   Player, Role, Boss, AOEShape, DashDestination,
-} from "@shared/types";
+} from "@model/types";
 import type { Vec2 } from "@shared/math";
 
 function bossFor(bosses: Boss[], bossId?: string): Boss {

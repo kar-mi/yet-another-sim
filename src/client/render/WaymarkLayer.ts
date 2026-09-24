@@ -1,6 +1,6 @@
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Scene } from "@babylonjs/core/scene";
-import type { Waymark } from "@shared/types";
+import type { Waymark } from "@model/types";
 import { createWaymarkMeshes } from "@effects/babylon";
 
 export class WaymarkLayer {

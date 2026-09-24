@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { computeBotIntents } from "../botIntent";
+import { computeBotIntents } from "../bots/botIntent";
 import { createWorld } from "../world";
 import { HUMAN, baseRaid, effect, human, loadRaid, roster, runTicks, runTicksWithBotIntents, withEffect } from "./helpers";
 

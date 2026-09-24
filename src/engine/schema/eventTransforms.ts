@@ -1,7 +1,7 @@
 // Pure transforms from raw RaidDef event geometry (tuples) into engine types (Vec2 objects).
 // Shared by createWorld (waymarks/etc.) and the mechanic registry's per-event bucketing.
 
-import type { AOEShape, Knockback } from "@shared/types";
+import type { AOEShape, Knockback } from "@model/types";
 import { vec2 } from "@shared/math";
 import type { RaidDef } from "./raidSchema";
 

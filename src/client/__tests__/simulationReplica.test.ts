@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { SimulationReplica } from "../simulationReplica";
 import { createWorld } from "../../engine/world";
 import { createEmptyRaid } from "../../server/sessionRaid";
-import type { Frame } from "@shared/protocol";
+import type { Frame } from "@model/protocol";
 
 const frame: Frame = { intents: {}, botsInvincible: false };
 

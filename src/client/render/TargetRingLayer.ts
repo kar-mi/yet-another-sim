@@ -1,6 +1,6 @@
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Scene } from "@babylonjs/core/scene";
-import type { Boss } from "@shared/types";
+import type { Boss } from "@model/types";
 import { createGlowRing, type GlowRing } from "@effects/babylon";
 
 const RING_Y = 0.04;         // just above the floor (slightly higher than BossRingLayer at 0.03)

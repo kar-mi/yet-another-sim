@@ -1,5 +1,5 @@
 import { join } from "path";
-import { MAX_RAIDS, RAID_SEGMENT_REGEX, normalizeRaidName, type RaidCategory, type RaidEntry } from "@shared/protocol";
+import { MAX_RAIDS, RAID_SEGMENT_REGEX, normalizeRaidName, type RaidCategory, type RaidEntry } from "@model/protocol";
 import { isDevelopment, logger } from "./logger";
 import { parseRaidFile } from "./raidFileReader";
 

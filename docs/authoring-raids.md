@@ -2,7 +2,7 @@
 
 Raids are YAML files in the `raids/` directory. Each file describes an arena, a fixed
 roster of 8 players, and a timeline of events (mechanics) that resolve over time.
-The server validates every file against a strict schema (`src/engine/raidSchema.ts`) on
+The server validates every file against a strict schema (`src/engine/schema/raidSchema.ts`) on
 load — an invalid file throws and the raid won't start.
 
 ## File location & naming

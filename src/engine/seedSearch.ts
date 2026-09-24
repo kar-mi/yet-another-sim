@@ -1,6 +1,6 @@
-import type { DecisionDescription } from "@shared/protocol";
+import type { DecisionDescription } from "@model/protocol";
 import type { RngConstraints } from "./preRoll";
-import type { RaidDef } from "./raidSchema";
+import type { RaidDef } from "./schema/raidSchema";
 
 function rangeLabels(count: number, prefix: string): string[] {
   return Array.from({ length: count }, (_, i) => `${prefix} ${i + 1}`);

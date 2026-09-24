@@ -5,7 +5,7 @@ import { CreateGround } from "@babylonjs/core/Meshes/Builders/groundBuilder";
 import { CreateRibbon } from "@babylonjs/core/Meshes/Builders/ribbonBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveForcedMarch } from "@shared/types";
+import type { ActiveForcedMarch } from "@model/types";
 import { normalize } from "@shared/math";
 import { createGroundCircle } from "@effects/babylon";
 

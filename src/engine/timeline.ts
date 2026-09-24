@@ -1,4 +1,4 @@
-import type { ActiveMechanic, AOEShape, Boss, PendingEvent, Player } from "@shared/types";
+import type { ActiveMechanic, AOEShape, Boss, PendingEvent, Player } from "@model/types";
 import { sin, cos } from "@shared/dmath";
 import { normalize, scale, add, sub } from "@shared/math";
 import { buildFloorAoe } from "./floorAoeBuild";

@@ -1,5 +1,5 @@
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveInverse, Boss } from "@shared/types";
+import type { ActiveInverse, Boss } from "@model/types";
 import { createQuestionRingForInverse, updateQuestionRingForInverse } from "./meshes/inverseMeshes";
 import { syncFloorTelegraphs, disposeFloorTelegraphs, type FloorTelegraphMap } from "@effects/babylon";
 import { KeyedMeshLayer } from "./KeyedMeshLayer";

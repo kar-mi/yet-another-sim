@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test";
 import { join } from "path";
 import { parseRaidFile } from "../../server/raidFileReader";
-import { applyBotPatterns, loadBotPatterns, loadRaid } from "../raidLoader";
+import { applyBotPatterns, loadBotPatterns, loadRaid } from "../schema/raidLoader";
 import { createWorld } from "../world";
-import { computeBotIntents } from "../botIntent";
+import { computeBotIntents } from "../bots/botIntent";
 import { tick } from "../sim";
 import { length } from "@shared/math";
 

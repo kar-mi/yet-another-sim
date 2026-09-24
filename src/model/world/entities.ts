@@ -1,4 +1,4 @@
-import type { Vec2 } from "../math";
+import type { Vec2 } from "@shared/math";
 import type { Control, Role, Waypoint } from "./foundation";
 import type { StatusEffect } from "./effects";
 

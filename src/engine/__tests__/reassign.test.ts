@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { createWorld } from "../world";
 import { baseRaid, byId, loadRaid, noMove, roster, runTicks, withPlayerEffect } from "./helpers";
-import type { StatusEffect } from "@shared/types";
+import type { StatusEffect } from "@model/types";
 
 const stackCharge = {
   kind: "stack",

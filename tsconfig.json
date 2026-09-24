@@ -10,6 +10,7 @@
     "types": ["bun"],
     "paths": {
       "@shared/*": ["./src/shared/*"],
+      "@model/*": ["./src/model/*"],
       "@arena": ["./src/arena/index.ts"],
       "@arena/*": ["./src/arena/*"],
       "@effects": ["./src/effects/index.ts"],

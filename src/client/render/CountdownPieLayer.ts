@@ -1,6 +1,6 @@
 import type { Scene } from "@babylonjs/core/scene";
-import type { Player } from "@shared/types";
-import { countdownSlicesLeft } from "@shared/countdown";
+import type { Player } from "@model/types";
+import { countdownSlicesLeft } from "@model/countdown";
 import { createCountdownPie, COUNTDOWN_PIE_PLANE_RATIO, type CountdownPie } from "@effects/babylon";
 
 // Height above the player's feet.

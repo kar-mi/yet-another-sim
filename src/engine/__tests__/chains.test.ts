@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { createWorld } from "../world";
 import { DPS_HP, TANK_HP } from "./constants";
-import type { Player, World } from "@shared/types";
+import type { Player, World } from "@model/types";
 import { HUMAN, baseRaid, effect, human, loadRaid, roster, runTicks, withPlayerEffect } from "./helpers";
 import type { Vec } from "./helpers";
 

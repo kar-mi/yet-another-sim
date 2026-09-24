@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
-import type { Frame } from "@shared/protocol";
-import type { World } from "@shared/types";
-import { REPLAY_FORMAT_VERSION, type ReplayData } from "@shared/replay";
+import type { Frame } from "@model/protocol";
+import type { World } from "@model/types";
+import { REPLAY_FORMAT_VERSION, type ReplayData } from "@model/replay";
 import { createWorld } from "../../engine/world";
-import { loadRaid } from "../../engine/raidLoader";
-import { CLOCK_SPOTS, ROSTER } from "@shared/protocol";
+import { loadRaid } from "../../engine/schema/raidLoader";
+import { CLOCK_SPOTS, ROSTER } from "@model/protocol";
 import { collectReplayInsights } from "../replayInsights";
 import { SimulationReplica } from "../simulationReplica";
 

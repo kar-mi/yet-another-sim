@@ -5,7 +5,7 @@
 import type { TickContext } from "./context";
 import { applyStatus } from "@status";
 import { statusServices } from "./statusServices";
-import type { ActiveInverse, PendingInverse } from "@shared/types";
+import type { ActiveInverse, PendingInverse } from "@model/types";
 import { pointInShape } from "../shapes";
 import { applyMechanicDamage, knockbackPlayer, shapeOrigin } from "./helpers";
 import { mechanicSource } from "./damageLog";

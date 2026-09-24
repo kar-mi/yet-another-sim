@@ -1,9 +1,9 @@
-import { computeBotIntents } from "../botIntent";
-import { loadRaid as loadRaidRaw } from "../raidLoader";
+import { computeBotIntents } from "../bots/botIntent";
+import { loadRaid as loadRaidRaw } from "../schema/raidLoader";
 import { tick } from "../sim";
 import { createWorld } from "../world";
-import { CLOCK_SPOTS, ROSTER } from "@shared/protocol";
-import type { Intents, Player, StatusEffect, World } from "@shared/types";
+import { CLOCK_SPOTS, ROSTER } from "@model/protocol";
+import type { Intents, Player, StatusEffect, World } from "@model/types";
 
 // The slot these tests treat as the human player (a dps) — the target of withEffect and the noMove
 // override. Control is no longer authored on raids; use withControl to actually mark it human.

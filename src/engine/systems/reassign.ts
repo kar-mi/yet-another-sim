@@ -4,7 +4,7 @@
 // this re-balances charges back up to that label's target counts, dealing the deficit onto the
 // just-resolved players in roster order.
 
-import type { Player, Reassign, ReassignCharge } from "@shared/types";
+import type { Player, Reassign, ReassignCharge } from "@model/types";
 import type { TickContext } from "./context";
 import { applyStatus, isStatusActive } from "@status";
 import { statusServices } from "./statusServices";

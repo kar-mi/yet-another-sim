@@ -2,7 +2,7 @@
 // on expiry. The chain entity is authoritative; its registered debuff spans the break window.
 
 import type { TickContext } from "./context";
-import type { ActiveChain, PendingChain } from "@shared/types";
+import type { ActiveChain, PendingChain } from "@model/types";
 import { length, sub } from "@shared/math";
 import { applyStatus, overrideStatus, removeStatus } from "@status";
 import { applyMechanicDamage } from "./helpers";

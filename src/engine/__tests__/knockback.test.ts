@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { remainingTime } from "@status";
-import { computeBotIntents } from "../botIntent";
+import { computeBotIntents } from "../bots/botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
 import { HUMAN, baseRaid, human, loadRaid, roster, runTicks, runTicksWithBotIntents } from "./helpers";

@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { createWorld } from "../world";
 import { selectOrbLayout, clockwiseTetherOrder, type BlackHoleOrb } from "../blackHoleOrbs";
 import { baseRaid, byId, human, loadRaid, noMove, roster, runTicks } from "./helpers";
-import type { World } from "@shared/types";
+import type { World } from "@model/types";
 
 const blackHole = {
   ref: "debug_black_hole_mitigation",

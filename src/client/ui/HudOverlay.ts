@@ -1,4 +1,4 @@
-import type { World, Player, Boss } from "@shared/types";
+import type { World, Player, Boss } from "@model/types";
 import { triggerAction, toggleInvincibility, toggleCooldowns, getActiveModifier } from "../input";
 import { SPRINT_COOLDOWN, ANTI_KB_COOLDOWN, PROVOKE_COOLDOWN } from "@shared/constants";
 import {
@@ -15,7 +15,7 @@ import {
 } from "../actions";
 import { keyLabel } from "../settings";
 import type { Settings, ControllerType } from "../settings";
-import type { PlaybackState } from "@shared/protocol";
+import type { PlaybackState } from "@model/protocol";
 import { clamp01 } from "@shared/math";
 import { createEffectRenderState, syncEffectChips, type EffectRenderState } from "./effectChips";
 import { remainingTime, requireStatus } from "@status";

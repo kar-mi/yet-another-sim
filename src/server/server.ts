@@ -9,7 +9,7 @@ import { logger } from "./logger";
 import { startMetricsServer } from "./metricsServer";
 import { getRaidCategories, raidCatalogCacheControl } from "./raidCatalog";
 import { listReplays, loadReplay, ReplayReadError } from "./replayReader";
-import { REPLAY_FORMAT_VERSION, type ReplayErrorResponse } from "@shared/replay";
+import { REPLAY_FORMAT_VERSION, type ReplayErrorResponse } from "@model/replay";
 
 const ROOT = join(import.meta.dir, "..", "..");
 const BUNDLE_DIR = join(ROOT, ".bundle");

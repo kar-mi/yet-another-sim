@@ -21,8 +21,8 @@ normalizes authored `{ x, z }` objects and `[x, z]` tuples into the canonical ob
 resolves a named generator before the raid reaches `createWorld`. Only the browser renderer may
 import `@arena/babylon`; the engine never imports Babylon.
 
-`src/shared/world/foundation.ts` re-exports the arena types so existing world-model consumers can
-continue importing `@shared/types` without creating a second definition.
+`src/model/world/foundation.ts` re-exports the arena types so existing world-model consumers can
+continue importing `@model/types` without creating a second definition.
 
 ## Images and mesh creation
 

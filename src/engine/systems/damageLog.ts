@@ -1,6 +1,6 @@
 // Replay-review recording: avoidable hits and deaths.
 
-import type { LogEntry, Player } from "@shared/types";
+import type { LogEntry, Player } from "@model/types";
 
 
 export type DamageContext = {

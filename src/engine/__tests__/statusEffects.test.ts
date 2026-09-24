@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { tick } from "../sim";
 import { createWorld } from "../world";
 import { DPS_HP, HEALER_HP, TANK_HP } from "./constants";
-import type { Intents } from "@shared/types";
+import type { Intents } from "@model/types";
 import { HUMAN, baseRaid, byId, effect, human, loadRaid, noMove, roster, runTicks, withEffect } from "./helpers";
 import type { Vec } from "./helpers";
 

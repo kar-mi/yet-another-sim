@@ -1,4 +1,4 @@
-import { PARTICIPANT_ID_REGEX } from "@shared/protocol";
+import { PARTICIPANT_ID_REGEX } from "@model/protocol";
 
 const PARTICIPANT_KEY = "yas_participant_id";
 

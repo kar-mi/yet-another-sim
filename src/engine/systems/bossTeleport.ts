@@ -1,4 +1,4 @@
-import type { PendingBossTeleport } from "@shared/types";
+import type { PendingBossTeleport } from "@model/types";
 import { atan2 } from "@shared/dmath";
 import type { TickContext } from "./context";
 

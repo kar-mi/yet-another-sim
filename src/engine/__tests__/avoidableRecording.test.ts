@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { createWorld } from "../world";
 import { DPS_HP } from "./constants";
 import { baseRaid, effect, loadRaid, noMove, roster, runTicks, withPlayerEffect } from "./helpers";
-import type { LogEntry, World } from "@shared/types";
+import type { LogEntry, World } from "@model/types";
 import type { Vec } from "./helpers";
 
 // The engine emits replay-review entries into world.log. These tests assert on those entries
@@ -214,7 +214,7 @@ test("createWorld bakes the tagged source keys and sorted sections into the worl
 });
 
 test("recording entries are excluded from the world hash", async () => {
-  const { worldHash } = await import("@shared/worldHash");
+  const { worldHash } = await import("@model/worldHash");
   const world = runTicks(createWorld(raidWith([centeredAoe({ damage: 500, avoidable: true })], stacked)), noMove, 40);
   expect(world.log.length).toBeGreaterThan(0);
   expect(worldHash(world)).toBe(worldHash({ ...world, log: [] }));

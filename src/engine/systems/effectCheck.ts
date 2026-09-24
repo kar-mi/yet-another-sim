@@ -1,4 +1,4 @@
-import type { PendingEffectCheck } from "@shared/types";
+import type { PendingEffectCheck } from "@model/types";
 import type { TickContext } from "./context";
 import { isStatusActive } from "@status";
 import { applyMechanicDamage } from "./helpers";

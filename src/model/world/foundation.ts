@@ -1,4 +1,4 @@
-import type { Vec2 } from "../math";
+import type { Vec2 } from "@shared/math";
 
 export type { Arena, ZoneShape } from "@arena";
 export type { AOEShape, ElementGlyphKind, WaymarkId } from "@effects";

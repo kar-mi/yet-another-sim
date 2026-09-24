@@ -1,5 +1,5 @@
 import { TICK_MS } from "@shared/constants";
-import type { Boss, Player, World } from "@shared/types";
+import type { Boss, Player, World } from "@model/types";
 import { length, shortestAngleDelta, sub, type Vec2 } from "@shared/math";
 import { recordBufferReset, recordInterpolation } from "./perfMetrics";
 import { computeWorldRenderKeys, getWorldRenderKeys, setWorldRenderKeys, type WorldRenderKeys } from "./worldRenderKeys";

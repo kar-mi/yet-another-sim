@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test";
 import { add, dot, length, normalize, scale, sub } from "@shared/math";
 import { cos, sin } from "@shared/dmath";
-import { genericFrameNorth, genericSolverWaypoint, TETHER_SOURCE_PULL } from "../../genericSolver";
-import { applyBotPatterns, loadBotPatterns, loadRaid } from "../../raidLoader";
+import { genericFrameNorth, genericSolverWaypoint, TETHER_SOURCE_PULL } from "../../bots/genericSolver";
+import { applyBotPatterns, loadBotPatterns, loadRaid } from "../../schema/raidLoader";
 import { pointInShape } from "../../shapes";
 import { createWorld } from "../../world";
 import { clockwiseTetherOrder } from "../../blackHoleOrbs";

@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { tick } from "../sim";
 import { INITIAL_TANK_THREAT } from "@shared/constants";
 import { createWorld } from "../world";
-import { loadRaid as loadRaidRaw } from "../raidLoader";
+import { loadRaid as loadRaidRaw } from "../schema/raidLoader";
 import { TANK_HP } from "./constants";
 import { HUMAN, baseRaid, human, loadRaid, roster, runTicks } from "./helpers";
 

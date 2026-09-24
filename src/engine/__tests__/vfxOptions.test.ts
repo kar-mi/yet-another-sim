@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
 import { FloorAoe, isFloorAoeVisible, type Vfx } from "@effects";
 import { VfxSchema } from "@effects/schema";
-import { loadRaid } from "../raidLoader";
+import { loadRaid } from "../schema/raidLoader";
 import { createWorld } from "../world";
 import { noMove, runTicks } from "./helpers";
-import type { World } from "@shared/types";
+import type { World } from "@model/types";
 
 const raw = Bun.YAML.parse(await Bun.file(`${import.meta.dir}/../../../raids/debug/vfx-test.yaml`).text());
 const raid = loadRaid(raw);

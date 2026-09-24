@@ -1,7 +1,7 @@
 import { TICK_DT } from "@shared/constants";
-import type { Frame } from "@shared/protocol";
-import type { World } from "@shared/types";
-import { computeBotIntents } from "../engine/botIntent";
+import type { Frame } from "@model/protocol";
+import type { World } from "@model/types";
+import { computeBotIntents } from "../engine/bots/botIntent";
 import { tick } from "../engine/sim";
 
 

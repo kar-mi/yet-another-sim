@@ -1,6 +1,6 @@
 import { expect, test, describe } from "bun:test";
 import { parseRaidFile, readRaidObject } from "./raidFileReader";
-import { loadBotPatterns, loadRaid } from "../engine/raidLoader";
+import { loadBotPatterns, loadRaid } from "../engine/schema/raidLoader";
 import { join } from "path";
 
 const RAIDS_DIR = join(import.meta.dir, "..", "..", "raids");

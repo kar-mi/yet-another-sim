@@ -3,7 +3,7 @@ import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import type { Scene } from "@babylonjs/core/scene";
-import type { Player } from "@shared/types";
+import type { Player } from "@model/types";
 import { STATUS_ICON_ROOT } from "../staticBase";
 import { createGlowRing, imageBillboardMaterial } from "@effects/babylon";
 

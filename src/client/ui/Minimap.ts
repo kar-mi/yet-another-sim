@@ -1,4 +1,4 @@
-import type { Player, World, WaymarkId } from "@shared/types";
+import type { Player, World, WaymarkId } from "@model/types";
 import { minimapProjection, projectMinimap, type MinimapProjection } from "./minimapProjection";
 
 const COLORS: Record<WaymarkId, string> = {

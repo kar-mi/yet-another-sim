@@ -8,7 +8,7 @@ import type { AnimationGroup } from "@babylonjs/core/Animations/animationGroup";
 import { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 import { logger } from "@shared/logger";
-import type { LogEntry, Player } from "@shared/types";
+import type { LogEntry, Player } from "@model/types";
 import { hasActiveStatus } from "@status";
 import { length, sub } from "@shared/math";
 import { STATIC_ROOT, STATUS_ICON_ROOT } from "../staticBase";

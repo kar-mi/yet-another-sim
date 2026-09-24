@@ -1,13 +1,13 @@
 import { expect, test } from "bun:test";
-import { genericSolverWaypoint, resolvedMechanics, TETHER_SOURCE_PULL } from "../genericSolver";
+import { genericSolverWaypoint, resolvedMechanics, TETHER_SOURCE_PULL } from "../bots/genericSolver";
 import { add, length, normalize, scale, sub } from "@shared/math";
-import { computeBotIntents } from "../botIntent";
+import { computeBotIntents } from "../bots/botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
-import { applyBotPatterns, loadBotPatterns, loadRaid } from "../raidLoader";
-import { BotPatternsSchema } from "../raidSchema";
+import { applyBotPatterns, loadBotPatterns, loadRaid } from "../schema/raidLoader";
+import { BotPatternsSchema } from "../schema/raidSchema";
 import { baseRaid, roster } from "./helpers";
-import type { Player, World } from "@shared/types";
+import type { Player, World } from "@model/types";
 
 // Minimal World/Player builders: the solver only reads a handful of fields, so we construct just
 // those and cast, keeping each case readable.

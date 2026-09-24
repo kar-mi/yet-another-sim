@@ -1,12 +1,12 @@
 import { expect, test } from "bun:test";
-import { computeBotIntents } from "../botIntent";
+import { computeBotIntents } from "../bots/botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
-import { applyBotPatterns, loadBotPatterns, loadRaid } from "../raidLoader";
-import { worldHash } from "@shared/worldHash";
+import { applyBotPatterns, loadBotPatterns, loadRaid } from "../schema/raidLoader";
+import { worldHash } from "@model/worldHash";
 import { HUMAN, baseRaid, deepFreeze, effect, loadRaid as buildRaid, roster, withPlayerEffect } from "./helpers";
-import type { RaidDef } from "../raidSchema";
-import type { Intents, World } from "@shared/types";
+import type { RaidDef } from "../schema/raidSchema";
+import type { Intents, World } from "@model/types";
 
 // Server-relayed lockstep requires that `tick` produce byte-identical worlds from the same seed +
 // inputs on every client, and that the entire simulation state live in `World` (so a late joiner

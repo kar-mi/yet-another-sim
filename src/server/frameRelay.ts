@@ -7,7 +7,7 @@
 // (frame assembly), onFrames (broadcast + metrics), onCeiling (defensive end), and isRunning.
 
 import { TICK_DT } from "@shared/constants";
-import type { Frame } from "@shared/protocol";
+import type { Frame } from "@model/protocol";
 import { metrics } from "./metrics";
 import type { SessionLog } from "./sessionRaid";
 

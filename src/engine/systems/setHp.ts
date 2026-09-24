@@ -2,7 +2,7 @@
 // Targeting mirrors apply_effect: default = all alive, optional role or players filter.
 
 import type { TickContext } from "./context";
-import type { PendingSetHp } from "@shared/types";
+import type { PendingSetHp } from "@model/types";
 
 export function resolveSetHps(ctx: TickContext): PendingSetHp[] {
   const { players, log, time } = ctx;

@@ -116,7 +116,7 @@ yields the same output world.
 
 ## World hash & desync detection
 
-`worldHash(world)` (`src/shared/worldHash.ts`) is an **FNV-1a 32-bit** hash over
+`worldHash(world)` (`src/model/worldHash.ts`) is an **FNV-1a 32-bit** hash over
 `JSON.stringify(world)` with `log` excluded (render-only event history, not simulated
 state). FNV-1a is pure integer math, so it is identical on every engine. Key order in
 `JSON.stringify` is stable because every client builds objects in the same order.

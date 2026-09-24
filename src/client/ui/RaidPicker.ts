@@ -1,4 +1,4 @@
-import type { RaidCategory } from "@shared/protocol";
+import type { RaidCategory } from "@model/protocol";
 import { el } from "./dom";
 
 export interface RaidPicker {

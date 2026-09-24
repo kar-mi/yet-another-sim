@@ -4,7 +4,7 @@ import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { Boss } from "@shared/types";
+import type { Boss } from "@model/types";
 import { STATIC_ROOT } from "../../staticBase";
 import { imageBillboardMaterial } from "@effects/babylon";
 

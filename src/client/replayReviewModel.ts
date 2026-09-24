@@ -1,7 +1,7 @@
 // Presentation logic for the replay review UI, kept free of the DOM. ui/ReplayReview.ts renders it.
 
-import type { ReplayEvent } from "@shared/replay";
-import type { MechanicSection } from "@shared/types";
+import type { ReplayEvent } from "@model/replay";
+import type { MechanicSection } from "@model/types";
 
 const TICKS_PER_SECOND = 60;
 // Selecting a hit or death rewinds this far so the lead-up is visible, not just the aftermath.

@@ -1,4 +1,4 @@
-import type { Vec2 } from "../math";
+import type { Vec2 } from "@shared/math";
 import type { FloorAoe, Vfx } from "@effects";
 import type {
   AOEShape, BossRelativeCenter, DamageType, ElementGlyph, ElementGlyphKind, ElementRing, FlashBeforeResolve, Mover,

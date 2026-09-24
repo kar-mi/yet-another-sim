@@ -4,7 +4,7 @@ import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { TetherSource, Player } from "@shared/types";
+import type { TetherSource, Player } from "@model/types";
 import { createLine, updateLine } from "@effects/babylon";
 
 const LINE_RADIUS = 0.09;

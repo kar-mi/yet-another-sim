@@ -4,7 +4,7 @@
 import type { TickContext } from "./context";
 import { applyStatus, consumeStacks } from "@status";
 import { statusServices } from "./statusServices";
-import type { ActiveTower, PendingTower, AOEShape, Player } from "@shared/types";
+import type { ActiveTower, PendingTower, AOEShape, Player } from "@model/types";
 import { pointInShape } from "../shapes";
 import { knockbackPlayer, applyMechanicDamage, applyMechanicLethal } from "./helpers";
 import { mechanicSource } from "./damageLog";

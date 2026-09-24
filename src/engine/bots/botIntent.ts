@@ -1,11 +1,11 @@
 import type { Vec2 } from "@shared/math";
-import type { Intents, Player, Waypoint, World } from "@shared/types";
+import type { Intents, Player, Waypoint, World } from "@model/types";
 import { length, normalize, sub } from "@shared/math";
 import { atan2 } from "@shared/dmath";
 import { MOVE_SPEED } from "@shared/constants";
 import { genericSolverWaypoint, resolvedMechanics } from "./genericSolver";
 import { requiredKnockbackFacing } from "@status";
-import { shapeOrigin } from "./systems/helpers";
+import { shapeOrigin } from "../systems/helpers";
 
 function activeWaypoint(pattern: Waypoint[], time: number, after = -Infinity): Waypoint | undefined {
   let active: Waypoint | undefined;

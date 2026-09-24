@@ -15,7 +15,7 @@ import { replayRepository } from "./replayRepository";
 import { collectReplayInsights } from "./replayInsights";
 import { createReplayReview } from "./ui/ReplayReview";
 import { preloadAssets } from "./render/preloadAssets";
-import { SessionIdSchema, type PlaybackState, type ReplayView, type SessionPhase } from "@shared/protocol";
+import { SessionIdSchema, type PlaybackState, type ReplayView, type SessionPhase } from "@model/protocol";
 import { consoleSink, logger, parseLevel } from "@shared/logger";
 import { HudLayoutManager } from "./ui/HudLayoutManager";
 import { initPerfHud } from "./perfMetrics";

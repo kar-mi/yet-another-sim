@@ -3,8 +3,8 @@ import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveMechanic } from "@shared/types";
-import { elementRingRadius } from "@shared/elementRing";
+import type { ActiveMechanic } from "@model/types";
+import { elementRingRadius } from "@model/elementRing";
 import { circlePath, createElementGlyph, type ElementGlyphHandle } from "@effects/babylon";
 
 // Align glyphs with the ring.

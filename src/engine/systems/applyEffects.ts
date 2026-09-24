@@ -4,7 +4,7 @@
 import type { TickContext } from "./context";
 import { applyStatus } from "@status";
 import { statusServices } from "./statusServices";
-import type { EffectSpec, PendingApplyEffect } from "@shared/types";
+import type { EffectSpec, PendingApplyEffect } from "@model/types";
 
 function selectedEffect(pae: PendingApplyEffect, groupChoices: Record<string, number>, randInt: (n: number) => number): EffectSpec {
   if (!pae.applyEffectChoices) return pae.applyEffect!;

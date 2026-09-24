@@ -1,4 +1,4 @@
-import type { Player } from "@shared/types";
+import type { Player } from "@model/types";
 
 export function resolvePovPlayer(
   players: Player[],

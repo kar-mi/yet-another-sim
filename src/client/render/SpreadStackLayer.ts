@@ -5,7 +5,7 @@ import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
 import type { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveSpreadStack, Boss, Player } from "@shared/types";
+import type { ActiveSpreadStack, Boss, Player } from "@model/types";
 import {
   createGroundCircle,
   createQuestionRing,

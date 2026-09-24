@@ -6,7 +6,7 @@ import { CreatePolyhedron } from "@babylonjs/core/Meshes/Builders/polyhedronBuil
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
 import type { Scene } from "@babylonjs/core/scene";
-import type { Crystal, CrystalElement } from "@shared/types";
+import type { Crystal, CrystalElement } from "@model/types";
 
 const CRYSTAL_COLORS: Record<CrystalElement, Color3> = {
   wind: new Color3(0.25, 0.9, 0.45),

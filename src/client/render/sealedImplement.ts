@@ -1,4 +1,4 @@
-import type { ActiveMechanic } from "@shared/types";
+import type { ActiveMechanic } from "@model/types";
 import type { GlowVfx } from "@effects";
 
 type SealedImplement = "bow" | "harp";

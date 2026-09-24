@@ -1,12 +1,12 @@
-import type { World, Player, Boss, Waymark } from "@shared/types";
+import type { World, Player, Boss, Waymark } from "@model/types";
 import type { Vec2 } from "@shared/math";
 import { makeSeed } from "@shared/rng";
-import type { RaidDef } from "./raidSchema";
+import type { RaidDef } from "./schema/raidSchema";
 import { INITIAL_TANK_THREAT, PROVOKE_LEAD } from "@shared/constants";
 import { topThreatTarget } from "./systems/helpers";
-import { toVec2 } from "./eventTransforms";
+import { toVec2 } from "./schema/eventTransforms";
 import { bucketEvent, type Collections } from "./mechanicRegistry";
-import { toBotSolvers } from "./botSolvers";
+import { toBotSolvers } from "./bots/botSolvers";
 import { preRollRaid, type RngConstraints } from "./preRoll";
 import { collectAvoidableSources } from "./avoidableSources";
 

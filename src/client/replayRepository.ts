@@ -4,7 +4,7 @@ import {
   type ReplayErrorCode,
   type ReplayErrorResponse,
   type ReplaySummary,
-} from "@shared/replay";
+} from "@model/replay";
 
 const REPLAY_CACHE_MAX = 5;
 type Request = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;

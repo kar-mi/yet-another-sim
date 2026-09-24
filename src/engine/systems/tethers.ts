@@ -4,7 +4,7 @@
 import type { TickContext } from "./context";
 import { applyStatus } from "@status";
 import { statusServices } from "./statusServices";
-import type { AOEShape, TetherSource, PendingTether } from "@shared/types";
+import type { AOEShape, TetherSource, PendingTether } from "@model/types";
 import { length, normalize, sub, type Vec2 } from "@shared/math";
 import { pointInShape } from "../shapes";
 import { selectTargetPlayer, findInterceptor, applyMechanicDamage } from "./helpers";

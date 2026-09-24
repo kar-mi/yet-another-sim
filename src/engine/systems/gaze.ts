@@ -5,7 +5,7 @@
 import type { TickContext } from "./context";
 import { applyStatus } from "@status";
 import { statusServices } from "./statusServices";
-import type { ActiveGaze, PendingGaze, AOEShape } from "@shared/types";
+import type { ActiveGaze, PendingGaze, AOEShape } from "@model/types";
 import { applyMechanicDamage, knockbackPlayer, isLookingAt } from "./helpers";
 import { mechanicSource } from "./damageLog";
 import { pointInShape } from "../shapes";

@@ -4,7 +4,7 @@ import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveGaze } from "@shared/types";
+import type { ActiveGaze } from "@model/types";
 
 // A gaze with a carrier cone (gz.floorAoe set) is rendered separately via FloorAoe/syncFloorTelegraphs.
 // A gaze mechanic is shown as an upright rectangular board (default to the north) carrying an

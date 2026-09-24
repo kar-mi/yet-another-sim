@@ -1,5 +1,5 @@
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveGaze } from "@shared/types";
+import type { ActiveGaze } from "@model/types";
 import { createGazeMeshes, updateGazeMeshes } from "./meshes/gazeMeshes";
 import { syncFloorTelegraphs, disposeFloorTelegraphs, type FloorTelegraphMap } from "@effects/babylon";
 import { KeyedMeshLayer } from "./KeyedMeshLayer";

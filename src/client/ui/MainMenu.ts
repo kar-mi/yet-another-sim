@@ -13,8 +13,8 @@ import {
   type ServerMessage,
   type DecisionDescription,
   type BotPatternOption,
-} from "@shared/protocol";
-import type { World } from "@shared/types";
+} from "@model/protocol";
+import type { World } from "@model/types";
 import type { NetClient } from "../net";
 import { createElement } from "./dom";
 import { participantId } from "../participant";

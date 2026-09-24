@@ -1,4 +1,4 @@
-import type { AOEShape, EffectResolver, Player } from "@shared/types";
+import type { AOEShape, EffectResolver, Player } from "@model/types";
 import { length, sub } from "@shared/math";
 import type { TickContext } from "./context";
 import { closestOtherAliveActor, isStatusActive, removeStatuses } from "@status";

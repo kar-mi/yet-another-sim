@@ -2,7 +2,7 @@
 // until resolve. Role-group targets can be chosen as the complement of a linked event (or randomly).
 
 import type { TickContext } from "./context";
-import type { ActiveLineLink, PendingLineLink } from "@shared/types";
+import type { ActiveLineLink, PendingLineLink } from "@model/types";
 import { applyStatus, overrideStatus, removeStatus } from "@status";
 import { selectLineLinkTargets, knockbackPlayer } from "./helpers";
 import { statusServices } from "./statusServices";

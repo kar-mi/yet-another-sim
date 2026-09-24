@@ -12,11 +12,11 @@
 // below is the long-standing fixed order (forcedMarch → … → gaze); determinism.test.ts guards it.
 // Modules without a `resolve` (heal, effect_resolver) may sit anywhere — they draw no RNG.
 
-import type { World, EffectResolver } from "@shared/types";
+import type { World, EffectResolver } from "@model/types";
 import { normalize, type Vec2 } from "@shared/math";
-import type { RaidDef } from "./raidSchema";
+import type { RaidDef } from "./schema/raidSchema";
 import type { TickContext } from "./systems/context";
-import { toVec2, toAOEShape, toKnockback } from "./eventTransforms";
+import { toVec2, toAOEShape, toKnockback } from "./schema/eventTransforms";
 import { resolveForcedMarches } from "./systems/forcedMarch";
 import { resolveTethers } from "./systems/tethers";
 import { resolveLineLinks } from "./systems/lineLinks";

@@ -1,10 +1,10 @@
 import type { Vec2 } from "@shared/math";
 import { add, sub, scale, normalize, length, dot } from "@shared/math";
 import { cos, sin } from "@shared/dmath";
-import type { FrameRef, GenericSolverRule, Player, World } from "@shared/types";
-import { pointInShape } from "./shapes";
+import type { FrameRef, GenericSolverRule, Player, World } from "@model/types";
+import { pointInShape } from "../shapes";
 import { urgentSlot } from "@status";
-import { aoeCanHitPlayer } from "./systems/helpers";
+import { aoeCanHitPlayer } from "../systems/helpers";
 
 // A live unresolved mechanic the generic solver can match against. `labels`/`group`/`pos` are carried
 // from the authored event (towers have a position; targeted/bait/aoe carry labels+group but no pos).

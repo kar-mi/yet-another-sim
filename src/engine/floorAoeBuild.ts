@@ -4,7 +4,7 @@
 // Shared by every construction site that promotes a pending mechanic into an active one (or
 // re-anchors its shape mid-lifetime) so the mapping only lives in one place.
 
-import type { AOEShape, TelegraphMode, FlashBeforeResolve, ElementGlyphKind } from "@shared/types";
+import type { AOEShape, TelegraphMode, FlashBeforeResolve, ElementGlyphKind } from "@model/types";
 import { FloorAoe, DEFAULT_DANGER_COLOR, type FloorAoeVfx } from "@effects";
 import { AOE_RESOLVE_LINGER } from "@shared/constants";
 

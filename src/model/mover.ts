@@ -1,4 +1,4 @@
-import type { Vec2 } from "./math";
+import type { Vec2 } from "@shared/math";
 import type { Mover } from "./types";
 
 // Wait until departAt, then move linearly to the destination by resolveAt.

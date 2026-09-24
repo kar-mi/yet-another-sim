@@ -1,6 +1,6 @@
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Scene } from "@babylonjs/core/scene";
-import type { Crystal } from "@shared/types";
+import type { Crystal } from "@model/types";
 import { createCrystalMesh } from "./meshes/crystalMeshes";
 
 export class CrystalLayer {

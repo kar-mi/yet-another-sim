@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test } from "bun:test";
 import { NullEngine } from "@babylonjs/core/Engines/nullEngine";
 import { Scene } from "@babylonjs/core/scene";
 import { FloorAoe, type FloorAoeVfx } from "@effects";
-import type { ActiveMechanic } from "@shared/types";
+import type { ActiveMechanic } from "@model/types";
 import { TelegraphLayer } from "../render/TelegraphLayer";
 
 let originalDocument: PropertyDescriptor | undefined;

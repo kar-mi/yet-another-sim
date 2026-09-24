@@ -1,10 +1,10 @@
 import { dirname, join } from "path";
 import { readRaidObject } from "./raidFileReader";
-import { applyBotPatterns, loadBotPatterns, loadRaid } from "../engine/raidLoader";
+import { applyBotPatterns, loadBotPatterns, loadRaid } from "../engine/schema/raidLoader";
 import { BOSS_REGISTRY, DEFAULT_BOSS_ID } from "../engine/bossRegistry";
-import type { RaidDef } from "../engine/raidSchema";
-import { CLOCK_SPOTS, EMPTY_RAID_ID, ROSTER, type Frame } from "@shared/protocol";
-import type { Intent, World } from "@shared/types";
+import type { RaidDef } from "../engine/schema/raidSchema";
+import { CLOCK_SPOTS, EMPTY_RAID_ID, ROSTER, type Frame } from "@model/protocol";
+import type { Intent, World } from "@model/types";
 
 export interface SessionLog {
   header(raidId: string, world: World): void;

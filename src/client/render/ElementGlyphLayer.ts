@@ -1,6 +1,6 @@
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveMechanic } from "@shared/types";
-import { moverPosition } from "@shared/mover";
+import type { ActiveMechanic } from "@model/types";
+import { moverPosition } from "@model/mover";
 import { createElementGlyph, type ElementGlyphHandle } from "@effects/babylon";
 
 const DEFAULT_COLOR = "#ffffff";

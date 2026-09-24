@@ -1,13 +1,13 @@
 import { expect, test } from "bun:test";
 import { pointInShape } from "../shapes";
 import { preRollRaid } from "../preRoll";
-import { loadRaid } from "../raidLoader";
+import { loadRaid } from "../schema/raidLoader";
 import { createWorld } from "../world";
-import { toAOEShape } from "../eventTransforms";
-import { elementRingRadius } from "@shared/elementRing";
+import { toAOEShape } from "../schema/eventTransforms";
+import { elementRingRadius } from "@model/elementRing";
 import { isFloorAoeVisible } from "@effects";
-import { moverPosition } from "@shared/mover";
-import { countdownSlicesLeft } from "@shared/countdown";
+import { moverPosition } from "@model/mover";
+import { countdownSlicesLeft } from "@model/countdown";
 import { describeDecisions, validateRngConstraints } from "../seedSearch";
 import { HUMAN, byId, roster, runTicks } from "./helpers";
 

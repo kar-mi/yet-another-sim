@@ -1,5 +1,5 @@
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveMechanic } from "@shared/types";
+import type { ActiveMechanic } from "@model/types";
 import type { FloorAoe } from "@effects";
 import { syncFloorTelegraphs, disposeFloorTelegraphs, spawnElementBurst, type FloorTelegraphMap } from "@effects/babylon";
 

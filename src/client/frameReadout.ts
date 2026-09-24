@@ -1,6 +1,6 @@
-import type { FrameRef, GenericSolverRule, Player, World } from "@shared/types";
+import type { FrameRef, GenericSolverRule, Player, World } from "@model/types";
 import type { Vec2 } from "@shared/math";
-import { genericFrameForwardSign, genericFrameNorth, genericFrameRightSign, genericRuleFrameNorth, resolvedMechanics } from "../engine/genericSolver";
+import { genericFrameForwardSign, genericFrameNorth, genericFrameRightSign, genericRuleFrameNorth, resolvedMechanics } from "../engine/bots/genericSolver";
 
 export type PositionFrameOption = {
   key: string;

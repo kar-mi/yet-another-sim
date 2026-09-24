@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import type { Frame, ServerMessage } from "@shared/protocol";
-import type { World } from "@shared/types";
+import type { Frame, ServerMessage } from "@model/protocol";
+import type { World } from "@model/types";
 import { ReplayTransport } from "../replayTransport";
 
 function makeFrames(count: number): Frame[] {

@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
-import { computeBotIntents } from "../botIntent";
+import { computeBotIntents } from "../bots/botIntent";
 import { createWorld } from "../world";
-import { applyBotPatterns, loadBotPatterns } from "../raidLoader";
+import { applyBotPatterns, loadBotPatterns } from "../schema/raidLoader";
 import { HUMAN, baseRaid, byId, effect, human, loadRaid, noMove, roster, runTicks, runTicksWithBotIntents, withEffect, withPlayerEffect } from "./helpers";
 import type { Vec } from "./helpers";
 

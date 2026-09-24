@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test";
-import { computeBotIntents } from "../botIntent";
+import { computeBotIntents } from "../bots/botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
-import { applyBotPatterns, loadBotPatterns } from "../raidLoader";
-import type { World } from "@shared/types";
+import { applyBotPatterns, loadBotPatterns } from "../schema/raidLoader";
+import type { World } from "@model/types";
 import { HUMAN, baseRaid, effect, loadRaid, roster, runTicksWithBotIntents, runTicksWithComputedBotIntents, withControl, withEffect, withPlayerEffect } from "./helpers";
 
 test("bot patterns can be loaded from a companion definition", () => {

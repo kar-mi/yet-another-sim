@@ -1,8 +1,8 @@
-import type { Crystal, CrystalElement } from "@shared/types";
+import type { Crystal, CrystalElement } from "@model/types";
 import type { Vec2 } from "@shared/math";
 import { randomInt } from "@shared/rng";
-import { toVec2 } from "./eventTransforms";
-import type { RaidDef } from "./raidSchema";
+import { toVec2 } from "./schema/eventTransforms";
+import type { RaidDef } from "./schema/raidSchema";
 
 type CrystalConfig = NonNullable<RaidDef["crystals"]>;
 

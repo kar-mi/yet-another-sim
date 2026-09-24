@@ -1,4 +1,4 @@
-import type { Player, World } from "@shared/types";
+import type { Player, World } from "@model/types";
 import {
   ACTIONS,
   CONTROLLER_BUTTON_POSITION,

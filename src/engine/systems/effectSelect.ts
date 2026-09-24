@@ -4,7 +4,7 @@
 import type { TickContext } from "./context";
 import { applyStatus } from "@status";
 import { statusServices } from "./statusServices";
-import type { PendingEffectSelect } from "@shared/types";
+import type { PendingEffectSelect } from "@model/types";
 
 export function resolveEffectSelects(ctx: TickContext): PendingEffectSelect[] {
   const { players, log, time, groupChoices, randInt } = ctx;

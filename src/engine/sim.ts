@@ -7,14 +7,14 @@
 // the fixed resolve order. This file only orchestrates: movement/targeting, the registry resolve
 // loop, status effects, and status derivation.
 
-import type { World, Intents, PendingHeal } from "@shared/types";
+import type { World, Intents, PendingHeal } from "@model/types";
 import { atan2 } from "@shared/dmath";
 import { sub, normalize, scale, add, length } from "@shared/math";
 import { createTickContext } from "./systems/context";
 import { topThreatTarget } from "./systems/helpers";
 import { applyPlayerMovement } from "./systems/playerMovement";
 import { applyStatusEffects } from "./systems/statusEffects";
-import { holdUntilFromResolves } from "./genericSolver";
+import { holdUntilFromResolves } from "./bots/genericSolver";
 import { REGISTRY } from "./mechanicRegistry";
 import { BOSS_MOVE_SPEED } from "@shared/constants";
 

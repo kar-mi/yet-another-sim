@@ -1,4 +1,4 @@
-import { isWaymarkPresetId } from "@shared/waymarkPresets";
+import { isWaymarkPresetId } from "@model/waymarkPresets";
 
 const WAYMARK_PRESET_KEY = "yas_waymark_preset";
 

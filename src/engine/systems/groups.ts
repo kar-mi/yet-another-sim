@@ -4,7 +4,7 @@
 import type { TickContext } from "./context";
 import { applyStatus } from "@status";
 import { statusServices } from "./statusServices";
-import type { ActiveGroupMechanic, PendingGroupEvent, AOEShape } from "@shared/types";
+import type { ActiveGroupMechanic, PendingGroupEvent, AOEShape } from "@model/types";
 import { mechanicSource } from "./damageLog";
 import { resolveStackShare } from "./strikes";
 import { cullResolved } from "./util";

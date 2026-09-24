@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { tick } from "../sim";
 import { createWorld } from "../world";
-import { loadRaid as loadRaidRaw } from "../raidLoader";
+import { loadRaid as loadRaidRaw } from "../schema/raidLoader";
 import { baseRaid, roster, runTicks } from "./helpers";
 
 // ─── Schema ───────────────────────────────────────────────────────────────────

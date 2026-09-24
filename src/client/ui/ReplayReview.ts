@@ -4,8 +4,8 @@
 // The section navigator is independent of the sidebar's filters, so sections locate you in the
 // fight whether or not anything happened to the filtered player.
 
-import type { MechanicSection } from "@shared/types";
-import type { ReplayInsights } from "@shared/replay";
+import type { MechanicSection } from "@model/types";
+import type { ReplayInsights } from "@model/replay";
 import {
   buildRows, damageLabel, eventSeekTick, matchesFilter, rowLabel, sectionSeekTick, ticksToLabel,
   type ReplayFilter, type ReviewRow,

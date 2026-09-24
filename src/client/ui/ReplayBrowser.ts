@@ -1,9 +1,9 @@
 // Session-scoped replay browser: the host's ▶ toolbar button opens this over the running simulator
 // to pick one of the session's recordings. Extracted from the lobby, which no longer lists replays.
 
-import type { Frame } from "@shared/protocol";
-import type { ReplaySummary } from "@shared/replay";
-import type { World } from "@shared/types";
+import type { Frame } from "@model/protocol";
+import type { ReplaySummary } from "@model/replay";
+import type { World } from "@model/types";
 import { replayRepository, ReplayRepositoryError } from "../replayRepository";
 import { createElement, el } from "./dom";
 

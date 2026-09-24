@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { ReplayRepository, ReplayRepositoryError } from "../replayRepository";
-import { REPLAY_FORMAT_VERSION } from "@shared/replay";
+import { REPLAY_FORMAT_VERSION } from "@model/replay";
 import { createWorld } from "../../engine/world";
 import { createEmptyRaid } from "../../server/sessionRaid";
 

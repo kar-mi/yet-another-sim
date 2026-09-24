@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { createWorld } from "../world";
-import { loadRaid as loadRaidRaw } from "../raidLoader";
+import { loadRaid as loadRaidRaw } from "../schema/raidLoader";
 import { DPS_HP, HEALER_HP, TANK_HP } from "./constants";
 import { baseRaid, effect, loadRaid, noMove, roster, runTicks, withPlayerEffect } from "./helpers";
 import type { Vec } from "./helpers";

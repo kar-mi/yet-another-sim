@@ -4,7 +4,7 @@
 // plant-spawned traps to it (those new traps are intentionally not culled until next tick).
 
 import type { TickContext } from "./context";
-import type { ActiveForcedMarch, PendingForcedMarch } from "@shared/types";
+import type { ActiveForcedMarch, PendingForcedMarch } from "@model/types";
 import { add, sub, normalize, scale, length } from "@shared/math";
 import { applyStatus, requireStatus } from "@status";
 import { statusServices } from "./statusServices";

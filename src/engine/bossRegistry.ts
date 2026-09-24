@@ -1,4 +1,4 @@
-import type { BossModelName } from "./raidSchema";
+import type { BossModelName } from "./schema/raidSchema";
 
 export type BossPreset = {
   model: BossModelName;

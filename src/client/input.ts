@@ -1,4 +1,4 @@
-import type { Intent } from "@shared/types";
+import type { Intent } from "@model/types";
 import { normalize, shortestAngleDelta, normalizeAngle, type Vec2 } from "@shared/math";
 import {
   CONTROLLER_FACE_BUTTONS,

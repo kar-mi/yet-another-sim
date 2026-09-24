@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { createWorld } from "../../world";
-import { applyBotPatterns, loadBotPatterns, loadRaid } from "../../raidLoader";
+import { applyBotPatterns, loadBotPatterns, loadRaid } from "../../schema/raidLoader";
 import { runTicksWithComputedBotIntents } from "../helpers";
 
 const RAID_DIR = `${import.meta.dir}/../../../../raids/forked-tower-magic`;

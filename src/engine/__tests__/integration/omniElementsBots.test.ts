@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { applyBotPatterns, loadBotPatterns, loadRaid } from "../../raidLoader";
+import { applyBotPatterns, loadBotPatterns, loadRaid } from "../../schema/raidLoader";
 import { createWorld } from "../../world";
 import { runTicksWithComputedBotIntents } from "../helpers";
 

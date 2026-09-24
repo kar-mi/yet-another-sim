@@ -1,4 +1,4 @@
-import type { Player } from "@shared/types";
+import type { Player } from "@model/types";
 
 type VisibilityPlayer = Pick<Player, "id" | "control" | "pos" | "y" | "alive">;
 const MODEL_OVERLAP_DISTANCE = 0.05;

@@ -1,4 +1,4 @@
-import type { Vec2 } from "../math";
+import type { Vec2 } from "@shared/math";
 import type { Arena, Crystal, MechanicSection, Status, Waymark } from "./foundation";
 import type { Boss, Player } from "./entities";
 import type { BotSolvers } from "./solver";

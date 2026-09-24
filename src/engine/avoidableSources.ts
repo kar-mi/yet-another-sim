@@ -4,7 +4,7 @@
 // Status-effect damage is not listed here — it is classified by the effect's own `avoidable` flag,
 // which travels with the applied effect (see EffectSpec).
 
-import type { RaidDef } from "./raidSchema";
+import type { RaidDef } from "./schema/raidSchema";
 
 type RaidEvent = RaidDef["events"][number];
 

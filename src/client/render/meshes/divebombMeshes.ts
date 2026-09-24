@@ -3,7 +3,7 @@ import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveDivebomb } from "@shared/types";
+import type { ActiveDivebomb } from "@model/types";
 import { length, sub } from "@shared/math";
 import { DIVEBOMB_LINGER } from "@shared/constants";
 import { divebombPosition } from "@shared/divebomb";

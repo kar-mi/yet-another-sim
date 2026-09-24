@@ -1,8 +1,8 @@
 import { ColyseusTransport } from "./colyseusTransport";
-import { type ClientMessage, type ReplayView, type ServerMessage } from "@shared/protocol";
-import type { Intent, World } from "@shared/types";
+import { type ClientMessage, type ReplayView, type ServerMessage } from "@model/protocol";
+import type { Intent, World } from "@model/types";
 import { LocalPredictor } from "./predictor";
-import { worldHash } from "@shared/worldHash";
+import { worldHash } from "@model/worldHash";
 import { WORLD_RENDER_KEYS, getWorldRenderKeys, setWorldRenderKeys } from "./worldRenderKeys";
 import {
   PERF_ENABLED,
@@ -10,7 +10,7 @@ import {
   recordHostSnapshot,
   recordResyncRequest,
 } from "./perfMetrics";
-import { SNAPSHOT_FORMAT_VERSION } from "@shared/replay";
+import { SNAPSHOT_FORMAT_VERSION } from "@model/replay";
 import { SimulationReplica } from "./simulationReplica";
 import { RenderSnapshotBuffer } from "./renderSnapshotBuffer";
 

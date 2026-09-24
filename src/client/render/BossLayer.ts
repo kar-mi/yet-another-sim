@@ -6,7 +6,7 @@ import { Space } from "@babylonjs/core/Maths/math.axis";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import type { Scene } from "@babylonjs/core/scene";
 import { logger } from "@shared/logger";
-import type { Boss } from "@shared/types";
+import type { Boss } from "@model/types";
 import { STATIC_ROOT } from "../staticBase";
 import { buildIndexModel, type IndexModel } from "./meshes/indexModel";
 import type { ImplementHighlight } from "./sealedImplement";

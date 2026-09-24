@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { ReplayEvent } from "@shared/replay";
+import type { ReplayEvent } from "@model/replay";
 import {
   buildRows, damageLabel, eventSeekTick, matchesFilter, rowLabel, sectionSeekTick, ticksToLabel,
   type ReplayFilterState,

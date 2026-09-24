@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ArenaSchema } from "@arena/schema";
-import { ROSTER, RaidIdSchema } from "@shared/protocol";
-import { BOSS_REGISTRY, BOSS_REGISTRY_IDS, DEFAULT_BOSS_ID, isBossRegistryId, type BossRegistryId } from "./bossRegistry";
+import { ROSTER, RaidIdSchema } from "@model/protocol";
+import { BOSS_REGISTRY, BOSS_REGISTRY_IDS, DEFAULT_BOSS_ID, isBossRegistryId, type BossRegistryId } from "../bossRegistry";
 import { BotSolversSchema } from "./raidSchemaBotSolvers";
 import { CrystalsSchema, WaymarkSchema } from "./raidSchemaFoundation";
 import { EventSchema } from "./raidSchemaEvents";

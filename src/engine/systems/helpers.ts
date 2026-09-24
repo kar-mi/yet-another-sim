@@ -14,7 +14,7 @@ import type {
   ActiveMechanic,
   Knockback,
   AOEShape,
-} from "@shared/types";
+} from "@model/types";
 import type { Vec2 } from "@shared/math";
 import { sub, scale, normalize, length, dot } from "@shared/math";
 import { GRAVITY, KNOCKBACK_FRICTION, INTERCEPT_THRESHOLD } from "@shared/constants";

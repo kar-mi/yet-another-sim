@@ -1,5 +1,5 @@
-import type { BotPatternOption, DecisionDescription } from "@shared/protocol";
-import { WAYMARK_PRESETS } from "@shared/waymarkPresets";
+import type { BotPatternOption, DecisionDescription } from "@model/protocol";
+import { WAYMARK_PRESETS } from "@model/waymarkPresets";
 import { clearRngConstraints, loadRngConstraints, saveRngConstraints } from "../rngPrefs";
 import { clearWaymarkPreset, loadWaymarkPreset, saveWaymarkPreset } from "../waymarkPrefs";
 import type { NetClient } from "../net";

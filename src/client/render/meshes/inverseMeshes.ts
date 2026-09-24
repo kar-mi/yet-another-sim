@@ -1,5 +1,5 @@
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveInverse, Boss } from "@shared/types";
+import type { ActiveInverse, Boss } from "@model/types";
 import {
   createQuestionRing,
   QUESTION_RING_DEFAULT_Y,

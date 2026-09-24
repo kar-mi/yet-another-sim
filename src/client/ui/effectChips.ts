@@ -3,7 +3,7 @@
 // calls syncEffectChips each frame, which rebuilds chips only when the active effect set changes and
 // otherwise just ticks the countdown timers. Extracted from HudOverlay.
 
-import type { Player } from "@shared/types";
+import type { Player } from "@model/types";
 import { sortForDisplay, statusIcon } from "@status";
 import { STATUS_ICON_ROOT } from "../staticBase";
 

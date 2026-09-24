@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { join } from "path";
 import { parseRaidFile } from "../../server/raidFileReader";
-import { loadRaid } from "../raidLoader";
+import { loadRaid } from "../schema/raidLoader";
 import { preRollRaid } from "../preRoll";
 import { createWorld } from "../world";
 import { runTicks } from "./helpers";

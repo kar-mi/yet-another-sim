@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { selectSealedImplement } from "../render/sealedImplement";
-import { loadRaid } from "../../engine/raidLoader";
+import { loadRaid } from "../../engine/schema/raidLoader";
 import { createWorld } from "../../engine/world";
 import { noMove, runTicks } from "../../engine/__tests__/helpers";
 

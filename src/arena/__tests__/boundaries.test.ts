@@ -28,7 +28,7 @@ test("@arena core does not import simulator or rendering code", async () => {
 test("consumers use only public arena entry points", async () => {
   const allowed = new Set(["@arena", "@arena/schema", "@arena/babylon"]);
   const imports = [
-    ...await importsOf("src/{engine,client,server,shared,effects,status}/**/*.ts"),
+    ...await importsOf("src/{engine,client,server,shared,model,effects,status}/**/*.ts"),
     ...await importsOf("scripts/**/*.ts"),
   ];
   const offenders = imports

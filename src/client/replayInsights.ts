@@ -4,10 +4,10 @@
 // re-simulates from tick 0 on every seek, so this pass costs less than a single scrub.
 
 import { TICK_DT } from "@shared/constants";
-import type { Frame } from "@shared/protocol";
-import type { LogEntry, MechanicSection, World } from "@shared/types";
-import type { ReplayEvent, ReplayInsights, ReplayPlayerLabel } from "@shared/replay";
-import { computeBotIntents } from "../engine/botIntent";
+import type { Frame } from "@model/protocol";
+import type { LogEntry, MechanicSection, World } from "@model/types";
+import type { ReplayEvent, ReplayInsights, ReplayPlayerLabel } from "@model/replay";
+import { computeBotIntents } from "../engine/bots/botIntent";
 import { tick } from "../engine/sim";
 import { applyFrameControls } from "./simulationReplica";
 

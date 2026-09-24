@@ -1,5 +1,5 @@
 import { Room, type AuthContext, type Client } from "@colyseus/core";
-import { ClientMessageSchema, EMPTY_RAID_ID, ParticipantIdSchema, RaidIdSchema, SessionIdSchema, type ServerMessage } from "@shared/protocol";
+import { ClientMessageSchema, EMPTY_RAID_ID, ParticipantIdSchema, RaidIdSchema, SessionIdSchema, type ServerMessage } from "@model/protocol";
 import { logger, createSessionLog } from "./logger";
 import { RAIDS_DIR } from "./raidCatalog";
 import { isOriginAllowed, parseAllowedOrigins } from "./origin";

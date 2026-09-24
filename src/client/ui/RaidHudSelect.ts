@@ -1,4 +1,4 @@
-import { EMPTY_RAID_ID, type BotPatternOption, type DecisionDescription, type PlaybackState, type SessionPhase } from "@shared/protocol";
+import { EMPTY_RAID_ID, type BotPatternOption, type DecisionDescription, type PlaybackState, type SessionPhase } from "@model/protocol";
 import { RAID_CHANGE_START_DELAY_MS } from "@shared/constants";
 import type { NetClient } from "../net";
 import { el } from "./dom";

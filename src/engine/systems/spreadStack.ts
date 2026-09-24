@@ -3,7 +3,7 @@
 // spread drops a personal AOE on every player (overlap = extra hits); stack soaks on the marked.
 
 import type { TickContext } from "./context";
-import type { ActiveSpreadStack, PendingSpreadStack, AOEShape } from "@shared/types";
+import type { ActiveSpreadStack, PendingSpreadStack, AOEShape } from "@model/types";
 import { hitPlayersInShape, resolveStackShare } from "./strikes";
 import { mechanicSource } from "./damageLog";
 import { cullResolved } from "./util";

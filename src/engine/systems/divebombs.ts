@@ -1,4 +1,4 @@
-import type { ActiveDivebomb, PendingDivebomb } from "@shared/types";
+import type { ActiveDivebomb, PendingDivebomb } from "@model/types";
 import { DIVEBOMB_LINGER } from "@shared/constants";
 import { length, sub } from "@shared/math";
 import { atan2 } from "@shared/dmath";
