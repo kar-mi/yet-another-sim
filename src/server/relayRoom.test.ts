@@ -1662,21 +1662,89 @@ test("a mid-raid reservation is queued and only joins the roster after a stop", 
   expect(sent.some(entry => entry.clientId === "socket-b" && entry.message.type === "started" && entry.message.yourPlayerId === "ot")).toBe(true);
 });
 
-test("losing the host ends the raid to the workshop", () => {
+test("losing the host hands it to the next player and keeps the raid running", () => {
   const { session, sent } = makeSession();
+  session.join("host-socket", "host");
+  session.join("socket-b", "pb");
+  session.join("socket-c", "pc");
+  session.claimSlot("host", "mt");
+  session.claimSlot("pb", "ot");
+  session.claimSlot("pc", "h1");
+  session.enterWorkshop("host");
+  session.start("host");
+  session.step(false);
+  sent.length = 0;
+
+  session.disconnectClient("host-socket");
+
+  expect(session.hostParticipantId).toBe("pb");
+  expect(session.phase).toBe("raid");
+  expect(session.playback).toBe("playing");
+  expect(sent.some(entry => entry.message.type === "transition")).toBe(false);
+  expect(sent.find(entry => entry.clientId === "socket-c" && entry.message.type === "playback")?.message).toMatchObject({ hostParticipantId: "pb", state: "playing" });
+
+  session.step();
+  expect(session.inputLog.at(-1)?.intents.mt).toBeUndefined();
+  expect(sent.some(entry => entry.clientId === "socket-b" && entry.message.type === "frames")).toBe(true);
+});
+
+test("the handed-off host becomes the hash and end-of-pull authority", () => {
+  const { session, sent } = makeSession();
+  session.join("host-socket", "host");
+  session.join("socket-b", "pb");
+  session.join("socket-c", "pc");
+  session.claimSlot("host", "mt");
+  session.claimSlot("pb", "ot");
+  session.claimSlot("pc", "h1");
+  session.enterWorkshop("host");
+  session.start("host");
+  for (let i = 0; i < 3; i++) session.step(false);
+  session.disconnectClient("host-socket");
+
+  session.reportWorldHash("pb", session.pullEpoch, 1, 111);
+  const before = sent.filter(entry => entry.clientId === "socket-c" && entry.message.type === "started").length;
+  session.reportWorldHash("pc", session.pullEpoch, 1, 222);
+  expect(sent.filter(entry => entry.clientId === "socket-c" && entry.message.type === "started")).toHaveLength(before + 1);
+
+  session.simEnded("pb", session.pullEpoch, 3);
+  expect(session.playback).toBe("done");
+});
+
+test("a host reload mid-raid hands the host off instead of ending the raid", () => {
+  const { session } = makeSession();
   session.join("host-socket", "host");
   session.join("socket-b", "pb");
   session.claimSlot("host", "mt");
   session.claimSlot("pb", "ot");
   session.enterWorkshop("host");
   session.start("host");
-  sent.length = 0;
+
+  session.join("host-socket-2", "host");
+
+  expect(session.hostParticipantId).toBe("pb");
+  expect(session.phase).toBe("raid");
+  expect(session.pullRoster.has("mt")).toBe(false);
+  expect(session.slots.get("mt")).toBe("host");
+});
+
+test("the raid ends to the workshop only when every pull participant is gone", () => {
+  const { session, sent } = makeSession();
+  session.join("host-socket", "host");
+  session.join("socket-b", "pb");
+  session.join("socket-idle", "idle");
+  session.claimSlot("host", "mt");
+  session.claimSlot("pb", "ot");
+  session.enterWorkshop("host");
+  session.start("host");
 
   session.disconnectClient("host-socket");
+  expect(session.phase).toBe("raid");
 
+  session.disconnectClient("socket-b");
   expect(session.phase).toBe("workshop");
   expect(session.raidId).toBe(EMPTY_RAID_ID);
-  expect(sent.some(entry => entry.clientId === "socket-b" && entry.message.type === "transition" && entry.message.reason === "hostLost")).toBe(true);
+  expect(session.hostParticipantId).toBe("idle");
+  expect(sent.some(entry => entry.clientId === "socket-idle" && entry.message.type === "transition" && entry.message.reason === "noParticipants")).toBe(true);
 });
 
 test("a raid whose participants all leave ends even while a setup client stays connected", () => {

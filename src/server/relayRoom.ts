@@ -144,12 +144,13 @@ export class RelayRoom {
     this.participants.set(clientId, participantId);
     if (!this.hostParticipantId) this.hostParticipantId = participantId;
 
-    if (reconnecting && this.phase === "raid") {
-      if (participantId === this.hostParticipantId) {
-        this.endRaidToWorkshop("hostLost");
-      } else if (this.leavePull(participantId)) {
-        if (this.pullIsAbandoned()) this.endRaidToWorkshop("noParticipants");
-        else this.broadcastLobby();
+    if (reconnecting && this.phase === "raid" && this.leavePull(participantId)) {
+      const hostChanged = participantId === this.hostParticipantId && this.handOffHost();
+      if (this.pullIsAbandoned()) {
+        this.endRaidToWorkshop("noParticipants");
+      } else {
+        this.broadcastLobby();
+        if (hostChanged) this.broadcastHostChange();
       }
     }
 
@@ -419,10 +420,7 @@ export class RelayRoom {
     this.observers.delete(participantId);
     this.leavePull(participantId);
 
-    const hostChanged = this.hostParticipantId === participantId;
-    if (hostChanged) {
-      this.hostParticipantId = this.connections.keys().next().value ?? "";
-    }
+    const hostChanged = this.hostParticipantId === participantId && this.handOffHost();
 
     this.applySlotControlsToWorld();
     if (this.connections.size === 0) {
@@ -430,18 +428,36 @@ export class RelayRoom {
       return true;
     }
 
-    if (this.phase === "raid" && (hostChanged || this.pullIsAbandoned())) {
-      this.endRaidToWorkshop(hostChanged ? "hostLost" : "noParticipants");
+    if (this.phase === "raid" && this.pullIsAbandoned()) {
+      this.endRaidToWorkshop("noParticipants");
       if (hostChanged) this.clearReplay();
       return false;
     }
 
     this.broadcastLobby();
-    if (hostChanged) {
-      this.broadcastPlayback();
-      this.clearReplay();
-    }
+    if (hostChanged) this.broadcastHostChange();
     return false;
+  }
+
+  private handOffHost(): boolean {
+    const previous = this.hostParticipantId;
+    this.hostParticipantId = this.successorHost();
+    if (this.hostParticipantId !== previous) {
+      logger.info("session", "host handed off", { session: this.id, from: previous, to: this.hostParticipantId });
+    }
+    return this.hostParticipantId !== previous;
+  }
+
+  private successorHost(): string {
+    for (const ownerId of this.pullRoster.values()) if (this.connections.has(ownerId)) return ownerId;
+    for (const observerId of this.pullObservers) if (this.connections.has(observerId)) return observerId;
+    if (this.connections.has(this.hostParticipantId)) return this.hostParticipantId;
+    return this.connections.keys().next().value ?? "";
+  }
+
+  private broadcastHostChange(): void {
+    this.broadcastPlayback();
+    this.clearReplay();
   }
 
   claimSlot(participantId: string, playerId: string): void {

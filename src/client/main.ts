@@ -176,11 +176,9 @@ async function main(): Promise<void> {
       playbackState = message.state;
       updateToolbar();
     });
-    const offTransition = net.on("transition", message => {
+    const offTransition = net.on("transition", () => {
       autoReturned = true;
-      setupNotice = message.reason === "hostLost"
-        ? "The raid ended because its host left. Everyone is back in the lobby."
-        : "The raid ended because no participants were left. Everyone is back in the lobby.";
+      setupNotice = "The raid ended because no participants were left. Everyone is back in the lobby.";
       leaveSession();
     });
 

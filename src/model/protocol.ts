@@ -188,7 +188,7 @@ export type LobbySlot = {
 
 export type SessionPhase = "setup" | "workshop" | "raid";
 export type PlaybackState = "idle" | "playing" | "paused" | "stopped" | "done";
-export type TransitionReason = "hostLost" | "noParticipants";
+export type TransitionReason = "noParticipants";
 
 export type Frame = { intents: Intents; botsInvincible: boolean; botsInvisible?: boolean };
 

@@ -92,9 +92,10 @@ time the selector is locked is mid-pull — stop first.
 **START** also re-runs whatever is already selected, which is how you get back into the same fight
 after returning to the waiting lobby.
 
-A raid cannot outlive its host: if the host leaves, disconnects or reloads mid-pull, the pull ends
-and everyone still connected is returned to the waiting lobby with their seats intact. The same
-happens if every participant in the pull leaves.
+If the host disconnects or reloads mid-pull, the raid keeps going: the host role passes to the next
+player in the pull (in slot order), who gets the playback controls. The pull only ends, returning
+everyone still connected to the waiting lobby with their seats intact, once every participant in it
+has left. The host pressing **Home** is different: that deliberately returns everyone to the lobby.
 
 ## Practise against bots
 
