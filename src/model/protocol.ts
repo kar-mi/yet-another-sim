@@ -157,15 +157,18 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
   }),
   z.strictObject({
     type: z.literal("simEnded"),
+    pull: z.number().int().nonnegative(),
     tick: z.number().int().nonnegative(),
   }),
   z.strictObject({
     type: z.literal("worldHash"),
+    pull: z.number().int().nonnegative(),
     tick: z.number().int().nonnegative(),
     hash: z.number().int(),
   }),
   z.strictObject({
     type: z.literal("snapshot"),
+    pull: z.number().int().nonnegative(),
     formatVersion: z.number().int().nonnegative(),
     tick: z.number().int().nonnegative(),
     world: z.unknown(),
@@ -185,7 +188,7 @@ export type LobbySlot = {
 
 export type SessionPhase = "setup" | "workshop" | "raid";
 export type PlaybackState = "idle" | "playing" | "paused" | "stopped" | "done";
-export type TransitionReason = "hostLost" | "noParticipants";
+export type TransitionReason = "noParticipants";
 
 export type Frame = { intents: Intents; botsInvincible: boolean; botsInvisible?: boolean };
 
@@ -216,7 +219,7 @@ export type ServerMessage =
       observerQueuedByYou: boolean;
     }
   | { type: "rngConstraintsResult"; ok: boolean }
-  | { type: "started"; world: World; baseTick: number; yourPlayerId: string | null; tick: number; frames: Frame[] }
+  | { type: "started"; pull: number; world: World; baseTick: number; yourPlayerId: string | null; tick: number; frames: Frame[] }
   | { type: "playback"; state: PlaybackState; phase: SessionPhase; raidId: string; hostParticipantId: string; rngDecisions: DecisionDescription[] }
   | { type: "transition"; phase: SessionPhase; reason: TransitionReason }
   | { type: "sessionExpired" }

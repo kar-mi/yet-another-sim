@@ -99,12 +99,18 @@ segment prefix or exact label:
 ## Client netcode
 
 - Hash reports happen on fixed tick boundaries (`HASH_INTERVAL`) so every client hashes the same
-  ticks. Host snapshots strip the `WORLD_RENDER_KEYS` symbol first, because object spread copies
-  enumerable symbol keys.
+  ticks. They are checked per applied tick using that tick's world, never `replica.appliedTick`
+  after the batch, which would skip or duplicate boundaries. Host snapshots strip the
+  `WORLD_RENDER_KEYS` symbol first, because object spread copies enumerable symbol keys.
+- `worldHash`, `snapshot` and `simEnded` echo the `pull` epoch from the last `started`, so a report
+  still in flight from a previous pull is dropped instead of acting on the new one.
+- There is no reconnect path. A frame gap or unexpected room leave ends the session
+  (`sessionExpired`); Colyseus automatic reconnection is disabled on join.
+- `loop.ts` sends continuous intent at most once per `TICK_MS`. A high-refresh display otherwise
+  exceeds `MAX_WS_MSGS_PER_SEC`, and the limiter silently drops hash, snapshot and `simEnded`
+  reports along with the intents.
 - `NetClient.playing` gates prediction: pause, stop and done leave `world.status` as `running`, so
   status alone would let a player nudge a frozen character.
-- A rejoin never replays `claimSlot`: the server restores reservations by `participantId`, and a
-  replayed claim would race that restore.
 - `loop.ts` replays jump/sprint that the one-shot sink already sent into the next predicted frame;
   the rAF frame's `getIntent` sees them as already consumed.
 - The predictor mirrors `playerMovement.ts` and only hard-snaps past a divergence threshold
@@ -129,7 +135,13 @@ segment prefix or exact label:
   whose host never sends `simEnded` ends at its duration plus 30 s.
 - `DesyncTracker` treats the host's hash as canonical for a tick, so an honest client is never
   "resynced" toward a diverged one that reported first. Reports are rate-capped and the pending
-  table is bounded.
+  table is bounded. Hash, snapshot and `simEnded` count only from pull participants (and, for the
+  latter two, only from the host while in the pull). Losing the host hands the host off to the next
+  connected pull participant instead of ending the raid.
+- `frames` go only to pull participants, via one encoded `Room.broadcast`. Clients outside the pull
+  would otherwise step stale replicas.
+- The pull's tick-zero `World` is frozen once `inputLog` is non-empty: resync replays from it, and
+  frames already carry all per-tick control state.
 - Host snapshots are stored and relayed opaquely; the server never interprets them.
 - `clientIpFor` trusts the first `X-Forwarded-For` entry because production always runs behind
   Caddy. Over-limit messages are dropped, not disconnected, so a legitimate burst does not end a

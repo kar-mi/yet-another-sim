@@ -18,7 +18,7 @@ export interface Transport {
   open(): Promise<void>;
   send(message: ClientMessage): boolean;
   onMessage(cb: (message: ServerMessage) => void): void;
-  onReconnect(cb: () => void): void;
+  onDisconnect(cb: () => void): void;
   close(): void;
 }
 
@@ -35,16 +35,16 @@ export class NetClient {
   private readonly handlers = new Map<MessageType, Set<(message: ServerMessage) => void>>();
   private readonly replica = new SimulationReplica();
   private readonly renderBuffer = new RenderSnapshotBuffer();
-  private lastJoin: { sessionId: string; raidId: string; participantId: string } | null = null;
   private claimedPlayerId: string | null = null;
   private isHost = false;
   private readonly predictor = new LocalPredictor();
   private playing = false;
   private simEndedSent = false;
+  private pull = 0;
 
   constructor(private readonly transport: Transport) {
     transport.onMessage(message => this.handleMessage(message));
-    transport.onReconnect(() => this.resumeSession());
+    transport.onDisconnect(() => this.endSession());
   }
 
   open(): Promise<void> {
@@ -52,9 +52,6 @@ export class NetClient {
   }
 
   send(message: ClientMessage): boolean {
-    if (message.type === "join") {
-      this.lastJoin = { sessionId: message.sessionId, raidId: message.raidId, participantId: message.participantId };
-    }
     if (message.type === "claimSlot") this.claimedPlayerId = message.playerId;
     if (message.type === "releaseSlot" && this.claimedPlayerId === message.playerId) this.claimedPlayerId = null;
     if (message.type === "claimObserver") this.claimedPlayerId = null;
@@ -102,10 +99,8 @@ export class NetClient {
     this.transport.close();
   }
 
-  private resumeSession(): void {
-    if (!this.lastJoin) return;
-    this.renderBuffer.reset();
-    this.send({ type: "join", ...this.lastJoin });
+  private endSession(): void {
+    this.handleMessage({ type: "sessionExpired" });
   }
 
   private handleMessage(message: ServerMessage): void {
@@ -130,8 +125,10 @@ export class NetClient {
     } else if (message.type === "replay") {
       this.replayView = message.view;
     } else if (message.type === "sessionExpired") {
+      this.transport.close();
+      this.replica.world = null;
+      this.renderBuffer.reset();
       this.replayView = null;
-      this.lastJoin = null;
       this.claimedPlayerId = null;
       this.isHost = false;
       this.playing = false;
@@ -145,6 +142,7 @@ export class NetClient {
 
   private applyStarted(message: Extract<ServerMessage, { type: "started" }>): void {
     const world = this.replica.adopt(message.world, message.baseTick, message.frames);
+    this.pull = message.pull;
     this.simEndedSent = false;
     this.playing = false;
     this.predictor.reset();
@@ -155,23 +153,21 @@ export class NetClient {
     if (!this.replica.world) return;
     const start = performance.now();
     const result = this.replica.apply(message.startTick, message.frames);
-    if (result.kind === "gap") { recordResyncRequest(); this.resumeSession(); return; }
+    if (result.kind === "gap") { recordResyncRequest(); this.endSession(); return; }
     this.playing = true;
     for (const snapshot of result.snapshots) {
       this.renderBuffer.push(snapshot.world, snapshot.tick);
-      this.maybeReportHash();
-      this.maybeReportSnapshot();
+      this.maybeReportHash(snapshot.world, snapshot.tick);
+      this.maybeReportSnapshot(snapshot.world, snapshot.tick);
     }
     this.maybeReportSimEnded();
     recordApplyFrames(message.frames.length, result.applied, performance.now() - start);
   }
 
-  private maybeReportSnapshot(): void {
-    const replicaWorld = this.replica.world;
-    const appliedTick = this.replica.appliedTick;
-    if (!this.isHost || !replicaWorld || appliedTick === 0 || appliedTick % SNAPSHOT_INTERVAL !== 0) return;
+  private maybeReportSnapshot(replicaWorld: World, tick: number): void {
+    if (!this.isHost || tick === 0 || tick % SNAPSHOT_INTERVAL !== 0) return;
     const { [WORLD_RENDER_KEYS]: _drop, ...world } = replicaWorld as any;
-    const message = { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: appliedTick, world } as const;
+    const message = { type: "snapshot", pull: this.pull, formatVersion: SNAPSHOT_FORMAT_VERSION, tick, world } as const;
     if (PERF_ENABLED) {
       const start = performance.now();
       const bytes = JSON.stringify(message).length;
@@ -180,18 +176,16 @@ export class NetClient {
     this.send(message);
   }
 
-  private maybeReportHash(): void {
-    const world = this.replica.world;
-    const appliedTick = this.replica.appliedTick;
-    if (!world || appliedTick === 0 || appliedTick % HASH_INTERVAL !== 0) return;
-    this.send({ type: "worldHash", tick: appliedTick, hash: worldHash(world) });
+  private maybeReportHash(world: World, tick: number): void {
+    if (tick === 0 || tick % HASH_INTERVAL !== 0) return;
+    this.send({ type: "worldHash", pull: this.pull, tick, hash: worldHash(world) });
   }
 
   private maybeReportSimEnded(): void {
     const world = this.replica.world;
     if (!this.isHost || this.simEndedSent || !world || world.status === "running") return;
     this.simEndedSent = true;
-    this.send({ type: "simEnded", tick: this.replica.appliedTick });
+    this.send({ type: "simEnded", pull: this.pull, tick: this.replica.appliedTick });
   }
 }
 

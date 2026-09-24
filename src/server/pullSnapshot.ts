@@ -21,10 +21,11 @@ export class PullSnapshot {
     return null;
   }
 
-  startedMessage(world: World, inputLog: Frame[], playerId: string | null): ServerMessage {
+  startedMessage(pull: number, world: World, inputLog: Frame[], playerId: string | null): ServerMessage {
     if (this.latest) {
       return {
         type: "started",
+        pull,
         world: this.latest.world as World,
         baseTick: this.latest.tick,
         yourPlayerId: playerId,
@@ -32,6 +33,6 @@ export class PullSnapshot {
         frames: inputLog.slice(this.latest.tick),
       };
     }
-    return { type: "started", world, baseTick: 0, yourPlayerId: playerId, tick: inputLog.length, frames: inputLog };
+    return { type: "started", pull, world, baseTick: 0, yourPlayerId: playerId, tick: inputLog.length, frames: inputLog };
   }
 }

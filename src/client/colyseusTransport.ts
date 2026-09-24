@@ -6,7 +6,7 @@ export class ColyseusTransport implements Transport {
   private client: Client | null = null;
   private room: Room | null = null;
   private messageHandler: (message: ServerMessage) => void = () => {};
-  private reconnectHandler: () => void = () => {};
+  private disconnectHandler: () => void = () => {};
   private roomSessionId = "";
   private readonly intentionalLeaves = new WeakSet<Room>();
   private closing = false;
@@ -33,8 +33,8 @@ export class ColyseusTransport implements Transport {
     this.messageHandler = cb;
   }
 
-  onReconnect(cb: () => void): void {
-    this.reconnectHandler = cb;
+  onDisconnect(cb: () => void): void {
+    this.disconnectHandler = cb;
   }
 
   close(): void {
@@ -59,13 +59,14 @@ export class ColyseusTransport implements Transport {
       await previousRoom.leave(true);
     }
     const room = await this.client.joinOrCreate("relay", { sessionId, raidId, participantId: participant });
+    room.reconnection.enabled = false;
     this.room = room;
     this.roomSessionId = sessionId;
     room.onMessage("s", message => this.messageHandler(message as ServerMessage));
     room.onLeave(() => {
       if (this.intentionalLeaves.has(room)) return;
       if (this.room === room) this.room = null;
-      if (!this.closing) this.reconnectHandler();
+      if (!this.closing) this.disconnectHandler();
     });
   }
 }

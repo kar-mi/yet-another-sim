@@ -87,6 +87,10 @@ export class RelayServerRoom extends Room {
         lobbyTimeoutMs: this.dependencies.lobbyTimeoutMs,
         createSessionLog,
         send: (clientId, message) => this.clients.getById(clientId)?.send("s", message),
+        broadcast: (clientIds, message) => {
+          const recipients = new Set(clientIds);
+          this.broadcast("s", message, { except: this.clients.filter(client => !recipients.has(client.sessionId)) });
+        },
       });
       this.onMessage("c", (client, message) => this.handleColyseusMessage(client, message));
       this.clock.setInterval(() => {

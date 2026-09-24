@@ -29,7 +29,7 @@ materialized tick-zero world.
         │ prediction │              │   input log, no engine)      │
         └────────────┘ ◄─────────── │   FrameRelay: 60Hz tick loop │
               ▲          frames      └─────────────────────────────┘
-              │  (one merged Frame per tick, broadcast to all)
+              │  (one merged Frame per tick, sent to pull participants)
         ┌─────┴───────────────────────────────┐
         │ tick(world, intents, dt)  ← engine   │  runs identically on
         │ deterministic, seeded PRNG threaded  │  every client
@@ -66,17 +66,18 @@ comparisons, and `Math.sqrt`/`floor`/`abs`.
 with argument reduction. Accuracy is ~1e-9 — far beyond gameplay needs; the property
 that matters is **cross-engine reproducibility**, not precision.
 
-This is enforced by a guard-rail test, `noTranscendentals.test.ts`, which greps
-`src/engine` and `src/shared` for banned calls:
+This is enforced by a guard-rail test, `noTranscendentals.test.ts`, which greps everything
+the simulation imports — `src/engine`, `src/shared`, `src/status`, `src/model`, `src/arena` and
+`src/effects` (render-only `babylon/` folders excluded) — for banned calls:
 
 ```
 Math.sin | cos | tan | sinh | cosh | tanh | atan2 | atan | asin | acos | asinh |
 acosh | atanh | pow | exp | expm1 | log | log1p | log2 | log10 | hypot | cbrt | random
-Date.now | performance.now
+Date.now | performance.now | ** (same as Math.pow)
 ```
 
 `Date.now` is banned in the engine because it is wall clock, not simulation state.
-Only `dmath.ts`, `rng.ts`, and `logger.ts` are exempt.
+Only `dmath.ts`, `rng.ts`, `logger.ts` and the render-only `effects/sampling.ts` are exempt.
 
 ## RNG and system order (`src/shared/rng.ts`, `src/engine/systems/context.ts`)
 
@@ -123,11 +124,18 @@ state). FNV-1a is pure integer math, so it is identical on every engine. Key ord
 
 Clients report their hash on **fixed tick boundaries** (`HASH_INTERVAL = 300` ticks in
 `src/client/net.ts`) so every client hashes the *same* ticks and the server can compare
-them.
+them. The check runs per applied tick, so a multi-frame batch that crosses a boundary still
+reports that tick's world exactly once (the same holds for host snapshots).
+
+Every report carries the **pull epoch** (`pull`) from the client's latest `started`. The server
+drops reports from an earlier pull, from ticks it has not produced yet, and from anyone outside the
+pull.
 
 The server's `DesyncTracker` (`src/server/desyncTracker.ts`) treats the **host's** hash
-as canonical for a tick (the host has end-of-pull authority). Any other client reporting
-a different hash for that tick has diverged and is **resynced** — the server replays the
+as canonical for a tick (the host has end-of-pull authority), but only while the host is a pull
+participant. If the host disconnects, a successor from the pull takes over (see
+[Session lifecycle](./session-lifecycle.md#losing-the-host-or-the-participants)). Any other client
+reporting a different hash for that tick has diverged and is **resynced** — the server replays the
 input log (from the latest snapshot) to that one client. The tracker bounds its per-tick
 hash window and rate-caps reports so a client can't spam the relay.
 
@@ -140,7 +148,9 @@ hash window and rate-caps reports so a client can't spam the relay.
   phases and the frozen pull roster are documented in
   [Session lifecycle](./session-lifecycle.md).
 - **`FrameRelay`** (`src/server/frameRelay.ts`) drives the wall-clock 60Hz tick loop,
-  appends each frame to `inputLog`, batches, and flushes to clients. A **shared
+  appends each frame to `inputLog`, batches, and flushes to clients. `frames` go only to pull
+  participants (frozen roster + pull observers), encoded once through Colyseus
+  `Room.broadcast` with `except`. A **shared
   scheduler** (one `setInterval` polling every 5ms) runs all active relays so N rooms
   don't spawn N timers.
 - The loop **never drops sim time**: it processes every tick due since the last poll
@@ -169,7 +179,14 @@ hash window and rate-caps reports so a client can't spam the relay.
   world so the local tick stays in lockstep with the server's frame count.
 - **`applyStarted`** adopts the pull's world at `baseTick` (tick 0 or a snapshot) and
   fast-forwards by replaying the tail frames, landing exactly where the rest of the room
-  is.
+  is. It also records the pull epoch that later reports echo.
+- **No reconnect.** A frame gap (a `frames` batch starting past `appliedTick`) or an unexpected
+  room leave ends the session through the `sessionExpired` path. Colyseus automatic reconnection
+  is disabled; the client never rejoins a running pull.
+- **Intent rate.** `loop.ts` sends continuous intent (move/facing) at most once per tick
+  (`TICK_MS`), because the server keeps only the latest one per tick anyway. One-shot actions go
+  immediately. Staying under the per-socket rate limit keeps it from silently dropping hash,
+  snapshot and `simEnded` reports.
 - **Snapshot buffer + interpolation**: incoming ticks are placed on a *deterministic*
   tick timeline (`t = base + tick*TICK_MS`) so bursty/jittery delivery doesn't collapse
   interpolation into instant skips. The render view interpolates between snapshots at a

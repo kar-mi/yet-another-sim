@@ -24,9 +24,9 @@ The simulator holds a live WebSocket connection for the whole session.
 
 | Symptom | Likely cause |
 |---|---|
-| Other players moving, you frozen | Your connection dropped — reload the page |
+| Other players moving, you frozen | Your client fell behind or lost frames — reload the page |
 | Everyone frozen at once | The session or the server, not your machine |
-| Returned to the landing screen with a notice | The session expired — create a new one and share the new link |
+| Returned to the landing screen with a notice | The session expired, or your connection dropped (there is no automatic reconnect) — reopen the link |
 | Cannot join a friend's link | The URL was truncated; the whole `?s=...` query has to be included |
 | Nothing connects at all | WebSocket traffic may be blocked |
 
@@ -64,7 +64,9 @@ BOTS** tab says so explicitly rather than leaving you guessing.
 
 Almost every "the buttons do not work" report is this: **the host is someone else.**
 
-The host is whoever created the session. It is not something you can claim or transfer from the UI.
+The host is whoever created the session. It is not something you can claim or transfer from the UI,
+but if the host disconnects it passes automatically to the next player in the pull — so the buttons
+may suddenly start working for you.
 Only the host can change the raid, open **OPTIONS**, press **PLAY**, **PAUSE**, **STOP** or
 **RESTART**, and open the replay browser. For everyone else those controls are disabled and the
 raid selector is a plain label.

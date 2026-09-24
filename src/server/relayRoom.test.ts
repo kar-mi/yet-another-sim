@@ -264,7 +264,7 @@ test("simEnded and dispose close replay logs", () => {
   ended.session.claimSlot("c1", "mt");
   ended.session.enterWorkshop("c1");
   ended.session.start("c1");
-  ended.session.simEnded("c1", 0);
+  ended.session.simEnded("c1", ended.session.pullEpoch, 0);
 
   expect(endedFactory.logs[0].closed).toBe(true);
 
@@ -1042,7 +1042,7 @@ test("snapshot anchor: queued late join after host snapshot is not admitted", ()
   session.start("c1");
   for (let i = 0; i < 5; i++) session.step(false);
 
-  session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 3, world: { arena: {}, players: [], sentinel: true } });
+  session.handle("c1", { type: "snapshot", pull: session.pullEpoch, formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 3, world: { arena: {}, players: [], sentinel: true } });
 
   session.join("c2", "c2");
   session.claimSlot("c2", "ot");
@@ -1061,11 +1061,11 @@ test("snapshot anchor: desync resync uses snapshot + tail", () => {
   session.start("c1");
   for (let i = 0; i < 5; i++) session.step(false);
 
-  session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 3, world: { arena: {}, players: [], sentinel: true } });
+  session.handle("c1", { type: "snapshot", pull: session.pullEpoch, formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 3, world: { arena: {}, players: [], sentinel: true } });
 
-  session.reportWorldHash("c1", 1, 111);
+  session.reportWorldHash("c1", session.pullEpoch, 1, 111);
   const beforeResync = sent.filter(e => e.clientId === "c2" && e.message.type === "started").length;
-  session.reportWorldHash("c2", 1, 222);
+  session.reportWorldHash("c2", session.pullEpoch, 1, 222);
 
   const resyncs = sent.filter(e => e.clientId === "c2" && e.message.type === "started");
   expect(resyncs).toHaveLength(beforeResync + 1);
@@ -1084,11 +1084,11 @@ test("snapshot anchor: non-host snapshot is rejected", () => {
   session.start("c1");
   for (let i = 0; i < 3; i++) session.step(false);
 
-  session.handle("c2", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 2, world: { arena: {}, players: [], sentinel: true } });
+  session.handle("c2", { type: "snapshot", pull: session.pullEpoch, formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 2, world: { arena: {}, players: [], sentinel: true } });
 
-  session.reportWorldHash("c1", 1, 111);
+  session.reportWorldHash("c1", session.pullEpoch, 1, 111);
   const beforeResync = sent.filter(e => e.clientId === "c2" && e.message.type === "started").length;
-  session.reportWorldHash("c2", 1, 222);
+  session.reportWorldHash("c2", session.pullEpoch, 1, 222);
 
   const resyncs = sent.filter(e => e.clientId === "c2" && e.message.type === "started");
   expect(resyncs).toHaveLength(beforeResync + 1);
@@ -1107,7 +1107,7 @@ test("snapshot anchor: resetPull clears the snapshot", () => {
   session.start("c1");
   for (let i = 0; i < 5; i++) session.step(false);
 
-  session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 3, world: { arena: {}, players: [], sentinel: true } });
+  session.handle("c1", { type: "snapshot", pull: session.pullEpoch, formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 3, world: { arena: {}, players: [], sentinel: true } });
 
   const beforeRestart = sent.filter(e => e.clientId === "c2" && e.message.type === "started").length;
   session.restart("c1");
@@ -1129,12 +1129,12 @@ test("snapshot anchor: monotonic — older snapshot does not replace newer", () 
   session.start("c1");
   for (let i = 0; i < 5; i++) session.step(false);
 
-  session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 4, world: { arena: {}, players: [], snap: "new" } });
-  session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 2, world: { arena: {}, players: [], snap: "old" } });
+  session.handle("c1", { type: "snapshot", pull: session.pullEpoch, formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 4, world: { arena: {}, players: [], snap: "new" } });
+  session.handle("c1", { type: "snapshot", pull: session.pullEpoch, formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 2, world: { arena: {}, players: [], snap: "old" } });
 
-  session.reportWorldHash("c1", 1, 111);
+  session.reportWorldHash("c1", session.pullEpoch, 1, 111);
   const beforeResync = sent.filter(e => e.clientId === "c2" && e.message.type === "started").length;
-  session.reportWorldHash("c2", 1, 222);
+  session.reportWorldHash("c2", session.pullEpoch, 1, 222);
 
   const resyncs = sent.filter(e => e.clientId === "c2" && e.message.type === "started");
   expect(resyncs).toHaveLength(beforeResync + 1);
@@ -1153,11 +1153,11 @@ test("snapshot anchor: malformed world is rejected (falls back to full log)", ()
   session.start("c1");
   for (let i = 0; i < 5; i++) session.step(false);
 
-  session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 3, world: { bogus: true } });
+  session.handle("c1", { type: "snapshot", pull: session.pullEpoch, formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 3, world: { bogus: true } });
 
-  session.reportWorldHash("c1", 1, 111);
+  session.reportWorldHash("c1", session.pullEpoch, 1, 111);
   const beforeResync = sent.filter(e => e.clientId === "c2" && e.message.type === "started").length;
-  session.reportWorldHash("c2", 1, 222);
+  session.reportWorldHash("c2", session.pullEpoch, 1, 222);
 
   const resyncs = sent.filter(e => e.clientId === "c2" && e.message.type === "started");
   expect(resyncs).toHaveLength(beforeResync + 1);
@@ -1172,7 +1172,7 @@ test("snapshot anchor: incompatible format is rejected explicitly", () => {
   session.handle("c1", { type: "claimSlot", playerId: "mt" });
   session.handle("c1", { type: "start" });
 
-  session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION + 1, tick: 0, world: session.world });
+  session.handle("c1", { type: "snapshot", pull: session.pullEpoch, formatVersion: SNAPSHOT_FORMAT_VERSION + 1, tick: 0, world: session.world });
 
   expect(sent.some(entry => entry.clientId === "c1"
     && entry.message.type === "error"
@@ -1188,11 +1188,12 @@ test("only the host can end the session via simEnded", () => {
   session.enterWorkshop("c1");
   session.start("c1");
 
-  session.simEnded("c2", 5);
+  session.simEnded("c2", session.pullEpoch, 5);
   expect(session.playback).toBe("playing");
   expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error")).toBe(true);
 
-  session.simEnded("c1", 5);
+  for (let i = 0; i < 5; i++) session.step(false);
+  session.simEnded("c1", session.pullEpoch, 5);
   expect(session.playback).toBe("done");
   expect(sent.some(entry => entry.message.type === "playback" && entry.message.state === "done")).toBe(true);
 });
@@ -1207,9 +1208,9 @@ test("divergent world hashes for a tick resync the offending client", () => {
   session.start("c1");
   session.step(false);
 
-  session.reportWorldHash("c1", 1, 111);
+  session.reportWorldHash("c1", session.pullEpoch, 1, 111);
   const before = sent.filter(entry => entry.clientId === "c2" && entry.message.type === "started").length;
-  session.reportWorldHash("c2", 1, 222);
+  session.reportWorldHash("c2", session.pullEpoch, 1, 222);
 
   const after = sent.filter(entry => entry.clientId === "c2" && entry.message.type === "started").length;
   expect(after).toBe(before + 1);
@@ -1225,9 +1226,9 @@ test("matching world hashes do not resync", () => {
   session.start("c1");
   session.step(false);
 
-  session.reportWorldHash("c1", 1, 999);
+  session.reportWorldHash("c1", session.pullEpoch, 1, 999);
   const before = sent.filter(entry => entry.message.type === "started").length;
-  session.reportWorldHash("c2", 1, 999);
+  session.reportWorldHash("c2", session.pullEpoch, 1, 999);
   expect(sent.filter(entry => entry.message.type === "started").length).toBe(before);
 });
 
@@ -1243,15 +1244,103 @@ test("non-host report before the host's is buffered, then judged against the hos
   session.start("c1");
   session.step(false);
 
-  session.reportWorldHash("c2", 1, 222);
-  session.reportWorldHash("c3", 1, 999);
+  session.reportWorldHash("c2", session.pullEpoch, 1, 222);
+  session.reportWorldHash("c3", session.pullEpoch, 1, 999);
   const startedBefore = (id: string) => sent.filter(e => e.clientId === id && e.message.type === "started").length;
   const c2Before = startedBefore("c2");
   const c3Before = startedBefore("c3");
 
-  session.reportWorldHash("c1", 1, 999);
+  session.reportWorldHash("c1", session.pullEpoch, 1, 999);
   expect(startedBefore("c2")).toBe(c2Before + 1);
   expect(startedBefore("c3")).toBe(c3Before);
+});
+
+test("a simEnded from the previous pull does not end a restarted pull", () => {
+  const { session } = makeSession();
+  session.join("c1", "c1");
+  session.claimSlot("c1", "mt");
+  session.enterWorkshop("c1");
+  session.start("c1");
+  for (let i = 0; i < 5; i++) session.step(false);
+  const stalePull = session.pullEpoch;
+
+  session.restart("c1");
+  for (let i = 0; i < 5; i++) session.step(false);
+  session.simEnded("c1", stalePull, 5);
+
+  expect(session.playback).toBe("playing");
+});
+
+test("world hashes from the previous pull are ignored", () => {
+  const { session, sent } = makeSession();
+  session.join("c1", "c1");
+  session.join("c2", "c2");
+  session.claimSlot("c1", "mt");
+  session.claimSlot("c2", "ot");
+  session.enterWorkshop("c1");
+  session.start("c1");
+  session.step(false);
+  const stalePull = session.pullEpoch;
+
+  session.restart("c1");
+  session.step(false);
+  session.reportWorldHash("c1", session.pullEpoch, 1, 111);
+  const before = sent.filter(entry => entry.clientId === "c2" && entry.message.type === "started").length;
+  session.reportWorldHash("c2", stalePull, 1, 222);
+
+  expect(sent.filter(entry => entry.clientId === "c2" && entry.message.type === "started").length).toBe(before);
+});
+
+test("a host outside the pull is not the hash, snapshot or end-of-pull authority", () => {
+  const { session, sent } = makeSession();
+  session.join("host", "host");
+  session.join("c2", "c2");
+  session.claimSlot("c2", "ot");
+  session.enterWorkshop("host");
+  session.start("host");
+  for (let i = 0; i < 3; i++) session.step(false);
+  const startedBefore = sent.filter(entry => entry.clientId === "c2" && entry.message.type === "started").length;
+
+  session.reportWorldHash("host", session.pullEpoch, 1, 111);
+  session.reportWorldHash("c2", session.pullEpoch, 1, 222);
+  session.simEnded("host", session.pullEpoch, 3);
+
+  expect(session.playback).toBe("playing");
+  expect(sent.filter(entry => entry.clientId === "c2" && entry.message.type === "started")).toHaveLength(startedBefore);
+});
+
+test("frames reach only pull participants", () => {
+  const { session, sent } = makeSession();
+  session.join("c1", "c1");
+  session.join("setup", "setup");
+  session.claimSlot("c1", "mt");
+  session.enterWorkshop("c1");
+  session.start("c1");
+  session.join("queued", "queued");
+  session.claimSlot("queued", "ot");
+  session.step();
+
+  const recipients = sent.filter(entry => entry.message.type === "frames").map(entry => entry.clientId);
+  expect(recipients).toEqual(["c1"]);
+});
+
+test("a mid-pull leave does not rewrite the pull's tick-zero world", () => {
+  const { session } = makeSession();
+  session.join("c1", "c1");
+  session.join("c2", "c2");
+  session.claimSlot("c1", "mt");
+  session.claimSlot("c2", "ot");
+  session.setBotsInvincible("c1", true);
+  session.enterWorkshop("c1");
+  session.start("c1");
+  session.step(false);
+  const base = session.world;
+
+  session.releaseSlot("c2", "ot");
+  session.disconnectClient("c2");
+
+  expect(session.world).toBe(base);
+  expect(session.world.players.find(player => player.id === "ot")).toMatchObject({ control: "human", invincible: false });
 });
 
 test("host can restart after the session ends", () => {
@@ -1573,21 +1662,89 @@ test("a mid-raid reservation is queued and only joins the roster after a stop", 
   expect(sent.some(entry => entry.clientId === "socket-b" && entry.message.type === "started" && entry.message.yourPlayerId === "ot")).toBe(true);
 });
 
-test("losing the host ends the raid to the workshop", () => {
+test("losing the host hands it to the next player and keeps the raid running", () => {
   const { session, sent } = makeSession();
+  session.join("host-socket", "host");
+  session.join("socket-b", "pb");
+  session.join("socket-c", "pc");
+  session.claimSlot("host", "mt");
+  session.claimSlot("pb", "ot");
+  session.claimSlot("pc", "h1");
+  session.enterWorkshop("host");
+  session.start("host");
+  session.step(false);
+  sent.length = 0;
+
+  session.disconnectClient("host-socket");
+
+  expect(session.hostParticipantId).toBe("pb");
+  expect(session.phase).toBe("raid");
+  expect(session.playback).toBe("playing");
+  expect(sent.some(entry => entry.message.type === "transition")).toBe(false);
+  expect(sent.find(entry => entry.clientId === "socket-c" && entry.message.type === "playback")?.message).toMatchObject({ hostParticipantId: "pb", state: "playing" });
+
+  session.step();
+  expect(session.inputLog.at(-1)?.intents.mt).toBeUndefined();
+  expect(sent.some(entry => entry.clientId === "socket-b" && entry.message.type === "frames")).toBe(true);
+});
+
+test("the handed-off host becomes the hash and end-of-pull authority", () => {
+  const { session, sent } = makeSession();
+  session.join("host-socket", "host");
+  session.join("socket-b", "pb");
+  session.join("socket-c", "pc");
+  session.claimSlot("host", "mt");
+  session.claimSlot("pb", "ot");
+  session.claimSlot("pc", "h1");
+  session.enterWorkshop("host");
+  session.start("host");
+  for (let i = 0; i < 3; i++) session.step(false);
+  session.disconnectClient("host-socket");
+
+  session.reportWorldHash("pb", session.pullEpoch, 1, 111);
+  const before = sent.filter(entry => entry.clientId === "socket-c" && entry.message.type === "started").length;
+  session.reportWorldHash("pc", session.pullEpoch, 1, 222);
+  expect(sent.filter(entry => entry.clientId === "socket-c" && entry.message.type === "started")).toHaveLength(before + 1);
+
+  session.simEnded("pb", session.pullEpoch, 3);
+  expect(session.playback).toBe("done");
+});
+
+test("a host reload mid-raid hands the host off instead of ending the raid", () => {
+  const { session } = makeSession();
   session.join("host-socket", "host");
   session.join("socket-b", "pb");
   session.claimSlot("host", "mt");
   session.claimSlot("pb", "ot");
   session.enterWorkshop("host");
   session.start("host");
-  sent.length = 0;
+
+  session.join("host-socket-2", "host");
+
+  expect(session.hostParticipantId).toBe("pb");
+  expect(session.phase).toBe("raid");
+  expect(session.pullRoster.has("mt")).toBe(false);
+  expect(session.slots.get("mt")).toBe("host");
+});
+
+test("the raid ends to the workshop only when every pull participant is gone", () => {
+  const { session, sent } = makeSession();
+  session.join("host-socket", "host");
+  session.join("socket-b", "pb");
+  session.join("socket-idle", "idle");
+  session.claimSlot("host", "mt");
+  session.claimSlot("pb", "ot");
+  session.enterWorkshop("host");
+  session.start("host");
 
   session.disconnectClient("host-socket");
+  expect(session.phase).toBe("raid");
 
+  session.disconnectClient("socket-b");
   expect(session.phase).toBe("workshop");
   expect(session.raidId).toBe(EMPTY_RAID_ID);
-  expect(sent.some(entry => entry.clientId === "socket-b" && entry.message.type === "transition" && entry.message.reason === "hostLost")).toBe(true);
+  expect(session.hostParticipantId).toBe("idle");
+  expect(sent.some(entry => entry.clientId === "socket-idle" && entry.message.type === "transition" && entry.message.reason === "noParticipants")).toBe(true);
 });
 
 test("a raid whose participants all leave ends even while a setup client stays connected", () => {

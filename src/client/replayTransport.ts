@@ -39,7 +39,7 @@ export class ReplayTransport implements Transport {
     this.handler = cb;
   }
 
-  onReconnect(_cb: () => void): void {}
+  onDisconnect(_cb: () => void): void {}
 
   close(): void {
     this.pause();
@@ -93,7 +93,7 @@ export class ReplayTransport implements Transport {
 
   private emitStarted(tick: number): void {
     this.cursor = tick;
-    this.handler({ type: "started", world: this.replay.world, baseTick: 0, yourPlayerId: null, tick, frames: this.replay.frames.slice(0, tick) });
+    this.handler({ type: "started", pull: 0, world: this.replay.world, baseTick: 0, yourPlayerId: null, tick, frames: this.replay.frames.slice(0, tick) });
   }
 
   private emitPlayback(state: "playing" | "paused"): void {

@@ -97,11 +97,12 @@ touching the engine, netcode, or server.
    in the `stopped` state; START runs it. Starting freezes
    the current reservations into the **pull roster**; the server builds a tick-0 `World` from the
    raid definition and sends it to the rostered clients in a `started` message, alongside the input
-   log so far. A reservation made after that point is queued for the next pull. A raid does not
-   outlive its host or its participants: losing either ends the pull back into the workshop.
+   log so far. A reservation made after that point is queued for the next pull. If the host
+   disconnects, the host role passes to the next pull participant and the pull continues; only
+   losing every participant ends it back into the workshop.
 3. **The relay.** The server does **not** run the simulation. `FrameRelay` produces one `Frame` per
    tick at 60 Hz — each frame is just the merged player *intents* for that tick (plus a couple of
-   flags). It broadcasts these frames and keeps an authoritative input log.
+   flags). It broadcasts these frames to the pull's participants and keeps an authoritative input log.
 4. **Client stepping.** Each client runs `tick()` (`src/engine/sim.ts`) locally, feeding it the
    relayed intents plus locally-computed bot intents. Because every client starts from the same
    seed and applies the same frames in the same order, every client computes a **byte-identical
@@ -109,8 +110,10 @@ touching the engine, netcode, or server.
 5. **Workshop join / resync.** A client entering the workshop, or one being resynced, replays the
    input log (optionally from a host snapshot taken every `SNAPSHOT_INTERVAL` ticks) to fast-forward
    to the room's current tick. This is never an admission path into a running authored pull.
-6. **Desync detection.** Clients periodically send a `worldHash` (`HASH_INTERVAL` ticks); the server
-   compares them via `DesyncTracker` and resyncs any client that diverged.
+6. **Desync detection.** Clients periodically send a `worldHash` (`HASH_INTERVAL` ticks), tagged
+   with the pull epoch; the server compares them against the host's via `DesyncTracker` and
+   resyncs any client that diverged. There is no reconnect path: a client that drops or misses
+   frames leaves the session.
 7. **Rendering.** `NetClient` coordinates a `RenderSnapshotBuffer`, which keeps a small snapshot
    history and interpolates with a fixed render delay for smoothness. The local player is additionally
    client-predicted (`src/client/predictor.ts`) so their own movement feels instant — this is

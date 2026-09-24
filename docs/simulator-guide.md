@@ -110,7 +110,8 @@ The layout is stored in your own browser and persists across sessions.
 ## Host permissions
 
 Being host is a property of the *session*, held by whoever created it. It is not something you can
-claim or transfer from the UI.
+claim or transfer from the UI. If the host disconnects, it passes automatically to the next player
+in the running pull (in slot order), or to someone still connected if no pull is running.
 
 Only the host can:
 
