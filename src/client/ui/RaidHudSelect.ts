@@ -83,10 +83,11 @@ export async function createRaidHudSelect(
     });
     return btn;
   };
-  // In the waiting lobby this button starts the selected raid; everywhere else it resumes the pull.
+  // In the lobby this button starts the selected raid, or resumes the lobby itself when none is
+  // selected; everywhere else it resumes the pull.
   const playBtn = makePlaybackBtn("PLAY", () => {
     if (replay) replay.play();
-    else if (phase === "workshop") net.send({ type: "start" });
+    else if (phase === "workshop" && selectedRaidId !== EMPTY_RAID_ID) net.send({ type: "start" });
     else net.send({ type: "play" });
   });
   const pauseBtn = makePlaybackBtn("PAUSE", () => replay ? replay.pause() : net.send({ type: "pause" }));
@@ -94,7 +95,7 @@ export async function createRaidHudSelect(
   const restartBtn = makePlaybackBtn("RESTART", () => replay ? replay.restart() : net.send({ type: "restart" }));
   const optionsBtn = replay ? null : makePlaybackBtn("OPTIONS", () => {
     // A live pull is stopped first: options must not change out from under it, and stopping lets the
-    // server apply waymark/bot-pattern changes to the frozen world immediately. The waiting lobby has
+    // server apply waymark/bot-pattern changes to the frozen world immediately. The lobby has
     // no pull to protect, so it keeps running.
     if (phase === "raid" && lastState !== "stopped") net.send({ type: "stop" });
     optionsModal?.open();
@@ -152,15 +153,14 @@ export async function createRaidHudSelect(
 
   const syncPlayback = (state: PlaybackState) => {
     lastState = state;
-    const waiting = !replay && phase === "workshop";
-    playBtn.textContent = waiting || (!replay && state === "stopped") ? "START" : "PLAY";
-    // Picking a raid starts it, so in the waiting lobby this button only re-runs the raid already
-    // selected — and there is nothing to run until one is.
-    playBtn.disabled = !canControl()
-      || (waiting ? selectedRaidId === EMPTY_RAID_ID : state === "playing" || state === "done");
+    const startsRaid = !replay && phase === "workshop" && selectedRaidId !== EMPTY_RAID_ID;
+    playBtn.textContent = startsRaid || (!replay && state === "stopped") ? "START" : "PLAY";
+    // Picking a raid swaps to it, so in the lobby this button re-runs the raid already selected;
+    // with none selected it resumes the lobby like any other pull.
+    playBtn.disabled = !canControl() || (!startsRaid && (state === "playing" || state === "done"));
     pauseBtn.disabled = !canControl() || state !== "playing";
     stopBtn.disabled = !canControl() || state === "stopped";
-    restartBtn.disabled = !canControl() || waiting;
+    restartBtn.disabled = !canControl();
     // Swapping the raid mid-pull is the one thing the server refuses, so lock the picker there.
     picker?.setEnabled(isHost && !(phase === "raid" && state === "playing"));
     if (optionsBtn) optionsBtn.disabled = !isHost;

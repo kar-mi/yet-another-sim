@@ -1673,6 +1673,25 @@ test("the workshop cannot be started as a raid", () => {
   expect(sent.some(entry => entry.message.type === "error" && entry.message.message === "Select a raid before starting")).toBe(true);
 });
 
+test("a stopped lobby can be resumed or restarted", () => {
+  const { session } = makeDefaultLobbySession();
+  session.join("host-socket", "host");
+  session.claimSlot("host", "mt");
+  session.enterWorkshop("host");
+
+  session.stop("host");
+  expect(session.playback).toBe("stopped");
+  session.play("host");
+  expect(session.phase).toBe("workshop");
+  expect(session.playback).toBe("playing");
+
+  session.stop("host");
+  session.restart("host");
+  expect(session.phase).toBe("workshop");
+  expect(session.playback).toBe("playing");
+  expect(session.raidId).toBe(EMPTY_RAID_ID);
+});
+
 // The workshop has no terminal world status, so its ceiling sits exactly at the duration; an authored
 // raid gets grace slack past it. Both are chosen from the phase, which must be current before the
 // pull is loaded.
@@ -1694,9 +1713,9 @@ test("the workshop ends at its duration while a raid keeps relaying past it", ()
   expect(session.playback).toBe("playing");
 });
 
-// Picking a raid ends the waiting lobby and loads that raid, but leaves it stopped at tick zero:
+// Picking a raid ends the lobby and loads that raid, but leaves it stopped at tick zero:
 // starting is a separate, deliberate press.
-test("selecting a raid from the waiting lobby swaps to it stopped at tick zero", () => {
+test("selecting a raid from the lobby swaps to it stopped at tick zero", () => {
   const { session, sent } = makeDefaultLobbySession();
   session.join("host-socket", "host");
   session.claimSlot("host", "mt");
@@ -1718,7 +1737,7 @@ test("selecting a raid from the waiting lobby swaps to it stopped at tick zero",
   expect(session.raidId).toBe("test-raid");
 });
 
-test("START re-runs the raid already selected in the waiting lobby", () => {
+test("START re-runs the raid already selected in the lobby", () => {
   const { session } = makeSession();
   session.join("host-socket", "host");
   session.claimSlot("host", "mt");
