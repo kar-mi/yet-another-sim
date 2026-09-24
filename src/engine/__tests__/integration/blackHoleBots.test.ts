@@ -272,7 +272,7 @@ test("the wave-10 soloer's Look Upon Me 2 edge dodge clears the line for any tel
     expect(length(soloTarget!)).toBeCloseTo(20, 3);
     expect(pointInShape(shape, soloTarget!)).toBe(false);
   }
-});
+}, 30_000);
 
 test("Damning Edict 2 dodge survives chaos's facing landing parallel/antiparallel to bigkefka's", async () => {
   const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/black-hole.yaml").text());

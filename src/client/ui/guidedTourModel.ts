@@ -29,7 +29,7 @@ const REVISIT_NOTE = "Revisit this tour anytime via ? → Getting Started.";
 const OVERVIEW_SECTIONS: TourSection[] = [
   { title: "SETTINGS", body: "Click the ⚙ icon (top-right) to adjust camera, keybinds, controller, and display settings." },
   { title: "CUSTOMIZE THE UI", body: "In Settings → Display, set the UI scale/font, or click EDIT HUD LAYOUT to drag HUD elements, resize them with their handles, or right-click to hide them. You can also click the grid button." },
-  { title: "LOADING A RAID", body: "Once in a session, use the RAID selector at the top of the screen to pick a raid. It loads for everyone at time zero; press START when the group is ready. OPTIONS next to it holds waymarks, bot patterns and RNG pins." },
+  { title: "LOADING A RAID", body: "Once in a session, use the RAID selector at the top of the screen to pick a raid. It loads for everyone at time zero; press START when the group is ready. RAID SETUP, next to BOTS by your HP bar, holds waymarks, bot patterns and RNG pins." },
   { title: "REPLAYS", body: "Every pull is recorded. The host can stop a pull and open ▶ in the top-right toolbar to rewatch this session's recordings." },
 ];
 
@@ -58,7 +58,7 @@ export function buildTourSteps(ctx: TourContext): TourStep[] {
       title: "PLAYBACK",
       target: RAID_SELECTOR_TARGET,
       body: ctx.isHost
-        ? "Browse or search raids here. The one you pick loads for everyone, ready to START, and OPTIONS beside it holds waymarks, bot patterns and RNG pins."
+        ? "Browse or search raids here. The one you pick loads for everyone, ready to START. RAID SETUP, next to BOTS by your HP bar, holds waymarks, bot patterns and RNG pins."
         : "Raids are listed here. Only the session host can pick one, and their choice loads the raid for everyone.",
     },
   ];

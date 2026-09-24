@@ -199,7 +199,7 @@ Everything random in an encounter is declared under `optionals`, derived from th
 exposed to the host as a pinnable choice.
 
 **Naming the choices.** `rngLabels` gives each seeded decision a label and human-readable options.
-These strings are exactly what appears in **OPTIONS → RNG**, so writing them well is what makes an
+These strings are exactly what appears in **RAID SETUP → RNG**, so writing them well is what makes an
 encounter practisable:
 
 ```yaml

@@ -174,9 +174,10 @@ export function createOptionsModal(net: NetClient, initial: OptionsModalState): 
 
   const panel = el("div", { className: "yas-raid-modal-panel yas-rng-panel" }, [
     el("div", { className: "yas-raid-modal-header" }, [
-      el("div", { className: "yas-menu-subtitle", textContent: "OPTIONS" }),
+      el("div", { className: "yas-menu-subtitle", textContent: "RAID SETUP" }),
       el("button", { type: "button", className: "yas-rng-close", textContent: "CLOSE" }),
     ]),
+    el("div", { className: "yas-rng-note", textContent: "For camera, keybinds and display settings, click the ⚙ gear (top-right)." }),
     tabStrip,
     waymarkBody,
     botsBody,

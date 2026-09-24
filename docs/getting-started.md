@@ -132,7 +132,7 @@ The playback controls sit under the raid selector, and only the host may use the
 **STOP is what saves a replay.** A pull that is restarted without stopping is not recorded, so if
 you want to review what just happened, stop first.
 
-The host also has an **OPTIONS** button next to the raid selector. It stops a live pull before
+The host also has a **RAID SETUP** button next to **BOTS** by the HP bar. It stops a live pull before
 opening, so configuration can never change halfway through a mechanic; in the waiting lobby there is
 no pull to stop, so it just opens. It has three tabs:
 

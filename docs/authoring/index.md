@@ -55,7 +55,7 @@ is what sequences them.
 **Optionals.** Seeded per-pull variation — which side a mechanic comes from, which of two debuffs
 you get, how a set of assignments is distributed. Everything here is derived from the pull seed, so
 a given seed always produces the same fight, and each choice can be pinned by the host from the
-in-game **OPTIONS → RNG** panel.
+in-game **RAID SETUP → RNG** panel.
 
 ## Coordinates
 

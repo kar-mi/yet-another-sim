@@ -87,10 +87,11 @@ export async function createRaidHudSelect(
   const pauseBtn = makePlaybackBtn("PAUSE", () => replay ? replay.pause() : net.send({ type: "pause" }));
   const stopBtn = makePlaybackBtn("STOP", () => net.send({ type: "stop" }));
   const restartBtn = makePlaybackBtn("RESTART", () => replay ? replay.restart() : net.send({ type: "restart" }));
-  const optionsBtn = replay ? null : makePlaybackBtn("OPTIONS", () => {
+  const optionsBtn = replay ? null : makePlaybackBtn("RAID SETUP", () => {
     if (phase === "raid" && lastState !== "stopped") net.send({ type: "stop" });
     optionsModal?.open();
   });
+  if (optionsBtn) optionsBtn.className = "yas-raid-setup-btn";
   if (replay) {
     controls.append(playBtn, pauseBtn, restartBtn);
   } else {
@@ -198,7 +199,7 @@ export async function createRaidHudSelect(
 
   if (!replay && picker) {
     const selectRow = el("div", { className: "yas-raid-select-row" }, [picker.button]);
-    if (optionsBtn) selectRow.appendChild(el("div", { className: "yas-rng-controls" }, [optionsBtn]));
+    if (optionsBtn) document.querySelector(".yas-bots-btn")?.insertAdjacentElement("afterend", optionsBtn);
     wrapper.append(label, selectRow, controls);
     document.body.appendChild(wrapper);
     hudLayout.register("raidselector", wrapper);
@@ -231,6 +232,7 @@ export async function createRaidHudSelect(
     disposeStarted();
     picker?.dispose();
     optionsModal?.dispose();
+    optionsBtn?.remove();
     if (seekTimer) clearInterval(seekTimer);
     if (!replay) {
       hudLayout.unregister("raidselector");
