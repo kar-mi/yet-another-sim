@@ -3,7 +3,7 @@ import { resolveStatus } from "./resolve";
 import type { StatusSpec } from "./types";
 import { STATUS_FIELDS } from "./validation";
 
-export { DamageTypeSchema, STATUS_BEHAVIOR_KINDS, StatusBehaviorSchema, StatusSpecSchema } from "./validation";
+export { STATUS_BEHAVIOR_KINDS, StatusSpecSchema } from "./validation";
 
 const StatusRefObjectSchema = z.object({
   ref: z.string({ error: "statuses must reference a catalog template with `ref`" })

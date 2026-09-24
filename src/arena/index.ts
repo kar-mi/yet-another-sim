@@ -2,9 +2,8 @@ import type { Vec2 } from "@shared/math";
 import { pointInCircle, pointInPolygon } from "@shared/math";
 import type { FloorPlanImage, ZoneImage } from "./assets";
 
-export type { FloorPlanImage, ZoneImage } from "./assets";
 export { arenaAssetManifest } from "./assets";
-export { ARENA_GENERATORS, ARENA_GENERATOR_IDS, type ArenaGeneratorId } from "./generators";
+export { ARENA_GENERATORS } from "./generators";
 
 export type ZoneShape =
   | { kind: "circle"; center: Vec2; radius: number }

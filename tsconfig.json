@@ -7,7 +7,7 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "types": ["bun-types"],
+    "types": ["bun"],
     "paths": {
       "@shared/*": ["./src/shared/*"],
       "@arena": ["./src/arena/index.ts"],
@@ -18,6 +18,6 @@
       "@status/*": ["./src/status/*"]
     }
   },
-  "include": ["src/**/*", "scripts/**/*", "docs-site/**/*"],
+  "include": ["src/**/*", "docs-site/**/*"],
   "exclude": ["node_modules"]
 }

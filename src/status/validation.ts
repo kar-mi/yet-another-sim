@@ -2,7 +2,7 @@ import { z } from "zod";
 import { statusTemplate } from "./catalog";
 import type { StatusBehaviorKind } from "./types";
 
-export const DamageTypeSchema = z.enum(["physical", "magical", "true"]);
+const DamageTypeSchema = z.enum(["physical", "magical", "true"]);
 const CircleOrDonutSchema = z.enum(["circle", "donut"]);
 const CatalogIdSchema = z.string().refine(ref => statusTemplate(ref) !== undefined, { error: issue => `unknown status ref "${String(issue.input)}"` });
 
@@ -151,7 +151,7 @@ const BEHAVIOR_SCHEMAS = {
 
 export const STATUS_BEHAVIOR_KINDS = Object.keys(BEHAVIOR_SCHEMAS) as StatusBehaviorKind[];
 
-export const StatusBehaviorSchema = z.discriminatedUnion("kind", [
+const StatusBehaviorSchema = z.discriminatedUnion("kind", [
   BEHAVIOR_SCHEMAS.none,
   BEHAVIOR_SCHEMAS.vuln,
   BEHAVIOR_SCHEMAS.mitigation,

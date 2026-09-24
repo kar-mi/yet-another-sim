@@ -151,16 +151,12 @@ export function resolveForcedWalk(actor: StatusActor, status: StatusInstance, en
   return undefined;
 }
 
-export function activeStatuses(actor: Pick<StatusActor, "effects">, time: number): StatusInstance[] {
+function activeStatuses(actor: Pick<StatusActor, "effects">, time: number): StatusInstance[] {
   return actor.effects.filter(status => isStatusActive(status, time));
 }
 
 export function hasActiveStatus(actor: Pick<StatusActor, "effects">, ref: string, time: number): boolean {
   return actor.effects.some(status => status.ref === ref && isStatusActive(status, time));
-}
-
-export function hasActiveStatusNamed(actor: Pick<StatusActor, "effects">, name: string, time: number): boolean {
-  return actor.effects.some(status => status.name === name && isStatusActive(status, time));
 }
 
 export function remainingTime(actor: Pick<StatusActor, "effects">, ref: string, time: number): number {

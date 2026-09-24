@@ -52,7 +52,7 @@ const WEAPONS = [
   { name: "sword", width: 341, height: 789, x: -4.65 },
 ] as const;
 
-export type IndexWeapon = (typeof WEAPONS)[number]["name"];
+type IndexWeapon = (typeof WEAPONS)[number]["name"];
 
 export type IndexModel = {
   root: Mesh;

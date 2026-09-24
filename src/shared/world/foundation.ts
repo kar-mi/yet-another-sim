@@ -1,6 +1,6 @@
 import type { Vec2 } from "../math";
 
-export type { Arena, FloorPlan, ZoneImage, ZoneShape } from "@arena";
+export type { Arena, ZoneShape } from "@arena";
 export type { AOEShape, ElementGlyphKind, WaymarkId } from "@effects";
 import type { ElementGlyphKind, WaymarkId } from "@effects";
 export type { CrystalElement, DamageType } from "@status";
