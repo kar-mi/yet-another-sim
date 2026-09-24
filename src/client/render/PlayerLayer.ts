@@ -229,6 +229,21 @@ export class PlayerLayer {
     }
   }
 
+  dispose(): void {
+    for (const burst of this.bursts.values()) burst.dispose();
+    for (const clips of this.clips.values()) {
+      for (const group of clips.values()) group.dispose();
+    }
+    for (const mesh of this.meshes.values()) mesh.dispose(false, true);
+    this.bursts.clear();
+    this.clips.clear();
+    this.meshes.clear();
+    this.modelRoots.clear();
+    this.markers.clear();
+    this.activeClip.clear();
+    this.burstData.clear();
+  }
+
   private endBurst(playerId: string): void {
     this.bursts.get(playerId)?.dispose();
     this.bursts.delete(playerId);

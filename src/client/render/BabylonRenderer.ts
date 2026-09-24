@@ -12,7 +12,7 @@ import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import type { Arena } from "@arena";
 import { createArenaMeshes } from "@arena/babylon";
 import type { Renderer } from "./Renderer";
-import type { Boss, World } from "@shared/types";
+import type { ActiveDivebomb, ActiveForcedMarch, ActiveHazard, ActiveTower, Boss, World } from "@shared/types";
 import type { PlaybackState } from "@shared/protocol";
 import { selectBossSideOrbs } from "./bossSideOrbs";
 import { selectSealedImplement } from "./sealedImplement";
@@ -29,15 +29,16 @@ import { TelegraphLayer } from "./TelegraphLayer";
 import { TetherLayer } from "./TetherLayer";
 import { LineLinkLayer } from "./LineLinkLayer";
 import { ChainLayer } from "./ChainLayer";
-import { TowerLayer } from "./TowerLayer";
 import { StackLayer } from "./StackLayer";
 import { InverseLayer } from "./InverseLayer";
 import { SpreadStackLayer } from "./SpreadStackLayer";
 import { GazeLayer } from "./GazeLayer";
 import { HandLayer } from "./HandLayer";
-import { ForcedMarchLayer } from "./ForcedMarchLayer";
-import { HazardLayer } from "./HazardLayer";
-import { DivebombLayer } from "./DivebombLayer";
+import { KeyedMeshLayer } from "./KeyedMeshLayer";
+import { createTowerMeshes, updateTowerMeshes, type TowerMeshes } from "./meshes/towerMeshes";
+import { createForcedMarchMeshes, updateForcedMarchMeshes, type ForcedMarchMeshes } from "./meshes/forcedMarchMeshes";
+import { createHazardMeshes, updateHazardMeshes, type HazardMeshes } from "./meshes/hazardMeshes";
+import { createDivebombMeshes, updateDivebombMeshes, type DivebombMeshes } from "./meshes/divebombMeshes";
 import { ElementGlyphLayer } from "./ElementGlyphLayer";
 import { ElementRingLayer } from "./ElementRingLayer";
 import { MoverLayer } from "./MoverLayer";
@@ -92,15 +93,15 @@ export class BabylonRenderer implements Renderer {
   private tethers!: TetherLayer;
   private lineLinks!: LineLinkLayer;
   private chains!: ChainLayer;
-  private towers!: TowerLayer;
+  private towers!: KeyedMeshLayer<ActiveTower, TowerMeshes>;
   private stacks!: StackLayer;
   private inverse!: InverseLayer;
   private spreadStacks!: SpreadStackLayer;
   private gaze!: GazeLayer;
   private hands!: HandLayer;
-  private forcedMarches!: ForcedMarchLayer;
-  private hazards!: HazardLayer;
-  private divebombs!: DivebombLayer;
+  private forcedMarches!: KeyedMeshLayer<ActiveForcedMarch, ForcedMarchMeshes>;
+  private hazards!: KeyedMeshLayer<ActiveHazard, HazardMeshes>;
+  private divebombs!: KeyedMeshLayer<ActiveDivebomb, DivebombMeshes>;
   private elementGlyphs!: ElementGlyphLayer;
   private elementRings!: ElementRingLayer;
   private movers!: MoverLayer;
@@ -109,6 +110,7 @@ export class BabylonRenderer implements Renderer {
   private waymarks!: WaymarkLayer;
   private crystals!: CrystalLayer;
   private hud!: HudOverlay;
+  private owned: { dispose(): void }[] = [];
   private floorMeshes: Mesh[] = [];
   private arenaKey = "";
   private localPlayerId: string | null = null;
@@ -218,14 +220,14 @@ export class BabylonRenderer implements Renderer {
 
     const renderKeys = getWorldRenderKeys(world) ?? computeWorldRenderKeys(world);
     this.buildArena(world.arena, renderKeys.arena);
-    this.waymarks = new WaymarkLayer(this.scene);
+    this.waymarks = this.own(new WaymarkLayer(this.scene));
     this.waymarks.sync(world.waymarks, renderKeys.waymarks);
-    this.crystals = new CrystalLayer(this.scene);
+    this.crystals = this.own(new CrystalLayer(this.scene));
     this.crystals.sync(world.crystals, world.time, renderKeys.crystals);
 
-    this.players = new PlayerLayer(this.scene);
+    this.players = this.own(new PlayerLayer(this.scene));
     this.players.init(world.players);
-    this.healthBars = new HealthBarLayer(this.scene);
+    this.healthBars = this.own(new HealthBarLayer(this.scene));
     for (const player of world.players) {
       const mesh = this.players.getMesh(player.id);
       if (mesh) {
@@ -238,24 +240,24 @@ export class BabylonRenderer implements Renderer {
       }
     }
     this.rebuildBossLayers(world.bosses);
-    this.telegraphs = new TelegraphLayer(this.scene);
-    this.tethers = new TetherLayer(this.scene);
-    this.lineLinks = new LineLinkLayer(this.scene);
-    this.chains = new ChainLayer(this.scene);
-    this.towers = new TowerLayer(this.scene);
-    this.stacks = new StackLayer(this.scene);
-    this.inverse = new InverseLayer(this.scene);
-    this.spreadStacks = new SpreadStackLayer(this.scene);
-    this.gaze = new GazeLayer(this.scene);
-    this.hands = new HandLayer(this.scene);
-    this.forcedMarches = new ForcedMarchLayer(this.scene);
-    this.hazards = new HazardLayer(this.scene);
-    this.divebombs = new DivebombLayer(this.scene);
-    this.elementGlyphs = new ElementGlyphLayer(this.scene);
-    this.elementRings = new ElementRingLayer(this.scene);
-    this.movers = new MoverLayer(this.scene);
-    this.effectRings = new PlayerEffectRingLayer(this.scene);
-    this.countdownPie = new CountdownPieLayer(this.scene);
+    this.telegraphs = this.own(new TelegraphLayer(this.scene));
+    this.tethers = this.own(new TetherLayer(this.scene));
+    this.lineLinks = this.own(new LineLinkLayer(this.scene));
+    this.chains = this.own(new ChainLayer(this.scene));
+    this.towers = this.own(new KeyedMeshLayer(this.scene, createTowerMeshes));
+    this.stacks = this.own(new StackLayer(this.scene));
+    this.inverse = this.own(new InverseLayer(this.scene));
+    this.spreadStacks = this.own(new SpreadStackLayer(this.scene));
+    this.gaze = this.own(new GazeLayer(this.scene));
+    this.hands = this.own(new HandLayer(this.scene));
+    this.forcedMarches = this.own(new KeyedMeshLayer(this.scene, createForcedMarchMeshes));
+    this.hazards = this.own(new KeyedMeshLayer(this.scene, createHazardMeshes));
+    this.divebombs = this.own(new KeyedMeshLayer(this.scene, createDivebombMeshes));
+    this.elementGlyphs = this.own(new ElementGlyphLayer(this.scene));
+    this.elementRings = this.own(new ElementRingLayer(this.scene));
+    this.movers = this.own(new MoverLayer(this.scene));
+    this.effectRings = this.own(new PlayerEffectRingLayer(this.scene));
+    this.countdownPie = this.own(new CountdownPieLayer(this.scene));
     this.hud = new HudOverlay(
       sessionId,
       this.localPlayerId,
@@ -271,6 +273,11 @@ export class BabylonRenderer implements Renderer {
 
     this.onResize = () => this.engine.resize();
     window.addEventListener("resize", this.onResize);
+  }
+
+  private own<T extends { dispose(): void }>(layer: T): T {
+    this.owned.push(layer);
+    return layer;
   }
 
   private rebuildBossLayers(bosses: Boss[]): void {
@@ -371,15 +378,15 @@ export class BabylonRenderer implements Renderer {
     this.tethers.sync(world.tetherSources, world.players, world.time);
     this.lineLinks.sync(world.lineLinks, world.players, world.time);
     this.chains.sync(world.chains, world.players);
-    this.towers.sync(world.towers, world.time);
+    this.towers.sync(world.towers, (handle, tower) => updateTowerMeshes(handle, tower, world.time));
     this.stacks.sync(world.groupMechanics, world.players, world.time);
     this.inverse.sync(world.inversions, world.boss, world.time);
     this.spreadStacks.sync(world.spreadStacks, world.boss, world.players, world.time);
     this.gaze.sync(world.gazes, world.time);
     this.hands.sync(world.active, world.bosses);
-    this.forcedMarches.sync(world.forcedMarches, world.time);
-    this.hazards.sync(world.hazards, world.time);
-    this.divebombs.sync(world.divebombs, world.time);
+    this.forcedMarches.sync(world.forcedMarches, (handle, fm) => updateForcedMarchMeshes(handle, fm, world.time));
+    this.hazards.sync(world.hazards, (handle, hazard) => updateHazardMeshes(handle, hazard, world.time));
+    this.divebombs.sync(world.divebombs, (handle, divebomb) => updateDivebombMeshes(handle, divebomb, world.time));
     this.elementGlyphs.sync(world.active, world.time);
     this.elementRings.sync(world.active, world.time);
     this.movers.sync(world.active, world.time);
@@ -461,26 +468,8 @@ export class BabylonRenderer implements Renderer {
     for (const bossRing of this.bossRingLayers.values()) bossRing.dispose();
     for (const sideOrbs of this.bossSideOrbLayers.values()) sideOrbs.dispose();
     for (const targetRing of this.targetRingLayers.values()) targetRing.dispose();
-    this.lineLinks.dispose();
-    this.chains.dispose();
-    this.towers.dispose();
-    this.telegraphs.dispose();
-    this.stacks.dispose();
-    this.inverse.dispose();
-    this.spreadStacks.dispose();
-    this.gaze.dispose();
-    this.hands.dispose();
-    this.forcedMarches.dispose();
-    this.hazards.dispose();
-    this.divebombs.dispose();
-    this.elementGlyphs.dispose();
-    this.elementRings.dispose();
-    this.movers.dispose();
-    this.effectRings.dispose();
-    this.countdownPie.dispose();
-    this.waymarks.dispose();
-    this.crystals.dispose();
-    this.healthBars.dispose();
+    for (const layer of this.owned.reverse()) layer.dispose();
+    this.owned = [];
     this.engine.dispose();
   }
 }

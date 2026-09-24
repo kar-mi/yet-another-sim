@@ -81,4 +81,11 @@ export class TetherLayer {
       }
     }
   }
+
+  dispose(): void {
+    for (const mesh of this.spheres.values()) mesh.dispose(false, true);
+    for (const line of this.lines.values()) line.dispose(false, true);
+    this.spheres.clear();
+    this.lines.clear();
+  }
 }
