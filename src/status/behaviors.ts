@@ -25,7 +25,7 @@ import { closestOtherAliveActor } from "./operations";
 
 type Instance<K extends StatusBehaviorKind> = StatusInstance & { behavior: BehaviorOf<K> };
 
-export type Reapply = (spec: StatusSpec, id?: string) => void;
+type Reapply = (spec: StatusSpec, id?: string) => void;
 
 export type ExpiryContext = {
   resolvedCrystalFollowUps: Set<string>;

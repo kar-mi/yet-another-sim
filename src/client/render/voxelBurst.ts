@@ -88,7 +88,7 @@ export function launchBurst(data: BurstData, seed: number): BurstLaunch {
 export type BurstState = { step: number; pos: Float64Array; vel: Float64Array };
 
 // Advance every pixel one fixed step under gravity; pixels that reach the floor bounce and slide.
-export function stepBurst(state: BurstState, floorY: number): void {
+function stepBurst(state: BurstState, floorY: number): void {
   const { pos, vel } = state;
   for (let i = 0; i < pos.length; i += 3) {
     vel[i + 1]! -= GRAVITY * BURST_STEP;

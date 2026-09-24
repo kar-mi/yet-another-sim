@@ -2,10 +2,7 @@ import type { StatusSpec as EffectSpec } from "@status";
 
 export type {
   Knockback,
-  StatusBehavior as EffectBehavior,
-  StatusCountdown as EffectCountdown,
   StatusInstance as StatusEffect,
-  StatusRing as EffectRing,
   StatusSpec as EffectSpec,
   StatusBundle as EffectBundle,
 } from "@status";

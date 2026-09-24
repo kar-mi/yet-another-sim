@@ -1,6 +1,6 @@
 // Replay-review recording: avoidable hits and deaths.
 
-import type { LogEntry, Player, StatusEffect } from "@shared/types";
+import type { LogEntry, Player } from "@shared/types";
 
 
 export type DamageContext = {
@@ -27,14 +27,6 @@ export function mechanicSource(
   const key = slot === undefined ? eventId : `${eventId}:${slot}`;
 
   return { key, name, avoidable: dc.avoidableSources[key] === true };
-}
-
-export function effectSource(effect: StatusEffect): DamageSource {
-  return {
-    key: effect.id,
-    name: effect.name,
-    avoidable: effect.avoidable === true,
-  };
 }
 
 // Recorded before invincibility or mitigation suppresses the damage, so `hpLoss` may be 0.

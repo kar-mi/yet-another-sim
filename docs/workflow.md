@@ -33,7 +33,7 @@ press play.
 | Command            | What it does |
 |--------------------|--------------|
 | `bun run dev`      | Runs `src/server/server.ts` with `BUILD_ON_START=1`, building the client bundle before serving it. |
-| `bun run typecheck`| `bunx tsc --noEmit` — strict type checking across `src/**` and `scripts/**`. |
+| `bun run typecheck`| `tsc --noEmit` — strict type checking across `src/**` and `docs-site/**`. |
 | `bun test`         | Runs the engine + server test suites (`*.test.ts`). |
 | `bun test:parallel`| Same suites, but engine + client run across 4 worker processes; server tests stay serial. |
 | `bun run build`    | Produces a standalone client bundle in `.bundle/` (the production path). |

@@ -6,7 +6,7 @@
     "dev": "BUILD_ON_START=1 bun src/server/server.ts",
     "build": "rm -rf .bundle && bun build ./index.html --outdir .bundle --sourcemap=none --env=disable --minify --ignore-dce-annotations --define __YAS_DEBUG__=false",
     "start": "bun src/server/server.ts",
-    "typecheck": "bunx tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "test": "bun test",
     "test:parallel": "bun test --parallel=4 src/engine src/client && bun test src/server",
     "docs:build": "bun docs-site/build.ts",
@@ -16,17 +16,18 @@
     "build:analyze": "rm -rf .analyze && bun build ./index.html --outdir .analyze/bundle --sourcemap=none --env=disable --minify --ignore-dce-annotations --define __YAS_DEBUG__=false --metafile-md=.analyze/bundle.md"
   },
   "dependencies": {
-    "@babylonjs/core": "^9.0.0",
-    "@babylonjs/gui": "^9.0.0",
-    "@babylonjs/loaders": "^9.0.0",
+    "@babylonjs/core": "9.28.0",
+    "@babylonjs/gui": "9.28.0",
+    "@babylonjs/loaders": "9.28.0",
     "@colyseus/bun-websockets": "0.17.13",
     "@colyseus/core": "0.17.44",
     "@colyseus/redis-driver": "0.17.7",
     "@colyseus/redis-presence": "0.17.7",
     "@colyseus/sdk": "0.17.43",
-    "zod": "^4.0.0"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@types/bun": "^1.4.2"
+    "@types/bun": "^1.4.2",
+    "typescript": "6.0.3"
   }
 }

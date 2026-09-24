@@ -136,7 +136,7 @@ previous `World` snapshot is never altered.
 
 The engine's damage pipeline calls `applyDamageModifiers` and `surviveLethal`; knockback calls
 `isKnockbackImmune` and `modifyKnockback`; movement calls `movementControl`, `resolveForcedWalk` and
-`movementSpeedMultiplier`. Read-only queries — `hasActiveStatus`, `hasActiveStatusNamed`,
+`movementSpeedMultiplier`. Read-only queries — `hasActiveStatus`,
 `remainingTime`, `requiredKnockbackFacing`, `urgentSlot`, `statusIcon`, `sortForDisplay`,
 `isInputDisabled` — serve the HUD, animation, bots and prediction.
 

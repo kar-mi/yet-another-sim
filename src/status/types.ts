@@ -46,8 +46,8 @@ export type StatusBehavior =
 export type StatusBehaviorKind = StatusBehavior["kind"];
 export type BehaviorOf<K extends StatusBehaviorKind> = Extract<StatusBehavior, { kind: K }>;
 
-export type StatusRing = { color: string; icon: string };
-export type StatusCountdown = { delay: number; slices: number };
+type StatusRing = { color: string; icon: string };
+type StatusCountdown = { delay: number; slices: number };
 
 export type StatusTemplate = {
   name: string;
@@ -122,7 +122,7 @@ export type ShapeKnockback = { distance: number; origin: Vec2; exemptId?: string
 
 export type PendingFollowUp = { id: string; t: number; name: string; avoidable?: boolean; originCrystal: CrystalElement; followUp: BurstFollowUp };
 export type PendingTwister = { id: string; t: number; name: string; avoidable?: boolean; shape: AOEShape; damage: number; damageType: DamageType };
-export type PlacedTrap = { id: string; name: string; pos: Vec2; radius: number; direction: Vec2; distance: number; preDelay: number; armedAt: number; expireAt: number };
+type PlacedTrap = { id: string; name: string; pos: Vec2; radius: number; direction: Vec2; distance: number; preDelay: number; armedAt: number; expireAt: number };
 
 export type StatusServices<A extends StatusActor = StatusActor> = ApplyEnv<A> & {
   readonly previousTime: number;
