@@ -28,6 +28,7 @@ import {
 } from "../frameReadout";
 import type { HudLayoutManager } from "./HudLayoutManager";
 import { Minimap } from "./Minimap";
+import type { WorldRenderKeys } from "../worldRenderKeys";
 import {
   buildCastCandidates,
   castForBoss,
@@ -562,8 +563,8 @@ export class HudOverlay {
     setTimeout(() => slot.classList.remove("yas-slot-flash"), 180);
   }
 
-  sync(world: World, p: Player | undefined): void {
-    this.minimap.sync(world, p);
+  sync(world: World, p: Player | undefined, renderKeys: WorldRenderKeys): void {
+    this.minimap.sync(world, p, renderKeys);
     this.latestPlayer = p ?? null;
     this.latestWorld = world;
     if (DEBUG_POSITION_ENABLED && p) this.syncPositionFrames(world, p);

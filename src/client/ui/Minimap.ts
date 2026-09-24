@@ -1,5 +1,6 @@
 import type { Player, World, WaymarkId } from "@model/types";
 import { minimapProjection, projectMinimap, type MinimapProjection } from "./minimapProjection";
+import type { WorldRenderKeys } from "../worldRenderKeys";
 
 const COLORS: Record<WaymarkId, string> = {
   A: "#f24040", "1": "#f24040",
@@ -85,8 +86,8 @@ export class Minimap {
     this.view.setAttribute("transform", `translate(100 100) scale(${this.zoom}) translate(${-focus.x} ${-focus.y})`);
   }
 
-  sync(world: World, povPlayer: Player | undefined): void {
-    const arenaKey = JSON.stringify(world.arena.zones);
+  sync(world: World, povPlayer: Player | undefined, renderKeys: WorldRenderKeys): void {
+    const arenaKey = renderKeys.arena;
     const arenaChanged = arenaKey !== this.arenaKey;
     if (arenaChanged) {
       this.arenaKey = arenaKey;
@@ -114,7 +115,7 @@ export class Minimap {
         }
       }
     }
-    const marksKey = `${this.zoom}:${JSON.stringify(world.waymarks)}`;
+    const marksKey = `${this.zoom}:${renderKeys.waymarks}`;
     if (arenaChanged || marksKey !== this.marksKey) {
       this.marksKey = marksKey;
       this.marks.replaceChildren();

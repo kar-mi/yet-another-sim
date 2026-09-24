@@ -187,10 +187,13 @@ hash window and rate-caps reports so a client can't spam the relay.
   (`TICK_MS`), because the server keeps only the latest one per tick anyway. One-shot actions go
   immediately. Staying under the per-socket rate limit keeps it from silently dropping hash,
   snapshot and `simEnded` reports.
-- **Snapshot buffer + interpolation**: incoming ticks are placed on a *deterministic*
-  tick timeline (`t = base + tick*TICK_MS`) so bursty/jittery delivery doesn't collapse
-  interpolation into instant skips. The render view interpolates between snapshots at a
-  render-delay behind the latest tick.
+- **Snapshot buffer + interpolation**: snapshots are keyed by tick, and the view is drawn at a
+  fractional `renderTick` that trails the latest tick by a target delay. The delay is sized from
+  recent arrival gaps (90–220 ms). Arrival wall time only sizes that delay; it never moves the
+  timeline. `renderTick` advances at real time, and its speed is corrected toward the target by at
+  most ±8% (with a one-tick deadband), so jitter, stalls and late bursts never show up as slow-mo or
+  fast-forward. When starved, it extrapolates for up to 150 ms and then holds. If it ends up more
+  than 30 ticks from the target it jumps straight there, and a gap longer than 1 s resets the buffer.
 
 Host snapshot messages carry an explicit snapshot format version. A server rejects an incompatible
 snapshot and retains its previous valid anchor, so late joins can safely fall back to the input log.

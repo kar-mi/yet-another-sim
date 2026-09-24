@@ -62,6 +62,9 @@ export const DEFAULT_HUD_LAYOUT: Record<HudGroupId, HudGroupLayout> = {
   replayseek: { x: 0.26021691472362224, y: 0.14402454460006042, scale: 1, opacity: 1, hidden: false },
 };
 
+const RENDER_SCALES = [1, 0.75, 0.5] as const;
+type RenderScale = typeof RENDER_SCALES[number];
+
 export interface Settings {
   mouseSensitivity: number;
   controlScheme: "legacy" | "standard";
@@ -75,6 +78,7 @@ export interface Settings {
   uiScale: number;
   uiFont: "pixel" | "readable";
   renderedPlayerHealthBars: boolean;
+  renderScale: RenderScale;
   minimapZoom: number;
   hudLayout: Partial<Record<HudGroupId, HudGroupLayout>>;
 }
@@ -106,6 +110,7 @@ const DEFAULTS: Settings = {
   uiScale: 1.25,
   uiFont: "readable",
   renderedPlayerHealthBars: false,
+  renderScale: 1,
   minimapZoom: 2,
   hudLayout: { ...DEFAULT_HUD_LAYOUT },
 };
@@ -131,6 +136,7 @@ export function loadSettings(): Settings {
       ...saved,
       keyBindings: { ...DEFAULT_BINDINGS, ...saved.keyBindings },
       controllerBindings: { ...DEFAULT_CONTROLLER_BINDINGS, ...saved.controllerBindings },
+      renderScale: RENDER_SCALES.includes(saved.renderScale) ? saved.renderScale : DEFAULTS.renderScale,
       minimapZoom: typeof saved.minimapZoom === "number" ? Math.min(4, Math.max(1, saved.minimapZoom)) : DEFAULTS.minimapZoom,
       hudLayout: { ...DEFAULT_HUD_LAYOUT, ...saved.hudLayout },
     };

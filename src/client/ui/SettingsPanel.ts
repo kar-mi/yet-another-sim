@@ -24,6 +24,7 @@ export function initSettingsPanel(
   const schemeBtns = document.querySelectorAll<HTMLInputElement>('input[name="controlScheme"]');
   const uiScaleBtns = document.querySelectorAll<HTMLInputElement>('input[name="uiScale"]');
   const uiFontSelect = document.getElementById("ui-font-select") as HTMLSelectElement;
+  const renderScaleSelect = document.getElementById("render-scale-select") as HTMLSelectElement;
   const settingsPanel = document.getElementById("settings-panel")!;
   const editHudBtn = document.getElementById("edit-hud-btn") as HTMLButtonElement;
   let currentControllerType: ControllerType = "unknown";
@@ -53,6 +54,7 @@ export function initSettingsPanel(
   schemeBtns.forEach(btn => { btn.checked = btn.value === settings.controlScheme; });
   uiScaleBtns.forEach(btn => { btn.checked = parseFloat(btn.value) === settings.uiScale; });
   uiFontSelect.value = settings.uiFont;
+  renderScaleSelect.value = String(settings.renderScale);
   applyUiScale(settings.uiScale);
   applyUiFont(settings.uiFont);
 
@@ -145,6 +147,12 @@ export function initSettingsPanel(
         applyUiScale(settings.uiScale);
       }
     });
+  });
+
+  renderScaleSelect.addEventListener("change", () => {
+    settings.renderScale = Number(renderScaleSelect.value) as Settings["renderScale"];
+    saveSettings(settings);
+    getRenderer()?.applySettings(settings);
   });
 
   uiFontSelect.addEventListener("change", () => {
