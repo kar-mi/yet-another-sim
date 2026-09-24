@@ -97,14 +97,12 @@ async function main(): Promise<void> {
 
   const { syncKeybindLabels, updateController } = initSettingsPanel(settings, getRenderer, hudLayout);
 
-  // Home button: resolve the per-session promise to leave the sim and return to the lobby.
   const homeBtn = document.getElementById("home-btn")!;
   const replayBtn = document.getElementById("replay-btn")!;
   const replayExitBtn = document.getElementById("replay-exit-btn")!;
   let resolveHome: (() => void) | null = null;
   homeBtn.addEventListener("click", () => resolveHome?.());
 
-  // HMR cleanup (Bun --hot) — tear down whatever session is currently active.
   let currentTeardown = () => {};
   const meta = import.meta as unknown as { hot?: { dispose: (cb: () => void) => void } };
   meta.hot?.dispose(() => {
@@ -112,8 +110,6 @@ async function main(): Promise<void> {
     net.close();
   });
 
-  // Resolve the session id only after the settings handlers are wired, so the ⚙ panel
-  // also works on the landing page (base URL with no ?s= param).
   let sessionId: string;
   if (parsedSession?.success) {
     sessionId = parsedSession.data;
@@ -123,8 +119,6 @@ async function main(): Promise<void> {
     sessionId = await landing;
   }
 
-  // Each iteration is one sim session: claim a slot in setup, enter the workshop or a raid, click
-  // Home to come back.
   let setupNotice: string | undefined;
   for (;;) {
     homeBtn.style.display = "none";
@@ -145,12 +139,8 @@ async function main(): Promise<void> {
     let isHost = session.isHost;
     let phase: SessionPhase = session.phase;
     let playbackState = session.playbackState;
-    // Set when the host picks a recording (or a follower finishes loading the host's pick); the view
-    // loop then swaps the live sim for playback.
     let pendingReplay: LoadedReplay | null = null;
-    // The replay on screen, so a follower can apply the host's play/pause/seek to it.
     let activeReplay: { pull: number; sync: (view: ReplayView) => void } | null = null;
-    // Bumped on every followed view change so a slow replay fetch that has been superseded is dropped.
     let replayLoadGeneration = 0;
     let resolveView: (() => void) | null = null;
 
@@ -164,8 +154,6 @@ async function main(): Promise<void> {
       endView();
     };
 
-    // Replay browsing belongs to the current host; everyone else follows the host's replay, so only
-    // the host gets the exit button.
     const updateToolbar = () => {
       homeBtn.style.display = "block";
       replayBtn.style.display = isHost ? "block" : "none";
@@ -188,8 +176,6 @@ async function main(): Promise<void> {
       playbackState = message.state;
       updateToolbar();
     });
-    // The server ended the raid on its own; drop back to setup rather than swapping the world out
-    // from under the view.
     const offTransition = net.on("transition", message => {
       autoReturned = true;
       setupNotice = message.reason === "hostLost"
@@ -198,8 +184,6 @@ async function main(): Promise<void> {
       leaveSession();
     });
 
-    // Non-hosts mirror the host's shared replay: load a newly picked pull, sync the one on screen, or
-    // return to the live sim when the host exits. The host drives its own playback and ignores echoes.
     const followReplay = (view: ReplayView | null) => {
       if (isHost) return;
       if (view === null) {
@@ -238,8 +222,6 @@ async function main(): Promise<void> {
 
     let enteredLive = false;
     const startLiveView = async (): Promise<() => void> => {
-      // On re-entry the pull may have moved on while a replay was on screen, so seed the renderer
-      // from whatever the replica has buffered; the first entry uses the world `started` delivered.
       const world = (enteredLive ? net.getRenderView(performance.now()) : null) ?? session.world;
       enteredLive = true;
       const botActions = createBotActionsModal(net, {
@@ -287,8 +269,6 @@ async function main(): Promise<void> {
     const startReplayView = async (replay: LoadedReplay): Promise<() => void> => {
       const follower = !isHost;
       const transport = new ReplayTransport(replay);
-      // Host: every playback change is applied locally, then shared. Seek-bar drags fire per input
-      // event and each seek re-simulates from tick 0 on followers, so seeks are shared on a trailing timer.
       let seekShareTimer: ReturnType<typeof setTimeout> | null = null;
       const shareView = () => {
         if (seekShareTimer) clearTimeout(seekShareTimer);
@@ -345,7 +325,6 @@ async function main(): Promise<void> {
       }, settings);
       if (follower) {
         activeReplay = { pull: replay.pull, sync: view => transport.sync(view) };
-        // Catch up on any play/seek the host sent while this client was fetching the recording.
         if (net.replayView?.pull === replay.pull) transport.sync(net.replayView);
       }
       return () => {
@@ -358,16 +337,13 @@ async function main(): Promise<void> {
       };
     };
 
-    // A client entering mid-replay joins the host's replay (the view was cached while in the lobby).
     followReplay(net.replayView);
 
-    // One iteration per view: the live sim, or a recording the host chose to watch.
     for (;;) {
       const viewEnd = new Promise<void>(resolve => { resolveView = resolve; });
       const replay = pendingReplay;
       pendingReplay = null;
       inReplay = replay !== null;
-      // Show the toolbar first: the guided tour spotlights the ▶ button as soon as the live view is up.
       updateToolbar();
       currentTeardown = replay ? await startReplayView(replay) : await startLiveView();
       await viewEnd;
@@ -394,14 +370,9 @@ async function main(): Promise<void> {
       sessionId = await showLanding({ notice: "Session expired" });
       continue;
     }
-    // A raid cannot outlive its host: leaving via Home ends the pull and returns everyone else to the
-    // workshop. Uses `leave` rather than `stop` so the broadcast "started" doesn't bounce the host
-    // straight back into the sim.
     if (isHost) {
       net.send({ type: "leave" });
     }
-    // An automatic return to the workshop keeps every reservation standing for the next pull; only a
-    // deliberate Home gives the seat up.
     if (autoReturned) continue;
     if (session.yourPlayerId) {
       net.send({ type: "releaseSlot", playerId: session.yourPlayerId });

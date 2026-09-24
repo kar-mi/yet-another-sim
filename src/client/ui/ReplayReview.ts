@@ -1,9 +1,3 @@
-// Replay review UI: the event sidebar and the section navigator, over the insights collected in
-// client/replayInsights.ts.
-//
-// The section navigator is independent of the sidebar's filters, so sections locate you in the
-// fight whether or not anything happened to the filtered player.
-
 import type { MechanicSection } from "@model/types";
 import type { ReplayInsights } from "@model/replay";
 import {
@@ -20,14 +14,11 @@ export type ReplayReviewControls = {
   pause: () => void;
   seek: (tick: number) => void;
   spectate: (playerId: string) => void;
-  // False for clients following the host's replay: no section picker, and row clicks only spectate.
   canSeek?: boolean;
 };
 
 export type ReplayReview = {
-  // Appended under the seek bar by the raid HUD; null when the recording has no sections.
   sections: HTMLElement | null;
-  // Called from the playback timer so the current position stays highlighted.
   setPosition: (tick: number) => void;
   dispose: () => void;
 };
@@ -50,8 +41,6 @@ export function createReplayReview(
   const state = { filter: "all" as ReplayFilter, playerId: "", query: "" };
   let selectedId: string | null = null;
   let position = 0;
-  // Only a click scrolls the list, so playback highlights never yank the sidebar out from under
-  // someone reading it.
   let scrollOnNextRender = false;
 
   const select = (row: ReviewRow): void => {
@@ -183,8 +172,6 @@ export function createReplayReview(
   };
 }
 
-// A jump target rather than a persistent choice, so the trigger falls back to its prompt after
-// each pick instead of showing the section you last visited.
 function createSectionPicker(sections: MechanicSection[], controls: ReplayReviewControls): Dropdown {
   const picker = createDropdown({
     ariaLabel: "Jump to mechanic section",

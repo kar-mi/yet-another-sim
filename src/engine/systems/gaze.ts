@@ -1,7 +1,3 @@
-// Phase 3g: gaze events. At cast start roll the reverse state (eye vs "?" eye). At resolve a player
-// is hit if they are facing the eye (normal) or NOT facing it (reverse "?"). Facing is the player's
-// last movement direction, so "looking away" means flicking the stick away then stopping.
-
 import type { TickContext } from "./context";
 import { applyStatus } from "@status";
 import { statusServices } from "./statusServices";
@@ -94,6 +90,5 @@ export function resolveGazes(ctx: TickContext): {
     }
   }
 
-  // Keep briefly after resolve so the renderer can flash the hit.
   return { gazes: cullResolved(gazes, time, dt), pendingGazes: remainingPendingGazes };
 }

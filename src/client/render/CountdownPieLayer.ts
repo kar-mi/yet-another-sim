@@ -3,11 +3,9 @@ import type { Player } from "@model/types";
 import { countdownSlicesLeft } from "@model/countdown";
 import { createCountdownPie, COUNTDOWN_PIE_PLANE_RATIO, type CountdownPie } from "@effects/babylon";
 
-// Height above the player's feet.
 const PIE_BOTTOM = 2.3;
 const PIE_SIZE = 2;
 
-// Show the POV player's countdown above their head.
 export class CountdownPieLayer {
   private pie: CountdownPie;
 

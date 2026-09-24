@@ -15,7 +15,6 @@ export class InverseLayer {
   sync(inversions: ActiveInverse[], boss: Boss, time: number): void {
     this.rings.sync(inversions, (ring, inv) => updateQuestionRingForInverse(ring, inv, boss, time));
 
-    // Shown-shape telegraph footprints are always drawn; hidden shapes are intentionally not rendered.
     const aoes = inversions.flatMap(inv => inv.floorAoes ?? []);
     const resolvedIds = new Set(inversions.filter(inv => inv.resolved).flatMap(inv => (inv.floorAoes ?? []).map(a => a.id)));
     syncFloorTelegraphs(this.scene, this.footprints, aoes, time, resolvedIds);

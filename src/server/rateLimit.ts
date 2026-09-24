@@ -1,11 +1,3 @@
-// App-side DoS hardening for the public WebSocket endpoint: a per-IP connection cap
-// (so one client can't exhaust the room pool) and a per-connection inbound message
-// rate cap (so one socket can't flood JSON.parse + Zod parse). Pure logic, no Bun
-// globals, so it's unit-testable in isolation (mirrors origin.ts).
-
-// Real client IP. Deployment is always behind Caddy, which sets X-Forwarded-For;
-// trust its first entry (the original client), falling back to the socket peer when
-// no proxy header is present (direct connections / local dev).
 export function clientIpFor(
   xForwardedFor: string | null,
   socketAddress: string | undefined,
@@ -17,9 +9,6 @@ export function clientIpFor(
   return socketAddress ?? "unknown";
 }
 
-// Per-IP open-connection counter. tryAcquire reserves a slot (false when the IP is
-// at the cap); release frees one and drops the entry at zero so the map can't grow
-// unbounded across churn.
 export class ConnectionCounter {
   private readonly counts = new Map<string, number>();
   constructor(private readonly maxPerIp: number) {}
@@ -43,10 +32,6 @@ export interface RateLimiter {
   allow(now?: number): boolean;
 }
 
-// Fixed 1-second window message-rate limiter, one instance per connection. allow()
-// returns false once more than maxPerSec messages arrive within the current window;
-// callers drop the over-limit message (rather than disconnect) so a legit burst at a
-// high refresh rate doesn't kill the session.
 export function createMessageRateLimiter(maxPerSec: number): RateLimiter {
   let windowStart = 0;
   let count = 0;

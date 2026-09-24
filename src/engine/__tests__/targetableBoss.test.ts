@@ -4,8 +4,6 @@ import { createWorld } from "../world";
 import { loadRaid as loadRaidRaw } from "../schema/raidLoader";
 import { baseRaid, roster, runTicks } from "./helpers";
 
-// ─── Schema ───────────────────────────────────────────────────────────────────
-
 test("schema: targetable defaults to true when omitted (back-compat)", () => {
   const raid = loadRaidRaw({
     ...baseRaid,
@@ -27,8 +25,6 @@ test("schema: targetable: false is accepted and preserved", () => {
   expect(raid.bosses[0]!.targetable).toBe(true);
   expect(raid.bosses[1]!.targetable).toBe(false);
 });
-
-// ─── World creation ───────────────────────────────────────────────────────────
 
 test("createWorld: non-targetable boss has empty threat and null currentTarget", () => {
   const raid = loadRaidRaw({
@@ -101,8 +97,6 @@ test("createWorld: targetBossId skips non-targetable boss when it is listed firs
   }
 });
 
-// ─── cycleTarget ─────────────────────────────────────────────────────────────
-
 test("cycleTarget: skips non-targetable boss, cycles only targetable bosses", () => {
   const raid = loadRaidRaw({
     ...baseRaid,
@@ -114,11 +108,9 @@ test("cycleTarget: skips non-targetable boss, cycles only targetable bosses", ()
     events: [],
   });
   const world = createWorld(raid);
-  // Verify initial target is the first targetable boss.
   for (const player of world.players) {
     expect(player.targetBossId).toBe("chaos");
   }
-  // One cycleTarget tick; confirm only chaos/exdeath cycle, never kefka.
   const intents = { mt: { move: { x: 0, z: 0 }, cycleTarget: true } };
   const w1 = tick(world, intents, 1 / 60);
   expect(w1.players.find(p => p.id === "mt")!.targetBossId).toBe("exdeath");
@@ -126,7 +118,6 @@ test("cycleTarget: skips non-targetable boss, cycles only targetable bosses", ()
   const w2 = tick(w1, intents, 1 / 60);
   expect(w2.players.find(p => p.id === "mt")!.targetBossId).toBe("chaos");
 
-  // Kefka should never appear as targetBossId across both cycles.
   expect(w1.players.find(p => p.id === "mt")!.targetBossId).not.toBe("kefka");
   expect(w2.players.find(p => p.id === "mt")!.targetBossId).not.toBe("kefka");
 });

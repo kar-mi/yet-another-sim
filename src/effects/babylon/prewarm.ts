@@ -7,18 +7,13 @@ import { glyphBillboardMaterial } from "./billboards";
 import { createElementFloorMaterial, prewarmElementBurst } from "./elementVfx";
 import { createFloorTelegraphMaterial } from "./floorTelegraphs";
 
-// Pre-compile one representative of each material family that first appears mid-fight, so the
-// first telegraph or head marker doesn't stall on a synchronous shader compile. Runs once at init,
-// off the gameplay path. See docs/effects-package.md for why one instance covers the family.
 export function prewarmShaders(scene: Scene): void {
   const warmups: Array<() => Mesh | null> = [
-    // Floor AOE telegraph (two-sided lighting). Every shape and the outline fill share its defines.
     () => {
       const mesh = createShapeMesh(scene, "__prewarm_floor", { kind: "circle", center: { x: 0, z: 0 }, radius: 1 });
       if (mesh) mesh.material = createFloorTelegraphMaterial(scene, "__prewarm_floor_mat");
       return mesh;
     },
-    // Lit translucent color material (element glyphs, mover orbs).
     () => {
       const plane = CreatePlane("__prewarm_lit", { size: 1 }, scene);
       const mat = new StandardMaterial("__prewarm_lit_mat", scene);
@@ -26,7 +21,6 @@ export function prewarmShaders(scene: Scene): void {
       plane.material = mat;
       return plane;
     },
-    // Unlit color material (element ring tube, player effect ring torus).
     () => {
       const plane = CreatePlane("__prewarm_unlit", { size: 1 }, scene);
       const mat = new StandardMaterial("__prewarm_unlit_mat", scene);
@@ -34,14 +28,11 @@ export function prewarmShaders(scene: Scene): void {
       plane.material = mat;
       return plane;
     },
-    // Head-marker billboard (alpha-test + emissive + unlit). The glyph and image variants share the
-    // same StandardMaterial defines, so the glyph (no network fetch) warms both.
     () => {
       const plane = CreatePlane("__prewarm_marker", { size: 1 }, scene);
       plane.material = glyphBillboardMaterial(scene, "__prewarm_marker_mat", "__prewarm_marker_tex", "!", "#ffffff");
       return plane;
     },
-    // Element floor pattern (one effect for all three elements).
     () => {
       const plane = CreatePlane("__prewarm_element_floor", { size: 1 }, scene);
       plane.material = createElementFloorMaterial(scene, "__prewarm_element_floor_mat");
@@ -52,8 +43,6 @@ export function prewarmShaders(scene: Scene): void {
   for (const make of warmups) {
     const mesh = make();
     const mat = mesh?.material as StandardMaterial | null | undefined;
-    // dispose(doNotRecurse=false, disposeMaterialAndTextures=true): also frees the temp material +
-    // texture without force-disposing the now-cached engine effect.
     if (mesh && mat) mat.forceCompilation(mesh, () => mesh.dispose(false, true));
     else mesh?.dispose(false, true);
   }

@@ -6,7 +6,6 @@ import type { AOEShape } from "@effects";
 import { sampleShapePoint } from "@effects";
 import { createShapeMesh, createShapeOutlineMesh } from "@effects/babylon";
 
-// A rotated instance of every shape, so sampling and geometry are exercised off-axis.
 const DIRECTION = { x: 0.6, z: -0.8 };
 const SHAPES: Record<string, AOEShape> = {
   circle: { kind: "circle", center: { x: 3, z: -2 }, radius: 4 },
@@ -31,12 +30,10 @@ test.each(Object.keys(SHAPES))("%s builds a filled mesh and an outline", kind =>
 });
 
 test("outlines trace the shape edge rather than filling it", () => {
-  // The cone outline closes through its apex, so its extent still reaches the arc.
   const outline = createShapeOutlineMesh(scene, "extent-cone", SHAPES.cone!)!;
   const positions = outline.getVerticesData(VertexBuffer.PositionKind)!;
   let maxY = -Infinity;
   for (let i = 1; i < positions.length; i += 3) maxY = Math.max(maxY, positions[i]!);
-  // Outlines sit above the fill plane (y = 0.01) at y = 0.03 plus the tube radius.
   expect(maxY).toBeGreaterThan(0.03);
 });
 
@@ -103,7 +100,6 @@ test("samples cover the whole footprint, not just its centre", () => {
   const points = samples(rect);
   const spanX = Math.max(...points.map(p => p.x)) - Math.min(...points.map(p => p.x));
   const spanZ = Math.max(...points.map(p => p.z)) - Math.min(...points.map(p => p.z));
-  // A 5x12 rect rotated off-axis spans well beyond its narrow side on both axes.
   expect(spanX).toBeGreaterThan(5);
   expect(spanZ).toBeGreaterThan(5);
 });

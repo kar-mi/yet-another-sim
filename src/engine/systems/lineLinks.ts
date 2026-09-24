@@ -1,6 +1,3 @@
-// Phase 2a: line links. Visual object-to-player links with fixed targets and a hidden debuff held
-// until resolve. Role-group targets can be chosen as the complement of a linked event (or randomly).
-
 import type { TickContext } from "./context";
 import type { ActiveLineLink, PendingLineLink } from "@model/types";
 import { applyStatus, overrideStatus, removeStatus } from "@status";
@@ -70,7 +67,6 @@ export function resolveLineLinks(ctx: TickContext): {
     }
   }
 
-  // Keep briefly after resolve so the renderer can flash the hit.
   return {
     lineLinks: cullResolved(lineLinks, time, LINE_LINK_LINGER),
     pendingLineLinks: remainingPendingLineLinks,

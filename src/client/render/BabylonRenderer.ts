@@ -53,20 +53,7 @@ import { prewarmShaders } from "@effects/babylon";
 import { buildCastCandidates, CAST_BAR_COLOR, castForBoss } from "../ui/hudPresentation";
 import { resolvePovPlayer } from "../pov";
 
-// Sub-path Babylon imports pull in only the classes we reference, not the engine's side-effect
-// extension registrations (alpha blending, texture loading, dynamic textures, uniform buffers,
-// render targets, ...). Bun's bundler honors @babylonjs/core's `sideEffects` allow-list and strips
-// every extension not explicitly referenced. How aggressively this happens varies by Bun version, so
-// some builds (notably Windows `bun run start`, vs the Docker image) silently lost registrations:
-// player/floor models never rendered and transparent materials like waymarks drew opaque. Register
-// the full WebGL2 extension set explicitly — the calls are idempotent and survive tree-shaking, so
-// the scene renders identically across every environment.
 RegisterFullEngineExtensions();
-// Same tree-shaking hazard, but for the animation runtime (which RegisterFullEngineExtensions does
-// not cover): without it, Scene.prototype.beginDirectAnimation is a no-op stub that returns
-// undefined, so the glTF loader's auto-start of a model's embedded animation crashes with
-// "Cannot set properties of undefined (setting 'weight')" and every animated GLB (the player
-// Hermits) fails to load. Register it explicitly so the call survives DCE.
 RegisterAnimatable();
 
 const playerBarId = (id: string) => `player:${id}`;
@@ -74,7 +61,6 @@ const bossCastBarId = (id: string) => `boss-cast:${id}`;
 const bossLayersKey = (bosses: Boss[]) =>
   bosses.map(b => `${b.id}|${b.model}|${b.modelScale}|${b.radius}|${b.ringScale}|${b.ringColor}`).join(",");
 
-// Rate at which controller-camera acceleration ramps toward its target multiplier (~reaches it in <1s).
 const CAMERA_ACCEL_RAMP = 3;
 
 export class BabylonRenderer implements Renderer {
@@ -138,8 +124,6 @@ export class BabylonRenderer implements Renderer {
 
   init(world: World, sessionId: string, localPlayerId: string | null = null): void {
     this.localPlayerId = localPlayerId;
-    // Render at the display's pixel density (capped at 2x) instead of CSS pixels; otherwise the
-    // browser upscales the canvas on scaled/HiDPI displays and everything looks soft.
     this.engine = new Engine(this.canvas, true, {
       powerPreference: "high-performance",
       doNotHandleContextLost: true,
@@ -148,15 +132,13 @@ export class BabylonRenderer implements Renderer {
     });
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.05, 0.05, 0.1, 1);
-    // Camera uses pointers for rotation, not mesh picking, and every layer sets isPickable=false,
-    // so per-pointermove picking is pure overhead.
     this.scene.skipPointerMovePicking = true;
 
     this.camera = new ArcRotateCamera("cam", -Math.PI / 2, Math.PI / 3, 30, Vector3.Zero(), this.scene);
     this.camera.movement.input.setInteraction("pointer", { button: 0 }, "rotate");
     this.camera.movement.input.setInteraction("pointer", { button: 2 }, "rotate");
     this.camera.attachControl(false);
-    this.camera.inertia = 0; // no easing glide after the mouse stops (default 0.9 feels like drag)
+    this.camera.inertia = 0;
     this.camera.lowerRadiusLimit = 10;
     this.camera.upperRadiusLimit = 30;
     this.camera.upperBetaLimit = Math.PI / 2 - 0.05;
@@ -173,7 +155,6 @@ export class BabylonRenderer implements Renderer {
       if (e.button === 0) this.panButtons.left = false;
       else if (e.button === 2) this.panButtons.right = false;
       else return;
-      // Release the pointer lock only once both drag buttons are up.
       if (!this.panButtons.left && !this.panButtons.right && document.pointerLockElement === this.canvas) {
         document.exitPointerLock();
       }
@@ -181,11 +162,8 @@ export class BabylonRenderer implements Renderer {
     this.onLockChange = () => {
       const mouseInput = this.camera.inputs.attached.pointers as ArcRotateCameraPointersInput | undefined;
       if (document.pointerLockElement === this.canvas) {
-        // Lock just acquired: the browser warps the cursor to screen center, and the first
-        // pointermove under lock carries that warp as a large movementX/Y. Drop it (see onTouch wrap).
         this.swallowNextLockedMove = true;
       } else {
-        // Lock lost (e.g. Esc) without a pointerup — clear drag state so it doesn't stick.
         this.panButtons.left = false;
         this.panButtons.right = false;
         if (mouseInput) mouseInput.onLostFocus();
@@ -195,9 +173,6 @@ export class BabylonRenderer implements Renderer {
     document.addEventListener("pointerup", this.onPanUp);
     document.addEventListener("pointerlockchange", this.onLockChange);
 
-    // Every locked rotation delta flows through the pointers input's onTouch. Drop the single bogus
-    // delta the browser emits when pointer lock engages (cursor warp to center) so a click doesn't
-    // snap the camera; rotation then begins cleanly on the next real move.
     const pointers = this.camera.inputs.attached.pointers as ArcRotateCameraPointersInput | undefined;
     if (pointers) {
       const baseOnTouch = pointers.onTouch.bind(pointers);
@@ -268,7 +243,6 @@ export class BabylonRenderer implements Renderer {
       this.hudLayout,
     );
 
-    // Compile the mid-fight material shaders now (during load) so the first AOE/marker doesn't hitch.
     prewarmShaders(this.scene);
 
     this.onResize = () => this.engine.resize();
@@ -320,7 +294,6 @@ export class BabylonRenderer implements Renderer {
     this.bossesKey = bossLayersKey(bosses);
   }
 
-  // Include model and ring settings: different raids can share the same boss id.
   private bossSetChanged(bosses: Boss[]): boolean {
     return bossLayersKey(bosses) !== this.bossesKey;
   }
@@ -401,7 +374,6 @@ export class BabylonRenderer implements Renderer {
   }
 
   applySettings(s: Settings): void {
-    // Slider value scales 3x: a setting of "1" matches what "3" used to feel like.
     const sens = 2000 / (s.mouseSensitivity * 3);
     this.controllerSensitivity = s.controllerSensitivity;
     this.cameraAccel = s.cameraAccel;
@@ -409,7 +381,6 @@ export class BabylonRenderer implements Renderer {
     this.renderedPlayerHealthBars = s.renderedPlayerHealthBars;
     this.camera.angularSensibilityX = sens;
     this.camera.angularSensibilityY = sens;
-    // Both mouse buttons drag-rotate the camera; facing rules differ per scheme (handled in input.ts).
     const mouseInput = this.camera.inputs.attached.pointers as ArcRotateCameraPointersInput | undefined;
     if (mouseInput) mouseInput.buttons = [0, 2];
     setControlScheme(s.controlScheme);
@@ -430,8 +401,6 @@ export class BabylonRenderer implements Renderer {
     return Math.atan2(fwd.x, fwd.z);
   }
 
-  // Rotates the orbit camera by a yaw delta (radians). alpha runs opposite to yaw
-  // (see getCameraYaw), so we subtract. Used for A/D pan + Standard auto-trail.
   rotateCameraYaw(delta: number): void {
     this.camera.alpha -= delta;
   }

@@ -21,7 +21,6 @@ test("invincible player takes no damage and cannot die in an AOE", () => {
     events: [{ t: 3, name: "LethalAOE", telegraph: 2, damage: 999, damageType: "physical" as const, shape: { kind: "circle", center: [0, 0], radius: 10 } }],
     players: roster({ m1: { spawn: [0, 0] } }),
   });
-  // Toggle invincibility on with a single intent, then idle through the AOE resolve.
   let world = tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 }, toggleInvincibility: true } }, 1 / 60);
   expect(human(world).invincible).toBe(true);
   world = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(5.1 * 60));
@@ -402,9 +401,9 @@ test("effect_burst drops an AOE on each carrier of the named effect", () => {
   });
   const world = withEffect(createWorld(raid), effect({ name: "Sleep", duration: 20, behavior: { kind: "sleep" } }));
   const after = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(1.2 * 60));
-  expect(human(after).hp).toBeLessThan(100); // m1 carries Sleep -> burst centered on it
-  expect(after.players.find(p => p.id === "m2")!.hp).toBeLessThan(100); // within radius of the carrier
-  expect(after.players.find(p => p.id === "mt")!.hp).toBe(TANK_HP); // far away, untouched
+  expect(human(after).hp).toBeLessThan(100);
+  expect(after.players.find(p => p.id === "m2")!.hp).toBeLessThan(100);
+  expect(after.players.find(p => p.id === "mt")!.hp).toBe(TANK_HP);
 });
 
 test("effect_select can apply double trouble, which expires into damage and knockback around the carrier", () => {
@@ -432,8 +431,6 @@ test("effect_select can apply double trouble, which expires into damage and knoc
   expect(ot.pos.x).toBeGreaterThan(2);
 });
 
-// --- Assignment ---
-
 test("assignment debuff deals expiryDamage on expiry tick, nothing before", () => {
   const assignEffect = effect({
     id: "assign-1",
@@ -443,10 +440,8 @@ test("assignment debuff deals expiryDamage on expiry tick, nothing before", () =
     behavior: { kind: "expiryDamage" as const, expiryDamage: 30, expiryDamageType: "true" as const },
   });
   const world = withEffect(createWorld(loadRaid(baseRaid)), assignEffect);
-  // Before expiry: no damage.
   const before = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.5 * 60));
   expect(human(before).hp).toBe(DPS_HP);
-  // After expiry: expiryDamage applied.
   const after = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(2 * 60));
   expect(human(after).hp).toBe(DPS_HP - 30);
 });

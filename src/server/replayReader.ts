@@ -62,7 +62,6 @@ function parseBatch(record: unknown): Frame[] {
   return batch.frames as Frame[];
 }
 
-// Streams a replay file record by record deterministic by file
 async function forEachRecord(path: string, onRecord: (record: unknown, index: number) => void): Promise<void> {
   const reader = Bun.file(path).stream().getReader();
   const decoder = new TextDecoder();
@@ -71,7 +70,6 @@ async function forEachRecord(path: string, onRecord: (record: unknown, index: nu
   try {
     for (;;) {
       const { done, value } = await reader.read();
-      // `stream: true` carries a multi-byte character split across chunks.
       pending += done ? decoder.decode() : decoder.decode(value, { stream: true });
       const parsed = Bun.JSONL.parseChunk(pending);
       pending = pending.slice(parsed.read);

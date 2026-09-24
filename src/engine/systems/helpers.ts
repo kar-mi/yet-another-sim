@@ -1,7 +1,3 @@
-// Stateless simulation helpers shared across the per-mechanic systems. Every function here takes
-// its inputs explicitly (no hidden tick state) so it can be reused freely and unit-tested in
-// isolation. The seeded RNG is always passed in as a `randInt`/`randFloat` callback.
-
 import type {
   Player,
   Role,
@@ -53,8 +49,6 @@ export function selectTargetPlayer(
   return best;
 }
 
-// Select the N nearest (or furthest) alive, optionally role-filtered players to `origin`, ordered
-// by distance. Used by targeted events with `count` > 1 (e.g. a spread on the closest few).
 export function selectTargetPlayers(
   players: Player[],
   origin: Vec2,
@@ -92,9 +86,6 @@ export function selectLineLinkTargets(
     .map(candidate => candidate.player);
 }
 
-// Applies `damage` to a player, factoring in matching vuln debuffs (which multiply
-// the hit and are then consumed when the base damage is > 0). Respects invincibility.
-// `source` also drives replay recording; a hit on an already-dead player records nothing.
 export function applyMechanicDamage(dc: DamageContext, player: Player, damage: number, damageType: DamageType, source: DamageSource): void {
   const wasAlive = player.alive;
   const hpBefore = player.hp;
@@ -108,8 +99,6 @@ export function applyMechanicDamage(dc: DamageContext, player: Player, damage: n
   }
 }
 
-// Applies an explicitly lethal mechanic punishment. Invincibility and one-hit survivor effects
-// still apply, but damage modifiers cannot turn the punishment into an ordinary nonlethal hit.
 export function applyMechanicLethal(dc: DamageContext, player: Player, source: DamageSource): void {
   if (player.invincible) return;
   const wasAlive = player.alive;
@@ -128,23 +117,18 @@ function resolveLethalHit(dc: DamageContext, player: Player, source: DamageSourc
   }
 }
 
-// Whether the player's bearing from the boss falls within a facing-relative arc.
 export function inPositionalArc(boss: Boss, pos: Vec2, arc: PositionalArc): boolean {
   const to = sub(pos, boss.pos);
-  if (length(to) < 1e-6) return true; // on top of the boss: always inside
-  // Arc center direction in world space (0 = +Z, clockwise), then unsigned angular distance.
+  if (length(to) < 1e-6) return true;
   const centerWorld = boss.facing + arc.center;
   const centerVec = { x: sin(centerWorld), z: cos(centerWorld) };
   const cosAng = Math.max(-1, Math.min(1, dot(normalize(to), centerVec)));
   return acos(cosAng) <= arc.width / 2;
 }
 
-// Gaze: is the player facing the source within the given half-angle? Player facing is a radian
-// angle (0 = +Z), so the facing direction vector is { sin, cos }. Compared against the unit
-// vector from the player to the source. Default half-angle PI/2 => the whole front hemisphere.
 export function isLookingAt(facing: number, from: Vec2, to: Vec2, halfAngle: number): boolean {
   const d = sub(to, from);
-  if (length(d) < 1e-6) return true; // on top of the source: always counts as looking at it
+  if (length(d) < 1e-6) return true;
   const face = { x: sin(facing), z: cos(facing) };
   const cosAng = Math.max(-1, Math.min(1, dot(normalize(d), face)));
   return acos(cosAng) <= halfAngle;
@@ -171,7 +155,6 @@ export function findInterceptor(players: Player[], src: Vec2, tgt: Vec2, exclude
 
 export function shapeOrigin(shape: AOEShape): Vec2 {
   if (shape.kind === "circle" || shape.kind === "donut") return shape.center;
-  // Use the vertex average as a polygon’s knockback origin.
   if (shape.kind === "polygon") {
     const sum = shape.vertices.reduce((acc, v) => ({ x: acc.x + v.x, z: acc.z + v.z }), { x: 0, z: 0 });
     return { x: sum.x / shape.vertices.length, z: sum.z / shape.vertices.length };
@@ -183,7 +166,6 @@ export function didAct(intent: Intent | undefined): boolean {
   return !!intent && (length(intent.move) > 0 || intent.jump === true || intent.sprint === true);
 }
 
-// Check player and carrier filters, independent of position.
 export function aoeCanHitPlayer(mechanic: Pick<ActiveMechanic, "name" | "onlyCarriers" | "players">, player: Player, time: number): boolean {
   const carries = !mechanic.onlyCarriers || player.effects.some(e => e.name === mechanic.name && isStatusActive(e, time));
   const targeted = !mechanic.players || mechanic.players.includes(player.id);
@@ -198,15 +180,13 @@ export function knockbackPlayer(player: Player, knockback: Knockback, origin: Ve
 export function applyKnockback(player: Player, knockback: Knockback, origin: Vec2, time: number): void {
   player.botWaypointResumeAfter = time;
   const away = sub(player.pos, origin);
-  const dir = length(away) > 0 ? normalize(away) : { x: 1, z: 0 }; // player on origin: arbitrary dir
+  const dir = length(away) > 0 ? normalize(away) : { x: 1, z: 0 };
   const { distance, height } = modifyKnockback(player, knockback, origin, time);
   if (height > 0) {
-    // Projectile arc: rise to peak `height`, travel `distance` horizontally over the flight.
     const flightTime = launchAirtime(height);
     player.verticalVelocity = Math.sqrt(2 * GRAVITY * height);
     player.knockbackVelocity = scale(dir, distance / flightTime);
   } else {
-    // Ground slide: friction brings it to rest after exactly `distance`.
     player.knockbackVelocity = scale(dir, Math.sqrt(2 * KNOCKBACK_FRICTION * distance));
   }
 }

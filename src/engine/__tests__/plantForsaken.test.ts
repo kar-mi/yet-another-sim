@@ -201,7 +201,6 @@ test("plant combinations assign each player a per-slot heading from their group'
   const raid = loadRaid({ ...baseRaid, optionals, events: [plantEvent("Plant A"), plantEvent("Plant B")] });
   const world = createWorld(raid, 7);
   const after = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.3 * 60));
-  // Every player ends with both plants stamped with their planned headings, in slot order.
   for (const p of after.players) {
     const dirs = p.effects.filter(e => e.behavior.kind === "plant").map(e => (e.behavior as { direction: [number, number] }).direction);
     expect(dirs).toEqual(world.plantPlan[p.id]);
@@ -254,8 +253,6 @@ test("pairing combinations build the generic pairing maps when rng is false", ()
   const raid = loadRaid({ ...baseRaid, optionals: pairingsOptionals });
   const world = createWorld(raid, 1);
 
-  // partners (paired player), playerGroups (each pair's declared group), and initialCharges (each
-  // member's declared charge kind for the reassign opener).
   expect(world.partners.h1).toBe("mt");
   expect(world.partners.mt).toBe("h1");
   expect(world.initialCharges.h1).toBe("stack");
@@ -300,7 +297,6 @@ test("reassign opener applies invisible charge and short head-marker effects fro
 
   expect(h1.effects.some(e => e.name === "Stack Charge" && e.visibility === "invisible" && e.marker === undefined)).toBe(true);
   expect(h1.effects.some(e => e.name === "Stack Charge Marker" && e.visibility === "invisible" && e.markerIcon === "stack_processed.png" && e.duration === 5)).toBe(true);
-  // Past/Future is no longer a per-player debuff (it's each ending cone's directionOffset).
   expect(h1.effects.some(e => e.name.startsWith("Forsaken "))).toBe(false);
 });
 
@@ -315,7 +311,7 @@ test("plant direction \"option\" parses to a concrete vector (overridden by the 
   });
   const ev = raid.events[0] as Extract<typeof raid.events[number], { type?: "aoe" }>;
   const behavior = ev.applyEffect!.behavior as { kind: string; direction: [number, number] };
-  expect(behavior.direction).toEqual([0, 1]); // "option" -> placeholder vector, not a string
+  expect(behavior.direction).toEqual([0, 1]);
 });
 
 test("plant combination groups keep their pools without rng, but randomize combo order", () => {
@@ -338,7 +334,6 @@ test("plant combination groups keep their pools without rng, but randomize combo
   const fixedSeen = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => JSON.stringify(createWorld(fixed, s).plantPlan.mt)));
   expect(fixedSeen.size).toBeGreaterThan(1);
 
-  // With rng, mt's selected pool can also vary across seeds.
   const rolled = mk(true);
   const seen = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(s => JSON.stringify(createWorld(rolled, s).plantPlan.mt)));
   expect(seen.size).toBeGreaterThan(1);
@@ -351,14 +346,11 @@ test("plant debuff places a teleport trap that arms, then snaps the entrant afte
     duration: 0.5,
     behavior: { kind: "plant", direction: [0, 1], distance: 8, radius: 3, armDelay: 0.5, duration: 10, tpDelay: 1 },
   }));
-  // Debuff expires at 0.5; trap arms at 1.0. Before arming the placer is not teleported.
   const armed = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.8 * 60));
   expect(armed.forcedMarches.some(fm => fm.id.startsWith("plant-"))).toBe(true);
-  expect(human(armed).pos.z).toBeLessThan(1); // trap inert
-  // Captured at 1.0; during the 1s windup the player stays put at A (it's a teleport, not a slide).
+  expect(human(armed).pos.z).toBeLessThan(1);
   const windup = runTicks(armed, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.7 * 60));
-  expect(human(windup).pos.z).toBeLessThan(1); // still at A mid-windup, not partway
-  // After the windup (~2.0s) it teleports instantly to ~8 north.
+  expect(human(windup).pos.z).toBeLessThan(1);
   const after = runTicks(windup, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(1 * 60));
   expect(human(after).pos.z).toBeGreaterThan(6);
 });
@@ -389,13 +381,10 @@ test("plant teleport lands the captured player along the direction from their ow
     name: "Plant", duration: 0.5,
     behavior: { kind: "plant", direction: [0, 1], distance: 8, radius: 4, armDelay: 1, duration: 10, tpDelay: 0.3 },
   }));
-  // Hold until the trap is placed (expiry 0.5) so it centers on [0, 0].
   world = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(0.5 * 60));
-  // Drift +x off the trap center (but stay inside radius 4) before it arms at 1.5.
   world = runTicks(world, { [HUMAN]: { move: { x: 1, z: 0 } } }, Math.ceil(0.4 * 60));
   const offCenterX = human(world).pos.x;
   expect(offCenterX).toBeGreaterThan(1);
-  // Arm + windup + teleport: lands `distance` north of the player's own spot, x unchanged.
   world = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(1.5 * 60));
   expect(human(world).pos.z).toBeGreaterThan(6);
   expect(human(world).pos.x).toBeCloseTo(offCenterX, 1);

@@ -1,8 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
 import { PARTICIPANT_ID_REGEX } from "@model/protocol";
 
-// Imported through a template literal so each test gets a fresh module instance (the id is cached
-// per module, exactly as it is in the browser).
 const MODULE = "../participant";
 const originalSessionStorage = globalThis.sessionStorage;
 

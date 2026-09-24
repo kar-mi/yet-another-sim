@@ -1,14 +1,9 @@
-// A dropdown built from the same pieces as the raid picker (a trigger showing the current value
-// plus a list of options), because a native <select> draws its popup with OS chrome that ignores
-// the pixel theme.
-
 import { el } from "./dom";
 
 export type DropdownOption = { value: string; label: string };
 
 export type Dropdown = {
   element: HTMLElement;
-  // Selects by value; a value with no matching option falls back to the placeholder.
   setValue: (value: string) => void;
   close: () => void;
 };
@@ -52,7 +47,6 @@ export function createDropdown(config: {
     className: config.className ? `yas-dropdown ${config.className}` : "yas-dropdown",
   }, [trigger, menu]);
 
-  // Only listens while open, so a closed dropdown costs nothing and disposal cannot leak it.
   const onPointerDown = (event: PointerEvent) => {
     if (!element.contains(event.target as Node)) setOpen(false);
   };

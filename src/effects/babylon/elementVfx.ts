@@ -9,10 +9,6 @@ import "@babylonjs/core/Particles/particleSystemComponent";
 import type { AOEShape, BurstVfx, ElementGlyphKind } from "../index";
 import { sampleShapePoint } from "../sampling";
 
-// Element-themed floor telegraphs: an animated world-space noise shader (frost / crackle / flame)
-// shared per (element, color, alpha), and a one-shot particle burst when an element AoE lands.
-// Render-only; the sim never sees any of this.
-
 const MODE: Record<ElementGlyphKind, number> = { ice: 0, lightning: 1, fire: 2 };
 
 Effect.ShadersStore["elementFloorVertexShader"] = `
@@ -76,7 +72,6 @@ function stateFor(scene: Scene): ElementVfxState {
   let state = states.get(scene);
   if (!state) {
     const s: ElementVfxState = { materials: new Map() };
-    // Wall-clock so the pattern animates smoothly at render rate and keeps moving while paused.
     scene.onBeforeRenderObservable.add(() => {
       const t = performance.now() / 1000;
       for (const mat of s.materials.values()) mat.setFloat("time", t);
@@ -87,7 +82,6 @@ function stateFor(scene: Scene): ElementVfxState {
   return state;
 }
 
-// Uncached; every instance shares one compiled effect since the element is a uniform, not a define.
 export function createElementFloorMaterial(scene: Scene, name: string): ShaderMaterial {
   const mat = new ShaderMaterial(name, scene, "elementFloor", {
     attributes: ["position"],
@@ -98,7 +92,6 @@ export function createElementFloorMaterial(scene: Scene, name: string): ShaderMa
   return mat;
 }
 
-// Shared across every AoE with the same element/color/alpha; callers must not dispose it.
 export function elementFloorMaterial(scene: Scene, kind: ElementGlyphKind, color: string, alpha: number): ShaderMaterial {
   const { materials } = stateFor(scene);
   const key = `${kind}|${color}|${alpha}`;
@@ -175,17 +168,14 @@ const PRESETS: Record<ElementGlyphKind, ElementPreset> = {
 };
 
 const BURST_Y = 0.1;
-// Capacity headroom over the preset count, so an authored count can exceed it.
 const MAX_PARTICLES = 400;
 
-// One-shot burst spread over the AoE's footprint. `overrides` come from the authored vfx.burst block.
 export function spawnElementBurst(scene: Scene, kind: ElementGlyphKind, shape: AOEShape, color: string, overrides?: BurstVfx): void {
   const preset = PRESETS[kind];
   const base = Color3.FromHexString(overrides?.color ?? color);
   const ps = new ParticleSystem(`element-burst-${kind}`, MAX_PARTICLES, scene);
   ps.particleTexture = dotTexture(scene);
   ps.emitter = Vector3.Zero();
-  // Spawn across the real footprint, so rotated shapes and donut holes read correctly.
   ps.startPositionFunction = (worldMatrix, positionToUpdate) => {
     const point = sampleShapePoint(shape);
     Vector3.TransformCoordinatesFromFloatsToRef(point.x, BURST_Y, point.z, worldMatrix, positionToUpdate);
@@ -205,13 +195,10 @@ export function spawnElementBurst(scene: Scene, kind: ElementGlyphKind, shape: A
   ps.maxSize = overrides?.size?.max ?? preset.size.max;
   ps.manualEmitCount = Math.min(overrides?.count ?? preset.count, MAX_PARTICLES);
   ps.targetStopDuration = 0.1;
-  // Not disposeOnStop: that frees particleTexture, which is the shared dot. Defer past the frame
-  // because this fires mid-animate while the scene is iterating its particle systems.
   ps.onAnimationEnd = () => scene.onAfterRenderObservable.addOnce(() => ps.dispose(false));
   ps.start();
 }
 
-// Render one invisible particle during load so the particle shader compiles before the first burst.
 export function prewarmElementBurst(scene: Scene): void {
   const ps = new ParticleSystem("__prewarm_element_burst", 1, scene);
   ps.particleTexture = dotTexture(scene);

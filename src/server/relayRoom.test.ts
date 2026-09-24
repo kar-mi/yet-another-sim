@@ -12,8 +12,6 @@ import { describeDecisions } from "../engine/seedSearch";
 import { preRollRaid } from "../engine/preRoll";
 import { SimulationReplica } from "../client/simulationReplica";
 
-// Session test raids reuse the shared canonical roster builder (clock spots from shared/protocol) so
-// spawns stay in sync with the engine; only the arena/duration and a couple of spawn overrides differ.
 const sessionArena = { zones: [{ kind: "circle" as const, center: [0, 0] as [number, number], radius: 30 }] };
 
 function testRaid() {
@@ -169,7 +167,6 @@ test("start assigns the claimed slot to a human and leaves others as clock-spot 
   expect(session.world.players.find(player => player.id === "ot")?.control).toBe("human");
   expect(session.world.players.find(player => player.id === "mt")?.control).toBe("bot");
 
-  // h2 is an unclaimed bot at its clock spot (3 o'clock)
   const bot = session.world.players.find(player => player.id === "h2");
   expect(bot?.control).toBe("bot");
   expect(bot?.pos).toEqual({ x: 8, z: 0 });
@@ -514,14 +511,9 @@ test("host leaving to setup ends the raid to the workshop without bouncing the h
   session.leave("c1");
 
   expect(session.phase).toBe("workshop");
-  // The leaving host gets no new "started" (the setup screen would treat it as a re-entry and bounce
-  // it back into a stale sim); the remaining clients are moved to the workshop world.
   expect(sent.filter(entry => entry.clientId === "c1" && entry.message.type === "started").length).toBe(hostStartedBefore);
   expect(sent.filter(entry => entry.clientId === "c2" && entry.message.type === "started").length).toBe(otherStartedBefore + 1);
 
-  // The host still owns its slot, so the releaseSlot that Home sends next succeeds. Regression: with a
-  // plain stop(), the host was bounced back in and the slot was freed, so this rejected with
-  // "You do not own that slot".
   session.releaseSlot("c1", "mt");
   expect(session.slots.get("mt")).toBeNull();
   expect(sent.some(entry => entry.message.type === "error" && entry.message.message === "You do not own that slot")).toBe(false);
@@ -547,9 +539,6 @@ test("host can start again from a stopped lobby re-entry", () => {
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "started" && entry.message.yourPlayerId === null)).toBe(true);
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "playback" && entry.message.state === "playing")).toBe(true);
 
-  // Regression: lastLobby.status must be refreshed to "running" before "started" arrives, or the
-  // lobby screen seeds the HUD's playback state from the stale "stopped" snapshot (bug: "STOPPED"
-  // text persists after restarting from the lobby).
   const fromPlay = sent.slice(sentBeforePlay).filter(entry => entry.clientId === "c1");
   const lobbyRunningIndex = fromPlay.findIndex(entry => entry.message.type === "lobby" && entry.message.playbackState === "playing");
   const startedIndex = fromPlay.findIndex(entry => entry.message.type === "started");
@@ -624,7 +613,7 @@ test("relayed frames carry only human intents; bots are derived client-side", ()
   expect(session.inputLog).toHaveLength(1);
   const frame = session.inputLog[0];
   expect(frame.intents.mt?.move).toEqual({ x: 1, z: 0 });
-  expect(frame.intents.ot).toBeUndefined(); // unclaimed bots are not in the frame
+  expect(frame.intents.ot).toBeUndefined();
   expect(frame.intents.h1).toBeUndefined();
 
   const framesMsg = sent.find(entry => entry.clientId === "c1" && entry.message.type === "frames");
@@ -856,7 +845,6 @@ test("a raid with a single botPatterns file exposes one implicit Default option;
   const lobby = [...sent].reverse().find(entry => entry.clientId === "c1" && entry.message.type === "lobby")?.message;
   expect(lobby).toMatchObject({ type: "lobby", botPatternOptions: [{ id: "default", name: "Default" }], botPatternId: "default" });
 
-  // testRaid() (the session default) has neither botPatterns nor botPatternOptions.
   const noPatternLobby = [...sent].find(entry => entry.clientId === "c1" && entry.message.type === "lobby")?.message;
   expect(noPatternLobby).toMatchObject({ type: "lobby", botPatternOptions: [], botPatternId: null });
 });
@@ -1054,7 +1042,6 @@ test("snapshot anchor: queued late join after host snapshot is not admitted", ()
   session.start("c1");
   for (let i = 0; i < 5; i++) session.step(false);
 
-  // Host submits a snapshot at tick 3
   session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 3, world: { arena: {}, players: [], sentinel: true } });
 
   session.join("c2", "c2");
@@ -1076,7 +1063,6 @@ test("snapshot anchor: desync resync uses snapshot + tail", () => {
 
   session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 3, world: { arena: {}, players: [], sentinel: true } });
 
-  // Trigger a resync for c2 via mismatched hash
   session.reportWorldHash("c1", 1, 111);
   const beforeResync = sent.filter(e => e.clientId === "c2" && e.message.type === "started").length;
   session.reportWorldHash("c2", 1, 222);
@@ -1098,7 +1084,6 @@ test("snapshot anchor: non-host snapshot is rejected", () => {
   session.start("c1");
   for (let i = 0; i < 3; i++) session.step(false);
 
-  // c2 is not the host — snapshot must be ignored
   session.handle("c2", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 2, world: { arena: {}, players: [], sentinel: true } });
 
   session.reportWorldHash("c1", 1, 111);
@@ -1109,7 +1094,7 @@ test("snapshot anchor: non-host snapshot is rejected", () => {
   expect(resyncs).toHaveLength(beforeResync + 1);
   const msg = resyncs[resyncs.length - 1].message as Extract<ServerMessage, { type: "started" }>;
   expect(msg.baseTick).toBe(0);
-  expect(msg.frames).toHaveLength(3); // full log, no anchor
+  expect(msg.frames).toHaveLength(3);
 });
 
 test("snapshot anchor: resetPull clears the snapshot", () => {
@@ -1124,14 +1109,13 @@ test("snapshot anchor: resetPull clears the snapshot", () => {
 
   session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 3, world: { arena: {}, players: [], sentinel: true } });
 
-  // Restart resets the pull — snapshot must be cleared
   const beforeRestart = sent.filter(e => e.clientId === "c2" && e.message.type === "started").length;
   session.restart("c1");
 
   const started = sent.filter(e => e.clientId === "c2" && e.message.type === "started");
   expect(started).toHaveLength(beforeRestart + 1);
   const msg = started[started.length - 1].message as Extract<ServerMessage, { type: "started" }>;
-  expect(msg.baseTick).toBe(0); // snapshot was cleared by restart
+  expect(msg.baseTick).toBe(0);
   expect(msg.frames).toHaveLength(0);
 });
 
@@ -1146,7 +1130,7 @@ test("snapshot anchor: monotonic — older snapshot does not replace newer", () 
   for (let i = 0; i < 5; i++) session.step(false);
 
   session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 4, world: { arena: {}, players: [], snap: "new" } });
-  session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 2, world: { arena: {}, players: [], snap: "old" } }); // older — must be ignored
+  session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 2, world: { arena: {}, players: [], snap: "old" } });
 
   session.reportWorldHash("c1", 1, 111);
   const beforeResync = sent.filter(e => e.clientId === "c2" && e.message.type === "started").length;
@@ -1169,7 +1153,6 @@ test("snapshot anchor: malformed world is rejected (falls back to full log)", ()
   session.start("c1");
   for (let i = 0; i < 5; i++) session.step(false);
 
-  // Missing arena/players — must not be stored, so a later join falls back to full-log anchoring.
   session.handle("c1", { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: 3, world: { bogus: true } });
 
   session.reportWorldHash("c1", 1, 111);
@@ -1224,9 +1207,9 @@ test("divergent world hashes for a tick resync the offending client", () => {
   session.start("c1");
   session.step(false);
 
-  session.reportWorldHash("c1", 1, 111); // first hash for tick 1 is canonical
+  session.reportWorldHash("c1", 1, 111);
   const before = sent.filter(entry => entry.clientId === "c2" && entry.message.type === "started").length;
-  session.reportWorldHash("c2", 1, 222); // mismatch -> resend started + log to c2
+  session.reportWorldHash("c2", 1, 222);
 
   const after = sent.filter(entry => entry.clientId === "c2" && entry.message.type === "started").length;
   expect(after).toBe(before + 1);
@@ -1242,15 +1225,15 @@ test("matching world hashes do not resync", () => {
   session.start("c1");
   session.step(false);
 
-  session.reportWorldHash("c1", 1, 999); // canonical
+  session.reportWorldHash("c1", 1, 999);
   const before = sent.filter(entry => entry.message.type === "started").length;
-  session.reportWorldHash("c2", 1, 999); // agrees -> no resync
+  session.reportWorldHash("c2", 1, 999);
   expect(sent.filter(entry => entry.message.type === "started").length).toBe(before);
 });
 
 test("non-host report before the host's is buffered, then judged against the host's hash", () => {
   const { session, sent } = makeSession();
-  session.join("c1", "c1"); // host
+  session.join("c1", "c1");
   session.join("c2", "c2");
   session.join("c3", "c3");
   session.claimSlot("c1", "mt");
@@ -1260,14 +1243,12 @@ test("non-host report before the host's is buffered, then judged against the hos
   session.start("c1");
   session.step(false);
 
-  // A desynced client reports first, before the host — must be buffered, not acted on yet.
   session.reportWorldHash("c2", 1, 222);
-  session.reportWorldHash("c3", 1, 999); // honest, agrees with the (not-yet-known) host hash
+  session.reportWorldHash("c3", 1, 999);
   const startedBefore = (id: string) => sent.filter(e => e.clientId === id && e.message.type === "started").length;
   const c2Before = startedBefore("c2");
   const c3Before = startedBefore("c3");
 
-  // Host's hash lands and becomes canonical: the buffered desynced client is resynced, the honest one is not.
   session.reportWorldHash("c1", 1, 999);
   expect(startedBefore("c2")).toBe(c2Before + 1);
   expect(startedBefore("c3")).toBe(c3Before);
@@ -1288,9 +1269,6 @@ test("host can restart after the session ends", () => {
   expect(session.world.time).toBe(0);
   expect(sent.some(entry => entry.clientId === "c1" && entry.message.type === "playback" && entry.message.state === "playing")).toBe(true);
 
-  // Regression: lastLobby.status must be refreshed to "running" before "started" arrives, or the
-  // lobby screen seeds the HUD's playback state from the stale "done" snapshot (bug: stale status
-  // text persists after restarting from the lobby).
   const fromRestart = sent.slice(sentBeforeRestart).filter(entry => entry.clientId === "c1");
   const lobbyRunningIndex = fromRestart.findIndex(entry => entry.message.type === "lobby" && entry.message.playbackState === "playing");
   const startedIndex = fromRestart.findIndex(entry => entry.message.type === "started");
@@ -1549,7 +1527,6 @@ test("a refreshed participant keeps its reservation when the stale socket leaves
   session.join("socket-a", "pa");
   session.claimSlot("pa", "mt");
 
-  // The reported ordering: the refreshed connection joins before the old socket's leave arrives.
   session.join("socket-a2", "pa");
   session.disconnectClient("socket-a");
 
@@ -1692,9 +1669,6 @@ test("a stopped lobby can be resumed or restarted", () => {
   expect(session.raidId).toBe(EMPTY_RAID_ID);
 });
 
-// The workshop has no terminal world status, so its ceiling sits exactly at the duration; an authored
-// raid gets grace slack past it. Both are chosen from the phase, which must be current before the
-// pull is loaded.
 test("the workshop ends at its duration while a raid keeps relaying past it", () => {
   const { session } = makeSession();
   session.join("host-socket", "host");
@@ -1713,8 +1687,6 @@ test("the workshop ends at its duration while a raid keeps relaying past it", ()
   expect(session.playback).toBe("playing");
 });
 
-// Picking a raid ends the lobby and loads that raid, but leaves it stopped at tick zero:
-// starting is a separate, deliberate press.
 test("selecting a raid from the lobby swaps to it stopped at tick zero", () => {
   const { session, sent } = makeDefaultLobbySession();
   session.join("host-socket", "host");

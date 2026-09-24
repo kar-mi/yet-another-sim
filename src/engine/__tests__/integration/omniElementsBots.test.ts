@@ -8,7 +8,6 @@ const raid = applyBotPatterns(
   loadBotPatterns(Bun.YAML.parse(await Bun.file("raids/forked-tower-magic/omni-elements-1-bots.yaml").text())),
 );
 
-// Expect only raidwides and one Chemistry hit per element; any extra damage fails.
 const EXPECTED_DAMAGE = 20 + 3 * 10 + 45;
 
 const variants: Record<string, number>[] = [];

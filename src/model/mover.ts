@@ -1,7 +1,6 @@
 import type { Vec2 } from "@shared/math";
 import type { Mover } from "./types";
 
-// Wait until departAt, then move linearly to the destination by resolveAt.
 export function moverPosition(mover: Mover, to: Vec2, resolveAt: number, time: number): Vec2 {
   const span = resolveAt - mover.departAt;
   const progress = span > 0 ? Math.min(1, Math.max(0, (time - mover.departAt) / span)) : 1;

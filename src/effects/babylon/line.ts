@@ -6,8 +6,6 @@ import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
 
-// Updatable tube between two or more points. Reposition with updateLine, which rewrites the
-// vertices of the existing geometry rather than rebuilding it.
 const EMISSIVE_SCALE = 0.6;
 
 export function createLine(scene: Scene, name: string, path: Vector3[], color: Color3, radius: number): Mesh {

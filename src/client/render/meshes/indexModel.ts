@@ -12,39 +12,30 @@ import { STATIC_ROOT } from "../../staticBase";
 import { applyAlphaTest, createMeshGlow } from "@effects/babylon";
 import type { GlowVfx } from "@effects";
 
-// Extrude the Index’s body and weapons from their image silhouettes.
 const INDEX_IMAGE_ROOT = `${STATIC_ROOT}/model/boss/index/`;
 
 const BODY_HEIGHT = 8;
 const BODY_DEPTH = 0.3;
-// Image aspect ratios and hem positions, used to align the robe with the floor.
 const FRONT = { aspect: 1024 / 834, hem: 740 / 834 };
 const BACK = { aspect: 1024 / 838, hem: 772 / 838 };
 
-// Weapon drawings share one pixel scale so their relative sizes match the source art.
 const WEAPON_UNITS_PER_PX = 3.5 / 789;
 const WEAPON_DEPTH = 0.3;
 const WEAPON_HEIGHT_ABOVE_GROUND = 3;
-// Place weapons ahead of the body’s front face (+Z).
 const WEAPON_FORWARD = 1.5;
 const OUTLINE_PX = 40;
-const OUTLINE_COLOR = "#4a7a2a"; // a darker shade of the implement aoe color (#8fd14f) in omni-elements-1.yaml
-// Emissive scale for the outline; 1 shows OUTLINE_COLOR unchanged.
+const OUTLINE_COLOR = "#4a7a2a";
 const OUTLINE_BRIGHTNESS = 1.0;
-// Pulse the highlighted weapon’s glow.
 const GLOW_COLOR = new Color4(0.15, 0.5, 0.1, 1);
 const GLOW_INTENSITY = { min: 0.6, max: 1.0 };
 const GLOW_PULSE_SECONDS = 1.2;
-// Translucent sphere of light around the highlighted weapon, sized from its longest side.
 const HALO_COLOR = new Color3(0.25, 0.55, 0.18);
 const HALO_SIZE = 1.5;
 const HALO_ALPHA = { min: 0.15, max: 0.35 };
 
-// Sample the silhouette every CELL_PX pixels.
 const CELL_PX = 4;
 const WALL_SHADE = { up: 0.9, side: 0.75, down: 0.55 };
 
-// Weapon offsets in boss-local space (+X right, +Z forward).
 const WEAPONS = [
   { name: "bow", width: 648, height: 789, x: 5.45 },
   { name: "bell", width: 266, height: 440, x: 3.05, scale: 1.5 },
@@ -57,15 +48,12 @@ type IndexWeapon = (typeof WEAPONS)[number]["name"];
 export type IndexModel = {
   root: Mesh;
   height: number;
-  // Call each frame to highlight and pulse one weapon; time is sim seconds.
   highlight(weapon: IndexWeapon | null, time: number, glow?: GlowVfx): void;
   dispose(): void;
 };
 
-// One face of a slab: its art, size and center height in the slab's space.
 type Face = { url: string; width: number; height: number; y: number };
 
-// Built with its feet at y=0 of `root`; the caller places and scales the root.
 export function buildIndexModel(scene: Scene, name: string): IndexModel {
   const root = new Mesh(`${name}-root`, scene);
   root.isPickable = false;
@@ -88,7 +76,6 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
     if ("scale" in weapon) node.scaling.setAll(weapon.scale);
     node.parent = root;
 
-    // The slab hides the outline except beyond its silhouette.
     const outline = CreatePlane(`${name}-weapon-${weapon.name}-outline`, {
       width: (weapon.width + 2 * OUTLINE_PX) * WEAPON_UNITS_PER_PX,
       height: (weapon.height + 2 * OUTLINE_PX) * WEAPON_UNITS_PER_PX,
@@ -115,7 +102,6 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
   };
 
   const highlight = (weapon: IndexWeapon | null, time: number, override?: GlowVfx) => {
-    // Weapon art loads asynchronously; warm whatever has arrived while nothing is highlighted.
     if (!weapon) glow.warm(weaponMeshes());
     for (const [name, outline] of outlines) outline.setEnabled(name === weapon);
     if (!weapon) {
@@ -140,7 +126,6 @@ export function buildIndexModel(scene: Scene, name: string): IndexModel {
   } };
 }
 
-// Faces point along ±Z; a missing back uses mirrored front art. Load meshes asynchronously.
 function slab(scene: Scene, name: string, front: Face, back: Face | null, depth: number): Mesh {
   const node = new Mesh(name, scene);
   node.isPickable = false;
@@ -170,7 +155,6 @@ function buildSlab(
     (Math.min(r * CELL_PX + CELL_PX / 2, h - 1) * w + Math.min(c * CELL_PX + CELL_PX / 2, w - 1)) * 4;
   const solid = (c: number, r: number) => c >= 0 && r >= 0 && c < cols && r < rows && alpha[sample(c, r) + 3]! > 102;
 
-  // The front face is turned to +Z, so the art's left edge sits at +X.
   const toX = (px: number) => (0.5 - Math.min(px, w) / w) * front.width;
   const toY = (py: number) => front.y + (0.5 - Math.min(py, h) / h) * front.height;
   const frontUV = (x: number, y: number) => [0.5 - x / front.width, 0.5 + (y - front.y) / front.height];
@@ -178,7 +162,6 @@ function buildSlab(
     ? (x: number, y: number) => [0.5 + x / back.face.width, 0.5 + (y - back.face.y) / back.face.height]
     : frontUV;
 
-  // Faces: one quad per horizontal run of solid cells, at both ends of the slab.
   const frontQuads = new QuadBuilder();
   const backQuads = new QuadBuilder();
   for (let r = 0; r < rows; r++) {
@@ -195,7 +178,6 @@ function buildSlab(
     }
   }
 
-  // Walls: a quad on every cell edge that borders empty space, colored from the art at that cell.
   const walls = new QuadBuilder();
   const edges = [
     { dc: -1, dr: 0, shade: WALL_SHADE.side, a: [0, 0], b: [0, 1] },
@@ -256,7 +238,6 @@ class QuadBuilder {
   }
 }
 
-// Flat-colored: shows the texture (or vertex colors when there is none) without lighting.
 function unlitMaterial(scene: Scene, name: string, art: HTMLCanvasElement | null): StandardMaterial {
   const mat = new StandardMaterial(name, scene);
   if (art) {
@@ -290,7 +271,6 @@ function canvasOf(image: HTMLImageElement): HTMLCanvasElement {
   return canvas;
 }
 
-// Extend edge colors by one cell to prevent black texels along the silhouette.
 function bleed(image: HTMLImageElement | HTMLCanvasElement): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = image.width;
@@ -306,14 +286,12 @@ function bleed(image: HTMLImageElement | HTMLCanvasElement): HTMLCanvasElement {
   return canvas;
 }
 
-// Fill gaps in the back silhouette with mirrored front art.
 function backCanvas(frontArt: HTMLCanvasElement, front: Face, backImage: HTMLImageElement, back: Face): HTMLCanvasElement {
   const wb = backImage.width, hb = backImage.height;
   const canvas = document.createElement("canvas");
   canvas.width = wb;
   canvas.height = hb;
   const ctx = canvas.getContext("2d")!;
-  // Map front pixels to back pixels, reversing x.
   const sx = (wb * front.width) / (frontArt.width * back.width);
   const sy = (hb * front.height) / (frontArt.height * back.height);
   ctx.setTransform(-sx, 0, 0, sy, wb * (0.5 + (0.5 * front.width) / back.width), hb * (0.5 - (front.y - back.y) / back.height - (0.5 * front.height) / back.height));
@@ -323,13 +301,12 @@ function backCanvas(frontArt: HTMLCanvasElement, front: Face, backImage: HTMLIma
   return canvas;
 }
 
-// A solid silhouette of the drawing grown by OUTLINE_PX.
 function outlineMaterial(scene: Scene, name: string, url: string, width: number, height: number): StandardMaterial {
   const tex = new DynamicTexture(name, { width: width + 2 * OUTLINE_PX, height: height + 2 * OUTLINE_PX }, scene, false);
   tex.hasAlpha = true;
   void loadImage(url).then(image => {
     const ctx = tex.getContext() as CanvasRenderingContext2D;
-    if (!ctx) return; // The model may have been disposed while the image loaded.
+    if (!ctx) return;
     const steps = 32;
     for (let i = 0; i < steps; i++) {
       const angle = (i / steps) * Math.PI * 2;

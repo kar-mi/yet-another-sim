@@ -116,8 +116,6 @@ test("tether_source fromBlackHoleOrb resolves to the order-th orb clockwise from
     ],
   });
 
-  // Origin is resolved lazily when the tether promotes (t=0), from the clockwise order locked off
-  // kefka's position - not baked at world creation.
   const world = runTicks(createWorld(raid, 123), noMove, 1);
   const tethers = selectOrbLayout(blackHoleCombos, 123).orbs.filter(orb => orb.tether).map(orb => orb.pos);
   const expected = clockwiseTetherOrder(tethers, { x: 0, z: 18 })[1];

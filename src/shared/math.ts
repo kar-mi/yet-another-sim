@@ -38,7 +38,6 @@ export function pointInPolygon(vertices: Vec2[], point: Vec2): boolean {
 
 export function clamp01(v: number): number { return Math.max(0, Math.min(1, v)); }
 
-// Shortest signed difference b - a, wrapped to (-PI, PI]. Useful for angle interpolation/blending.
 export function shortestAngleDelta(a: number, b: number): number {
   let diff = b - a;
   while (diff > Math.PI) diff -= Math.PI * 2;
@@ -46,7 +45,6 @@ export function shortestAngleDelta(a: number, b: number): number {
   return diff;
 }
 
-// Wraps an angle to (-PI, PI].
 export function normalizeAngle(a: number): number {
   return shortestAngleDelta(0, a);
 }

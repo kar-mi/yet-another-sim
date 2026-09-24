@@ -112,7 +112,6 @@ test("a replay seek backwards lets the same AoE burst again", () => {
     const active = [mechanic({ element: "fire" })];
     layer.sync(active, RESOLVE_AT);
     expect(burstCount(scene)).toBe(1);
-    // Seek back before the hit, then play forward through it again.
     layer.sync(active, 5);
     layer.sync(active, RESOLVE_AT);
     expect(burstCount(scene)).toBe(2);

@@ -1,6 +1,3 @@
-// Minimal leveled, category-tagged logger shared by server and client.
-// Calls are gated on level before any work, so disabled levels cost nothing.
-
 export type LogLevel = "debug" | "info" | "warn" | "error" | "silent";
 
 const LEVEL_WEIGHT: Record<LogLevel, number> = {
@@ -26,7 +23,7 @@ export function parseLevel(value: unknown, fallback: LogLevel): LogLevel {
 }
 
 export function formatRecord(record: LogRecord): string {
-  const ts = new Date(record.time).toISOString().slice(11, 23); // hh:mm:ss.mmm
+  const ts = new Date(record.time).toISOString().slice(11, 23);
   const level = record.level.toUpperCase().padEnd(5);
   let line = `[${ts}] ${level} ${record.category} ${record.msg}`;
   if (record.fields) {

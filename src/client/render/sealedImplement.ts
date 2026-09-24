@@ -7,7 +7,6 @@ export type ImplementHighlight = { weapon: SealedImplement; glow?: GlowVfx };
 
 const SEALED_IMPLEMENTS_CAST = /^sealed-implements-\d+-(bow|harp)$/;
 
-// Select the weapon for the active Sealed Implements cast, with its authored glow overrides.
 export function selectSealedImplement(active: ActiveMechanic[]): ImplementHighlight | null {
   for (const mechanic of active) {
     if (mechanic.resolved) continue;

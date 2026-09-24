@@ -8,11 +8,6 @@ import { HUMAN, baseRaid, deepFreeze, effect, loadRaid as buildRaid, roster, wit
 import type { RaidDef } from "../schema/raidSchema";
 import type { Intents, World } from "@model/types";
 
-// Server-relayed lockstep requires that `tick` produce byte-identical worlds from the same seed +
-// inputs on every client, and that the entire simulation state live in `World` (so a late joiner
-// can resync by replaying). These tests exercise a full, mechanic-heavy fight (graven-image-3 with
-// its bot patterns) driven purely by the seeded bot solver.
-
 const DT = 1 / 60;
 const SEED = 0x1234abcd;
 const DIR = "raids/dancing-mad-ultimate";
@@ -23,8 +18,6 @@ async function gravenRaid(): Promise<RaidDef> {
   return applyBotPatterns(raid, bots);
 }
 
-// Run the fight to completion, hashing the world every 100 ticks. If `roundTripAt` is set, the world
-// is serialized through JSON and rehydrated at that tick to prove no hidden state lives outside it.
 function replay(raid: RaidDef, roundTripAt?: number): number[] {
   let w = createWorld(raid, SEED);
   const hashes: number[] = [];
@@ -48,8 +41,6 @@ test("mid-run JSON round-trip leaves the simulation unchanged (state lives in Wo
   expect(replay(raid, 800)).toEqual(replay(raid));
 });
 
-// Lever A correctness guarantee: a joiner that adopts a snapshot at tick SNAPSHOT_INTERVAL (600) and
-// replays only the tail must produce the same worldHash sequence as a full replay from tick 0.
 test("snapshot-anchored join matches full replay (Lever A determinism guarantee)", async () => {
   const raid = await gravenRaid();
   expect(replay(raid, 600)).toEqual(replay(raid));
@@ -64,11 +55,6 @@ test("tick and computeBotIntents never mutate the input world (replace-only conv
   }
 });
 
-// `tick` is a pure function of (seed, inputs), so two worlds built from the same seed and driven by
-// identical per-tick intents must stay byte-identical. The graven replay above covers a full
-// bot-driven fight; this table adds the seeded/human-driven paths it does not exercise (human input,
-// chain break, the plant-rng solver, knockback slide). We compare worldHash (the same simulation
-// fingerprint lockstep relies on) rather than JSON, which is order-sensitive and noisy on failure.
 const botDriven = (w: World): Intents => ({ ...computeBotIntents(w, DT), [HUMAN]: { move: { x: 0, z: 0 } } });
 
 const determinismCases: { name: string; make: (seed: number) => World; drive: (w: World) => Intents; ticks: number }[] = [

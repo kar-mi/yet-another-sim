@@ -14,14 +14,10 @@ function selected(key: string, rolled: number, constraints: RngConstraints, deci
   return value;
 }
 
-// Cardinal direction constants -> [x, z] vectors. +z = north, +x = east.
 const DIRECTION_VECTORS: Record<"up" | "down" | "left" | "right", [number, number]> = {
   up: [0, 1], down: [0, -1], left: [-1, 0], right: [1, 0],
 };
 
-// Assign each player a plant combination from optionals.combinations.plant. Each group lists its
-// members explicitly; their selected combo pool is shuffled so members draw different combos when
-// possible. `rng: true` flips a seeded coin to swap which group's combo pool each group draws from.
 function buildPlantPlan(
   raid: RaidDef,
   rngState: number,
@@ -56,9 +52,6 @@ function buildPlantPlan(
   return { plan, rngState: nextState };
 }
 
-// Seeded per-run rotation of tower-wave positions around their canonical ring: each wave (towers
-// sharing a `t`, named `-left`/`-right`) is remapped to a different canonical position-pair by a
-// random start offset + direction. Off unless `towerRng`.
 function rotateTowerWaves(
   events: RaidDef["events"],
   towerRng: boolean | undefined,
@@ -132,7 +125,6 @@ function applyOrderSwap(
   return { events: result as RaidDef["events"], rngState: roll.state };
 }
 
-// Shuffle group timings. Matching group indices identify the same pair across entries.
 function shuffleEventTimes(
   events: RaidDef["events"],
   timeShuffle: NonNullable<RaidDef["optionals"]>["timeShuffle"] | undefined,
@@ -156,7 +148,6 @@ function shuffleEventTimes(
 
     const order = entry.groups.map((_, i) => i);
     if (entry.rng) {
-      // Draw directly from eligible groups so pinned choices preserve later RNG draws.
       const forbiddenFirst = entry.noRepeatAfter === undefined ? -1 : lastGroupOf[entry.noRepeatAfter] ?? -1;
       const allowed = order.filter(i => i !== forbiddenFirst);
       const firstRoll = randomInt(nextState, allowed.length);
@@ -187,11 +178,6 @@ function shuffleEventTimes(
   return { events: result as RaidDef["events"], rngState: nextState };
 }
 
-// Seeded per-run rotation of a divebomb sweep around its canonical ring: each numbered dash (its
-// index in `divebombSweep.events`) is remapped to a different canonical from/to pair by a random
-// start offset + direction. When `limitCut` is set, that limit cut's placement basis is derived
-// from the rolled sweep (relative-north = opposite dash #1's start; handedness = sweep direction),
-// so it never drifts out of sync with the dashes. Off (identity = canonical order) unless `rng`.
 function rotateDivebombSweep(
   events: RaidDef["events"],
   divebombSweep: NonNullable<RaidDef["optionals"]>["divebombSweep"] | undefined,
@@ -241,7 +227,6 @@ function rotateDivebombSweep(
 
 type EndingCombination = NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["endings"];
 
-// Shuffle variants, then fill forced slots without duplicates.
 function rollVariantOrder(
   count: number,
   rngState: number,
@@ -265,7 +250,6 @@ function rollVariantOrder(
   return { order: arranged, rngState };
 }
 
-// Assign one name/color/glyph variant per event slot.
 type LabelVariant = NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["labels"] extends
   Record<string, { variants: (infer V)[] }> | undefined ? V : never;
 
@@ -309,8 +293,6 @@ function buildEndingPlan(
   const endingNames: Record<string, string> = {};
   endings.events.forEach((slot, i) => {
     const variant = endings.variants[order[i]!]!;
-    // A slot is one event (forsaken) or a group sharing a variant (e.g. an implosion's cone pair).
-    // A variant offset is one angle for all events in the slot, or one angle per event.
     const ids = Array.isArray(slot) ? slot : [slot];
     ids.forEach((id, j) => {
       endingOffsets[id] = Array.isArray(variant.offset) ? variant.offset[j]! : variant.offset;
@@ -380,9 +362,6 @@ function applyBlackHoleSpots(
   return { events: result as RaidDef["events"], rngState: nextState, blackHoleTethers };
 }
 
-// Select a pairing pattern (seeded when `rng`) and derive the generic maps any mechanic can consume:
-// partners (paired player), playerGroups (each pair's declared group label), and initialCharges
-// (each member's declared charge kind — the opener deal of the `reassign` event).
 function buildPairingPlan(
   raid: RaidDef,
   rngState: number,
@@ -456,8 +435,6 @@ function applyHeadSequence(
 
 type Deals = NonNullable<NonNullable<RaidDef["optionals"]>["combinations"]>["deals"];
 
-// Deal players into groups and select their effects and AOEs.
-// Always consume all RNG draws so forced choices leave later rolls unchanged.
 function applyDeals(
   events: RaidDef["events"],
   deals: Deals,
@@ -551,8 +528,6 @@ export function preRollRaid(raid: RaidDef, seed: number, constraints: RngConstra
 } {
   const decisions: PreRollDecisions = {};
   const { plan: plantPlan, rngState: afterPlantRngState } = buildPlantPlan(raid, seed, decisions, constraints);
-  // Generic pairing/grouping maps: partners/playerGroups for the bot solver, initialCharges for the
-  // reassign opener.
   const { partners, playerGroups, initialCharges, rngState: afterPairingRngState } = buildPairingPlan(raid, afterPlantRngState, decisions, constraints);
   const { crystals, rolls: crystalRolls, rngState: afterCrystalRngState } = placeCrystals(raid.crystals, afterPairingRngState, constraints);
   crystalRolls.forEach((roll, i) => {

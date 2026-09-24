@@ -48,7 +48,6 @@ export class SimulationReplica {
   }
 }
 
-// Exported so replayInsights steps a recording exactly the way playback does.
 export function applyFrameControls(world: World, frame: Frame): World {
   return {
     ...world,

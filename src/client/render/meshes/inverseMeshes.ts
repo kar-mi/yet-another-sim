@@ -7,11 +7,6 @@ import {
   type QuestionRingMeshes,
 } from "@effects/babylon";
 
-// Each inverse mechanic gets ONE ring around the boss. The ring colour identifies the mechanic
-// (e.g. blue = floor AOE, red = line AOE) and its height is authored per mechanic. The orbs
-// riding the ring encode whether the mechanic is real (dark blue) or a fake "?" (reddish-orange
-// with a yellow question mark). The shown-shape telegraph footprints are handled separately via
-// FloorAoe/syncFloorTelegraphs (see InverseLayer).
 const DEFAULT_RING_COLOR = "#ffffff";
 
 export function createQuestionRingForInverse(scene: Scene, inv: ActiveInverse): QuestionRingMeshes {

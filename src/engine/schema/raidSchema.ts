@@ -14,18 +14,12 @@ const PlayerDefSchema = z.object({
   pattern: z.array(WaypointSchema).optional(),
 });
 
-// Cardinal direction constants (more readable than [x, z] vectors). +z = north, +x = east.
 const DirectionConstSchema = z.enum(["up", "down", "left", "right"]);
-// A plant combination is one cardinal direction per plant slot (e.g. [short, long]).
 const PlantComboSchema = z.array(DirectionConstSchema).min(1);
-// A plant group: an explicit list of player ids plus the combo pool its members draw from.
-// The combo pool is shuffled per seed before assignment, wrapping if there are fewer combos than members.
 const PlantGroupSchema = z.object({
   members: z.array(z.string().min(1)).min(1),
   combos: z.array(PlantComboSchema).min(1),
 });
-// A pairing pair: two player ids, an optional group label (for bot-solver when.soaks) and optional
-// per-member initial charge kinds (for a reassign event's `initial: "plan"` opener).
 const PairingPairSchema = z.object({
   members: z.tuple([z.string().min(1), z.string().min(1)]),
   group: z.string().min(1).optional(),
@@ -35,9 +29,6 @@ const PairingPatternSchema = z.object({
   id: z.string().min(1).optional(),
   pairs: z.array(PairingPairSchema).min(1),
 });
-// Optional per-mechanic combinations. `plant` declares two groups (g1/g2) of members + combos.
-// `pairings` declares patterns of player pairs (one selected per run when `rng`), each carrying an
-// optional group label + initial charges that feed world.partners / playerGroups / initialCharges.
 const OptionalsSchema = z.object({
   headSequence: z.object({
     rng: z.boolean().default(false),
@@ -49,22 +40,17 @@ const OptionalsSchema = z.object({
     label: z.string().min(1).optional(),
     options: z.array(z.string().min(1)).optional(),
   })).optional(),
-  // Seeded per-run rotation of tower-wave positions around their canonical ring (see rotateTowerWaves).
   towerRng: z.boolean().default(false),
   orderSwap: z.object({
     rng: z.boolean().default(false),
     groups: z.array(z.array(EventIdSchema).min(1)).length(2),
   }).optional(),
-  // Shuffle group timings; noRepeatAfter prevents repeating the preceding entry’s last group.
   timeShuffle: z.array(z.object({
     id: z.string().min(1),
     rng: z.boolean().default(false),
     noRepeatAfter: z.string().min(1).optional(),
     groups: z.array(z.array(EventIdSchema).min(1)).min(2),
   })).min(1).optional(),
-  // Seeded per-run rotation of a divebomb sweep around its canonical ring (see rotateDivebombSweep).
-  // `events` lists the divebomb ids in canonical sweep order (the list index is each dash's number).
-  // `limitCut` (optional) names a limit cut whose placement basis is derived from the rolled sweep.
   divebombSweep: z.object({
     rng: z.boolean().default(false),
     events: z.array(EventIdSchema).min(2),
@@ -83,23 +69,18 @@ const OptionalsSchema = z.object({
     }).optional(),
     endings: z.object({
       rng: z.boolean().default(false),
-      // Each entry is one slot: a single event id, or a group of ids that share one variant
-      // (e.g. a pair of opposing implosion cones). Variants shuffle across the slots per seed.
       events: z.array(z.union([EventIdSchema, z.array(EventIdSchema).min(1)])).min(1),
-      // `offset` is a single angle, or one angle per event when the slot is a group.
       variants: z.array(z.object({
         offset: z.union([z.number(), z.array(z.number())]),
         name: z.string().min(1).optional(),
       })).min(1),
     }).optional(),
-    // Assign one name/color/glyph variant per event slot.
     labels: z.record(z.string().min(1), z.object({
       rng: z.boolean().default(false),
       slots: z.array(z.array(EventIdSchema).min(1)).min(1),
       variants: z.array(z.object({
         name: z.string().min(1),
         color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
-        // Stamped onto slot events that author a `glyph` or `ring`.
         glyph: ElementGlyphKindSchema.optional(),
       })).min(1),
     }).refine(spec => spec.slots.length === spec.variants.length, "labels needs one variant per slot")).optional(),
@@ -107,7 +88,6 @@ const OptionalsSchema = z.object({
       rng: z.boolean().default(false),
       sets: z.array(z.array(EventIdSchema).min(1)).min(1),
     })).optional(),
-    // Deal the roster into groups; variants choose effects, and AOEs target group members.
     deals: z.record(z.string().min(1), z.object({
       rng: z.boolean().default(false),
       groups: z.array(z.object({
@@ -124,7 +104,6 @@ const OptionalsSchema = z.object({
   }).optional(),
 }).optional();
 
-// Exhaustive list of glb stems available under /static/model/. Add new boss models here.
 const BOSS_MODEL_NAMES = ["kefka", "chaos", "exdeath", "dragon_head", "index"] as const;
 export type BossModelName = (typeof BOSS_MODEL_NAMES)[number];
 const BossModelSchema = z.enum(BOSS_MODEL_NAMES);
@@ -141,9 +120,6 @@ const BossSchema = z.strictObject({
   showInBossList: z.boolean().optional(),
 }).default({ pos: [0, 0] });
 
-// Boss entry in a multi-boss `bosses:` list. Same fields as BossSchema plus a required id slug
-// and an optional aggro seed (player id whose threat is pre-seeded to the top so this boss
-// faces a specific tank from the start).
 const BossWithIdSchema = z.strictObject({
   id: RaidIdSchema,
   preset: z.enum(BOSS_REGISTRY_IDS).optional(),
@@ -157,8 +133,8 @@ const BossWithIdSchema = z.strictObject({
   showInBossList: z.boolean().optional(),
   aggro: z.string().min(1).optional(),
   targetable: z.boolean().default(true),
-  hidden: z.boolean().default(false),  // start with the model not drawn (a divebomb teleportBoss can reveal it)
-  sink: z.number().min(0).max(1).default(0),  // fraction of model body height sunk below the ground (e.g. boss positioned under the map)
+  hidden: z.boolean().default(false),
+  sink: z.number().min(0).max(1).default(0),
 });
 
 type BossIdentityOverrides = {
@@ -187,11 +163,8 @@ export const RaidSchema = z.object({
   arena: ArenaSchema,
   duration: z.number().positive(),
   boss: BossSchema,
-  // Multi-boss: when present, takes precedence over `boss`. Each entry requires a unique id slug.
   bosses: z.array(BossWithIdSchema).min(1).optional(),
   botPatterns: RaidIdSchema.optional(),
-  // Named alternate bot-pattern files the host can pick between (Options modal "Bots" tab).
-  // Additive: raids with only `botPatterns` show a single implicit "Default" option.
   botPatternOptions: z.array(z.object({
     id: z.string().min(1),
     name: z.string().min(1),
@@ -199,8 +172,6 @@ export const RaidSchema = z.object({
   })).min(1).optional(),
   players: z.array(PlayerDefSchema).length(ROSTER.length),
   events: z.array(EventSchema),
-  // Named timeline bookmarks for replay review (docs/authoring-raids.md "Mechanic sections").
-  // Descriptive only: sections never affect the simulation.
   sections: z.array(z.object({
     id: EventIdSchema,
     name: z.string().min(1),
@@ -211,7 +182,6 @@ export const RaidSchema = z.object({
   optionals: OptionalsSchema,
   botSolvers: BotSolversSchema,
 }).superRefine((raid, ctx) => {
-  // Validate that boss ids in the bosses list are unique.
   if (raid.bosses) {
     const seenBossIds = new Set<string>();
     raid.bosses.forEach((boss, i) => {
@@ -221,9 +191,7 @@ export const RaidSchema = z.object({
       seenBossIds.add(boss.id);
     });
   }
-  // Compute the effective set of boss ids for bossId validation.
   const bossIds = raid.bosses ? new Set(raid.bosses.map(b => b.id)) : new Set(["boss"]);
-  // Validate that every event bossId references a declared boss.
   raid.events.forEach((event, i) => {
     const bossId = (event as { bossId?: string }).bossId;
     if (bossId !== undefined && !bossIds.has(bossId)) {
@@ -418,7 +386,7 @@ export const RaidSchema = z.object({
 
   ROSTER.forEach((expected, i) => {
     const player = raid.players[i];
-    if (!player) return; // length() already reported the count mismatch
+    if (!player) return;
     if (player.id !== expected.id || player.role !== expected.role) {
       ctx.addIssue({
         code: "custom",
@@ -491,7 +459,6 @@ export const RaidSchema = z.object({
     }
   });
 
-  // group events: validate member ids, and that links reference an earlier 2-group event.
   const groupEventsById = new Map<string, { t: number; groupCount: number }>();
   raid.events.forEach(event => {
     if (event.type === "group" || event.type === "effect_select") {
@@ -536,7 +503,6 @@ export const RaidSchema = z.object({
     }
   });
 
-  // spread_stack events: every stack-group member id must exist in the roster.
   raid.events.forEach((event, i) => {
     if (event.type !== "spread_stack") return;
     event.stack.groups.forEach((group, g) => {
@@ -552,7 +518,6 @@ export const RaidSchema = z.object({
     });
   });
 
-  // bait/dash events must reference an earlier `aoe` with deferred:true (the stored cleave).
   const deferredAoeById = new Map<string, { t: number; index: number }>();
   raid.events.forEach((event, i) => {
     if (event.type === "aoe" && event.deferred) deferredAoeById.set(event.id, { t: event.t, index: i });
@@ -575,7 +540,6 @@ export const RaidSchema = z.object({
     }
   });
 
-  // plant combination groups: every declared member id must exist in the roster.
   const plant = raid.optionals?.combinations?.plant;
   if (plant) {
     (["g1", "g2"] as const).forEach(key => {
@@ -650,7 +614,6 @@ export const RaidSchema = z.object({
     });
   }
 
-  // Polygons are placed in world coordinates; the anchoring options would be silently ignored.
   raid.events.forEach((event, i) => {
     if (event.type !== "aoe" || event.shape.kind !== "polygon") return;
     for (const field of ["anchor", "directionFrom", "aimAtPlayer", "bossRelativeCenter"] as const) {

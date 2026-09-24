@@ -4,8 +4,6 @@ import { createWorld } from "../world";
 import { HUMAN, baseRaid, human, loadRaid, roster, runTicks } from "./helpers";
 import type { Vec } from "./helpers";
 
-// --- Line links -----------------------------------------------------------
-
 const lineLinkEvent = (overrides: Record<string, unknown> = {}) => ({
   type: "line_link" as const,
   t: 0.1,

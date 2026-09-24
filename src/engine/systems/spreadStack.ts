@@ -1,7 +1,3 @@
-// Phase 3f: spread/stack "?" events. At cast start roll the flip and pick the stack-mode marked
-// member(s). The shown marker lies when inverted -> the actual mode is the opposite. At resolve,
-// spread drops a personal AOE on every player (overlap = extra hits); stack soaks on the marked.
-
 import type { TickContext } from "./context";
 import type { ActiveSpreadStack, PendingSpreadStack, AOEShape } from "@model/types";
 import { hitPlayersInShape, resolveStackShare } from "./strikes";
@@ -67,15 +63,12 @@ export function resolveSpreadStacks(ctx: TickContext): {
         }
         ss.outcome = "success";
       } else if (actual === "spread") {
-        // Each alive player drops a personal AOE; a player eats it once per circle they stand in.
         const owners = players.filter(p => p.alive);
         for (const owner of owners) {
           const circle: AOEShape = { kind: "circle", center: owner.pos, radius: ss.spread.radius };
           hitPlayersInShape(ctx, circle, ss.spread.damage, ss.damageType, mechanicSource(ctx, ss.id, ss.name, "spread"));
         }
       } else {
-        // One shared stack per marked player (one per group). For each: soakers inside split the
-        // hit; fewer than requiredCount -> that stack fails and each soaker eats the full damage.
         let allSucceeded = true;
         for (const id of ss.markedPlayerIds) {
           const marked = players.find(p => p.id === id);
@@ -89,7 +82,6 @@ export function resolveSpreadStacks(ctx: TickContext): {
     }
   }
 
-  // Keep briefly after resolve so the renderer can flash the hit.
   return {
     spreadStacks: cullResolved(spreadStacks, time, TARGETED_LINGER),
     pendingSpreadStacks: remainingPendingSpreadStacks,

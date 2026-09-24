@@ -1,6 +1,3 @@
-// Effect-select events: At spawn time choose a group/member (random / complement of a
-// linked event) and apply a visible effect to the chosen member.
-
 import type { TickContext } from "./context";
 import { applyStatus } from "@status";
 import { statusServices } from "./statusServices";

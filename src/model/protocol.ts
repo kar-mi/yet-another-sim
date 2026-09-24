@@ -3,7 +3,6 @@ import type { Control, Intent, Intents, Role, World } from "./types";
 
 export const MAX_OBSERVERS = 5;
 
-// Canonical raid roster: fixed ids, roles, and order. Every raid must match this exactly.
 export const ROSTER: readonly { id: string; role: Role }[] = [
   { id: "mt", role: "tank" },
   { id: "ot", role: "tank" },
@@ -15,24 +14,22 @@ export const ROSTER: readonly { id: string; role: Role }[] = [
   { id: "m2", role: "dps" },
 ];
 
-// Default clock spawns (radius 8). 12 o'clock = +z (north), 3 o'clock = +x (east), clockwise.
 const CLOCK_R = 8;
 const CLOCK_D = CLOCK_R / Math.SQRT2;
 export const CLOCK_SPOTS: Record<string, [number, number]> = {
-  mt: [0, CLOCK_R],         // 12
-  r2: [CLOCK_D, CLOCK_D],   // 1:30
-  h2: [CLOCK_R, 0],         // 3
-  m2: [CLOCK_D, -CLOCK_D],  // 4:30
-  ot: [0, -CLOCK_R],        // 6
-  m1: [-CLOCK_D, -CLOCK_D], // 7:30
-  h1: [-CLOCK_R, 0],        // 9
-  r1: [-CLOCK_D, CLOCK_D],  // 10:30
+  mt: [0, CLOCK_R],
+  r2: [CLOCK_D, CLOCK_D],
+  h2: [CLOCK_R, 0],
+  m2: [CLOCK_D, -CLOCK_D],
+  ot: [0, -CLOCK_R],
+  m1: [-CLOCK_D, -CLOCK_D],
+  h1: [-CLOCK_R, 0],
+  r1: [-CLOCK_D, CLOCK_D],
 };
 
 export const EMPTY_RAID_ID = "empty";
 
 export const RAID_SEGMENT_REGEX = /^[a-z0-9][a-z0-9-]{0,63}$/;
-// Raid ids are an optional category prefix plus a raid segment, e.g. "debug/chain-test".
 export const RAID_ID_REGEX = /^[a-z0-9][a-z0-9-]{0,63}(\/[a-z0-9][a-z0-9-]{0,63})?$/;
 export const MAX_RAIDS = 50;
 export const PARTICIPANT_ID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -113,8 +110,6 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
   z.strictObject({
     type: z.literal("stop"),
   }),
-  // Host returning to the lobby (Home). Stops the pull like "stop" but the server does not send the
-  // leaving host a "started" message (which the lobby would treat as a re-entry into the sim).
   z.strictObject({
     type: z.literal("leave"),
   }),
@@ -141,7 +136,6 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     type: z.literal("setBotsInvisible"),
     enabled: z.boolean(),
   }),
-  // Host-only: the replay every client in the session should be watching, or null for the live sim.
   z.strictObject({
     type: z.literal("setReplay"),
     view: z.strictObject({
@@ -161,21 +155,15 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     type: z.literal("intent"),
     intent: IntentSchema,
   }),
-  // Lockstep: the host signals that its local sim reached a terminal state (wiped/cleared) so the
-  // server can stop relaying and mark the pull done.
   z.strictObject({
     type: z.literal("simEnded"),
     tick: z.number().int().nonnegative(),
   }),
-  // Lockstep: clients periodically report a hash of their local world for desync detection.
   z.strictObject({
     type: z.literal("worldHash"),
     tick: z.number().int().nonnegative(),
     hash: z.number().int(),
   }),
-  // Lockstep: host-only periodic world snapshot for late-join anchoring. The server stores and
-  // relays this opaquely — it never interprets it. Trust note: the host is already canonical via
-  // DesyncTracker; accepting its world snapshot adds no new trust surface.
   z.strictObject({
     type: z.literal("snapshot"),
     formatVersion: z.number().int().nonnegative(),
@@ -199,15 +187,8 @@ export type SessionPhase = "setup" | "workshop" | "raid";
 export type PlaybackState = "idle" | "playing" | "paused" | "stopped" | "done";
 export type TransitionReason = "hostLost" | "noParticipants";
 
-// One simulated tick's worth of authoritative input in server-relayed lockstep. `intents` holds the
-// merged human intents keyed by playerId (a slot is human-controlled this tick exactly when it has
-// an entry — clients derive `control` from these keys so bot computation stays identical). A frame
-// carries no world state: every client steps `tick()` locally from these inputs.
-// `botsInvisible` is absent in replays recorded before bot invisibility existed; readers treat a
-// missing value as false.
 export type Frame = { intents: Intents; botsInvincible: boolean; botsInvisible?: boolean };
 
-// Shared replay playback position. The recording itself is fetched over HTTP by each client.
 export type ReplayView = { pull: number; playing: boolean; tick: number };
 
 export type ServerMessage =
@@ -235,16 +216,10 @@ export type ServerMessage =
       observerQueuedByYou: boolean;
     }
   | { type: "rngConstraintsResult"; ok: boolean }
-  // The pull's world at `baseTick` plus the input log tail from baseTick to `tick`. On a fresh start
-  // baseTick is 0 and frames is empty. For a late join / resync anchored to a host snapshot,
-  // baseTick is the snapshot tick and frames is only the tail — the client adopts the world and
-  // replays just the tail instead of the full log.
   | { type: "started"; world: World; baseTick: number; yourPlayerId: string | null; tick: number; frames: Frame[] }
   | { type: "playback"; state: PlaybackState; phase: SessionPhase; raidId: string; hostParticipantId: string; rngDecisions: DecisionDescription[] }
   | { type: "transition"; phase: SessionPhase; reason: TransitionReason }
   | { type: "sessionExpired" }
-  // Incremental input frames to step locally. `startTick` is the tick index of the first frame.
   | { type: "frames"; startTick: number; frames: Frame[] }
-  // The replay the host is showing everyone (null = live sim). A playing view's tick is current as of send.
   | { type: "replay"; view: ReplayView | null }
   | { type: "error"; message: string };

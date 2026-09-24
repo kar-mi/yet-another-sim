@@ -6,20 +6,17 @@ import type { Scene } from "@babylonjs/core/scene";
 import { applyAlphaTest } from "./billboards";
 
 const TEXTURE_SIZE = 128;
-// Reserve space for spikes without shrinking the pie.
 const SPIKE_PX = 12;
 const SPIKE_BASE_PX = 12;
 const EDGE_PX = 4;
 const PIE_RADIUS_PX = TEXTURE_SIZE / 2 - EDGE_PX - SPIKE_PX;
 const PIE_COLOR = "#ff9a1f";
-// Top boundary offset, clockwise from north.
 const PIE_ROTATION_DEG = 10;
 
 export const COUNTDOWN_PIE_PLANE_RATIO = (TEXTURE_SIZE / 2 - EDGE_PX) / PIE_RADIUS_PX;
 
 export type CountdownPie = {
   plane: Mesh;
-  // Redraws only when the slice counts change.
   draw(left: number, slices: number): void;
   dispose(): void;
 };
@@ -42,7 +39,6 @@ export function createCountdownPie(scene: Scene, name: string, size: number): Co
     const c = TEXTURE_SIZE / 2;
     const outer = PIE_RADIUS_PX;
     const step = (Math.PI * 2) / slices;
-    // Bearing clockwise from north -> canvas angle (0 = east, clockwise on screen).
     const angle = (k: number) => (PIE_ROTATION_DEG * Math.PI) / 180 + k * step - Math.PI / 2;
 
     ctx.clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);

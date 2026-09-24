@@ -2,16 +2,6 @@ import { expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 
-// Guard rail for deterministic lockstep: the simulation engine (src/engine) and the shared code it
-// pulls in (src/shared) may only use IEEE-754 operations that are correctly-rounded on every JS
-// engine. Math.sin/cos/atan2/... are implementation-defined and would silently desync clients, so
-// they are banned here — use src/shared/dmath.ts instead. Date.now is banned because it is wall
-// clock, not simulation state.
-//
-// Excluded: dmath.ts (the deterministic shim itself), rng.ts (its only nondeterminism is makeSeed,
-// the per-pull seed source, minted once and shared with every client), and logger.ts (app-log
-// timestamps, not simulation state).
-
 const FORBIDDEN = /\bMath\.(sin|cos|tan|sinh|cosh|tanh|atan2|atan|asin|acos|asinh|acosh|atanh|pow|exp|expm1|log|log1p|log2|log10|hypot|cbrt|random)\b|\b(?:Date|performance)\.now\b/;
 const SKIP = /(dmath\.ts|rng\.ts|logger\.ts|\.test\.ts)$|__tests__/;
 

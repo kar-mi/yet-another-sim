@@ -8,8 +8,6 @@ const raidData = Bun.YAML.parse(await Bun.file(`${RAID_DIR}/fertile-ground.yaml`
 const botData = Bun.YAML.parse(await Bun.file(`${RAID_DIR}/fertile-ground-bots.yaml`).text());
 const raid = applyBotPatterns(loadRaid(raidData), loadBotPatterns(botData));
 
-// Seeds 1-32 in batches of 8: one full pull with bots is ~0.1s, so 32 in one test brushes the 5s
-// default timeout when the whole suite runs in parallel.
 for (let first = 1; first <= 32; first += 8) {
   test(`Fertile Ground bots alternate every head beam while dodging overlapping Ancient III AOEs (seeds ${first}-${first + 7})`, () => {
     for (let seed = first; seed < first + 8; seed++) {

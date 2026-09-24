@@ -21,7 +21,6 @@ const spreadStackEvent = (over: Record<string, unknown> = {}) => ({
 });
 
 test("spread_stack: honest spread hits each player once alone, twice when overlapping", () => {
-  // m1 + m2 share a spot (each inside both circles -> 2x); r1 stands alone (1x).
   const raid = loadRaid({
     ...baseRaid,
     players: roster({
@@ -33,14 +32,13 @@ test("spread_stack: honest spread hits each player once alone, twice when overla
   });
   const w = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
   const hp = (id: string) => w.players.find(p => p.id === id)!.hp;
-  expect(hp("m1")).toBe(60); // in m1 + m2 circles -> 2 * 20
+  expect(hp("m1")).toBe(60);
   expect(hp("m2")).toBe(60);
-  expect(hp("r1")).toBe(80); // alone -> 1 * 20
-  expect(hp("mt")).toBe(TANK_HP - 20); // every player owns a circle, so each eats their own once
+  expect(hp("r1")).toBe(80);
+  expect(hp("mt")).toBe(TANK_HP - 20);
 });
 
 test("spread_stack: honest stack splits the hit among soakers on the marked player", () => {
-  // shown=stack marks h1 (single-member group). h1 + m1 + m2 stack; r1 stays out.
   const raid = loadRaid({
     ...baseRaid,
     players: roster({
@@ -51,19 +49,18 @@ test("spread_stack: honest stack splits the hit among soakers on the marked play
   });
   const w = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
   const hp = (id: string) => w.players.find(p => p.id === id)!.hp;
-  expect(hp("h1")).toBe(80); // 3 soakers -> 60/3 = 20 each
+  expect(hp("h1")).toBe(80);
   expect(hp("m1")).toBe(80);
   expect(hp("m2")).toBe(80);
-  expect(hp("r1")).toBe(DPS_HP); // outside the stack circle, untouched (no spread AOEs fired)
+  expect(hp("r1")).toBe(DPS_HP);
 });
 
 test("spread_stack: stack marks one player per group (two groups -> two stacks)", () => {
-  // Two groups -> m1 and h1 each anchor their own stack; the partner stacks on them, others stay out.
   const raid = loadRaid({
     ...baseRaid,
     players: roster({
-      m1: { spawn: [-8, 0] }, m2: { spawn: [-6, 0] },   // dps stack around m1
-      h1: { spawn: [8, 0] }, h2: { spawn: [6, 0] },      // healer stack around h1
+      m1: { spawn: [-8, 0] }, m2: { spawn: [-6, 0] },
+      h1: { spawn: [8, 0] }, h2: { spawn: [6, 0] },
       mt: { spawn: [0, 15] }, ot: { spawn: [0, -15] }, r1: { spawn: [15, 15] }, r2: { spawn: [-15, -15] },
     }),
     events: [spreadStackEvent({ shown: "stack", stack: { groups: [["m1"], ["h1"]], radius: 6, requiredCount: 2, damage: 80 } })],
@@ -71,17 +68,15 @@ test("spread_stack: stack marks one player per group (two groups -> two stacks)"
   const w = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
   const hp = (id: string) => w.players.find(p => p.id === id)!.hp;
   expect(w.spreadStacks[0].markedPlayerIds.sort()).toEqual(["h1", "m1"]);
-  expect(hp("m1")).toBe(60); // m1 + m2 split 80 -> 40 each
+  expect(hp("m1")).toBe(60);
   expect(hp("m2")).toBe(60);
-  expect(hp("h1")).toBe(60); // h1 + h2 split 80 -> 40 each
+  expect(hp("h1")).toBe(60);
   expect(hp("h2")).toBe(60);
-  expect(hp("mt")).toBe(TANK_HP); // outside both circles
+  expect(hp("mt")).toBe(TANK_HP);
   expect(hp("r1")).toBe(DPS_HP);
 });
 
 test("spread_stack: a '?' flips a shown spread into a stack", () => {
-  // shown=spread but questionMark -> actually a stack on h1. r1 (alone) would die to spread but is
-  // safe under a stack; only the soakers near the marked h1 take the split.
   const raid = loadRaid({
     ...baseRaid,
     players: roster({
@@ -94,8 +89,8 @@ test("spread_stack: a '?' flips a shown spread into a stack", () => {
   const w = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
   const hp = (id: string) => w.players.find(p => p.id === id)!.hp;
   expect(w.spreadStacks[0].inverted).toBe(true);
-  expect(hp("r1")).toBe(DPS_HP); // no spread AOE on r1 -> the cast really resolved as a stack
-  expect(hp("h1")).toBe(80);  // h1 + m1 soak 40 -> 20 each
+  expect(hp("r1")).toBe(DPS_HP);
+  expect(hp("h1")).toBe(80);
   expect(hp("m1")).toBe(80);
 });
 
@@ -106,7 +101,7 @@ test("spread_stack rng eventually picks both honest and flipped", () => {
   };
   const seen = new Set<boolean>();
   for (let i = 0; i < 40; i++) {
-    const w = tick(createWorld(loadRaid(raid)), {}, 1 / 60); // promote on first tick
+    const w = tick(createWorld(loadRaid(raid)), {}, 1 / 60);
     seen.add(w.spreadStacks[0].inverted);
   }
   expect(seen).toEqual(new Set([true, false]));
@@ -119,7 +114,7 @@ test("spread_stack shown:random eventually displays both spread and stack", () =
   };
   const seen = new Set<string>();
   for (let i = 0; i < 40; i++) {
-    const w = tick(createWorld(loadRaid(raid)), {}, 1 / 60); // promote on first tick
+    const w = tick(createWorld(loadRaid(raid)), {}, 1 / 60);
     seen.add(w.spreadStacks[0].shown);
   }
   expect(seen).toEqual(new Set(["spread", "stack"]));
@@ -137,12 +132,12 @@ test("spread_stack solver sends bots to the spot for the actual mode", () => {
       events: [spreadStackEvent({ t: 0, telegraph: 5, ...over })],
       botSolvers,
     });
-    return tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60); // promote
+    return tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
   };
   const mtMove = (w: World) => computeBotIntents(w, 1 / 60).mt.move.x;
-  expect(mtMove(mkWorld({ shown: "stack" }))).toBeGreaterThan(0);  // stack spot (+x)
-  expect(mtMove(mkWorld({ shown: "spread" }))).toBeLessThan(0);    // spread spot (-x)
-  expect(mtMove(mkWorld({ shown: "spread", questionMark: true }))).toBeGreaterThan(0); // lie -> stack spot
+  expect(mtMove(mkWorld({ shown: "stack" }))).toBeGreaterThan(0);
+  expect(mtMove(mkWorld({ shown: "spread" }))).toBeLessThan(0);
+  expect(mtMove(mkWorld({ shown: "spread", questionMark: true }))).toBeGreaterThan(0);
 });
 
 test("spread_stack solver picks spread spots by the active lightning orientation", () => {
@@ -167,14 +162,14 @@ test("spread_stack solver picks spread spots by the active lightning orientation
     });
     return tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
   };
-  expect(computeBotIntents(mk(false), 1 / 60).mt.move.x).toBeLessThan(0);    // honest -> shown spot (-x)
-  expect(computeBotIntents(mk(true), 1 / 60).mt.move.x).toBeGreaterThan(0);  // "?" -> inverted spot (+x)
+  expect(computeBotIntents(mk(false), 1 / 60).mt.move.x).toBeLessThan(0);
+  expect(computeBotIntents(mk(true), 1 / 60).mt.move.x).toBeGreaterThan(0);
 });
 
 test("spread_stack solver picks variant-b spots when the lightning rolls orientation b", () => {
   const botSolvers = { generic: [
-    { when: { mechanic: ["fire.spread", "lightning.shown.a"] }, spots: { mt: { x: -10, z: 0 } } },  // variant a (x axis)
-    { when: { mechanic: ["fire.spread", "lightning.shown.b"] }, spots: { mt: { x: 0, z: -10 } } },   // variant b (z axis)
+    { when: { mechanic: ["fire.spread", "lightning.shown.a"] }, spots: { mt: { x: -10, z: 0 } } },
+    { when: { mechanic: ["fire.spread", "lightning.shown.b"] }, spots: { mt: { x: 0, z: -10 } } },
   ] };
   const mk = () => {
     const raid = loadRaid({
@@ -183,7 +178,7 @@ test("spread_stack solver picks variant-b spots when the lightning rolls orienta
       events: [
         {
           type: "inverse", id: "lightning", t: 0, name: "Lightning", telegraph: 5,
-          damage: 0, damageType: "magical", variantRng: true, // honest (not inverted): tests shown vs shownB
+          damage: 0, damageType: "magical", variantRng: true,
           shownShapes: [{ kind: "circle", center: [50, 50], radius: 1 }],
           hiddenShapes: [{ kind: "circle", center: [50, 50], radius: 1 }],
           shownShapesB: [{ kind: "circle", center: [-50, -50], radius: 1 }],
@@ -199,11 +194,11 @@ test("spread_stack solver picks variant-b spots when the lightning rolls orienta
   for (let i = 0; i < 60; i++) {
     const w = mk();
     const move = computeBotIntents(w, 1 / 60).mt.move!;
-    if (w.inversions[0].variantB) {           // variant b -> shownB on the z axis
+    if (w.inversions[0].variantB) {
       expect(move.z).toBeLessThan(0);
       expect(Math.abs(move.x)).toBeLessThan(0.01);
       seen.b = true;
-    } else {                                   // variant a -> shown on the x axis
+    } else {
       expect(move.x).toBeLessThan(0);
       expect(Math.abs(move.z)).toBeLessThan(0.01);
       seen.a = true;
@@ -234,6 +229,6 @@ test("spread_stack solver picks stack spots by the active lightning orientation"
     });
     return tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 1 / 60);
   };
-  expect(computeBotIntents(mk(false), 1 / 60).mt.move.x).toBeLessThan(0);    // honest -> shown stack (-x)
-  expect(computeBotIntents(mk(true), 1 / 60).mt.move.x).toBeGreaterThan(0);  // "?" -> inverted stack (+x)
+  expect(computeBotIntents(mk(false), 1 / 60).mt.move.x).toBeLessThan(0);
+  expect(computeBotIntents(mk(true), 1 / 60).mt.move.x).toBeGreaterThan(0);
 });

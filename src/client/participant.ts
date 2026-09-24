@@ -17,7 +17,6 @@ function write(id: string): void {
   try {
     sessionStorage.setItem(PARTICIPANT_KEY, id);
   } catch {
-    // sessionStorage unavailable (e.g. private browsing) - the cached id lasts this page load.
   }
 }
 

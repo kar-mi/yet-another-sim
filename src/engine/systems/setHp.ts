@@ -1,6 +1,3 @@
-// set_hp events: set targeted alive players' HP to an absolute amount (clamped to maxHp).
-// Targeting mirrors apply_effect: default = all alive, optional role or players filter.
-
 import type { TickContext } from "./context";
 import type { PendingSetHp } from "@model/types";
 

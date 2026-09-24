@@ -75,7 +75,9 @@ docs/       # this folder
 `@shared/*`, `@model/*`, `@arena`, `@arena/*`, `@effects`, `@effects/*`, `@status` and `@status/*` are TypeScript
 path aliases (see `tsconfig.json`). The internal packages are documented separately in
 [The arena package](arena-package.md), [The effects package](effects-package.md), and
-[The status package](status-package.md); their import boundaries are enforced by tests. The
+[The status package](status-package.md); their import boundaries are enforced by tests. Source
+files carry no comments: non-obvious rules and workarounds live in
+[Code invariants & workarounds](invariants.md). The
 **engine runs on both the server and every client** — that shared execution is the heart of the
 networking model below.
 

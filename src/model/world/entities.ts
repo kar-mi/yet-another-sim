@@ -7,23 +7,23 @@ export type Player = {
   role: Role;
   control: Control;
   pattern?: Waypoint[];
-  botWaypointResumeAfter?: number; // forced movement ignores authored waypoints at or before this time
+  botWaypointResumeAfter?: number;
   pos: Vec2;
   y: number;
   verticalVelocity: number;
-  knockbackVelocity: Vec2; // horizontal forced-movement velocity (knockback/knockup)
-  lastMotionAt?: number; // last voluntary horizontal movement or jump
+  knockbackVelocity: Vec2;
+  lastMotionAt?: number;
   facing: number;
   hp: number;
   maxHp: number;
   mp: number;
   maxMp: number;
-  sprintCooldown: number; // seconds remaining on cooldown
-  antiKbCooldown: number; // seconds remaining on anti-knockback cooldown
-  provokeCooldown: number; // seconds remaining on provoke cooldown (tank threat grab)
-  targetBossId: string;   // which boss this player is focused on (used by provoke + target ring)
+  sprintCooldown: number;
+  antiKbCooldown: number;
+  provokeCooldown: number;
+  targetBossId: string;
   cooldownsDisabled: boolean;
-  invincible: boolean;    // when true, takes no damage and cannot die (practice mode)
+  invincible: boolean;
   alive: boolean;
   effects: StatusEffect[];
 };
@@ -35,22 +35,22 @@ export type Boss = {
   hp: number;
   maxHp: number;
   radius: number;
-  facing: number;                  // radians, 0 = +Z (matches player facing convention)
-  currentTarget: string | null;    // player id with top threat
-  threat: Record<string, number>;  // playerId -> threat value
-  ringScale: number;               // floor-ring visual scale (BossRingLayer)
-  ringColor: string;               // floor-ring hex color
-  model: string;                   // glb filename stem under /static/model/ (without extension)
-  modelScale: number;              // multiplier applied on top of the base model scale
+  facing: number;
+  currentTarget: string | null;
+  threat: Record<string, number>;
+  ringScale: number;
+  ringColor: string;
+  model: string;
+  modelScale: number;
   targetable: boolean;
-  hidden: boolean;                 // when true, the model is not drawn (e.g. boss ducked under the map)
-  sinkFraction: number;             // 0..1 fraction of model body height sunk below the ground (e.g. boss positioned under the map)
+  hidden: boolean;
+  sinkFraction: number;
 };
 
 export type Intent = {
   move: Vec2;
-  facing?: number;             // absolute facing in radians (atan2(x, z)); when set, overrides movement-derived facing
-  solverDirected?: boolean;    // bot only: solver is actively steering this tick; stamp botWaypointResumeAfter
+  facing?: number;
+  solverDirected?: boolean;
   jump?: boolean;
   sprint?: boolean;
   antiKnockback?: boolean;

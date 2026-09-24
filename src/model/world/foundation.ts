@@ -15,9 +15,7 @@ export type Status = "running" | "cleared" | "wiped";
 export type Waymark = { mark: WaymarkId; pos: Vec2 };
 
 export type ElementGlyph = { at: Vec2; kind?: ElementGlyphKind };
-// Visual ring expanding during a cast.
 export type ElementRing = { center: Vec2; radius: number; kind?: ElementGlyphKind };
-// Wait at from until departAt, then reach the shape center at resolve.
 export type Mover = { from: Vec2; departAt: number; scale?: number; sprite?: boolean };
 export type Crystal = { id: string; element: CrystalElement; pos: Vec2; spawnAt: number };
 
@@ -26,9 +24,6 @@ export type Waypoint = { t: number; pos: Vec2 };
 export type TelegraphMode = "cast" | "resolve";
 export type FlashBeforeResolve = { lead: number; color?: string };
 
-// Arc relative to the boss's facing (radians). A directional attack only hits players whose
-// bearing from the boss is within `width/2` of `center`. center is measured clockwise from the
-// facing direction: 0 = front, π = rear, π/2 = boss's right, -π/2 = left, π/4 = front-right, etc.
 export type PositionalArc = { center: number; width: number };
 export type BossRelativeCenter = { lateral: number; forward: number };
 export type MechanicSection = { id: string; name: string; t: number };

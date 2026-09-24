@@ -31,8 +31,6 @@ export function invertFramePosition(pos: Vec2, north: Vec2, rightSign: 1 | -1 = 
   };
 }
 
-// Render one frame reference for the readout label/descriptor: a bare event id, crystal:<element>,
-// or boss:<id>:<from>.
 function frameRefLabel(ref: FrameRef): string {
   if (typeof ref === "string") return ref;
   if ("crystal" in ref) return `crystal:${ref.crystal}`;

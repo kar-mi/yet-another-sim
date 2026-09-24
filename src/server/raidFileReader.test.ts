@@ -5,8 +5,6 @@ import { join } from "path";
 
 const RAIDS_DIR = join(import.meta.dir, "..", "..", "raids");
 
-// --- Bun.YAML capability probes ---
-
 describe("Bun.YAML", () => {
   test("parses basic YAML", () => {
     const result = Bun.YAML.parse("name: hello\nvalue: 42") as Record<string, unknown>;
@@ -33,20 +31,14 @@ event:
   name: Tower
 `;
     const result = Bun.YAML.parse(yaml) as { event: Record<string, unknown> };
-    // Merge keys are part of YAML 1.1 — document whether Bun supports them.
-    // If this fails, use plain anchors/aliases only (no merge keys).
     expect(result.event.radius).toBe(3);
     expect(result.event.damage).toBe(30);
     expect(result.event.name).toBe("Tower");
   });
 });
 
-// --- readRaidObject ---
-
 describe("readRaidObject", () => {
   test("a debug raid directory parses and passes loadRaid", async () => {
-    // Exercises readRaidObject -> loadRaid wiring without pinning the authored contents (name,
-    // event count, per-event types) of the file, which the designer owns.
     const obj = await readRaidObject(join(RAIDS_DIR, "debug/tower-test"));
     const raid = loadRaid(obj);
     expect(raid.name).toBeTruthy();

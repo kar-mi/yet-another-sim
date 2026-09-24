@@ -1,4 +1,3 @@
-/* ===== MAIN MENU ===== */
 #yas-menu {
   position: fixed;
   inset: 0;
@@ -272,7 +271,6 @@
   transform: translateX(-50%);
 }
 
-/* ===== PULL TIMER ===== */
 #yas-timer {
   position: fixed;
   top: 70px;
@@ -391,7 +389,6 @@
   color: var(--px-text-dim);
 }
 
-/* ===== RAID SELECTOR MODAL ===== */
 #yas-raid-modal,
 #yas-replay-modal,
 #yas-rng-modal {
@@ -404,9 +401,6 @@
   background: rgba(10, 12, 18, 0.9);
 }
 
-/* ===== GUIDED TOUR ===== */
-/* Above #info-panel (220), #settings-panel (210) and the top buttons (210) so the spotlight sits on
-   top when reopened from the About panel's GETTING STARTED button. */
 #yas-tour {
   position: fixed;
   inset: 0;
@@ -414,7 +408,6 @@
   pointer-events: none;
 }
 
-/* Swallows every click aimed at the simulator underneath; clicking it does nothing. */
 .yas-tour-blocker {
   position: absolute;
   inset: 0;
@@ -425,7 +418,6 @@
   background: rgba(10, 12, 18, 0.9);
 }
 
-/* The spread shadow dims the whole viewport except the highlighted control inside the ring. */
 .yas-tour-halo {
   position: fixed;
   border: 2px solid var(--px-accent);
@@ -436,7 +428,6 @@
 
 .yas-tour-card {
   position: fixed;
-  /* max-width/max-height are set from layout(): viewport units ignore the root's zoom. */
   width: 460px;
   overflow-y: auto;
   pointer-events: auto;
@@ -997,7 +988,6 @@
   opacity: 0.7;
 }
 
-/* ===== SESSION ID BADGE ===== */
 #yas-session-id {
   position: fixed;
   bottom: 12px;
@@ -1026,7 +1016,6 @@
   font-family: var(--px-font);
 }
 
-/* ===== STATUS OVERLAY ===== */
 #yas-status {
   position: fixed;
   inset: 0;
@@ -1097,7 +1086,6 @@
   outline: none;
 }
 
-/* HUD groups are user-select:none; the search box is the one place typing needs selection. */
 .yas-review-search {
   user-select: text;
 }
@@ -1152,7 +1140,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--review-row-gap);
-  /* Five rows, their gaps, and the list's own padding + border. */
   max-height: calc(5 * var(--review-row-height) + 4 * var(--review-row-gap) + 10px);
   overflow-y: auto;
   padding: 4px;
@@ -1235,14 +1222,10 @@
   white-space: nowrap;
 }
 
-/* Section navigator: independent of the event filters, so it always lists every mechanic. */
 .yas-review-sections {
   width: 190px;
 }
 
-/* ===== DROPDOWN ===== */
-/* Trigger + option list built from the raid picker's parts, so the popup is themed rather than
-   drawn as OS chrome the way a native <select> would be. */
 .yas-dropdown {
   position: relative;
 }
@@ -1303,7 +1286,6 @@
   scrollbar-width: thin;
 }
 
-/* An author `display` beats the hidden attribute's UA rule, so restate it. */
 .yas-dropdown-menu[hidden] {
   display: none;
 }
@@ -1345,11 +1327,8 @@
 }
 
 
-/* Seek bar HUD group: the scrubber, its death markers, the timestamp and the section picker. */
 #yas-replay-seekbar {
   position: fixed;
-  /* `top` is the box centre (see the transform below), so the floor leaves room for the
-     panel's top half and the default never starts off-screen on a short viewport. */
   top: max(88px, calc(50% - 500px));
   left: 50%;
   transform: translate(-50%, -50%);

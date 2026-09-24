@@ -1,30 +1,25 @@
-/* ===== DESIGN TOKENS (Modern 2.5D pixel — amber on slate) ===== */
 :root {
-  --px-bg-0:     #0e1118;  /* deepest, overlay backdrops */
-  --px-bg-1:     #1b1f2b;  /* slate panel fill */
-  --px-bg-2:     #252b3a;  /* raised button / input fill */
-  --px-sunken:   #0b0e15;  /* inset bar tracks */
-  --px-edge:     #3a4256;  /* steel border */
-  --px-edge-hi:  rgba(255, 255, 255, 0.07); /* top bevel highlight */
-  --px-accent:   #ffc24d;  /* amber accent — active states + key data */
-  --px-accent-dim: #b8862f; /* darker amber for fills */
-  --px-glow:     rgba(255, 194, 77, 0.35); /* accent glow */
-  --px-ink:      #2a1d05;  /* dark text on filled-amber buttons */
-  --px-text:     #e8edf7;  /* primary text */
-  --px-text-dim: #8b96ad;  /* labels / secondary text */
-  --px-shadow:   #05070c;  /* hard drop shadow */
-  --px-hp:       #5ad16a;  /* health green */
-  --px-mp:       #4aa3ff;  /* MP blue */
-  --px-danger:   #ff5d5d;  /* debuff / wipe red */
-  --px-cast:     #e07a1f;  /* orange cast bars */
+  --px-bg-0:     #0e1118;
+  --px-bg-1:     #1b1f2b;
+  --px-bg-2:     #252b3a;
+  --px-sunken:   #0b0e15;
+  --px-edge:     #3a4256;
+  --px-edge-hi:  rgba(255, 255, 255, 0.07);
+  --px-accent:   #ffc24d;
+  --px-accent-dim: #b8862f;
+  --px-glow:     rgba(255, 194, 77, 0.35);
+  --px-ink:      #2a1d05;
+  --px-text:     #e8edf7;
+  --px-text-dim: #8b96ad;
+  --px-shadow:   #05070c;
+  --px-hp:       #5ad16a;
+  --px-mp:       #4aa3ff;
+  --px-danger:   #ff5d5d;
+  --px-cast:     #e07a1f;
 
-  /* Font options — JS swaps --px-font between these via the Display tab dropdown. */
   --font-pixel:    'Jersey 10', monospace;
   --font-readable: 'Chakra Petch', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, system-ui;
   --px-font: var(--font-readable);
-  /* Chakra Petch renders larger than Jersey 10 at the same px, so shrink it (via
-     font-size-adjust) to match Jersey 10's x-height. Only applied in readable mode;
-     'none' leaves Jersey 10 untouched. Nudge this value to fine-tune the match. */
   --font-readable-adjust: 0.43;
   --px-font-adjust: var(--font-readable-adjust);
 }

@@ -1,6 +1,3 @@
-// Phase 3d: group events. At cast start pick a group (random / complement of a linked event) and a
-// random member to mark; at resolve split the unavoidable damage across whoever stacks in.
-
 import type { TickContext } from "./context";
 import { applyStatus } from "@status";
 import { statusServices } from "./statusServices";
@@ -23,7 +20,7 @@ export function resolveGroups(ctx: TickContext): {
       let chosenIdx: number;
       const linkedIdx = pg.link !== undefined ? groupChoices[pg.link] : undefined;
       if (linkedIdx !== undefined) {
-        chosenIdx = 1 - linkedIdx; // 2-group complement (validated by the schema)
+        chosenIdx = 1 - linkedIdx;
       } else if (pg.rng) {
         chosenIdx = randInt(pg.groups.length);
       } else {
@@ -56,9 +53,6 @@ export function resolveGroups(ctx: TickContext): {
     }
   }
 
-  // Rebuild each stack circle's FloorAoe every tick from the marked player's live position (they can
-  // move mid-cast), matching the old renderer's per-frame reposition. Hidden once resolved or if the
-  // marked player has died.
   for (const gm of groupMechanics) {
     if (gm.resolved || !gm.showTelegraph) { gm.floorAoe = undefined; continue; }
     const marked = players.find(p => p.id === gm.markedPlayerId);
@@ -75,8 +69,6 @@ export function resolveGroups(ctx: TickContext): {
 
   for (const gm of groupMechanics) {
     if (!gm.resolved && gm.resolveAt <= time) {
-      // Shared stack: a circle around the marked player. Soakers inside split the damage; if
-      // fewer than requiredCount stack, it fails and each soaker eats the full (unsplit) hit.
       const marked = players.find(p => p.id === gm.markedPlayerId);
       if (marked?.alive) {
         const circle: AOEShape = { kind: "circle", center: marked.pos, radius: gm.radius };
@@ -91,7 +83,6 @@ export function resolveGroups(ctx: TickContext): {
     }
   }
 
-  // Keep briefly after resolve so the renderer can flash the hit.
   return {
     groupMechanics: cullResolved(groupMechanics, time, TARGETED_LINGER),
     pendingGroups: remainingPendingGroups,

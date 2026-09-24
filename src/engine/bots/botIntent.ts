@@ -36,7 +36,6 @@ export function computeBotIntents(world: World, dt: number): Intents {
 
     let intent: Intents[string] | undefined;
 
-    // A solver hold freezes bots in place until botHoldUntil (set when a matching mechanic resolved).
     if (held) {
       intent = { move: { x: 0, z: 0 } };
     } else {

@@ -20,7 +20,6 @@ export type MeshGlowOptions = {
   blurKernelSize?: number;
 };
 
-// Per-highlight overrides; anything omitted falls back to the options the glow was built with.
 type MeshGlowHighlight = {
   haloPosition?: Vector3;
   haloScale?: number;
@@ -30,16 +29,11 @@ type MeshGlowHighlight = {
 };
 
 export type MeshGlow = {
-  // Compile the glow shaders for meshes whose art may still be loading.
   warm(meshes: Iterable<AbstractMesh>): void;
-  // Light `meshes` and place the halo. `time` is in seconds; null or an empty list clears it.
   highlight(meshes: AbstractMesh[] | null, time: number, override?: MeshGlowHighlight): void;
   dispose(): void;
 };
 
-// A pulsing glow around an arbitrary set of meshes, plus a soft camera-facing halo. The halo is
-// parented to `haloParent` rather than a target mesh, so the glow layer does not blur it into a
-// solid blob.
 export function createMeshGlow(scene: Scene, name: string, haloParent: Mesh, options: MeshGlowOptions): MeshGlow {
   const halo = CreatePlane(`${name}-halo`, { size: 1 }, scene);
   halo.billboardMode = Mesh.BILLBOARDMODE_ALL;
@@ -49,7 +43,6 @@ export function createMeshGlow(scene: Scene, name: string, haloParent: Mesh, opt
   halo.setEnabled(false);
   halo.material.forceCompilation(halo);
 
-  // Disable an empty glow layer: an empty include list would glow everything.
   const glow = new GlowLayer(name, scene, { blurKernelSize: options.blurKernelSize ?? 96 });
   const glowColor = options.glowColor.clone();
   glow.customEmissiveColorSelector = (_mesh, _subMesh, _material, result) => result.copyFrom(glowColor);
@@ -61,7 +54,7 @@ export function createMeshGlow(scene: Scene, name: string, haloParent: Mesh, opt
 
   return {
     warm(meshes) {
-      if (warmed.size === 0) glow.isLayerReady(); // creates the merge effect
+      if (warmed.size === 0) glow.isLayerReady();
       for (const mesh of meshes) {
         if (warmed.has(mesh) || !mesh.material || !mesh.subMeshes) continue;
         warmed.add(mesh);
@@ -75,8 +68,6 @@ export function createMeshGlow(scene: Scene, name: string, haloParent: Mesh, opt
         for (const mesh of next) glow.addIncludedOnlyMesh(mesh as Mesh);
         included = next;
       }
-      // Babylon skips the include filter when the list is empty, so an enabled layer with no
-      // targets glows every emissive mesh in the scene.
       const lit = next.length > 0;
       glow.isEnabled = lit;
       halo.setEnabled(lit);
@@ -103,7 +94,6 @@ export function createMeshGlow(scene: Scene, name: string, haloParent: Mesh, opt
   };
 }
 
-// A soft sphere: faint in the middle so the target shows through, brightest toward the rim.
 function haloMaterial(scene: Scene, name: string, color: Color3): StandardMaterial {
   const tex = new DynamicTexture(`${name}-tex`, { width: 128, height: 128 }, scene, false);
   const ctx = tex.getContext();
@@ -125,7 +115,6 @@ function haloMaterial(scene: Scene, name: string, color: Color3): StandardMateri
   mat.specularColor = new Color3(0, 0, 0);
   mat.disableLighting = true;
   mat.disableDepthWrite = true;
-  // The camera-facing plane cuts through the target slab; depth testing would clip it along a seam.
   mat.depthFunction = Constants.ALWAYS;
   mat.backFaceCulling = false;
   mat.alphaMode = Constants.ALPHA_ADD;

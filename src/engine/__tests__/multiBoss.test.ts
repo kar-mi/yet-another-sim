@@ -5,8 +5,6 @@ import { loadRaid as loadRaidRaw } from "../schema/raidLoader";
 import { INITIAL_TANK_THREAT } from "@shared/constants";
 import { baseRaid, byId, loadRaid, roster, runTicks } from "./helpers";
 
-// ─── Schema ───────────────────────────────────────────────────────────────────
-
 test("schema: single boss: form is accepted and normalizes to bosses[0]", () => {
   const raid = loadRaid({ ...baseRaid, events: [] });
   expect(raid.bosses).toHaveLength(1);
@@ -138,8 +136,6 @@ test("schema: rejects a solver origin that references an undeclared boss", () =>
   })).toThrow(/solver origin boss id/);
 });
 
-// ─── World creation ───────────────────────────────────────────────────────────
-
 test("createWorld: single-boss raid produces boss === bosses[0]", () => {
   const raid = loadRaid({ ...baseRaid, events: [] });
   const world = createWorld(raid);
@@ -163,11 +159,9 @@ test("createWorld: multi-boss raid produces N bosses each with independent threa
 
   const chaos = world.bosses[0]!;
   const exdeath = world.bosses[1]!;
-  // Each boss has its own threat table (separate objects, same initial values)
   expect(chaos.threat).not.toBe(exdeath.threat);
   expect(chaos.threat.mt).toBe(INITIAL_TANK_THREAT);
   expect(exdeath.threat.mt).toBe(INITIAL_TANK_THREAT);
-  // Both start targeting mt (top threat from INITIAL_TANK_THREAT seed)
   expect(chaos.currentTarget).toBe("mt");
   expect(exdeath.currentTarget).toBe("mt");
 });
@@ -186,8 +180,6 @@ test("createWorld: per-boss aggro seed makes boss face a specific tank", () => {
   expect(world.bosses[1]!.currentTarget).toBe("ot");
 });
 
-// ─── Tick: independent facing ─────────────────────────────────────────────────
-
 test("tick: each boss faces its own current target independently", () => {
   const raid = loadRaidRaw({
     ...baseRaid,
@@ -204,11 +196,8 @@ test("tick: each boss faces its own current target independently", () => {
   const exdeath = world.bosses.find(b => b.id === "exdeath")!;
   expect(chaos.currentTarget).toBe("mt");
   expect(exdeath.currentTarget).toBe("ot");
-  // Bosses face different directions since their targets are on opposite sides of the arena.
   expect(chaos.facing).not.toBe(exdeath.facing);
 });
-
-// ─── Tick: bossId-anchored AOE uses the correct boss ─────────────────────────
 
 test("tick: bossId-anchored cone snapshots the named boss's position, not the primary", () => {
   const raid = loadRaidRaw({
@@ -239,14 +228,11 @@ test("tick: bossId-anchored cone snapshots the named boss's position, not the pr
   const primary = world.bosses.find(b => b.id === "primary")!;
   expect(promoted).toBeDefined();
   if (promoted && promoted.shape.kind === "cone") {
-    // Origin should be the secondary boss's live position, not the primary boss's position.
     expect(promoted.shape.origin.x).toBeCloseTo(secondary.pos.x);
     expect(promoted.shape.origin.z).toBeCloseTo(secondary.pos.z);
     expect(Math.hypot(promoted.shape.origin.x - primary.pos.x, promoted.shape.origin.z - primary.pos.z)).toBeGreaterThan(1);
   }
 });
-
-// ─── Tick: bossId targeted aggro uses the named boss's target ─────────────────
 
 test("tick: targeted aggro with bossId hits that boss's current target", () => {
   const raid = loadRaidRaw({
@@ -272,11 +258,9 @@ test("tick: targeted aggro with bossId hits that boss's current target", () => {
       },
     ],
   });
-  // ot is near [12, 0]; mt is at [-12, 0]. Exdeath targets ot (its aggro seed).
   const world = runTicks(createWorld(raid), {}, Math.ceil(2.1 * 60));
   const mt = world.players.find(p => p.id === "mt")!;
   const ot = world.players.find(p => p.id === "ot")!;
-  // ot should have taken damage from exdeath's buster; mt should not.
   expect(ot.hp).toBeLessThan(ot.maxHp);
   expect(mt.hp).toBe(mt.maxHp);
 });

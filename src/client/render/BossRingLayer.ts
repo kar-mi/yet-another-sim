@@ -8,11 +8,9 @@ import type { Scene } from "@babylonjs/core/scene";
 import type { Boss } from "@model/types";
 import { filteredCirclePaths } from "@effects/babylon";
 
-const RING_Y = 0.03;        // just above the floor, matching other ground meshes
-const INNER_SCALE = 0.9;    // inner ring radius relative to the outer (boss.radius)
-const TUBE_RADIUS = 0.06;   // ring line thickness
-// Connected front arc (0 = facing) wrapping to the SE/SW intercardinals (±135°),
-// leaving only the rear 90° open. Draw only within REAR_OPENING_HALF of the front.
+const RING_Y = 0.03;
+const INNER_SCALE = 0.9;
+const TUBE_RADIUS = 0.06;
 const REAR_OPENING_HALF = (3 * Math.PI) / 4;
 
 function angleDiff(a: number, b: number): number {
@@ -44,8 +42,8 @@ export class BossRingLayer {
     const white = this.makeMaterial("boss-ring-red-2", ringColor);
 
     const radius = boss.radius * boss.ringScale;
-    this.buildRing(radius, red);                // outer ring red
-    this.buildRing(radius * INNER_SCALE, white); // inner ring white
+    this.buildRing(radius, red);
+    this.buildRing(radius * INNER_SCALE, white);
     this.buildMarkers(radius, red, white);
   }
 
@@ -60,7 +58,6 @@ export class BossRingLayer {
     return mat;
   }
 
-  // A flat ring outline drawn as tube segments, skipping the cut gaps.
   private buildRing(radius: number, material: StandardMaterial): void {
     for (const path of filteredCirclePaths(
       0,
@@ -79,21 +76,18 @@ export class BossRingLayer {
     }
   }
 
-  // Facing markers: front triangle pointing outward (+Z), plus small E/W
-  // triangles inside the ring pointing north (toward facing).
   private buildMarkers(radius: number, red: StandardMaterial, white: StandardMaterial): void {
     const frontTip = radius * 0.2, frontHalf = radius * 0.07;
     this.addTriangle([
-      0, 0, radius + frontTip, // tip (outward)
+      0, 0, radius + frontTip,
       -frontHalf, 0, radius,
       frontHalf, 0, radius,
     ], red);
 
-    // Small E/W markers inside the ring, both pointing north (+Z, toward facing).
     const sideX = radius * 0.9, sideLen = radius * 0.16, sideHalf = radius * 0.1;
     for (const cx of [sideX, -sideX]) {
       this.addTriangle([
-        cx, 0, sideLen / 2,            // tip (north)
+        cx, 0, sideLen / 2,
         cx - sideHalf, 0, -sideLen / 2,
         cx + sideHalf, 0, -sideLen / 2,
       ], white);

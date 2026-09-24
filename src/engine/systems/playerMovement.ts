@@ -1,7 +1,3 @@
-// Phase 1: per-player movement, jump/sprint/anti-knockback/provoke cooldowns, confusion walk,
-// forced-movement (knockback) carry, vertical physics, and void death. Mutates players, the boss
-// threat table (provoke), the log, and the actedByPlayer map (read later by status-effect dots).
-
 import type { TickContext } from "./context";
 import { add, sub, scale, normalize, length } from "@shared/math";
 import { isOnFloor } from "@arena";
@@ -50,7 +46,6 @@ export function applyPlayerMovement(ctx: TickContext): void {
       player.antiKbCooldown = player.cooldownsDisabled ? 0 : ANTI_KB_COOLDOWN;
     }
 
-    // cycleTarget: advance to the next alive, targetable boss in the bosses list (all roles).
     if (intent?.cycleTarget) {
       const aliveBosses = bosses.filter(b => b.hp > 0 && b.targetable !== false);
       if (aliveBosses.length > 0) {
@@ -59,7 +54,6 @@ export function applyPlayerMovement(ctx: TickContext): void {
       }
     }
 
-    // Provoke: tank-only threat grab. Bumps this tank above the current max on the targeted boss.
     if (intent?.provoke && player.role === "tank" && player.provokeCooldown <= 0) {
       const target = bosses.find(b => b.id === player.targetBossId && b.hp > 0 && b.targetable !== false) ?? bosses.find(b => b.targetable !== false);
       if (target) {
@@ -75,7 +69,6 @@ export function applyPlayerMovement(ctx: TickContext): void {
     }
     if (player.antiKbCooldown > 0) player.antiKbCooldown = Math.max(0, player.antiKbCooldown - dt);
 
-    // Forced movement (knockback/knockup) suppresses normal input while it carries the player.
     const beingKnocked = length(player.knockbackVelocity) > 1e-6;
     const speed = MOVE_SPEED * movementSpeedMultiplier(player, time);
     if (!beingKnocked && forcedWalk) {
@@ -89,20 +82,14 @@ export function applyPlayerMovement(ctx: TickContext): void {
       player.pos = add(player.pos, scale(normalize(intent.move), speed * dt));
       player.facing = intent.facing ?? atan2(intent.move.x, intent.move.z);
     } else if (!beingKnocked && intent && intent.facing !== undefined) {
-      // Facing-only update (e.g. turning in place while stationary).
       player.facing = intent.facing;
     }
     if (beingKnocked) {
       player.pos = add(player.pos, scale(player.knockbackVelocity, dt));
     }
 
-    // Vertical physics: gravity applies while airborne or while over the void (off-floor).
-    // Landing only catches a player descending through the floor from above (prevY >= 0),
-    // so a player who has already sunk below the floor keeps falling even back over a zone.
     const grounded = isOnFloor(player.pos, ctx.world.arena.zones);
 
-    // Ground friction decelerates a horizontal knockback to rest after its target distance.
-    // An airborne knockup keeps constant horizontal velocity until it lands.
     if (beingKnocked && grounded && player.y <= 0) {
       const sp = Math.max(0, length(player.knockbackVelocity) - KNOCKBACK_FRICTION * dt);
       player.knockbackVelocity = sp > 0 ? scale(normalize(player.knockbackVelocity), sp) : { x: 0, z: 0 };
@@ -115,11 +102,10 @@ export function applyPlayerMovement(ctx: TickContext): void {
       if (grounded && prevY >= 0 && player.y <= 0) {
         player.y = 0;
         player.verticalVelocity = 0;
-        player.knockbackVelocity = { x: 0, z: 0 }; // a knockup lands cleanly at its target distance
+        player.knockbackVelocity = { x: 0, z: 0 };
       }
     }
 
-    // Falling off the map kills even an invincible player — invincibility only negates damage.
     if (player.y <= DEATH_FLOOR_Y) {
       const wasAlive = player.alive;
       player.hp = 0;

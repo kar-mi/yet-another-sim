@@ -9,7 +9,6 @@ import type { EffectBundle, EffectSpec, Knockback, Reassign } from "./effects";
 export type ActiveMechanic = {
   id: string;
   name: string;
-  // Optional bot-solver labels/group carried from the authored event (see GenericSolverRule).
   labels?: string[];
   group?: string;
   bossId?: string;
@@ -22,14 +21,8 @@ export type ActiveMechanic = {
   applyEffects?: EffectBundle;
   knockback?: Knockback;
   positional?: PositionalArc;
-  // While unresolved and casting, the boss holds its facing instead of tracking its target.
   lockFacing?: boolean;
-  // While unresolved and casting, the boss does not move toward its target.
   bossStationary?: boolean;
-  // Stored-cleave (deferred) support: a `deferred` mechanic shows its own cast bar, then sits dormant
-  // (no telegraph, unresolved) until a linked `bait` arms it. `armed` flips it back to a normal
-  // resolving cone/rect; the anchor fields let its geometry be recomputed from the boss's locked
-  // facing at arm time (see promotePending + resolveAoe).
   deferred?: boolean;
   armed?: boolean;
   telegraphDuration?: number;
@@ -42,37 +35,19 @@ export type ActiveMechanic = {
   sideOrbAfter?: string;
   resolved: boolean;
   showCastBar: boolean;
-  // When false, the ground telegraph is never drawn; the cast bar and damage still apply.
   showTelegraph: boolean;
-  // "resolve" hides the marker while casting, then uses the normal resolved flash.
   telegraphMode?: TelegraphMode;
-  // The render-facing wrapper for this mechanic's ground telegraph. Absent when showTelegraph is
-  // false. Reassigned (not mutated) whenever `shape` changes, e.g. targeting resolution.
   floorAoe?: FloorAoe;
-  // When set, the circle's target (and center) is chosen at resolve time, not cast start.
-  // The ground telegraph stays hidden until it resolves. "aggro" picks the boss's current
-  // threat target (the player holding aggro).
   targeting?: { mode: "closest" | "furthest" | "aggro"; role?: Role; origin: Vec2; count?: number };
-  // Optional post-resolve visual linger override. Used by instant resolved visuals that would
-  // otherwise only survive one simulation tick.
   lingerFor?: number;
-  // Render-only: flash the footprint in this color for the final `lead` seconds before the hit.
   flashBeforeResolve?: FlashBeforeResolve;
-  // Ground telegraph color (hex). Kept alongside showTelegraph/telegraphMode/flashBeforeResolve so a
-  // deferred cleave can rebuild floorAoe when a bait arms it (see buildFloorAoe).
   color?: string;
   outline?: boolean;
   telegraphAlpha?: number;
-  // Element glyph shown while unresolved.
   glyph?: ElementGlyph;
-  // Visual ring expanding during the cast.
   ring?: ElementRing;
-  // Visual mover travelling to the shape center.
   mover?: Mover;
-  // Element pattern on the footprint. Kept here (like color/outline) so a deferred cleave can
-  // rebuild floorAoe when a bait arms it.
   element?: ElementGlyphKind;
-  // Authored effect overrides; glow is read by the boss layer, the rest ride the FloorAoe.
   vfx?: Vfx;
 };
 
@@ -91,7 +66,6 @@ export type PendingEvent = {
   applyEffects?: EffectBundle;
   knockback?: Knockback;
   positional?: PositionalArc;
-  // For cone/rect: resolve origin/direction from the boss at cast start (see promotePending).
   anchor?: "boss";
   directionFrom?: "bossFacing";
   directionOffset?: number;
@@ -99,7 +73,6 @@ export type PendingEvent = {
   aimAtPlayer?: string;
   lockFacing?: boolean;
   bossStationary?: boolean;
-  // When true, this cleave is stored: it does not resolve at its own cast end; a linked bait arms it.
   deferred?: boolean;
   requireFullHp?: boolean;
   onlyCarriers?: boolean;
@@ -110,9 +83,7 @@ export type PendingEvent = {
   linger?: number;
   bossRelativeCenter?: BossRelativeCenter;
   flashBeforeResolve?: FlashBeforeResolve;
-  // Ground telegraph color (hex). Defaults to the standard danger red when omitted.
   color?: string;
-  // Outline telegraph.
   outline?: boolean;
   telegraphAlpha?: number;
   glyph?: ElementGlyph;
@@ -144,9 +115,6 @@ export type PendingTargetedEvent = {
 };
 
 
-// A bait selects a player at cast START (random/closest/furthest) and turns + locks the boss toward
-// them for the cast. It deals no damage itself; `link` is the id of a deferred stored cleave that the
-// bait aims (from the locked facing) and detonates at cast END.
 export type PendingBaitEvent = {
   id: string;
   t: number;
@@ -181,8 +149,6 @@ export type PendingDashEvent = {
   randomTargetId?: string;
 };
 
-// An effect-burst spawns an AOE circle on every player carrying a named effect (e.g. a burst
-// around each sleeping player). At cast start it drops one normal AOE per carrier.
 export type PendingEffectBurst = {
   id: string;
   t: number;
@@ -237,10 +203,10 @@ type TowerVisual = {
   countCircles: boolean;
   fallingCylinder: boolean;
   fallingObject?: "cylinder" | "sphere" | "box";
-  groundStyle: "standard" | "tank"; // standard: yellow inner/red outer; tank: two red
-  cylinderColor?: string; // hex, e.g. "#33ccff"
-  cylinderThickness?: number; // falling object diameter/width
-  fallingObjectAlpha?: number; // falling object opacity
+  groundStyle: "standard" | "tank";
+  cylinderColor?: string;
+  cylinderThickness?: number;
+  fallingObjectAlpha?: number;
 };
 
 type TowerEffectConsumption = {
@@ -289,8 +255,8 @@ export type ActiveTower = {
   resolveEventIds: string[];
   visual: TowerVisual;
   resolved: boolean;
-  soakerCount: number;            // live valid-soaker count, drives count-circle fill
-  outcome?: "success" | "failure"; // set at resolve, drives the post-resolve flash
+  soakerCount: number;
+  outcome?: "success" | "failure";
 };
 
 
@@ -299,17 +265,17 @@ export type PendingInverse = {
   t: number;
   name: string;
   telegraph: number;
-  shownShapes: AOEShape[];         // telegraph shapes that ARE drawn
-  hiddenShapes: AOEShape[];        // not drawn; lethal when inverted ("?")
-  shownShapesB?: AOEShape[];       // variant-b telegraph shapes (used when variantRng rolls b)
-  hiddenShapesB?: AOEShape[];      // variant-b hidden shapes
-  variantRng?: boolean;            // randomize a/b orientation at cast start
-  ringColor?: string;              // hex colour of this mechanic's boss ring
-  ringHeight?: number;             // vertical height of this mechanic's boss ring
-  telegraphAlpha?: number;          // optional fixed alpha for shown telegraph footprints
-  color?: string;                  // shownShapes fill color; defaults to ringColor, else blue/red by inverted state
-  rng: boolean;                    // randomize the inversion at cast start
-  questionMark?: boolean;          // authored override of the inversion state
+  shownShapes: AOEShape[];
+  hiddenShapes: AOEShape[];
+  shownShapesB?: AOEShape[];
+  hiddenShapesB?: AOEShape[];
+  variantRng?: boolean;
+  ringColor?: string;
+  ringHeight?: number;
+  telegraphAlpha?: number;
+  color?: string;
+  rng: boolean;
+  questionMark?: boolean;
   damage: number;
   damageType: DamageType;
   applyEffect?: EffectSpec;
@@ -322,13 +288,12 @@ export type ActiveInverse = {
   name: string;
   shownShapes: AOEShape[];
   hiddenShapes: AOEShape[];
-  ringColor?: string;              // hex colour of this mechanic's boss ring
-  ringHeight?: number;             // vertical height of this mechanic's boss ring
-  telegraphAlpha?: number;          // optional fixed alpha for shown telegraph footprints
-  // Render-facing wrapper, one per shownShapes entry (hiddenShapes are never drawn).
+  ringColor?: string;
+  ringHeight?: number;
+  telegraphAlpha?: number;
   floorAoes?: FloorAoe[];
-  inverted: boolean;               // true => "?" telegraph: hiddenShapes are lethal
-  variantB: boolean;               // true => the b orientation was rolled (for bot solvers)
+  inverted: boolean;
+  variantB: boolean;
   telegraphStart: number;
   resolveAt: number;
   damage: number;
@@ -339,9 +304,8 @@ export type ActiveInverse = {
   resolved: boolean;
 };
 
-// A "?" mechanic that flips between spread (per-player AOEs) and stack (shared soak).
 type SpreadStackMode = "spread" | "stack";
-type SpreadStackShown = SpreadStackMode | "random"; // authored; "random" resolves to a concrete mode at cast start
+type SpreadStackShown = SpreadStackMode | "random";
 
 type SpreadConfig = { radius: number; damage: number };
 type StackConfig = { groups: string[][]; radius: number; requiredCount: number; damage: number };
@@ -351,16 +315,16 @@ export type PendingSpreadStack = {
   t: number;
   name: string;
   telegraph: number;
-  shown: SpreadStackShown;         // marker drawn during the cast ("random" = seeded per pull)
-  rng: boolean;                    // seeded 50/50 flip at cast start
-  questionMark?: boolean;          // authored override of the flip state
+  shown: SpreadStackShown;
+  rng: boolean;
+  questionMark?: boolean;
   damageType: DamageType;
   spread: SpreadConfig;
   stack: StackConfig;
   stackCarriers?: string;
   spreadCarriers?: string;
-  ringColor?: string;              // hex colour of this mechanic's boss ring
-  ringHeight?: number;             // vertical height of this mechanic's boss ring
+  ringColor?: string;
+  ringHeight?: number;
   showCastBar: boolean;
 };
 
@@ -369,9 +333,9 @@ export type ActiveSpreadStack = {
   name: string;
   telegraphStart: number;
   resolveAt: number;
-  shown: SpreadStackMode;          // what the markers display
-  inverted: boolean;               // true => "?": actual mode is the opposite of `shown`
-  markedPlayerIds: string[];       // stack-mode marked member per group (rolled even when shown=spread)
+  shown: SpreadStackMode;
+  inverted: boolean;
+  markedPlayerIds: string[];
   spread: SpreadConfig;
   stack: StackConfig;
   spreadPlayerIds?: string[];
@@ -380,7 +344,7 @@ export type ActiveSpreadStack = {
   ringHeight?: number;
   showCastBar: boolean;
   resolved: boolean;
-  outcome?: "success" | "failure"; // set at resolve (stack mode), drives the post-resolve flash
+  outcome?: "success" | "failure";
 };
 
 type GazeVisual = { width: number; height: number; depth: number };
@@ -391,19 +355,19 @@ export type PendingGaze = {
   t: number;
   name: string;
   telegraph: number;
-  pos: Vec2;                       // position of the eye/source
+  pos: Vec2;
   carriers?: string;
   carrierCone?: CarrierCone;
-  reverse: boolean;               // false: hit if looking at it; true ("?" eye): hit if NOT looking
-  rng: boolean;                   // randomize the reverse state at cast start
-  coneHalfAngle: number;          // half-angle (radians) counted as "looking at" it
+  reverse: boolean;
+  rng: boolean;
+  coneHalfAngle: number;
   damage: number;
   damageType: DamageType;
   applyEffect?: EffectSpec;
   knockback?: Knockback;
   showCastBar: boolean;
   visual?: GazeVisual;
-  color?: string;                  // carrier cone fill color; defaults to orange/blue by reverse state
+  color?: string;
 };
 
 export type ActiveGaze = {
@@ -414,7 +378,7 @@ export type ActiveGaze = {
   carrierId?: string;
   direction?: Vec2;
   carrierCone?: CarrierCone;
-  reverse: boolean;               // resolved at cast start; drives the eye vs "?" eye icon
+  reverse: boolean;
   coneHalfAngle: number;
   telegraphStart: number;
   resolveAt: number;
@@ -425,27 +389,26 @@ export type ActiveGaze = {
   showCastBar: boolean;
   visual?: GazeVisual;
   resolved: boolean;
-  // Render-facing wrapper for the carrier cone footprint. Absent when there's no carrier cone.
   floorAoe?: FloorAoe;
 };
 
 export type PendingGroupEvent = {
-  id: string;          // event id, used as the linking key
+  id: string;
   t: number;
   name: string;
-  groups: string[][];   // candidate groups of player ids; one member is marked
-  rng: boolean;         // pick a random group (else groups[0])
-  link?: string;        // take the complementary group of the referenced group event
+  groups: string[][];
+  rng: boolean;
+  link?: string;
   telegraph: number;
-  radius: number;       // stack circle radius around the marked player
-  requiredCount: number; // soakers needed inside the radius; fewer -> stack fails (full damage each)
-  damage: number;       // total damage, split evenly among soakers on success
+  radius: number;
+  requiredCount: number;
+  damage: number;
   damageType: DamageType;
   applyEffect?: EffectSpec;
   showCastBar: boolean;
   showMarker: boolean;
   showTelegraph: boolean;
-  color?: string;       // stack circle color; defaults to the standard "stack here" blue
+  color?: string;
 };
 
 export type PendingEffectSelect = {
@@ -458,7 +421,6 @@ export type PendingEffectSelect = {
   applyEffect: EffectSpec;
 };
 
-// Assigns each player a unique numbered marker (1–8) by seeded Fisher-Yates shuffle.
 export type PendingLimitCut = {
   id: string;
   t: number;
@@ -466,13 +428,9 @@ export type PendingLimitCut = {
   effect: EffectSpec;
   players?: string[];
   role?: Role;
-  // Bot-solver placement basis: relative-north (opposite Kefka's first divebomb) + the players'
-  // rotation direction (opposite Kefka's dash). Computed from the event's rotation config at build.
   rotation: { north: Vec2; clockwise: boolean };
 };
 
-// A fired limit cut, live for its effect duration so bot-solver rules can gate on it via
-// when.mechanic and read its placement basis. `north`/`clockwise` carry the rotation from the event.
 export type ActiveLimitCut = {
   id: string;
   appliedAt: number;
@@ -481,8 +439,6 @@ export type ActiveLimitCut = {
   clockwise: boolean;
 };
 
-// A standalone "drop this effect on players now" event. Targeting: `players` ids if given, else
-// `role` filter, else everyone alive; `count` caps how many (random when `rng`, else roster order).
 export type PendingApplyEffect = {
   id: string;
   t: number;
@@ -505,9 +461,9 @@ export type ActiveGroupMechanic = {
   name: string;
   telegraphStart: number;
   resolveAt: number;
-  markedPlayerId: string; // random member of the chosen group; carries the stack marker
-  radius: number;         // stack circle radius around the marked player
-  requiredCount: number;  // soakers needed inside the radius; fewer -> stack fails (full damage each)
+  markedPlayerId: string;
+  radius: number;
+  requiredCount: number;
   damage: number;
   damageType: DamageType;
   applyEffect?: EffectSpec;
@@ -517,7 +473,7 @@ export type ActiveGroupMechanic = {
   showTelegraph: boolean;
   color?: string;
   floorAoe?: FloorAoe;
-  outcome?: "success" | "failure"; // set at resolve, drives the post-resolve flash
+  outcome?: "success" | "failure";
 };
 
 export type LogEntry = {
@@ -558,8 +514,6 @@ type TetherBeam = {
 export type PendingTether = {
   id: string;
   t: number;
-  // Baked position for a plain tether_source. Black-hole lasers leave this undefined and instead
-  // carry fromBlackHoleOrb: their origin is resolved from the locked clockwise order at promote.
   pos?: Vec2;
   fromBlackHoleOrb?: { hazardId: string; order: number };
   finalizeAfter: number;
@@ -622,21 +576,21 @@ export type PendingLineLink = {
 export type ActiveChain = {
   id: string;
   name: string;
-  a: string;             // chained player ids
+  a: string;
   b: string;
   telegraphStart: number;
-  resolveAt: number;     // cast end: debuff applied + line connects
-  expireAt: number;      // resolveAt + breakWindow: burst if still chained
-  breakDistance: number; // extra separation (beyond the starting distance) needed to break
-  breakAt?: number;      // absolute threshold = starting distance + breakDistance, set at resolve
+  resolveAt: number;
+  expireAt: number;
+  breakDistance: number;
+  breakAt?: number;
   breakDamage: number;
   damageType: DamageType;
   debuff: EffectSpec;
   showCastBar: boolean;
-  resolved: boolean;     // cast finished, debuff applied, line shown
-  broken: boolean;       // pair separated in time (success)
-  outcome?: "broken" | "damaged"; // set at end, drives the post-resolve flash
-  finishedAt?: number;   // time the outcome was decided, for the render linger
+  resolved: boolean;
+  broken: boolean;
+  outcome?: "broken" | "damaged";
+  finishedAt?: number;
 };
 
 export type PendingChain = {
@@ -654,20 +608,17 @@ export type PendingChain = {
   showCastBar: boolean;
 };
 
-// A ground-placed arrow trap. The first living player to enter the zone is captured: frozen for
-// `preDelay`, teleported `distance` units along `direction`, then frozen for `postDelay` before
-// being released. The trap is consumed by that first entrant.
 export type PendingForcedMarch = {
   id: string;
   t: number;
   name: string;
   pos: Vec2;
-  radius: number;     // trigger zone radius
-  direction: Vec2;    // arrow / teleport direction
-  distance: number;   // teleport distance along direction
-  duration: number;   // how long the trap stays armed before expiring
-  preDelay: number;   // seconds frozen on the trap before the teleport
-  postDelay: number;  // seconds frozen at the destination after the teleport
+  radius: number;
+  direction: Vec2;
+  distance: number;
+  duration: number;
+  preDelay: number;
+  postDelay: number;
 };
 
 export type ActiveForcedMarch = {
@@ -679,15 +630,14 @@ export type ActiveForcedMarch = {
   distance: number;
   preDelay: number;
   postDelay: number;
-  relativeMove: boolean;       // true: teleport `distance` from the captured player's spot (plant);
-                               // false (forced_march): destination is anchored to the trap center
+  relativeMove: boolean;
   armedAt: number;
   expireAt: number;
   triggered: boolean;
-  triggeredAt?: number;        // time the entrant stepped on it (start of preDelay windup)
-  capturedPlayerId?: string;   // the player being marched
-  capturedFrom?: Vec2;         // where the captured player was grabbed (teleport anchor when relativeMove)
-  teleported: boolean;         // whether the teleport (after preDelay) has happened yet
+  triggeredAt?: number;
+  capturedPlayerId?: string;
+  capturedFrom?: Vec2;
+  teleported: boolean;
 };
 
 export type PendingHazard = {
@@ -726,9 +676,9 @@ export type PendingDivebomb = {
   damageType: DamageType;
   applyEffect?: EffectSpec;
   hitInterval: number;
-  teleportBoss?: string; // on cast start, move this boss to `from` (facing `to`) and unhide it
-  hideBoss?: string;     // on cast start, hide this boss's model
-  visual: "step" | "line"; // render style: single stepping sphere, or a sphere-per-slot exploding line
+  teleportBoss?: string;
+  hideBoss?: string;
+  visual: "step" | "line";
 };
 
 export type PendingBossTeleport = {

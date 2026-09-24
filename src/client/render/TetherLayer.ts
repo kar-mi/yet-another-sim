@@ -31,7 +31,6 @@ export class TetherLayer {
     const playerMap = new Map(players.map(p => [p.id, p]));
 
     for (const ts of tetherSources) {
-      // Sphere mesh for the tether source entity
       if (!ts.showSource) {
         const existing = this.spheres.get(ts.id);
         if (existing) {

@@ -14,8 +14,6 @@ async function importsOf(pattern: string): Promise<Array<{ file: string; specifi
   return found;
 }
 
-// @effects owns rendering primitives only. It may reach for Babylon and for the pure vector
-// helpers in @shared/math; anything else in @shared, and every simulator layer, is off limits.
 test("@effects does not import simulator code", async () => {
   const offenders = (await importsOf("src/effects/**/*.ts"))
     .filter(({ specifier }) =>
@@ -25,7 +23,6 @@ test("@effects does not import simulator code", async () => {
   expect(offenders).toEqual([]);
 });
 
-// The engine must stay headless: it runs on the server and inside every client's replica.
 test("the engine does not import rendering code", async () => {
   const offenders = (await importsOf("src/engine/**/*.ts"))
     .filter(({ specifier }) => specifier.startsWith("@babylonjs/") || specifier.startsWith("@effects/babylon"))

@@ -5,9 +5,6 @@ import { baseRaid, effect, loadRaid, noMove, roster, runTicks, withPlayerEffect 
 import type { LogEntry, World } from "@model/types";
 import type { Vec } from "./helpers";
 
-// The engine emits replay-review entries into world.log. These tests assert on those entries
-// directly; the client collector (client/replayInsights.ts) turns them into ReplayEvents.
-
 function raidWith(events: unknown[], over: Record<string, { spawn?: Vec }> = {}, duration = 30) {
   return loadRaid({ ...baseRaid, duration, players: roster(over), events });
 }
@@ -15,7 +12,6 @@ function raidWith(events: unknown[], over: Record<string, { spawn?: Vec }> = {},
 const hits = (world: World): LogEntry[] => world.log.filter(entry => entry.event === "avoidableHit");
 const deaths = (world: World): LogEntry[] => world.log.filter(entry => entry.event === "death");
 
-// Everyone stacked on the origin so a centered AOE hits the whole party.
 const stacked: Record<string, { spawn?: Vec }> = {
   mt: { spawn: [0, 0] }, ot: { spawn: [0, 0] }, h1: { spawn: [0, 0] }, h2: { spawn: [0, 0] },
   r1: { spawn: [0, 0] }, r2: { spawn: [0, 0] }, m1: { spawn: [0, 0] }, m2: { spawn: [0, 0] },
@@ -43,7 +39,6 @@ test("tagged damage records one hit per player with the HP it actually removed",
 });
 
 test("a tagged source that misses records nothing", () => {
-  // Same AOE, but the party spawns at their clock spots well outside its 5-unit radius.
   const world = runTicks(createWorld(raidWith([centeredAoe({ avoidable: true })])), noMove, 40);
   expect(world.players.every(p => p.hp === p.maxHp)).toBe(true);
   expect(hits(world)).toEqual([]);
@@ -71,7 +66,6 @@ test("a fully mitigated hit records zero HP loss", () => {
 });
 
 test("a tagged source checked against an already-dead player records nothing for them", () => {
-  // Two identical tagged AOEs: the first is lethal, so the second finds m1 already dead.
   const lethal = { damage: 500, avoidable: true, shape: { kind: "circle", center: [0, 0], radius: 5 } };
   const world = runTicks(createWorld(raidWith([
     centeredAoe({ ...lethal, id: "first", t: 0 }),
@@ -104,8 +98,6 @@ test("an untagged spread_stack component records nothing while its sibling is ta
 });
 
 test("status-effect damage is classified by the effect, and survives delayed resolution", () => {
-  // The debuff is applied by an untagged AOE but is itself tagged: the burst it deals on expiry,
-  // a full second after application, still records as avoidable under the effect's own id.
   const world = runTicks(createWorld(raidWith([centeredAoe({
     damage: 0,
     applyEffect: {
@@ -165,7 +157,6 @@ test("falling off the arena records a death outside the damage pipeline", () => 
 });
 
 test("a revived player who dies again produces a second, separate death", () => {
-  // Two lethal casts with a manual revive between them.
   const lethal = { damage: 500, avoidable: true, shape: { kind: "circle", center: [0, 0], radius: 5 } };
   let world = createWorld(raidWith([
     centeredAoe({ ...lethal, id: "first", t: 0 }),
@@ -177,7 +168,6 @@ test("a revived player who dies again produces a second, separate death", () => 
     world = { ...world, log: [] };
     world = runTicks(world, noMove, 1);
     for (const entry of deaths(world)) if (entry.playerId === "m1") deathTicks.push(i);
-    // The engine's heal path only tops up the living, so restore m1 directly.
     if (i === 90) {
       world = { ...world, players: world.players.map(p => p.id === "m1" ? { ...p, alive: true, hp: p.maxHp } : p) };
     }

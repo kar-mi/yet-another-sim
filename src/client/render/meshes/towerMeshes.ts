@@ -15,19 +15,18 @@ const DEFAULT_CYLINDER_COLOR = "#33ccff";
 const RING_Y = 0.03;
 const RING_RADIUS = 0.06;
 const CIRCLE_Y = 0.04;
-const INNER_RATIO = 0.82; // ring band inner edge as a fraction of the tower radius
-const CYL_TOP = 14;       // height the falling cylinder starts at
-const CYL_HEIGHT = 4;     // long and thin beam
+const INNER_RATIO = 0.82;
+const CYL_TOP = 14;
+const CYL_HEIGHT = 4;
 const YELLOW = new Color3(0.95, 0.8, 0.2);
 const RED = new Color3(0.9, 0.2, 0.2);
 const WHITE = new Color3(1, 1, 1);
 const SUCCESS = new Color3(0.2, 0.95, 0.35);
 const FAILURE = new Color3(0.95, 0.2, 0.2);
 
-// Handles to the meshes/materials a tower needs to update each frame.
 export type TowerMeshes = {
   all: Mesh[];
-  groundMats: StandardMaterial[]; // ground ring, recolored on the flash
+  groundMats: StandardMaterial[];
   countColor: Color3;
   fallingObject?: { mesh: Mesh; mat: StandardMaterial; floorY: number };
   countCircles: { mesh: Mesh; mat: StandardMaterial }[];
@@ -42,7 +41,6 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
   const inner = tower.radius * INNER_RATIO;
   const all: Mesh[] = [];
 
-  // Single ground outline. Role styling only affects optional count/pillar visuals.
   const innerColor = tower.visual.groundStyle === "tank" ? RED : YELLOW;
   const outerColor = WHITE;
 
@@ -61,7 +59,6 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
   const groundMats: StandardMaterial[] = [ringMat];
   all.push(ring);
 
-  // Optional center pillar (the "rectangle" column).
   if (tower.visual.pillar) {
     const pillar = CreateBox(`tower-pillar-${tower.id}`, { width: 1.2, depth: 1.2, height: 4 }, scene);
     pillar.position.set(x, 2, z);
@@ -75,18 +72,14 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
     all.push(pillar);
   }
 
-  // One marker per required soaker — only worth showing for multi-soak towers
-  // (a single soaker needs no marker), laid out inside the ring's inner area.
   const countCircles: { mesh: Mesh; mat: StandardMaterial }[] = [];
   if (tower.visual.countCircles && tower.requiredCount > 1) {
     const count = tower.requiredCount;
-    // Lay the soak markers out offset from the center (intercardinal-style ring), tucked
-    // inside the tower's inner area.
     const offsetR = inner * 0.7;
     const chordHalf = offsetR * Math.sin(Math.PI / count);
     const r = Math.min(0.5, chordHalf * 0.8, (inner - offsetR) * 0.9);
     for (let i = 0; i < count; i++) {
-      const a = Math.PI / 4 + (i / count) * Math.PI * 2; // start at 45° (intercardinal)
+      const a = Math.PI / 4 + (i / count) * Math.PI * 2;
       const cx = x + Math.cos(a) * offsetR;
       const cz = z + Math.sin(a) * offsetR;
       const { mesh: c, material: mat } = createGroundCircle(scene, `tower-cnt-${tower.id}-${i}`, {
@@ -102,8 +95,6 @@ export function createTowerMeshes(scene: Scene, tower: ActiveTower): TowerMeshes
     }
   }
 
-  // Optional falling object with its own color; its height tracks the cast progress
-  // (floor = resolve). `fallingCylinder` is the legacy alias for `fallingObject: "cylinder"`.
   let fallingObject: { mesh: Mesh; mat: StandardMaterial; floorY: number } | undefined;
   const fallingKind = tower.visual.fallingObject ?? (tower.visual.fallingCylinder ? "cylinder" : undefined);
   if (fallingKind) {
@@ -146,21 +137,17 @@ export function updateTowerMeshes(handle: TowerMeshes, tower: ActiveTower, time:
   const span = tower.resolveAt - tower.telegraphStart;
   const progress = span > 0 ? clamp01((time - tower.telegraphStart) / span) : 1;
 
-  // Falling object descends so its base meets the floor exactly at resolve.
   if (handle.fallingObject) {
     const targetY = CYL_TOP + (handle.fallingObject.floorY - CYL_TOP) * progress;
-    // Clamp descent against backward render-clock corrections.
     handle.fallingObject.mesh.position.y = Math.min(handle.fallingObject.mesh.position.y, targetY);
   }
 
-  // Count circles: brighten the ones that currently have a valid soaker.
   handle.countCircles.forEach(({ mat }, i) => {
     const filled = i < tower.soakerCount;
     mat.emissiveColor = filled ? handle.countColor.scale(0.9) : handle.countColor.scale(0.1);
     mat.alpha = filled ? 0.9 : 0.35;
   });
 
-  // Post-resolve flash recolors the ground/cylinder by outcome.
   if (tower.resolved && tower.outcome) {
     const c = tower.outcome === "success" ? SUCCESS : FAILURE;
     for (const mat of handle.groundMats) {

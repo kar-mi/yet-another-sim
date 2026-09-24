@@ -7,10 +7,10 @@ import type { ActiveGroupMechanic, Player } from "@model/types";
 import { glyphBillboardMaterial } from "@effects/babylon";
 import { syncFloorTelegraphs, disposeFloorTelegraphs, type FloorTelegraphMap } from "@effects/babylon";
 
-const ICON_Y = 3.2;    // height of the stack marker above the marked player
+const ICON_Y = 3.2;
 
 export class StackLayer {
-  private icons = new Map<string, Mesh>();   // group id -> billboard plane over the marked player
+  private icons = new Map<string, Mesh>();
   private circles: FloorTelegraphMap = new Map();
   private iconMaterial: StandardMaterial | null = null;
 
@@ -19,7 +19,6 @@ export class StackLayer {
   sync(groups: ActiveGroupMechanic[], players: Player[], time: number): void {
     const playerMap = new Map(players.map(p => [p.id, p]));
 
-    // The marker shows only while the cast is in progress (before it resolves).
     const want = new Set<string>();
     for (const group of groups) {
       if (!group.resolved && playerMap.get(group.markedPlayerId)?.alive) want.add(group.id);

@@ -15,39 +15,27 @@ const AOEEventSchema = z.object({
   id: EventIdSchema,
   time: z.number().nonnegative(),
   name: z.string().min(1),
-  labels: z.array(z.string().min(1)).optional(), // bot-solver labels (GenericSolverRule.when.mechanic)
-  group: z.string().min(1).optional(),           // bot-solver group (GenericSolverRule.when.soaks)
+  labels: z.array(z.string().min(1)).optional(),
+  group: z.string().min(1).optional(),
   telegraph: z.number().positive(),
   damage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
-  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
   avoidable: z.boolean().optional(),
   shape: AOEShapeSchema,
   applyEffect: StatusRefSchema.optional(),
   applyEffects: StatusBundleSchema.optional(),
   knockback: KnockbackSchema.optional(),
-  // Facing-relative anchoring for cone/rect: snapshot the boss at cast start.
-  anchor: z.literal("boss").optional(),            // origin = boss.pos
-  directionFrom: z.literal("bossFacing").optional(), // shape direction = boss.facing
-  directionOffset: z.number().optional(),          // rotate the bossFacing direction (radians, clockwise)
+  anchor: z.literal("boss").optional(),
+  directionFrom: z.literal("bossFacing").optional(),
+  directionOffset: z.number().optional(),
   sideOrbAfter: EventIdSchema.optional(),
-  aimAtPlayer: z.string().min(1).optional(),       // cone/rect direction snapshots toward this player id
-  // The boss freezes its facing for the duration of the cast (telegraph), then resumes.
-  // Defaults to true; set false to let the boss keep tracking its target mid-cast.
+  aimAtPlayer: z.string().min(1).optional(),
   lockFacing: z.boolean().default(true),
-  // The boss does not move toward its target during the cast. Defaults to true.
   bossStationary: z.boolean().default(true),
-  // Store this cleave: do NOT resolve at its own cast end. A linked `bait` (see BaitEventSchema.link)
-  // arms and detonates it, computing the cone/rect geometry from the boss's locked facing at that time.
   deferred: z.boolean().default(false),
-  // Raidwide HP check: ignore position and deal damage to every alive player below full HP; spare players at full HP.
   requireFullHp: z.boolean().default(false),
-  // Require an active effect with the cast’s name.
   onlyCarriers: z.boolean().optional(),
-  // Restrict hits to these players; deals fills this per run.
   players: z.array(z.string().min(1)).optional(),
-  // Directional gate: only hit players whose bearing from the boss is within this arc.
-  // `center` (radians, clockwise from boss facing; 0 = front) and full `width` (radians).
   positional: z.object({
     center: z.number(),
     width: z.number().positive().max(Math.PI * 2),
@@ -57,28 +45,17 @@ const AOEEventSchema = z.object({
   telegraphMode: TelegraphModeSchema.default("cast"),
   linger: z.number().positive().optional(),
   bossRelativeCenter: BossRelativeCenterSchema.optional(),
-  // Render-only: during the final `lead` seconds before resolve, flash the AoE footprint
-  // in `color` (hex; defaults to light blue). Drawn even when showTelegraph is false.
   flashBeforeResolve: z.object({
     lead: z.number().positive(),
     color: z.string().optional(),
   }).optional(),
-  // Render-only: ground telegraph color (hex). Defaults to the standard danger red when omitted.
   color: z.string().min(1).optional(),
-  // Render the telegraph as an outline.
   outline: z.boolean().optional(),
-  // Telegraph opacity (default: 0.5 fill, 0.95 outline).
   telegraphAlpha: z.number().min(0).max(1).optional(),
-  // Element glyph; label variants can supply kind.
   glyph: z.object({ at: Vec2Schema, kind: ElementGlyphKindSchema.optional() }).optional(),
-  // Ring expands to radius during the cast; label variants can supply kind.
   ring: z.object({ center: Vec2Schema, radius: z.number().positive(), kind: ElementGlyphKindSchema.optional() }).optional(),
-  // Element pattern on the floor telegraph; label variants with a glyph supply it.
   element: ElementGlyphKindSchema.optional(),
-  // Render-only effect overrides (floor pattern, impact burst, weapon glow). See docs/authoring-raids.md.
   vfx: VfxSchema.optional(),
-  // Orb waits at from until departAt, then reaches the shape center at resolve.
-  // Scale defaults to 1; sprite selects the Cleansing billboard.
   mover: z.object({ from: Vec2Schema, departAt: z.number().nonnegative(), scale: z.number().positive().optional(), sprite: z.boolean().optional() }).optional(),
   bossId: z.string().min(1).optional(),
 });
@@ -88,18 +65,15 @@ const TargetedEventSchema = z.object({
   id: EventIdSchema,
   time: z.number().nonnegative(),
   name: z.string().min(1),
-  labels: z.array(z.string().min(1)).optional(), // bot-solver labels (GenericSolverRule.when.mechanic)
-  group: z.string().min(1).optional(),           // bot-solver group (GenericSolverRule.when.soaks)
+  labels: z.array(z.string().min(1)).optional(),
+  group: z.string().min(1).optional(),
   targetMode: z.enum(["closest", "furthest", "aggro"]),
   role: RoleSchema.optional(),
-  // When > 1, the cast hits the N nearest/furthest players, dropping a damage circle on each
-  // (a spread). Ignored for targetMode "aggro".
   count: z.number().int().positive().optional(),
   radius: z.number().positive(),
   telegraph: z.number().positive(),
   damage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
-  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
   avoidable: z.boolean().optional(),
   applyEffect: StatusRefSchema.optional(),
   showCastBar: z.boolean().default(false),
@@ -109,23 +83,17 @@ const TargetedEventSchema = z.object({
   bossId: z.string().min(1).optional(),
 });
 
-// A baited cast (targeting only — deals no damage itself): at cast START a player is selected
-// (random/closest/furthest), the boss turns to face them and locks facing for the cast. `link` names
-// a deferred `aoe` (stored cleave); that cleave is aimed from the locked facing and detonates at cast END.
 const BaitEventSchema = z.object({
   type: z.literal("bait"),
   id: EventIdSchema,
   time: z.number().nonnegative(),
   name: z.string().min(1),
-  labels: z.array(z.string().min(1)).optional(), // bot-solver labels (GenericSolverRule.when.mechanic)
-  group: z.string().min(1).optional(),           // bot-solver group (GenericSolverRule.when.soaks)
+  labels: z.array(z.string().min(1)).optional(),
+  group: z.string().min(1).optional(),
   targetMode: z.enum(["random", "closest", "furthest"]),
   role: RoleSchema.optional(),
   telegraph: z.number().positive(),
-  // Id of the deferred `aoe` (stored cleave) this bait aims and detonates at cast end.
   link: z.string().min(1),
-  // If the selected bait target has one of these active effect names, override the linked stored
-  // cleave's directionOffset for this bait. Used by Forsaken Past/Future Ending.
   directionOffsetByEffect: z.record(z.string().min(1), z.number()).optional(),
   showCastBar: z.boolean().default(false),
   bossId: z.string().min(1).optional(),
@@ -157,15 +125,13 @@ const TetherSourceEventSchema = z.object({
   pos: Vec2Schema.optional(),
   fromBlackHoleOrb: z.object({
     hazardId: EventIdSchema,
-    // Clockwise slot (not physical orb index): 0/1/2 = 1st/2nd/3rd orb clockwise from the hazard's
-    // orderFrom boss, resolved to a position from the locked order at fire time.
     order: z.union([z.literal(0), z.literal(1), z.literal(2)]),
   }).optional(),
   finalizeAfter: z.number().positive(),
   fireOffsets: z.array(z.number().nonnegative()).min(1).optional(),
   despawnAfter: z.number().positive().optional(),
   tetherKind: z.enum(["buff", "debuff"]),
-  buffName: z.string().min(1),  // log/visual label; independent of applyEffect's own name
+  buffName: z.string().min(1),
   applyEffect: StatusRefSchema.optional(),
   showSource: z.boolean().default(true),
   beam: z.object({
@@ -241,14 +207,14 @@ const LineLinkEventSchema = z.object({
 });
 
 const TowerVisualSchema = z.object({
-  pillar: z.boolean().optional(),          // static rectangle column in the center
-  countCircles: z.boolean().optional(),    // one floor circle per required soaker
-  fallingCylinder: z.boolean().optional(), // cylinder descending in time with the cast
+  pillar: z.boolean().optional(),
+  countCircles: z.boolean().optional(),
+  fallingCylinder: z.boolean().optional(),
   fallingObject: z.enum(["cylinder", "sphere", "box"]).optional(),
-  groundStyle: z.enum(["standard", "tank"]).optional(), // standard: yellow inner/red outer; tank: two red
-  cylinderColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), // falling cylinder color
-  cylinderThickness: z.number().positive().optional(), // falling object diameter/width
-  fallingObjectAlpha: z.number().min(0).max(1).optional(), // falling object opacity
+  groundStyle: z.enum(["standard", "tank"]).optional(),
+  cylinderColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  cylinderThickness: z.number().positive().optional(),
+  fallingObjectAlpha: z.number().min(0).max(1).optional(),
 });
 
 const TowerEventSchema = z.object({
@@ -256,23 +222,22 @@ const TowerEventSchema = z.object({
   id: EventIdSchema,
   time: z.number().nonnegative(),
   name: z.string().min(1),
-  labels: z.array(z.string().min(1)).optional(), // bot-solver labels (GenericSolverRule.when.mechanic)
-  group: z.string().min(1).optional(),           // bot-solver group (GenericSolverRule.when.soaks)
+  labels: z.array(z.string().min(1)).optional(),
+  group: z.string().min(1).optional(),
   telegraph: z.number().positive(),
   pos: Vec2Schema,
   radius: z.number().positive(),
-  requiredCount: z.number().int().positive().default(1), // soakers needed to clear it
+  requiredCount: z.number().int().positive().default(1),
   requiredRoles: z.array(RoleSchema).min(1).optional(),
-  wrongRoleLethal: z.boolean().default(false), // wrong-role soaker dies (only with requiredRoles)
-  failureDamage: z.number().nonnegative(), // raidwide damage when not enough valid soakers
+  wrongRoleLethal: z.boolean().default(false),
+  failureDamage: z.number().nonnegative(),
   failureDamageType: z.enum(["physical", "magical", "true"]),
-  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
   avoidable: z.boolean().optional(),
 
-  applyEffect: StatusRefSchema.optional(), // debuff applied to valid soakers on success
+  applyEffect: StatusRefSchema.optional(),
   consumeEffect: z.object({ effectName: z.string().min(1), stacks: z.number().int().positive().default(1) }).optional(),
-  knockback: KnockbackSchema.optional(),     // knockback applied to valid soakers on success
-  resolveEventIds: z.array(EventIdSchema).optional(), // effect_resolver ids invoked for valid inside soakers
+  knockback: KnockbackSchema.optional(),
+  resolveEventIds: z.array(EventIdSchema).optional(),
   visual: TowerVisualSchema.optional(),
 });
 
@@ -315,13 +280,12 @@ const ChainEventSchema = z.object({
   id: EventIdSchema,
   time: z.number().nonnegative(),
   name: z.string().min(1),
-  pairs: z.array(z.tuple([z.string().min(1), z.string().min(1)])).min(1), // chained player-id pairs
-  telegraph: z.number().positive(),     // cast duration (head icon + cast bar)
-  breakWindow: z.number().positive(),   // seconds after the cast to move apart before damage
-  breakDistance: z.number().positive(), // separation needed to break the chain
+  pairs: z.array(z.tuple([z.string().min(1), z.string().min(1)])).min(1),
+  telegraph: z.number().positive(),
+  breakWindow: z.number().positive(),
+  breakDistance: z.number().positive(),
   breakDamage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
-  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
   avoidable: z.boolean().optional(),
   debuff: StatusIdSchema("debuff"),
   showCastBar: z.boolean().default(false),
@@ -332,22 +296,20 @@ const GroupEventSchema = z.object({
   time: z.number().nonnegative(),
   name: z.string().min(1),
   id: EventIdSchema,
-  groups: z.array(z.array(z.string().min(1)).min(1)).min(1),     // candidate groups of player ids
-  rng: z.boolean().default(false),                               // pick a random group (else groups[0])
-  link: z.string().min(1).optional(),                            // take complement of the referenced group event's choice
+  groups: z.array(z.array(z.string().min(1)).min(1)).min(1),
+  rng: z.boolean().default(false),
+  link: z.string().min(1).optional(),
   telegraph: z.number().positive(),
-  radius: z.number().positive(),                                 // stack circle radius around the marked player
-  requiredCount: z.number().int().positive().default(1),         // soakers needed inside the radius; fewer -> stack fails (full damage each)
-  damage: z.number().nonnegative(),                              // total damage, split evenly among soakers on success
+  radius: z.number().positive(),
+  requiredCount: z.number().int().positive().default(1),
+  damage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
-  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
   avoidable: z.boolean().optional(),
 
   applyEffect: StatusRefSchema.optional(),
   showCastBar: z.boolean().default(false),
   showMarker: z.boolean().default(true),
   showTelegraph: z.boolean().default(true),
-  // Render-only: stack circle color (hex). Defaults to the standard "stack here" blue when omitted.
   color: z.string().min(1).optional(),
 });
 
@@ -362,10 +324,6 @@ const EffectSelectEventSchema = z.object({
   applyEffect: StatusRefSchema,
 });
 
-// Standalone "drop this effect on players now" event. No telegraph — it lands at time t.
-// Targeting: `players` ids if given, else `role` filter, else everyone alive. `count` caps how many
-// targets (random selection when `rng`, else roster order). Events sharing an `assignGroup`
-// in the same tick exclude players picked by earlier events in that group.
 const ApplyEffectEventSchema = z.object({
   type: z.literal("apply_effect"),
   id: EventIdSchema,
@@ -395,23 +353,21 @@ const InverseEventSchema = z.object({
   id: EventIdSchema,
   time: z.number().nonnegative(),
   name: z.string().min(1),
-  telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
+  telegraph: z.number().positive(),
   damage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
-  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
   avoidable: z.boolean().optional(),
-  shownShapes: z.array(AOEShapeSchema).min(1),      // telegraph shapes that ARE drawn
-  hiddenShapes: z.array(AOEShapeSchema).min(1),     // not drawn; lethal when inverted ("?")
-  shownShapesB: z.array(AOEShapeSchema).min(1).optional(),  // variant-b telegraph shapes (rolled when variantRng)
-  hiddenShapesB: z.array(AOEShapeSchema).min(1).optional(), // variant-b hidden shapes
-  variantRng: z.boolean().default(false),            // randomize a/b orientation (needs shownShapesB + hiddenShapesB)
-  ringColor: z.string().optional(),               // hex colour of this mechanic's boss ring (identifies it)
-  ringHeight: z.number().optional(),              // vertical height of this mechanic's boss ring
-  telegraphAlpha: z.number().min(0).max(1).optional(), // optional fixed alpha for shown telegraph footprints
-  // Render-only: shownShapes fill color (hex). Defaults to ringColor, else blue/red by inverted state.
+  shownShapes: z.array(AOEShapeSchema).min(1),
+  hiddenShapes: z.array(AOEShapeSchema).min(1),
+  shownShapesB: z.array(AOEShapeSchema).min(1).optional(),
+  hiddenShapesB: z.array(AOEShapeSchema).min(1).optional(),
+  variantRng: z.boolean().default(false),
+  ringColor: z.string().optional(),
+  ringHeight: z.number().optional(),
+  telegraphAlpha: z.number().min(0).max(1).optional(),
   color: z.string().min(1).optional(),
-  rng: z.boolean().default(false),                  // randomize the "?" inversion (else not inverted)
-  questionMark: z.boolean().optional(),            // authored override of the inversion state
+  rng: z.boolean().default(false),
+  questionMark: z.boolean().optional(),
   applyEffect: StatusRefSchema.optional(),
   knockback: KnockbackSchema.optional(),
   showCastBar: z.boolean().default(false),
@@ -421,34 +377,32 @@ const InverseEventSchema = z.object({
   }
 });
 
-// A "?" mechanic that flips between spread (per-player AOEs) and stack (shared soak). It shows one
-// marker during the cast; when inverted ("?") it resolves as the opposite when the cast bar ends.
 const SpreadStackEventSchema = z.object({
   type: z.literal("spread_stack"),
   id: EventIdSchema,
   time: z.number().nonnegative(),
   name: z.string().min(1),
   telegraph: z.number().positive(),
-  shown: z.enum(["spread", "stack", "random"]),     // marker drawn during the cast ("random" = seeded per pull)
-  rng: z.boolean().default(false),                   // seeded 50/50 flip (else honest)
-  questionMark: z.boolean().optional(),              // authored override of the flip state
+  shown: z.enum(["spread", "stack", "random"]),
+  rng: z.boolean().default(false),
+  questionMark: z.boolean().optional(),
   damageType: z.enum(["physical", "magical", "true"]),
   spread: z.object({
-    radius: z.number().positive(),                   // each player's personal AOE radius
-    damage: z.number().nonnegative(),                // damage per circle a player stands in
+    radius: z.number().positive(),
+    damage: z.number().nonnegative(),
     avoidable: z.boolean().optional(),
   }),
   stack: z.object({
-    groups: z.array(z.array(z.string().min(1)).min(1)).min(1), // candidate groups; one member is marked
-    radius: z.number().positive(),                   // stack circle radius around the marked player
-    requiredCount: z.number().int().positive().default(1),     // soakers needed; fewer -> full damage each
-    damage: z.number().nonnegative(),                // total, split evenly among soakers on success
+    groups: z.array(z.array(z.string().min(1)).min(1)).min(1),
+    radius: z.number().positive(),
+    requiredCount: z.number().int().positive().default(1),
+    damage: z.number().nonnegative(),
     avoidable: z.boolean().optional(),
   }),
   stackCarriers: z.string().min(1).optional(),
   spreadCarriers: z.string().min(1).optional(),
-  ringColor: z.string().optional(),                  // hex colour of this mechanic's boss ring
-  ringHeight: z.number().optional(),                 // vertical height of this mechanic's boss ring
+  ringColor: z.string().optional(),
+  ringHeight: z.number().optional(),
   showCastBar: z.boolean().default(false),
 }).superRefine((event, ctx) => {
   if ((event.stackCarriers === undefined) !== (event.spreadCarriers === undefined)) {
@@ -457,7 +411,7 @@ const SpreadStackEventSchema = z.object({
 });
 
 const GazeVisualSchema = z.object({
-  width: z.number().positive().default(4),  // eye board dimensions
+  width: z.number().positive().default(4),
   height: z.number().positive().default(3),
   depth: z.number().positive().default(0.4),
 });
@@ -467,22 +421,20 @@ const GazeEventSchema = z.object({
   id: EventIdSchema,
   time: z.number().nonnegative(),
   name: z.string().min(1),
-  telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
+  telegraph: z.number().positive(),
   damage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
-  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
   avoidable: z.boolean().optional(),
-  pos: Vec2Schema.optional(),                       // position of the eye/source (e.g. north)
+  pos: Vec2Schema.optional(),
   carriers: z.string().min(1).optional(),
   carrierCone: z.object({ angleDeg: z.number().positive().max(360), length: z.number().positive() }).optional(),
-  reverse: z.boolean().default(false),              // false (eye): hit if looking at it; true ("?" eye): hit if NOT looking
-  rng: z.boolean().default(false),                  // randomize the reverse state at cast start (seeded)
-  coneHalfAngle: z.number().positive().optional(), // half-angle (radians) counted as "looking at" it (default PI/2 = front 180)
+  reverse: z.boolean().default(false),
+  rng: z.boolean().default(false),
+  coneHalfAngle: z.number().positive().optional(),
   applyEffect: StatusRefSchema.optional(),
   knockback: KnockbackSchema.optional(),
   showCastBar: z.boolean().default(false),
   visual: GazeVisualSchema.optional(),
-  // Render-only: carrier cone fill color (hex). Defaults to orange/blue by reverse state when omitted.
   color: z.string().min(1).optional(),
 }).superRefine((event, ctx) => {
   if (event.pos === undefined && event.carriers === undefined) {
@@ -498,13 +450,13 @@ const ForcedMarchEventSchema = z.object({
   id: EventIdSchema,
   time: z.number().nonnegative(),
   name: z.string().min(1),
-  pos: Vec2Schema,                         // center of the ground trigger zone
-  radius: z.number().positive(),           // trigger zone radius
-  direction: Vec2Schema,                   // arrow / teleport direction (non-zero)
-  distance: z.number().positive(),         // teleport distance along direction
-  duration: z.number().positive(),         // how long the trap stays armed
-  preDelay: z.number().nonnegative().default(0.3),  // frozen on the trap before the teleport
-  postDelay: z.number().nonnegative().default(0.3), // frozen at the destination after the teleport
+  pos: Vec2Schema,
+  radius: z.number().positive(),
+  direction: Vec2Schema,
+  distance: z.number().positive(),
+  duration: z.number().positive(),
+  preDelay: z.number().nonnegative().default(0.3),
+  postDelay: z.number().nonnegative().default(0.3),
 }).superRefine((ev, ctx) => {
   if (ev.direction[0] === 0 && ev.direction[1] === 0) {
     ctx.addIssue({ code: "custom", path: ["direction"], message: "forced_march direction must be a non-zero vector" });
@@ -524,8 +476,6 @@ const HazardEventSchema = z.object({
   spots: z.array(Vec2Schema).min(1).optional(),
   blackHole: z.object({
     combos: z.array(z.array(BlackHoleOrbSchema).min(1)).min(1),
-    // Boss whose bearing the tether orbs are ordered clockwise from (e.g. bigkefka). Required only
-    // when a tether_source or frame references this hazard by clockwise order.
     orderFrom: EventIdSchema.optional(),
   }).optional(),
   radius: z.number().positive(),
@@ -556,15 +506,12 @@ const DivebombEventSchema = z.object({
   gap: z.number().positive().optional(),
   damage: z.number().nonnegative().optional(),
   damageType: z.enum(["physical", "magical", "true"]).default("physical"),
-  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
   avoidable: z.boolean().optional(),
 
   applyEffect: StatusRefSchema.optional(),
   hitInterval: z.number().positive().optional(),
-  teleportBoss: z.string().min(1).optional(),  // on cast start, move this boss to `from` (facing `to`) and unhide it
-  hideBoss: z.string().min(1).optional(),       // on cast start, hide this boss's model
-  // "step" (default): one sphere advancing slot-by-slot. "line": a sphere per slot that pops in
-  // sequentially from `from` to `to`, building a line (purely visual — pair with damage: 0).
+  teleportBoss: z.string().min(1).optional(),
+  hideBoss: z.string().min(1).optional(),
   visual: z.enum(["step", "line"]).default("step"),
 }).superRefine((ev, ctx) => {
   if (ev.from[0] === ev.to[0] && ev.from[1] === ev.to[1]) {
@@ -588,9 +535,9 @@ const EffectBurstEventSchema = z.object({
   id: EventIdSchema,
   time: z.number().nonnegative(),
   name: z.string().min(1),
-  telegraph: z.number().positive(),                // cast/telegraph duration (seconds)
-  effectName: z.string().min(1),                   // burst around each player carrying this effect
-  radius: z.number().positive(),                   // AOE radius around each carrier
+  telegraph: z.number().positive(),
+  effectName: z.string().min(1),
+  radius: z.number().positive(),
   innerRadius: z.number().positive().optional(),
   shownShape: z.enum(["circle", "donut"]).default("circle"),
   hiddenShape: z.enum(["circle", "donut"]).default("circle"),
@@ -598,7 +545,6 @@ const EffectBurstEventSchema = z.object({
   questionMark: z.boolean().optional(),
   damage: z.number().nonnegative(),
   damageType: z.enum(["physical", "magical", "true"]),
-  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
   avoidable: z.boolean().optional(),
   applyEffect: StatusRefSchema.optional(),
   knockback: KnockbackSchema.optional(),
@@ -621,7 +567,6 @@ const EffectCheckEventSchema = z.object({
   checks: z.array(z.object({ carriers: z.string().min(1), compare: z.tuple([z.string().min(1), z.string().min(1)]), expect: z.enum(["matches", "differs"]) })).min(1),
   failureDamage: z.number().nonnegative(),
   failureDamageType: z.enum(["physical", "magical", "true"]),
-  // Replay review: mark this damage source explicitly avoidable (see docs/authoring-raids.md).
   avoidable: z.boolean().optional(),
 });
 
@@ -642,10 +587,6 @@ const SetHpEventSchema = z.object({
   players: z.array(z.string().min(1)).min(1).optional(),
 });
 
-// Generic charge distribution + re-balance. `charges` lists each kind's effect (+ optional above-head
-// marker). `initial: "plan"` opens by applying each player's planned kind from world.initialCharges.
-// `onResolve` keys a trigger label (e.g. a tower's label) to the per-kind target counts the re-balance
-// should reach, dealt to the just-resolved players in roster order.
 const ReassignChargeSchema = z.object({
   kind: z.string().min(1),
   effect: StatusRefSchema,
@@ -670,8 +611,6 @@ const ReassignEventSchema = z.object({
   }
 });
 
-// Assigns each player a unique numbered marker (1–8) via a seeded Fisher-Yates shuffle.
-// The `effect` template is cloned per player with marker overridden to String(i+1).
 const LimitCutEventSchema = z.object({
   type: z.literal("limit_cut"),
   id: EventIdSchema,
@@ -680,9 +619,6 @@ const LimitCutEventSchema = z.object({
   effect: StatusRefSchema,
   players: z.array(z.string().min(1)).min(1).optional(),
   role: RoleSchema.optional(),
-  // Optional bot-solver placement basis (RNG-ready). `kefkaStart` is the direction Kefka's first
-  // divebomb comes from; relative-north is its opposite. `kefkaClockwise` is Kefka's dash rotation;
-  // players place in the opposite direction. Defaults to N start / CCW (the current hardcoded case).
   rotation: z.object({ kefkaStart: Vec2Schema, kefkaClockwise: z.boolean() }).optional(),
 });
 

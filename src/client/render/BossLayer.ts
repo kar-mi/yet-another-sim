@@ -12,7 +12,7 @@ import { buildIndexModel, type IndexModel } from "./meshes/indexModel";
 import type { ImplementHighlight } from "./sealedImplement";
 
 export const BOSS_MODEL_ROOT = `${STATIC_ROOT}/model/boss/`;
-export const BOSS_MODEL_FILE = "chaos.glb"; // default model; kept for preloadAssets
+export const BOSS_MODEL_FILE = "chaos.glb";
 const BOSS_MODEL_SCALE = 0.08;
 const BOSS_MODEL_RAISE = 0.2;
 const BOSS_MODEL_YAW_OFFSET = Math.PI;
@@ -37,7 +37,6 @@ export class BossLayer {
     else void this.loadModel(mesh, `${boss.model}.glb`);
   }
 
-  // Build the Index from drawings instead of a GLB.
   private buildIndex(anchor: Mesh, bossId: string): void {
     const model = buildIndexModel(this.scene, `boss-${bossId}-index`);
     const modelTop = BOSS_MODEL_RAISE + model.height * this.modelScale;

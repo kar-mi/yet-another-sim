@@ -27,10 +27,8 @@ type HudLayout = Partial<Record<HudGroupId, HudGroupLayout>>;
 const GRID_STEP = 0.01;
 const PLACEHOLDER: HudSize = { width: 120, height: 32 };
 const MAX_CAPTURE_ATTEMPTS = 5;
-/** Sub-pixel wobble in measurements and placements is not worth a re-layout. */
 const EPSILON = 0.5;
 
-/** The whole visible group: the element plus any control protruding from it. */
 function measureBounds(el: HTMLElement): HudRect | null {
   if (el.getClientRects().length === 0) return null;
   const box = el.getBoundingClientRect();
@@ -48,7 +46,6 @@ function measureBounds(el: HTMLElement): HudRect | null {
       right = Math.max(right, rect.right);
       bottom = Math.max(bottom, rect.bottom);
       if (child.childElementCount === 0) continue;
-      // A clipping box already covers everything of its children that is on screen.
       const style = getComputedStyle(child);
       if (style.overflowX !== "visible" || style.overflowY !== "visible") continue;
       visit(child);
@@ -76,13 +73,10 @@ export class HudLayoutManager {
   private readonly suppressed = new Set<HudGroupId>();
   private readonly revealed = new Set<HudGroupId>();
   private readonly outlines = new Map<HudGroupId, HTMLDivElement>();
-  /** Unit-scale bounds of each group, kept while the group is hidden so placeholders stay sized. */
   private readonly measures = new Map<HudGroupId, HudMeasure>();
-  /** What is currently on screen: the preferred scale, shrunk where the viewport demanded it. */
   private readonly applied = new Map<HudGroupId, HudPlacement>();
   private readonly pendingRefresh = new Set<HudGroupId>();
   private readonly observers = new Map<HudGroupId, ResizeObserver>();
-  /** Detach functions for the always-available drag handles some groups register. */
   private readonly dragHandles = new Map<HudGroupId, () => void>();
   private layout: HudLayout;
   private uiScale: number;
@@ -131,15 +125,12 @@ export class HudLayoutManager {
     for (const el of this.groups.values()) el.classList.toggle("yas-hud-hidden", hidden);
   }
 
-  // Hides a group for as long as the current session needs it gone, leaving the saved layout alone.
   setGroupSuppressed(id: HudGroupId, suppressed: boolean): void {
     if (suppressed) this.suppressed.add(id);
     else this.suppressed.delete(id);
     this.groups.get(id)?.classList.toggle("yas-hud-suppressed", this.isSuppressed(id));
   }
 
-  // Shows a group that the saved layout (or the session) hides, for as long as a transient flow such
-  // as the guided tour needs it visible. Never touches the persisted layout.
   setGroupRevealed(id: HudGroupId, revealed: boolean): void {
     if (revealed) this.revealed.add(id);
     else this.revealed.delete(id);
@@ -254,8 +245,6 @@ export class HudLayoutManager {
   private observe(id: HudGroupId, el: HTMLElement): void {
     this.observers.get(id)?.disconnect();
     if (typeof ResizeObserver === "undefined") return;
-    // Content that grows or shrinks (a longer cast name, another party row) can push a group out of
-    // the viewport, so re-fit whenever its layout size changes.
     const observer = new ResizeObserver(() => this.applyGroup(id));
     observer.observe(el);
     this.observers.set(id, observer);
@@ -276,13 +265,11 @@ export class HudLayoutManager {
     });
   }
 
-  /** Re-reads the group's bounds; returns whether they moved enough to need a re-fit. */
   private remeasure(id: HudGroupId): boolean {
     const el = this.groups.get(id);
     const placement = this.applied.get(id);
     if (!el || !placement || placement.scale <= 0) return false;
     const bounds = measureBounds(el);
-    // A hidden or not-yet-rendered group keeps whatever bounds it last had.
     if (!bounds || bounds.width === 0 || bounds.height === 0) return false;
     const measure: HudMeasure = {
       natural: { width: bounds.width / placement.scale, height: bounds.height / placement.scale },
@@ -337,7 +324,6 @@ export class HudLayoutManager {
     if (!this.overlay || this.outlines.has(id)) return;
     const outline = document.createElement("div");
     outline.className = "yas-hud-edit-outline";
-    // Deliberately not data-hud-group: that attribute carries each group's own positioning CSS.
     outline.dataset.hudOutline = id;
     const label = document.createElement("span");
     label.textContent = HUD_GROUP_LABELS[id];
@@ -406,7 +392,6 @@ export class HudLayoutManager {
     });
   }
 
-  /** Turns a screen-space placement back into saved layout values. */
   private toEntry(placement: HudPlacement, withScale: boolean): Partial<HudGroupLayout> {
     const viewport = this.viewport();
     const patch: Partial<HudGroupLayout> = {
@@ -419,7 +404,6 @@ export class HudLayoutManager {
     return patch;
   }
 
-  /** Runs a pointer gesture on `target`, persisting on release and restoring on cancel. */
   private runGesture(event: PointerEvent, id: HudGroupId, target: HTMLElement, onMove: (delta: HudPoint) => void): void {
     const before = this.layout[id] ? { ...this.layout[id]! } : null;
     const origin = { x: event.clientX, y: event.clientY };
@@ -536,7 +520,6 @@ export class HudLayoutManager {
     this.syncSelectionControls();
   }
 
-  /** Keeps the panel readout and checkbox in step with handle drags and right-click toggles. */
   private syncSelectionControls(): void {
     const id = this.selected;
     if (!id) return;
@@ -617,7 +600,6 @@ export class HudLayoutManager {
     const entry = this.layout[id];
     if (entry?.hidden && !this.revealed.has(id)) return false;
     if (el.getClientRects().length === 0) return false;
-    // The boss cast panel keeps its padding even with no rows to show.
     return !(id === "bosscasts" && el.childElementCount === 0);
   }
 
@@ -636,7 +618,6 @@ export class HudLayoutManager {
     });
   }
 
-  /** Where a hidden or not-yet-rendered group keeps its draggable stand-in. */
   private placeholderRect(id: HudGroupId): HudRect {
     const entry = this.layout[id] ?? this.fallbackLayout(id);
     const viewport = this.viewport();

@@ -113,8 +113,6 @@ type LobbyResult =
   | { kind: "started"; world: World; yourPlayerId: string | null; sessionId: string; raidId: string; selectedRaidId: string; isHost: boolean; phase: SessionPhase; playbackState: PlaybackState; rngConstraints: Record<string, number>; rngDecisions: DecisionDescription[]; waymarkPresetId: string | null; botPatternOptions: BotPatternOption[]; botPatternId: string | null; botsInvincible: boolean; botsInvisible: boolean }
   | { kind: "expired" };
 
-// The setup screen: claim a seat, then enter the lobby. Raid selection and pre-pull options
-// live in the in-sim HUD. Resolves once the server admits this client into a world.
 export async function showLobby(net: NetClient, sessionId: string, notice?: string): Promise<LobbyResult> {
   return new Promise((resolve) => {
     const overlay = document.createElement("div");

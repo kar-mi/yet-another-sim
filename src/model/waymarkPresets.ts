@@ -2,7 +2,6 @@ import type { Waymark } from "./types";
 
 export type WaymarkPreset = { id: string; name: string; marks: Waymark[] };
 
-// Extracted from the waymark layouts already authored across raids/**/*.yaml.
 export const WAYMARK_PRESETS: WaymarkPreset[] = [
   {
     id: "standard-12",

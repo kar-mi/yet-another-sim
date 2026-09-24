@@ -3,7 +3,7 @@ import { EMPTY_RAID_ID, type ClientMessage, type Frame, type ServerMessage } fro
 import type { World } from "@model/types";
 import type { Transport } from "./net";
 
-const MAX_CATCHUP_FRAMES = 240; // 4s at 60Hz; caps synchronous work per timer fire after e.g. a backgrounded tab
+const MAX_CATCHUP_FRAMES = 240;
 
 export class ReplayTransport implements Transport {
   private readonly participantId = crypto.randomUUID();
@@ -57,7 +57,6 @@ export class ReplayTransport implements Transport {
     return this.playing;
   }
 
-  // Follow a host's playback position. Seeking re-simulates from tick 0, so skip it when already there.
   sync(view: { playing: boolean; tick: number }): void {
     const tick = Math.max(0, Math.min(this.replay.frames.length, Math.floor(view.tick)));
     if (tick !== this.cursor) this.seek(tick);

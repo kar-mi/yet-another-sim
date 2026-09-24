@@ -1,6 +1,3 @@
-// Apply-effect events: Drop a buff/debuff straight onto players (all / by role / by id /
-// by count, optionally a random subset).
-
 import type { TickContext } from "./context";
 import { applyStatus } from "@status";
 import { statusServices } from "./statusServices";

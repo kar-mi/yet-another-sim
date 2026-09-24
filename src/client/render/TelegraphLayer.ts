@@ -3,10 +3,8 @@ import type { ActiveMechanic } from "@model/types";
 import type { FloorAoe } from "@effects";
 import { syncFloorTelegraphs, disposeFloorTelegraphs, spawnElementBurst, type FloorTelegraphMap } from "@effects/babylon";
 
-// Only burst for hits that landed within this long of now, so replay seeks don't replay old bursts.
 const BURST_WINDOW = 0.3;
 
-// Outlined AoEs stay quiet unless vfx.burst turns them on; vfx.burst.element overrides the floor's.
 function burstElement(aoe: FloorAoe): FloorAoe["element"] {
   const burst = aoe.vfx?.burst;
   if (burst?.enabled === false) return undefined;
@@ -16,7 +14,6 @@ function burstElement(aoe: FloorAoe): FloorAoe["element"] {
 
 export class TelegraphLayer {
   private meshes: FloorTelegraphMap = new Map();
-  // Element AoEs waiting for their hit, and ones already burst (kept while present so each bursts once).
   private pendingBursts = new Map<string, FloorAoe>();
   private burstIds = new Set<string>();
   private lastTime = 0;
@@ -24,7 +21,6 @@ export class TelegraphLayer {
   constructor(private scene: Scene) {}
 
   sync(mechanics: ActiveMechanic[], time: number): void {
-    // A replay seek or restart rewinds the clock; forget which AoEs have burst so they fire again.
     if (time < this.lastTime) {
       this.pendingBursts.clear();
       this.burstIds.clear();
@@ -50,7 +46,6 @@ export class TelegraphLayer {
       this.burstIds.add(aoe.id);
       this.burst(aoe, time);
     }
-    // The mechanic can leave `active` before a frame lands on or after its resolveAt.
     for (const [id, aoe] of this.pendingBursts) {
       if (present.has(id)) continue;
       this.pendingBursts.delete(id);

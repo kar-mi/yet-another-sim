@@ -28,17 +28,17 @@ function dashRaid(destination: Destination) {
 }
 
 test("dash blinks at cast end, then gives the linked AOE a fresh telegraph", () => {
-  let world = runTicks(createWorld(dashRaid({ to: [10, 0] })), {}, 48); // t=0.8
+  let world = runTicks(createWorld(dashRaid({ to: [10, 0] })), {}, 48);
   const castPosition = { ...world.boss.pos };
   expect(world.active.find(mechanic => mechanic.id === "dash-landing")?.shape).toEqual({
     kind: "circle", center: { x: 10, z: 0 }, radius: world.boss.radius,
   });
 
-  world = runTicks(world, {}, 11); // still before t=1
+  world = runTicks(world, {}, 11);
   expect(world.boss.pos).toEqual(castPosition);
   expect(byId(world, "m1").hp).toBe(DPS_HP);
 
-  world = runTicks(world, {}, 1); // dash resolves; its marker lingers for this render tick
+  world = runTicks(world, {}, 1);
   expect(world.boss.pos).toEqual({ x: 10, z: 0 });
   const landingMarker = world.active.find(mechanic => mechanic.id === "dash-landing");
   expect(landingMarker?.shape.kind).toBe("circle");
@@ -46,7 +46,7 @@ test("dash blinks at cast end, then gives the linked AOE a fresh telegraph", () 
   expect(world.active.find(mechanic => mechanic.id === "landing-aoe")?.resolved).toBe(false);
   expect(byId(world, "m1").hp).toBe(DPS_HP);
 
-  world = runTicks(world, {}, 31); // past t=1.5
+  world = runTicks(world, {}, 31);
   expect(byId(world, "m1").hp).toBeLessThan(DPS_HP);
   expect(byId(world, "m2").hp).toBe(DPS_HP);
 });

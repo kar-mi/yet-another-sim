@@ -29,22 +29,16 @@ export type ReplayErrorResponse = {
   receivedVersion?: number | null;
 };
 
-// A single reviewable moment in a pull, collected by client/replayInsights.ts.
 export type ReplayEvent = {
   id: string;
-  // Replay-relative tick, in the transport's seek convention: seeking here shows the state *after*
-  // this event resolved.
   tick: number;
   playerId: string;
   playerLabel: string;
   kind: "hit" | "death";
-  // "<eventId>", "<eventId>:<slot>", a status effect id, or "arena" for a fall.
   sourceId: string;
   sourceName: string;
   sectionId?: string;
-  // Hits only. 0 when invincibility or full mitigation prevented all of the damage.
   hpLoss?: number;
-  // Set on a death caused by a recorded avoidable hit in the same tick, pointing at that hit.
   hitEventId?: string;
 };
 

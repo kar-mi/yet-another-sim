@@ -42,6 +42,6 @@ export const AOEShapeSchema = z.discriminatedUnion("kind", [
 
 export const KnockbackSchema = z.object({
   distance: z.number().positive(),
-  height: z.number().nonnegative().default(0), // 0 = horizontal knockback; >0 = knockup arc
-  origin: Vec2Schema.optional(),               // defaults to the AOE shape's center/origin
+  height: z.number().nonnegative().default(0),
+  origin: Vec2Schema.optional(),
 });

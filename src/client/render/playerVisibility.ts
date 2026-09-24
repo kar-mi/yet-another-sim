@@ -15,7 +15,6 @@ function overlaps(a: VisibilityPlayer, b: VisibilityPlayer): boolean {
   return dx * dx + dy * dy + dz * dz <= MODEL_OVERLAP_DISTANCE * MODEL_OVERLAP_DISTANCE;
 }
 
-/** Selects one representative for each group of overlapping models without mutating player state. */
 export function computeVisiblePlayerIds(players: VisibilityPlayer[]): Set<string> {
   const groups: Array<{ anchor: VisibilityPlayer; representative: VisibilityPlayer }> = [];
   for (const player of players) {

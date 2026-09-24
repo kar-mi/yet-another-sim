@@ -18,8 +18,8 @@ import type {
 type WorldCoreState = {
   seed: number;
   time: number;
-  rngState: number;                     // seeded PRNG state (shared/rng.ts), advanced each pull
-  groupChoices: Record<string, number>; // group event id -> chosen group index (for linking)
+  rngState: number;
+  groupChoices: Record<string, number>;
   status: Status;
   hasMechanics: boolean;
   arena: Arena;
@@ -47,7 +47,7 @@ type WorldMechanicState = {
   pendingDashes: PendingDashEvent[];
   towers: ActiveTower[];
   pendingTowers: PendingTower[];
-  botHoldUntil?: number; // bots hold position until this time (set when a tower resolves)
+  botHoldUntil?: number;
   chains: ActiveChain[];
   pendingChains: PendingChain[];
   groupMechanics: ActiveGroupMechanic[];
@@ -76,24 +76,18 @@ type WorldMechanicState = {
   pendingBurstSpreadFollowUps: PendingBurstSpreadFollowUp[];
   pendingTwisters: PendingTwister[];
   pendingLimitCuts: PendingLimitCut[];
-  // Fired limit cuts, live for their effect duration (bot-solver when.mechanic gates on these).
   limitCuts: ActiveLimitCut[];
 };
 
 type WorldSolverState = {
-  // Per-player plant directions (one per plant slot), assigned at world creation and stamped onto
-  // each plant debuff as it lands so the HUD arrow and trap use the player's assigned heading.
   plantPlan: Record<string, [number, number][]>;
-  // Allows application order to differ from the stable displayed/solver combo order.
   plantDebuffOrder?: number[];
   botSolvers?: BotSolvers;
-  // Generic pairing/grouping and positioned-event metadata populated at world creation.
   partners: Record<string, string>;
   playerGroups: Record<string, string>;
   initialCharges: Record<string, string>;
   endingOffsets: Record<string, number>;
   eventPositions: Record<string, Vec2>;
-  // Baked Black Hole tether positions and the lazily locked clockwise order used during resolution.
   blackHoleTethers: Record<string, { positions: Vec2[]; orderFrom?: string }>;
   blackHoleTetherOrder: Record<string, Vec2[]>;
 };

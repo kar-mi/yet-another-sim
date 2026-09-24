@@ -1,7 +1,3 @@
-// Serves /metrics on a SEPARATE port from the game so the exposition endpoint
-// is never co-located with public game traffic. Access is gated by a bearer
-// token (constant-time compared); if METRICS_TOKEN is unset the endpoint refuses
-// to start, so metrics are never exposed unauthenticated by accident.
 import { timingSafeEqual } from "node:crypto";
 import { logger } from "@shared/logger";
 import { metrics, registry } from "./metrics";
@@ -15,14 +11,9 @@ interface MetricsSources {
 function authorized(req: Request, token: string): boolean {
   const provided = Buffer.from(req.headers.get("authorization") ?? "");
   const expected = Buffer.from(`Bearer ${token}`);
-  // timingSafeEqual requires equal lengths; the length check itself leaks only
-  // the token's length, which is not secret.
   return provided.length === expected.length && timingSafeEqual(provided, expected);
 }
 
-// Samples runtime metrics that only make sense to read periodically. The lag
-// gauge measures how late a 1s timer actually fires — the canary for a
-// saturated event loop, distinct from per-tick cost.
 function startRuntimeCollectors(): void {
   let last = performance.now();
   setInterval(() => {
@@ -41,7 +32,6 @@ export function startMetricsServer(sources: MetricsSources): void {
 
   const port = Number(Bun.env.METRICS_PORT || 9100);
   const hostname = Bun.env.METRICS_HOST || "0.0.0.0";
-  // Capacity is configured at startup and never changes for the process lifetime.
   metrics.sessionsCapacity.set(sources.sessionsCapacity);
   startRuntimeCollectors();
 

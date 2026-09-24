@@ -56,8 +56,6 @@ export interface RelayServerDependencies {
   loadRaid?: typeof loadSessionRaid;
 }
 
-// Colyseus room adapter: owns a transport-agnostic RelayRoom and wires Colyseus lifecycle, auth,
-// rate limiting, and message routing into it.
 export class RelayServerRoom extends Room {
   private readonly relay: RelayRoom;
   private readonly dependencies: RelayServerDependencies;

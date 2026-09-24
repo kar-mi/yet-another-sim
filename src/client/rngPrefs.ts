@@ -25,7 +25,6 @@ function writeAll(all: StoredConstraints): void {
   try {
     localStorage.setItem(RNG_CONSTRAINTS_KEY, JSON.stringify(all));
   } catch {
-    // localStorage unavailable (e.g. private browsing) - nothing to persist.
   }
 }
 

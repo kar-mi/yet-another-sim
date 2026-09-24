@@ -12,7 +12,6 @@ import { createCleansingOrb } from "./meshes/cleansingOrbMeshes";
 const MOVER_Y = 1.5;
 const DEFAULT_COLOR = "#ffffff";
 
-// Move orbs toward their AOE centers. ElementGlyphLayer handles glyph movers.
 export class MoverLayer {
   private movers = new Map<string, TransformNode>();
 

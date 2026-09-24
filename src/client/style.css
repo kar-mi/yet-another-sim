@@ -1,4 +1,3 @@
-/* Design tokens are shared with the documentation site (docs-site/styles/docs.css imports a copy). */
 @import "./style-tokens.css";
 @import "./style-base.css";
 @import "./style-hud.css";

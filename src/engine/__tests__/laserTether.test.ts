@@ -96,9 +96,6 @@ test("persistent tether keeps hitting the same locked target across fires despit
     }],
   });
   let world = runTicks(createWorld(raid), noMove, Math.ceil(0.3 * 60));
-  // h1 moves much closer to the source than mt, but stays off the source->mt line - under the
-  // old buggy logic this would steal the tether; under the fix, mt (never dead, never
-  // intercepted) keeps it.
   world = {
     ...world,
     players: world.players.map(player =>
@@ -197,9 +194,7 @@ test("persistent tether can be intercepted before a later fire", () => {
       applyEffect: { ref: "debug_laser_marker" },
     }],
   });
-  // First fire (t=0.2) hits mt normally.
   let world = runTicks(createWorld(raid), noMove, Math.ceil(0.3 * 60));
-  // h1 walks onto the source->mt line ahead of the second scheduled fire (t=0.5).
   world = {
     ...world,
     players: world.players.map(player =>
@@ -216,8 +211,6 @@ test("black-hole tether orbs are recorded after rng resolution", async () => {
   const raid = loadRaid(Bun.YAML.parse(text));
   const world = createWorld(raid, 1);
 
-  // Laser origins are no longer baked into eventPositions; the three physical tether orbs per hazard
-  // are recorded on world.blackHoleTethers and resolved to clockwise slots at runtime.
   expect(world.blackHoleTethers["black-hole-2"]!.positions).toHaveLength(3);
 });
 

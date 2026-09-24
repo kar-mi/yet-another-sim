@@ -1,12 +1,3 @@
-// Death effect for voxel player models: the model's "pixels" (baked into the GLB root node's
-// extras by scripts/voxel-models) fly apart, bounce on the floor, and shrink away.
-//
-// The burst is a pure function of (pull seed, player id, seconds since death), following the
-// lockstep rules (docs/deterministic-lockstep.md): randomness comes from the seeded mulberry32 PRNG,
-// rotations from dmath, and physics is integrated at a fixed step from the moment of death, never
-// from the render frame's delta. Every client and every replay therefore draws the same burst at
-// the same sim time; it freezes while the sim is paused and seeks correctly. It is render-only and
-// never feeds back into the World.
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import "@babylonjs/core/Meshes/thinInstanceMesh";
@@ -20,7 +11,6 @@ import { nextRandom } from "@shared/rng";
 
 export type BurstData = { cell: number; positions: number[]; colors: number[] };
 
-// All in model units (the voxel model is ~4.5 tall before PLAYER_MODEL_SCALE) and sim seconds.
 export const BURST_DURATION = 1.4;
 export const BURST_STEP = 1 / 120;
 const SHRINK_START = 0.9;
@@ -29,10 +19,10 @@ const BURST_CENTER_Y = 2.2;
 const SPEED_MIN = 3;
 const SPEED_MAX = 6.5;
 const LIFT = 4;
-const DOWN_DAMPING = 0.3; // pixels below the middle still pop up before falling
+const DOWN_DAMPING = 0.3;
 const BOUNCE = 0.3;
 const FLOOR_FRICTION = 0.6;
-const MAX_SPIN = 12; // rad/s
+const MAX_SPIN = 12;
 
 export function readBurstData(metadata: unknown): BurstData | null {
   const burst = (metadata as { gltf?: { extras?: { voxelBurst?: BurstData } } } | null)?.gltf?.extras?.voxelBurst;
@@ -41,7 +31,6 @@ export function readBurstData(metadata: unknown): BurstData | null {
   return burst;
 }
 
-// 32-bit seed for one player's burst in one pull (FNV-1a over the id, mixed with the pull seed).
 export function burstSeed(worldSeed: number, playerId: string): number {
   let h = (0x811c9dc5 ^ worldSeed) >>> 0;
   for (let i = 0; i < playerId.length; i++) h = Math.imul(h ^ playerId.charCodeAt(i), 0x01000193) >>> 0;
@@ -50,7 +39,6 @@ export function burstSeed(worldSeed: number, playerId: string): number {
 
 export type BurstLaunch = { vel: Float64Array; spinAxis: Float64Array; spinRate: Float64Array };
 
-// Initial velocities (outward from the model's middle, always upward at first) and spins.
 export function launchBurst(data: BurstData, seed: number): BurstLaunch {
   let state = seed;
   const random = () => {
@@ -87,7 +75,6 @@ export function launchBurst(data: BurstData, seed: number): BurstLaunch {
 
 export type BurstState = { step: number; pos: Float64Array; vel: Float64Array };
 
-// Advance every pixel one fixed step under gravity; pixels that reach the floor bounce and slide.
 function stepBurst(state: BurstState, floorY: number): void {
   const { pos, vel } = state;
   for (let i = 0; i < pos.length; i += 3) {
@@ -105,9 +92,6 @@ function stepBurst(state: BurstState, floorY: number): void {
   state.step++;
 }
 
-// Deterministic pixel simulation. `at(elapsed)` returns the state at the last fixed step at or
-// before `elapsed`, stepping forward from a cache and restarting from the launch when time goes
-// back (a replay seek).
 export class BurstSim {
   readonly launch: BurstLaunch;
   private state: BurstState;
@@ -136,7 +120,6 @@ export function burstScale(elapsed: number): number {
 
 const MATERIAL_NAME = "voxel-burst";
 
-// One material per scene, shared by every burst; pixel colours come from the instance buffer.
 function burstMaterial(scene: Scene): PBRMaterial {
   const existing = scene.getMaterialByName(MATERIAL_NAME);
   if (existing instanceof PBRMaterial) return existing;
@@ -147,9 +130,6 @@ function burstMaterial(scene: Scene): PBRMaterial {
   return material;
 }
 
-// One burst: a thin-instanced cube per pixel under `frame`, which carries the model root's
-// transform so pixels line up with the model they replace. The owner calls render() with the sim
-// time since death.
 export class VoxelBurst {
   private readonly frame: TransformNode;
   private readonly mesh: Mesh;
@@ -169,7 +149,7 @@ export class VoxelBurst {
     this.mesh.parent = this.frame;
     this.mesh.isPickable = false;
     this.mesh.material = burstMaterial(scene);
-    this.mesh.alwaysSelectAsActiveMesh = true; // instances fly well outside the unit cube's bounds
+    this.mesh.alwaysSelectAsActiveMesh = true;
 
     this.count = data.colors.length;
     const colors = new Float32Array(this.count * 4);

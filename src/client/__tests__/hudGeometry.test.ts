@@ -15,7 +15,6 @@ import {
 } from "../ui/hudGeometry";
 
 const VIEWPORT = { width: 1000, height: 800 };
-// A 200x100 group centred on its element, i.e. no protruding controls.
 const PLAIN: HudMeasure = { natural: { width: 200, height: 100 }, offset: { x: 0, y: 0 } };
 const LIMITS = { min: 0.5, max: 2 };
 
@@ -71,7 +70,6 @@ describe("fitting", () => {
   });
 
   test("clamps the whole measured rectangle, protruding controls included", () => {
-    // The group sticks out 50px to the right of the element centre at scale 1.
     const measure: HudMeasure = { natural: { width: 200, height: 100 }, offset: { x: 50, y: 0 } };
     const fitted = fitPlacement({ x: 990, y: 400 }, 1, measure, VIEWPORT);
     expect(groupRect(fitted, measure).left + groupRect(fitted, measure).width).toBeCloseTo(1000);
@@ -82,7 +80,6 @@ describe("fitting", () => {
     const measure: HudMeasure = { natural: { width: 2000, height: 400 }, offset: { x: 0, y: 0 } };
     const fitted = fitPlacement({ x: 100, y: 100 }, 1, measure, VIEWPORT);
     expect(fitted.scale).toBe(0.5);
-    // Too wide even shrunk, so it centres horizontally; vertically it just stays inside.
     expect(fitted.center).toEqual({ x: 500, y: 100 });
   });
 });
@@ -96,7 +93,6 @@ describe("moving", () => {
   test("snaps to the grid before clamping", () => {
     const grid = { width: 10, height: 10 };
     expect(moveGroup(place(500, 400), { x: 13, y: 4 }, PLAIN, VIEWPORT, grid).center).toEqual({ x: 510, y: 400 });
-    // A snap that would leave the viewport still ends up inside it.
     expect(moveGroup(place(500, 400), { x: 496, y: 0 }, PLAIN, VIEWPORT, grid).center).toEqual({ x: 900, y: 400 });
   });
 });
@@ -105,7 +101,6 @@ describe("resizing", () => {
   test("a corner drag scales proportionally and pins the opposite corner", () => {
     const start = place(500, 400);
     const before = groupRect(start, PLAIN);
-    // Drag the SE handle out along the diagonal by half the box.
     const resized = resizeGroup(start, "se", { x: 100, y: 50 }, PLAIN, VIEWPORT, LIMITS);
     expect(resized.scale).toBeCloseTo(1.5);
     const after = groupRect(resized, PLAIN);
@@ -146,7 +141,6 @@ describe("resizing", () => {
   });
 
   test("stops at the viewport edge before the maximum scale", () => {
-    // Anchored 200px from the left edge, this 600px-wide group runs out of room at 4/3 scale.
     const wide: HudMeasure = { natural: { width: 600, height: 100 }, offset: { x: 0, y: 0 } };
     const start = place(500, 400);
     const resized = resizeGroup(start, "e", { x: 5000, y: 0 }, wide, VIEWPORT, LIMITS);

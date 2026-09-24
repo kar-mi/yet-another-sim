@@ -13,12 +13,11 @@ const ORB_SIZE = 3;
 const ORB_Y = 2;
 const INDICATOR_SIZE = 2.6;
 const INDICATOR_Y = 4.6;
-const RUNE_FILL = 0.62; // rune's longer side as a fraction of the texture
+const RUNE_FILL = 0.62;
 export const CLEANSING_ORB_RUNE_URL = `${STATIC_ROOT}/model/raid/orb_centera.png`;
 
 type Ctx = CanvasRenderingContext2D;
 
-// Fixed-seed LCG so the mottled rings look the same every time.
 function rng(seed: number): () => number {
   let s = seed;
   return () => (s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296;
@@ -38,7 +37,6 @@ function spots(ctx: Ctx, seed: number, inner: number, outer: number, count: numb
   ctx.globalAlpha = 1;
 }
 
-// Blue-rimmed orb background.
 function drawOrb(ctx: Ctx): void {
   const disc = ctx.createRadialGradient(C, C, 0, C, C, C);
   disc.addColorStop(0, "#0b1f45");
@@ -51,7 +49,6 @@ function drawOrb(ctx: Ctx): void {
   ctx.fillRect(0, 0, TEX, TEX);
 }
 
-// Fit the glowing rune inside the orb.
 function drawRune(ctx: Ctx, image: HTMLImageElement): void {
   const scale = (TEX * RUNE_FILL) / Math.max(image.width, image.height);
   const w = image.width * scale;
@@ -73,7 +70,6 @@ function loadRune(): Promise<HTMLImageElement> {
   return runeImage;
 }
 
-// Gold circle-AOE indicator.
 function drawCircleIndicator(ctx: Ctx): void {
   const g = ctx.createRadialGradient(C, C, 0, C, C, C);
   g.addColorStop(0, "rgba(10,6,2,0.9)");
@@ -90,7 +86,6 @@ function drawCircleIndicator(ctx: Ctx): void {
   spots(ctx, 7, C * 0.56, C * 0.8, 70, ["#3a1a04", "#7a3a06", "#fff0a0"]);
 }
 
-// Red donut-AOE indicator.
 function drawDonutIndicator(ctx: Ctx): void {
   const g = ctx.createRadialGradient(C, C, 0, C, C, C);
   g.addColorStop(0, "rgba(0,0,0,0)");
@@ -131,7 +126,6 @@ function spritePlane(scene: Scene, name: string, size: number, y: number, draw: 
   return { plane, tex };
 }
 
-// Cleansing orb with a circle/donut indicator; root at floor height.
 export function createCleansingOrb(scene: Scene, id: string, kind: "circle" | "donut"): TransformNode {
   const root = new TransformNode(`cleansing-orb-${id}`, scene);
   const orb = spritePlane(scene, `cleansing-orb-${id}-orb`, ORB_SIZE, ORB_Y, drawOrb);

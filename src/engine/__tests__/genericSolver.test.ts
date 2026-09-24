@@ -9,8 +9,6 @@ import { BotPatternsSchema } from "../schema/raidSchema";
 import { baseRaid, roster } from "./helpers";
 import type { Player, World } from "@model/types";
 
-// Minimal World/Player builders: the solver only reads a handful of fields, so we construct just
-// those and cast, keeping each case readable.
 function world(over: Record<string, unknown>): World {
   return {
     time: 0,
@@ -108,7 +106,6 @@ test("a rule only matches the segment that it specifies", () => {
     inversions: [{ id: "lightning-1", inverted: false, variantB: false, telegraphStart: 0, resolveAt: 5, resolved: false }],
     botSolvers: { generic: [{ when: { mechanic: "lightning-1.inverted" }, spot: { x: 6, z: 6 } }] },
   });
-  // shown.a does not start with inverted -> no match.
   expect(genericSolverWaypoint(player({}), w)).toBeUndefined();
 });
 
@@ -163,7 +160,6 @@ test("unframed safeSpots are absolute; ignore dangers that can't hit the bot; ti
     botSolvers: { generic: [{ when: { mechanic: "ring" }, safeSpots: [{ x: 0, z: 0 }, { x: 10, z: 0 }, { x: -10, z: 0 }] }] },
   });
   const carrier = player({ pos: { x: 1, z: 0 }, effects: [{ name: "Fire IV", appliedAt: 0, duration: 6 }] });
-  // The carrier is hit by the fire circle but not by p2's ice circle; +x and -x are equally near.
   expect(genericSolverWaypoint(carrier, w)).toEqual({ x: 10, z: 0 });
   expect(genericSolverWaypoint(player({ pos: { x: 1, z: 0 } }), w)).toEqual({ x: 0, z: 0 });
 });
@@ -335,7 +331,6 @@ test("spots[id] wins over the shared spot, and a missing entry falls through", (
     },
   });
   expect(genericSolverWaypoint(player({ id: "p1" }), w)).toEqual({ x: 2, z: 2 });
-  // p2 has no spots entry but the rule supplies a shared spot.
   expect(genericSolverWaypoint(player({ id: "p2" }), w)).toEqual({ x: 0, z: 0 });
 });
 
@@ -381,11 +376,9 @@ test("a debuff array requires every listed effect to be active", () => {
   expect(genericSolverWaypoint(one, world(base))).toBeUndefined();
 });
 
-// A bot carrying limit-cut number `n`, active at time 0.
 const numbered = (n: number) =>
   player({ id: `p${n}`, effects: [{ name: "Limit Cut", appliedAt: 0, duration: 9, limitCutNumber: n }] as Player["effects"] });
 
-// The 8 ring spots as the loader would store them: polar {dist:18, angleDeg} -> {x: r, z}.
 const lcSpots = [22.5, 67.5, 112.5, 157.5, 202.5, 247.5, 292.5, 337.5].map(deg => {
   const a = (deg * Math.PI) / 180;
   return { x: 18 * Math.sin(a), z: 18 * Math.cos(a) };
@@ -410,21 +403,19 @@ const pullTowardSource = (aim: { x: number; z: number }, source: { x: number; z:
 
 test("limitCutSpread places #1 at SSW and rotates clockwise from relative-north (S)", () => {
   const w = lcWorld(true);
-  closeTo(genericSolverWaypoint(numbered(1), w), -6.888, -16.630); // SSW
-  closeTo(genericSolverWaypoint(numbered(2), w), -16.630, -6.888); // WSW
-  closeTo(genericSolverWaypoint(numbered(5), w), 6.888, 16.630);   // NNE
-  closeTo(genericSolverWaypoint(numbered(8), w), 6.888, -16.630);  // SSE
+  closeTo(genericSolverWaypoint(numbered(1), w), -6.888, -16.630);
+  closeTo(genericSolverWaypoint(numbered(2), w), -16.630, -6.888);
+  closeTo(genericSolverWaypoint(numbered(5), w), 6.888, 16.630);
+  closeTo(genericSolverWaypoint(numbered(8), w), 6.888, -16.630);
 });
 
 test("limitCutSpread reverses to counter-clockwise when clockwise is false", () => {
   const w = lcWorld(false);
-  closeTo(genericSolverWaypoint(numbered(1), w), 6.888, -16.630); // SSE
+  closeTo(genericSolverWaypoint(numbered(1), w), 6.888, -16.630);
 });
 
 test("limitCutSpread yields no spot without a number or while its mechanic is inactive", () => {
-  // Bot with no limit-cut number falls through.
   expect(genericSolverWaypoint(player({ id: "px" }), lcWorld(true))).toBeUndefined();
-  // Numbered bot but the limit cut isn't live (outside its window), so when.mechanic doesn't match.
   const expired = world({
     time: 20,
     limitCuts: [{ id: "lc", appliedAt: 0, duration: 9, north: { x: 0, z: -1 }, clockwise: true }],
@@ -442,8 +433,8 @@ test("partnerDebuff checks the bot's partner via world.partners", () => {
     partners: { p1: "p2", p2: "p1" },
     botSolvers: { generic: [{ when: { partnerDebuff: "Cone" }, spot: { x: 1, z: 1 } }] },
   });
-  expect(genericSolverWaypoint(p1, w)).toEqual({ x: 1, z: 1 }); // partner p2 has Cone
-  expect(genericSolverWaypoint(p2, w)).toBeUndefined();         // partner p1 has nothing
+  expect(genericSolverWaypoint(p1, w)).toEqual({ x: 1, z: 1 });
+  expect(genericSolverWaypoint(p2, w)).toBeUndefined();
 });
 
 test("soaks compares the bot's group to the matched mechanic's group", () => {
@@ -463,7 +454,6 @@ test("soaks compares the bot's group to the matched mechanic's group", () => {
 });
 
 test("frame: matched rotates a spot into the matched towers' bisector frame", () => {
-  // Two towers at [0,5] and [5,0]: north = bisector [0.707, 0.707]; a frame [0, 5] spot maps to 5*north.
   const w = world({
     time: 2,
     towers: [
@@ -478,7 +468,6 @@ test("frame: matched rotates a spot into the matched towers' bisector frame", ()
 });
 
 test("frame: [eventIds] rotates using static event positions", () => {
-  // Frame north from events at [0,-5] and [-5,0]: bisector [-0.707, -0.707]; spot [0, 5] -> 5*north.
   const w = world({
     time: 2,
     active: [{ id: "bait", telegraphStart: 0, resolveAt: 5, resolved: false }],
@@ -503,7 +492,6 @@ test("frame: [{ crystal }] rotates using the resolved crystal position", () => {
 });
 
 test("frame: [ref, ref] sums a boss position and a crystal position for north", () => {
-  // Boss at [3,0] + wind crystal at [0,3]: sum [3,3] -> north [0.707, 0.707]; spot [0,5] -> 5*north.
   const w = world({
     time: 2,
     active: [{ id: "bait", telegraphStart: 0, resolveAt: 5, resolved: false }],
@@ -677,10 +665,6 @@ test("a rule whose frame cannot be computed falls through to the next rule", () 
   expect(genericSolverWaypoint(player({}), w)).toEqual({ x: 9, z: 9 });
 });
 
-// loadBotPatterns is the boundary that turns an authored -bots companion into runtime solver rules.
-// These two cases exercise that conversion and its end-to-end effect on a bot intent using a
-// synthetic raid, so they are not coupled to any authored raid file's contents.
-
 test("loadBotPatterns converts authored solver spot objects to Vec2 and preserves when conditions", () => {
   const w = createWorld(applyBotPatterns(loadRaid(baseRaid), loadBotPatterns({
     players: {},
@@ -693,7 +677,7 @@ test("loadBotPatterns converts authored solver spot objects to Vec2 and preserve
   expect(w.botSolvers?.generic).toHaveLength(2);
   expect(w.botSolvers?.generic?.[0]?.when).toEqual({ mechanic: "stack-1.g0", role: "tank" });
   expect(w.botSolvers?.generic?.[0]?.frame).toEqual([{ crystal: "wind" }]);
-  expect(w.botSolvers?.generic?.[0]?.spot).toEqual({ x: -7, z: 7 }); // relative r -> runtime x
+  expect(w.botSolvers?.generic?.[0]?.spot).toEqual({ x: -7, z: 7 });
   expect(w.botSolvers?.generic?.[1]?.spot).toEqual({ x: -4, z: 4 });
 });
 
@@ -736,14 +720,12 @@ test("loadBotPatterns converts polar frame spots and resolves their world positi
   expect(diagonal.z).toBeCloseTo(0, 3);
 });
 
-// nearestEdge: pick the closest arena-wall point to `from` that stays `clearance` clear of the
-// `avoid` line axis (a boss facing, whose cleave runs through arena centre).
 function nearestEdgeWorld(kefkaFacing: number): World {
   return world({
     time: 145,
     active: [{ id: "look", telegraphStart: 143, resolveAt: 148, resolved: false }],
     arena: { zones: [{ kind: "circle", center: { x: 0, z: 0 }, radius: 20 }] },
-    eventPositions: { orb: { x: 17, z: 0 } }, // BH4 east tether orb
+    eventPositions: { orb: { x: 17, z: 0 } },
     bosses: [{ id: "bigkefka", pos: { x: 0, z: 18 }, facing: kefkaFacing }],
     botSolvers: { generic: [{
       when: { mechanic: "look" },
@@ -753,7 +735,6 @@ function nearestEdgeWorld(kefkaFacing: number): World {
 }
 
 test("nearestEdge sends the bot to the orb's radial wall point when the line clears it", () => {
-  // Kefka faces north (+z), so the line runs north-south through centre; the east orb is well clear.
   const target = genericSolverWaypoint(player({}), nearestEdgeWorld(0))!;
   expect(target.x).toBeCloseTo(20, 6);
   expect(target.z).toBeCloseTo(0, 6);
@@ -761,12 +742,10 @@ test("nearestEdge sends the bot to the orb's radial wall point when the line cle
 });
 
 test("nearestEdge snaps to a band-edge wall point when the orb's radial sits inside the line", () => {
-  // Kefka faces east (+x): the line runs east-west, so the east orb's radial ({20,0}) is inside it.
   const target = genericSolverWaypoint(player({}), nearestEdgeWorld(Math.PI / 2))!;
-  // right = (facing.z, -facing.x) = (0,-1); lateral = -z, so a safe point sits at |z| == clearance.
   expect(Math.abs(target.z)).toBeCloseTo(8, 6);
   expect(Math.hypot(target.x, target.z)).toBeCloseTo(20, 6);
-  expect(target.x).toBeCloseTo(Math.sqrt(400 - 64), 6); // nearer (east) side, not the far west edge
+  expect(target.x).toBeCloseTo(Math.sqrt(400 - 64), 6);
 });
 
 test("nearestEdge is deterministic on a symmetric tie", () => {
@@ -780,7 +759,7 @@ test("nearestEdge falls through when a reference can't be resolved", () => {
     time: 145,
     active: [{ id: "look", telegraphStart: 143, resolveAt: 148, resolved: false }],
     arena: { zones: [{ kind: "circle", center: { x: 0, z: 0 }, radius: 20 }] },
-    eventPositions: {}, // orb missing
+    eventPositions: {},
     bosses: [{ id: "bigkefka", pos: { x: 0, z: 18 }, facing: 0 }],
     botSolvers: { generic: [
       { when: { mechanic: "look" }, nearestEdge: { from: "orb", avoid: { boss: { id: "bigkefka", from: "facing" } }, clearance: 8 } },
@@ -957,12 +936,10 @@ test("generic solver moves a bot toward the rolled group's stack spot", () => {
       { when: { mechanic: "stack.g1", role: "tank" }, spot: { x: 7, z: -7 } },
     ] },
   });
-  // The t=0 group mechanic promotes on the first tick; read the bot intent while it telegraphs.
   let w = createWorld(raid, 1);
   w = tick(w, computeBotIntents(w, 1 / 60), 1 / 60);
   expect(w.groupMechanics.length).toBeGreaterThan(0);
 
-  // ot (a bot tank) heads to its role-conditioned spot: g0 -> { x: -7, z: 7 }, g1 -> { x: 7, z: -7 }.
   const intent = computeBotIntents(w, 1 / 60).ot;
   if (w.groupChoices["stack"] === 0) {
     expect(intent.move.x).toBeLessThan(0);

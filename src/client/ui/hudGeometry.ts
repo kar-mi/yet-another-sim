@@ -1,12 +1,3 @@
-// Screen-space geometry for the HUD layout editor. Outlines, dragging, resizing and viewport
-// clamping all go through these pure helpers so the editor and its tests share one set of rules.
-//
-// An element is drawn with `translate(-50%, -50%) scale(total)` around its centre, so a placement is
-// a centre point plus a total scale factor (the UI scale times the group's own scale). The measured
-// group box — the element plus any protruding controls — is described relative to that placement by
-// its unit size (`natural`, the box at scale 1) and `offset` (group centre minus element centre,
-// also at scale 1).
-
 export interface HudPoint { x: number; y: number }
 export interface HudSize { width: number; height: number }
 export interface HudRect { left: number; top: number; width: number; height: number }
@@ -18,7 +9,6 @@ export const HUD_MAX_SCALE = 2;
 export const HUD_HANDLES = ["nw", "n", "ne", "e", "se", "s", "sw", "w"] as const;
 export type HudHandle = (typeof HUD_HANDLES)[number];
 
-/** -1 = west/north side, 0 = centre, 1 = east/south side. */
 function handleAxis(handle: HudHandle): HudPoint {
   return {
     x: handle.includes("e") ? 1 : handle.includes("w") ? -1 : 0,
@@ -33,12 +23,10 @@ function edgePoint(rect: HudRect, axis: HudPoint): HudPoint {
   };
 }
 
-/** The point the handle sits on: a corner, or the midpoint of an edge. */
 export function handlePoint(rect: HudRect, handle: HudHandle): HudPoint {
   return edgePoint(rect, handleAxis(handle));
 }
 
-/** The point a resize keeps fixed: the opposite corner, or the opposite edge's midpoint. */
 export function anchorPoint(rect: HudRect, handle: HudHandle): HudPoint {
   const axis = handleAxis(handle);
   return edgePoint(rect, { x: -axis.x, y: -axis.y });
@@ -48,7 +36,6 @@ export function centeredRect(center: HudPoint, size: HudSize): HudRect {
   return { left: center.x - size.width / 2, top: center.y - size.height / 2, width: size.width, height: size.height };
 }
 
-/** The measured group box for a placement. */
 export function groupRect(placement: HudPlacement, measure: HudMeasure): HudRect {
   const { center, scale } = placement;
   return centeredRect(
@@ -62,7 +49,6 @@ function clampAxis(center: number, size: number, extent: number): number {
   return Math.min(Math.max(center, size / 2), extent - size / 2);
 }
 
-/** Keeps a box of `size` fully inside the viewport; an oversized box is centred. */
 export function clampCenter(center: HudPoint, size: HudSize, viewport: HudSize): HudPoint {
   return {
     x: clampAxis(center.x, size.width, viewport.width),
@@ -77,16 +63,11 @@ export function snapPoint(point: HudPoint, step: HudSize): HudPoint {
   };
 }
 
-/**
- * The scale to actually render at: the preferred one, shrunk further — below the minimum if it has
- * to be — only when the group cannot otherwise fit the viewport.
- */
 export function fitScale(natural: HudSize, viewport: HudSize, preferred: number): number {
   if (natural.width <= 0 || natural.height <= 0) return preferred;
   return Math.min(preferred, viewport.width / natural.width, viewport.height / natural.height);
 }
 
-/** Places a group at its preferred scale where it fits, shrinking and pulling it inside where it doesn't. */
 export function fitPlacement(center: HudPoint, preferredScale: number, measure: HudMeasure, viewport: HudSize): HudPlacement {
   const scale = fitScale(measure.natural, viewport, preferredScale);
   const placed = { center, scale };
@@ -98,7 +79,6 @@ export function fitPlacement(center: HudPoint, preferredScale: number, measure: 
   };
 }
 
-/** Drags a group by `delta`, snapping its centre to the grid (when given) before clamping. */
 export function moveGroup(
   start: HudPlacement,
   delta: HudPoint,
@@ -111,7 +91,6 @@ export function moveGroup(
   return fitPlacement(center, start.scale, measure, viewport);
 }
 
-/** How far a resize about `anchor` can grow before the group leaves the viewport. */
 function maxRatioInViewport(rect: HudRect, anchor: HudPoint, viewport: HudSize): number {
   const spans: [number, number][] = [
     [anchor.x - rect.left, anchor.x],
@@ -126,10 +105,6 @@ function maxRatioInViewport(rect: HudRect, anchor: HudPoint, viewport: HudSize):
   return max;
 }
 
-/**
- * Scales a group proportionally by dragging `handle`, keeping the opposite corner (or opposite
- * edge's midpoint) pinned. `limits` are total-scale bounds, i.e. already multiplied by the UI scale.
- */
 export function resizeGroup(
   start: HudPlacement,
   handle: HudHandle,

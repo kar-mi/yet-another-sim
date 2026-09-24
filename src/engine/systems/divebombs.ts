@@ -20,7 +20,6 @@ export function resolveDivebombs(ctx: TickContext): {
   for (const pending of ctx.world.pendingDivebombs) {
     if (pending.t <= time) {
       const { t, teleportBoss, hideBoss, ...fields } = pending;
-      // On cast start, optionally drag a boss onto the dash origin (the seeded `from`) or hide it.
       if (teleportBoss) {
         const b = bosses.find(boss => boss.id === teleportBoss);
         if (b) {

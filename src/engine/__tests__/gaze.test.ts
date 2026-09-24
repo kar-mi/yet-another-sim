@@ -12,7 +12,7 @@ const gazeEvent = (over: Record<string, unknown> = {}) => ({
   telegraph: 0.1,
   damage: 40,
   damageType: "magical" as const,
-  pos: [0, 10] as Vec, // eye to the north (+Z); a player facing +Z is looking at it
+  pos: [0, 10] as Vec,
   ...over,
 });
 
@@ -23,8 +23,8 @@ test("gaze: a normal eye hits players facing it and spares those facing away", (
     events: [gazeEvent()],
   });
   const world = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
-  expect(world.players.find(p => p.id === "m1")!.hp).toBe(60);  // eye is in front (+Z): hit
-  expect(world.players.find(p => p.id === "m2")!.hp).toBe(DPS_HP); // eye is behind: safe
+  expect(world.players.find(p => p.id === "m1")!.hp).toBe(60);
+  expect(world.players.find(p => p.id === "m2")!.hp).toBe(DPS_HP);
 });
 
 test("gaze: a reverse '?' eye hits players facing away and spares those facing it", () => {
@@ -34,8 +34,8 @@ test("gaze: a reverse '?' eye hits players facing away and spares those facing i
     events: [gazeEvent({ reverse: true })],
   });
   const world = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
-  expect(world.players.find(p => p.id === "m1")!.hp).toBe(DPS_HP); // looking at it: safe
-  expect(world.players.find(p => p.id === "m2")!.hp).toBe(60);  // facing away: hit
+  expect(world.players.find(p => p.id === "m1")!.hp).toBe(DPS_HP);
+  expect(world.players.find(p => p.id === "m2")!.hp).toBe(60);
 });
 
 test("gaze: a narrow coneHalfAngle spares players off to the side", () => {
@@ -45,8 +45,8 @@ test("gaze: a narrow coneHalfAngle spares players off to the side", () => {
     events: [gazeEvent({ coneHalfAngle: Math.PI / 4 })],
   });
   const world = runTicks(createWorld(raid), {}, Math.ceil(0.3 * 60));
-  expect(world.players.find(p => p.id === "m1")!.hp).toBe(60);  // eye straight ahead: hit
-  expect(world.players.find(p => p.id === "m2")!.hp).toBe(DPS_HP); // eye 90 off-axis, outside cone: safe
+  expect(world.players.find(p => p.id === "m1")!.hp).toBe(60);
+  expect(world.players.find(p => p.id === "m2")!.hp).toBe(DPS_HP);
 });
 
 test("gaze rng eventually picks both normal and reverse", () => {
@@ -57,7 +57,7 @@ test("gaze rng eventually picks both normal and reverse", () => {
   };
   const seen = new Set<boolean>();
   for (let i = 0; i < 40; i++) {
-    const w = tick(createWorld(loadRaid(raid)), {}, 1 / 60); // promote on first tick
+    const w = tick(createWorld(loadRaid(raid)), {}, 1 / 60);
     seen.add(w.gazes[0].reverse);
   }
   expect(seen).toEqual(new Set([true, false]));

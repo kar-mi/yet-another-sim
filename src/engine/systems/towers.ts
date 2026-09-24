@@ -1,6 +1,3 @@
-// Phase 3c: soak towers. Track live valid soakers each tick; at resolve, reward soakers (or punish
-// wrong-role ones) on success, or hit the whole raid with failure damage when undersoaked.
-
 import type { TickContext } from "./context";
 import { applyStatus, consumeStacks } from "@status";
 import { statusServices } from "./statusServices";
@@ -56,7 +53,6 @@ export function resolveTowers(ctx: TickContext): {
       tower.soakerCount = validSoakers.length;
 
       if (tower.resolveAt <= time) {
-        // Wrong-role soakers die when the tower opts into lethal punishment.
         if (tower.requiredRoles && tower.wrongRoleLethal) {
           for (const p of inside) {
             if (!tower.requiredRoles.includes(p.role) && !p.invincible) {
@@ -74,8 +70,6 @@ export function resolveTowers(ctx: TickContext): {
 
         const success = validSoakers.length >= tower.requiredCount;
         if (success) {
-          // Hand the soakers whose charge a resolver consumed to the reassign system (runs later this
-          // tick) so it can re-balance charges by this tower's label.
           if (resolvedDebuffPlayers.length > 0) {
             ctx.resolvedTowers.push({ labels: tower.labels ?? [], playerIds: resolvedDebuffPlayers.map(p => p.id) });
           }
@@ -89,7 +83,6 @@ export function resolveTowers(ctx: TickContext): {
             log.push({ t: time, mechanic: tower.name, playerId: p.id, event: "cleared" });
           }
         } else {
-          // Unsoaked: the whole raid eats the failure damage.
           for (const p of players) {
             if (!p.alive) continue;
             applyMechanicDamage(ctx, p, tower.failureDamage, tower.failureDamageType, mechanicSource(ctx, tower.id, tower.name));
@@ -102,6 +95,5 @@ export function resolveTowers(ctx: TickContext): {
     }
   }
 
-  // Keep briefly after resolve so the renderer can flash success/failure.
   return { towers: cullResolved(towers, time, TOWER_LINGER), pendingTowers: remainingPendingTowers };
 }

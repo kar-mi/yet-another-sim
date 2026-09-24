@@ -13,14 +13,13 @@ test("burst data is read from glTF extras metadata and rejects malformed data", 
 
 test("pixels fly apart, then come to rest on the floor", () => {
   const launch = launchBurst(data, 1234);
-  for (let i = 1; i < launch.vel.length; i += 3) expect(launch.vel[i]!).toBeGreaterThan(0); // all thrown upward first
+  for (let i = 1; i < launch.vel.length; i += 3) expect(launch.vel[i]!).toBeGreaterThan(0);
   const state = new BurstSim(data, 1234).at(3);
   for (let i = 1; i < state.pos.length; i += 3) expect(state.pos[i]).toBeCloseTo(data.cell / 2, 1);
   const dx = state.pos[3]! - state.pos[0]!, dz = state.pos[5]! - state.pos[2]!;
   expect(Math.sqrt(dx * dx + dz * dz)).toBeGreaterThan(1);
 });
 
-// Lockstep: every client and replay must draw the same burst at the same sim time.
 test("a burst is a pure function of seed and sim time", () => {
   const seed = burstSeed(987654321, "mt");
   expect(burstSeed(987654321, "mt")).toBe(seed);
@@ -29,12 +28,12 @@ test("a burst is a pure function of seed and sim time", () => {
 
   const direct = Array.from(new BurstSim(data, seed).at(1.0).pos);
   const stepped = new BurstSim(data, seed);
-  for (let t = 0; t <= 1.0; t += 1 / 61) stepped.at(t); // uneven render frames
+  for (let t = 0; t <= 1.0; t += 1 / 61) stepped.at(t);
   expect(Array.from(stepped.at(1.0).pos)).toEqual(direct);
 
   const rewound = new BurstSim(data, seed);
   rewound.at(1.3);
-  expect(Array.from(rewound.at(1.0).pos)).toEqual(direct); // replay seek backwards
+  expect(Array.from(rewound.at(1.0).pos)).toEqual(direct);
   expect(Array.from(new BurstSim(data, burstSeed(987654321, "ot")).at(1.0).pos)).not.toEqual(direct);
 });
 
@@ -45,7 +44,6 @@ test("a burst advances in fixed steps, so a paused frame never moves", () => {
   expect(Array.from(sim.at(0.5).pos)).toEqual(Array.from(new BurstSim(data, 7).at(0.5).pos));
 });
 
-// Same banned list as the engine's noTranscendentals guard, plus the render frame delta.
 test("the burst uses only deterministic math and sim time", () => {
   const source = readFileSync(join(import.meta.dir, "../render/voxelBurst.ts"), "utf8")
     .split(/\r?\n/)
@@ -60,7 +58,6 @@ test("pixels shrink away by the end of the burst", () => {
 });
 
 test("every player model file has the clips PlayerLayer plays and burst data", async () => {
-  // PlayerLayer resolves its static root from document.baseURI at import time.
   const original = Object.getOwnPropertyDescriptor(globalThis, "document");
   Object.defineProperty(globalThis, "document", { configurable: true, value: { baseURI: "http://localhost/" } });
   const { PLAYER_MODEL_FILES } = await import("../render/PlayerLayer").finally(() => {

@@ -8,11 +8,8 @@ export interface RaidPicker {
   dispose: () => void;
 }
 
-// Shown on the button before anything is picked. It is a prompt, never a row in the browser — every
-// option the list offers is a real raid.
 export const UNSELECTED_LABEL = "SELECT RAID";
 
-// An unselected or unknown raid id opens on the first category rather than inventing one.
 export function categoryForRaidId(categories: RaidCategory[], raidId: string): RaidCategory | null {
   const separator = raidId.indexOf("/");
   const prefix = separator === -1 ? null : raidId.slice(0, separator);
@@ -27,7 +24,6 @@ export function raidLabelForId(categories: RaidCategory[], raidId: string): stri
   return UNSELECTED_LABEL;
 }
 
-// Raid browser: a labelled trigger button plus a searchable category/raid modal.
 export function createRaidPicker(options: {
   categories: RaidCategory[];
   initialRaidId: string;

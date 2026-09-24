@@ -1,8 +1,3 @@
-// Phase 1c: forced-march traps. Arm pending traps, capture the first living entrant, then run the
-// freeze -> teleport -> freeze sequence. Runs after movement so it sees updated positions. The
-// resulting array is stored on ctx.forcedMarches because the status-effect system later appends
-// plant-spawned traps to it (those new traps are intentionally not culled until next tick).
-
 import type { TickContext } from "./context";
 import type { ActiveForcedMarch, PendingForcedMarch } from "@model/types";
 import { add, sub, normalize, scale, length } from "@shared/math";
@@ -27,7 +22,6 @@ export function resolveForcedMarches(ctx: TickContext): PendingForcedMarch[] {
   const remaining = ctx.world.pendingForcedMarches.filter(pfm => pfm.t > time);
   for (const fm of forcedMarches) {
     if (!fm.triggered && time >= fm.armedAt) {
-      // First living player (in roster order) inside the zone is captured and frozen in place.
       const entrant = players.find(p => p.alive && length(sub(p.pos, fm.pos)) <= fm.radius);
       if (entrant) {
         fm.triggered = true;
@@ -37,11 +31,8 @@ export function resolveForcedMarches(ctx: TickContext): PendingForcedMarch[] {
         applyStatus(entrant, requireStatus("forced_march_hold", { name: fm.name, duration: fm.preDelay + fm.postDelay }), `${fm.id}-freeze`, statusServices(ctx));
       }
     } else if (fm.triggered && !fm.teleported && time >= fm.triggeredAt! + fm.preDelay) {
-      // windup (preDelay) elapsed: instantly teleport the captured player to the destination.
       const captured = players.find(p => p.id === fm.capturedPlayerId && p.alive);
       if (captured) {
-        // forced_march anchors the destination to the trap center; the plant trap teleports the
-        // captured player `distance` from their own spot so it lands purely along `direction`.
         const anchor = fm.relativeMove ? (fm.capturedFrom ?? fm.pos) : fm.pos;
         captured.pos = add(anchor, scale(normalize(fm.direction), fm.distance));
         captured.botWaypointResumeAfter = time;
