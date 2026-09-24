@@ -45,19 +45,16 @@ void main() {
   vec3 tint;
   float glow;
   if (mode < 0.5) {
-    // Ice: slow drifting frost with sparkles.
     float frost = smoothstep(0.45, 0.75, fbm(vXZ * 0.35 + vec2(time * 0.05, time * 0.03)));
     float sparkle = step(0.985, hash(floor(vXZ * 4.0) + floor(time * 3.0)));
     glow = 0.55 + 0.6 * frost + sparkle;
     tint = mix(color, vec3(1.0), 0.35 * frost + sparkle);
   } else if (mode < 1.5) {
-    // Lightning: thin veins that crawl and flicker.
     float vein = 1.0 - smoothstep(0.0, 0.04, abs(fbm(vXZ * 0.4 + vec2(0.0, time * 0.8)) - 0.5));
     float flicker = 0.6 + 0.4 * step(0.5, hash(vec2(floor(time * 12.0), 1.0)));
     glow = 0.45 + 1.6 * vein * flicker;
     tint = mix(color, vec3(1.0), 0.6 * vein);
   } else {
-    // Fire: two scrolling turbulence layers.
     float f = fbm(vXZ * 0.3 - vec2(0.0, time * 0.9)) * fbm(vXZ * 0.6 - vec2(time * 0.4, time * 1.3)) * 2.2;
     glow = 0.4 + 1.4 * f;
     tint = mix(color, vec3(1.0, 0.85, 0.3), smoothstep(0.35, 0.7, f));
