@@ -1,3 +1,4 @@
+import { TICK_RATE } from "@shared/constants";
 import { createWorld } from "../engine/world";
 import { makeSeed } from "@shared/rng";
 import type { RaidDef } from "../engine/raidSchema";
@@ -50,9 +51,8 @@ export interface RelayRoomInitOptions {
   createSessionLog?: (sessionId: string) => SessionLog;
 }
 
-type Send = (clientId: string, message: ServerMessage | string) => void;
+type Send = (clientId: string, message: ServerMessage) => void;
 const idleIntent: Intent = { move: { x: 0, z: 0 } };
-const TICKS_PER_SECOND = 60;
 
 export class RelayRoom {
   id = "";
@@ -125,7 +125,7 @@ export class RelayRoom {
     this.resetPull();
   }
 
-  private sendTo(participantId: string, message: ServerMessage | string): void {
+  private sendTo(participantId: string, message: ServerMessage): void {
     const clientId = this.connections.get(participantId);
     if (clientId === undefined) return;
     this.send(clientId, message);
@@ -359,7 +359,7 @@ export class RelayRoom {
   private replayMessage(): ServerMessage {
     const view = this.replayView;
     if (!view) return { type: "replay", view: null };
-    const elapsed = view.playing ? Math.floor((this.now() - view.at) * TICKS_PER_SECOND / 1000) : 0;
+    const elapsed = view.playing ? Math.floor((this.now() - view.at) * TICK_RATE / 1000) : 0;
     return { type: "replay", view: { pull: view.pull, playing: view.playing, tick: view.tick + elapsed } };
   }
 
@@ -919,8 +919,7 @@ export class RelayRoom {
   }
 
   private broadcastAll(message: ServerMessage): void {
-    const json = JSON.stringify(message);
-    for (const participantId of this.connections.keys()) this.sendTo(participantId, json);
+    for (const participantId of this.connections.keys()) this.sendTo(participantId, message);
   }
 
   private sendError(participantId: string, message: string): void {

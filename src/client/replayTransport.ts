@@ -1,8 +1,8 @@
+import { TICK_MS } from "@shared/constants";
 import { EMPTY_RAID_ID, type ClientMessage, type Frame, type ServerMessage } from "@shared/protocol";
 import type { World } from "@shared/types";
 import type { Transport } from "./net";
 
-const TICK_MS = 1000 / 60;
 const MAX_CATCHUP_FRAMES = 240; // 4s at 60Hz; caps synchronous work per timer fire after e.g. a backgrounded tab
 
 export class ReplayTransport implements Transport {

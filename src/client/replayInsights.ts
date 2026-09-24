@@ -3,6 +3,7 @@
 // that was recorded, including the entries it emits into `world.log`. ReplayTransport already
 // re-simulates from tick 0 on every seek, so this pass costs less than a single scrub.
 
+import { TICK_DT } from "@shared/constants";
 import type { Frame } from "@shared/protocol";
 import type { LogEntry, MechanicSection, World } from "@shared/types";
 import type { ReplayEvent, ReplayInsights, ReplayPlayerLabel } from "@shared/replay";
@@ -10,7 +11,6 @@ import { computeBotIntents } from "../engine/botIntent";
 import { tick } from "../engine/sim";
 import { applyFrameControls } from "./simulationReplica";
 
-const DT = 1 / 60;
 // Separates the two halves of a hit's lookup key. Neither player ids nor source keys contain it.
 const KEY_SEPARATOR = "|";
 
@@ -27,8 +27,8 @@ export function collectReplayInsights(replay: { world: World; frames: Frame[] })
     // Mirrors SimulationReplica.stepOne so collected ticks line up with what playback shows.
     if (world.status === "running") {
       const prepared = applyFrameControls(world, frame);
-      const bots = computeBotIntents(prepared, DT);
-      world = tick(prepared, { ...bots, ...frame.intents }, DT);
+      const bots = computeBotIntents(prepared, TICK_DT);
+      world = tick(prepared, { ...bots, ...frame.intents }, TICK_DT);
     }
     appliedTick++;
     if (world.log.length === 0) continue;
@@ -47,7 +47,7 @@ function collectTick(
   sections: MechanicSection[],
   events: ReplayEvent[],
 ): void {
-  const sectionId = sectionAt(sections, tickIndex * DT);
+  const sectionId = sectionAt(sections, tickIndex * TICK_DT);
   // A lethal avoidable hit records the hit and then the death in the same tick, so a death links
   // back to the hit that caused it by matching player and source.
   const hitsThisTick = new Map<string, string>();

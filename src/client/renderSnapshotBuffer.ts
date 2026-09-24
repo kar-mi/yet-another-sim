@@ -1,9 +1,9 @@
+import { TICK_MS } from "@shared/constants";
 import type { Boss, Player, World } from "@shared/types";
 import { length, shortestAngleDelta, sub, type Vec2 } from "@shared/math";
 import { recordBufferReset, recordInterpolation } from "./perfMetrics";
 import { computeWorldRenderKeys, getWorldRenderKeys, setWorldRenderKeys, type WorldRenderKeys } from "./worldRenderKeys";
 
-const TICK_MS = 1000 / 60;
 const MIN_RENDER_DELAY_MS = 90;
 const MAX_RENDER_DELAY_MS = 220;
 const DRAIN_TAU_S = 2;

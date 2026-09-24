@@ -76,7 +76,7 @@ function makeSession(options: { now?: () => number; lobbyTimeoutMs?: number; cre
     id: "test-room",
     raidId: "test-raid",
     raid: testRaid(),
-    send: (clientId, message) => sent.push({ clientId, message: typeof message === "string" ? JSON.parse(message) as ServerMessage : message }),
+    send: (clientId, message) => sent.push({ clientId, message }),
     autoTick: false,
     now: options.now,
     lobbyTimeoutMs: options.lobbyTimeoutMs,
@@ -114,7 +114,7 @@ function makeDefaultLobbySession() {
     id: "default-room",
     raidId: EMPTY_RAID_ID,
     raid: createEmptyRaid(),
-    send: (clientId, message) => sent.push({ clientId, message: typeof message === "string" ? JSON.parse(message) as ServerMessage : message }),
+    send: (clientId, message) => sent.push({ clientId, message }),
     autoTick: false,
   });
   return { session, sent };
@@ -128,7 +128,7 @@ test("empty lobby does not create replay logs or consume a pull number", () => {
     id: "empty-log-test",
     raidId: EMPTY_RAID_ID,
     raid: createEmptyRaid(),
-    send: (clientId, message) => sent.push({ clientId, message: typeof message === "string" ? JSON.parse(message) as ServerMessage : message }),
+    send: (clientId, message) => sent.push({ clientId, message }),
     autoTick: false,
     createSessionLog: logFactory.createSessionLog,
   });
@@ -1381,7 +1381,7 @@ test("empty raid synthesizes the canonical eight slots", async () => {
     id: "empty-room",
     raidId: EMPTY_RAID_ID,
     raid,
-    send: (clientId, message) => sent.push({ clientId, message: typeof message === "string" ? JSON.parse(message) as ServerMessage : message }),
+    send: (clientId, message) => sent.push({ clientId, message }),
     autoTick: false,
   });
 
