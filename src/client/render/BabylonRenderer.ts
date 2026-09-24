@@ -330,7 +330,7 @@ export class BabylonRenderer implements Renderer {
     if (this.bossSetChanged(world.bosses)) this.rebuildBossLayers(world.bosses);
 
     const botsInvisible = this.botsInvisibleOverride ?? world.botsInvisible;
-    this.players.sync(world.players, world.time, botsInvisible);
+    this.players.sync(world.players, world.time, botsInvisible, world);
     const povPlayer = resolvePovPlayer(world.players, this.localPlayerId, this.spectateTargetId);
     const sideOrbs = selectBossSideOrbs(world);
     const sealedImplement = selectSealedImplement(world.active);
