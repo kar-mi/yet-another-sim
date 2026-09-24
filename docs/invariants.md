@@ -189,7 +189,11 @@ segment prefix or exact label:
 - `preloadAssets` warms the browser cache for every model and icon; `/static` is served with a
   `Cache-Control` that lets the warmed bytes be reused.
 - HUD cooldown sweeps are quantized to whole degrees and the FPS text refreshes a few times a
-  second, so the DOM is not rewritten every frame.
+  second, so the DOM is not rewritten every frame. The FPS value comes from `engine.getFps()`, which
+  only updates because `BabylonRenderer.render()` wraps `scene.render()` in `engine.beginFrame()` /
+  `endFrame()`. Babylon measures FPS in `beginFrame`, and the app does not use `runRenderLoop`.
+  Non-finite values (the first frame) are skipped. The same box lists ping, from the Colyseus room
+  ping polled every 2 s, and the average of the last 15 samples, about 30 s.
 - HUD layout (`hudGeometry.ts`): an element is drawn with `translate(-50%, -50%) scale(total)`,
   so a placement is a centre point plus a total scale (UI scale × group scale). The measured group
   box is stored at scale 1 as `natural` size plus `offset` from the element centre.

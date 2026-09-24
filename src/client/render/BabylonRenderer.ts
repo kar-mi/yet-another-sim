@@ -372,7 +372,9 @@ export class BabylonRenderer implements Renderer {
   }
 
   render(): void {
+    this.engine.beginFrame();
     this.scene.render();
+    this.engine.endFrame();
     this.hud.setFps(this.engine.getFps(), performance.now());
   }
 
@@ -394,6 +396,10 @@ export class BabylonRenderer implements Renderer {
 
   private applyRenderScale(): void {
     this.engine.setHardwareScalingLevel(1 / (Math.min(window.devicePixelRatio || 1, MAX_DEVICE_RATIO) * this.renderScale));
+  }
+
+  setPing(ms: number): void {
+    this.hud.setPing(ms);
   }
 
   setBotsInvisible(enabled: boolean): void {

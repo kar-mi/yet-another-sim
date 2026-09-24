@@ -20,6 +20,7 @@ class FakeTransport implements Transport {
   onMessage(cb: (message: ServerMessage) => void): void { this.messageHandler = cb; }
   onDisconnect(cb: () => void): void { this.disconnectHandler = cb; }
   close(): void { this.closed++; }
+  ping(): void {}
   emit(message: ServerMessage): void { this.messageHandler(message); }
   disconnect(): void { this.disconnectHandler(); }
 }

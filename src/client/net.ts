@@ -20,6 +20,7 @@ export interface Transport {
   onMessage(cb: (message: ServerMessage) => void): void;
   onDisconnect(cb: () => void): void;
   close(): void;
+  ping(cb: (ms: number) => void): void;
 }
 
 type MessageType = ServerMessage["type"];
@@ -97,6 +98,10 @@ export class NetClient {
 
   close(): void {
     this.transport.close();
+  }
+
+  ping(cb: (ms: number) => void): void {
+    this.transport.ping(cb);
   }
 
   private endSession(): void {

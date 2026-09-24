@@ -55,6 +55,7 @@ type BuffChip = { el: HTMLSpanElement; timerEl: HTMLSpanElement; read: (p: Playe
 const DEBUG_ENABLED = typeof __YAS_DEBUG__ !== "undefined" && __YAS_DEBUG__;
 const DEBUG_POSITION_ENABLED = DEBUG_ENABLED;
 const FPS_REFRESH_MS = 250;
+const PING_AVERAGE_SAMPLES = 15;
 type PartyRow = {
   hpFill: HTMLDivElement;
   mpFill: HTMLDivElement;
@@ -122,6 +123,9 @@ export class HudOverlay {
   private fpsEl: HTMLDivElement;
   private fpsValEl: HTMLSpanElement;
   private fpsShown = -1;
+  private pingValEl: HTMLSpanElement;
+  private avgPingValEl: HTMLSpanElement;
+  private pingSamples: number[] = [];
   private fpsUpdatedAt = 0;
   private playbackState: PlaybackState = "playing";
   private lastWorldStatus: World["status"] = "running";
@@ -270,13 +274,22 @@ export class HudOverlay {
 
     this.fpsEl = document.createElement("div");
     this.fpsEl.id = "yas-fps";
-    const fpsLabel = document.createElement("span");
-    fpsLabel.className = "yas-session-label";
-    fpsLabel.textContent = "FPS";
-    this.fpsValEl = document.createElement("span");
-    this.fpsValEl.className = "yas-fps-val";
-    this.fpsValEl.textContent = "--";
-    this.fpsEl.append(fpsLabel, this.fpsValEl);
+    const statRow = (label: string): HTMLSpanElement => {
+      const row = document.createElement("div");
+      row.className = "yas-stat-row";
+      const labelEl = document.createElement("span");
+      labelEl.className = "yas-session-label";
+      labelEl.textContent = label;
+      const valueEl = document.createElement("span");
+      valueEl.className = "yas-fps-val";
+      valueEl.textContent = "--";
+      row.append(labelEl, valueEl);
+      this.fpsEl.append(row);
+      return valueEl;
+    };
+    this.fpsValEl = statRow("FPS");
+    this.pingValEl = statRow("PING");
+    this.avgPingValEl = statRow("AVG PING");
     document.body.appendChild(this.fpsEl);
 
     this.partyEl = document.createElement("div");
@@ -843,12 +856,20 @@ export class HudOverlay {
   }
 
   setFps(fps: number, now: number): void {
-    if (now - this.fpsUpdatedAt < FPS_REFRESH_MS) return;
+    if (!Number.isFinite(fps) || now - this.fpsUpdatedAt < FPS_REFRESH_MS) return;
     this.fpsUpdatedAt = now;
     const rounded = Math.round(fps);
     if (rounded === this.fpsShown) return;
     this.fpsShown = rounded;
     this.fpsValEl.textContent = String(rounded);
+  }
+
+  setPing(ms: number): void {
+    this.pingSamples.push(ms);
+    if (this.pingSamples.length > PING_AVERAGE_SAMPLES) this.pingSamples.shift();
+    const average = this.pingSamples.reduce((sum, sample) => sum + sample, 0) / this.pingSamples.length;
+    this.pingValEl.textContent = `${ms}ms`;
+    this.avgPingValEl.textContent = `${Math.round(average)}ms`;
   }
 
   dispose(): void {
