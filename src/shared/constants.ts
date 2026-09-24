@@ -27,3 +27,7 @@ export const DIVEBOMB_LINGER = 0.4;
 // Delay between a raid change and the relay/timeline actually starting. The client shows its loading
 // overlay for this same span so the spinner covers the whole pre-start pause (server + client share it).
 export const RAID_CHANGE_START_DELAY_MS = 600;
+
+export const TICK_RATE = 60;
+export const TICK_DT = 1 / TICK_RATE;
+export const TICK_MS = 1000 / TICK_RATE;

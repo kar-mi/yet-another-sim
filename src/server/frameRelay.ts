@@ -6,12 +6,11 @@
 // Extracted from Session: this knows nothing about lobby/world state. Session injects buildFrame
 // (frame assembly), onFrames (broadcast + metrics), onCeiling (defensive end), and isRunning.
 
+import { TICK_DT } from "@shared/constants";
 import type { Frame } from "@shared/protocol";
 import { metrics } from "./metrics";
 import type { SessionLog } from "./sessionRaid";
 
-const DT = 1 / 60;
-const TICK_MS = 1000 / 60;
 // Hard cap on sim time caught up in a single loop. We process ALL ticks due since the last loop
 // (never discarding accumulated time — dropped ticks make every client's authoritative position lag
 // real input, which then never reconciles to client prediction). This cap only bounds a pathological
@@ -96,7 +95,7 @@ export class FrameRelay {
     this.inputLog.length = 0;
     this.frameBatch = [];
     this.tickAccumulator = 0;
-    this.maxPullTicks = Math.ceil((durationSeconds + graceSeconds) / DT);
+    this.maxPullTicks = Math.ceil((durationSeconds + graceSeconds) / TICK_DT);
   }
 
   // Stamp the merged human intents for this tick, append to the input log, and (unless batching)
@@ -144,15 +143,15 @@ export class FrameRelay {
     const rawElapsed = (now - this.lastTickAt) / 1000;
     const elapsed = Math.min(rawElapsed, MAX_CATCHUP_SECONDS);
     if (rawElapsed > MAX_CATCHUP_SECONDS) metrics.catchupExhausted.inc(); // pathological gap: time clamped
-    metrics.relayTickDriftSeconds.set(Math.max(0, elapsed - DT));
+    metrics.relayTickDriftSeconds.set(Math.max(0, elapsed - TICK_DT));
     this.lastTickAt = now;
     this.tickAccumulator += Math.max(0, elapsed);
 
     // Produce every tick due since the last loop (bounded only by the elapsed clamp above), so no sim
     // time is ever dropped and the authoritative position tracks real input exactly.
-    while (this.tickAccumulator >= DT && this.isRunning()) {
+    while (this.tickAccumulator >= TICK_DT && this.isRunning()) {
       this.produceFrame();
-      this.tickAccumulator -= DT;
+      this.tickAccumulator -= TICK_DT;
     }
 
     // Relay everything produced this loop in one message (≈1 frame per call at 60Hz; more only when

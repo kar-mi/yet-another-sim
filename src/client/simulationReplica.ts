@@ -1,9 +1,9 @@
+import { TICK_DT } from "@shared/constants";
 import type { Frame } from "@shared/protocol";
 import type { World } from "@shared/types";
 import { computeBotIntents } from "../engine/botIntent";
 import { tick } from "../engine/sim";
 
-const DT = 1 / 60;
 
 export type AppliedReplicaFrames = {
   kind: "applied";
@@ -40,8 +40,8 @@ export class SimulationReplica {
     if (!world) return;
     if (world.status === "running") {
       const prepared = applyFrameControls(world, frame);
-      const bots = computeBotIntents(prepared, DT);
-      this.world = tick(prepared, { ...bots, ...frame.intents }, DT);
+      const bots = computeBotIntents(prepared, TICK_DT);
+      this.world = tick(prepared, { ...bots, ...frame.intents }, TICK_DT);
       if (this.world.log.length > 0) this.world.log.length = 0;
     }
     this.appliedTick++;
