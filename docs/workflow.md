@@ -116,8 +116,7 @@ touching the engine, netcode, or server.
    frames leaves the session.
 7. **Rendering.** `NetClient` coordinates a `RenderSnapshotBuffer`, which keeps a small snapshot
    history and interpolates a jitter-sized delay behind the latest tick, with the playback rate
-   corrected by at most ±8%, for smoothness. The render loop draws at most 60 frames per second
-   (the sim rate). Displays at about 75 Hz or below draw every refresh. The local player is additionally
+   corrected by at most ±8%, for smoothness. The local player is additionally
    client-predicted (`src/client/predictor.ts`) so their own movement feels instant — this is
    render-only and never feeds back into the authoritative world.
 

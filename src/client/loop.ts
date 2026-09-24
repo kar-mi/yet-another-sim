@@ -5,10 +5,6 @@ import type { Intent } from "@model/types";
 import { recordLoopPerf } from "./perfMetrics";
 import { TICK_MS } from "@shared/constants";
 
-const FRAME_INTERVAL_MS = TICK_MS;
-const THROTTLE_BELOW_RAF_MS = 13;
-const RAF_SMOOTH = 0.1;
-
 function hasOneShotIntent(intent: Intent): boolean {
   return !!(
     intent.jump
@@ -34,9 +30,6 @@ export function startNetLoop(renderer: Renderer, net: NetClient, options?: { rea
   let pendingJump = false;
   let pendingSprint = false;
   let rafId = 0;
-  let lastRafAt = 0;
-  let rafIntervalMs = FRAME_INTERVAL_MS;
-  let nextFrameAt = 0;
   const resetIntentCache = () => { lastSentIntent = null; };
   const disposeJoined = net.on("joined", resetIntentCache);
   const disposeLobby = net.on("lobby", resetIntentCache);
@@ -66,14 +59,6 @@ export function startNetLoop(renderer: Renderer, net: NetClient, options?: { rea
   };
 
   function frame(now: number): void {
-    const rafDelta = now - lastRafAt;
-    lastRafAt = now;
-    if (rafDelta > 0 && rafDelta < 100) rafIntervalMs += (rafDelta - rafIntervalMs) * RAF_SMOOTH;
-    if (rafIntervalMs < THROTTLE_BELOW_RAF_MS && now < nextFrameAt - rafIntervalMs / 2) {
-      rafId = requestAnimationFrame(frame);
-      return;
-    }
-    nextFrameAt = Math.max(nextFrameAt + FRAME_INTERVAL_MS, now);
     const frameStart = performance.now();
     const elapsed = Math.min((now - lastTime) / 1000, 0.1);
     const rafMs = now - lastTime;

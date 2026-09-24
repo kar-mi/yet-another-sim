@@ -132,6 +132,7 @@ export class BabylonRenderer implements Renderer {
       adaptToDeviceRatio: true,
       limitDeviceRatio: MAX_DEVICE_RATIO,
     });
+    this.engine.adaptToDeviceRatio = false;
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.05, 0.05, 0.1, 1);
     this.scene.skipPointerMovePicking = true;
@@ -393,7 +394,6 @@ export class BabylonRenderer implements Renderer {
 
   private applyRenderScale(): void {
     this.engine.setHardwareScalingLevel(1 / (Math.min(window.devicePixelRatio || 1, MAX_DEVICE_RATIO) * this.renderScale));
-    this.engine.resize();
   }
 
   setBotsInvisible(enabled: boolean): void {
