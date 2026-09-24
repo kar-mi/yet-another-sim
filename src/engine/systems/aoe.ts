@@ -6,11 +6,6 @@ import type {
   Player, Role, Boss, AOEShape, DashDestination,
 } from "@model/types";
 import type { Vec2 } from "@shared/math";
-
-function bossFor(bosses: Boss[], bossId?: string): Boss {
-  const b = bossId ? bosses.find(b => b.id === bossId) : undefined;
-  return b ?? bosses[0]!;
-}
 import { pointInShape } from "../shapes";
 import { promotePending, anchorShape } from "../timeline";
 import { AOE_RESOLVE_LINGER, TARGETED_LINGER } from "@shared/constants";
@@ -23,6 +18,11 @@ import {
 } from "./helpers";
 import { addResolvedAoeVisual } from "./effectResolvers";
 import { mechanicSource } from "./damageLog";
+
+function bossFor(bosses: Boss[], bossId?: string): Boss {
+  const b = bossId ? bosses.find(b => b.id === bossId) : undefined;
+  return b ?? bosses[0]!;
+}
 
 function selectBaitTarget(
   players: Player[],

@@ -155,4 +155,4 @@ startMetricsServer({
 });
 
 await gameServer.listen(PORT);
-console.log("server", "dev server listening", { url: `http://localhost:${PORT}` });
+logger.info("server", "dev server listening", { url: `http://localhost:${PORT}` });
