@@ -139,7 +139,7 @@ segment prefix or exact label:
 - The logger's SIGINT/SIGTERM handlers must flush every writer and then exit, because registering
   them disables the default termination. Per-pull input logs (`logs/sessions/<id>.jsonl`) start
   with the tick-0 world and are written regardless of `LOG_LEVEL`.
-- Colyseus 0.17: HTTP routes are registered through the `express` server option, not
+- Colyseus: HTTP routes are registered through the `express` server option, not
   `transport.getExpressApp()`. That makes Colyseus skip its default `GET /` handler and registers
   the routes before the matchmaking router. Its `res.send()` is binary-safe, so files are sent as a
   `Buffer` with an explicit `Content-Type`.
