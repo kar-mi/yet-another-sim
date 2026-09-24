@@ -52,6 +52,7 @@ export interface RelayRoomInitOptions {
 }
 
 type Send = (clientId: string, message: ServerMessage) => void;
+type Broadcast = (clientIds: string[], message: ServerMessage) => void;
 const idleIntent: Intent = { move: { x: 0, z: 0 } };
 
 export class RelayRoom {
@@ -73,6 +74,7 @@ export class RelayRoom {
   private readonly connections = new Map<string, string>();
   private readonly participants = new Map<string, string>();
   private send!: Send;
+  private broadcast!: Broadcast;
   private readonly latestIntents = new Map<string, Intent>();
   private now: () => number = Date.now;
   private lastActivity = 0;
@@ -90,14 +92,16 @@ export class RelayRoom {
   private waymarkPresetId: string | null = null;
   private botPatternId: string | null = null;
   private lastSeed: number | null = null;
+  pullEpoch = 0;
   private replayView: (ReplayView & { at: number }) | null = null;
 
   get inputLog(): Frame[] {
     return this.relay.inputLog;
   }
 
-  init(options: RelayRoomInitOptions & { send: Send }): void {
+  init(options: RelayRoomInitOptions & { send: Send; broadcast?: Broadcast }): void {
     this.send = options.send;
+    this.broadcast = options.broadcast ?? ((clientIds, message) => { for (const clientId of clientIds) this.send(clientId, message); });
     this.id = options.id;
     this.raidId = options.raidId;
     this.selectedRaidId = options.raidId;
@@ -115,7 +119,7 @@ export class RelayRoom {
       autoTick: this.autoTick,
       sessionLog: () => this.sessionLog,
       buildFrame: () => this.buildFrame(),
-      onFrames: (startTick, frames) => this.broadcastAll({ type: "frames", startTick, frames }),
+      onFrames: (startTick, frames) => this.broadcastPull({ type: "frames", startTick, frames }),
       onCeiling: () => this.endPullDefensively(),
       isRunning: () => this.playback === "playing",
     });
@@ -206,13 +210,13 @@ export class RelayRoom {
         this.setIntent(participantId, message.intent);
         return;
       case "simEnded":
-        this.simEnded(participantId, message.tick);
+        this.simEnded(participantId, message.pull, message.tick);
         return;
       case "worldHash":
-        this.reportWorldHash(participantId, message.tick, message.hash);
+        this.reportWorldHash(participantId, message.pull, message.tick, message.hash);
         return;
       case "snapshot":
-        this.acceptSnapshot(participantId, message.formatVersion, message.tick, message.world);
+        this.acceptSnapshot(participantId, message.pull, message.formatVersion, message.tick, message.world);
         return;
       case "setReplay":
         this.setReplay(participantId, message.view);
@@ -577,7 +581,7 @@ export class RelayRoom {
     }
 
     this.botsInvisible = enabled;
-    this.world = { ...this.world, botsInvisible: enabled };
+    if (this.inputLog.length === 0) this.world = { ...this.world, botsInvisible: enabled };
     this.broadcastLobby();
   }
 
@@ -612,8 +616,8 @@ export class RelayRoom {
   private refreshFrozenWorld(): void {
     if (this.phase === "setup" || this.playback === "playing") return;
     this.world = this.freshWorld();
-    this.applyBotsInvincible();
     this.resetPull();
+    this.applyBotsInvincible();
     this.broadcastStarted();
   }
 
@@ -660,8 +664,8 @@ export class RelayRoom {
     this.latestIntents.clear();
     this.freezeRoster();
     this.world = this.freshWorld();
-    this.applyBotsInvincible();
     this.resetPull();
+    this.applyBotsInvincible();
   }
 
   private freezeRoster(): void {
@@ -689,6 +693,12 @@ export class RelayRoom {
     return this.phase === "raid" && (this.playback === "playing" || this.playback === "paused");
   }
 
+  private inPull(participantId: string): boolean {
+    if (this.pullObservers.has(participantId)) return true;
+    for (const ownerId of this.pullRoster.values()) if (ownerId === participantId) return true;
+    return false;
+  }
+
   private pullIsAbandoned(): boolean {
     for (const ownerId of this.pullRoster.values()) {
       if (this.connections.has(ownerId)) return false;
@@ -714,6 +724,7 @@ export class RelayRoom {
   }
 
   private resetPull(): void {
+    this.pullEpoch++;
     this.pullSnapshot.reset();
     this.relay.reset(this.world.duration, this.phase === "workshop" ? 0 : undefined);
     this.desync.reset();
@@ -732,22 +743,22 @@ export class RelayRoom {
     this.sessionLog = null;
   }
 
-  private acceptSnapshot(participantId: string, formatVersion: number, tick: number, world: unknown): void {
-    if (participantId !== this.hostParticipantId) return;
+  private acceptSnapshot(participantId: string, pull: number, formatVersion: number, tick: number, world: unknown): void {
+    if (!this.isPullAuthority(participantId, pull)) return;
     const error = this.pullSnapshot.accept(formatVersion, tick, world, this.inputLog.length, this.playback === "playing");
     if (error) this.sendError(participantId, error);
   }
 
   private startedMessage(playerId: string | null): ServerMessage {
-    return this.pullSnapshot.startedMessage(this.world, this.inputLog, playerId);
+    return this.pullSnapshot.startedMessage(this.pullEpoch, this.world, this.inputLog, playerId);
   }
 
-  simEnded(participantId: string, tick: number): void {
+  simEnded(participantId: string, pull: number, tick: number): void {
     if (participantId !== this.hostParticipantId) {
       this.sendError(participantId, "Only the host can end the session");
       return;
     }
-    if (this.playback !== "playing") return;
+    if (this.playback !== "playing" || !this.isPullAuthority(participantId, pull) || tick > this.inputLog.length) return;
     this.relay.flush();
     this.playback = "done";
     this.relay.stop();
@@ -769,8 +780,13 @@ export class RelayRoom {
     }
   }
 
-  reportWorldHash(participantId: string, tick: number, hash: number): void {
+  reportWorldHash(participantId: string, pull: number, tick: number, hash: number): void {
+    if (pull !== this.pullEpoch || !this.inPull(participantId) || tick > this.inputLog.length) return;
     this.desync.report(participantId, tick, hash, participantId === this.hostParticipantId);
+  }
+
+  private isPullAuthority(participantId: string, pull: number): boolean {
+    return participantId === this.hostParticipantId && pull === this.pullEpoch && this.inPull(participantId);
   }
 
   private resync(participantId: string): void {
@@ -833,6 +849,7 @@ export class RelayRoom {
   }
 
   private applySlotControlsToWorld(): void {
+    if (this.inputLog.length > 0) return;
     this.world = {
       ...this.world,
       players: this.world.players.map(player => {
@@ -848,6 +865,7 @@ export class RelayRoom {
   }
 
   private applyBotsInvincible(): void {
+    if (this.inputLog.length > 0) return;
     this.world = {
       ...this.world,
       players: this.world.players.map(player => (
@@ -918,8 +936,16 @@ export class RelayRoom {
     }
   }
 
+  private broadcastPull(message: ServerMessage): void {
+    const clientIds: string[] = [];
+    for (const [participantId, clientId] of this.connections) {
+      if (this.inPull(participantId)) clientIds.push(clientId);
+    }
+    this.broadcast(clientIds, message);
+  }
+
   private broadcastAll(message: ServerMessage): void {
-    for (const participantId of this.connections.keys()) this.sendTo(participantId, message);
+    this.broadcast([...this.connections.values()], message);
   }
 
   private sendError(participantId: string, message: string): void {

@@ -47,6 +47,7 @@ test("colyseus messages reach the relay", async () => {
     sessionId: "c1",
     userData: { ip: "127.0.0.1", rate: { allow: () => true }, counted: true, participantId: PARTICIPANT },
     send: (_type: string, message: any) => sent.push(message),
+    enqueueRaw: () => {},
     leave: () => {},
   };
   room.clients = [client];
@@ -60,4 +61,38 @@ test("colyseus messages reach the relay", async () => {
   await room.messageQueue;
 
   expect(sent.some(message => message.type === "started" && message.yourPlayerId === "mt")).toBe(true);
+});
+
+test("relayed frames are encoded once and fanned out only to pull participants", async () => {
+  const room = new RelayServerRoom({ autoTick: false }) as any;
+  room.roomId = "test-room";
+  room.setMetadata = async () => {};
+  room.clock = { setInterval: () => 0 };
+
+  const makeClient = (sessionId: string, participantId: string) => ({
+    sessionId,
+    userData: { ip: "127.0.0.1", rate: { allow: () => true }, counted: true, participantId },
+    raw: [] as Uint8Array[],
+    send: () => {},
+    enqueueRaw(bytes: Uint8Array) { this.raw.push(bytes); },
+    leave: () => {},
+  });
+  const seated = makeClient("c1", PARTICIPANT);
+  const idle = makeClient("c2", "22222222-3333-4444-5555-666666666666");
+  room.clients = [seated, idle];
+  room.clients.getById = (id: string) => room.clients.find((client: { sessionId: string }) => client.sessionId === id);
+
+  await room.onCreate({ sessionId: "test-room", raidId: "empty" });
+  room.onJoin(seated);
+  room.onJoin(idle);
+  room.handleColyseusMessage(seated, { type: "claimSlot", playerId: "mt" });
+  room.handleColyseusMessage(seated, { type: "enterWorkshop" });
+  await room.messageQueue;
+  const seatedBefore = seated.raw.length;
+  const idleBefore = idle.raw.length;
+
+  room.relay.step();
+
+  expect(seated.raw.length).toBe(seatedBefore + 1);
+  expect(idle.raw.length).toBe(idleBefore);
 });

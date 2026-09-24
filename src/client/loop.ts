@@ -3,6 +3,7 @@ import { getIntent, getRightStick, getKeyboardCameraPan, setOneShotSink } from "
 import type { NetClient } from "./net";
 import type { Intent } from "@model/types";
 import { recordLoopPerf } from "./perfMetrics";
+import { TICK_MS } from "@shared/constants";
 
 function hasOneShotIntent(intent: Intent): boolean {
   return !!(
@@ -25,6 +26,7 @@ function sameContinuousIntent(a: Intent, b: Intent): boolean {
 export function startNetLoop(renderer: Renderer, net: NetClient, options?: { readOnly?: boolean }): () => void {
   let lastTime = performance.now();
   let lastSentIntent: Intent | null = null;
+  let lastSentAt = -Infinity;
   let pendingJump = false;
   let pendingSprint = false;
   let rafId = 0;
@@ -39,8 +41,13 @@ export function startNetLoop(renderer: Renderer, net: NetClient, options?: { rea
 
   function sendIntent(intent: Intent): void {
     if (options?.readOnly) return;
-    if (hasOneShotIntent(intent) || !lastSentIntent || !sameContinuousIntent(intent, lastSentIntent)) {
-      if (net.send({ type: "intent", intent })) lastSentIntent = intent;
+    const now = performance.now();
+    const oneShot = hasOneShotIntent(intent);
+    if (!oneShot && lastSentIntent && sameContinuousIntent(intent, lastSentIntent)) return;
+    if (!oneShot && now - lastSentAt < TICK_MS) return;
+    if (net.send({ type: "intent", intent })) {
+      lastSentIntent = intent;
+      lastSentAt = now;
     }
   }
 
