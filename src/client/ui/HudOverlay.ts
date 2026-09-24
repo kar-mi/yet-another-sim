@@ -53,6 +53,7 @@ type BuffChip = { el: HTMLSpanElement; timerEl: HTMLSpanElement; read: (p: Playe
 
 const DEBUG_ENABLED = typeof __YAS_DEBUG__ !== "undefined" && __YAS_DEBUG__;
 const DEBUG_POSITION_ENABLED = DEBUG_ENABLED;
+const FPS_REFRESH_MS = 250;
 type PartyRow = {
   hpFill: HTMLDivElement;
   mpFill: HTMLDivElement;
@@ -124,6 +125,10 @@ export class HudOverlay {
   private timerEl: HTMLDivElement;
   private timerValEl: HTMLSpanElement;
   private timerStatusEl: HTMLSpanElement;
+  private fpsEl: HTMLDivElement;
+  private fpsValEl: HTMLSpanElement;
+  private fpsShown = -1;
+  private fpsUpdatedAt = 0;
   private playbackState: PlaybackState = "playing";
   private lastWorldStatus: World["status"] = "running";
   private partyEl!: HTMLDivElement;
@@ -271,6 +276,18 @@ export class HudOverlay {
     this.timerEl.append(timerLabel, this.timerValEl, this.timerStatusEl);
     document.body.appendChild(this.timerEl);
 
+    // Render frame rate, fed by BabylonRenderer after each frame.
+    this.fpsEl = document.createElement("div");
+    this.fpsEl.id = "yas-fps";
+    const fpsLabel = document.createElement("span");
+    fpsLabel.className = "yas-session-label";
+    fpsLabel.textContent = "FPS";
+    this.fpsValEl = document.createElement("span");
+    this.fpsValEl.className = "yas-fps-val";
+    this.fpsValEl.textContent = "--";
+    this.fpsEl.append(fpsLabel, this.fpsValEl);
+    document.body.appendChild(this.fpsEl);
+
     this.partyEl = document.createElement("div");
     this.partyEl.id = "yas-party";
     document.body.appendChild(this.partyEl);
@@ -300,6 +317,7 @@ export class HudOverlay {
     this.hudLayout.register("targetcast", this.castBarEl);
     this.hudLayout.register("bosscasts", this.bossCastPanelEl);
     this.hudLayout.register("timer", this.timerEl);
+    this.hudLayout.register("fps", this.fpsEl);
     document.body.appendChild(this.minimap.element);
     this.hudLayout.register("minimap", this.minimap.element);
 
@@ -851,9 +869,20 @@ export class HudOverlay {
     return cooldownSecs;
   }
 
+  // Babylon's frame rate is a rolling average; refreshing the text a few times a second keeps it
+  // readable instead of flickering between neighbouring values.
+  setFps(fps: number, now: number): void {
+    if (now - this.fpsUpdatedAt < FPS_REFRESH_MS) return;
+    this.fpsUpdatedAt = now;
+    const rounded = Math.round(fps);
+    if (rounded === this.fpsShown) return;
+    this.fpsShown = rounded;
+    this.fpsValEl.textContent = String(rounded);
+  }
+
   dispose(): void {
     this.hudLayout.exitEditMode();
-    for (const id of ["party", "hotbar", "buffs", "debuffs", "resources", "targetcast", "bosscasts", "timer", "minimap"] as const) {
+    for (const id of ["party", "hotbar", "buffs", "debuffs", "resources", "targetcast", "bosscasts", "timer", "fps", "minimap"] as const) {
       this.hudLayout.unregister(id);
     }
     this.hotbarGroupEl.remove();
@@ -865,6 +894,7 @@ export class HudOverlay {
     this.statusEl.remove();
     this.sessionEl.remove();
     this.timerEl.remove();
+    this.fpsEl.remove();
     this.partyEl.remove();
     this.castBarEl.remove();
   }

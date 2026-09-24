@@ -136,7 +136,14 @@ export class BabylonRenderer implements Renderer {
 
   init(world: World, sessionId: string, localPlayerId: string | null = null): void {
     this.localPlayerId = localPlayerId;
-    this.engine = new Engine(this.canvas, true, { powerPreference: "high-performance", doNotHandleContextLost: true });
+    // Render at the display's pixel density (capped at 2x) instead of CSS pixels; otherwise the
+    // browser upscales the canvas on scaled/HiDPI displays and everything looks soft.
+    this.engine = new Engine(this.canvas, true, {
+      powerPreference: "high-performance",
+      doNotHandleContextLost: true,
+      adaptToDeviceRatio: true,
+      limitDeviceRatio: 2,
+    });
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.05, 0.05, 0.1, 1);
     // Camera uses pointers for rotation, not mesh picking, and every layer sets isPickable=false,
@@ -383,6 +390,7 @@ export class BabylonRenderer implements Renderer {
 
   render(): void {
     this.scene.render();
+    this.hud.setFps(this.engine.getFps(), performance.now());
   }
 
   applySettings(s: Settings): void {
