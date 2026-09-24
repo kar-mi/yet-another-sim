@@ -193,8 +193,8 @@ async function main(): Promise<void> {
     const offTransition = net.on("transition", message => {
       autoReturned = true;
       setupNotice = message.reason === "hostLost"
-        ? "The raid ended because its host left. Everyone is back in the waiting lobby."
-        : "The raid ended because no participants were left. Everyone is back in the waiting lobby.";
+        ? "The raid ended because its host left. Everyone is back in the lobby."
+        : "The raid ended because no participants were left. Everyone is back in the lobby.";
       leaveSession();
     });
 

@@ -259,12 +259,12 @@ export class RelayRoom {
 
   enterWorkshop(participantId: string): void {
     if (participantId !== this.hostParticipantId) {
-      this.sendError(participantId, "Only the host can open the waiting lobby");
+      this.sendError(participantId, "Only the host can open the lobby");
       return;
     }
     if (this.phase === "workshop") return;
     if (this.phase === "raid" && this.playback === "playing") {
-      this.sendError(participantId, "Stop the raid before opening the waiting lobby");
+      this.sendError(participantId, "Stop the raid before opening the lobby");
       return;
     }
 
@@ -284,7 +284,7 @@ export class RelayRoom {
       return;
     }
     if (this.phase === "setup") {
-      this.sendError(participantId, "Open the waiting lobby before playing");
+      this.sendError(participantId, "Open the lobby before playing");
       return;
     }
     if (this.playback === "playing") return;
@@ -381,7 +381,7 @@ export class RelayRoom {
       return;
     }
     if (this.phase === "setup") {
-      this.sendError(participantId, "Open the waiting lobby before restarting");
+      this.sendError(participantId, "Open the lobby before restarting");
       return;
     }
 
@@ -528,7 +528,7 @@ export class RelayRoom {
       return;
     }
     if (this.phase !== "workshop") {
-      this.sendError(participantId, this.phase === "setup" ? "Open the waiting lobby before starting" : "Session already started");
+      this.sendError(participantId, this.phase === "setup" ? "Open the lobby before starting" : "Session already started");
       return;
     }
     if (this.selectedRaidId === EMPTY_RAID_ID) {

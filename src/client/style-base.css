@@ -36,6 +36,8 @@ button, input, select, textarea {
   background: #0a0a0f;
   outline: none;
   user-select: none;
+  /* body is pixelated for the UI; any browser scaling of the 3D view should stay smooth */
+  image-rendering: auto;
 }
 
 #canvas:focus,

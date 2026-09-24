@@ -113,7 +113,7 @@ type LobbyResult =
   | { kind: "started"; world: World; yourPlayerId: string | null; sessionId: string; raidId: string; selectedRaidId: string; isHost: boolean; phase: SessionPhase; playbackState: PlaybackState; rngConstraints: Record<string, number>; rngDecisions: DecisionDescription[]; waymarkPresetId: string | null; botPatternOptions: BotPatternOption[]; botPatternId: string | null; botsInvincible: boolean; botsInvisible: boolean }
   | { kind: "expired" };
 
-// The setup screen: claim a seat, then enter the waiting lobby. Raid selection and pre-pull options
+// The setup screen: claim a seat, then enter the lobby. Raid selection and pre-pull options
 // live in the in-sim HUD. Resolves once the server admits this client into a world.
 export async function showLobby(net: NetClient, sessionId: string, notice?: string): Promise<LobbyResult> {
   return new Promise((resolve) => {
@@ -190,7 +190,7 @@ export async function showLobby(net: NetClient, sessionId: string, notice?: stri
 
     const subtitleFor = (message: LobbyMessage): string => {
       if (message.phase === "setup") return "CLAIM PARTY SLOT";
-      if (message.phase === "workshop") return "WAITING LOBBY";
+      if (message.phase === "workshop") return "LOBBY";
       if (message.playbackState === "playing") return `${message.raidName.toUpperCase()} — IN PROGRESS`;
       if (message.playbackState === "paused") return `${message.raidName.toUpperCase()} — PAUSED`;
       if (message.playbackState === "done") return `${message.raidName.toUpperCase()} — FINISHED`;
@@ -217,16 +217,16 @@ export async function showLobby(net: NetClient, sessionId: string, notice?: stri
       const enterLabel = !isHost
         ? "WAIT FOR HOST"
         : message.phase === "raid"
-          ? "RETURN TO WAITING LOBBY"
+          ? "RETURN TO LOBBY"
           : message.phase === "workshop"
-            ? "WAITING LOBBY OPEN"
-            : "ENTER WAITING LOBBY";
+            ? "LOBBY OPEN"
+            : "ENTER LOBBY";
       const enterBtn = createElement("button", "yas-menu-start", enterLabel);
       enterBtn.disabled = !canEnterWorkshop;
       enterBtn.addEventListener("click", () => net.send({ type: "enterWorkshop" }));
 
       const waitNote = message.phase === "workshop" && !seatedByMe
-        ? createElement("div", "yas-menu-queue-warning", "Claim a slot or an observer seat to enter the waiting lobby.")
+        ? createElement("div", "yas-menu-queue-warning", "Claim a slot or an observer seat to enter the lobby.")
         : message.phase === "raid" && seatedByMe
           ? createElement("div", "yas-menu-queue-warning", "Raid in progress. Your seat is reserved for the next pull.")
           : null;
