@@ -75,9 +75,9 @@ and large ones turn quickly, which suits fine aiming; turn it off if you want a 
 | Hotbar | Sprint, Anti-knockback and Provoke with their cooldowns. The **⌨** button switches between keyboard and controller display. |
 | Buffs | Buffs you currently hold, such as Sprint or the Anti-knockback window. |
 | Debuff tracker | Your debuffs with their remaining time. This is the panel every Dancing Mad encounter is really played out of. |
-| Resources | HP and MP bars, plus the invincibility, bot-invincibility and No Cooldowns toggles. |
+| Resources | HP and MP bars, plus the invincibility, BOTS, RAID SETUP and No Cooldowns buttons. |
 | Boss casts | Cast bars for every boss currently casting, named as the timeline names them. |
-| Raid selector | The current raid, playback controls, and (for the host) OPTIONS. |
+| Raid selector | The current raid and playback controls. |
 | Minimap | A top-down view of the arena with player and mechanic positions. |
 
 ### Position helper
@@ -119,7 +119,7 @@ in the running pull (in slot order), or to someone still connected if no pull is
 Only the host can:
 
 - change the raid,
-- open **OPTIONS** (waymarks, bot pattern, RNG pins),
+- open **RAID SETUP** (waymarks, bot pattern, RNG pins),
 - press **PLAY**, **PAUSE**, **STOP** or **RESTART**,
 - open the **▶** replay browser.
 

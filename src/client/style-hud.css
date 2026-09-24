@@ -490,7 +490,8 @@ img.party-effect-icon {
 }
 
 .yas-invuln-btn,
-.yas-bots-btn {
+.yas-bots-btn,
+.yas-raid-setup-btn {
   pointer-events: all;
   flex-shrink: 0;
   width: 44px;
@@ -509,7 +510,8 @@ img.party-effect-icon {
   transition: border-color 0.12s, color 0.12s, box-shadow 0.12s;
 }
 
-.yas-cooldowns-btn {
+.yas-cooldowns-btn,
+.yas-raid-setup-btn {
   width: auto;
   padding: 0 8px;
   font-size: 12px;
@@ -519,7 +521,8 @@ img.party-effect-icon {
   font-size: 12px;
 }
 
-.yas-bots-btn:disabled {
+.yas-bots-btn:disabled,
+.yas-raid-setup-btn:disabled {
   cursor: default;
   opacity: 0.38;
 }
@@ -529,7 +532,10 @@ img.party-effect-icon {
 .yas-invuln-btn:focus-visible,
 .yas-bots-btn:not(:disabled):hover,
 .yas-bots-btn:not(:disabled):focus,
-.yas-bots-btn:not(:disabled):focus-visible {
+.yas-bots-btn:not(:disabled):focus-visible,
+.yas-raid-setup-btn:not(:disabled):hover,
+.yas-raid-setup-btn:not(:disabled):focus,
+.yas-raid-setup-btn:not(:disabled):focus-visible {
   outline: none;
   color: var(--px-accent);
   border-color: var(--px-accent);

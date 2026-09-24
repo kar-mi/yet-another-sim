@@ -57,7 +57,7 @@ written for survival, not optimal play. A bot dying early tends to cascade, beca
 towers then go unfilled — turn on **BOT∞** while practising so one bot's death does not cost you
 the rest of the timeline.
 
-**A raid has no bot movement at all.** Some encounters ship without a bot pattern. The **OPTIONS →
+**A raid has no bot movement at all.** Some encounters ship without a bot pattern. The **RAID SETUP →
 BOTS** tab says so explicitly rather than leaving you guessing.
 
 ## Host controls
@@ -67,7 +67,7 @@ Almost every "the buttons do not work" report is this: **the host is someone els
 The host is whoever created the session. It is not something you can claim or transfer from the UI,
 but if the host disconnects it passes automatically to the next player in the pull — so the buttons
 may suddenly start working for you.
-Only the host can change the raid, open **OPTIONS**, press **PLAY**, **PAUSE**, **STOP** or
+Only the host can change the raid, open **RAID SETUP**, press **PLAY**, **PAUSE**, **STOP** or
 **RESTART**, and open the replay browser. For everyone else those controls are disabled and the
 raid selector is a plain label.
 
@@ -75,7 +75,7 @@ Two host-side cases that look like bugs but are not:
 
 - **PLAY does nothing on a finished pull.** Once the timeline runs out the pull is done; use
   **RESTART**.
-- **OPTIONS stops the pull when opened.** That is deliberate — waymark, bot and RNG changes must
+- **RAID SETUP stops the pull when opened.** That is deliberate — waymark, bot and RNG changes must
   not take effect halfway through a mechanic.
 
 ## Replays
