@@ -1,8 +1,8 @@
 import { ColyseusTransport } from "./colyseusTransport";
-import { type ClientMessage, type ReplayView, type ServerMessage } from "@shared/protocol";
-import type { Intent, World } from "@shared/types";
+import { type ClientMessage, type ReplayView, type ServerMessage } from "@model/protocol";
+import type { Intent, World } from "@model/types";
 import { LocalPredictor } from "./predictor";
-import { worldHash } from "@shared/worldHash";
+import { worldHash } from "@model/worldHash";
 import { WORLD_RENDER_KEYS, getWorldRenderKeys, setWorldRenderKeys } from "./worldRenderKeys";
 import {
   PERF_ENABLED,
@@ -10,7 +10,7 @@ import {
   recordHostSnapshot,
   recordResyncRequest,
 } from "./perfMetrics";
-import { SNAPSHOT_FORMAT_VERSION } from "@shared/replay";
+import { SNAPSHOT_FORMAT_VERSION } from "@model/replay";
 import { SimulationReplica } from "./simulationReplica";
 import { RenderSnapshotBuffer } from "./renderSnapshotBuffer";
 
@@ -25,15 +25,11 @@ export interface Transport {
 type MessageType = ServerMessage["type"];
 type Handler<T extends MessageType> = (message: Extract<ServerMessage, { type: T }>) => void;
 
-// Report a world hash this often (in ticks) so the server can detect cross-client desync.
 const HASH_INTERVAL = 300;
-// Host sends a world snapshot this often; replay tail on late join is bounded by this interval.
 const SNAPSHOT_INTERVAL = 600;
 
 export class NetClient {
   participantId: string | null = null;
-  // Latest shared replay from the server. Cached because it can arrive while the lobby screen is up,
-  // before the sim view has subscribed to "replay".
   replayView: ReplayView | null = null;
 
   private readonly handlers = new Map<MessageType, Set<(message: ServerMessage) => void>>();
@@ -43,11 +39,8 @@ export class NetClient {
   private claimedPlayerId: string | null = null;
   private isHost = false;
   private readonly predictor = new LocalPredictor();
-  // True only while the pull is actively relaying frames (playing). Pause/stop/done leave the local
-  // world's status as "running", so this gates local prediction so the player can't nudge while the
-  // sim is halted. Set on frame arrival, cleared on a non-playing playback state or a fresh `started`.
   private playing = false;
-  private simEndedSent = false;  // host: simEnded already reported for this pull
+  private simEndedSent = false;
 
   constructor(private readonly transport: Transport) {
     transport.onMessage(message => this.handleMessage(message));
@@ -83,12 +76,7 @@ export class NetClient {
     return predict ? this.applyPrediction(view, predict.intent, predict.dt) : view;
   }
 
-  // Override the local player in the render view with a client-predicted position so the user's own
-  // movement is instant. Render-only: anchors to the replica's latest authoritative world and
-  // never mutates `view` (which may be a stored snapshot) — a new players array is built instead.
   private applyPrediction(view: World, intent: Intent, dt: number): World {
-    // Only predict while the pull is live. Paused/stopped/done leave world.status === "running" but
-    // halt the relay, so without `playing` the player could nudge the frozen character around.
     const authoritative = this.replica.world;
     if (!this.playing || !this.claimedPlayerId || !authoritative || authoritative.status !== "running") return view;
     const authLocal = authoritative.players.find(p => p.id === this.claimedPlayerId);
@@ -114,8 +102,6 @@ export class NetClient {
     this.transport.close();
   }
 
-  // The server keys reservations by participantId, so a rejoin restores them without replaying the
-  // claim — replaying it would race the server's own restore.
   private resumeSession(): void {
     if (!this.lastJoin) return;
     this.renderBuffer.reset();
@@ -157,24 +143,20 @@ export class NetClient {
     for (const handler of handlers) handler(message);
   }
 
-  // Adopt the pull's world at baseTick and fast-forward by replaying only the tail frames so a fresh
-  // start lands at tick 0 and a late join / resync lands exactly where the rest of the room is.
   private applyStarted(message: Extract<ServerMessage, { type: "started" }>): void {
     const world = this.replica.adopt(message.world, message.baseTick, message.frames);
     this.simEndedSent = false;
-    this.playing = false; // re-enabled by the first frame if this pull is actually live (not a stop/late-join into a halted pull)
+    this.playing = false;
     this.predictor.reset();
     this.renderBuffer.start(world, this.replica.appliedTick);
   }
 
-  // Apply an incremental run of input frames. `startTick` lets us drop already-applied frames (after
-  // a resync) and detect a gap (missed frames) that warrants a full resync via rejoin.
   private applyFrames(message: Extract<ServerMessage, { type: "frames" }>): void {
     if (!this.replica.world) return;
     const start = performance.now();
     const result = this.replica.apply(message.startTick, message.frames);
     if (result.kind === "gap") { recordResyncRequest(); this.resumeSession(); return; }
-    this.playing = true; // frames are flowing → the pull is live; local prediction is allowed
+    this.playing = true;
     for (const snapshot of result.snapshots) {
       this.renderBuffer.push(snapshot.world, snapshot.tick);
       this.maybeReportHash();
@@ -188,9 +170,6 @@ export class NetClient {
     const replicaWorld = this.replica.world;
     const appliedTick = this.replica.appliedTick;
     if (!this.isHost || !replicaWorld || appliedTick === 0 || appliedTick % SNAPSHOT_INTERVAL !== 0) return;
-    // Explicitly drop the render-keys symbol: object spread copies enumerable symbol keys (the
-    // render buffer attaches it to replica worlds), and although JSON.stringify would drop it on send,
-    // strip it here so `world` is clean.
     const { [WORLD_RENDER_KEYS]: _drop, ...world } = replicaWorld as any;
     const message = { type: "snapshot", formatVersion: SNAPSHOT_FORMAT_VERSION, tick: appliedTick, world } as const;
     if (PERF_ENABLED) {
@@ -201,8 +180,6 @@ export class NetClient {
     this.send(message);
   }
 
-  // Report on fixed tick boundaries (not a per-client delta) so every client hashes the SAME ticks.
-  // Each client steps every tick, so alignment is guaranteed and the server can actually compare.
   private maybeReportHash(): void {
     const world = this.replica.world;
     const appliedTick = this.replica.appliedTick;

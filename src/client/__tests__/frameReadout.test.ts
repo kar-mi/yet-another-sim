@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { genericFrameNorth } from "../../engine/genericSolver";
+import { genericFrameNorth } from "../../engine/bots/genericSolver";
 import { createWorld } from "../../engine/world";
 import { baseRaid, loadRaid } from "../../engine/__tests__/helpers";
 import {

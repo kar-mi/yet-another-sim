@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { createWorld } from "../world";
 import { selectOrbLayout, clockwiseTetherOrder, type BlackHoleOrb } from "../blackHoleOrbs";
 import { baseRaid, byId, human, loadRaid, noMove, roster, runTicks } from "./helpers";
-import type { World } from "@shared/types";
+import type { World } from "@model/types";
 
 const blackHole = {
   ref: "debug_black_hole_mitigation",
@@ -116,8 +116,6 @@ test("tether_source fromBlackHoleOrb resolves to the order-th orb clockwise from
     ],
   });
 
-  // Origin is resolved lazily when the tether promotes (t=0), from the clockwise order locked off
-  // kefka's position - not baked at world creation.
   const world = runTicks(createWorld(raid, 123), noMove, 1);
   const tethers = selectOrbLayout(blackHoleCombos, 123).orbs.filter(orb => orb.tether).map(orb => orb.pos);
   const expected = clockwiseTetherOrder(tethers, { x: 0, z: 18 })[1];

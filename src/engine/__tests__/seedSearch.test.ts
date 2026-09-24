@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { join } from "path";
 import { parseRaidFile } from "../../server/raidFileReader";
-import { applyBotPatterns, loadBotPatterns, loadRaid } from "../raidLoader";
+import { applyBotPatterns, loadBotPatterns, loadRaid } from "../schema/raidLoader";
 import { preRollRaid } from "../preRoll";
 import { createWorld } from "../world";
 import { describeDecisions, validateRngConstraints } from "../seedSearch";

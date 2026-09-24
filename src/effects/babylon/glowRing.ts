@@ -14,7 +14,6 @@ export type GlowRingOptions = {
   backFaceCulling?: boolean;
 };
 
-// Unlit torus that reads at full colour regardless of scene lighting.
 export function createGlowRing(scene: Scene, name: string, options: GlowRingOptions): GlowRing {
   const mesh = CreateTorus(name, {
     diameter: options.diameter,

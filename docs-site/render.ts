@@ -28,7 +28,6 @@ export interface RenderOptions {
 
 const EXTERNAL = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
 
-// Matches GitHub's heading slugs, so anchors already written in the existing docs keep working.
 export function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -68,8 +67,6 @@ export function resolveRepoPath(fromSource: string, href: string): string {
   return out.join("/");
 }
 
-// Bun's Markdown renderer does not emit heading ids, so this is the only source of truth for
-// both the id attribute and the contents entry that links to it.
 export function addHeadingIds(html: string): { html: string; headings: Heading[] } {
   const headings: Heading[] = [];
   const used = new Map<string, number>();

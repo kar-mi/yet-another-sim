@@ -4,7 +4,7 @@ import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { Boss } from "@shared/types";
+import type { Boss } from "@model/types";
 import { STATIC_ROOT } from "../../staticBase";
 import { imageBillboardMaterial } from "@effects/babylon";
 
@@ -14,8 +14,8 @@ const HAND_SIZE = 10;
 const HAND_THICKNESS = 1;
 const RIM_SCALE = 0.85;
 const HAND_LATERAL_OFFSET = 11;
-const RAISED_FORWARD_OFFSET = 6; // toward the party/arena centre, for the attacking hand
-const GROUND_FORWARD_OFFSET = 2; // also toward the party, but closer to Kefka so it still touches the arena floor
+const RAISED_FORWARD_OFFSET = 6;
+const GROUND_FORWARD_OFFSET = 2;
 const HAND_HEIGHT = 7;
 const SKIN_TONE = Color3.FromHexString("#f2c9a8");
 
@@ -38,7 +38,7 @@ export function createHandMeshes(scene: Scene, name: string): HandMeshes {
   const rimMat = new StandardMaterial(`${name}-rim-mat`, scene);
   rimMat.diffuseColor = SKIN_TONE;
   rimMat.specularColor = new Color3(0, 0, 0);
-  rimMat.backFaceCulling = false; // matches the plane's convention; needed because side="left" mirrors via negative scaling.x
+  rimMat.backFaceCulling = false;
   rim.material = rimMat;
 
   return { plane, rim };
@@ -55,12 +55,9 @@ export function updateHandMeshes(handle: HandMeshes, boss: Boss, side: HandSide,
   const anchorZ = boss.pos.z + forward.z * forwardOffset + right.z * HAND_LATERAL_OFFSET * sign;
 
   const rotationX = pose === "ground" ? Math.PI / 2 : 0;
-  // Fingers point toward the party/arena centre in both poses.
   const yaw = Math.atan2(forward.x, forward.z);
   const anchorY = pose === "ground" ? HAND_THICKNESS / 2 : HAND_HEIGHT;
 
-  // The plane sits flush against the rim's outward face, offset along the same
-  // facing normal used for the yaw, so it reads as a decal printed on the slab.
   const planeOffset = HAND_THICKNESS / 2 + 0.02;
   const normal = pose === "ground" ? { x: 0, z: 0 } : forward;
   const planeY = pose === "ground" ? anchorY + planeOffset : anchorY;

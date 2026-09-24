@@ -4,22 +4,18 @@ import type { HudLayoutManager } from "./HudLayoutManager";
 import { buildTourSteps, RAID_SELECTOR_TARGET, type TourStep } from "./guidedTourModel";
 
 const SEEN_KEY = "yas_seen_welcome";
-// The spotlight follows targets that move with the HUD layout and the `zoom`-based UI scale, neither
-// of which fires a resize event, so re-measure on a cheap timer while the tour is on screen.
 const REPOSITION_MS = 250;
 const HALO_PAD = 8;
 const CARD_GAP = 14;
 
 export interface SimulatorTourContext {
   isHost: boolean;
-  /** The ▶ replays toolbar button exists only for the current session host. */
   hasReplayButton: boolean;
   hudLayout: HudLayoutManager;
 }
 
 let simulatorContext: SimulatorTourContext | null = null;
 let active: { dispose: () => void } | null = null;
-// Set when the overview is confirmed outside the simulator; starts the spotlights on the next entry.
 let deferredStart = false;
 
 function hasSeenWelcome(): boolean {
@@ -34,20 +30,14 @@ function markWelcomeSeen(): void {
   try {
     localStorage.setItem(SEEN_KEY, "1");
   } catch {
-    // localStorage unavailable (e.g. private browsing) — nothing to persist.
   }
 }
 
-/**
- * Tells the tour which live session it can spotlight. Passing null (on leaving the simulator) also
- * closes a tour that is still open.
- */
 export function setSimulatorTourContext(context: SimulatorTourContext | null): void {
   simulatorContext = context;
   if (!context) active?.dispose();
 }
 
-/** Builds and shows the guided tour; can be reopened at any time from the About panel. */
 export function showWelcomeModal(): void {
   if (active) return;
   const context = simulatorContext;
@@ -59,7 +49,6 @@ export function showWelcomeModal(): void {
   active = startTour(steps, context);
 }
 
-/** Shows the tour the first time a user reaches the simulator, or once a deferred start is queued. */
 export function maybeShowWelcomeModal(): void {
   if (!hasSeenWelcome() || deferredStart) {
     deferredStart = false;
@@ -95,8 +84,6 @@ function startTour(steps: TourStep[], context: SimulatorTourContext | null): { d
   };
 
   const layout = () => {
-    // #yas-tour is zoomed by --ui-scale like the other overlays, so its children are positioned in
-    // scaled-down units while getBoundingClientRect reports screen pixels — divide to convert.
     const scale = Number(getComputedStyle(document.documentElement).getPropertyValue("--ui-scale")) || 1;
     const viewW = innerWidth / scale;
     const viewH = innerHeight / scale;
@@ -179,7 +166,6 @@ function startTour(steps: TourStep[], context: SimulatorTourContext | null): { d
     if (step.footnote) body.appendChild(createElement("div", "yas-tour-footnote", step.footnote));
 
     const isLast = index === steps.length - 1;
-    // Outside the simulator the single overview card queues the spotlights, so it still reads NEXT.
     const nextBtn = createElement("button", "yas-menu-start", isLast && inSimulator ? "DONE" : "NEXT");
     nextBtn.type = "button";
     nextBtn.addEventListener("click", () => {
@@ -223,7 +209,6 @@ function startTour(steps: TourStep[], context: SimulatorTourContext | null): { d
         }
       }
     }
-    // Keep every other key out of gameplay handlers while the tour owns the screen.
     event.stopPropagation();
   };
   const swallow = (event: Event) => event.stopPropagation();

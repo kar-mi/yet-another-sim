@@ -4,8 +4,6 @@ import { createWorld } from "../world";
 import { HUMAN, baseRaid, effect, human, loadRaid, roster, runTicks, withEffect, byId, noMove } from "./helpers";
 import { DPS_HP, HEALER_HP, TANK_HP } from "./constants";
 
-// --- set_hp ---
-
 test("set_hp sets all alive players HP to the given amount", () => {
   const raid = loadRaid({
     ...baseRaid,
@@ -34,8 +32,8 @@ test("set_hp with role filter only affects that role", () => {
   const world = runTicks(createWorld(raid), noMove, 2);
   expect(byId(world, "mt").hp).toBe(1);
   expect(byId(world, "ot").hp).toBe(1);
-  expect(human(world).hp).toBe(DPS_HP); // dps untouched
-  expect(byId(world, "h1").hp).toBe(HEALER_HP); // healer untouched
+  expect(human(world).hp).toBe(DPS_HP);
+  expect(byId(world, "h1").hp).toBe(HEALER_HP);
 });
 
 test("set_hp with players filter only affects listed ids", () => {
@@ -48,10 +46,7 @@ test("set_hp with players filter only affects listed ids", () => {
   expect(byId(world, "ot").hp).toBe(TANK_HP);
 });
 
-// --- Primordial Crust ---
-
 test("primordialCrust converts a lethal hit to 1 HP and removes the debuff", () => {
-  // Use raid events so player positions and world state are consistent.
   const raid = loadRaid({
     ...baseRaid,
     players: roster({ m1: { spawn: [0, 0] } }),
@@ -95,10 +90,7 @@ test("primordialCrust expiry does not fire before expiry tick", () => {
   expect(human(after).alive).toBe(true);
 });
 
-// --- Accretion ---
-
 test("accretion is removed when healed to full HP", () => {
-  // Start carrier below full HP so the cleanse-on-full pass doesn't fire before the heal.
   const accretionEffect = effect({
     id: "accretion-1",
     name: "Accretion",
@@ -115,18 +107,14 @@ test("accretion is removed when healed to full HP", () => {
     ...worldBase,
     players: worldBase.players.map(p => p.id === HUMAN ? { ...p, hp: 1 } : p),
   };
-  // Just before the heal: accretion still present.
   const before = runTicks(world, noMove, Math.ceil(0.9 * 60));
   expect(human(before).effects.some(e => e.name === "Accretion")).toBe(true);
-  // After the heal: hp restored to max → accretion cleansed.
   const after = runTicks(world, noMove, Math.ceil(1.1 * 60));
   expect(human(after).alive).toBe(true);
   expect(human(after).effects.some(e => e.name === "Accretion")).toBe(false);
 });
 
 test("accretion expiry burst kills uncleansed carrier", () => {
-  // Player must be below full HP so the cleanse-on-full pass doesn't fire immediately.
-  // In the G7 puzzle the player is at 1 HP from a prior set_hp; we replicate that here.
   const accretionEffect = effect({
     id: "accretion-1",
     name: "Accretion",
@@ -151,7 +139,6 @@ test("accretion is not removed when hp is below max", () => {
     duration: 10,
     behavior: { kind: "expiryDamage" as const, expiryDamage: 999999, expiryDamageType: "true" as const, cleanseAtFullHp: true },
   });
-  // Player stays at less than full HP throughout — no heal, no removal.
   const world = {
     ...withEffect(createWorld(loadRaid(baseRaid)), accretionEffect),
     players: withEffect(createWorld(loadRaid(baseRaid)), accretionEffect).players.map(p =>

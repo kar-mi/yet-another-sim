@@ -1,4 +1,4 @@
-import type { AOEShape, DamageType } from "@shared/types";
+import type { AOEShape, DamageType } from "@model/types";
 import type { ShapeKnockback } from "@status";
 import type { TickContext } from "./context";
 import type { DamageSource } from "./damageLog";

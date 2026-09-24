@@ -1,10 +1,7 @@
-// Phase 2: tether sources. Promote pending tethers, keep their attachment pointed at the nearest
-// living player, allow interception before finalization, then finalize into a buff/debuff effect.
-
 import type { TickContext } from "./context";
 import { applyStatus } from "@status";
 import { statusServices } from "./statusServices";
-import type { AOEShape, TetherSource, PendingTether } from "@shared/types";
+import type { AOEShape, TetherSource, PendingTether } from "@model/types";
 import { length, normalize, sub, type Vec2 } from "@shared/math";
 import { pointInShape } from "../shapes";
 import { selectTargetPlayer, findInterceptor, applyMechanicDamage } from "./helpers";
@@ -46,9 +43,6 @@ export function resolveTethers(ctx: TickContext): {
 } {
   const { players, log, time } = ctx;
 
-  // Locked clockwise tether orders (per Black Hole hazard). Lazily lock the first time any of a
-  // hazard's lasers promotes: sort its tether orbs clockwise from the orderFrom boss's position,
-  // then hold that order for the hazard's lifetime so a later teleport can't reshuffle it.
   const blackHoleTetherOrder: Record<string, Vec2[]> = { ...ctx.world.blackHoleTetherOrder };
   const orbPos = (fromBlackHoleOrb: NonNullable<PendingTether["fromBlackHoleOrb"]>): Vec2 => {
     const { hazardId, order } = fromBlackHoleOrb;
@@ -95,22 +89,16 @@ export function resolveTethers(ctx: TickContext): {
   for (const ts of tetherSources) {
     if (ts.finalized) continue;
 
-    // Sticky targeting: keep the same target unless they die (or there's none yet). Persistent
-    // tethers keep hitting the same locked target across all of their scheduled fires.
     if (!ts.tetheredPlayerId || !players.find(p => p.id === ts.tetheredPlayerId)?.alive) {
       ts.tetheredPlayerId = selectTargetPlayer(players, ts.pos, "closest")?.id ?? null;
     }
 
-    // Check for interceptions before each upcoming scheduled fire (not just the first) - someone
-    // can walk the source->target line to steal the tether ahead of any of its hits.
     if (ts.tetheredPlayerId && ts.nextFireIndex < ts.fireTimes.length && time < ts.fireTimes[ts.nextFireIndex]!) {
       const target = players.find(p => p.id === ts.tetheredPlayerId)!;
       const interceptor = findInterceptor(players, ts.pos, target.pos, ts.tetheredPlayerId);
       if (interceptor) ts.tetheredPlayerId = interceptor.id;
     }
 
-    // Fire each scheduled laser once. Single-shot tethers finalize on their only fire; persistent
-    // tethers stay interceptable until expireAt.
     while (ts.nextFireIndex < ts.fireTimes.length && time >= ts.fireTimes[ts.nextFireIndex]!) {
       const target = players.find(p => p.id === ts.tetheredPlayerId);
       fireTetherBeam(ctx, ts, target);
@@ -120,7 +108,6 @@ export function resolveTethers(ctx: TickContext): {
     if (ts.expireAt !== undefined && time >= ts.expireAt) ts.finalized = true;
   }
 
-  // Cull sources finalized more than 2s ago
   tetherSources = tetherSources.filter(ts => !ts.finalized || ts.finalizeAt > time - TETHER_LINGER);
   return { tetherSources, pendingTethers: remainingPendingTethers, blackHoleTetherOrder };
 }

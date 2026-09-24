@@ -1,13 +1,13 @@
 import { readdir } from "node:fs/promises";
 import { join } from "path";
-import { EMPTY_RAID_ID, RaidIdSchema, SessionIdSchema, type Frame } from "@shared/protocol";
-import type { World } from "@shared/types";
-import { REPLAY_FORMAT_VERSION, type ReplayData, type ReplayErrorCode, type ReplaySummary } from "@shared/replay";
+import { EMPTY_RAID_ID, RaidIdSchema, SessionIdSchema, type Frame } from "@model/protocol";
+import type { World } from "@model/types";
+import { REPLAY_FORMAT_VERSION, type ReplayData, type ReplayErrorCode, type ReplaySummary } from "@model/replay";
 import { sanitizeSessionId } from "./logger";
 
 const SESSION_LOG_DIR = join(import.meta.dir, "..", "..", "logs", "sessions");
 
-export { type ReplayData, type ReplaySummary } from "@shared/replay";
+export { type ReplayData, type ReplaySummary } from "@model/replay";
 
 export class ReplayReadError extends Error {
   constructor(
@@ -62,7 +62,6 @@ function parseBatch(record: unknown): Frame[] {
   return batch.frames as Frame[];
 }
 
-// Streams a replay file record by record deterministic by file
 async function forEachRecord(path: string, onRecord: (record: unknown, index: number) => void): Promise<void> {
   const reader = Bun.file(path).stream().getReader();
   const decoder = new TextDecoder();
@@ -71,7 +70,6 @@ async function forEachRecord(path: string, onRecord: (record: unknown, index: nu
   try {
     for (;;) {
       const { done, value } = await reader.read();
-      // `stream: true` carries a multi-byte character split across chunks.
       pending += done ? decoder.decode() : decoder.decode(value, { stream: true });
       const parsed = Bun.JSONL.parseChunk(pending);
       pending = pending.slice(parsed.read);

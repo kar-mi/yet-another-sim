@@ -1,4 +1,4 @@
-import { EMPTY_RAID_ID, type BotPatternOption, type DecisionDescription, type PlaybackState, type SessionPhase } from "@shared/protocol";
+import { EMPTY_RAID_ID, type BotPatternOption, type DecisionDescription, type PlaybackState, type SessionPhase } from "@model/protocol";
 import { RAID_CHANGE_START_DELAY_MS } from "@shared/constants";
 import type { NetClient } from "../net";
 import { el } from "./dom";
@@ -36,10 +36,6 @@ function parseLabel(label: string): number | null {
   return Math.round((mins * 60 + secs) * 60);
 }
 
-/**
- * In-sim HUD: the raid picker, the options modal, and playback controls.
- * Returns a disposer that tears down listeners and DOM.
- */
 export async function createRaidHudSelect(
   net: NetClient,
   hudLayout: HudLayoutManager,
@@ -83,8 +79,6 @@ export async function createRaidHudSelect(
     });
     return btn;
   };
-  // In the lobby this button starts the selected raid, or resumes the lobby itself when none is
-  // selected; everywhere else it resumes the pull.
   const playBtn = makePlaybackBtn("PLAY", () => {
     if (replay) replay.play();
     else if (phase === "workshop" && selectedRaidId !== EMPTY_RAID_ID) net.send({ type: "start" });
@@ -94,9 +88,6 @@ export async function createRaidHudSelect(
   const stopBtn = makePlaybackBtn("STOP", () => net.send({ type: "stop" }));
   const restartBtn = makePlaybackBtn("RESTART", () => replay ? replay.restart() : net.send({ type: "restart" }));
   const optionsBtn = replay ? null : makePlaybackBtn("OPTIONS", () => {
-    // A live pull is stopped first: options must not change out from under it, and stopping lets the
-    // server apply waymark/bot-pattern changes to the frozen world immediately. The lobby has
-    // no pull to protect, so it keeps running.
     if (phase === "raid" && lastState !== "stopped") net.send({ type: "stop" });
     optionsModal?.open();
   });
@@ -155,19 +146,15 @@ export async function createRaidHudSelect(
     lastState = state;
     const startsRaid = !replay && phase === "workshop" && selectedRaidId !== EMPTY_RAID_ID;
     playBtn.textContent = startsRaid || (!replay && state === "stopped") ? "START" : "PLAY";
-    // Picking a raid swaps to it, so in the lobby this button re-runs the raid already selected;
-    // with none selected it resumes the lobby like any other pull.
     playBtn.disabled = !canControl() || (!startsRaid && (state === "playing" || state === "done"));
     pauseBtn.disabled = !canControl() || state !== "playing";
     stopBtn.disabled = !canControl() || state === "stopped";
     restartBtn.disabled = !canControl();
-    // Swapping the raid mid-pull is the one thing the server refuses, so lock the picker there.
     picker?.setEnabled(isHost && !(phase === "raid" && state === "playing"));
     if (optionsBtn) optionsBtn.disabled = !isHost;
     optionsModal?.update({ isHost });
   };
 
-  // A raid swap replaces every client's world; cover the rebuild so it doesn't read as a freeze.
   const onRaidId = (raidId: string) => {
     if (raidId === activeRaidId) return;
     activeRaidId = raidId;
@@ -195,7 +182,6 @@ export async function createRaidHudSelect(
       botPatternId: message.botPatternId,
       isHost,
     });
-    // Re-apply this browser's saved per-raid preferences after the server cleared them on a swap.
     if (isHost && JSON.stringify(message.rngConstraints) !== JSON.stringify(loadRngConstraints(message.selectedRaidId))) {
       armRngConstraints(net, message.selectedRaidId);
     }
@@ -210,8 +196,6 @@ export async function createRaidHudSelect(
   });
   syncPlayback(session.playbackState);
 
-  // A replay has nothing to select, so the selector is not built at all and its playback controls
-  // live in the seek window instead.
   if (!replay && picker) {
     const selectRow = el("div", { className: "yas-raid-select-row" }, [picker.button]);
     if (optionsBtn) selectRow.appendChild(el("div", { className: "yas-rng-controls" }, [optionsBtn]));

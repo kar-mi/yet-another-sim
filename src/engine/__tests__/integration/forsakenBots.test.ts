@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { createWorld } from "../../world";
-import { applyBotPatterns, loadBotPatterns, loadRaid } from "../../raidLoader";
+import { applyBotPatterns, loadBotPatterns, loadRaid } from "../../schema/raidLoader";
 
 test("forsaken raid and bot companion content load", async () => {
   const raidData = Bun.YAML.parse(await Bun.file("raids/dancing-mad-ultimate/forsaken.yaml").text());

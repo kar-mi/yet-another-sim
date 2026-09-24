@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { ClientMessage, ServerMessage } from "@shared/protocol";
+import type { ClientMessage, ServerMessage } from "@model/protocol";
 import type { Transport } from "../net";
 import { NetClient } from "../net";
 import { createWorld } from "../../engine/world";

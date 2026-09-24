@@ -3,7 +3,7 @@ import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveHazard } from "@shared/types";
+import type { ActiveHazard } from "@model/types";
 
 const HAZARD_COLOR = new Color3(0.01, 0.04, 0.12);
 

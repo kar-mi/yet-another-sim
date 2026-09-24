@@ -1,16 +1,16 @@
 import { afterEach, expect, test } from "bun:test";
 import { existsSync, rmSync } from "node:fs";
 import { join } from "path";
-import { worldHash } from "@shared/worldHash";
+import { worldHash } from "@model/worldHash";
 import { tick } from "../engine/sim";
-import { computeBotIntents } from "../engine/botIntent";
+import { computeBotIntents } from "../engine/bots/botIntent";
 import { createWorld } from "../engine/world";
 import { createEmptyRaid } from "./sessionRaid";
 import { createSessionLog } from "./logger";
 import { listReplays, loadReplay } from "./replayReader";
-import type { Frame } from "@shared/protocol";
-import type { World } from "@shared/types";
-import { REPLAY_FORMAT_VERSION } from "@shared/replay";
+import type { Frame } from "@model/protocol";
+import type { World } from "@model/types";
+import { REPLAY_FORMAT_VERSION } from "@model/replay";
 
 const SESSION_LOG_DIR = join(import.meta.dir, "..", "..", "logs", "sessions");
 const SESSION = "replay-reader-test";
@@ -71,8 +71,6 @@ test("reads saved pull summaries and frame logs", async () => {
   const loaded = await loadReplay(SESSION, 2);
   expect(loaded?.raidId).toBe("debug/test");
   expect(loaded?.frames).toEqual(frames);
-  // The replayed world must match the original world stepped through the same
-  // frames, not merely a second replay of itself.
   expect(worldHash(replay(loaded!.world, loaded!.frames))).toBe(worldHash(replay(world, frames)));
 });
 
@@ -104,8 +102,6 @@ test("accepts CRLF, blank lines and a missing trailing newline", async () => {
 });
 
 test("reads records that straddle stream chunk boundaries, including multi-byte characters", async () => {
-  // Records of varying length, well past the stream's chunk size, so both JSON
-  // and individual UTF-8 characters land across chunk boundaries.
   const frames: Frame[] = [];
   const lines = [headerLine()];
   for (let batch = 0; batch < 200; batch++) {
@@ -138,7 +134,6 @@ test.each([
 ])("rejects %s", async (_name, body, code) => {
   await writePull(6, body);
   await expect(loadReplay(SESSION, 6)).rejects.toMatchObject({ code });
-  // Listing validates the whole file too, so a broken replay is not summarized.
   expect(await listReplays(SESSION)).toEqual([]);
 });
 

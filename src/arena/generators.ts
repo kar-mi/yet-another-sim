@@ -1,7 +1,6 @@
 import { cos, sin } from "@shared/dmath";
 import type { ZoneShape } from "./index";
 
-// Generated arena layouts; Index dimensions come from raid_analyzer measurements.
 export const ARENA_GENERATORS = {
   index_arena_1: () => indexArena(BASE_EDGES),
   index_arena_2: () => indexArena([...BASE_EDGES, ...EXPANDED_EDGES]),

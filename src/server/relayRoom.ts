@@ -1,11 +1,11 @@
 import { TICK_RATE } from "@shared/constants";
 import { createWorld } from "../engine/world";
 import { makeSeed } from "@shared/rng";
-import type { RaidDef } from "../engine/raidSchema";
-import { EMPTY_RAID_ID, MAX_OBSERVERS, type BotPatternOption, type ClientMessage, type Frame, type LobbySlot, type PlaybackState, type ReplayView, type ServerMessage, type SessionPhase, type TransitionReason } from "@shared/protocol";
-import type { Intent, Intents, World } from "@shared/types";
+import type { RaidDef } from "../engine/schema/raidSchema";
+import { EMPTY_RAID_ID, MAX_OBSERVERS, type BotPatternOption, type ClientMessage, type Frame, type LobbySlot, type PlaybackState, type ReplayView, type ServerMessage, type SessionPhase, type TransitionReason } from "@model/protocol";
+import type { Intent, Intents, World } from "@model/types";
 import { logger } from "@shared/logger";
-import { WAYMARK_PRESETS, isWaymarkPresetId } from "@shared/waymarkPresets";
+import { WAYMARK_PRESETS, isWaymarkPresetId } from "@model/waymarkPresets";
 import { describeDecisions, validateRngConstraints } from "../engine/seedSearch";
 import type { RngConstraints } from "../engine/preRoll";
 import { DesyncTracker } from "./desyncTracker";

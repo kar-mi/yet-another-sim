@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { Intents, World } from "@shared/types";
+import type { Intents, World } from "@model/types";
 import { MOVE_SPEED } from "@shared/constants";
 import { hasActiveStatus, remainingTime, requireStatus } from "@status";
 import { tick } from "../sim";

@@ -1,9 +1,6 @@
-// Session-scoped replay browser: the host's ▶ toolbar button opens this over the running simulator
-// to pick one of the session's recordings. Extracted from the lobby, which no longer lists replays.
-
-import type { Frame } from "@shared/protocol";
-import type { ReplaySummary } from "@shared/replay";
-import type { World } from "@shared/types";
+import type { Frame } from "@model/protocol";
+import type { ReplaySummary } from "@model/replay";
+import type { World } from "@model/types";
 import { replayRepository, ReplayRepositoryError } from "../replayRepository";
 import { createElement, el } from "./dom";
 
@@ -31,7 +28,6 @@ export function replayMatches(replay: ReplaySummary, query: string): boolean {
 export function createReplayBrowser(sessionId: string, onWatch: (replay: LoadedReplay) => void): ReplayBrowser {
   let replays: ReplaySummary[] | null = null;
   let open = false;
-  // Bumped on every open/close so a slow list or replay response that lands after dismissal is dropped.
   let generation = 0;
 
   const search = el("input", {

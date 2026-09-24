@@ -1,5 +1,5 @@
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveMechanic, Boss } from "@shared/types";
+import type { ActiveMechanic, Boss } from "@model/types";
 import {
   createHandMeshes,
   disposeHandMeshes,

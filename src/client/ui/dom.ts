@@ -1,14 +1,7 @@
-// Shared DOM construction helpers for the client UI modules.
-
 type ElProps<K extends keyof HTMLElementTagNameMap> = Partial<HTMLElementTagNameMap[K]> & {
-  /** Attributes set via setAttribute (e.g. ARIA, role). */
   attrs?: Record<string, string>;
 };
 
-/**
- * Create an element, assigning the given properties and appending children.
- * Undefined property values are skipped so optional fields don't clobber defaults.
- */
 export function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   props?: ElProps<K>,
@@ -28,7 +21,6 @@ export function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-/** Positional shorthand for the common className/textContent case. */
 export function createElement<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   className?: string,

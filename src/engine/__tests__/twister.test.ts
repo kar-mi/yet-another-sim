@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { tick } from "../sim";
 import { createWorld } from "../world";
-import { applyBotPatterns, loadBotPatterns, loadRaid } from "../raidLoader";
+import { applyBotPatterns, loadBotPatterns, loadRaid } from "../schema/raidLoader";
 import { HEALER_HP } from "./constants";
 import { baseRaid, byId, effect, human, loadRaid as loadTestRaid, noMove, roster, runTicksWithComputedBotIntents, withEffect } from "./helpers";
 

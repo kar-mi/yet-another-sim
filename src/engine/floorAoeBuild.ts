@@ -1,10 +1,4 @@
-// Reconstructs the render-facing FloorAoe from the legacy showTelegraph/telegraphMode/
-// flashBeforeResolve authoring fields, preserving the exact visibility windows those fields used to
-// produce (see TelegraphLayer's old inFlash/visible filter) without raid content needing to change.
-// Shared by every construction site that promotes a pending mechanic into an active one (or
-// re-anchors its shape mid-lifetime) so the mapping only lives in one place.
-
-import type { AOEShape, TelegraphMode, FlashBeforeResolve, ElementGlyphKind } from "@shared/types";
+import type { AOEShape, TelegraphMode, FlashBeforeResolve, ElementGlyphKind } from "@model/types";
 import { FloorAoe, DEFAULT_DANGER_COLOR, type FloorAoeVfx } from "@effects";
 import { AOE_RESOLVE_LINGER } from "@shared/constants";
 
@@ -31,12 +25,9 @@ export function buildFloorAoe(params: {
   const linger = params.linger ?? AOE_RESOLVE_LINGER;
 
   if (params.flashBeforeResolve) {
-    // A cast-mode mechanic (not hidden by telegraphMode "resolve") is already shown for its whole
-    // cast, so the pre-hit flash window is a strict subset of that visibility.
     if (params.showTelegraph && params.telegraphMode !== "resolve") {
       return new FloorAoe({ id, shape, color, ...style, resolveMode: { kind: "active" }, resolveAt });
     }
-    // Hidden until the pre-hit lead window; telegraphMode "resolve" additionally lingers after impact.
     const trail = params.telegraphMode === "resolve" ? linger : 0;
     return new FloorAoe({
       id, shape, color, ...style,

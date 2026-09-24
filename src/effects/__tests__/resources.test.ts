@@ -32,8 +32,6 @@ const aoe = (id: string, element?: "fire" | "ice") => new FloorAoe({
   resolveAt: 10,
 });
 
-// Babylon creates its "default material" lazily on the first mesh, so counts are only comparable
-// after one warm-up cycle.
 function warmUp(scene: Scene): { meshes: number; materials: number } {
   const meshes: FloorTelegraphMap = new Map();
   syncFloorTelegraphs(scene, meshes, [aoe("warm-up")], 0, new Set());
@@ -95,7 +93,6 @@ test("simultaneous element AoEs share one pattern material, and it survives remo
     expect(fireA).toBe(fireB!);
     expect(fireA).not.toBe(ice!);
 
-    // Dropping one fire AoE must not dispose the material the other is still drawing with.
     syncFloorTelegraphs(scene, meshes, [aoe("b", "fire")], 0, new Set());
     expect(meshes.get("b")!.mesh.material).toBe(fireA!);
     expect(scene.materials).toContain(fireA!);
@@ -136,7 +133,6 @@ test("a glow with no targets stays disabled instead of lighting the whole scene"
     glow.highlight(null, 0);
     expect(layer.isEnabled).toBe(false);
 
-    // An empty list must read as "nothing highlighted", exactly like null.
     glow.highlight([], 0);
     expect(layer.isEnabled).toBe(false);
     expect(() => glow.warm([])).not.toThrow();
@@ -162,7 +158,6 @@ test("disposing a glow takes its halo mesh, material and texture with it", () =>
     });
     expect(scene.meshes.length).toBeGreaterThan(before.meshes);
     glow.dispose();
-    // The root mesh is the caller's; only the halo belongs to the handle.
     expect(scene.meshes.length).toBe(before.meshes);
     expect(scene.materials.length).toBe(before.materials);
     expect(scene.textures.length).toBe(before.textures);

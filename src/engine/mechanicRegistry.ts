@@ -1,22 +1,8 @@
-// Mechanic registry — the single source of truth that turns "add a mechanic" from an ~8-file ritual
-// into one entry here (+ its zod schema in raidSchema.ts). Each module bundles:
-//   - fromEvent:  push a raw event into the world's pending collections (createWorld)
-//   - resolve:    advance one tick, returning the World slice(s) it owns (tick); optional
-//   - isResolved: clear-detection predicate over the assembled next world; optional
-//
-// Ownership of event types is declared once in MODULE_FOR_TYPE (below), which `satisfies
-// Record<EventType, …>` so the registry is proven to cover every event discriminant at compile time.
-//
-// IMPORTANT — RNG determinism: the resolve order is the array order of REGISTRY. The seeded PRNG is
-// drawn in sequence across systems, so reordering changes every downstream random outcome. The order
-// below is the long-standing fixed order (forcedMarch → … → gaze); determinism.test.ts guards it.
-// Modules without a `resolve` (heal, effect_resolver) may sit anywhere — they draw no RNG.
-
-import type { World, EffectResolver } from "@shared/types";
+import type { World, EffectResolver } from "@model/types";
 import { normalize, type Vec2 } from "@shared/math";
-import type { RaidDef } from "./raidSchema";
+import type { RaidDef } from "./schema/raidSchema";
 import type { TickContext } from "./systems/context";
-import { toVec2, toAOEShape, toKnockback } from "./eventTransforms";
+import { toVec2, toAOEShape, toKnockback } from "./schema/eventTransforms";
 import { resolveForcedMarches } from "./systems/forcedMarch";
 import { resolveTethers } from "./systems/tethers";
 import { resolveLineLinks } from "./systems/lineLinks";
@@ -40,7 +26,6 @@ import { resolveBossTeleports } from "./systems/bossTeleport";
 type RaidEvent = RaidDef["events"][number];
 type EventType = RaidEvent["type"];
 
-// The mutable pending/resolver collections createWorld populates; keys match World fields exactly.
 export type Collections = Pick<World,
   | "pending" | "pendingTethers" | "pendingLineLinks" | "pendingTargeted" | "pendingBaits" | "pendingDashes"
   | "pendingTowers" | "pendingChains" | "pendingGroups" | "pendingEffectSelects"
@@ -52,13 +37,8 @@ export type Collections = Pick<World,
 >;
 
 export interface MechanicModule {
-  // Bucket a raw raid event into the world's pending collections. `eventPositions` is the
-  // static-position lookup (only `tower` writes it).
   fromEvent(e: RaidEvent, c: Collections, eventPositions: Record<string, Vec2>): void;
-  // Advance one tick; returns the World slice(s) this module owns. Omitted for data-only / inline
-  // mechanics (effect_resolver has no tick; heal resolves inline in tick before targeting).
   resolve?(ctx: TickContext): Partial<World>;
-  // True when this mechanic family has fully resolved (pending drained + active items finished).
   isResolved?(w: World): boolean;
 }
 
@@ -78,8 +58,6 @@ const forcedMarch: MechanicModule = {
       postDelay: e.postDelay,
     });
   },
-  // resolveForcedMarches stores the active list on ctx.forcedMarches (statusEffects appends to it
-  // later), so the active forcedMarches are read from ctx after all systems run — see tick.
   resolve: ctx => ({ pendingForcedMarches: resolveForcedMarches(ctx) }),
   isResolved: w => w.pendingForcedMarches.length === 0 && w.forcedMarches.every(fm => fm.triggered),
 };
@@ -108,8 +86,6 @@ const hazard: MechanicModule = {
 const tethers: MechanicModule = {
   fromEvent(e, c, eventPositions) {
     if (e.type !== "tether_source") return;
-    // Black-hole lasers carry fromBlackHoleOrb and resolve their origin from the locked clockwise
-    // order at promote time; only plain tethers have a static pos to expose as a frame anchor.
     if (e.pos) eventPositions[e.id] = toVec2(e.pos);
     c.pendingTethers.push({
       id: e.id,
@@ -194,7 +170,6 @@ const chains: MechanicModule = {
   isResolved: w => w.pendingChains.length === 0 && w.chains.every(c => c.outcome !== undefined),
 };
 
-// Owns the event types resolved by the AOE pipeline.
 const aoe: MechanicModule = {
   fromEvent(e, c) {
     switch (e.type) {
@@ -444,8 +419,6 @@ const effectCheck: MechanicModule = {
 const limitCut: MechanicModule = {
   fromEvent(e, c) {
     if (e.type !== "limit_cut") return;
-    // Relative-north = opposite Kefka's first divebomb; players place opposite Kefka's rotation.
-    // Defaults to N start / CCW (the current hardcoded case) when no rotation config is authored.
     const r = e.rotation;
     const rotation = r
       ? { north: normalize({ x: -toVec2(r.kefkaStart).x, z: -toVec2(r.kefkaStart).z }), clockwise: !r.kefkaClockwise }
@@ -481,8 +454,6 @@ const reassign: MechanicModule = {
     });
   },
   resolve: ctx => resolveReassigns(ctx),
-  // "Resolved" = the opener has fired; later onResolve deals piggyback on tower resolution, which the
-  // towers module already gates in clear-detection.
   isResolved: w => w.reassigns.every(r => r.initial !== "plan" || r.initialDealt),
 };
 
@@ -609,8 +580,6 @@ const setHp: MechanicModule = {
   isResolved: w => w.pendingSetHps.length === 0,
 };
 
-// Full-raid heals resolve inline in tick (before targeting, so revived HP is targetable this tick),
-// so this module has no `resolve` — only bucketing + clear-detection.
 const heal: MechanicModule = {
   fromEvent(e, c) {
     if (e.type !== "heal") return;
@@ -619,8 +588,6 @@ const heal: MechanicModule = {
   isResolved: w => w.pendingHeals.length === 0,
 };
 
-// Effect resolvers are a lookup table consumed by other systems (e.g. towers); they have no tick of
-// their own and never gate clear-detection.
 const effectResolver: MechanicModule = {
   fromEvent(e, c) {
     if (e.type !== "effect_resolver") return;
@@ -633,9 +600,6 @@ const effectResolver: MechanicModule = {
   },
 };
 
-// COMPILE-TIME COVERAGE: every event discriminant must map to its owning module. `satisfies
-// Record<EventType, …>` makes adding a new event type to EventSchema without registering it here a
-// TYPE error (missing key) rather than a silent runtime gap. This is also the dispatch source.
 const MODULE_FOR_TYPE = {
   forced_march: forcedMarch,
   tether_source: tethers,
@@ -664,16 +628,12 @@ const MODULE_FOR_TYPE = {
   divebomb: divebomb,
 } satisfies Record<EventType, MechanicModule>;
 
-// Resolve/clear-detection order — RNG-critical (see header). Resolve-bearing modules in the fixed
-// legacy order; the data-only modules (heal, effect_resolver) follow.
 export const REGISTRY: readonly MechanicModule[] = [
   forcedMarch, tethers, bossTeleport, lineLinks, chains, aoe, towers, groups,
   effectSelect, applyEffects, effectCheck, reassign, inverse, spreadStack, gaze, limitCut,
   hazard, setHp, heal, effectResolver, divebomb,
 ];
 
-// Invariant: every owning module participates in the REGISTRY loop (so its resolve/isResolved run).
-// Catches a module added to MODULE_FOR_TYPE but forgotten in REGISTRY — a silent "never resolves" bug.
 for (const mechanic of new Set(Object.values(MODULE_FOR_TYPE))) {
   if (!REGISTRY.includes(mechanic)) {
     throw new Error("mechanicRegistry: a module in MODULE_FOR_TYPE is missing from REGISTRY");

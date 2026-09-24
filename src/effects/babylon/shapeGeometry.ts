@@ -9,7 +9,6 @@ import type { Scene } from "@babylonjs/core/scene";
 import type { AOEShape } from "../index";
 import { normalize } from "@shared/math";
 
-// Geometry-only ground mesh for an AOE shape; the caller supplies the material.
 export function createShapeMesh(scene: Scene, id: string, shape: AOEShape): Mesh | null {
   const Y = 0.01;
   let mesh: Mesh;
@@ -71,7 +70,6 @@ export function createShapeMesh(scene: Scene, id: string, shape: AOEShape): Mesh
       const data = new VertexData();
       data.positions = shape.vertices.flatMap(v => [v.x, Y, v.z]);
       data.normals = shape.vertices.flatMap(() => [0, 1, 0]);
-      // Fan from vertex 0; the authored polygons are convex.
       data.indices = shape.vertices.slice(2).flatMap((_, i) => [0, i + 1, i + 2]);
       mesh = new Mesh(`tel-${id}`, scene);
       data.applyToMesh(mesh);
@@ -85,8 +83,6 @@ export function createShapeMesh(scene: Scene, id: string, shape: AOEShape): Mesh
   return mesh;
 }
 
-// Outline every shape: the circle and polygon perimeters, a rectangle's four sides, a cone's arc
-// closed by its two radial edges, and both of a donut's boundaries.
 export function createShapeOutlineMesh(scene: Scene, id: string, shape: AOEShape): Mesh | null {
   const Y = 0.03;
   const name = `tel-outline-${id}`;
@@ -116,7 +112,6 @@ export function createShapeOutlineMesh(scene: Scene, id: string, shape: AOEShape
           shape.origin.z + Math.cos(a) * shape.length,
         );
       });
-      // Closing the path back to the apex draws both radial edges.
       return outlineTube(scene, name, [new Vector3(shape.origin.x, Y, shape.origin.z), ...arc]);
     }
 

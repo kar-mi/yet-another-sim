@@ -1,6 +1,6 @@
-import type { FrameRef, GenericSolverRule, Player, World } from "@shared/types";
+import type { FrameRef, GenericSolverRule, Player, World } from "@model/types";
 import type { Vec2 } from "@shared/math";
-import { genericFrameForwardSign, genericFrameNorth, genericFrameRightSign, genericRuleFrameNorth, resolvedMechanics } from "../engine/genericSolver";
+import { genericFrameForwardSign, genericFrameNorth, genericFrameRightSign, genericRuleFrameNorth, resolvedMechanics } from "../engine/bots/genericSolver";
 
 export type PositionFrameOption = {
   key: string;
@@ -31,8 +31,6 @@ export function invertFramePosition(pos: Vec2, north: Vec2, rightSign: 1 | -1 = 
   };
 }
 
-// Render one frame reference for the readout label/descriptor: a bare event id, crystal:<element>,
-// or boss:<id>:<from>.
 function frameRefLabel(ref: FrameRef): string {
   if (typeof ref === "string") return ref;
   if ("crystal" in ref) return `crystal:${ref.crystal}`;

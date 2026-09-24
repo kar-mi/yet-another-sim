@@ -1,4 +1,4 @@
-import { PARTICIPANT_ID_REGEX } from "@shared/protocol";
+import { PARTICIPANT_ID_REGEX } from "@model/protocol";
 
 const PARTICIPANT_KEY = "yas_participant_id";
 
@@ -17,7 +17,6 @@ function write(id: string): void {
   try {
     sessionStorage.setItem(PARTICIPANT_KEY, id);
   } catch {
-    // sessionStorage unavailable (e.g. private browsing) - the cached id lasts this page load.
   }
 }
 

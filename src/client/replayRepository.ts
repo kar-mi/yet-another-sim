@@ -4,7 +4,7 @@ import {
   type ReplayErrorCode,
   type ReplayErrorResponse,
   type ReplaySummary,
-} from "@shared/replay";
+} from "@model/replay";
 
 const REPLAY_CACHE_MAX = 5;
 type Request = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -21,8 +21,6 @@ export class ReplayRepository {
   constructor(private readonly request: Request = fetch) {}
 
   async list(sessionId: string): Promise<ReplaySummary[]> {
-    // Detach browser-native fetch from this repository. Calling it as `this.request(...)` gives it
-    // the repository as its receiver, which some browsers reject as an illegal invocation.
     const request = this.request;
     const response = await request(`/api/replays/${encodeURIComponent(sessionId)}`);
     if (!response.ok) throw new ReplayRepositoryError("request_failed", `Failed to load replay list: ${response.status}`);

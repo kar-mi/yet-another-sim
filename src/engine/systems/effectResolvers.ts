@@ -1,4 +1,4 @@
-import type { AOEShape, EffectResolver, Player } from "@shared/types";
+import type { AOEShape, EffectResolver, Player } from "@model/types";
 import { length, sub } from "@shared/math";
 import type { TickContext } from "./context";
 import { closestOtherAliveActor, isStatusActive, removeStatuses } from "@status";
@@ -7,8 +7,6 @@ import { mechanicSource } from "./damageLog";
 import { TARGETED_LINGER } from "@shared/constants";
 import { FloorAoe, DEFAULT_DANGER_COLOR } from "@effects";
 
-// One-shot visual: the mechanic already resolved this tick, so it's shown from right now through a
-// short post-hit linger rather than through a normal telegraph cast.
 export function addResolvedAoeVisual(ctx: TickContext, id: string, name: string, shape: AOEShape, color?: string): void {
   ctx.resolvedAoeVisuals.push({
     id,

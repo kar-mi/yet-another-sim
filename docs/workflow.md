@@ -60,8 +60,9 @@ The codebase is split by trust boundary and runtime:
 
 ```
 src/
-  shared/   # types, protocol (zod), deterministic math, RNG, constants — imported by both sides
-  engine/   # the pure deterministic simulation (tick), mechanic systems, raid loading/schema
+  shared/   # primitives with no internal imports: vector math, deterministic math, RNG, constants, logger
+  model/    # the serialized World types, wire protocol (zod), replay format, world hash — imported by both sides
+  engine/   # the pure deterministic simulation (tick) and mechanic systems; schema/ holds raid loading, bots/ the bot solvers
   server/   # Colyseus host: rooms, frame relay, WebSocket transport, metrics
   client/   # browser: Babylon renderer, input, netcode, prediction, UI
   arena/    # arena types, validation, generators, images, floor queries and rendering
@@ -71,10 +72,12 @@ raids/      # YAML-authored encounters, grouped by category folder
 docs/       # this folder
 ```
 
-`@shared/*`, `@arena`, `@arena/*`, `@effects`, `@effects/*`, `@status` and `@status/*` are TypeScript
+`@shared/*`, `@model/*`, `@arena`, `@arena/*`, `@effects`, `@effects/*`, `@status` and `@status/*` are TypeScript
 path aliases (see `tsconfig.json`). The internal packages are documented separately in
 [The arena package](arena-package.md), [The effects package](effects-package.md), and
-[The status package](status-package.md); their import boundaries are enforced by tests. The
+[The status package](status-package.md); their import boundaries are enforced by tests. Source
+files carry no comments: non-obvious rules and workarounds live in
+[Code invariants & workarounds](invariants.md). The
 **engine runs on both the server and every client** — that shared execution is the heart of the
 networking model below.
 

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { ReplayEvent } from "@shared/replay";
+import type { ReplayEvent } from "@model/replay";
 import {
   buildRows, damageLabel, eventSeekTick, matchesFilter, rowLabel, sectionSeekTick, ticksToLabel,
   type ReplayFilterState,
@@ -60,7 +60,6 @@ test("search, player and type filters combine", () => {
   expect(matching({ playerId: "m1", filter: "deaths" })).toEqual(["c"]);
   expect(matching({ query: "blizzard" })).toEqual(["a", "b"]);
   expect(matching({ query: "blizzard", playerId: "h1" })).toEqual(["b"]);
-  // Search covers section names, not just player and source.
   expect(matching({ query: "add phase" })).toEqual(["a", "b"]);
   expect(matching({ query: "add phase", filter: "deaths" })).toEqual([]);
 });

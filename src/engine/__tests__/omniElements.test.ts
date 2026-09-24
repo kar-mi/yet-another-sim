@@ -1,20 +1,19 @@
 import { expect, test } from "bun:test";
 import { pointInShape } from "../shapes";
 import { preRollRaid } from "../preRoll";
-import { loadRaid } from "../raidLoader";
+import { loadRaid } from "../schema/raidLoader";
 import { createWorld } from "../world";
-import { toAOEShape } from "../eventTransforms";
-import { elementRingRadius } from "@shared/elementRing";
+import { toAOEShape } from "../schema/eventTransforms";
+import { elementRingRadius } from "@model/elementRing";
 import { isFloorAoeVisible } from "@effects";
-import { moverPosition } from "@shared/mover";
-import { countdownSlicesLeft } from "@shared/countdown";
+import { moverPosition } from "@model/mover";
+import { countdownSlicesLeft } from "@model/countdown";
 import { describeDecisions, validateRngConstraints } from "../seedSearch";
 import { HUMAN, byId, roster, runTicks } from "./helpers";
 
 const rawRaid = Bun.YAML.parse(await Bun.file(`${import.meta.dir}/../../../raids/forked-tower-magic/omni-elements-1.yaml`).text());
 const raid = loadRaid(rawRaid);
 
-// The pair polygon flush with the north edge, as authored in the raid file.
 const northPair = { kind: "polygon" as const, vertices: [[-3.233, 5.6], [3.233, 5.6], [7.506, 13], [7.506, 28.011], [-7.506, 28.011], [-7.506, 13]].map(([x, z]) => ({ x: x!, z: z! })) };
 
 type Wave = { id: string; name: string; t: number; telegraph: number };
@@ -79,18 +78,17 @@ test("a wave damages what stands on its pair and spares the rest of the arena", 
   }, seed);
 
   const stood = runTicks(world, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil((first.t + first.telegraph + 0.2) * 60));
-  // Everyone has already eaten the 20-damage opening raidwide by now.
   expect(byId(stood, "m1").hp).toBe(40);
   const hitPairs = waves.filter(w => w.t === first.t).map(w => w.id.split("-")[1]);
   if (!hitPairs.includes("ns")) expect(byId(stood, "m2").hp).toBe(80);
 });
 
 test("pointInShape handles the authored pair polygon", () => {
-  expect(pointInShape(northPair, { x: 0, z: 20 })).toBe(true);   // on the square platform
-  expect(pointInShape(northPair, { x: 0, z: 9 })).toBe(true);    // on the trapezoid
-  expect(pointInShape(northPair, { x: 0, z: 0 })).toBe(false);   // the central hole
-  expect(pointInShape(northPair, { x: 12, z: 9 })).toBe(false);  // the neighbouring pair
-  expect(pointInShape(northPair, { x: 0, z: 30 })).toBe(false);  // beyond the platform
+  expect(pointInShape(northPair, { x: 0, z: 20 })).toBe(true);
+  expect(pointInShape(northPair, { x: 0, z: 9 })).toBe(true);
+  expect(pointInShape(northPair, { x: 0, z: 0 })).toBe(false);
+  expect(pointInShape(northPair, { x: 12, z: 9 })).toBe(false);
+  expect(pointInShape(northPair, { x: 0, z: 30 })).toBe(false);
 });
 
 test("each round selects exactly one of bow or harp", () => {
@@ -103,7 +101,6 @@ test("each round selects exactly one of bow or harp", () => {
       expect(selected).toHaveLength(1);
       const [kind, count] = selected[0]!;
       expect(events.filter(e => e.id.startsWith(`${kind}${round}`))).toHaveLength(count);
-      // The surviving Sealed Implements cast bar names the same implement, so the boss can outline it.
       expect(events.filter(e => e.id.startsWith(`sealed-implements-${round}-`)).map(e => e.id)).toEqual([`sealed-implements-${round}-${kind}`]);
       kinds.add(kind);
     }
@@ -163,7 +160,6 @@ test("each wave pair is announced by one ring that reaches the square centers as
       expect(wave.showCastBar).toBe(false);
     }
   }
-  // Round 1's first ring leaves the boss as Elementary Expansion ends.
   expect(wavesForSeed(3, "r1")[0]!.t).toBe(10.12);
 });
 
@@ -191,7 +187,6 @@ test("every labelled platform aoe carries its pair's element onto its floor tele
   const glyphFor: Record<string, string> = { "Blizzard IV": "ice", "Thunder IV": "lightning", "Fire IV": "fire" };
   for (let seed = 1; seed <= 5; seed++) {
     const labelled = preRollRaid(raid, seed).events.filter(e => e.type === "aoe" && e.name in glyphFor);
-    // 6 markers, 24 waves, 18 rings, and the 9 chemistry hits the `chemistry` event set keeps.
     expect(labelled.length).toBe(57);
     for (const e of labelled) {
       if (e.type !== "aoe") throw new Error(`${e.id} is not an aoe`);
@@ -201,7 +196,6 @@ test("every labelled platform aoe carries its pair's element onto its floor tele
 
   const first = wavesForSeed(3, "r1")[0]!;
   const world = runTicks(createWorld(raid, 3), {}, Math.ceil((first.t + 0.1) * 60));
-  // The pair's second polygon has no glyph or ring, so this is the only way it learns its element.
   const pair = world.active.filter(m => m.telegraphStart === first.t && /^r1[ab]-/.test(m.id));
   expect(pair).toHaveLength(2);
   for (const m of pair) expect(m.floorAoe?.element).toBe(glyphFor[first.name] as never);
@@ -237,7 +231,6 @@ test("platform markers resolving at 79.42 do not cleanse Elementary Deficiency",
     events: source.events.filter(e => e.id.startsWith("mark-") || e.id === "elementary-deficiency"),
     optionals: { combinations: { labels: { pairs: { ...pairs, slots: pairs.slots.map(slot => slot.filter(id => id.startsWith("mark-"))) } } } },
   });
-  // ot idles at spawn on the NE trapezoid, inside mark-ne.
   let world = runTicks(createWorld(markerRaid, 3), {}, Math.round(79.3 * 60));
   const stacks = () => byId(world, "ot").effects.find(e => e.name === "Elementary Deficiency")?.stacks;
   expect(stacks()).toBe(3);
@@ -256,9 +249,9 @@ test("Cleansing orbs spawn in a trapezoid, then glide one section clockwise to d
       const shape = toAOEShape(orb.shape);
       if (shape.kind !== "circle" && shape.kind !== "donut") throw new Error("orb shape");
       const from = { x: orb.mover!.from[0], z: orb.mover!.from[1] };
-      expect(Math.hypot(from.x, from.z)).toBeCloseTo(9.3, 2);                        // trapezoid middle
-      expect((bearing(shape.center) - bearing(from) + 360) % 360).toBeCloseTo(60, 1); // one section clockwise
-      expect(Math.hypot(shape.center.x, shape.center.z)).toBeCloseTo(15.753, 2);      // 1 inside the square center / inner edge midpoint
+      expect(Math.hypot(from.x, from.z)).toBeCloseTo(9.3, 2);
+      expect((bearing(shape.center) - bearing(from) + 360) % 360).toBeCloseTo(60, 1);
+      expect(Math.hypot(shape.center.x, shape.center.z)).toBeCloseTo(15.753, 2);
       if (shape.kind === "donut") expect([shape.inner, shape.outer]).toEqual([4.5, 14.85]);
       else expect(shape.radius).toBe(9.9);
       expect(orb.mover!.sprite).toBe(true);
@@ -344,7 +337,6 @@ test("rings deal every player into groups of 3/2/3 with two of the three element
 });
 
 test("a ring platform only hits its own group's carriers of its element", () => {
-  // m1 and ot resolve on Fire at 33.32; h1 has the same rings but resolves later.
   const constraints = {
     "label-pairs-0": 2, "label-pairs-1": 0, "label-pairs-2": 1,
     "deal-rings-m1-group": 0, "deal-rings-m1-variant": 0,
@@ -384,7 +376,6 @@ test("the ring pie holds for a second, then drains one slice a second to empty a
 });
 
 test("the invisible opening cast keeps the boss stationary and facing north between attacks", () => {
-  // Remove other facing locks and keep the tank alive to expose an early unlock.
   const world = runTicks(createWorld({
     ...raid,
     events: raid.events.filter(event => ["place-index", "keep-boss-still"].includes(event.id)),
@@ -456,7 +447,7 @@ test("Elementary Deficiency drops a stack per new element and clears after all t
 
 test("stacks left when Elementary Deficiency expires are lethal", () => {
   let world = chemistryWorld([["Fire IV", 3], ["Blizzard IV", 5]]);
-  world = runTicks(world, {}, 22 * 60); // expires at 1 + 21.21
+  world = runTicks(world, {}, 22 * 60);
   expect(deficiencyOf(world)?.stacks).toBe(1);
   expect(byId(world, "m1").alive).toBe(true);
   world = runTicks(world, {}, 1 * 60);
@@ -490,7 +481,6 @@ test("Elementary Chemistry hits alternate trapezoid triples in each pad's pair e
 });
 
 test("each avoidable hit adds a Thrice Come Ruin stack", () => {
-  // mt stands still on the N trapezoid, so its pair's two round-1 waves both land on it.
   const world = runTicks(createWorld(raid, 3), {}, 26 * 60);
   const mt = byId(world, "mt");
   expect(mt.alive).toBe(true);

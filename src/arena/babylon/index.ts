@@ -20,7 +20,6 @@ export function createArenaMeshes(scene: Scene, arena: Arena, imageRoot: string)
   });
 }
 
-// Project UVs onto local axes to avoid stretching trapezoid textures.
 function createQuad(scene: Scene, vertices: Vec2[]): Mesh {
   const [a, b, c, d] = vertices as [Vec2, Vec2, Vec2, Vec2];
   const axis = { x: (c.x + d.x) / 2 - (a.x + b.x) / 2, z: (c.z + d.z) / 2 - (a.z + b.z) / 2 };
@@ -35,7 +34,6 @@ function createQuad(scene: Scene, vertices: Vec2[]): Mesh {
 
   const data = new VertexData();
   data.positions = vertices.flatMap(p => [p.x, 0, p.z]);
-  // Invert v to align the art’s narrow end with the trapezoid’s near edge.
   data.uvs = vertices.flatMap((_, i) => [(us[i]! - uMin) / uSpan, 1 - (vs[i]! - vMin) / vSpan]);
   data.normals = vertices.flatMap(() => [0, 1, 0]);
   data.indices = [0, 1, 2, 0, 2, 3];
@@ -46,7 +44,6 @@ function createQuad(scene: Scene, vertices: Vec2[]): Mesh {
   return mesh;
 }
 
-// Gray walls hanging below a floor polygon so it reads as a solid slab.
 function createSlabSides(scene: Scene, vertices: Vec2[]): Mesh {
   const thickness = 0.5;
   const data = new VertexData();
@@ -70,7 +67,6 @@ function createSlabSides(scene: Scene, vertices: Vec2[]): Mesh {
   return mesh;
 }
 
-// Show crosshatching until the floor image loads.
 function createImageQuad(scene: Scene, vertices: Vec2[], imageUrl: string): Mesh {
   const placeholder = createQuad(scene, vertices);
   const placeholderMat = createPlaceholderMaterial(scene, 1, false);
@@ -79,11 +75,10 @@ function createImageQuad(scene: Scene, vertices: Vec2[], imageUrl: string): Mesh
   createSlabSides(scene, vertices).parent = placeholder;
 
   const top = createQuad(scene, vertices);
-  top.parent = placeholder; // disposed with the parent via mesh.dispose(false, true)
-  top.position.y = 0.005; // stay under the AOE telegraph plane at y = 0.01
+  top.parent = placeholder;
+  top.position.y = 0.005;
   top.setEnabled(false);
 
-  // Keep the placeholder parent enabled so its image child stays visible.
   const mat = createImageMaterial(scene, imageUrl, 1, material => {
     if (top.isDisposed()) return;
     top.setEnabled(true);
@@ -154,12 +149,10 @@ function createZoneMesh(scene: Scene, zone: ZoneShape, floorPlan: FloorPlan, ima
     }
   }
   mesh.material = mat;
-  mat.freeze(); // static floor: never animates, so skip per-frame shader re-evaluation
+  mat.freeze();
   return mesh;
 }
 
-// A circle floor that shows a top-down image on its upper face. The cylinder body is solid black
-// (its sides read as a black drum) and a thin textured disc sits on top carrying the floor plan.
 function createFloorPlanCircle(scene: Scene, zone: Extract<ZoneShape, { kind: "circle" }>, imageUrl: string): Mesh {
   const thickness = 0.5;
   const body = CreateCylinder("floor", {
@@ -173,12 +166,10 @@ function createFloorPlanCircle(scene: Scene, zone: Extract<ZoneShape, { kind: "c
   drumMat.diffuseColor = new Color3(0, 0, 0);
   drumMat.emissiveColor = new Color3(0, 0, 0);
   drumMat.specularColor = new Color3(0, 0, 0);
-  drumMat.alpha = 0.12; // see-through drum so the sides don't read as a solid black wall
+  drumMat.alpha = 0.12;
   body.material = drumMat;
-  drumMat.freeze(); // static
+  drumMat.freeze();
 
-  // Placeholder crosshatch top, shown until the plan image finishes downloading/decoding so the
-  // floor is never blank during that window (the images are large and load asynchronously).
   const placeholder = CreateDisc("floor-plan-placeholder", { radius: zone.radius, tessellation: 64 }, scene);
   placeholder.parent = body;
   placeholder.rotation.x = -Math.PI / 2;
@@ -187,22 +178,17 @@ function createFloorPlanCircle(scene: Scene, zone: Extract<ZoneShape, { kind: "c
   const placeholderMat = createPlaceholderMaterial(scene, span);
   placeholder.material = placeholderMat;
 
-  // Disc lies in the XY plane facing +Z; rotate it flat so it faces up, just above the top face.
-  // Keep it below the AOE telegraph plane (world y = 0.01) so AOEs draw
-  // cleanly on top of the plan instead of z-fighting with it.
   const top = CreateDisc("floor-plan", { radius: zone.radius, tessellation: 64 }, scene);
-  top.parent = body; // local-space child; disposed with the body via mesh.dispose(false, true)
+  top.parent = body;
   top.rotation.x = -Math.PI / 2;
   top.position.set(0, thickness / 2 + 0.005, 0);
-  top.setEnabled(false); // revealed once the texture is ready (see onLoad below)
+  top.setEnabled(false);
 
-  // onLoad fires once the image is decoded and GPU-ready: swap the crosshatch out for the plan.
-  // The isDisposed guard covers a rapid raid switch that disposes this floor mid-download.
   const imageMat = createImageMaterial(scene, imageUrl, 2, material => {
     if (top.isDisposed()) return;
     top.setEnabled(true);
     placeholder.setEnabled(false);
-    material.freeze(); // texture is loaded + assigned; lock the now-static shader
+    material.freeze();
   });
   top.material = imageMat;
   return body;

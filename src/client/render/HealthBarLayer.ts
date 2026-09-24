@@ -28,11 +28,6 @@ type HealthBar = {
   lastLabel: string;
 };
 
-// One shared fullscreen GUI projects every health bar via linkWithMesh, instead of a per-mesh
-// AdvancedDynamicTexture + billboard plane + material (which also forced a computeWorldMatrix +
-// getBoundingInfo per bar every frame). The GUI re-projects linked controls each frame on its own,
-// so `set` only touches the fill width + visibility. Trade-off: the bars draw as a 2D overlay (no
-// 3D occlusion), which is fine for the top-down arena (negligible occluding geometry).
 export class HealthBarLayer {
   private readonly ui: AdvancedDynamicTexture;
   private bars = new Map<string, HealthBar>();
@@ -78,8 +73,6 @@ export class HealthBarLayer {
       track.addControl(label);
     }
     this.ui.addControl(track);
-    // linkWithMesh must follow addControl. Negative Y lifts the bar above the mesh origin (GUI Y is
-    // screen-down); the configured offsets are already negative.
     track.linkWithMesh(mesh);
     track.linkOffsetYInPixels = options.offsetYPx;
 

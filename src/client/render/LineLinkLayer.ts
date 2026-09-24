@@ -4,7 +4,7 @@ import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { CreateBox } from "@babylonjs/core/Meshes/Builders/boxBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveLineLink, Player } from "@shared/types";
+import type { ActiveLineLink, Player } from "@model/types";
 import { createLine, updateLine } from "@effects/babylon";
 
 const LINE_COLOR = new Color3(0.25, 0.85, 1.0);

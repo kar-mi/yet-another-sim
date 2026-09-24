@@ -9,7 +9,6 @@ import { elementFloorMaterial } from "./elementVfx";
 
 const DEFAULT_ALPHA = 0.5;
 const OUTLINE_ALPHA = 0.95;
-// Faint floor tint drawn under an outline in the same color.
 const OUTLINE_FILL_ALPHA = 0.15;
 
 type FloorTelegraphEntry = { mesh: Mesh; outline: boolean; fill?: Mesh; source: FloorAoe };
@@ -18,13 +17,11 @@ export function createFloorTelegraphMaterial(scene: Scene, name: string): Standa
   const mat = new StandardMaterial(name, scene);
   mat.specularColor = new Color3(0, 0, 0);
   mat.backFaceCulling = false;
-  // Light both faces so reversed winding does not black out donut ribbons.
   mat.twoSidedLighting = true;
   return mat;
 }
 export type FloorTelegraphMap = Map<string, FloorTelegraphEntry>;
 
-// The element pattern is drawn whenever the AoE has an element, unless vfx.floor turns it off.
 function patternElement(aoe: FloorAoe): FloorAoe["element"] {
   return aoe.vfx?.floor?.element === false ? undefined : aoe.element;
 }
@@ -38,13 +35,10 @@ function disposeEntry(entry: FloorTelegraphEntry): void {
     entry.mesh.dispose(false, true);
     return;
   }
-  // Element materials are shared across AoEs; only an outline's own material is freed.
   entry.fill?.dispose(false, false);
   entry.mesh.dispose(false, entry.outline);
 }
 
-// Mesh lifecycle (create/update/dispose, keyed by FloorAoe.id): the one place a FloorAoe's geometry
-// and color/alpha become a Babylon mesh.
 export function syncFloorTelegraphs(
   scene: Scene,
   meshes: FloorTelegraphMap,
@@ -64,8 +58,6 @@ export function syncFloorTelegraphs(
 
   for (const aoe of visible) {
     let entry = meshes.get(aoe.id);
-    // FloorAoe is immutable; a new instance under the same id means the shape (or something else)
-    // changed, e.g. a targeting cast resolving its center. Rebuild the mesh rather than reposition it.
     if (entry && entry.source !== aoe) {
       disposeEntry(entry);
       entry = undefined;
@@ -80,7 +72,6 @@ export function syncFloorTelegraphs(
         : createFloorTelegraphMaterial(scene, `floor-telegraph-mat-${aoe.id}`);
       entry = { mesh, outline: outline !== null, source: aoe };
       if (outline) {
-        // Dispose the fill with the outline.
         const fill = createShapeMesh(scene, `${aoe.id}-fill`, aoe.shape);
         if (fill) {
           fill.material = element
@@ -92,11 +83,9 @@ export function syncFloorTelegraphs(
       }
       meshes.set(aoe.id, entry);
     }
-    // Element materials bake color/alpha in at creation (FloorAoe is immutable).
     if (patternElement(aoe) && !entry.outline) continue;
     const mat = entry.mesh.material as StandardMaterial;
     mat.diffuseColor.copyFrom(Color3.FromHexString(aoe.color));
-    // Keep outlines bright regardless of lighting.
     if (entry.outline) mat.emissiveColor.copyFrom(mat.diffuseColor);
     mat.alpha = aoe.alpha ?? (entry.outline ? OUTLINE_ALPHA : DEFAULT_ALPHA);
     if (entry.fill && !patternElement(aoe)) {

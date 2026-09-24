@@ -1,5 +1,5 @@
 import type { Vec2 } from "@shared/math";
-import type { ZoneShape } from "@shared/types";
+import type { ZoneShape } from "@model/types";
 
 export interface MinimapProjection { center: Vec2; scale: number }
 export const MINIMAP_ARENA_RADIUS = 76;

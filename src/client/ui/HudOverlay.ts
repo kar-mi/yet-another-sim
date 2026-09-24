@@ -1,4 +1,4 @@
-import type { World, Player, Boss } from "@shared/types";
+import type { World, Player, Boss } from "@model/types";
 import { triggerAction, toggleInvincibility, toggleCooldowns, getActiveModifier } from "../input";
 import { SPRINT_COOLDOWN, ANTI_KB_COOLDOWN, PROVOKE_COOLDOWN } from "@shared/constants";
 import {
@@ -15,7 +15,7 @@ import {
 } from "../actions";
 import { keyLabel } from "../settings";
 import type { Settings, ControllerType } from "../settings";
-import type { PlaybackState } from "@shared/protocol";
+import type { PlaybackState } from "@model/protocol";
 import { clamp01 } from "@shared/math";
 import { createEffectRenderState, syncEffectChips, type EffectRenderState } from "./effectChips";
 import { remainingTime, requireStatus } from "@status";
@@ -66,19 +66,14 @@ type PartyRow = {
 };
 
 
-// Reads a skill's live cooldown/active state off a player snapshot.
 type SkillRead = (p: Player, time: number) => { activeSecs: number; cooldownSecs: number; cooldownMax: number };
 
-// A skill with a cooldown (sprint/anti-kb/provoke). Drives both the static keyboard hotbar
-// and the layer-aware controller hotbar.
 interface SkillSpec {
   action: ActionId;
   tankOnly: boolean;
   read: SkillRead;
 }
 
-// One keyboard hotbar slot bundling its cooldown overlay so the sync loop can treat skills
-// uniformly. Built from ACTIONS metadata in the constructor.
 interface SkillSlotView {
   action: ActionId;
   slots: HTMLDivElement[];
@@ -94,8 +89,6 @@ type BossCastRow = {
   mechEl: HTMLSpanElement;
 };
 
-// One controller hotbar button cell (a fixed face/dpad position). Its displayed action is
-// re-projected every frame from the active modifier layer.
 interface CtrlSlotView {
   el: HTMLDivElement;
   icon: HTMLSpanElement;
@@ -260,8 +253,6 @@ export class HudOverlay {
     this.sessionEl.append(sessionLabel, sessionVal);
     document.body.appendChild(this.sessionEl);
 
-    // Pull timer, sitting beside the raid selector. Driven by world.time, which advances only while
-    // the pull is playing — so it resets on restart and freezes on pause / raid end automatically.
     this.timerEl = document.createElement("div");
     this.timerEl.id = "yas-timer";
     const timerLabel = document.createElement("span");
@@ -276,7 +267,6 @@ export class HudOverlay {
     this.timerEl.append(timerLabel, this.timerValEl, this.timerStatusEl);
     document.body.appendChild(this.timerEl);
 
-    // Render frame rate, fed by BabylonRenderer after each frame.
     this.fpsEl = document.createElement("div");
     this.fpsEl.id = "yas-fps";
     const fpsLabel = document.createElement("span");
@@ -365,7 +355,6 @@ export class HudOverlay {
     const rowEl = document.createElement("div");
     rowEl.className = "party-member";
 
-    // Other players get a camera button to spectate them (only takes effect while you're dead).
     let camBtn: HTMLButtonElement | undefined;
     if (player.id !== this.localPlayerId) {
       camBtn = document.createElement("button");
@@ -411,8 +400,6 @@ export class HudOverlay {
     return { hpFill, mpFill, wrapEl, rowEl, statusDot, effectsEl, effectState: createEffectRenderState(), camBtn };
   }
 
-  // Highlights whose camera the view is following. Rows are built lazily, so this also runs from
-  // ensurePartyRows for a target chosen before its row existed.
   markSpectating(id: string | null): void {
     this.spectatingId = id;
     for (const [playerId, row] of this.partyRows) {
@@ -457,9 +444,6 @@ export class HudOverlay {
     }
   }
 
-  // Playback state (playing/paused/stopped/done) is a separate channel from world.status, fed in via
-  // the net "playback" message. The timer word reflects it while the pull is live; a finished pull
-  // (cleared/wiped) takes precedence.
   setPlaybackState(state: PlaybackState): void {
     this.playbackState = state;
     this.renderTimerStatus(this.lastWorldStatus);
@@ -504,7 +488,6 @@ export class HudOverlay {
       const title = document.createElement("span");
       title.textContent = "STOPPED";
       const hint = document.createElement("small");
-      // A finished pull can't be resumed with PLAY (the server rejects it) — point at RESTART.
       hint.textContent = this.playbackState === "done" ? "press restart to begin" : "press start to begin";
       this.statusEl.replaceChildren(title, hint);
       this.statusEl.className = "yas-visible yas-stopped";
@@ -535,7 +518,6 @@ export class HudOverlay {
       const keybind = view.el.querySelector<HTMLSpanElement>('.yas-keybind');
       if (keybind) keybind.textContent = buttonGlyph(button, glyphs);
     }
-    // The separator's modifier label is refreshed each frame from the held modifier.
   }
 
   private bindEvents(): void {
@@ -590,14 +572,12 @@ export class HudOverlay {
     this.renderCenterStatus(world.status);
 
     this.ensurePartyRows(world.players);
-    // Spectate camera buttons only work while the local player is dead (or has no slot).
     const localAlive = this.localPlayerId
       ? (world.players.find(pl => pl.id === this.localPlayerId)?.alive ?? false)
       : false;
     for (const player of world.players) {
       const row = this.partyRows.get(player.id);
       if (!row) continue;
-      // Clickable only while spectating (local dead) and only for a target that's still alive.
       if (row.camBtn) row.camBtn.disabled = localAlive || !player.alive;
       const hpPct = clamp01(player.hp / player.maxHp) * 100;
       const mpPct = clamp01(player.mp / player.maxMp) * 100;
@@ -668,7 +648,6 @@ export class HudOverlay {
     setWidth(this.mpFill, `${mpPct}%`);
     setText(this.mpVal, `${Math.round(p.mp)} / ${p.maxMp}`);
 
-    // Provoke is tank-only: show its slots only for a tank local player. No active buff (instantaneous).
     const isTank = p.role === "tank";
     for (const view of this.kbSkillSlots) {
       if (view.tankOnly) {
@@ -682,8 +661,6 @@ export class HudOverlay {
     if (this.currentSettings?.hotbarMode === "controller") this.syncControllerHotbar(p, isTank, world.time);
   }
 
-  // Projects the active modifier layer onto the 8 controller button cells: each cell shows the
-  // action bound to {activeModifier, button} (icon/label + cooldown), or is cleared if unbound.
   private syncControllerHotbar(p: Player, isTank: boolean, time: number): void {
     const bindings = this.currentSettings.controllerBindings;
     const active = getActiveModifier();
@@ -717,7 +694,6 @@ export class HudOverlay {
         );
         this.ctrlPrevCooldown.set(actionId, next);
       } else {
-        // No cooldown (jump): clear any leftover overlay.
         view.cdOverlay.style.display = "none";
         view.cdText.style.display = "none";
       }
@@ -822,8 +798,6 @@ export class HudOverlay {
       : `${selected.length} frames selected`;
   }
 
-  // Renders a skill's cooldown sweep, ready-pulse, and active highlight across its hotbar slots.
-  // Returns the cooldown to remember for the next frame's ready-pulse edge detection.
   private renderSkillSlots(
     slots: HTMLDivElement[],
     cdOverlays: { overlay: HTMLDivElement; text: HTMLDivElement }[],
@@ -834,8 +808,6 @@ export class HudOverlay {
   ): number {
     const onCooldown = cooldownSecs > 0;
     if (onCooldown) {
-      // Quantize the sweep to whole degrees so the (long) conic-gradient string only changes ~360
-      // times over a cooldown instead of every frame; setBackground/setText then skip the no-ops.
       const elapsed = Math.round((1 - cooldownSecs / cooldownMax) * 360);
       const bg = `conic-gradient(from -90deg, transparent ${elapsed}deg, rgba(0,0,8,0.82) ${elapsed}deg)`;
       const label = Math.ceil(cooldownSecs).toString();
@@ -869,8 +841,6 @@ export class HudOverlay {
     return cooldownSecs;
   }
 
-  // Babylon's frame rate is a rolling average; refreshing the text a few times a second keeps it
-  // readable instead of flickering between neighbouring values.
   setFps(fps: number, now: number): void {
     if (now - this.fpsUpdatedAt < FPS_REFRESH_MS) return;
     this.fpsUpdatedAt = now;

@@ -1,7 +1,3 @@
-// Dependency-free Prometheus metrics registry (text exposition format v0.0.4).
-// Mirrors logger.ts: a single shared module, no external deps. All series here
-// are process-global (no labels), which keeps the renderer trivial.
-
 interface Metric {
   render(): string;
 }
@@ -43,7 +39,6 @@ class Registry {
 export const registry = new Registry();
 
 export const metrics = {
-  // Relay health — in server-relayed lockstep the server forwards input frames instead of ticking.
   framesBroadcast: registry.register(
     new Counter(
       "sim_frames_broadcast_total",
@@ -90,12 +85,10 @@ export const metrics = {
   sessionsCapacity: registry.register(new Gauge("sim_sessions_capacity", "Configured maximum sessions per backend (MAX_SESSIONS).")),
   clientsConnected: registry.register(new Gauge("sim_clients_connected", "Open WebSocket clients.")),
 
-  // Network.
   wsMessagesTotal: registry.register(new Counter("ws_messages_received_total", "WebSocket messages received.")),
   wsInvalidTotal: registry.register(new Counter("ws_invalid_messages_total", "WebSocket messages that failed validation/JSON parse.")),
   wsRateLimitedTotal: registry.register(new Counter("ws_rate_limited_messages_total", "Inbound WebSocket messages dropped by the per-connection rate limit.")),
 
-  // Process runtime (sampled by the metrics server).
   residentMemoryBytes: registry.register(new Gauge("process_resident_memory_bytes", "Resident set size in bytes.")),
   eventLoopLagSeconds: registry.register(new Gauge("process_event_loop_lag_seconds", "Observed event-loop scheduling delay.")),
 };

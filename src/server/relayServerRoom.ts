@@ -1,5 +1,5 @@
 import { Room, type AuthContext, type Client } from "@colyseus/core";
-import { ClientMessageSchema, EMPTY_RAID_ID, ParticipantIdSchema, RaidIdSchema, SessionIdSchema, type ServerMessage } from "@shared/protocol";
+import { ClientMessageSchema, EMPTY_RAID_ID, ParticipantIdSchema, RaidIdSchema, SessionIdSchema, type ServerMessage } from "@model/protocol";
 import { logger, createSessionLog } from "./logger";
 import { RAIDS_DIR } from "./raidCatalog";
 import { isOriginAllowed, parseAllowedOrigins } from "./origin";
@@ -56,8 +56,6 @@ export interface RelayServerDependencies {
   loadRaid?: typeof loadSessionRaid;
 }
 
-// Colyseus room adapter: owns a transport-agnostic RelayRoom and wires Colyseus lifecycle, auth,
-// rate limiting, and message routing into it.
 export class RelayServerRoom extends Room {
   private readonly relay: RelayRoom;
   private readonly dependencies: RelayServerDependencies;

@@ -1,8 +1,5 @@
-// Phase 2b: chains. Promote pending pairs, bind the debuff at cast end, break on separation, burst
-// on expiry. The chain entity is authoritative; its registered debuff spans the break window.
-
 import type { TickContext } from "./context";
-import type { ActiveChain, PendingChain } from "@shared/types";
+import type { ActiveChain, PendingChain } from "@model/types";
 import { length, sub } from "@shared/math";
 import { applyStatus, overrideStatus, removeStatus } from "@status";
 import { applyMechanicDamage } from "./helpers";
@@ -47,8 +44,6 @@ export function resolveChains(ctx: TickContext): {
     const aEffId = `${chain.id}-${chain.a}-eff`;
     const bEffId = `${chain.id}-${chain.b}-eff`;
 
-    // Cast end: bind the debuff to both living members; the line now connects them.
-    // The break threshold is the pair's starting separation plus the configured extra distance.
     if (!chain.resolved && time >= chain.resolveAt) {
       chain.resolved = true;
       const startDist = a && b ? length(sub(a.pos, b.pos)) : 0;
@@ -60,7 +55,6 @@ export function resolveChains(ctx: TickContext): {
 
     if (chain.resolved && chain.outcome === undefined) {
       if (a?.alive && b?.alive && length(sub(a.pos, b.pos)) > (chain.breakAt ?? chain.breakDistance)) {
-        // Separated far enough in time: chain breaks, debuff falls off both, no damage.
         chain.broken = true;
         chain.outcome = "broken";
         chain.finishedAt = time;
@@ -69,7 +63,6 @@ export function resolveChains(ctx: TickContext): {
         log.push({ t: time, mechanic: chain.name, playerId: chain.a, event: "cleared" });
         log.push({ t: time, mechanic: chain.name, playerId: chain.b, event: "cleared" });
       } else if (time >= chain.expireAt) {
-        // Still chained when the window closes: both eat a single burst.
         chain.outcome = "damaged";
         chain.finishedAt = time;
         for (const member of [a, b]) {
@@ -81,7 +74,6 @@ export function resolveChains(ctx: TickContext): {
       }
     }
 
-    // Keep briefly after the outcome so the renderer can flash the result.
     if (chain.outcome === undefined || (chain.finishedAt ?? time) >= time - CHAIN_LINGER) {
       stillChains.push(chain);
     }

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { MINIMAP_ARENA_RADIUS, minimapProjection, projectMinimap } from "../ui/minimapProjection";
-import type { ZoneShape } from "@shared/types";
+import type { ZoneShape } from "@model/types";
 
 describe("minimap projection", () => {
   test("centers offset circles and maps positive Z north and positive X east", () => {

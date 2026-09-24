@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import type { RaidCategory } from "@shared/protocol";
-import { EMPTY_RAID_ID } from "@shared/protocol";
+import type { RaidCategory } from "@model/protocol";
+import { EMPTY_RAID_ID } from "@model/protocol";
 import { UNSELECTED_LABEL, categoryForRaidId, raidLabelForId } from "../ui/RaidPicker";
 
 const CATEGORIES: RaidCategory[] = [

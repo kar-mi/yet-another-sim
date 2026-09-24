@@ -3,7 +3,7 @@ import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveDivebomb } from "@shared/types";
+import type { ActiveDivebomb } from "@model/types";
 import { length, sub } from "@shared/math";
 import { DIVEBOMB_LINGER } from "@shared/constants";
 import { divebombPosition } from "@shared/divebomb";
@@ -13,8 +13,6 @@ export type DivebombMeshes = {
   material: StandardMaterial;
 };
 
-// Number of discrete slots along the path (matches the engine's stepping model: every `gap` of
-// distance plus the start slot).
 function slotCount(divebomb: ActiveDivebomb): number {
   return Math.ceil(length(sub(divebomb.to, divebomb.from)) / divebomb.gap) + 1;
 }
@@ -34,8 +32,6 @@ export function createDivebombMeshes(scene: Scene, divebomb: ActiveDivebomb): Di
   material.specularColor = new Color3(0, 0, 0);
   material.alpha = 0.8;
 
-  // "line": one sphere per slot, parked on its slot position; updateDivebombMeshes pops each in as
-  // the wave reaches it. "step": a single sphere that advances along the path.
   if (divebomb.visual === "line") {
     const count = slotCount(divebomb);
     const all: Mesh[] = [];
@@ -53,7 +49,6 @@ export function createDivebombMeshes(scene: Scene, divebomb: ActiveDivebomb): Di
   return { all: [makeSphere(scene, `divebomb-${divebomb.id}`, divebomb, material)], material };
 }
 
-// easeOutBack: overshoots slightly past full scale before settling, so each sphere reads as a pop.
 function popScale(p: number): number {
   if (p >= 1) return 1;
   const c1 = 1.70158;
@@ -70,10 +65,10 @@ export function updateDivebombMeshes(handle: DivebombMeshes, divebomb: ActiveDiv
 
   if (divebomb.visual === "line") {
     const stepTime = divebomb.gap / divebomb.speed;
-    const popTime = stepTime * 0.6; // how long each sphere takes to pop in
+    const popTime = stepTime * 0.6;
     for (let i = 0; i < handle.all.length; i++) {
       const sphere = handle.all[i]!;
-      const age = elapsed - i * stepTime; // time since this slot's wave-front arrival
+      const age = elapsed - i * stepTime;
       if (age < 0) { sphere.setEnabled(false); continue; }
       sphere.setEnabled(true);
       sphere.scaling.setAll(popScale(Math.min(1, age / popTime)));
@@ -82,6 +77,5 @@ export function updateDivebombMeshes(handle: DivebombMeshes, divebomb: ActiveDiv
   }
 
   const position = divebombPosition(divebomb.from, divebomb.to, divebomb.gap, divebomb.speed, elapsed);
-  // Center the sphere on the floor plane so its lower half bisects the ground.
   handle.all[0]!.position.set(position.x, 0, position.z);
 }

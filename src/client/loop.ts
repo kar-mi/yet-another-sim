@@ -1,7 +1,7 @@
 import type { Renderer } from "./render/Renderer";
 import { getIntent, getRightStick, getKeyboardCameraPan, setOneShotSink } from "./input";
 import type { NetClient } from "./net";
-import type { Intent } from "@shared/types";
+import type { Intent } from "@model/types";
 import { recordLoopPerf } from "./perfMetrics";
 
 function hasOneShotIntent(intent: Intent): boolean {
@@ -25,9 +25,6 @@ function sameContinuousIntent(a: Intent, b: Intent): boolean {
 export function startNetLoop(renderer: Renderer, net: NetClient, options?: { readOnly?: boolean }): () => void {
   let lastTime = performance.now();
   let lastSentIntent: Intent | null = null;
-  // One-shot flags the sink already consumed+sent (jump/sprint). The predictor runs only in the rAF
-  // frame, whose getIntent sees them as false, so replay them into the next predicted frame —
-  // otherwise the predicted local player never jumps/sprints and masks the authoritative jump.
   let pendingJump = false;
   let pendingSprint = false;
   let rafId = 0;
@@ -64,7 +61,6 @@ export function startNetLoop(renderer: Renderer, net: NetClient, options?: { rea
     sendIntent(intent);
     renderer.rotateCameraYaw(getKeyboardCameraPan());
 
-    // Replay sink-consumed one-shots into the prediction intent only (already sent, so not re-sent).
     const predictIntent = pendingJump || pendingSprint
       ? { ...intent, jump: intent.jump || pendingJump, sprint: intent.sprint || pendingSprint }
       : intent;

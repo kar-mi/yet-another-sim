@@ -4,8 +4,6 @@ import { tick } from "../sim";
 import { TANK_HP, HEALER_HP, DPS_HP } from "./constants";
 import { baseRaid, byId, loadRaid, noMove, roster, runTicks } from "./helpers";
 
-// ------ helpers ------
-
 function dtRaid(overrides: {
   carrier?: string;
   spawnOverrides?: Record<string, [number, number]>;
@@ -28,8 +26,6 @@ function dtRaid(overrides: {
   });
 }
 
-// ------ tests ------
-
 test("burstSpread back-compat: old-style schema (no selfShape/followUp) still works", () => {
   const raid = dtRaid({
     spawnOverrides: { mt: [0, 0], ot: [2, 0], h1: [10, 0] },
@@ -40,11 +36,11 @@ test("burstSpread back-compat: old-style schema (no selfShape/followUp) still wo
   const ot = byId(world, "ot");
   const h1 = byId(world, "h1");
 
-  expect(mt.hp).toBe(TANK_HP - 20);   // carrier: in self-pop circle, no KB
-  expect(ot.hp).toBe(TANK_HP - 20);   // distance 2 < radius 3 → hit
-  expect(h1.hp).toBe(HEALER_HP);      // distance 10 > radius 3 → miss
-  expect(ot.pos.x).toBeGreaterThan(2); // ot knocked back
-  expect(mt.pos.x).toBeCloseTo(0);     // carrier not knocked back
+  expect(mt.hp).toBe(TANK_HP - 20);
+  expect(ot.hp).toBe(TANK_HP - 20);
+  expect(h1.hp).toBe(HEALER_HP);
+  expect(ot.pos.x).toBeGreaterThan(2);
+  expect(mt.pos.x).toBeCloseTo(0);
 });
 
 test("burstSpread knockbackDistance: 0 deals damage without knockback", () => {
@@ -59,20 +55,16 @@ test("burstSpread knockbackDistance: 0 deals damage without knockback", () => {
 });
 
 test("burstSpread selfShape donut: damages in ring, spares in hole", () => {
-  // mt carrier at [0,0], donut inner=2 outer=5
-  // ot at [3,0] → distance 3, in ring → hit
-  // h1 at [1,0] → distance 1 < inner 2, in hole → miss
-  // h2 at [8,0] → distance 8 > outer 5 → miss
   const raid = dtRaid({
     spawnOverrides: { mt: [0, 0], ot: [3, 0], h1: [1, 0], h2: [8, 0] },
     behavior: { selfShape: "donut", selfInner: 2, radius: 5, damage: 30, damageType: "magical", knockbackDistance: 6 },
   });
   const world = runTicks(createWorld(raid), noMove, 45);
 
-  expect(byId(world, "ot").hp).toBe(TANK_HP - 30);    // in ring
-  expect(byId(world, "h1").hp).toBe(HEALER_HP);       // in hole
-  expect(byId(world, "h2").hp).toBe(HEALER_HP);       // outside outer
-  expect(byId(world, "mt").hp).toBe(TANK_HP);         // carrier at center (inside hole, no damage)
+  expect(byId(world, "ot").hp).toBe(TANK_HP - 30);
+  expect(byId(world, "h1").hp).toBe(HEALER_HP);
+  expect(byId(world, "h2").hp).toBe(HEALER_HP);
+  expect(byId(world, "mt").hp).toBe(TANK_HP);
 });
 
 test("burstSpread schema guard: selfShape donut without selfInner fails", () => {
@@ -106,23 +98,21 @@ test("burstSpread schema guard: followUp inner >= followUp radius fails", () => 
 });
 
 test("burstSpread followUp targeting: hits 2 closest non-carriers, excludes carrier", () => {
-  // mt (carrier) at [0,0]; ot at [1,0] (closest); h1 at [3,0] (2nd); h2/r1/others far
-  // followUp: count=2, circle radius=0.5 (tiny — only hits the centered player)
   const raid = dtRaid({
     spawnOverrides: { mt: [0, 0], ot: [1, 0], h1: [3, 0], h2: [20, 0], r1: [25, 0] },
     behavior: {
-      radius: 0.1,           // tiny self-pop, only hits mt
+      radius: 0.1,
       damage: 10, damageType: "magical", knockbackDistance: 0.1,
       followUp: { mode: "closest", count: 2, shape: "circle", radius: 0.5, damage: 50, damageType: "magical" },
     },
   });
   const world = runTicks(createWorld(raid), noMove, 45);
 
-  expect(byId(world, "mt").hp).toBe(TANK_HP - 10);    // self-pop only
-  expect(byId(world, "ot").hp).toBe(TANK_HP - 50);    // follow-up target #1
-  expect(byId(world, "h1").hp).toBe(HEALER_HP - 50);  // follow-up target #2
-  expect(byId(world, "h2").hp).toBe(HEALER_HP);       // not targeted
-  expect(byId(world, "r1").hp).toBe(DPS_HP);          // not targeted
+  expect(byId(world, "mt").hp).toBe(TANK_HP - 10);
+  expect(byId(world, "ot").hp).toBe(TANK_HP - 50);
+  expect(byId(world, "h1").hp).toBe(HEALER_HP - 50);
+  expect(byId(world, "h2").hp).toBe(HEALER_HP);
+  expect(byId(world, "r1").hp).toBe(DPS_HP);
 });
 
 test("burstSpread followUp originCrystal targets by crystal distance", () => {
@@ -149,8 +139,8 @@ test("burstSpread followUp originCrystal targets by crystal distance", () => {
   });
   const world = runTicks(createWorld(raid), noMove, 90);
 
-  expect(byId(world, "ot").hp).toBe(TANK_HP);          // closest to carrier, but not fire
-  expect(byId(world, "h1").hp).toBe(HEALER_HP - 50);   // closest to fire crystal
+  expect(byId(world, "ot").hp).toBe(TANK_HP);
+  expect(byId(world, "h1").hp).toBe(HEALER_HP - 50);
 });
 
 test("burstSpread originCrystal followUp resolves one second after the self burst", () => {
@@ -189,10 +179,6 @@ test("burstSpread originCrystal followUp resolves one second after the self burs
 });
 
 test("burstSpread followUp originCrystal: two carriers fire one shared set of count AOEs", () => {
-  // water crystal at [0,-10]. Carriers mt + ot both originCrystal water, count 2.
-  // Closest 2 to water (all players, carriers included): mt [0,-9] and h1 [0,-8].
-  // Per-carrier resolution would produce 3+ AOEs (each carrier excludes itself); the shared
-  // resolution must produce exactly 2, centered on mt and h1.
   const raid = loadRaid({
     ...baseRaid,
     players: roster({
@@ -226,9 +212,6 @@ test("burstSpread followUp originCrystal: two carriers fire one shared set of co
 });
 
 test("burstSpread followUp shape (Entropy): circle self-pop + donut follow-up", () => {
-  // Entropy: carrier mt at [0,0], selfShape circle r=2, followUp donut inner=1 outer=4
-  // ot at [5,0] → follow-up target; player in ot's donut ring: h1 at [6,0] (dist 1 from ot, in ring)
-  // h2 at [5.3,0] (dist 0.3 from ot, inside inner=1 → spared)
   const raid = dtRaid({
     spawnOverrides: { mt: [0, 0], ot: [5, 0], h1: [6, 0], h2: [5.3, 0] },
     behavior: {
@@ -238,13 +221,11 @@ test("burstSpread followUp shape (Entropy): circle self-pop + donut follow-up", 
   });
   const world = runTicks(createWorld(raid), noMove, 45);
 
-  expect(byId(world, "h1").hp).toBe(HEALER_HP - 80);  // in the donut ring (dist 1 from ot, > inner 0.5, < outer 2)
-  expect(byId(world, "h2").hp).toBe(HEALER_HP);       // inside the hole (dist 0.3 < inner 0.5) → spared
+  expect(byId(world, "h1").hp).toBe(HEALER_HP - 80);
+  expect(byId(world, "h2").hp).toBe(HEALER_HP);
 });
 
 test("burstSpread followUp shape (Dynamic Fluid): donut self-pop + circle follow-up", () => {
-  // Dynamic Fluid: carrier mt at [0,0], selfShape donut inner=2 outer=5
-  // ot at [7,0] → follow-up target; h1 at [7.5,0] (inside follow-up circle r=1)
   const raid = dtRaid({
     spawnOverrides: { mt: [0, 0], ot: [7, 0], h1: [7.5, 0] },
     behavior: {
@@ -254,14 +235,12 @@ test("burstSpread followUp shape (Dynamic Fluid): donut self-pop + circle follow
   });
   const world = runTicks(createWorld(raid), noMove, 45);
 
-  expect(byId(world, "ot").hp).toBe(TANK_HP - 60);    // follow-up center: in its own circle (dist 0)
-  expect(byId(world, "h1").hp).toBe(HEALER_HP - 60);  // dist 0.5 from ot < radius 1 → in circle
-  expect(byId(world, "mt").hp).toBe(TANK_HP);         // mt at [0,0]: outside donut outer 5 → no self-pop; not a follow-up center
+  expect(byId(world, "ot").hp).toBe(TANK_HP - 60);
+  expect(byId(world, "h1").hp).toBe(HEALER_HP - 60);
+  expect(byId(world, "mt").hp).toBe(TANK_HP);
 });
 
 test("burstSpread followUp knockback: pushes from follow-up center when set, omitted = no KB", () => {
-  // mt (carrier) at [0,0], ot (follow-up center) at [5,0]
-  // h1 at [5.3,0] → 0.3 from ot, inside follow-up circle r=1 → knocked back from [5,0]
   const raidWithKb = dtRaid({
     spawnOverrides: { mt: [0, 0], ot: [5, 0], h1: [5.3, 0] },
     behavior: {
@@ -270,7 +249,7 @@ test("burstSpread followUp knockback: pushes from follow-up center when set, omi
     },
   });
   const worldWithKb = runTicks(createWorld(raidWithKb), noMove, 45);
-  expect(byId(worldWithKb, "h1").pos.x).toBeGreaterThan(5.3); // knocked away from ot at [5,0]
+  expect(byId(worldWithKb, "h1").pos.x).toBeGreaterThan(5.3);
 
   const raidNoKb = dtRaid({
     spawnOverrides: { mt: [0, 0], ot: [5, 0], h1: [5.3, 0] },
@@ -280,11 +259,10 @@ test("burstSpread followUp knockback: pushes from follow-up center when set, omi
     },
   });
   const worldNoKb = runTicks(createWorld(raidNoKb), noMove, 45);
-  expect(byId(worldNoKb, "h1").pos.x).toBeCloseTo(5.3, 1); // no KB, stays put
+  expect(byId(worldNoKb, "h1").pos.x).toBeCloseTo(5.3, 1);
 });
 
 test("burstSpread followUp visual: one resolved AOE visual per follow-up target", () => {
-  // Carrier mt, followUp count=2, targets ot and h1
   const raid = dtRaid({
     spawnOverrides: { mt: [0, 0], ot: [2, 0], h1: [4, 0], h2: [20, 0] },
     behavior: {
@@ -292,7 +270,6 @@ test("burstSpread followUp visual: one resolved AOE visual per follow-up target"
       followUp: { mode: "closest", count: 2, shape: "circle", radius: 0.5, damage: 10, damageType: "magical" },
     },
   });
-  // Run just past expiry (effect at t≈1/60, expires at t≈1/60+0.1) but within linger window (0.7s)
   const world = runTicks(createWorld(raid), noMove, 20);
 
   const fuVisuals = world.active.filter(m => m.id.includes("-fu-") && m.resolved);

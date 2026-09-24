@@ -8,13 +8,6 @@ import pkg from "../../../package.json";
 import type { HudLayoutManager } from "./HudLayoutManager";
 import { showWelcomeModal } from "./WelcomeModal";
 
-/**
- * Wires the settings/options panel, info panel, controller detection and keybind
- * rebinding to a persisted `settings` object. The renderer is created after this
- * runs, so live-apply goes through the `getRenderer` accessor.
- *
- * Returns hooks the session loop re-invokes when a new session starts.
- */
 export function initSettingsPanel(
   settings: Settings,
   getRenderer: () => BabylonRenderer | null,
@@ -85,7 +78,6 @@ export function initSettingsPanel(
   };
   syncKeybindLabels();
 
-  // Hide the gameplay HUD (hotbar + HP/MP bars) while a panel is open.
   const setHudHidden = (hidden: boolean) => {
     hudLayout.setHudHidden(hidden);
   };
@@ -99,7 +91,6 @@ export function initSettingsPanel(
   editHudBtn.addEventListener("click", openHudEditor);
   document.getElementById("hud-edit-btn")!.addEventListener("click", openHudEditor);
 
-  // A slider that persists a numeric setting and live-applies it to the renderer.
   const bindSlider = (input: HTMLInputElement, valEl: HTMLElement, apply: (value: number) => void) => {
     input.addEventListener("input", () => {
       const value = parseFloat(input.value);
@@ -110,7 +101,6 @@ export function initSettingsPanel(
     });
   };
 
-  // An open/close button pair that shows a panel and toggles the gameplay HUD.
   const bindPanel = (openBtnId: string, closeBtnId: string, panel: HTMLElement) => {
     document.getElementById(openBtnId)!.addEventListener("click", () => {
       panel.style.display = "block";
@@ -127,7 +117,7 @@ export function initSettingsPanel(
   bindPanel("settings-btn", "settings-close", settingsPanel);
   bindPanel("info-btn", "info-close", infoPanel);
   document.getElementById("info-getting-started")!.addEventListener("click", () => {
-    document.getElementById("info-close")!.click(); // reuses bindPanel close: hides panel + restores HUD
+    document.getElementById("info-close")!.click();
     showWelcomeModal();
   });
 
@@ -184,7 +174,6 @@ export function initSettingsPanel(
     getRenderer()?.applySettings(settings);
   });
 
-  // Tab switching
   document.querySelectorAll<HTMLButtonElement>(".settings-tab").forEach(tab => {
     tab.addEventListener("click", () => {
       document.querySelectorAll(".settings-tab").forEach(t => t.classList.remove("active"));
@@ -196,7 +185,6 @@ export function initSettingsPanel(
     });
   });
 
-  // Controller detection
   const controllerBadge = document.getElementById("controller-type-badge")!;
   const controllerName = document.getElementById("controller-name")!;
   const controllerSelect = document.getElementById("controller-select") as HTMLSelectElement;
@@ -237,7 +225,6 @@ export function initSettingsPanel(
   window.addEventListener("gamepaddisconnected", updateController);
   updateController();
 
-  // Keybind rebinding
   document.querySelectorAll<HTMLButtonElement>(".keybind-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       if (btn.classList.contains("keybind-listening")) return;
@@ -265,7 +252,6 @@ export function initSettingsPanel(
     });
   });
 
-  // Controller rebinding: capture the next pressed combo (button + held modifier).
   document.querySelectorAll<HTMLButtonElement>(".keybind-controller-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       if (btn.classList.contains("keybind-listening")) return;
@@ -289,7 +275,6 @@ export function initSettingsPanel(
       };
       window.addEventListener("keydown", onEsc, true);
 
-      // Wait for a clean release first, then capture the next fresh press.
       let armed = false;
       const poll = () => {
         const combo = readControllerCombo();

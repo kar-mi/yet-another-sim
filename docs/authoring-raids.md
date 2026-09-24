@@ -2,7 +2,7 @@
 
 Raids are YAML files in the `raids/` directory. Each file describes an arena, a fixed
 roster of 8 players, and a timeline of events (mechanics) that resolve over time.
-The server validates every file against a strict schema (`src/engine/raidSchema.ts`) on
+The server validates every file against a strict schema (`src/engine/schema/raidSchema.ts`) on
 load — an invalid file throws and the raid won't start.
 
 ## File location & naming
@@ -1794,6 +1794,53 @@ have to re-derive the judgement — revisit any of them if review turns out to w
 | `Double Trouble`, `Entropy`, `Dynamic Fluid` bursts | The carrier's own burst is unavoidable; only the splash onto others is a mistake, and the two share one damage source. |
 | `Compressed Water` / `Forked Lightning` | Paired spread/stack resolutions; correct play still takes damage. |
 | `First/Second/Third in Line` expiry damage | Fires unconditionally on expiry, not on a failure. |
+
+## Additional field reference
+
+Fields not covered in the sections above.
+
+### Top level and bosses
+
+| Field | Notes |
+|-------|-------|
+| `bosses` | Multi-boss list. When present it takes precedence over `boss`. Each entry needs a unique `id` slug and may set `aggro` (a player id whose threat is pre-seeded to the top, so the boss faces that player first). |
+| `hidden` | Boss entry: start with the model not drawn. A divebomb's `teleportBoss` can reveal it. |
+| `sink` | Boss entry: fraction (0–1) of the model's body height sunk below the ground, e.g. a boss under the map. |
+| `botPatternOptions` | Named alternate bot-pattern files the host picks between in Options → Bots. Raids with only `botPatterns` show a single implicit "Default" option. |
+
+### `aoe`
+
+| Field | Notes |
+|-------|-------|
+| `aimAtPlayer` | Player id. A cone/rect's direction is snapshotted toward that player at cast start. |
+| `bossStationary` | Defaults to `true`: the boss does not move toward its target during the cast. |
+| `onlyCarriers` | Only hits players carrying an active effect with the cast's name. |
+| `flashBeforeResolve` | `{ lead, color? }`, render-only. Flashes the footprint in `color` (light blue by default) for the final `lead` seconds, even when `showTelegraph` is `false`. |
+| `telegraphAlpha` | Telegraph opacity, 0–1. Defaults to 0.5 filled and 0.95 outlined. |
+| `glyph` | `{ at, kind? }`: element glyph shown while unresolved. Label variants can supply `kind`. |
+| `mover` | `{ from, departAt, scale?, sprite? }`: an orb waits at `from` until `departAt`, then reaches the shape centre at resolve. `scale` defaults to 1; `sprite: true` uses the Cleansing billboard. |
+
+### Other events
+
+| Event | Field | Notes |
+|-------|-------|-------|
+| `bait` | `directionOffsetByEffect` | Map of effect name → angle. If the bait's target carries one of these effects, the linked stored cleave uses that `directionOffset` for this bait (Forsaken Past/Future Ending). |
+| `tower` | `fallingObjectAlpha` | Opacity of the falling object. |
+| `inverse` | `telegraphAlpha` | Fixed opacity for the shown telegraph footprints. |
+| `forced_march` | `preDelay` / `postDelay` | Seconds the captured player is frozen on the trap before the teleport, and at the destination after it. |
+| `hazard` | `orderFrom` | Boss whose bearing orders the tether orbs clockwise (e.g. `bigkefka`). Required only when a `tether_source` or a bot frame refers to this hazard by clockwise order. |
+| `tether_source` | `fromBlackHoleOrb.order` | Clockwise slot, not a physical orb index: 0/1/2 = the 1st/2nd/3rd orb clockwise from the hazard's `orderFrom` boss, taken from the order locked when the hazard's first laser starts. |
+| `divebomb` | `visual` | `"step"` (default): one sphere advancing slot by slot. `"line"`: one sphere per slot, popping in from `from` to `to` to build a line. `line` is purely visual; pair it with `damage: 0`. |
+| `limit_cut` | — | Gives each player a unique numbered marker (1–8) by seeded shuffle; the `effect` template is cloned per player with its marker set to the number. |
+| `limit_cut` | `rotation` | `{ kefkaStart, kefkaClockwise }`, the bot-solver placement basis. Relative north is opposite `kefkaStart` (where Kefka's first divebomb comes from); players rotate opposite to `kefkaClockwise`. Defaults to a north start, counter-clockwise. |
+
+### Optionals
+
+| Field | Notes |
+|-------|-------|
+| `divebombSweep.limitCut` | Names a limit cut whose placement basis is derived from the rolled sweep (relative north = opposite dash 1's start; handedness = sweep direction), so it never drifts from the dashes. |
+| `labels` variant `glyph` | Stamped onto slot events that author a `glyph` or `ring`. |
+| `deals` | Deals the roster into groups; variants choose effects, and AOEs target group members. |
 
 ## Validating
 

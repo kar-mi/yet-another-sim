@@ -1,4 +1,4 @@
-import type { ActiveMechanic, PendingEvent, World } from "@shared/types";
+import type { ActiveMechanic, PendingEvent, World } from "@model/types";
 
 export type BossSideOrbColors = { leftColor?: string; rightColor?: string };
 

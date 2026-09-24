@@ -1,17 +1,16 @@
 import { expect, test } from "bun:test";
-import type { Frame } from "@shared/protocol";
-import type { World } from "@shared/types";
-import { REPLAY_FORMAT_VERSION, type ReplayData } from "@shared/replay";
+import type { Frame } from "@model/protocol";
+import type { World } from "@model/types";
+import { REPLAY_FORMAT_VERSION, type ReplayData } from "@model/replay";
 import { createWorld } from "../../engine/world";
-import { loadRaid } from "../../engine/raidLoader";
-import { CLOCK_SPOTS, ROSTER } from "@shared/protocol";
+import { loadRaid } from "../../engine/schema/raidLoader";
+import { CLOCK_SPOTS, ROSTER } from "@model/protocol";
 import { collectReplayInsights } from "../replayInsights";
 import { SimulationReplica } from "../simulationReplica";
 
 const IDLE: Frame = { intents: {} as Frame["intents"], botsInvincible: false };
 const frames = (count: number): Frame[] => Array.from({ length: count }, () => IDLE);
 
-// Whole party stacked on the origin so a centered AOE is guaranteed to connect.
 function stackedRaid(events: unknown[], sections?: unknown[]) {
   return loadRaid({
     name: "Insights",
@@ -34,7 +33,6 @@ function replay(world: World, tickCount: number): ReplayData {
   return { formatVersion: REPLAY_FORMAT_VERSION, raidId: "debug/insights", world, frames: frames(tickCount) };
 }
 
-// Reference implementation of the transport's seek convention: seeking to tick N applies N frames.
 function worldAtTick(data: ReplayData, tick: number): World {
   const replica = new SimulationReplica();
   return replica.adopt(data.world, 0, data.frames.slice(0, tick));

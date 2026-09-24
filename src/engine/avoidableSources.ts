@@ -1,16 +1,9 @@
-// The allow-list of damage sources a raid tagged `avoidable: true`; untagged damage is unavoidable.
-// Baked into the world at creation so a recording carries its own classification.
-//
-// Status-effect damage is not listed here — it is classified by the effect's own `avoidable` flag,
-// which travels with the applied effect (see EffectSpec).
-
-import type { RaidDef } from "./raidSchema";
+import type { RaidDef } from "./schema/raidSchema";
 
 type RaidEvent = RaidDef["events"][number];
 
 export function collectAvoidableSources(events: RaidEvent[]): Record<string, true> {
   const sources: Record<string, true> = {};
-  // Key shape must match mechanicSource in systems/damageLog.ts.
   const mark = (eventId: string, slot?: string): void => {
     sources[slot === undefined ? eventId : `${eventId}:${slot}`] = true;
   };

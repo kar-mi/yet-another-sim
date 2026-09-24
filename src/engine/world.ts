@@ -1,12 +1,12 @@
-import type { World, Player, Boss, Waymark } from "@shared/types";
+import type { World, Player, Boss, Waymark } from "@model/types";
 import type { Vec2 } from "@shared/math";
 import { makeSeed } from "@shared/rng";
-import type { RaidDef } from "./raidSchema";
+import type { RaidDef } from "./schema/raidSchema";
 import { INITIAL_TANK_THREAT, PROVOKE_LEAD } from "@shared/constants";
 import { topThreatTarget } from "./systems/helpers";
-import { toVec2 } from "./eventTransforms";
+import { toVec2 } from "./schema/eventTransforms";
 import { bucketEvent, type Collections } from "./mechanicRegistry";
-import { toBotSolvers } from "./botSolvers";
+import { toBotSolvers } from "./bots/botSolvers";
 import { preRollRaid, type RngConstraints } from "./preRoll";
 import { collectAvoidableSources } from "./avoidableSources";
 
@@ -19,7 +19,6 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed(), constraint
   const players: Player[] = raid.players.map(p => ({
     id: p.id,
     role: p.role,
-    // Every slot starts as a bot; the server flips it to "human" when a client claims the slot.
     control: "bot",
     pattern: p.pattern?.map(waypoint => ({ t: waypoint.t, pos: toVec2(waypoint.pos) })),
     pos: toVec2(p.spawn),
@@ -34,22 +33,19 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed(), constraint
     sprintCooldown: 0,
     antiKbCooldown: 0,
     provokeCooldown: 0,
-    targetBossId: "",   // filled in below once bosses are built
+    targetBossId: "",
     invincible: false,
     cooldownsDisabled: false,
     alive: true,
     effects: [],
   }));
 
-  // Build a boss for each entry in the normalized bosses list. Each boss gets its own threat table.
   const bosses: Boss[] = raid.bosses.map(bossDef => {
     const threat: Record<string, number> = {};
-    // Non-targetable bosses hold no threat/aggro — skip seeding entirely.
     if (bossDef.targetable !== false) {
       for (const p of players) {
         if (p.alive) threat[p.id] = p.role === "tank" ? INITIAL_TANK_THREAT : 0;
       }
-      // Optional per-boss aggro seed: bump a specific player's threat so this boss faces them first.
       if (bossDef.aggro) {
         const maxThreat = Math.max(0, ...Object.values(threat));
         threat[bossDef.aggro] = maxThreat + PROVOKE_LEAD;
@@ -80,9 +76,6 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed(), constraint
   } = preRollRaid(raid, seed, constraints);
   const plantDebuffOrder = raid.optionals?.combinations?.plant?.debuffOrder;
 
-  // One collection per World pending/resolver field; keys match the World field names exactly so the
-  // return can `...collections` and TypeScript enforces the mapping. The mechanic registry owns how
-  // each event type buckets into these (see mechanicRegistry.ts).
   const collections: Collections = {
     pending: [],
     pendingTethers: [],
@@ -112,15 +105,12 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed(), constraint
     reassigns: [],
     effectResolvers: {},
   };
-  // Static positions of positioned events, for generic-solver explicit frames (frame: [eventIds]).
   const eventPositions: Record<string, Vec2> = {};
 
   for (const e of effectiveEvents) {
     bucketEvent(e, collections, eventPositions);
   }
 
-  // `effectResolvers` is a Record (not a pending list), so Array.isArray excludes it: a raid with
-  // only effect_resolver events stays hasMechanics:false, matching the previous hand-written OR.
   const hasMechanics = Object.values(collections).some(v => Array.isArray(v) && v.length > 0);
 
   return {
@@ -141,7 +131,6 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed(), constraint
     duration: raid.duration,
     avoidableSources: collectAvoidableSources(effectiveEvents),
     sections: raid.sections ? [...raid.sections].sort((a, b) => a.t - b.t) : [],
-    // Active-mechanic runtime lists; always empty at world creation (resolvers populate them).
     active: [],
     tetherSources: [],
     lineLinks: [],

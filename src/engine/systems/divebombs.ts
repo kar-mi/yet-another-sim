@@ -1,4 +1,4 @@
-import type { ActiveDivebomb, PendingDivebomb } from "@shared/types";
+import type { ActiveDivebomb, PendingDivebomb } from "@model/types";
 import { DIVEBOMB_LINGER } from "@shared/constants";
 import { length, sub } from "@shared/math";
 import { atan2 } from "@shared/dmath";
@@ -20,7 +20,6 @@ export function resolveDivebombs(ctx: TickContext): {
   for (const pending of ctx.world.pendingDivebombs) {
     if (pending.t <= time) {
       const { t, teleportBoss, hideBoss, ...fields } = pending;
-      // On cast start, optionally drag a boss onto the dash origin (the seeded `from`) or hide it.
       if (teleportBoss) {
         const b = bosses.find(boss => boss.id === teleportBoss);
         if (b) {

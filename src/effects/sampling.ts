@@ -2,9 +2,6 @@ import type { Vec2 } from "@shared/math";
 import { normalize } from "@shared/math";
 import type { AOEShape } from "./index";
 
-// Uniform random point inside an AOE footprint, used to spawn burst particles over the shape the
-// player actually sees: rotation is honoured and a donut's hole stays empty. Polygons are assumed
-// convex, matching the telegraph geometry.
 export function sampleShapePoint(shape: AOEShape): Vec2 {
   switch (shape.kind) {
     case "circle": {
@@ -42,7 +39,6 @@ export function sampleShapePoint(shape: AOEShape): Vec2 {
     case "polygon": {
       const [origin, ...rest] = shape.vertices;
       if (!origin) return { x: 0, z: 0 };
-      // Fan-triangulate from vertex 0 and pick a triangle in proportion to its area.
       const areas = rest.slice(1).map((v, i) => Math.abs(cross(rest[i]!, v, origin)) / 2);
       const total = areas.reduce((sum, area) => sum + area, 0);
       let pick = Math.random() * total;

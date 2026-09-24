@@ -36,8 +36,6 @@ a:hover { color: #ffd88a; }
 }
 .skip-link:focus { left: 0; }
 
-/* ===== TOPBAR ===== */
-
 .topbar {
   position: sticky;
   top: 0;
@@ -192,8 +190,6 @@ a:hover { color: #ffd88a; }
   .topnav-item:focus-within > .topnav-menu { display: block; }
 }
 
-/* ===== LAYOUT ===== */
-
 .layout {
   display: grid;
   grid-template-columns: 1fr;
@@ -258,8 +254,6 @@ a:hover { color: #ffd88a; }
   background: var(--px-bg-1);
   color: var(--px-accent);
 }
-
-/* ===== ARTICLE ===== */
 
 .article {
   min-width: 0;
@@ -338,8 +332,6 @@ h3:hover .heading-anchor,
 h4:hover .heading-anchor,
 .heading-anchor:focus { opacity: 1; color: var(--px-accent); }
 
-/* ===== CODE & TABLES ===== */
-
 code, pre, kbd {
   font-family: ui-monospace, "Cascadia Mono", Consolas, "Liberation Mono", monospace;
   font-size-adjust: none;
@@ -395,8 +387,6 @@ article th {
   white-space: nowrap;
 }
 article tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
-
-/* ===== CONTENTS, FOOT, PAGER ===== */
 
 .contents-title {
   padding: 0 0.5rem 0.35rem;
@@ -454,16 +444,12 @@ article tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
   font-size: 0.85rem;
 }
 
-/* The rail ships expanded so it never depends on how a browser hides closed <details> content;
-   below the desktop breakpoint it stays collapsible and is capped so it cannot bury the article. */
 @media (max-width: 59.99rem) {
   .rail {
     max-height: 45vh;
     overflow-y: auto;
   }
 }
-
-/* ===== DESKTOP ===== */
 
 @media (min-width: 60rem) {
   .layout {

@@ -1,11 +1,7 @@
-// Inverse ("?") events. At cast start roll the inversion (and optional B variant). The
-// shown shape is always drawn as the telegraph, but when inverted the "?" makes it a lie -> the
-// hidden shape is the lethal one.
-
 import type { TickContext } from "./context";
 import { applyStatus } from "@status";
 import { statusServices } from "./statusServices";
-import type { ActiveInverse, PendingInverse } from "@shared/types";
+import type { ActiveInverse, PendingInverse } from "@model/types";
 import { pointInShape } from "../shapes";
 import { applyMechanicDamage, knockbackPlayer, shapeOrigin } from "./helpers";
 import { mechanicSource } from "./damageLog";
@@ -78,7 +74,6 @@ export function resolveInversions(ctx: TickContext): {
     }
   }
 
-  // Keep briefly after resolve so the renderer can flash the hit.
   return {
     inversions: cullResolved(inversions, time, dt),
     pendingInversions: remainingPendingInversions,

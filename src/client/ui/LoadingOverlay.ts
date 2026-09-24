@@ -14,8 +14,6 @@ function ensureOverlay(): HTMLElement {
   return overlay;
 }
 
-// Cover the screen with a brief loading overlay. Used on raid change as a deliberate transition so the
-// floor/asset swap reads as an intentional load rather than a pop. Re-calling restarts the timer.
 export function showLoadingOverlay(durationMs = 600): void {
   const node = ensureOverlay();
   node.style.display = "flex";

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { ReplaySummary } from "@shared/replay";
+import type { ReplaySummary } from "@model/replay";
 import { replayMatches } from "../ui/ReplayBrowser";
 
 const summary: ReplaySummary = {

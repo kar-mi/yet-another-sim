@@ -1,12 +1,9 @@
 import { expect, test } from "bun:test";
 import { createWorld } from "../world";
-import { loadRaid as loadRaidRaw } from "../raidLoader";
+import { loadRaid as loadRaidRaw } from "../schema/raidLoader";
 import { DPS_HP, HEALER_HP, TANK_HP } from "./constants";
 import { baseRaid, effect, loadRaid, noMove, roster, runTicks, withPlayerEffect } from "./helpers";
 import type { Vec } from "./helpers";
-
-// Towers and effect_resolvers. Each raid is built with groupRaid: the shared roster at custom spawns
-// plus the events under test.
 
 function groupRaid(events: unknown[], over: Record<string, { spawn?: Vec }> = {}) {
   return loadRaid({ ...baseRaid, duration: 30, players: roster(over), events });

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { selectBossSideOrbs } from "../render/bossSideOrbs";
-import { loadRaid } from "../../engine/raidLoader";
+import { loadRaid } from "../../engine/schema/raidLoader";
 import { createWorld } from "../../engine/world";
 import { baseRaid, loadRaid as loadTestRaid, noMove, roster, runTicks } from "../../engine/__tests__/helpers";
 

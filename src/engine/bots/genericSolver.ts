@@ -1,13 +1,11 @@
 import type { Vec2 } from "@shared/math";
 import { add, sub, scale, normalize, length, dot } from "@shared/math";
 import { cos, sin } from "@shared/dmath";
-import type { FrameRef, GenericSolverRule, Player, World } from "@shared/types";
-import { pointInShape } from "./shapes";
+import type { FrameRef, GenericSolverRule, Player, World } from "@model/types";
+import { pointInShape } from "../shapes";
 import { urgentSlot } from "@status";
-import { aoeCanHitPlayer } from "./systems/helpers";
+import { aoeCanHitPlayer } from "../systems/helpers";
 
-// A live unresolved mechanic the generic solver can match against. `labels`/`group`/`pos` are carried
-// from the authored event (towers have a position; targeted/bait/aoe carry labels+group but no pos).
 export type ResolvedMechanic = {
   resolvedId: string;
   telegraphStart: number;
@@ -17,27 +15,19 @@ export type ResolvedMechanic = {
   pos?: Vec2;
 };
 
-// Walk the unresolved active mechanics in the world and yield each one's resolved id (the base
-// event id extended with dot-separated RNG-outcome segments) plus its telegraph->resolve window.
-// Generic solver rules match these ids by segment prefix, so "lightning-1" matches any outcome.
 export function resolvedMechanics(world: World): ResolvedMechanic[] {
   const out: ResolvedMechanic[] = [];
 
-  // Plain (non-RNG) telegraphs: the resolved id is just the event id.
   for (const m of world.active) {
     if (!m.resolved) out.push({ resolvedId: m.id, telegraphStart: m.telegraphStart, resolveAt: m.resolveAt, labels: m.labels, group: m.group });
   }
   for (const t of world.towers) {
     if (!t.resolved) out.push({ resolvedId: t.id, telegraphStart: t.telegraphStart, resolveAt: t.resolveAt, labels: t.labels, group: t.group, pos: t.pos });
   }
-  // Pending towers report their real telegraph window [t, t+telegraph] — the same window they
-  // get once active. They only become live to the solver at activation (t), so a future wave's
-  // window never bleeds back into the previous (now contiguous) wave's soak window.
   for (const t of world.pendingTowers) {
     out.push({ resolvedId: t.id, telegraphStart: t.t, resolveAt: t.t + t.telegraph, labels: t.labels, group: t.group, pos: t.pos });
   }
 
-  // Inverse "?": id + .inverted/.shown + .a/.b (the rolled orientation).
   for (const inv of world.inversions) {
     if (inv.resolved) continue;
     const mode = inv.inverted ? "inverted" : "shown";
@@ -45,20 +35,17 @@ export function resolvedMechanics(world: World): ResolvedMechanic[] {
     out.push({ resolvedId: `${inv.id}.${mode}.${variant}`, telegraphStart: inv.telegraphStart, resolveAt: inv.resolveAt });
   }
 
-  // Spread/stack "?": id + the *actual* mode (inverted flips the shown mode), since bots solve the real answer.
   for (const ss of world.spreadStacks) {
     if (ss.resolved) continue;
     const actual = ss.inverted ? (ss.shown === "spread" ? "stack" : "spread") : ss.shown;
     out.push({ resolvedId: `${ss.id}.${actual}`, telegraphStart: ss.telegraphStart, resolveAt: ss.resolveAt });
   }
 
-  // Gaze: id + .reverse/.normal.
   for (const gaze of world.gazes) {
     if (gaze.resolved) continue;
     out.push({ resolvedId: `${gaze.id}.${gaze.reverse ? "reverse" : "normal"}`, telegraphStart: gaze.telegraphStart, resolveAt: gaze.resolveAt });
   }
 
-  // Group stack: id + .g<chosen group index> from world.groupChoices.
   for (const gm of world.groupMechanics) {
     if (gm.resolved) continue;
     const index = world.groupChoices[gm.id];
@@ -66,7 +53,6 @@ export function resolvedMechanics(world: World): ResolvedMechanic[] {
     out.push({ resolvedId: `${gm.id}.g${index}`, telegraphStart: gm.telegraphStart, resolveAt: gm.resolveAt });
   }
 
-  // Limit cut: live for its effect duration so when.mechanic / limitCutSpread rules can gate on it.
   for (const lc of world.limitCuts) {
     out.push({ resolvedId: lc.id, telegraphStart: lc.appliedAt, resolveAt: lc.appliedAt + lc.duration });
   }
@@ -74,27 +60,20 @@ export function resolvedMechanics(world: World): ResolvedMechanic[] {
   return out;
 }
 
-// rule mechanic "lightning-1.inverted" matches resolved id "lightning-1.inverted.b": split both on
-// "." and require the rule's segments to be a prefix of the resolved id's segments.
 function prefixMatches(ruleSegments: string[], resolvedId: string): boolean {
   const idSegments = resolvedId.split(".");
   if (ruleSegments.length > idSegments.length) return false;
   return ruleSegments.every((segment, i) => segment === idSegments[i]);
 }
 
-// A rule mechanic id matches a resolved id by segment-prefix OR an exact label match.
 function idOrLabelMatches(ruleId: string, resolvedId: string, labels?: string[]): boolean {
   return prefixMatches(ruleId.split("."), resolvedId) || (labels?.includes(ruleId) ?? false);
 }
 
-// A rule mechanic id matches a live mechanic by segment-prefix on its id OR an exact label match.
 function mechanicMatches(id: string, mechanic: ResolvedMechanic): boolean {
   return idOrLabelMatches(id, mechanic.resolvedId, mechanic.labels);
 }
 
-// New botSolvers.holds value after this tick: when any mechanic that crossed its resolveAt this tick
-// (it still lingers in towers/active on the resolve tick) matches a hold rule, bots hold position for
-// `duration` seconds. Returns the latest hold-until time triggered this tick, or undefined for none.
 export function holdUntilFromResolves(world: World, previousTime: number): number | undefined {
   const holds = world.botSolvers?.holds;
   if (!holds?.length) return undefined;
@@ -113,18 +92,12 @@ export function holdUntilFromResolves(world: World, previousTime: number): numbe
   return until;
 }
 
-// The limit-cut number (1–8) of the bot's active limit-cut effect, or undefined when it carries none.
 function activeLimitCutNumber(player: Player, time: number): number | undefined {
   const effect = player.effects.find(e =>
     e.limitCutNumber !== undefined && e.appliedAt <= time && e.appliedAt + e.duration > time);
   return effect?.limitCutNumber;
 }
 
-// World coords for a bot's numbered limit-cut spot: take the authored spot for the bot's number
-// (relative to relative-north) and rotate it into the world frame using the matched limit cut's
-// rotation basis — north is the relative-north vector and clockwise picks the lateral handedness.
-// Returns undefined when the matched mechanic isn't a live limit cut, the bot has no number yet,
-// or no spot was authored for it.
 function limitCutSpot(player: Player, world: World, spots: Vec2[], mechanicId: string): Vec2 | undefined {
   const lc = world.limitCuts.find(l => l.id === mechanicId);
   if (!lc) return undefined;
@@ -140,7 +113,6 @@ function hasActiveDebuff(player: Player, name: string, time: number): boolean {
     effect.name === name && effect.appliedAt <= time && effect.appliedAt + effect.duration > time);
 }
 
-// Every listed effect name must be active on the player (a single string is treated as a 1-element list).
 function hasAllDebuffs(player: Player, debuff: string | string[], time: number): boolean {
   const names = Array.isArray(debuff) ? debuff : [debuff];
   return names.every(name => hasActiveDebuff(player, name, time));
@@ -160,8 +132,6 @@ function directionName(direction: [number, number]): "up" | "down" | "left" | "r
   return undefined;
 }
 
-// The bot's assigned plant combo as a space-joined key (e.g. "right right"), or undefined when it
-// has no active plant debuff / no assigned plan. Mirrors the placement keys in the generic rules.
 function plantComboKey(player: Player, world: World): string | undefined {
   if (urgentSlot(player) === undefined) return undefined;
   const combo = world.plantPlan[player.id];
@@ -171,16 +141,11 @@ function plantComboKey(player: Player, world: World): string | undefined {
   return names.join(" ");
 }
 
-// Evaluate a rule's `when` conditions for this bot. Returns the live mechanics matched by the first
-// `when.mechanic` entry (for soaks / frame: "matched"), or null when the rule does not apply.
 function ruleMatches(rule: GenericSolverRule, player: Player, world: World, mechanics: ResolvedMechanic[]): ResolvedMechanic[] | null {
   const time = world.time;
   if (rule.startAt !== undefined && time < rule.startAt) return null;
   if (rule.endAt !== undefined && time > rule.endAt) return null;
 
-  // `static: true` adds no filter, making the rule always active subject to the optional clamps
-  // and any other conditions. The schema requires the explicit flag instead of allowing an
-  // accidental empty-object catch-all.
   const { mechanic, selectedEvent, role, debuff, partyDebuff, partnerDebuff, soaks, plant, plantSlot, endingFacing } = rule.when;
   if (role !== undefined && !(Array.isArray(role) ? role : [role]).includes(player.role)) return null;
   if (debuff !== undefined && !hasAllDebuffs(player, debuff, time)) return null;
@@ -203,8 +168,6 @@ function ruleMatches(rule: GenericSolverRule, player: Player, world: World, mech
     if (!required.every(id => selected.some(event => idOrLabelMatches(id, event.id, event.labels)))) return null;
   }
 
-  // The live mechanics matched by the first listed id, used by soaks / frame. A list requires every
-  // listed mechanic to be live at once (segment-prefix or label match within its window).
   let matched: ResolvedMechanic[] = [];
   if (mechanic !== undefined) {
     const required = Array.isArray(mechanic) ? mechanic : [mechanic];
@@ -225,9 +188,6 @@ function ruleMatches(rule: GenericSolverRule, player: Player, world: World, mech
   return matched;
 }
 
-// Resolve a single frame reference to a world vector: a string is a positioned event id
-// (static tower/event position); { crystal } is a resolved crystal's position; { boss } is the
-// named/primary boss's facing direction or its position. Returns undefined when it can't resolve.
 function refToVec(ref: FrameRef, world: World): Vec2 | undefined {
   if (typeof ref === "string") return world.eventPositions?.[ref];
   if ("crystal" in ref) return world.crystals?.find(c => c.element === ref.crystal)?.pos;
@@ -246,9 +206,6 @@ function refToVec(ref: FrameRef, world: World): Vec2 | undefined {
     : boss.pos;
 }
 
-// Compute the frame's north vector: "matched" sums the positions of the live matched mechanics
-// (a tower pair's bisector); otherwise sum each reference's resolved position (events, crystals,
-// bosses). Returns undefined when no usable vector exists (the rule then yields no spot for this bot).
 function frameNorth(frame: NonNullable<GenericSolverRule["frame"]>, matched: ResolvedMechanic[], world: World): Vec2 | undefined {
   let sum: Vec2 = { x: 0, z: 0 };
   if (frame === "matched") {
@@ -257,8 +214,6 @@ function frameNorth(frame: NonNullable<GenericSolverRule["frame"]>, matched: Res
     const facingRef = frame.find(ref =>
       typeof ref !== "string" && "boss" in ref && ref.boss.from === "facing");
     if (facingRef) {
-      // Boss facing is already a direction, so it sets north directly. Other positioned refs in
-      // the list only affect mirrorLateral handedness via genericFrameRightSign.
       const facing = refToVec(facingRef, world);
       return facing ? normalize(facing) : undefined;
     }
@@ -273,14 +228,10 @@ function frameNorth(frame: NonNullable<GenericSolverRule["frame"]>, matched: Res
 
 type GenericFrame = NonNullable<GenericSolverRule["frame"]>;
 
-// Public frame-resolution helpers for client-side authoring tools. Keeping this logic here makes
-// readouts use exactly the same north vectors as the solver instead of maintaining a second copy.
 export function genericFrameNorth(frame: Exclude<GenericFrame, "matched">, world: World): Vec2 | undefined {
   return frameNorth(frame, [], world);
 }
 
-// Shared by genericFrameRightSign/genericFrameForwardSign: the primary boss-facing ref's vector
-// plus the summed "other" refs' vectors, or undefined when no facing ref is present/resolvable.
 function facingAndOthers(frame: Exclude<GenericFrame, "matched">, world: World): { facing: Vec2; others: Vec2 } | undefined {
   const facingIndex = frame.findIndex(ref =>
     typeof ref !== "string" && "boss" in ref && ref.boss.from === "facing");
@@ -297,9 +248,6 @@ function facingAndOthers(frame: Exclude<GenericFrame, "matched">, world: World):
   return { facing, others };
 }
 
-// Preserve handedness for frames that combine a boss-facing direction with another positioned
-// reference. The normal clockwise right axis is used when that reference is on the boss's right;
-// it is flipped when the reference is on the boss's left.
 export function genericFrameRightSign(frame: Exclude<GenericFrame, "matched">, world: World): 1 | -1 {
   const resolved = facingAndOthers(frame, world);
   if (!resolved) return 1;
@@ -308,11 +256,6 @@ export function genericFrameRightSign(frame: Exclude<GenericFrame, "matched">, w
   return others.x * bossRight.x + others.z * bossRight.z < 0 ? -1 : 1;
 }
 
-// Analogous to genericFrameRightSign, but mirrors the frame's forward/north axis instead of its
-// lateral one: flips when the other references point behind the boss's own facing, rather than to
-// its left. Combined with mirrorLateral, this lets a single authored spot stay safe against a
-// second boss-facing-anchored hazard for any relative angle between the two facings (see
-// GenericSolverRule.mirrorForward).
 export function genericFrameForwardSign(frame: Exclude<GenericFrame, "matched">, world: World): 1 | -1 {
   const resolved = facingAndOthers(frame, world);
   if (!resolved) return 1;
@@ -332,7 +275,6 @@ export function genericRuleFrameNorth(
   return matched === null ? undefined : frameNorth(rule.frame, matched, world);
 }
 
-// Map a runtime frame coordinate to world space: x stores authored r (right/lateral), z is north.
 function frameToWorld(spot: Vec2, north: Vec2, rightSign: 1 | -1 = 1, forwardSign: 1 | -1 = 1): Vec2 {
   const right: Vec2 = { x: rightSign * north.z, z: rightSign * -north.x };
   return {
@@ -341,7 +283,6 @@ function frameToWorld(spot: Vec2, north: Vec2, rightSign: 1 | -1 = 1, forwardSig
   };
 }
 
-// The arena boundary radius: the largest circle zone in the arena (the outer wall).
 function arenaRadius(world: World): number | undefined {
   let radius: number | undefined;
   for (const zone of world.arena?.zones ?? []) {
@@ -350,13 +291,6 @@ function arenaRadius(world: World): number | undefined {
   return radius;
 }
 
-// Nearest arena-edge point to `from` that stays `clearance` yalms clear of the `avoid` line's axis.
-// The axis (a boss facing) runs through arena centre, so "in the line" means |lateral| < clearance
-// where lateral = dot(p, right). Candidates are `from` projected radially to the wall plus the four
-// wall points where |lateral| == clearance; keep the ones outside the line and return the nearest to
-// `from`. Ties (equidistant band-edge points) break to the point on `from`'s own side of the line,
-// then toward the axis's forward direction — deterministic, seed-independent. Falls through
-// (undefined) when either ref or the arena radius can't be resolved.
 const EDGE_EPS = 1e-9;
 function nearestSafeEdge(spec: NonNullable<GenericSolverRule["nearestEdge"]>, world: World): Vec2 | undefined {
   const from = refToVec(spec.from, world);
@@ -380,11 +314,11 @@ function nearestSafeEdge(spec: NonNullable<GenericSolverRule["nearestEdge"]>, wo
     }
   }
 
-  const fromSide = Math.sign(dot(from, right)); // 0 when `from` sits on the axis
+  const fromSide = Math.sign(dot(from, right));
   let best: Vec2 | undefined;
   let bestKey: [number, number, number] | undefined;
   for (const p of candidates) {
-    if (Math.abs(dot(p, right)) < clearance - EDGE_EPS) continue; // inside the line
+    if (Math.abs(dot(p, right)) < clearance - EDGE_EPS) continue;
     const sameSidePenalty = fromSide !== 0 && Math.sign(dot(p, right)) === fromSide ? 0 : 1;
     const key: [number, number, number] = [length(sub(p, from)), sameSidePenalty, -dot(p, facing)];
     if (!bestKey || key[0] < bestKey[0] - EDGE_EPS
@@ -429,9 +363,6 @@ function originOffset(rule: GenericSolverRule, world: World): Vec2 | undefined {
   return world.bosses.find(boss => boss.id === bossId)?.pos;
 }
 
-// Generic, data-driven bot solver: iterate world.botSolvers.generic in order; the first rule whose
-// conditions all match and that yields a spot for this bot wins. Returns undefined when no rule
-// applies, letting the caller fall back to authored waypoints.
 export function genericSolverWaypoint(
   player: Player,
   world: World,
@@ -448,27 +379,25 @@ export function genericSolverWaypoint(
     if (rule.nearestEdge) {
       const edge = nearestSafeEdge(rule.nearestEdge, world);
       if (edge) return edge;
-      continue; // refs unresolved: fall through to the next rule
+      continue;
     }
     let tetherSource: Vec2 | undefined;
     if (rule.tetherMidpoint) {
       const state = tetherState(rule.tetherMidpoint, player, world);
-      if (!state) continue; // tether unresolved: fall through
+      if (!state) continue;
       if (!state.held) return state.midpoint;
       if (rule.spot === undefined && rule.spots === undefined) continue;
       tetherSource = state.source;
     }
     if (rule.limitCutSpread) {
-      // The matched mechanic (required when.mechanic) identifies which limit cut supplies the basis.
       const mechanicId = matched[0]?.resolvedId;
       if (mechanicId) {
         const placement = limitCutSpot(player, world, rule.limitCutSpread.spots, mechanicId);
         if (placement) return placement;
       }
-      continue; // bot has no number yet: fall through to the next rule
+      continue;
     }
     if (rule.safeSpots) {
-      // Unframed candidates are absolute world spots.
       let candidates = rule.safeSpots;
       if (rule.frame !== undefined) {
         const north = frameNorth(rule.frame, matched, world);
@@ -483,7 +412,6 @@ export function genericSolverWaypoint(
         if (!origin) continue;
         candidates = rule.safeSpots.map(spot => add(origin, frameToWorld(spot, north, rightSign, forwardSign)));
       }
-      // Avoid matching AOEs that can hit this bot within the danger horizon.
       const required = rule.when.mechanic === undefined ? [] : Array.isArray(rule.when.mechanic) ? rule.when.mechanic : [rule.when.mechanic];
       const horizon = rule.dangerHorizon;
       const dangers = world.active.filter(event => !event.resolved
@@ -501,7 +429,7 @@ export function genericSolverWaypoint(
     if (!spot) continue;
     if (rule.frame === undefined) return tetherSource ? pullTowardSource(spot, tetherSource) : spot;
     const north = frameNorth(rule.frame, matched, world);
-    if (!north) continue; // frame uncomputable: fall through to the next rule
+    if (!north) continue;
     const rightSign = rule.mirrorLateral && rule.frame !== "matched"
       ? genericFrameRightSign(rule.frame, world)
       : 1;

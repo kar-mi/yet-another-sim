@@ -3,22 +3,19 @@ import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import type { Scene } from "@babylonjs/core/scene";
-import type { Player } from "@shared/types";
+import type { Player } from "@model/types";
 import { STATUS_ICON_ROOT } from "../staticBase";
 import { createGlowRing, imageBillboardMaterial } from "@effects/babylon";
 
-// Ring heights above the player’s feet.
 const RING_HEIGHTS = [0.5, 0.8];
-const RING_HEIGHT_STEP = 0.4; // spacing for any ring past the listed heights
+const RING_HEIGHT_STEP = 0.4;
 const RADIUS = 0.7;
 const THICKNESS = 0.05;
 const ICON_SIZE = 0.4;
-// Alternate icon bearings between rings (degrees clockwise from north).
 const ICON_BEARINGS = [[180, 300, 60], [0, 120, 240]];
 
 type RingState = { key: string; root: TransformNode };
 
-// Stack effect rings with three element icons each; visibility follows the POV.
 export class PlayerEffectRingLayer {
   private rings = new Map<string, RingState>();
 
@@ -26,7 +23,6 @@ export class PlayerEffectRingLayer {
 
   sync(players: Player[], time: number, isVisible: (player: Player) => boolean): void {
     for (const player of players) {
-      // Build only for visible players: a ring set is 2 materials, a texture and 4 meshes each.
       const effects = player.alive && isVisible(player)
         ? player.effects.filter(effect => effect.ring && effect.appliedAt + effect.duration > time)
         : [];

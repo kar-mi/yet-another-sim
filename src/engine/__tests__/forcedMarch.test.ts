@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { computeBotIntents } from "../botIntent";
+import { computeBotIntents } from "../bots/botIntent";
 import { createWorld } from "../world";
 import { HUMAN, baseRaid, effect, human, loadRaid, roster, runTicks, runTicksWithBotIntents, withEffect } from "./helpers";
 
@@ -15,12 +15,10 @@ test("confusion: walks toward the locked target (not the nearest) and hits only 
   }));
   const idle = { [HUMAN]: { move: { x: 0, z: 0 } } };
 
-  // Moves toward the locked m2 (+z), ignoring the much closer r1 (+x).
   const moving = runTicks(confused, idle, 10);
   expect(human(moving).pos.z).toBeGreaterThan(0);
   expect(human(moving).pos.x).toBeCloseTo(0);
 
-  // Reaching m2 (~10 units at 6/s) deals friendly fire to the target only, then ends the debuff.
   const reached = runTicks(confused, idle, 120);
   const m2 = reached.players.find(p => p.id === "m2")!;
   expect(m2.hp).toBe(m2.maxHp - 50);
@@ -35,12 +33,10 @@ test("sleep: disables input for its duration (not broken by time), then movement
   }));
   const move = { [HUMAN]: { move: { x: 1, z: 0 } } };
 
-  // While asleep (1s) the move intent is ignored and the debuff persists.
   const during = runTicks(asleep, move, 30);
   expect(human(during).pos.x).toBeCloseTo(0);
   expect(human(during).effects.some(e => e.behavior.kind === "sleep")).toBe(true);
 
-  // Once it expires, the same intent moves the player again.
   const after = runTicks(asleep, move, 90);
   expect(human(after).pos.x).toBeGreaterThan(0);
 });
@@ -52,26 +48,22 @@ test("forced march: freezes the entrant, teleports after the pre-delay, then rel
     players: roster({ m1: { spawn: [5, 0] } }),
     events: [{ type: "forced_march", t: 0, name: "March", pos: [5, 0], radius: 2, direction: [1, 0], distance: 8, duration: 3, preDelay: 0.3, postDelay: 0.3 }],
   });
-  const pushW = { [HUMAN]: { move: { x: -1, z: 0 } } }; // try to walk away while captured
+  const pushW = { [HUMAN]: { move: { x: -1, z: 0 } } };
 
-  // Stepped on (tick 1): captured + frozen, not yet teleported.
   const captured = runTicks(createWorld(raid), pushW, 1);
   expect(captured.forcedMarches[0]!.triggered).toBe(true);
   expect(captured.forcedMarches[0]!.teleported).toBe(false);
 
-  // During the pre-delay the held player cannot move despite the input (frozen where captured).
-  const winding = runTicks(createWorld(raid), pushW, 15); // ~0.25s < 0.3 pre-delay
+  const winding = runTicks(createWorld(raid), pushW, 15);
   expect(winding.forcedMarches[0]!.teleported).toBe(false);
   expect(human(winding).pos.x).toBeCloseTo(human(captured).pos.x);
 
-  // After the pre-delay the teleport fires along +x.
-  const flung = runTicks(createWorld(raid), pushW, 25); // ~0.42s > 0.3 pre-delay
+  const flung = runTicks(createWorld(raid), pushW, 25);
   expect(flung.forcedMarches[0]!.teleported).toBe(true);
-  expect(human(flung).pos.x).toBeCloseTo(13); // 5 + 8 along +x
+  expect(human(flung).pos.x).toBeCloseTo(13);
   expect(human(flung).pos.z).toBeCloseTo(0);
 
-  // Once the full freeze window ends the player can move again.
-  const freed = runTicks(createWorld(raid), pushW, 60); // 1s > preDelay + postDelay
+  const freed = runTicks(createWorld(raid), pushW, 60);
   expect(human(freed).pos.x).toBeLessThan(13);
 });
 
@@ -100,7 +92,7 @@ test("forced march: an untriggered trap expires after its duration", () => {
   const raid = loadRaid({
     ...baseRaid,
     duration: 5,
-    players: roster(), // everyone at clock spots (radius 8); nobody sits on the origin trap
+    players: roster(),
     events: [{ type: "forced_march", t: 0, name: "March", pos: [0, 0], radius: 1, direction: [0, 1], distance: 5, duration: 1 }],
   });
   const idle = { [HUMAN]: { move: { x: 0, z: 0 } } };

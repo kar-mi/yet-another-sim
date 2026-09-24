@@ -1,22 +1,17 @@
-// Presentation logic for the replay review UI, kept free of the DOM. ui/ReplayReview.ts renders it.
-
-import type { ReplayEvent } from "@shared/replay";
-import type { MechanicSection } from "@shared/types";
+import type { ReplayEvent } from "@model/replay";
+import type { MechanicSection } from "@model/types";
 
 const TICKS_PER_SECOND = 60;
-// Selecting a hit or death rewinds this far so the lead-up is visible, not just the aftermath.
 const PREROLL_TICKS = 0.5 * TICKS_PER_SECOND;
 
 export type ReplayFilter = "all" | "deaths" | "hits";
 
 export type ReplayFilterState = {
   filter: ReplayFilter;
-  playerId: string; // "" = every party member
-  query: string;    // already lower-cased and trimmed
+  playerId: string;
+  query: string;
 };
 
-// A lethal avoidable hit is one moment, not two: its hit and death events merge into a single row
-// that both the Deaths and Avoidable hits filters match.
 export type ReviewRow = {
   id: string;
   tick: number;
@@ -41,7 +36,7 @@ export function buildRows(events: ReplayEvent[]): ReviewRow[] {
   const hitById = new Map(events.filter(event => event.kind === "hit").map(event => [event.id, event]));
   const rows: ReviewRow[] = [];
   for (const event of events) {
-    if (event.kind === "hit" && linkedHitIds.has(event.id)) continue; // merged into its death row
+    if (event.kind === "hit" && linkedHitIds.has(event.id)) continue;
     const linkedHit = event.hitEventId !== undefined ? hitById.get(event.hitEventId) : undefined;
     rows.push({
       id: event.id,
@@ -81,7 +76,6 @@ export function eventSeekTick(tick: number): number {
   return Math.max(0, tick - PREROLL_TICKS);
 }
 
-// A section starts where it was authored to start — no pre-roll, unlike an event.
 export function sectionSeekTick(section: MechanicSection, duration: number): number {
   return Math.max(0, Math.min(duration, Math.round(section.t * TICKS_PER_SECOND)));
 }

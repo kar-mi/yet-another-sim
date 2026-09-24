@@ -1,6 +1,3 @@
-// Phase 4: resolve scheduled status follow-ups and twisters, record voluntary motion, then let the
-// status package tick, cleanse, expire and cull every player's statuses.
-
 import type { TickContext } from "./context";
 import { resolveBurstFollowUp, tickStatuses } from "@status";
 import { statusServices } from "./statusServices";

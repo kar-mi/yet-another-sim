@@ -1,10 +1,10 @@
 import { expect, test } from "bun:test";
 import { FloorAoe, isFloorAoeVisible, type Vfx } from "@effects";
 import { VfxSchema } from "@effects/schema";
-import { loadRaid } from "../raidLoader";
+import { loadRaid } from "../schema/raidLoader";
 import { createWorld } from "../world";
 import { noMove, runTicks } from "./helpers";
-import type { World } from "@shared/types";
+import type { World } from "@model/types";
 
 const raw = Bun.YAML.parse(await Bun.file(`${import.meta.dir}/../../../raids/debug/vfx-test.yaml`).text());
 const raid = loadRaid(raw);
@@ -49,11 +49,9 @@ test("glow rides the mechanic, not the floor telegraph", () => {
     intensity: { min: 0.4, max: 2.4 },
     pulsePeriod: 0.4,
   });
-  // showTelegraph is false, so there is no FloorAoe to carry it.
   expect(mechanic.floorAoe).toBeUndefined();
 });
 
-// A deferred cleave rebuilds its FloorAoe when a bait arms it; the overrides must come along.
 test("a deferred cleave keeps its element and vfx when armed", () => {
   const deferredRaid = loadRaid({
     name: "Deferred VFX",

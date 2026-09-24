@@ -10,16 +10,14 @@ import type { Vec2 } from "@shared/math";
 import type { ElementGlyphKind } from "../index";
 
 const GLYPH_Y = 2.0;
-const SPIN = 1.2;   // rad/s
-const GAP = 0.15;   // vertical gap between the two halves
+const SPIN = 1.2;
+const GAP = 0.15;
 
 export type ElementGlyphHandle = {
   root: TransformNode;
-  // Animate at time in seconds.
   animate: (time: number) => void;
 };
 
-// Lightning spins counterclockwise; fire halves counter-rotate; ice stays still.
 export function createElementGlyph(scene: Scene, id: string, kind: ElementGlyphKind, color: string, at: Vec2, scale = 1): ElementGlyphHandle {
   const root = new TransformNode(`glyph-${id}`, scene);
   root.position.set(at.x, GLYPH_Y * scale, at.z);

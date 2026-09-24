@@ -17,7 +17,6 @@ function markerTexture(scene: Scene, name: string, draw: (ctx: CanvasRenderingCo
   return mat;
 }
 
-// Downward-pointing triangle (apex at the bottom), worn over a spread target's head.
 export function spreadMarkerMaterial(scene: Scene, name: string): StandardMaterial {
   return markerTexture(scene, name, ctx => {
     ctx.fillStyle = "#ff7a1f";
@@ -33,7 +32,6 @@ export function spreadMarkerMaterial(scene: Scene, name: string): StandardMateri
   });
 }
 
-// Ring with four triangles pointing inward: the "stack on me" marker.
 export function stackMarkerMaterial(scene: Scene, name: string): StandardMaterial {
   return markerTexture(scene, name, ctx => {
     const cx = 128, cy = 128, R = 118;

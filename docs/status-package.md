@@ -34,9 +34,9 @@ only names them; the server serves the folder at `/status-icons/` and the client
 (`STATUS_ICON_ROOT` in `src/client/staticBase.ts`). The registry tests fail if a template names an
 icon that is not in the folder.
 
-`src/shared/world/effects.ts` re-exports the package types under their existing names
-(`EffectSpec`, `StatusEffect`, `EffectBehavior`, …), and `src/shared/world/foundation.ts`
-re-exports `DamageType` and `CrystalElement`, so code that imports `@shared/types` keeps working.
+`src/model/world/effects.ts` re-exports the package types under their existing names
+(`EffectSpec`, `StatusEffect`, …), and `src/model/world/foundation.ts`
+re-exports `DamageType` and `CrystalElement`, so code that imports `@model/types` keeps working.
 
 ## The import boundary
 
@@ -190,5 +190,5 @@ authoritative player.
   `statusServices.ts`, keeping status knowledge on the package side.
 
 Changing the serialized status shape changes replays and snapshots: bump `REPLAY_FORMAT_VERSION`
-and `SNAPSHOT_FORMAT_VERSION` in `src/shared/replay.ts`. Old files are then rejected by the existing
+and `SNAPSHOT_FORMAT_VERSION` in `src/model/replay.ts`. Old files are then rejected by the existing
 unsupported-version handling; there is no converter.

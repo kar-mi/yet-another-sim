@@ -6,8 +6,6 @@ import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { FloorAoe } from "@effects";
 
-// Each shader effect first created mid-fight is a synchronous compile (a visible hitch), so the
-// material families the Omni Elements pull uses must already be compiled by prewarmShaders.
 test("prewarm covers floor telegraphs, element floors and bursts, element glyphs and element rings", async () => {
   const originalDocument = Object.getOwnPropertyDescriptor(globalThis, "document");
   const context = new Proxy({}, { get: () => () => ({ width: 1, addColorStop: () => {} }), set: () => true });

@@ -1,5 +1,5 @@
 import { Client, type Room } from "@colyseus/sdk";
-import type { ClientMessage, ServerMessage } from "@shared/protocol";
+import type { ClientMessage, ServerMessage } from "@model/protocol";
 import type { Transport } from "./net";
 
 export class ColyseusTransport implements Transport {

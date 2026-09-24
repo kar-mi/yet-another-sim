@@ -9,7 +9,7 @@ import { logger } from "./logger";
 import { startMetricsServer } from "./metricsServer";
 import { getRaidCategories, raidCatalogCacheControl } from "./raidCatalog";
 import { listReplays, loadReplay, ReplayReadError } from "./replayReader";
-import { REPLAY_FORMAT_VERSION, type ReplayErrorResponse } from "@shared/replay";
+import { REPLAY_FORMAT_VERSION, type ReplayErrorResponse } from "@model/replay";
 
 const ROOT = join(import.meta.dir, "..", "..");
 const BUNDLE_DIR = join(ROOT, ".bundle");
@@ -50,10 +50,6 @@ function publicAddressForPort(port: number): string {
   return `${host.replace(/\/+$/, "")}/${port}`;
 }
 
-// @colyseus/bun-websockets 0.17 ships bun-serve-express 2.x, whose res.send() concatenates Buffer
-// chunks with Buffer.concat (binary-safe), so we serve files as a Buffer with an explicit
-// Content-Type. (0.16 stringified the body via `_writes.join("")`, corrupting bytes > 0x7F, which
-// forced a manual workaround — no longer needed.)
 async function sendFile(res: any, file: Bun.BunFile, cacheControl: string): Promise<void> {
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) res.setHeader(name, value);
   res.setHeader("Cache-Control", cacheControl);
@@ -90,10 +86,6 @@ if (Bun.env.BUILD_ON_START === "1") {
 }
 
 const transport = new BunWebSockets({ maxPayloadLength: 1 << 20 });
-// Register HTTP routes via the `express` option (not `transport.getExpressApp()` after construction):
-// in 0.17 this both (a) tells Colyseus to detect our root route so it skips its default `GET /`
-// version-string handler, and (b) registers the routes before the matchmaking router is bound, so
-// the transport falls through to express for every non-matchmaking path.
 const serverOptions: ServerOptions = {
   transport,
   express: (app: any) => {
@@ -163,4 +155,4 @@ startMetricsServer({
 });
 
 await gameServer.listen(PORT);
-console.log("server", "dev server listening", { url: `http://localhost:${PORT}` });
+logger.info("server", "dev server listening", { url: `http://localhost:${PORT}` });

@@ -1,4 +1,4 @@
-import type { Player } from "@shared/types";
+import type { Player } from "@model/types";
 import type { StatusServices } from "@status";
 import type { TickContext } from "./context";
 import { addResolvedAoeVisual } from "./effectResolvers";

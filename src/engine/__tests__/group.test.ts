@@ -5,14 +5,11 @@ import { DPS_HP, HEALER_HP, TANK_HP } from "./constants";
 import { baseRaid, effect, human, loadRaid, noMove, roster, runTicks, withEffect } from "./helpers";
 import type { Vec } from "./helpers";
 
-// --- RNG group mechanics -------------------------------------------------
-
 function groupRaid(events: unknown[], over: Record<string, { spawn?: Vec }> = {}) {
   return loadRaid({ ...baseRaid, duration: 30, players: roster(over), events });
 }
 
 test("a successful stack splits the damage among soakers in the radius", () => {
-  // mt is marked; ot and h1 stand close (3 soakers), the rest stay well outside the radius.
   const raid = groupRaid([{
     type: "group", t: 0, name: "Stack", groups: [["mt"]],
     telegraph: 1, radius: 6, requiredCount: 3, damage: 90, damageType: "magical",
@@ -23,8 +20,7 @@ test("a successful stack splits the damage among soakers in the radius", () => {
   });
   const w = runTicks(createWorld(raid), noMove, Math.ceil(1.1 * 60));
   const hp = (id: string) => w.players.find(p => p.id === id)!.hp;
-  // 3 soakers >= requiredCount -> 90/3 = 30 each; everyone else untouched.
-  expect(hp("mt")).toBeCloseTo(TANK_HP - 30); // tank, split 90/3
+  expect(hp("mt")).toBeCloseTo(TANK_HP - 30);
   expect(hp("ot")).toBeCloseTo(TANK_HP - 30);
   expect(hp("h1")).toBeCloseTo(70);
   expect(hp("h2")).toBe(HEALER_HP);
@@ -32,7 +28,6 @@ test("a successful stack splits the damage among soakers in the radius", () => {
 });
 
 test("an under-soaked stack fails: each soaker eats the full damage", () => {
-  // requiredCount 4 but only mt + ot stack -> failure, full (unsplit) damage each.
   const raid = groupRaid([{
     type: "group", t: 0, name: "Stack", groups: [["mt"]],
     telegraph: 1, radius: 6, requiredCount: 4, damage: 50, damageType: "magical",
@@ -43,13 +38,12 @@ test("an under-soaked stack fails: each soaker eats the full damage", () => {
   });
   const w = runTicks(createWorld(raid), noMove, Math.ceil(1.1 * 60));
   const hp = (id: string) => w.players.find(p => p.id === id)!.hp;
-  expect(hp("mt")).toBeCloseTo(TANK_HP - 50); // full 50 each, not split
+  expect(hp("mt")).toBeCloseTo(TANK_HP - 50);
   expect(hp("ot")).toBeCloseTo(TANK_HP - 50);
   expect(hp("h1")).toBe(HEALER_HP);
 });
 
 test("a lone marked player takes the full hit and consumes vuln", () => {
-  // Default clock spots are >6 apart, so m1 (marked) stacks alone with requiredCount 1.
   const raid = groupRaid([{
     type: "group", t: 0, name: "Stack", groups: [["m1"]],
     telegraph: 1, radius: 6, damage: 30, damageType: "magical",
@@ -59,8 +53,8 @@ test("a lone marked player takes the full hit and consumes vuln", () => {
   }));
   const w = runTicks(world, noMove, Math.ceil(1.1 * 60));
   const p = human(w);
-  expect(p.hp).toBeCloseTo(40); // 30 (lone soaker) * 2 vuln = 60 damage
-  expect(p.effects.some(e => e.behavior.kind === "vuln")).toBe(false); // consumed
+  expect(p.hp).toBeCloseTo(40);
+  expect(p.effects.some(e => e.behavior.kind === "vuln")).toBe(false);
 });
 
 test("group marks a member of the chosen group", () => {
@@ -68,7 +62,6 @@ test("group marks a member of the chosen group", () => {
     type: "group", t: 0, name: "Stack", groups: [["mt", "ot"]],
     telegraph: 2, radius: 6, damage: 100, damageType: "magical",
   }]);
-  // Mid-cast (promoted, not yet resolved): one active group mechanic carrying the marker.
   const w = runTicks(createWorld(raid), noMove, 6);
   expect(w.groupMechanics).toHaveLength(1);
   const gm = w.groupMechanics[0];
@@ -106,7 +99,7 @@ test("group rng eventually picks both groups", () => {
   }];
   const picks = new Set<number>();
   for (let i = 0; i < 40; i++) {
-    const w = tick(createWorld(groupRaid(events)), noMove, 1 / 60); // promote on first tick
+    const w = tick(createWorld(groupRaid(events)), noMove, 1 / 60);
     picks.add(w.groupChoices["group-0"]);
   }
   expect(picks).toEqual(new Set([0, 1]));

@@ -13,7 +13,6 @@ export type BotActionsModal = {
   dispose: () => void;
 };
 
-/** Host-only live bot switches. Unlike OPTIONS this never stops the pull — each switch applies at once. */
 export function createBotActionsModal(net: NetClient, initial: BotActionsState): BotActionsModal {
   let state = initial;
   let previousFocus: HTMLElement | null = null;

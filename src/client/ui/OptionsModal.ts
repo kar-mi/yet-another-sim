@@ -1,5 +1,5 @@
-import type { BotPatternOption, DecisionDescription } from "@shared/protocol";
-import { WAYMARK_PRESETS } from "@shared/waymarkPresets";
+import type { BotPatternOption, DecisionDescription } from "@model/protocol";
+import { WAYMARK_PRESETS } from "@model/waymarkPresets";
 import { clearRngConstraints, loadRngConstraints, saveRngConstraints } from "../rngPrefs";
 import { clearWaymarkPreset, loadWaymarkPreset, saveWaymarkPreset } from "../waymarkPrefs";
 import type { NetClient } from "../net";
@@ -46,7 +46,6 @@ export function createOptionsModal(net: NetClient, initial: OptionsModalState): 
   const modal = el("div", { id: "yas-rng-modal" });
   modal.style.display = "none";
 
-  // --- Waymark tab ---
   const waymarkSelect = el("select", { className: "yas-rng-select" }, [
     el("option", { value: "", textContent: "Default" }),
     ...WAYMARK_PRESETS.map(preset => el("option", { value: preset.id, textContent: preset.name })),
@@ -65,7 +64,6 @@ export function createOptionsModal(net: NetClient, initial: OptionsModalState): 
     ]),
   ]);
 
-  // --- Bots tab ---
   const botsSelect = el("select", { className: "yas-rng-select" });
   const botsNote = el("div", { className: "yas-rng-note" });
   botsSelect.addEventListener("change", () => {
@@ -79,7 +77,6 @@ export function createOptionsModal(net: NetClient, initial: OptionsModalState): 
     ]),
   ]);
 
-  // --- RNG tab (unchanged behavior) ---
   const currentSeed = el("span", { className: "yas-rng-seed", textContent: formatSeed(state.currentSeed) });
   const overrideText = el("div", { className: "yas-rng-note" });
   const errorText = el("div", { className: "yas-rng-error" });
@@ -160,7 +157,6 @@ export function createOptionsModal(net: NetClient, initial: OptionsModalState): 
     modal.style.display = "none";
   };
 
-  // --- Tab strip ---
   const tabs: { id: OptionsTab; label: string; body: HTMLElement }[] = [
     { id: "waymark", label: "WAYMARK", body: waymarkBody },
     { id: "bots", label: "BOTS", body: botsBody },

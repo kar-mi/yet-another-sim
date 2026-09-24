@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { remainingTime } from "@status";
-import { computeBotIntents } from "../botIntent";
+import { computeBotIntents } from "../bots/botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
 import { HUMAN, baseRaid, human, loadRaid, roster, runTicks, runTicksWithBotIntents } from "./helpers";
@@ -19,10 +19,10 @@ test("knockback pushes a player horizontally away from the origin", () => {
   });
   const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 60);
   const p = human(world);
-  expect(p.pos.x).toBeGreaterThan(10); // pushed outward from x=2 by ~10
+  expect(p.pos.x).toBeGreaterThan(10);
   expect(p.pos.z).toBeCloseTo(0);
-  expect(p.y).toBe(0); // no vertical component
-  expect(p.knockbackVelocity).toEqual({ x: 0, z: 0 }); // came to rest
+  expect(p.y).toBe(0);
+  expect(p.knockbackVelocity).toEqual({ x: 0, z: 0 });
 });
 
 test("knockup launches a player into an arc, then lands farther out", () => {
@@ -32,11 +32,11 @@ test("knockup launches a player into an arc, then lands farther out", () => {
     events: [kbEvent({ distance: 8, height: 5 })],
   });
   const mid = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 12);
-  expect(human(mid).y).toBeGreaterThan(0); // airborne mid-flight
+  expect(human(mid).y).toBeGreaterThan(0);
 
   const landed = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 90);
-  expect(human(landed).y).toBe(0); // back on the floor
-  expect(human(landed).pos.x).toBeGreaterThan(8); // 2 + ~8 horizontal travel
+  expect(human(landed).y).toBe(0);
+  expect(human(landed).pos.x).toBeGreaterThan(8);
   expect(human(landed).knockbackVelocity).toEqual({ x: 0, z: 0 });
 });
 
@@ -46,7 +46,6 @@ test("knockback ignores player input while it carries them", () => {
     players: roster({ m1: { spawn: [2, 0] } }),
     events: [kbEvent({ distance: 10 })],
   });
-  // Player holds movement toward the origin (-x); should still be pushed outward (+x).
   const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: -1, z: 0 } } }, 30);
   expect(human(world).pos.x).toBeGreaterThan(5);
 });
@@ -87,7 +86,6 @@ test("knockback uses an explicit origin when provided", () => {
   const raid = loadRaid({
     ...baseRaid,
     players: roster({ m1: { spawn: [0, 0] } }),
-    // Shape is centered at the origin, but the knockback origin is at +x, so the player is pushed -x.
     events: [kbEvent({ distance: 8, origin: [5, 0] })],
   });
   const world = runTicks(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 } } }, 60);
@@ -100,11 +98,10 @@ test("anti-knockback buff negates knockback displacement", () => {
     players: roster({ m1: { spawn: [2, 0] } }),
     events: [kbEvent({ distance: 10 })],
   });
-  // Activate anti-KB on the first tick, then hold still through the resolve (~0.11s).
   let w = tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 }, antiKnockback: true } }, 1 / 60);
   w = runTicks(w, { [HUMAN]: { move: { x: 0, z: 0 } } }, 59);
   const p = human(w);
-  expect(p.pos.x).toBeCloseTo(2); // not pushed
+  expect(p.pos.x).toBeCloseTo(2);
   expect(p.knockbackVelocity).toEqual({ x: 0, z: 0 });
 });
 
@@ -118,7 +115,7 @@ test("anti-knockback also negates knockup", () => {
   let w = tick(createWorld(raid), { [HUMAN]: { move: { x: 0, z: 0 }, antiKnockback: true } }, 1 / 60);
   w = runTicks(w, { [HUMAN]: { move: { x: 0, z: 0 } } }, 30);
   const p = human(w);
-  expect(p.y).toBe(0); // never launched
+  expect(p.y).toBe(0);
   expect(p.pos.x).toBeCloseTo(2);
 });
 
@@ -129,13 +126,11 @@ test("anti-knockback has a 5s duration and 120s cooldown", () => {
   expect(remainingTime(p, "arms_length", w.time)).toBeGreaterThan(4.9);
   expect(p.antiKbCooldown).toBeGreaterThan(119);
 
-  // After 5s the buff has expired but the cooldown is still running.
   w = runTicks(w, { [HUMAN]: { move: { x: 0, z: 0 } } }, Math.ceil(5.1 * 60));
   p = human(w);
   expect(remainingTime(p, "arms_length", w.time)).toBe(0);
   expect(p.antiKbCooldown).toBeGreaterThan(0);
 
-  // Pressing again while on cooldown does nothing.
   w = tick(w, { [HUMAN]: { move: { x: 0, z: 0 }, antiKnockback: true } }, 1 / 60);
   expect(remainingTime(human(w), "arms_length", w.time)).toBe(0);
 });

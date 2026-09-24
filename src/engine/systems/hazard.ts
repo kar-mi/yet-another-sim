@@ -1,7 +1,7 @@
 import type { TickContext } from "./context";
 import { applyStatus, refreshStatus } from "@status";
 import { statusServices } from "./statusServices";
-import type { ActiveHazard, PendingHazard } from "@shared/types";
+import type { ActiveHazard, PendingHazard } from "@model/types";
 import { length, sub } from "@shared/math";
 
 export function resolveHazards(ctx: TickContext): {

@@ -57,11 +57,6 @@ export const KEY_BINDING_LABELS: Record<keyof KeyBindings, string> = {
   swapTarget: ACTIONS.swapTarget.label,
 };
 
-// ── Controller bindings ──────────────────────────────────────────────────────
-// A controller "combo" is a button (face or dpad) optionally gated by a held
-// modifier (LT/RT/LB/RB). Each modifier swaps the whole 8-button layer, so
-// none + 4 modifiers = 5 layers of 8 buttons = 40 bindable combos.
-
 export type ControllerModifier = "none" | "LT" | "RT" | "LB" | "RB";
 
 export type ControllerFaceButton = "faceTop" | "faceLeft" | "faceRight" | "faceBottom";
@@ -76,7 +71,6 @@ export const CONTROLLER_DPAD_BUTTONS: readonly ControllerDpadButton[] = [
 ];
 const CONTROLLER_MODIFIERS = ["LT", "RT", "LB", "RB"] as const;
 
-// Diamond position of each button so the hotbar can lay them out (top/left/right/bottom).
 export const CONTROLLER_BUTTON_POSITION: Record<ControllerButtonId, "top" | "left" | "right" | "bottom"> = {
   faceTop: "top", faceLeft: "left", faceRight: "right", faceBottom: "bottom",
   dpadUp: "top", dpadLeft: "left", dpadRight: "right", dpadDown: "bottom",
@@ -136,7 +130,6 @@ export function buttonGlyph(button: ControllerButtonId, glyphs: ControllerGlyphs
     : glyphs.dpad[button as ControllerDpadButton];
 }
 
-// Composes a combo's display string, e.g. "R2+△" or "↑".
 export function comboLabel(combo: ControllerCombo, glyphs: ControllerGlyphs): string {
   const btn = buttonGlyph(combo.button, glyphs);
   return combo.modifier === "none" ? btn : `${glyphs.modifiers[combo.modifier]}+${btn}`;
@@ -146,7 +139,6 @@ export function actionForKeyboardSlot(slot: number): ActionId | undefined {
   return KEYBOARD_HOTBAR_ACTIONS.find(actionId => ACTIONS[actionId].keyboardSlot === slot);
 }
 
-// The action bound to a given combo in the current bindings, if any.
 export function actionForCombo(
   bindings: ControllerBindings,
   modifier: ControllerModifier,

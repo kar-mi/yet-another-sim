@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { Frame } from "@shared/protocol";
+import type { Frame } from "@model/protocol";
 import { FrameRelay, frameRelaySchedulerSnapshot } from "./frameRelay";
 
 function makeRelay(options: { autoTick?: boolean; now?: () => number; isRunning?: () => boolean } = {}) {

@@ -136,11 +136,16 @@ export const NAV: NavSection[] = [
         title: "Session lifecycle",
         description: "Participant identity across a refresh, the setup/workshop/raid phases, slot reservations versus the frozen pull roster, and when a raid shuts down.",
       },
+      {
+        source: "docs/invariants.md",
+        url: "/developer/invariants/",
+        title: "Code invariants & workarounds",
+        description: "Non-obvious rules the code relies on and the reasons behind its workarounds, collected here because the source carries no comments.",
+      },
     ],
   },
 ];
 
-// Deliberately not published. Listed so that docs:check still reports genuinely forgotten files.
 export const UNPUBLISHED: string[] = [
   "docs/finding_debuffs.md",
 ];

@@ -1,31 +1,25 @@
-// Simulation constants. Physics/movement constants are imported by botIntent, world, and the
-// client HUD; the LINGER constants govern how long a resolved mechanic stays visible so the
-// renderer can flash its outcome.
-
 export const MOVE_SPEED = 6;
-export const BOSS_MOVE_SPEED = 3; // units/s; slightly slower than players
+export const BOSS_MOVE_SPEED = 3;
 export const JUMP_SPEED = 9;
 export const GRAVITY = 24;
-export const DEATH_FLOOR_Y = -10; // players die after falling this far below the arena floor
+export const DEATH_FLOOR_Y = -10;
 export const SPRINT_COOLDOWN = 60;
-export const ANTI_KB_COOLDOWN = 120;  // seconds before anti-knockback can be used again
-export const PROVOKE_COOLDOWN = 30;   // seconds before a tank can provoke again
-export const PROVOKE_LEAD = 1;        // threat set above the current max so the tank becomes target
-export const KNOCKBACK_FRICTION = 40; // ground deceleration (units/s^2); v0 = sqrt(2*FRICTION*distance)
+export const ANTI_KB_COOLDOWN = 120;
+export const PROVOKE_COOLDOWN = 30;
+export const PROVOKE_LEAD = 1;
+export const KNOCKBACK_FRICTION = 40;
 
-export const INITIAL_TANK_THREAT = 1; // seed so a tank starts as the boss's target
+export const INITIAL_TANK_THREAT = 1;
 
 export const INTERCEPT_THRESHOLD = 2.0;
-export const AOE_RESOLVE_LINGER = 0.6; // seconds a resolve-only AOE stays visible after it resolves
-export const TARGETED_LINGER = 0.7; // seconds a targeted bait's circle stays visible after it resolves
-export const TOWER_LINGER = 0.7; // seconds a tower stays visible after it resolves (success/failure flash)
-export const CHAIN_LINGER = 0.7; // seconds a chain stays visible after it breaks/bursts (outcome flash)
-export const LINE_LINK_LINGER = 0.7; // seconds a line link/statue stays visible after resolving
-export const FORCED_MARCH_LINGER = 0.4; // keep a finished forced-march trap briefly so the client can fade it
+export const AOE_RESOLVE_LINGER = 0.6;
+export const TARGETED_LINGER = 0.7;
+export const TOWER_LINGER = 0.7;
+export const CHAIN_LINGER = 0.7;
+export const LINE_LINK_LINGER = 0.7;
+export const FORCED_MARCH_LINGER = 0.4;
 export const DIVEBOMB_LINGER = 0.4;
 
-// Delay between a raid change and the relay/timeline actually starting. The client shows its loading
-// overlay for this same span so the spinner covers the whole pre-start pause (server + client share it).
 export const RAID_CHANGE_START_DELAY_MS = 600;
 
 export const TICK_RATE = 60;

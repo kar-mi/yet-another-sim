@@ -1,11 +1,9 @@
-// Server-side logger setup: console + batched append to logs/sim.log.
-// Importing this module for its side effect configures the shared `logger`.
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "path";
 import { consoleSink, formatRecord, logger, parseLevel, type LogRecord, type Sink } from "@shared/logger";
 import type { SessionLog } from "./sessionRaid";
-import type { Frame } from "@shared/protocol";
-import { REPLAY_FORMAT_VERSION } from "@shared/replay";
+import type { Frame } from "@model/protocol";
+import { REPLAY_FORMAT_VERSION } from "@model/replay";
 
 const ROOT = join(import.meta.dir, "..", "..");
 const LOG_DIR = join(ROOT, "logs");
@@ -13,8 +11,6 @@ const LOG_FILE = join(LOG_DIR, "sim.log");
 const SESSION_LOG_DIR = join(LOG_DIR, "sessions");
 const SESSION_FRAME_LOG_INTERVAL_MS = 250;
 
-// Per-pull replay logs still open, flushed/closed on shutdown so buffered
-// input frames aren't lost when sessions are active at exit.
 const activeSessionLogs = new Set<SessionLog>();
 let flushFileSink: () => void = () => {};
 
@@ -38,8 +34,6 @@ function createFileSink(): Sink {
   };
 }
 
-// Registering signal listeners overrides Node's default of terminating on
-// SIGINT/SIGTERM, so the handler must flush every writer and then exit itself.
 let shuttingDown = false;
 function shutdown(): void {
   if (shuttingDown) return;
@@ -52,12 +46,8 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, shutdown);
 }
 
-// LOG_LEVEL governs logging verbosity only.
 const logLevel = parseLevel(Bun.env.LOG_LEVEL, "warn");
 
-// ENVIRONMENT governs dev-only behavior independent of log verbosity: inline
-// build sourcemaps and the client __YAS_DEBUG__ HUD. Defaults to production so a
-// bare deploy never ships dev artifacts; set ENVIRONMENT=development to enable.
 const environment = Bun.env.ENVIRONMENT || "production";
 export const isDevelopment = environment === "development";
 
@@ -66,11 +56,6 @@ logger.configure({
   sinks: [consoleSink, createFileSink()],
 });
 
-// Per-pull input replay log: one batched JSONL file per pull at logs/sessions/<id>.jsonl,
-// written regardless of LOG_LEVEL. In server-relayed lockstep the server no longer simulates, so
-// the input frames it relays ARE the pull. Each pull opens with a header line carrying the
-// tick-0 world (seed included) + raid id; replaying the subsequent frame lines against that world
-// reproduces the entire pull deterministically.
 export function sanitizeSessionId(sessionId: string): string {
   return sessionId.replace(/[^a-zA-Z0-9_-]/g, "_");
 }

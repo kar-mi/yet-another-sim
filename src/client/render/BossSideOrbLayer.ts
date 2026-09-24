@@ -8,7 +8,7 @@ import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { RegisterEdgesRenderer } from "@babylonjs/core/Rendering/edgesRenderer.pure";
 import type { Scene } from "@babylonjs/core/scene";
-import type { Boss } from "@shared/types";
+import type { Boss } from "@model/types";
 import type { BossSideOrbColors } from "./bossSideOrbs";
 
 const SIDE_ORB_DIAMETER = 1.6;

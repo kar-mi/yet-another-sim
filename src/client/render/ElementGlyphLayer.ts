@@ -1,14 +1,12 @@
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveMechanic } from "@shared/types";
-import { moverPosition } from "@shared/mover";
+import type { ActiveMechanic } from "@model/types";
+import { moverPosition } from "@model/mover";
 import { createElementGlyph, type ElementGlyphHandle } from "@effects/babylon";
 
 const DEFAULT_COLOR = "#ffffff";
-// Moving glyphs grow to half size before travelling.
 const MOVING_SCALE = 0.5;
 const GROW_IN = 1;
 
-// Include kind and color in the key to handle rerolled elements.
 export class ElementGlyphLayer {
   private glyphs = new Map<string, ElementGlyphHandle>();
 

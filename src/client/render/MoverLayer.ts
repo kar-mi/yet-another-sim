@@ -5,14 +5,13 @@ import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { CreateTorus } from "@babylonjs/core/Meshes/Builders/torusBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveMechanic } from "@shared/types";
-import { moverPosition } from "@shared/mover";
+import type { ActiveMechanic } from "@model/types";
+import { moverPosition } from "@model/mover";
 import { createCleansingOrb } from "./meshes/cleansingOrbMeshes";
 
 const MOVER_Y = 1.5;
 const DEFAULT_COLOR = "#ffffff";
 
-// Move orbs toward their AOE centers. ElementGlyphLayer handles glyph movers.
 export class MoverLayer {
   private movers = new Map<string, TransformNode>();
 

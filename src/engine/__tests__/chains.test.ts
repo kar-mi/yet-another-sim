@@ -1,13 +1,10 @@
 import { expect, test } from "bun:test";
 import { createWorld } from "../world";
 import { DPS_HP, TANK_HP } from "./constants";
-import type { Player, World } from "@shared/types";
+import type { Player, World } from "@model/types";
 import { HUMAN, baseRaid, effect, human, loadRaid, roster, runTicks, withPlayerEffect } from "./helpers";
 import type { Vec } from "./helpers";
 
-// --- Chains ---------------------------------------------------------------
-// A chain bonds two named players; at cast end (t=0.6) both gain "Chain Bond",
-// and they have until expiry (t=5.6) to separate past breakDistance or both eat breakDamage.
 const chainEvent = {
   type: "chain" as const,
   t: 0.1,
@@ -22,7 +19,6 @@ const chainEvent = {
   showCastBar: true,
 };
 
-// m1 (the human) and ot start 1 unit apart; arena is roomy so the human can walk far.
 const chainRaid = () => loadRaid({
   ...baseRaid,
   arena: { zones: [{ kind: "circle" as const, center: [0, 0] as Vec, radius: 30 }] },
@@ -38,24 +34,21 @@ test("chain applies its debuff to both members at cast end", () => {
   expect(hasChainBond(human(world))).toBe(true);
   expect(hasChainBond(otPlayer(world))).toBe(true);
   expect(human(world).hp).toBe(DPS_HP);
-  expect(otPlayer(world).hp).toBe(TANK_HP); // ot is a tank, no damage yet
+  expect(otPlayer(world).hp).toBe(TANK_HP);
 });
 
 test("separating a chained pair past breakDistance breaks it with no damage", () => {
-  // Human walks +x away from the stationary partner until the chain stretches past
-  // (starting distance + breakDistance) and snaps; runs well before the expiry burst.
   const world = runTicks(createWorld(chainRaid()), { [HUMAN]: { move: { x: 1, z: 0 } } }, Math.ceil(3.0 * 60));
   expect(hasChainBond(human(world))).toBe(false);
   expect(hasChainBond(otPlayer(world))).toBe(false);
   expect(human(world).hp).toBe(DPS_HP);
-  expect(otPlayer(world).hp).toBe(TANK_HP); // ot is a tank, broke with no damage
+  expect(otPlayer(world).hp).toBe(TANK_HP);
 });
 
 test("a chain left unbroken bursts both members once at expiry", () => {
-  // Both stand still through the whole window (expires at 5.6); run past it.
   const world = runTicks(createWorld(chainRaid()), {}, Math.ceil(6.0 * 60));
-  expect(human(world).hp).toBe(60); // 100 - 40, applied exactly once
-  expect(otPlayer(world).hp).toBe(TANK_HP - 40); // tank, burst applied exactly once
+  expect(human(world).hp).toBe(60);
+  expect(otPlayer(world).hp).toBe(TANK_HP - 40);
   expect(hasChainBond(human(world))).toBe(false);
   expect(hasChainBond(otPlayer(world))).toBe(false);
 });

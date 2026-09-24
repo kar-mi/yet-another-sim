@@ -19,8 +19,8 @@ src/effects/
   babylon/       # everything that touches Babylon: geometry, materials, handles, prewarming
 ```
 
-`index.ts` owns the canonical `AOEShape`, `ElementGlyphKind` and `WaymarkId`. `src/shared/world/
-foundation.ts` re-exports them, so simulator code keeps importing `@shared/types` as before.
+`index.ts` owns the canonical `AOEShape`, `ElementGlyphKind` and `WaymarkId`. `src/model/world/
+foundation.ts` re-exports them, so simulator code keeps importing `@model/types` as before.
 
 ## The import boundary
 
@@ -61,7 +61,7 @@ shared element material alone, because other AoEs on screen are still drawing wi
 ## FloorAoe is plain data
 
 `FloorAoe` has no instance methods on purpose. The World is `JSON.stringify`'d for lockstep hashing
-(`src/shared/worldHash.ts`) and `JSON.parse`'d back out of replay files
+(`src/model/worldHash.ts`) and `JSON.parse`'d back out of replay files
 (`src/server/replayReader.ts`), so a `FloorAoe` embedded in World state has to keep working after a
 round trip that loses its prototype. Visibility therefore lives in the standalone
 `isFloorAoeVisible` function, and authored `vfx` overrides ride the FloorAoe so they survive both

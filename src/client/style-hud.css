@@ -1,4 +1,3 @@
-/* ===== Party List ===== */
 #yas-party {
   position: fixed;
   top: 45px;
@@ -115,7 +114,6 @@
   transition: width 0.1s linear;
 }
 
-/* ===== Party Effects ===== */
 .party-effects {
   display: grid;
   grid-template-columns: repeat(4, 24px);
@@ -184,7 +182,6 @@ img.party-effect-icon {
   border: 1px solid rgba(255, 93, 93, 0.55);
 }
 
-/* ===== Cast Bar ===== */
 #yas-cast-bar {
   position: fixed;
   top: 30%;
@@ -236,7 +233,6 @@ img.party-effect-icon {
   paint-order: stroke fill;
 }
 
-/* ===== Mini Boss Cast Panel ===== */
 .yas-boss-cast-panel {
   padding: 6px 9px;
   background: var(--px-bg-1);
@@ -303,7 +299,6 @@ img.party-effect-icon {
   padding: 0 2px;
 }
 
-/* ===== HUD ===== */
 [data-hud-group="hotbar"],
 [data-hud-group="buffs"],
 [data-hud-group="debuffs"],
@@ -354,7 +349,6 @@ img.party-effect-icon {
 
 .yas-hud-hidden, .yas-hud-suppressed { display: none !important; }
 
-/* ===== HUD LAYOUT EDITOR ===== */
 #yas-hud-edit-overlay {
   position: fixed;
   inset: 0;
@@ -420,7 +414,6 @@ img.party-effect-icon {
   background: rgba(255, 194, 77, 0.1);
 }
 
-/* Labels sit inside the box so they stay on screen for an element parked at a viewport edge. */
 .yas-hud-edit-outline > span {
   position: absolute;
   left: 14px;
@@ -433,7 +426,6 @@ img.party-effect-icon {
   pointer-events: none;
 }
 
-/* Resize handles, drawn inside the outline so they are grabbable at the viewport edges. */
 .yas-hud-edit-handle {
   position: absolute;
   display: none;
@@ -497,8 +489,6 @@ img.party-effect-icon {
   gap: 8px;
 }
 
-/* HUD utility buttons (invuln + bots) share the raised pixel-button look; the active state lights
-   up teal so it matches the rest of the HUD instead of a stray semantic color. */
 .yas-invuln-btn,
 .yas-bots-btn {
   pointer-events: all;
@@ -585,7 +575,6 @@ img.party-effect-icon {
   transition: width 0.1s linear;
 }
 
-/* 1px top sheen on the fill for the lit, beveled bar read. */
 .yas-bar-fill::after {
   content: '';
   position: absolute;
@@ -660,7 +649,6 @@ img.party-effect-icon {
   flex-shrink: 0;
 }
 
-/* display:flex above beats the UA [hidden] rule, so hide the chip explicitly. */
 .yas-buff[hidden] {
   display: none;
 }
@@ -872,7 +860,7 @@ img.yas-debuff-icon {
 }
 
 .yas-controller-hotbar {
-  display: none; /* shown via JS (HudOverlay) when a controller is the active input */
+  display: none;
   align-items: center;
   gap: 10px;
 }
@@ -1017,7 +1005,6 @@ img.yas-debuff-icon {
   animation: yas-ready-pulse 0.55s ease 2 forwards;
 }
 
-/* ===== Minimap ===== */
 #yas-minimap {
   position: fixed;
   top: calc(145px + 100px * (var(--ui-scale, 1) - 1));
@@ -1077,9 +1064,6 @@ img.yas-debuff-icon {
   cursor: pointer;
 }
 .yas-minimap-zoom:disabled { color: var(--px-text-dim); cursor: default; opacity: 0.6; }
-/* ===== HUD BACKGROUND OPACITY =====
-   The editor sets --yas-hud-bg-alpha per group; only panel fills and their bevel/border chrome fade
-   with it, so text, icons, buttons and data bars stay readable at any setting. */
 [data-hud-group] {
   --yas-hud-bg-alpha: 1;
   --yas-hud-surface: color-mix(in srgb, var(--px-bg-1) calc(var(--yas-hud-bg-alpha) * 100%), transparent);

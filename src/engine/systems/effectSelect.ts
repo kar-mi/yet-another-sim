@@ -1,10 +1,7 @@
-// Effect-select events: At spawn time choose a group/member (random / complement of a
-// linked event) and apply a visible effect to the chosen member.
-
 import type { TickContext } from "./context";
 import { applyStatus } from "@status";
 import { statusServices } from "./statusServices";
-import type { PendingEffectSelect } from "@shared/types";
+import type { PendingEffectSelect } from "@model/types";
 
 export function resolveEffectSelects(ctx: TickContext): PendingEffectSelect[] {
   const { players, log, time, groupChoices, randInt } = ctx;

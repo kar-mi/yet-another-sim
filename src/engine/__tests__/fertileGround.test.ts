@@ -1,11 +1,11 @@
 import { expect, test } from "bun:test";
-import { WAYMARK_PRESETS } from "@shared/waymarkPresets";
+import { WAYMARK_PRESETS } from "@model/waymarkPresets";
 import { tick } from "../sim";
 import { atan2 } from "@shared/dmath";
 import { preRollRaid } from "../preRoll";
-import { loadRaid } from "../raidLoader";
+import { loadRaid } from "../schema/raidLoader";
 import { validateRngConstraints } from "../seedSearch";
-import type { Player, World } from "@shared/types";
+import type { Player, World } from "@model/types";
 import { applyStatus, requireStatus, type ApplyEnv } from "@status";
 import { applyMechanicDamage } from "../systems/helpers";
 import { createWorld } from "../world";

@@ -1,6 +1,6 @@
 import type { Vec2 } from "@shared/math";
 import { dot, length, normalize, pointInCircle, pointInPolygon } from "@shared/math";
-import type { AOEShape } from "@shared/types";
+import type { AOEShape } from "@model/types";
 import { cos } from "@shared/dmath";
 
 export function pointInShape(shape: AOEShape, p: Vec2): boolean {

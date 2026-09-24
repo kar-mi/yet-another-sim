@@ -33,7 +33,7 @@ test("@status imports only pure math, zod, type-only geometry and itself", async
 });
 
 test("consumers use only the public @status and @status/schema entry points", async () => {
-  const offenders = (await sources("src/{engine,client,server,shared,effects}/**/*.ts", () => false))
+  const offenders = (await sources("src/{engine,client,server,shared,model,effects}/**/*.ts", () => false))
     .flatMap(({ file, source }) => [...source.matchAll(IMPORT_STATEMENT)]
       .map(match => match[3]!)
       .filter(specifier => /(^|\/)status\//.test(specifier) && specifier !== "@status/schema")

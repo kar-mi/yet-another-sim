@@ -1,5 +1,5 @@
-import type { World } from "@shared/types";
-import type { PlaybackState } from "@shared/protocol";
+import type { World } from "@model/types";
+import type { PlaybackState } from "@model/protocol";
 
 export interface Renderer {
   init(world: World, sessionId: string, localPlayerId?: string | null): void;

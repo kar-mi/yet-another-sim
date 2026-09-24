@@ -9,8 +9,6 @@ import type { Vec2 } from "@shared/math";
 import type { WaymarkId } from "../index";
 import { circlePath } from "./paths";
 
-// FFXIV waymark convention: letter/number pairs share a color.
-// A/1 red, B/2 yellow, C/3 blue, D/4 purple.
 const WAYMARK_COLORS: Record<WaymarkId, Color3> = {
   A: new Color3(0.95, 0.25, 0.25), "1": new Color3(0.95, 0.25, 0.25),
   B: new Color3(0.95, 0.8, 0.2), "2": new Color3(0.95, 0.8, 0.2),
@@ -67,7 +65,6 @@ export function createWaymarkMeshes(scene: Scene, mark: WaymarkId, pos: Vec2): M
   const color = WAYMARK_COLORS[mark];
   const { x, z } = pos;
 
-  // Empty outlined shape on the floor: ring for letters, square border for numbers.
   const path = isLetter(mark) ? circlePath(x, z, WAYMARK_HALF_SIZE, FLOOR_Y) : squarePath(x, z);
   const floor = CreateTube(`wm-${mark}`, {
     path,
@@ -82,8 +79,6 @@ export function createWaymarkMeshes(scene: Scene, mark: WaymarkId, pos: Vec2): M
   floorMat.alpha = 0.45;
   floor.material = floorMat;
 
-  // Floating glyph that always faces the camera. It is built from stroke geometry,
-  // not a textured plane, so there is no rectangular background to render.
   const label = new BabylonMesh(`wm-label-${mark}`, scene);
   label.position.set(x, 2.5, z);
   label.billboardMode = BabylonMesh.BILLBOARDMODE_ALL;

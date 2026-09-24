@@ -1,5 +1,5 @@
 import type { TickContext } from "./context";
-import type { ActiveLimitCut, PendingLimitCut } from "@shared/types";
+import type { ActiveLimitCut, PendingLimitCut } from "@model/types";
 import { applyStatus, overrideStatus } from "@status";
 import { statusServices } from "./statusServices";
 
@@ -26,7 +26,6 @@ export function resolveLimitCuts(ctx: TickContext): { remaining: PendingLimitCut
       applyStatus(target, overrideStatus(plc.effect, { markerIcon: `limit${i + 1}_head.png` }), `${plc.id}-${target.id}-lc`, statusServices(ctx), { limitCutNumber: i + 1 });
       log.push({ t: time, mechanic: plc.name, playerId: target.id, event: "hit" });
     }
-    // Surface the fired limit cut so bot-solver rules can gate on it via when.mechanic.
     limitCuts.push({ id: plc.id, appliedAt: time, duration: plc.effect.duration, north: plc.rotation.north, clockwise: plc.rotation.clockwise });
   }
   return { remaining, limitCuts };

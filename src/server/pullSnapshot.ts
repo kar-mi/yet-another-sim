@@ -1,6 +1,6 @@
-import { SNAPSHOT_FORMAT_VERSION } from "@shared/replay";
-import type { Frame, ServerMessage } from "@shared/protocol";
-import type { World } from "@shared/types";
+import { SNAPSHOT_FORMAT_VERSION } from "@model/replay";
+import type { Frame, ServerMessage } from "@model/protocol";
+import type { World } from "@model/types";
 
 type Snapshot = { formatVersion: number; tick: number; world: unknown };
 

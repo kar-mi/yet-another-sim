@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test";
-import { computeBotIntents } from "../botIntent";
+import { computeBotIntents } from "../bots/botIntent";
 import { tick } from "../sim";
 import { createWorld } from "../world";
-import { applyBotPatterns, loadBotPatterns } from "../raidLoader";
-import type { World } from "@shared/types";
+import { applyBotPatterns, loadBotPatterns } from "../schema/raidLoader";
+import type { World } from "@model/types";
 import { HUMAN, baseRaid, effect, loadRaid, roster, runTicksWithBotIntents, runTicksWithComputedBotIntents, withControl, withEffect, withPlayerEffect } from "./helpers";
 
 test("bot patterns can be loaded from a companion definition", () => {
@@ -81,8 +81,6 @@ test("forsaken tower swaps alternate odd and even debuff distributions", async (
     expect(offsets.filter(offset => offset === 0)).toHaveLength(2);
     expect(offsets.filter(offset => offset === Math.PI)).toHaveLength(2);
   };
-  // The cast-bar/log name of each deferred ending must track its rolled offset, not the authored
-  // fallback (0 -> Future Ending, π -> Past Ending), so the label never lies about the cone.
   const assertEndingNames = (world: World) => {
     const endings = world.pending.filter(p => p.id.startsWith("ending-store-"));
     expect(endings).toHaveLength(4);
@@ -100,10 +98,6 @@ test("forsaken tower swaps alternate odd and even debuff distributions", async (
   let world = createWorld(applyBotPatterns(raid, bots), 1);
   assertEndingOffsets(world);
   assertEndingNames(world);
-  // Derive each tower wave's resolve (t + telegraph) and parity from the raid itself so the
-  // checks follow the authored timing — they must not need updating when the timeline shifts.
-  // After an odd wave the soakers swap to the even set (0/4/4), after an even wave to the odd
-  // set (2/3/3); we sample 0.2 s past each resolve.
   const waves = new Map<number, "tower-odd" | "tower-even">();
   for (const e of raid.events) {
     if (e.type !== "tower") continue;
@@ -123,8 +117,6 @@ test("forsaken tower swaps alternate odd and even debuff distributions", async (
     expect(countCharges(world)).toEqual(counts);
   }
 
-  // Full clear: no tower failures (failure logs a "hit" for the whole raid) and the all-bot
-  // roster survives to the end — including the Clone Spread on the 4 closest at each All Ending.
   world = runTicksWithComputedBotIntents(world, Math.ceil((raid.duration - world.time) * 60));
   assertFullClear(world);
 
@@ -137,7 +129,6 @@ test("forsaken tower swaps alternate odd and even debuff distributions", async (
 });
 
 test("generic solver moves bots during a labeled tower window using a rotated frame", () => {
-  // Two towers form a frame whose north is their bisector ([0,5]+[5,0] -> [0.707, 0.707]).
   const tower = (id: string, pos: [number, number]) => ({
     type: "tower", id, t: 1, name: id, labels: ["wave"], telegraph: 5, pos,
     radius: 3, failureDamage: 0, failureDamageType: "true" as const,
@@ -151,7 +142,6 @@ test("generic solver moves bots during a labeled tower window using a rotated fr
 
   let world = createWorld(raid);
   world = tick(world, {}, 1.1);
-  // Frame coord [0, 5] -> 5 * north -> +x and +z.
   const intent = computeBotIntents(world, 1 / 60).mt;
   expect(intent?.move.x).toBeGreaterThan(0);
   expect(intent?.move.z).toBeGreaterThan(0);
@@ -305,12 +295,11 @@ test("forsaken towerRng produces different wave-1 positions across seeds and onl
   const bots = loadBotPatterns(botData);
   const baseRaid = applyBotPatterns(raid, bots);
 
-  // Canonical tower positions are all radius-8 points (within 0.01 tolerance).
   const CANONICAL_RADIUS = 8;
 
   const getWave1Positions = (seed: number) => {
     const world = createWorld(baseRaid, seed);
-    const firstWaveT = Math.min(...world.pendingTowers.map(t => t.t)); // wave 1 = earliest tower, whatever its t
+    const firstWaveT = Math.min(...world.pendingTowers.map(t => t.t));
     return world.pendingTowers
       .filter(t => t.t === firstWaveT)
       .map(t => ({ x: t.pos.x, z: t.pos.z }));
@@ -319,10 +308,8 @@ test("forsaken towerRng produces different wave-1 positions across seeds and onl
   const pos1 = getWave1Positions(1);
   const pos2 = getWave1Positions(2);
 
-  // Positions must differ across seeds (RNG is actually varying).
   expect(JSON.stringify(pos1)).not.toBe(JSON.stringify(pos2));
 
-  // All tower positions across several seeds must be canonical radius-8 positions.
   for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
     const world = createWorld(baseRaid, seed);
     for (const tower of world.pendingTowers) {

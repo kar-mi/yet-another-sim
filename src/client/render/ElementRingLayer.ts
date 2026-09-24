@@ -3,22 +3,19 @@ import type { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { CreateTube } from "@babylonjs/core/Meshes/Builders/tubeBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveMechanic } from "@shared/types";
-import { elementRingRadius } from "@shared/elementRing";
+import type { ActiveMechanic } from "@model/types";
+import { elementRingRadius } from "@model/elementRing";
 import { circlePath, createElementGlyph, type ElementGlyphHandle } from "@effects/babylon";
 
-// Align glyphs with the ring.
 const RING_Y = 2.0;
 const TUBE_RADIUS = 0.08;
 const SEGMENTS = 96;
 const GLYPH_SCALE = 0.5;
-// Glyphs sit at the six platform bearings (clockwise from north).
 const GLYPH_BEARINGS = [0, 60, 120, 180, 240, 300].map(deg => deg * Math.PI / 180);
 const DEFAULT_COLOR = "#ffffff";
 
 type RingHandle = { tube: Mesh; glyphs: ElementGlyphHandle[] };
 
-// Expand a ring with six element glyphs during the cast.
 export class ElementRingLayer {
   private rings = new Map<string, RingHandle>();
 
@@ -41,7 +38,6 @@ export class ElementRingLayer {
     for (const [key, m] of wanted) {
       const ring = m.ring!;
       const color = m.color ?? DEFAULT_COLOR;
-      // Avoid a zero-radius tube.
       const radius = Math.max(0.05, elementRingRadius(ring, m.telegraphStart, m.resolveAt, time));
       const path = circlePath(ring.center.x, ring.center.z, radius, RING_Y, SEGMENTS, "z");
 

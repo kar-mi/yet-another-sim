@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { tick } from "../sim";
 import { INITIAL_TANK_THREAT } from "@shared/constants";
 import { createWorld } from "../world";
-import { loadRaid as loadRaidRaw } from "../raidLoader";
+import { loadRaid as loadRaidRaw } from "../schema/raidLoader";
 import { TANK_HP } from "./constants";
 import { HUMAN, baseRaid, human, loadRaid, roster, runTicks } from "./helpers";
 
@@ -109,7 +109,6 @@ test("world includes a deterministic boss with a seeded threat table", () => {
   expect(world.boss.id).toBe("boss");
   expect(world.boss.pos).toEqual({ x: 0, z: 0 });
   expect(world.boss.hp).toBe(1000);
-  // Tanks are seeded; mt (lexicographically first tank) is the initial target.
   expect(world.boss.threat.mt).toBe(INITIAL_TANK_THREAT);
   expect(world.boss.threat.m1).toBe(0);
   expect(world.boss.currentTarget).toBe("mt");

@@ -1,7 +1,7 @@
 import { cos, sin } from "@shared/dmath";
 import { vec2, type Vec2 } from "@shared/math";
-import type { World } from "@shared/types";
-import type { RaidDef } from "./raidSchema";
+import type { World } from "@model/types";
+import type { RaidDef } from "../schema/raidSchema";
 
 type AuthoredSpot = { x: number; z: number } | { r: number; z: number }
   | { dist: number; angleDeg: number };

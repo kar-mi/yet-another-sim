@@ -1,4 +1,4 @@
-import type { ActiveMechanic, AOEShape, Boss, PendingEvent, Player } from "@shared/types";
+import type { ActiveMechanic, AOEShape, Boss, PendingEvent, Player } from "@model/types";
 import { sin, cos } from "@shared/dmath";
 import { normalize, scale, add, sub } from "@shared/math";
 import { buildFloorAoe } from "./floorAoeBuild";
@@ -8,9 +8,6 @@ function bossForEvent(event: PendingEvent, bosses: Boss[]): Boss {
   return b ?? bosses[0]!;
 }
 
-// Snapshot a boss-anchored cone/rect against the boss (FFXIV-style): origin from boss.pos,
-// direction from boss.facing (0 = +Z, matching the sim convention). Used both at cast start
-// (promotePending) and when a bait arms a deferred stored cleave from the boss's locked facing.
 export function anchorShape(
   boss: Boss,
   shape: AOEShape,
@@ -75,8 +72,6 @@ export function promotePending(
   for (const event of pending) {
     if (event.t <= time) {
       const boss = bossForEvent(event, bosses);
-      // Deferred (stored) cleaves don't snapshot geometry now; a linked bait recomputes it from the
-      // boss's locked facing at arm time, so keep the raw shape as a hidden placeholder until then.
       const shape = event.deferred ? event.shape : resolveAnchoredShape(event, boss, players);
       const resolveAt = event.t + event.telegraph;
       const showTelegraph = event.deferred ? false : event.showTelegraph;
@@ -95,8 +90,6 @@ export function promotePending(
         applyEffects: event.applyEffects,
         knockback: event.knockback,
         positional: event.positional,
-        // A deferred cleave must NOT lock facing (the boss has to stay free to turn to the bait) and
-        // stays hidden + unarmed until its linked bait arms it.
         lockFacing: event.deferred ? false : event.lockFacing,
         bossStationary: event.bossStationary,
         deferred: event.deferred,

@@ -1,6 +1,3 @@
-// Step content for the first-time guided tour. Pure data so the sequencing rules (host-only
-// wording, skipped replay spotlight, deferred start outside the simulator) are testable.
-
 type TourStepId = "overview" | "hudLayout" | "raidSelector" | "replays";
 
 interface TourSection {
@@ -11,7 +8,6 @@ interface TourSection {
 export interface TourStep {
   id: TourStepId;
   title: string;
-  /** CSS selector of the control to spotlight; null on the overview card. */
   target: string | null;
   body?: string;
   sections?: TourSection[];
@@ -19,10 +15,8 @@ export interface TourStep {
 }
 
 export interface TourContext {
-  /** False while the welcome card is opened from outside a live simulator session. */
   inSimulator: boolean;
   isHost: boolean;
-  /** The ▶ replays toolbar button only exists for the current session host. */
   hasReplayButton: boolean;
 }
 

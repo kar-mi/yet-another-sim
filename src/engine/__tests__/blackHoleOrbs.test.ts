@@ -34,11 +34,8 @@ const S = { x: 0, z: -17 };
 const W = { x: -17, z: 0 };
 
 test("clockwiseTetherOrder sweeps clockwise from the reference boss's bearing", () => {
-  // Boss north, orbs at N/E/S: 1st clockwise is N (offset 0), then E (90), then S (180).
   expect(clockwiseTetherOrder([S, E, N], { x: 0, z: 18 })).toEqual([N, E, S]);
-  // Same orbs, boss east: sweep starts at E, wraps past the empty S->N gap last.
   expect(clockwiseTetherOrder([S, E, N], { x: 18, z: 0 })).toEqual([E, S, N]);
-  // Boss south-west (in the empty gap) with orbs E/S/W: nearest clockwise is W, then wraps to E, S.
   expect(clockwiseTetherOrder([E, S, W], { x: -13, z: -13 })).toEqual([W, E, S]);
 });
 

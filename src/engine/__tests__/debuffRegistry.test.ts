@@ -1,9 +1,6 @@
 import { expect, test } from "bun:test";
 import { baseRaid, loadRaid, roster } from "./helpers";
 
-// Guard rail: every buff and debuff used in raid YAML must resolve to a status catalog template
-// (applyEffect, tether_source, chain, line_link), so the inline/unregistered path stays closed.
-
 function raid(events: unknown[]) {
   return { ...baseRaid, players: roster(), events };
 }

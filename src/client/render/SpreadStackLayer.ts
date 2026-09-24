@@ -5,7 +5,7 @@ import { CreateDisc } from "@babylonjs/core/Meshes/Builders/discBuilder";
 import type { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ActiveSpreadStack, Boss, Player } from "@shared/types";
+import type { ActiveSpreadStack, Boss, Player } from "@model/types";
 import {
   createGroundCircle,
   createQuestionRing,
@@ -18,19 +18,17 @@ import {
   type QuestionRingMeshes,
 } from "@effects/babylon";
 
-// The fire "?" ring mirrors the inverse mechanic's ring: one ring per mechanic identifies it
-// (fire colour), and two orbs encode real (dark blue) vs a lying "?" (reddish-orange + yellow "?").
 const DEFAULT_RING_COLOR = "#f97316";
 
-const HEAD_Y = 2.4;        // downward spread triangle floating over a player
-const STACK_MARKER_Y = 2.6; // stack "ring with triangles in" flat disc, raised above the marked head
+const HEAD_Y = 2.4;
+const STACK_MARKER_Y = 2.6;
 const AREA_Y = 0.02;
 
 type Handle = {
   mech: ActiveSpreadStack;
   questionRing: QuestionRingMeshes;
-  spread: Map<string, Mesh>;       // playerId -> downward head triangle
-  stackMarkers: Map<string, Mesh>; // marked playerId (one per group) -> "ring with triangles in" disc
+  spread: Map<string, Mesh>;
+  stackMarkers: Map<string, Mesh>;
   spreadAreas: Map<string, GroundCircle>;
   stackAreas: Map<string, GroundCircle>;
 };
@@ -53,11 +51,9 @@ export class SpreadStackLayer {
       let handle = this.handles.get(mech.id);
       if (!handle) { handle = this.createHandle(mech); this.handles.set(mech.id, handle); }
 
-      // Ring + orbs orbit the boss at this mechanic's authored height (fire above lightning).
       const y = mech.ringHeight ?? QUESTION_RING_DEFAULT_Y;
       updateQuestionRing(handle.questionRing, boss.pos.x, boss.pos.z, y, time);
 
-      // Player markers only while the cast is unresolved; the shown mode decides which.
       const visible = !mech.resolved;
       const showSpread = visible && mech.shown === "spread";
       const showStack = visible && mech.shown === "stack";
@@ -102,7 +98,6 @@ export class SpreadStackLayer {
     for (const player of marked) {
       let mesh = handle.stackMarkers.get(player.id);
       if (!mesh) {
-        // A flat floor-style ring laid horizontally, raised up above the marked character's head.
         mesh = CreateDisc(`ss-stack-marker-${handle.mech.id}-${player.id}`, { radius: 2.1, tessellation: 48 }, this.scene);
         mesh.rotation.x = Math.PI / 2;
         mesh.isPickable = false;

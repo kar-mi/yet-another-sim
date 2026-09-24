@@ -1,20 +1,11 @@
-// AOE pipeline: Promotes plain pending events (boss snapshots facing-anchored
-// shapes), targeted baits, and effect-burst circles into one active list, then resolves every
-// mechanic past its resolveAt with FFXIV snapshot semantics (damage, effects, knockback).
-
 import type { TickContext } from "./context";
 import { applyStatus, isStatusActive, notifyMechanicHit, slotStatus } from "@status";
 import { statusServices } from "./statusServices";
 import type {
   ActiveMechanic, PendingEvent, PendingTargetedEvent, PendingBaitEvent, PendingDashEvent, PendingEffectBurst,
   Player, Role, Boss, AOEShape, DashDestination,
-} from "@shared/types";
+} from "@model/types";
 import type { Vec2 } from "@shared/math";
-
-function bossFor(bosses: Boss[], bossId?: string): Boss {
-  const b = bossId ? bosses.find(b => b.id === bossId) : undefined;
-  return b ?? bosses[0]!;
-}
 import { pointInShape } from "../shapes";
 import { promotePending, anchorShape } from "../timeline";
 import { AOE_RESOLVE_LINGER, TARGETED_LINGER } from "@shared/constants";
@@ -28,8 +19,11 @@ import {
 import { addResolvedAoeVisual } from "./effectResolvers";
 import { mechanicSource } from "./damageLog";
 
-// Pick the player a bait targets at cast start: "random" draws a seeded alive (optionally
-// role-filtered) player; "closest"/"furthest" measure from the boss.
+function bossFor(bosses: Boss[], bossId?: string): Boss {
+  const b = bossId ? bosses.find(b => b.id === bossId) : undefined;
+  return b ?? bosses[0]!;
+}
+
 function selectBaitTarget(
   players: Player[],
   boss: Boss,
@@ -91,12 +85,9 @@ export function resolveAoe(ctx: TickContext): {
 } {
   const { players, bosses, boss, log, time, dt, randInt } = ctx;
 
-  // 3. Promote pending events whose t <= time (boss snapshots facing-anchored shapes)
   const { promoted, remaining: pending } = promotePending(ctx.world.pending, time, bosses, players);
   const active: ActiveMechanic[] = [...ctx.world.active.map(m => ({ ...m })), ...promoted];
 
-  // 3b. Promote targeted events into casts. The near/far target (and circle center) is
-  // chosen when the cast resolves, not now, so players can reposition during the telegraph.
   const remainingPendingTargeted: PendingTargetedEvent[] = [];
   for (const pt of ctx.world.pendingTargeted) {
     if (pt.t <= time) {
@@ -117,8 +108,6 @@ export function resolveAoe(ctx: TickContext): {
         showTelegraph: pt.showTelegraph,
         telegraphMode: pt.telegraphMode,
         color: pt.color,
-        // The center isn't chosen until resolve, so no floorAoe yet (see the targeting-resolution
-        // branch below, which builds one once the shape is finalized).
         targeting: { mode: pt.targetMode, role: pt.role, origin: { x: 0, z: 0 }, count: pt.count },
       });
     } else {
@@ -126,8 +115,6 @@ export function resolveAoe(ctx: TickContext): {
     }
   }
 
-  // 3c. Promote effect-burst events: at cast start, drop an AOE circle on every player carrying the
-  // named effect (e.g. a burst around each sleeping player). They then resolve like normal AOEs.
   const remainingPendingEffectBursts: PendingEffectBurst[] = [];
   for (const pb of ctx.world.pendingEffectBursts) {
     if (pb.t <= time) {
@@ -151,7 +138,7 @@ export function resolveAoe(ctx: TickContext): {
           applyEffect: pb.applyEffect,
           knockback: pb.knockback,
           resolved: false,
-          showCastBar: pb.showCastBar && i === 0, // one cast bar for the whole set
+          showCastBar: pb.showCastBar && i === 0,
           showTelegraph: pb.showTelegraph,
           telegraphMode: pb.telegraphMode,
           color: pb.color,
@@ -166,18 +153,13 @@ export function resolveAoe(ctx: TickContext): {
     }
   }
 
-  // 3d. Promote baits: at cast START pick a player (random/closest/furthest), turn the boss to face
-  // them and lock facing, and drop a boss-front cone aimed at them. If the bait links a deferred
-  // stored cleave, arm it now so it detonates in the same tick using this locked facing.
   const remainingPendingBaits: PendingBaitEvent[] = [];
   for (const pb of ctx.world.pendingBaits) {
     if (pb.t > time) { remainingPendingBaits.push(pb); continue; }
     const baitBoss = bossFor(bosses, pb.bossId);
     const target = selectBaitTarget(players, baitBoss, pb.targetMode, pb.role, randInt);
-    if (!target) continue; // no valid target: fizzle (the linked stored cleave stays dormant)
+    if (!target) continue;
     baitBoss.facing = atan2(target.pos.x - baitBoss.pos.x, target.pos.z - baitBoss.pos.z);
-    // The bait deals no damage of its own: it is a turn + lock + cast-bar "controller". A zero-radius,
-    // zero-damage mechanic holds the boss facing and drives the cast bar without its own telegraph.
     active.push({
       id: pb.id,
       name: pb.name,
@@ -194,9 +176,6 @@ export function resolveAoe(ctx: TickContext): {
       showCastBar: pb.showCastBar,
       showTelegraph: false,
     });
-    // Arm the linked stored cleave (already dormant in `active` from its own earlier cast): recompute
-    // its geometry from the now-locked facing + its stored directionOffset, and share this resolveAt so
-    // the single cleave cone detonates at the bait's cast end.
     const stored = active.find(m => m.id === pb.link && m.deferred);
     if (stored) {
       const directionOffset = baitDirectionOffset(target, pb.directionOffsetByEffect, time) ?? stored.directionOffset;
@@ -220,8 +199,6 @@ export function resolveAoe(ctx: TickContext): {
     }
   }
 
-  // 3e. Dashes remain pending through their windup so the landing marker can track a live target.
-  // At cast end the boss blinks, then the linked stored AOE is re-anchored and given a fresh cast.
   const remainingPendingDashes: PendingDashEvent[] = [];
   for (const pd of ctx.world.pendingDashes) {
     if (pd.t > time) { remainingPendingDashes.push(pd); continue; }
@@ -235,8 +212,6 @@ export function resolveAoe(ctx: TickContext): {
         randomTargetId = selectBaitTarget(players, dashBoss, "random", pd.destination.role, randInt)?.id;
       }
       const initialDestination = selectDashDestination(players, dashBoss, pd.destination, time, randomTargetId);
-      // Visual-only cast controller and landing marker. Like bait's controller, these use the normal
-      // zero-damage ActiveMechanic path, including its resolve-time combat-log entries.
       active.push({
         id: pd.id,
         name: pd.name,
@@ -310,20 +285,15 @@ export function resolveAoe(ctx: TickContext): {
     }
   }
 
-  // 3. Resolve mechanics past resolveAt (FFXIV snapshot semantics)
   const stillActive: ActiveMechanic[] = [];
   for (const mechanic of active) {
     if (!mechanic.resolved && mechanic.resolveAt <= time) {
-      // A deferred stored cleave whose own cast bar has finished but no bait has armed it yet: go
-      // dormant (hidden, unresolved) and wait for a linked bait to arm + detonate it.
       if (mechanic.deferred && !mechanic.armed) {
         mechanic.showCastBar = false;
         mechanic.showTelegraph = false;
         stillActive.push(mechanic);
         continue;
       }
-      // N-closest spread: drop a damage circle on each of the N nearest/furthest players (a player
-      // caught by several circles is hit once per circle). Resolves instantly with a flash per spot.
       if (mechanic.targeting && mechanic.shape.kind === "circle" && mechanic.targeting.mode !== "aggro"
         && (mechanic.targeting.count ?? 1) > 1) {
         const radius = mechanic.shape.radius;
@@ -347,10 +317,8 @@ export function resolveAoe(ctx: TickContext): {
         const target = mechanic.targeting.mode === "aggro"
           ? players.find(p => p.alive && p.id === mBoss.currentTarget) ?? null
           : selectTargetPlayer(players, mBoss.pos, mechanic.targeting.mode, mechanic.targeting.role);
-        if (!target) { mechanic.resolved = true; continue; } // no valid target: fizzle, no telegraph flash
+        if (!target) { mechanic.resolved = true; continue; }
         mechanic.shape = { kind: "circle", center: { x: target.pos.x, z: target.pos.z }, radius: mechanic.shape.radius };
-        // The center was hidden until now (see the targeting-cast promotion above), so it becomes
-        // visible only from this point, lingering briefly after resolve like other targeted hits.
         if (mechanic.showTelegraph) {
           mechanic.floorAoe = new FloorAoe({
             id: mechanic.id, shape: mechanic.shape, color: mechanic.color ?? DEFAULT_DANGER_COLOR,
@@ -404,8 +372,6 @@ export function resolveAoe(ctx: TickContext): {
       }
       mechanic.resolved = true;
     }
-    // Keep briefly after resolve so the renderer can flash the hit; targeted baits linger
-    // longer so the circle stays visible where it landed (damage already applied at resolveAt).
     const keepFor = mechanic.lingerFor
       ?? (mechanic.targeting ? TARGETED_LINGER : mechanic.telegraphMode === "resolve" ? AOE_RESOLVE_LINGER : dt);
     if (!mechanic.resolved || mechanic.resolveAt >= time - keepFor) {

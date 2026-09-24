@@ -82,6 +82,7 @@ A rule has:
     debuff-only rule is active while that debuff is.
   - `partnerDebuff` — same matching, against the bot's partner (`world.partners`, populated e.g. from a
     Forsaken pair plan). Lets one bot's spot depend on its partner's assignment.
+  - `partyDebuff` — an active effect name anywhere in the party (an **array** requires all listed names).
   - `soaks` — `true`/`false`, compared against the group of the first live mechanic matched by
     `when.mechanic` (which is required). `true` matches bots whose group (`world.playerGroups`) equals
     the mechanic's `group`; `false` matches bots whose group differs (and the mechanic has a group).
@@ -132,6 +133,12 @@ A rule has:
 - `safeSpots` — a list of candidates in the same coordinate system as `spot`. It requires
   `when.mechanic` and chooses the nearest candidate outside all matched live AOE shapes. It cannot be
   combined with `spot`/`spots`; use it for a constrained dodge that must remain on one assigned side.
+  Add `dangerHorizon` (seconds) to ignore matched AOEs that resolve further in the future than that.
+- `tetherMidpoint` — `{ hazardId, order }`: targets the live midpoint between a Black Hole tether orb
+  (the `order`-th orb clockwise from the hazard's `orderFrom` boss) and its current tethered endpoint.
+  Without `spot`/`spots`, the rule falls through when the source or endpoint can't be resolved, or
+  when this bot already holds the tether. With `spot`/`spots`, the current holder instead goes to
+  that spot pulled 1 yalm toward the source orb, so it keeps the tether.
 - `nearestEdge` — `{ from, avoid, clearance }` instead of `spot`/`spots`: sends the bot to the
   nearest arena-edge (wall) point that stays clear of a line AoE. `from` and `avoid` are frame
   references (same forms as `frame` entries). `from` is the point the "closest edge" is measured from
