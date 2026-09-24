@@ -8,22 +8,17 @@ import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { DynamicTexture } from "@babylonjs/core/Materials/Textures/dynamicTexture";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
 import type { Scene } from "@babylonjs/core/scene";
-import type { ZoneShape, FloorPlan, ZoneImage } from "@shared/types";
+import type { Arena, ZoneShape, FloorPlan } from "@arena";
 import type { Vec2 } from "@shared/math";
 import { logger } from "@shared/logger";
-import { STATIC_ROOT } from "../../staticBase";
+import { FLOOR_PLAN_IMAGE_FILES, ZONE_IMAGE_FILES } from "../assets";
 
-// Floor-plan enum value -> top-down arena image. "squares" uses the default crosshatch (no image).
-export const FLOOR_PLAN_IMAGES: Record<Exclude<Extract<FloorPlan, string>, "squares">, string> = {
-  "dmu-p1": `${STATIC_ROOT}/arena_raid_imgs/dmu/p1-cropped.webp`,
-  "dmu-p2": `${STATIC_ROOT}/arena_raid_imgs/dmu/p2-cropped.webp`,
-};
-
-// Top-down art for textured arena zones.
-const ZONE_IMAGES: Record<ZoneImage, string> = {
-  "index-trapezoid": `${STATIC_ROOT}/arena_raid_imgs/index/trapezoid.webp`,
-  "index-square": `${STATIC_ROOT}/arena_raid_imgs/index/square.webp`,
-};
+export function createArenaMeshes(scene: Scene, arena: Arena, imageRoot: string): Mesh[] {
+  return arena.zones.flatMap(zone => {
+    const mesh = createZoneMesh(scene, zone, arena.floorPlan, imageRoot);
+    return mesh ? [mesh] : [];
+  });
+}
 
 // Project UVs onto local axes to avoid stretching trapezoid textures.
 function createQuad(scene: Scene, vertices: Vec2[]): Mesh {
@@ -78,14 +73,8 @@ function createSlabSides(scene: Scene, vertices: Vec2[]): Mesh {
 // Show crosshatching until the floor image loads.
 function createImageQuad(scene: Scene, vertices: Vec2[], imageUrl: string): Mesh {
   const placeholder = createQuad(scene, vertices);
-  const placeholderMat = new StandardMaterial("floor-plan-placeholder-mat", scene);
-  placeholderMat.diffuseColor = new Color3(1, 1, 1);
-  placeholderMat.emissiveColor = new Color3(0.04, 0.04, 0.05);
-  placeholderMat.specularColor = new Color3(0, 0, 0);
-  placeholderMat.diffuseTexture = createCrosshatchTexture(scene);
-  placeholderMat.backFaceCulling = false;
+  const placeholderMat = createPlaceholderMaterial(scene, 1, false);
   placeholder.material = placeholderMat;
-  placeholderMat.freeze();
 
   createSlabSides(scene, vertices).parent = placeholder;
 
@@ -94,30 +83,26 @@ function createImageQuad(scene: Scene, vertices: Vec2[], imageUrl: string): Mesh
   top.position.y = 0.005; // stay under the AOE telegraph plane at y = 0.01
   top.setEnabled(false);
 
-  const mat = new StandardMaterial("floor-plan-mat", scene);
   // Keep the placeholder parent enabled so its image child stays visible.
-  const reveal = () => {
+  const mat = createImageMaterial(scene, imageUrl, 1, material => {
     if (top.isDisposed()) return;
     top.setEnabled(true);
-    mat.freeze();
-  };
-  const tex = new Texture(imageUrl, scene, undefined, undefined, undefined, reveal);
-  tex.anisotropicFilteringLevel = 16;
-  mat.diffuseTexture = tex;
-  mat.emissiveTexture = tex; // self-lit so the art reads under the dim scene light
-  mat.emissiveColor = new Color3(1, 1, 1);
-  mat.specularColor = new Color3(0, 0, 0);
-  mat.backFaceCulling = false;
+    material.freeze();
+  });
   top.material = mat;
   return placeholder;
 }
 
-export function createZoneMesh(scene: Scene, zone: ZoneShape, floorPlan: FloorPlan): Mesh | null {
+function createZoneMesh(scene: Scene, zone: ZoneShape, floorPlan: FloorPlan, imageRoot: string): Mesh | null {
   if (zone.kind === "circle" && typeof floorPlan === "string" && floorPlan !== "squares") {
-    return createFloorPlanCircle(scene, zone, FLOOR_PLAN_IMAGES[floorPlan]);
+    return createFloorPlanCircle(scene, zone, imageUrl(imageRoot, FLOOR_PLAN_IMAGE_FILES[floorPlan]));
   }
   if (zone.kind === "polygon" && zone.image && zone.vertices.length === 4) {
-    return createImageQuad(scene, zone.vertices, ZONE_IMAGES[zone.image]);
+    return createImageQuad(scene, zone.vertices, imageUrl(imageRoot, ZONE_IMAGE_FILES[zone.image]));
+  }
+  if (zone.kind === "polygon" && zone.vertices.length !== 4) {
+    logger.warn("render", "only 4-sided polygon arena zones are rendered");
+    return null;
   }
 
   const mat = new StandardMaterial("floor-mat", scene);
@@ -160,10 +145,6 @@ export function createZoneMesh(scene: Scene, zone: ZoneShape, floorPlan: FloorPl
       }
       break;
     case "polygon": {
-      if (zone.vertices.length !== 4) {
-        logger.warn("render", "only 4-sided polygon arena zones are rendered");
-        return null;
-      }
       mesh = createQuad(scene, zone.vertices);
       if (tex) {
         tex.uScale = 1;
@@ -202,20 +183,12 @@ function createFloorPlanCircle(scene: Scene, zone: Extract<ZoneShape, { kind: "c
   placeholder.parent = body;
   placeholder.rotation.x = -Math.PI / 2;
   placeholder.position.set(0, thickness / 2 + 0.004, 0);
-  const placeholderMat = new StandardMaterial("floor-plan-placeholder-mat", scene);
-  placeholderMat.diffuseColor = new Color3(1, 1, 1);
-  placeholderMat.emissiveColor = new Color3(0.04, 0.04, 0.05);
-  placeholderMat.specularColor = new Color3(0, 0, 0);
-  const placeholderTex = createCrosshatchTexture(scene);
   const span = (zone.radius * 2) / 4;
-  placeholderTex.uScale = span;
-  placeholderTex.vScale = span;
-  placeholderMat.diffuseTexture = placeholderTex;
+  const placeholderMat = createPlaceholderMaterial(scene, span);
   placeholder.material = placeholderMat;
-  placeholderMat.freeze(); // static crosshatch placeholder
 
   // Disc lies in the XY plane facing +Z; rotate it flat so it faces up, just above the top face.
-  // Keep it below the AOE telegraph plane (world y = 0.01, see telegraphMeshes.ts) so AOEs draw
+  // Keep it below the AOE telegraph plane (world y = 0.01) so AOEs draw
   // cleanly on top of the plan instead of z-fighting with it.
   const top = CreateDisc("floor-plan", { radius: zone.radius, tessellation: 64 }, scene);
   top.parent = body; // local-space child; disposed with the body via mesh.dispose(false, true)
@@ -223,24 +196,46 @@ function createFloorPlanCircle(scene: Scene, zone: Extract<ZoneShape, { kind: "c
   top.position.set(0, thickness / 2 + 0.005, 0);
   top.setEnabled(false); // revealed once the texture is ready (see onLoad below)
 
-  const imageMat = new StandardMaterial("floor-plan-mat", scene);
   // onLoad fires once the image is decoded and GPU-ready: swap the crosshatch out for the plan.
   // The isDisposed guard covers a rapid raid switch that disposes this floor mid-download.
-  const reveal = () => {
+  const imageMat = createImageMaterial(scene, imageUrl, 2, material => {
     if (top.isDisposed()) return;
     top.setEnabled(true);
     placeholder.setEnabled(false);
-    imageMat.freeze(); // texture is loaded + assigned; lock the now-static shader
-  };
-  const tex = new Texture(imageUrl, scene, undefined, undefined, undefined, reveal);
-  tex.anisotropicFilteringLevel = 16; // sharpen the plan when viewed at the camera's grazing angle
-  imageMat.diffuseTexture = tex;
-  imageMat.emissiveTexture = tex; // self-lit so the plan reads clearly under the dim scene light
-  imageMat.emissiveColor = new Color3(2, 2, 2); // brighten the plan above the dim base lighting
-  imageMat.specularColor = new Color3(0, 0, 0);
-  imageMat.backFaceCulling = false; // disc is single-sided; show it whichever way it ends up facing
+    material.freeze(); // texture is loaded + assigned; lock the now-static shader
+  });
   top.material = imageMat;
   return body;
+}
+
+function imageUrl(root: string, file: string): string {
+  return `${root.replace(/\/$/, "")}/${file}`;
+}
+
+function createPlaceholderMaterial(scene: Scene, scale = 1, backFaceCulling = true): StandardMaterial {
+  const mat = new StandardMaterial("floor-plan-placeholder-mat", scene);
+  mat.diffuseColor = new Color3(1, 1, 1);
+  mat.emissiveColor = new Color3(0.04, 0.04, 0.05);
+  mat.specularColor = new Color3(0, 0, 0);
+  mat.backFaceCulling = backFaceCulling;
+  const tex = createCrosshatchTexture(scene);
+  tex.uScale = scale;
+  tex.vScale = scale;
+  mat.diffuseTexture = tex;
+  mat.freeze();
+  return mat;
+}
+
+function createImageMaterial(scene: Scene, url: string, brightness: number, reveal: (material: StandardMaterial) => void): StandardMaterial {
+  const mat = new StandardMaterial("floor-plan-mat", scene);
+  const tex = new Texture(url, scene, undefined, undefined, undefined, () => reveal(mat));
+  tex.anisotropicFilteringLevel = 16;
+  mat.diffuseTexture = tex;
+  mat.emissiveTexture = tex;
+  mat.emissiveColor = new Color3(brightness, brightness, brightness);
+  mat.specularColor = new Color3(0, 0, 0);
+  mat.backFaceCulling = false;
+  return mat;
 }
 
 function createCrosshatchTexture(scene: Scene): DynamicTexture {

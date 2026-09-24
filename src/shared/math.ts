@@ -18,6 +18,24 @@ export function normalize(v: Vec2): Vec2 {
 
 export function dot(a: Vec2, b: Vec2): number { return a.x * b.x + a.z * b.z; }
 
+export function pointInCircle(center: Vec2, radius: number, point: Vec2): boolean {
+  const dx = point.x - center.x;
+  const dz = point.z - center.z;
+  return dx * dx + dz * dz <= radius * radius;
+}
+
+export function pointInPolygon(vertices: Vec2[], point: Vec2): boolean {
+  let inside = false;
+  for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+    const xi = vertices[i]!.x, zi = vertices[i]!.z;
+    const xj = vertices[j]!.x, zj = vertices[j]!.z;
+    if (zi > point.z !== zj > point.z && point.x < ((xj - xi) * (point.z - zi)) / (zj - zi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
 export function clamp01(v: number): number { return Math.max(0, Math.min(1, v)); }
 
 // Shortest signed difference b - a, wrapped to (-PI, PI]. Useful for angle interpolation/blending.

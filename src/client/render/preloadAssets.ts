@@ -1,9 +1,8 @@
 import { BOSS_MODEL_FILE, BOSS_MODEL_ROOT } from "./BossLayer";
 import { DEFAULT_PLAYER_MODEL_FILE, PLAYER_MODEL_FILES, PLAYER_MODEL_ROOT } from "./PlayerLayer";
-import { FLOOR_PLAN_IMAGES } from "./meshes/arenaMeshes";
 import { HAND_IMAGE_URL } from "./meshes/handMeshes";
 import { CLEANSING_ORB_RUNE_URL } from "./meshes/cleansingOrbMeshes";
-import { STATUS_ICON_ROOT } from "../staticBase";
+import { ARENA_IMAGE_ROOT, STATUS_ICON_ROOT } from "../staticBase";
 import { statusAssetManifest } from "@status";
 
 // Warm the browser cache for every static asset up front so a later raid change / first session entry
@@ -20,10 +19,12 @@ export function preloadAssets(): void {
     void fetch(url).then(res => res.blob()).catch(() => {});
   }
 
-  // Floor plans and the complete status asset manifest load through the browser's image cache
+  // Arena images and the complete status asset manifest load through the browser's image cache
   // (<img> / Babylon DOM-image textures), which an Image() request warms directly.
   const statusAssets = statusAssetManifest().map(file => `${STATUS_ICON_ROOT}/${file}`);
-  for (const url of [...Object.values(FLOOR_PLAN_IMAGES), ...statusAssets, HAND_IMAGE_URL, CLEANSING_ORB_RUNE_URL]) {
+  const arenaAssets = arenaAssetManifest().map(file => `${ARENA_IMAGE_ROOT}/${file}`);
+  for (const url of [...arenaAssets, ...statusAssets, HAND_IMAGE_URL, CLEANSING_ORB_RUNE_URL]) {
     new Image().src = url;
   }
 }
+import { arenaAssetManifest } from "@arena";

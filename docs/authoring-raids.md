@@ -135,7 +135,7 @@ arena:
 
 A point is on the floor if it's inside **any** zone, so zones only ever add floor — there is no way
 to cut a hole with them. An arena that needs one (a ring, a platform with a gap in the middle) is
-built from a named generator in `src/engine/arenaGenerators.ts` instead of an inline list:
+built from a named generator in `src/arena/generators.ts` instead of an inline list:
 
 ```yaml
 arena:

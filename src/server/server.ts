@@ -14,6 +14,7 @@ import { REPLAY_FORMAT_VERSION, type ReplayErrorResponse } from "@shared/replay"
 const ROOT = join(import.meta.dir, "..", "..");
 const BUNDLE_DIR = join(ROOT, ".bundle");
 const STATIC_DIR = join(ROOT, "static");
+const ARENA_IMAGE_DIR = join(ROOT, "src", "arena", "images");
 const STATUS_ICON_DIR = join(ROOT, "src", "status", "icons");
 const PORT = Number(Bun.env.PORT || 3000);
 
@@ -135,6 +136,7 @@ const serverOptions: ServerOptions = {
       }
     });
     app.get("/static/*splat", (req: any, res: any) => sendAsset(req, res, "/static/", STATIC_DIR));
+    app.get("/arena-images/*splat", (req: any, res: any) => sendAsset(req, res, "/arena-images/", ARENA_IMAGE_DIR));
     app.get("/status-icons/*splat", (req: any, res: any) => sendAsset(req, res, "/status-icons/", STATUS_ICON_DIR));
     app.get("/{*splat}", async (req: any, res: any) => {
       const path = String(req.path ?? "/");

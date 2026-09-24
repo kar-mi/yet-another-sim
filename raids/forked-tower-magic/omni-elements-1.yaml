@@ -31,7 +31,7 @@ sections:
   - { id: implement-2, name: Implement 2, t: 50.82 }
   - { id: chemistry, name: Elementary Chemistry, t: 58.01 }
 
-# Each pair end combines a trapezoid and square; dimensions match arenaGenerators.ts.
+# Each pair end combines a trapezoid and square; dimensions match the generated arena layout.
 _shapes:
   polyN: &polyN { kind: polygon, vertices: [[-3.233, 5.6], [3.233, 5.6], [7.506, 13], [7.506, 28.011], [-7.506, 28.011], [-7.506, 13]] }
   polyS: &polyS { kind: polygon, vertices: [[3.233, -5.6], [-3.233, -5.6], [-7.506, -13], [-7.506, -28.011], [7.506, -28.011], [7.506, -13]] }

@@ -1,7 +1,5 @@
 import { expect, test } from "bun:test";
-import { ARENA_GENERATORS } from "../arenaGenerators";
-import { toZoneShape } from "../eventTransforms";
-import { isOnFloor } from "../shapes";
+import { ARENA_GENERATORS, isOnFloor } from "@arena";
 
 // +z north, +x east, clockwise from north.
 function at(angleDeg: number, radius: number) {
@@ -9,8 +7,8 @@ function at(angleDeg: number, radius: number) {
   return { x: radius * Math.sin(rad), z: radius * Math.cos(rad) };
 }
 
-const base = ARENA_GENERATORS.index_arena_1().map(toZoneShape);
-const expanded = ARENA_GENERATORS.index_arena_2().map(toZoneShape);
+const base = ARENA_GENERATORS.index_arena_1();
+const expanded = ARENA_GENERATORS.index_arena_2();
 
 const BASE_EDGES = [180, 300, 60];
 const EXPANDED_EDGES = [0, 120, 240];

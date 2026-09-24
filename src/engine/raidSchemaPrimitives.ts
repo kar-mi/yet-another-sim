@@ -1,9 +1,7 @@
 import { z } from "zod";
+import { Vec2ObjectSchema } from "@shared/schema";
 
-export const Vec2Schema = z.preprocess(
-  value => Array.isArray(value) && value.length === 2 ? { x: value[0], z: value[1] } : value,
-  z.strictObject({ x: z.number(), z: z.number() }),
-).transform(({ x, z }) => [x, z] as [number, number]);
+export const Vec2Schema = Vec2ObjectSchema.transform(({ x, z }) => [x, z] as [number, number]);
 export const WaypointSchema = z.preprocess(
   value => typeof value === "object" && value !== null && "t" in value && !("time" in value)
     ? { ...value, time: value.t }

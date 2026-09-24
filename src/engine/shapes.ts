@@ -1,30 +1,12 @@
 import type { Vec2 } from "@shared/math";
-import { dot, length, normalize } from "@shared/math";
-import type { AOEShape, ZoneShape } from "@shared/types";
+import { dot, length, normalize, pointInCircle, pointInPolygon } from "@shared/math";
+import type { AOEShape } from "@shared/types";
 import { cos } from "@shared/dmath";
-
-function circleContains(center: Vec2, radius: number, p: Vec2): boolean {
-  const dx = p.x - center.x;
-  const dz = p.z - center.z;
-  return dx * dx + dz * dz <= radius * radius;
-}
-
-function polygonContains(vertices: Vec2[], p: Vec2): boolean {
-  let inside = false;
-  for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
-    const xi = vertices[i].x, zi = vertices[i].z;
-    const xj = vertices[j].x, zj = vertices[j].z;
-    if (zi > p.z !== zj > p.z && p.x < ((xj - xi) * (p.z - zi)) / (zj - zi) + xi) {
-      inside = !inside;
-    }
-  }
-  return inside;
-}
 
 export function pointInShape(shape: AOEShape, p: Vec2): boolean {
   switch (shape.kind) {
     case "circle":
-      return circleContains(shape.center, shape.radius, p);
+      return pointInCircle(shape.center, shape.radius, p);
 
     case "donut": {
       const dx = p.x - shape.center.x;
@@ -55,31 +37,6 @@ export function pointInShape(shape: AOEShape, p: Vec2): boolean {
     }
 
     case "polygon":
-      return polygonContains(shape.vertices, p);
+      return pointInPolygon(shape.vertices, p);
   }
-}
-
-export function isOnFloor(pos: Vec2, zones: ZoneShape[]): boolean {
-  for (const zone of zones) {
-    switch (zone.kind) {
-      case "circle":
-        if (circleContains(zone.center, zone.radius, pos)) return true;
-        break;
-
-      case "rect": {
-        const hw = zone.width / 2;
-        const hh = zone.height / 2;
-        if (
-          pos.x >= zone.center.x - hw && pos.x <= zone.center.x + hw &&
-          pos.z >= zone.center.z - hh && pos.z <= zone.center.z + hh
-        ) return true;
-        break;
-      }
-
-      case "polygon":
-        if (polygonContains(zone.vertices, pos)) return true;
-        break;
-    }
-  }
-  return false;
 }

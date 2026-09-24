@@ -1,5 +1,6 @@
 import type { Vec2 } from "../math";
 
+export type { Arena, FloorPlan, ZoneImage, ZoneShape } from "@arena";
 export type { AOEShape, ElementGlyphKind, WaymarkId } from "@effects";
 import type { ElementGlyphKind, WaymarkId } from "@effects";
 export type { CrystalElement, DamageType } from "@status";
@@ -10,18 +11,6 @@ export type Role = "tank" | "healer" | "dps";
 export type Control = "human" | "bot";
 
 export type Status = "running" | "cleared" | "wiped";
-
-// Zone art resolved by the renderer.
-export type ZoneImage = "index-trapezoid" | "index-square";
-
-export type ZoneShape =
-  | { kind: "circle"; center: Vec2; radius: number }
-  | { kind: "rect"; center: Vec2; width: number; height: number }
-  | { kind: "polygon"; vertices: Vec2[]; image?: ZoneImage };
-
-export type FloorPlan = "squares" | "dmu-p1" | "dmu-p2" | { color: string };
-
-export type Arena = { zones: ZoneShape[]; floorPlan: FloorPlan };
 
 export type Waymark = { mark: WaymarkId; pos: Vec2 };
 

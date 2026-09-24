@@ -34,7 +34,7 @@ export function createEmptyRaid(): RaidDef {
   const boss = { pos: [0, 0] as [number, number], ...preset };
   return {
     name: "(empty)",
-    arena: { zones: [{ kind: "circle", center: [0, 0] as [number, number], radius: 20 }], floorPlan: "squares" },
+    arena: { zones: [{ kind: "circle", center: { x: 0, z: 0 }, radius: 20 }], floorPlan: "squares" },
     duration: 60,
     boss,
     bosses: [{ id: "boss", targetable: true, hidden: false, sink: 0, ...boss }],

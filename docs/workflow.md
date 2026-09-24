@@ -64,16 +64,17 @@ src/
   engine/   # the pure deterministic simulation (tick), mechanic systems, raid loading/schema
   server/   # Colyseus host: rooms, frame relay, WebSocket transport, metrics
   client/   # browser: Babylon renderer, input, netcode, prediction, UI
+  arena/    # arena types, validation, generators, images, floor queries and rendering
   effects/  # renderer-independent visual primitives the client draws with (see below)
   status/   # buffs and debuffs: catalog, validation, lifecycle and behavior dispatch (see below)
 raids/      # YAML-authored encounters, grouped by category folder
 docs/       # this folder
 ```
 
-`@shared/*`, `@effects`, `@effects/*`, `@status` and `@status/*` are TypeScript path aliases (see
-`tsconfig.json`). The effects package is documented separately in
-[The effects package](effects-package.md) and the status package in
-[The status package](status-package.md); both import boundaries are enforced by tests. The
+`@shared/*`, `@arena`, `@arena/*`, `@effects`, `@effects/*`, `@status` and `@status/*` are TypeScript
+path aliases (see `tsconfig.json`). The internal packages are documented separately in
+[The arena package](arena-package.md), [The effects package](effects-package.md), and
+[The status package](status-package.md); their import boundaries are enforced by tests. The
 **engine runs on both the server and every client** — that shared execution is the heart of the
 networking model below.
 

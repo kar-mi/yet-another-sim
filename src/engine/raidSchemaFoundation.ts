@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { ARENA_GENERATOR_IDS, ARENA_GENERATORS } from "./arenaGenerators";
 import { EventIdSchema, RoleSchema, Vec2Schema } from "./raidSchemaPrimitives";
 
 export const WaymarkSchema = z.object({
@@ -25,31 +24,6 @@ const CrystalEntrySchema = z.preprocess(
   z.discriminatedUnion("kind", [CrystalSpawnSchema, CrystalRotationSchema]),
 );
 export const CrystalsSchema = z.array(CrystalEntrySchema).optional();
-
-const FloorPlanSchema = z.union([
-  z.enum(["squares", "dmu-p1", "dmu-p2"]),
-  z.strictObject({ color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "floor color must be a six-digit hex color") }),
-]).default("squares");
-
-export const ZoneShapeSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("circle"), center: Vec2Schema, radius: z.number().positive() }),
-  z.object({ kind: z.literal("rect"), center: Vec2Schema, width: z.number().positive(), height: z.number().positive() }),
-  z.object({ kind: z.literal("polygon"), vertices: z.array(Vec2Schema).min(3), image: z.enum(["index-trapezoid", "index-square"]).optional() }),
-]);
-
-// Accept zones or a generator; expose resolved zones to the engine.
-export const ArenaSchema = z.object({
-  zones: z.array(ZoneShapeSchema).min(1).optional(),
-  generator: z.enum(ARENA_GENERATOR_IDS).optional(),
-  floorPlan: FloorPlanSchema,
-}).superRefine((arena, ctx) => {
-  if (!arena.zones === !arena.generator) {
-    ctx.addIssue({ code: "custom", message: "arena needs exactly one of `zones` or `generator`" });
-  }
-}).transform(arena => ({
-  zones: arena.zones ?? ARENA_GENERATORS[arena.generator!](),
-  floorPlan: arena.floorPlan,
-}));
 
 export const AOEShapeSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("circle"), center: Vec2Schema, radius: z.number().positive() }),
