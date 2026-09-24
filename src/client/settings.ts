@@ -39,7 +39,7 @@ export const HUD_GROUP_LABELS: Record<HudGroupId, string> = {
   targetcast: "Boss Cast Bar",
   bosscasts: "All Boss Casts",
   timer: "Timer",
-  fps: "FPS",
+  fps: "FPS / Ping",
   raidselector: "Raid Selector",
   replayevents: "Replay Events",
   replayseek: "Replay Seek Bar",
@@ -51,8 +51,8 @@ export const DEFAULT_HUD_LAYOUT: Record<HudGroupId, HudGroupLayout> = {
   debuffs: { x: 0.2901446439068872, y: 0.8750778037476836, scale: 0.6760804241689639, opacity: 0.34, hidden: false },
   resources: { x: 0.516154920284692, y: 0.9741880254619419, scale: 0.7, opacity: 1, hidden: false },
   bosscasts: { x: 0.7287770499512639, y: 0.7377124165993336, scale: 1, opacity: 0, hidden: false },
-  timer: { x: 0.6029839049015961, y: 0.03804923684032202, scale: 0.6009382178436431, opacity: 0, hidden: false },
-  fps: { x: 0.66, y: 0.03804923684032202, scale: 0.6009382178436431, opacity: 0, hidden: false },
+  timer: { x: 0.6029839049015961, y: 0.03804923684032202, scale: 0.8, opacity: 0, hidden: false },
+  fps: { x: 0.68, y: 0.03804923684032202, scale: 0.8, opacity: 0, hidden: false },
   raidselector: { x: 0.5037860125902104, y: 0.054555068125830095, scale: 1, opacity: 1, hidden: false },
   party: { x: 0.09028931244598525, y: 0.24041641353184845, scale: 0.9005636984521633, opacity: 0.43, hidden: false },
   targetcast: { x: 0.49902852419601074, y: 0.17075942920270956, scale: 1, opacity: 1, hidden: false },
@@ -61,6 +61,9 @@ export const DEFAULT_HUD_LAYOUT: Record<HudGroupId, HudGroupLayout> = {
   replayevents: { x: 0.7629295197360986, y: 0.30284235951820393, scale: 1, opacity: 1, hidden: false },
   replayseek: { x: 0.26021691472362224, y: 0.14402454460006042, scale: 1, opacity: 1, hidden: false },
 };
+
+const RENDER_SCALES = [1, 0.75, 0.5] as const;
+type RenderScale = typeof RENDER_SCALES[number];
 
 export interface Settings {
   mouseSensitivity: number;
@@ -75,6 +78,7 @@ export interface Settings {
   uiScale: number;
   uiFont: "pixel" | "readable";
   renderedPlayerHealthBars: boolean;
+  renderScale: RenderScale;
   minimapZoom: number;
   hudLayout: Partial<Record<HudGroupId, HudGroupLayout>>;
 }
@@ -106,6 +110,7 @@ const DEFAULTS: Settings = {
   uiScale: 1.25,
   uiFont: "readable",
   renderedPlayerHealthBars: false,
+  renderScale: 1,
   minimapZoom: 2,
   hudLayout: { ...DEFAULT_HUD_LAYOUT },
 };
@@ -131,6 +136,7 @@ export function loadSettings(): Settings {
       ...saved,
       keyBindings: { ...DEFAULT_BINDINGS, ...saved.keyBindings },
       controllerBindings: { ...DEFAULT_CONTROLLER_BINDINGS, ...saved.controllerBindings },
+      renderScale: RENDER_SCALES.includes(saved.renderScale) ? saved.renderScale : DEFAULTS.renderScale,
       minimapZoom: typeof saved.minimapZoom === "number" ? Math.min(4, Math.max(1, saved.minimapZoom)) : DEFAULTS.minimapZoom,
       hudLayout: { ...DEFAULT_HUD_LAYOUT, ...saved.hudLayout },
     };

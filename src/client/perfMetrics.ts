@@ -23,6 +23,7 @@ type ClientPerf = {
   snapshotBuffer: number;
   renderDelayMs: number;
   headroomMs: number;
+  playbackRate: number;
   extrapolations: number;
   bufferResets: number;
   resyncRequests: number;
@@ -53,6 +54,7 @@ const perf: ClientPerf = {
   snapshotBuffer: 0,
   renderDelayMs: 0,
   headroomMs: 0,
+  playbackRate: 1,
   extrapolations: 0,
   bufferResets: 0,
   resyncRequests: 0,
@@ -101,12 +103,14 @@ export function recordInterpolation(sample: {
   snapshotBuffer: number;
   renderDelayMs: number;
   headroomMs: number;
+  playbackRate: number;
   extrapolated: boolean;
 }): void {
   if (!PERF_ENABLED) return;
   perf.snapshotBuffer = sample.snapshotBuffer;
   perf.renderDelayMs = sample.renderDelayMs;
   perf.headroomMs = sample.headroomMs;
+  perf.playbackRate = sample.playbackRate;
   if (sample.extrapolated) perf.extrapolations++;
 }
 
@@ -170,7 +174,7 @@ export function initPerfHud(): () => void {
       `frame ${perf.frameMs.toFixed(1)}ms max ${perf.frameMaxMs.toFixed(1)} | raf ${perf.rafMs.toFixed(1)} max ${perf.rafMaxMs.toFixed(1)} drop ${perf.droppedFrames}`,
       `view ${perf.getViewMs.toFixed(2)}ms | sync ${perf.syncMs.toFixed(2)} max ${perf.syncMaxMs.toFixed(2)} | render ${perf.renderMs.toFixed(2)} max ${perf.renderMaxMs.toFixed(2)}`,
       `apply ${perf.applyFramesMs.toFixed(2)}ms max ${perf.applyFramesMaxMs.toFixed(2)} | batch ${perf.batchFrames}/${perf.batchMaxFrames} | ticks ${perf.appliedTicks}/${perf.appliedTicksMax}`,
-      `interp buf ${perf.snapshotBuffer} | delay ${perf.renderDelayMs.toFixed(1)}ms | headroom ${perf.headroomMs.toFixed(1)}ms | extrap ${perf.extrapolations}`,
+      `interp buf ${perf.snapshotBuffer} | delay ${perf.renderDelayMs.toFixed(1)}ms | headroom ${perf.headroomMs.toFixed(1)}ms | rate ${perf.playbackRate.toFixed(3)} | extrap ${perf.extrapolations}`,
       `resync ${perf.resyncRequests} | resets ${perf.bufferResets} | host snap ${perf.hostSnapshotMs.toFixed(2)}ms max ${perf.hostSnapshotMaxMs.toFixed(2)} bytes ${perf.hostSnapshotBytes}/${perf.hostSnapshotMaxBytes}`,
     ].join("\n");
     history.push(`${new Date().toISOString()}\n${latestText}`);

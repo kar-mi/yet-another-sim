@@ -31,6 +31,8 @@ interface SessionRuntimeOptions {
   updateController: () => void;
 }
 
+const PING_INTERVAL_MS = 2000;
+
 async function startSessionRuntime(options: SessionRuntimeOptions, settings: ReturnType<typeof loadSettings>): Promise<() => void> {
   const { renderer, net } = options;
   renderer.applySettings(settings);
@@ -42,8 +44,10 @@ async function startSessionRuntime(options: SessionRuntimeOptions, settings: Ret
   const disposeInput = initInput();
   const disposePerfHud = initPerfHud();
   const stopLoop = startNetLoop(renderer, net, { readOnly: options.readOnly });
+  const pingTimer = setInterval(() => net.ping(ms => renderer.setPing(ms)), PING_INTERVAL_MS);
 
   return () => {
+    clearInterval(pingTimer);
     stopLoop();
     disposePerfHud();
     disposeInput();

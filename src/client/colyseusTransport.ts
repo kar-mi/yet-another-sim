@@ -33,6 +33,10 @@ export class ColyseusTransport implements Transport {
     this.messageHandler = cb;
   }
 
+  ping(cb: (ms: number) => void): void {
+    this.room?.ping(cb);
+  }
+
   onDisconnect(cb: () => void): void {
     this.disconnectHandler = cb;
   }

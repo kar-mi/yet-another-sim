@@ -62,6 +62,7 @@ const bossLayersKey = (bosses: Boss[]) =>
   bosses.map(b => `${b.id}|${b.model}|${b.modelScale}|${b.radius}|${b.ringScale}|${b.ringColor}`).join(",");
 
 const CAMERA_ACCEL_RAMP = 3;
+const MAX_DEVICE_RATIO = 2;
 
 export class BabylonRenderer implements Renderer {
   private engine!: Engine;
@@ -108,6 +109,7 @@ export class BabylonRenderer implements Renderer {
   private cameraAccel = false;
   private cameraAccelStrength = 1;
   private renderedPlayerHealthBars = false;
+  private renderScale = 1;
   private botsInvisibleOverride: boolean | null = null;
   private camAccelFactor = 1;
   private onPanDown!: (e: PointerEvent) => void;
@@ -128,8 +130,9 @@ export class BabylonRenderer implements Renderer {
       powerPreference: "high-performance",
       doNotHandleContextLost: true,
       adaptToDeviceRatio: true,
-      limitDeviceRatio: 2,
+      limitDeviceRatio: MAX_DEVICE_RATIO,
     });
+    this.engine.adaptToDeviceRatio = false;
     this.scene = new Scene(this.engine);
     this.scene.clearColor = new Color4(0.05, 0.05, 0.1, 1);
     this.scene.skipPointerMovePicking = true;
@@ -245,7 +248,7 @@ export class BabylonRenderer implements Renderer {
 
     prewarmShaders(this.scene);
 
-    this.onResize = () => this.engine.resize();
+    this.onResize = () => this.applyRenderScale();
     window.addEventListener("resize", this.onResize);
   }
 
@@ -365,11 +368,13 @@ export class BabylonRenderer implements Renderer {
     this.movers.sync(world.active, world.time);
     this.effectRings.sync(world.players, world.time, player => player.id === povPlayer?.id);
     this.countdownPie.sync(povPlayer, world.time);
-    this.hud.sync(world, povPlayer);
+    this.hud.sync(world, povPlayer, renderKeys);
   }
 
   render(): void {
+    this.engine.beginFrame();
     this.scene.render();
+    this.engine.endFrame();
     this.hud.setFps(this.engine.getFps(), performance.now());
   }
 
@@ -379,12 +384,22 @@ export class BabylonRenderer implements Renderer {
     this.cameraAccel = s.cameraAccel;
     this.cameraAccelStrength = s.cameraAccelStrength;
     this.renderedPlayerHealthBars = s.renderedPlayerHealthBars;
+    this.renderScale = s.renderScale;
+    this.applyRenderScale();
     this.camera.angularSensibilityX = sens;
     this.camera.angularSensibilityY = sens;
     const mouseInput = this.camera.inputs.attached.pointers as ArcRotateCameraPointersInput | undefined;
     if (mouseInput) mouseInput.buttons = [0, 2];
     setControlScheme(s.controlScheme);
     this.hud.applySettings(s);
+  }
+
+  private applyRenderScale(): void {
+    this.engine.setHardwareScalingLevel(1 / (Math.min(window.devicePixelRatio || 1, MAX_DEVICE_RATIO) * this.renderScale));
+  }
+
+  setPing(ms: number): void {
+    this.hud.setPing(ms);
   }
 
   setBotsInvisible(enabled: boolean): void {

@@ -6,15 +6,17 @@ import { computeWorldRenderKeys, getWorldRenderKeys, setWorldRenderKeys, type Wo
 
 const MIN_RENDER_DELAY_MS = 90;
 const MAX_RENDER_DELAY_MS = 220;
-const DRAIN_TAU_S = 2;
 const SNAPSHOT_BUFFER_MAX = 32;
 const SNAPSHOT_GAP_RESET_MS = 1000;
 const EXTRAPOLATE_MAX_MS = 150;
-const CLOCK_SMOOTH = 0.02;
 const GAP_DECAY = 0.999;
 const BOSS_SNAP_THRESHOLD = 3;
+const RATE_GAIN = 0.02;
+const MAX_RATE_DEVIATION = 0.08;
+const RATE_DEADBAND_TICKS = 1;
+const RESNAP_TICKS = 30;
 
-type Snapshot = { t: number; world: World };
+type Snapshot = { tick: number; world: World };
 type EntityIndex = { players: Map<string, Player>; bosses: Map<string, Boss> };
 type InterpolationBuffer = {
   world: World | null;
@@ -30,15 +32,15 @@ export class RenderSnapshotBuffer {
   private readonly interpolationBuffers: InterpolationBuffer[] = [this.makeInterpolationBuffer(), this.makeInterpolationBuffer()];
   private interpolationBufferIndex = 0;
   private worldRenderKeys: WorldRenderKeys | null = null;
-  private renderDelayMs = MIN_RENDER_DELAY_MS;
-  private lastAdaptNow = 0;
-  private snapClockBase: number | null = null;
+  private renderTick: number | null = null;
+  private lastViewNow = 0;
+  private playbackRate = 1;
   private lastSnapshotWall = 0;
   private recentMaxGapMs = 0;
 
   reset(): void {
     this.snapshots.length = 0;
-    this.snapClockBase = null;
+    this.renderTick = null;
   }
 
   start(world: World, tick: number): void {
@@ -58,71 +60,69 @@ export class RenderSnapshotBuffer {
     }
     this.lastSnapshotWall = wall;
 
-    const desiredBase = wall - tick * TICK_MS;
-    if (this.snapClockBase === null) this.snapClockBase = desiredBase;
-    else {
-      const alpha = Math.min(1, CLOCK_SMOOTH * (gap / TICK_MS));
-      this.snapClockBase += (desiredBase - this.snapClockBase) * alpha;
-    }
-    const t = this.snapClockBase + tick * TICK_MS;
     if (!this.worldRenderKeys) this.worldRenderKeys = computeWorldRenderKeys(world);
     setWorldRenderKeys(world, this.worldRenderKeys);
-    this.snapshots.push({ t, world });
+    this.snapshots.push({ tick, world });
     if (this.snapshots.length > SNAPSHOT_BUFFER_MAX) this.snapshots.shift();
   }
 
   getView(now: number): World | null {
     const buf = this.snapshots;
     if (buf.length === 0) return null;
-    if (buf.length === 1) {
-      recordInterpolation({ snapshotBuffer: 1, renderDelayMs: this.renderDelayMs, headroomMs: 0, extrapolated: false });
-      return buf[0].world;
+    const latest = buf[buf.length - 1].tick;
+    const delayTicks = this.targetDelayTicks();
+    const renderTick = this.advanceRenderTick(now, latest - delayTicks, latest);
+    const view = this.viewAt(renderTick);
+    recordInterpolation({
+      snapshotBuffer: buf.length,
+      renderDelayMs: delayTicks * TICK_MS,
+      headroomMs: (latest - renderTick) * TICK_MS,
+      playbackRate: this.playbackRate,
+      extrapolated: renderTick > latest && buf.length > 1,
+    });
+    return view;
+  }
+
+  private targetDelayTicks(): number {
+    return Math.min(MAX_RENDER_DELAY_MS, Math.max(MIN_RENDER_DELAY_MS, this.recentMaxGapMs + TICK_MS)) / TICK_MS;
+  }
+
+  private advanceRenderTick(now: number, target: number, latest: number): number {
+    if (this.renderTick === null) {
+      this.renderTick = target;
+      this.playbackRate = 1;
+    } else {
+      const error = target - this.renderTick;
+      if (Math.abs(error) > RESNAP_TICKS) {
+        this.renderTick = target;
+        this.playbackRate = 1;
+      } else {
+        const outside = Math.sign(error) * Math.max(0, Math.abs(error) - RATE_DEADBAND_TICKS);
+        this.playbackRate = 1 + Math.min(MAX_RATE_DEVIATION, Math.max(-MAX_RATE_DEVIATION, outside * RATE_GAIN));
+        this.renderTick += Math.max(0, now - this.lastViewNow) / TICK_MS * this.playbackRate;
+      }
     }
-    return this.interpolatedView(now);
+    this.lastViewNow = now;
+    this.renderTick = Math.min(this.renderTick, latest + EXTRAPOLATE_MAX_MS / TICK_MS);
+    return this.renderTick;
   }
 
-  private effectiveFloorMs(): number {
-    return Math.min(MAX_RENDER_DELAY_MS, Math.max(MIN_RENDER_DELAY_MS, this.recentMaxGapMs + TICK_MS));
-  }
-
-  private interpolatedView(now: number): World {
+  private viewAt(renderTick: number): World {
     const buf = this.snapshots;
+    const first = buf[0];
     const last = buf[buf.length - 1];
-    const headroom = last.t - (now - this.renderDelayMs);
-    if (headroom < TICK_MS) this.renderDelayMs = Math.min(MAX_RENDER_DELAY_MS, this.renderDelayMs + (TICK_MS - headroom));
-    else {
-      const dt = this.lastAdaptNow ? (now - this.lastAdaptNow) / 1000 : 0;
-      if (headroom > 2 * TICK_MS) {
-        const excess = headroom - 2 * TICK_MS;
-        this.renderDelayMs = Math.max(this.effectiveFloorMs(), this.renderDelayMs - excess * Math.min(1, dt / DRAIN_TAU_S));
-      }
-    }
-    this.lastAdaptNow = now;
-
-    const target = now - this.renderDelayMs;
-    if (target <= buf[0].t) {
-      recordInterpolation({ snapshotBuffer: buf.length, renderDelayMs: this.renderDelayMs, headroomMs: headroom, extrapolated: false });
-      return buf[0].world;
-    }
-    if (target >= last.t) {
+    if (buf.length === 1 || renderTick <= first.tick) return first.world;
+    if (renderTick >= last.tick) {
       const prev = buf[buf.length - 2];
-      if (target > last.t && last.t > prev.t) {
-        const alpha = (last.t - prev.t + Math.min(target - last.t, EXTRAPOLATE_MAX_MS)) / (last.t - prev.t);
-        recordInterpolation({ snapshotBuffer: buf.length, renderDelayMs: this.renderDelayMs, headroomMs: headroom, extrapolated: true });
-        return this.interpolateWorld(prev.world, last.world, alpha);
-      }
-      recordInterpolation({ snapshotBuffer: buf.length, renderDelayMs: this.renderDelayMs, headroomMs: headroom, extrapolated: false });
-      return last.world;
+      if (renderTick === last.tick) return last.world;
+      return this.interpolateWorld(prev.world, last.world, (renderTick - prev.tick) / (last.tick - prev.tick));
     }
 
     let prevIdx = 0;
-    for (let i = buf.length - 1; i >= 0; i--) if (buf[i].t <= target) { prevIdx = i; break; }
+    for (let i = buf.length - 1; i >= 0; i--) if (buf[i].tick <= renderTick) { prevIdx = i; break; }
     const prev = buf[prevIdx];
     const next = buf[prevIdx + 1];
-    const span = next.t - prev.t;
-    const alpha = span > 0 ? Math.min(1, Math.max(0, (target - prev.t) / span)) : 1;
-    recordInterpolation({ snapshotBuffer: buf.length, renderDelayMs: this.renderDelayMs, headroomMs: headroom, extrapolated: false });
-    return this.interpolateWorld(prev.world, next.world, alpha);
+    return this.interpolateWorld(prev.world, next.world, (renderTick - prev.tick) / (next.tick - prev.tick));
   }
 
   private interpolateWorld(prev: World, next: World, t: number): World {

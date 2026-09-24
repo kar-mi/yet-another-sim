@@ -103,6 +103,9 @@ The layout is stored in your own browser and persists across sessions.
 **Settings → DISPLAY** holds the presentation options:
 
 - **RENDERED PLAYER HP BARS** — floating HP bars above party members in the 3D view.
+- **RENDER RESOLUTION** — 100%, 75% or 50% of the device pixels the 3D view renders at. Lower it to
+  cut GPU load on high-DPI or weaker machines. The HUD panels stay sharp; in-world bars and labels
+  soften.
 - **UI FONT** — `PIXEL (JERSEY 10)` for the arcade look, or `READABLE (CHAKRA PETCH)` if the pixel
   font is hard to read. The readable font is the default.
 - **UI SCALE** — XS through XL. Raise this on a high-DPI display before assuming the HUD is broken.

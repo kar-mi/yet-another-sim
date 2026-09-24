@@ -115,7 +115,8 @@ touching the engine, netcode, or server.
    resyncs any client that diverged. There is no reconnect path: a client that drops or misses
    frames leaves the session.
 7. **Rendering.** `NetClient` coordinates a `RenderSnapshotBuffer`, which keeps a small snapshot
-   history and interpolates with a fixed render delay for smoothness. The local player is additionally
+   history and interpolates a jitter-sized delay behind the latest tick, with the playback rate
+   corrected by at most ±8%, for smoothness. The local player is additionally
    client-predicted (`src/client/predictor.ts`) so their own movement feels instant — this is
    render-only and never feeds back into the authoritative world.
 

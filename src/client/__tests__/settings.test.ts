@@ -71,3 +71,19 @@ describe("HUD layout settings", () => {
     expect(loadSettings().minimapZoom).toBe(4);
   });
 });
+
+describe("render scale setting", () => {
+  test("defaults to full resolution", () => {
+    expect(loadSettings().renderScale).toBe(1);
+  });
+
+  test("keeps a supported saved scale", () => {
+    values.set("yas_settings", JSON.stringify({ renderScale: 0.5 }));
+    expect(loadSettings().renderScale).toBe(0.5);
+  });
+
+  test("falls back to full resolution for an unsupported saved scale", () => {
+    values.set("yas_settings", JSON.stringify({ renderScale: 0.1 }));
+    expect(loadSettings().renderScale).toBe(1);
+  });
+});

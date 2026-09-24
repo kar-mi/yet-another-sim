@@ -41,6 +41,8 @@ export class ReplayTransport implements Transport {
 
   onDisconnect(_cb: () => void): void {}
 
+  ping(): void {}
+
   close(): void {
     this.pause();
   }
