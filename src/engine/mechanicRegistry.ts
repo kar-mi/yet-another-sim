@@ -585,6 +585,14 @@ const heal: MechanicModule = {
     if (e.type !== "heal") return;
     c.pendingHeals.push({ id: e.id, t: e.t, name: e.name });
   },
+  resolve: ctx => {
+    if (ctx.world.pendingHeals.some(heal => heal.t <= ctx.time)) {
+      for (const player of ctx.players) {
+        if (player.alive) player.hp = player.maxHp;
+      }
+    }
+    return { pendingHeals: ctx.world.pendingHeals.filter(heal => heal.t > ctx.time) };
+  },
   isResolved: w => w.pendingHeals.length === 0,
 };
 
@@ -629,9 +637,9 @@ const MODULE_FOR_TYPE = {
 } satisfies Record<EventType, MechanicModule>;
 
 export const REGISTRY: readonly MechanicModule[] = [
-  forcedMarch, tethers, bossTeleport, lineLinks, chains, aoe, towers, groups,
+  heal, forcedMarch, tethers, bossTeleport, lineLinks, chains, aoe, towers, groups,
   effectSelect, applyEffects, effectCheck, reassign, inverse, spreadStack, gaze, limitCut,
-  hazard, setHp, heal, effectResolver, divebomb,
+  hazard, setHp, effectResolver, divebomb,
 ];
 
 for (const mechanic of new Set(Object.values(MODULE_FOR_TYPE))) {

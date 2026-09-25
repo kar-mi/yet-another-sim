@@ -1,4 +1,4 @@
-import type { World, Intents, PendingHeal } from "@model/types";
+import type { World, Intents } from "@model/types";
 import { atan2 } from "@shared/dmath";
 import { sub, normalize, scale, add, length } from "@shared/math";
 import { createTickContext } from "./systems/context";
@@ -16,15 +16,6 @@ export function tick(world: World, intents: Intents, dt: number): World {
   const { players, bosses, time } = ctx;
 
   applyPlayerMovement(ctx);
-
-  for (const heal of world.pendingHeals) {
-    if (heal.t <= time) {
-      for (const player of players) {
-        if (player.alive) player.hp = player.maxHp;
-      }
-    }
-  }
-  const remainingPendingHeals: PendingHeal[] = world.pendingHeals.filter(heal => heal.t > time);
 
   for (const boss of bosses) {
     if (boss.targetable === false) {
@@ -63,7 +54,6 @@ export function tick(world: World, intents: Intents, dt: number): World {
   next.log = ctx.log;
   next.forcedMarches = ctx.forcedMarches;
   next.active = [...next.active, ...ctx.resolvedAoeVisuals];
-  next.pendingHeals = remainingPendingHeals;
   next.pendingBurstSpreadFollowUps = ctx.pendingBurstSpreadFollowUps;
   next.pendingTwisters = ctx.pendingTwisters;
 

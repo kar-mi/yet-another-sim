@@ -3,7 +3,7 @@ import { type ClientMessage, type ReplayView, type ServerMessage } from "@model/
 import type { Intent, World } from "@model/types";
 import { LocalPredictor } from "./predictor";
 import { worldHash } from "@model/worldHash";
-import { WORLD_RENDER_KEYS, getWorldRenderKeys, setWorldRenderKeys } from "./worldRenderKeys";
+import { getWorldRenderKeys, setWorldRenderKeys } from "./worldRenderKeys";
 import {
   PERF_ENABLED,
   recordApplyFrames,
@@ -169,9 +169,8 @@ export class NetClient {
     recordApplyFrames(message.frames.length, result.applied, performance.now() - start);
   }
 
-  private maybeReportSnapshot(replicaWorld: World, tick: number): void {
+  private maybeReportSnapshot(world: World, tick: number): void {
     if (!this.isHost || tick === 0 || tick % SNAPSHOT_INTERVAL !== 0) return;
-    const { [WORLD_RENDER_KEYS]: _drop, ...world } = replicaWorld as any;
     const message = { type: "snapshot", pull: this.pull, formatVersion: SNAPSHOT_FORMAT_VERSION, tick, world } as const;
     if (PERF_ENABLED) {
       const start = performance.now();

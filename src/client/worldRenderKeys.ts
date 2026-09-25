@@ -6,9 +6,7 @@ export type WorldRenderKeys = {
   crystals: string;
 };
 
-export const WORLD_RENDER_KEYS: unique symbol = Symbol("yas.worldRenderKeys");
-
-type KeyedWorld = World & { [WORLD_RENDER_KEYS]?: WorldRenderKeys };
+const renderKeysByWorld = new WeakMap<World, WorldRenderKeys>();
 
 export function computeWorldRenderKeys(world: World): WorldRenderKeys {
   return {
@@ -19,9 +17,9 @@ export function computeWorldRenderKeys(world: World): WorldRenderKeys {
 }
 
 export function getWorldRenderKeys(world: World): WorldRenderKeys | undefined {
-  return (world as KeyedWorld)[WORLD_RENDER_KEYS];
+  return renderKeysByWorld.get(world);
 }
 
 export function setWorldRenderKeys(world: World, keys: WorldRenderKeys): void {
-  (world as KeyedWorld)[WORLD_RENDER_KEYS] = keys;
+  renderKeysByWorld.set(world, keys);
 }
