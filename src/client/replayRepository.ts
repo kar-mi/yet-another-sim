@@ -18,11 +18,10 @@ export class ReplayRepositoryError extends Error {
 export class ReplayRepository {
   private readonly cache = new Map<string, ReplayData>();
 
-  constructor(private readonly request: Request = fetch) {}
+  constructor(private readonly request: Request = (input, init) => fetch(input, init)) {}
 
   async list(sessionId: string): Promise<ReplaySummary[]> {
-    const request = this.request;
-    const response = await request(`/api/replays/${encodeURIComponent(sessionId)}`);
+    const response = await this.request(`/api/replays/${encodeURIComponent(sessionId)}`);
     if (!response.ok) throw new ReplayRepositoryError("request_failed", `Failed to load replay list: ${response.status}`);
     const value: unknown = await response.json();
     if (!Array.isArray(value)) throw new ReplayRepositoryError("corrupt_data", "Invalid replay list");
@@ -34,8 +33,7 @@ export class ReplayRepository {
     const cached = this.cache.get(key);
     if (cached) return cached;
 
-    const request = this.request;
-    const response = await request(`/api/replays/${encodeURIComponent(sessionId)}/${pull}`);
+    const response = await this.request(`/api/replays/${encodeURIComponent(sessionId)}/${pull}`);
     if (!response.ok) throw await responseError(response);
     const replay = parseReplayData(await response.json());
     this.cache.set(key, replay);

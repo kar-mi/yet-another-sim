@@ -14,8 +14,6 @@ lockstep model itself is described in [Deterministic Lockstep](deterministic-loc
   `determinism.test.ts` deep-freezes every world across a fight to catch violations.
 - `ctx.randInt`/`ctx.randFloat` are closures over `ctx`, so passing them to helpers (for example
   `effectsForMechanic`) still advances the shared `rngState`.
-- Full-raid heals resolve inline in `tick` before boss targeting, so revived HP is visible to
-  targeting in the same tick. That is why the `heal` registry module has no `resolve`.
 - `resolveForcedMarches` stores the active list on `ctx.forcedMarches`; `applyStatusEffects` later
   appends plant traps to it (those are not culled until the next tick). `tick` reads the list back
   from `ctx` only after status effects run.
@@ -33,8 +31,8 @@ lockstep model itself is described in [Deterministic Lockstep](deterministic-loc
   not registered is a type error.
 - Every owning module must also appear in `REGISTRY`; a module missing there would never resolve.
   The registry checks this when it loads.
-- `REGISTRY` order is the RNG draw order. Modules without `resolve` (heal, effect_resolver) draw
-  nothing and may sit anywhere.
+- `REGISTRY` order is the RNG draw order. `heal` draws nothing and sits first so a full-raid heal
+  lands before same-tick damage; `effect_resolver` has no `resolve` and may sit anywhere.
 
 ### Pre-roll (`src/engine/preRoll.ts`)
 
@@ -100,8 +98,7 @@ segment prefix or exact label:
 
 - Hash reports happen on fixed tick boundaries (`HASH_INTERVAL`) so every client hashes the same
   ticks. They are checked per applied tick using that tick's world, never `replica.appliedTick`
-  after the batch, which would skip or duplicate boundaries. Host snapshots strip the
-  `WORLD_RENDER_KEYS` symbol first, because object spread copies enumerable symbol keys.
+  after the batch, which would skip or duplicate boundaries.
 - `worldHash`, `snapshot` and `simEnded` echo the `pull` epoch from the last `started`, so a report
   still in flight from a previous pull is dropped instead of acting on the new one.
 - There is no reconnect path. A frame gap or unexpected room leave ends the session
@@ -118,8 +115,6 @@ segment prefix or exact label:
   ticks, the authoritative path converges on the prediction by itself.
 - `replayInsights.ts` steps exactly like `SimulationReplica.stepOne` and drains `world.log` each
   tick. A lethal avoidable hit records the hit and the death in one tick; the review merges them.
-- `replayRepository.ts` calls a detached `fetch`: calling it as `this.request(...)` makes some
-  browsers throw "illegal invocation".
 - `replayTransport.ts` caps catch-up at 4 s of ticks per timer fire (for example after a
   backgrounded tab).
 - Shared replays: each seek re-simulates from tick 0 on every follower, so the host shares seeks on
@@ -162,7 +157,9 @@ segment prefix or exact label:
   engine extensions nothing references. Some builds (notably Windows `bun run start`) lost them,
   so models never rendered and transparent materials drew opaque. `RegisterFullEngineExtensions()`
   restores them. `RegisterAnimatable()` does the same for the animation runtime; without it every
-  animated GLB fails with "Cannot set properties of undefined (setting 'weight')".
+  animated GLB fails with "Cannot set properties of undefined (setting 'weight')". Together with
+  `--ignore-dce-annotations` these cost only about 60 KB of the ~4.7 MB bundle (measured with
+  `build:analyze` on Bun 1.4.2), so they stay.
 - The canvas renders at device pixel ratio capped at 2. `skipPointerMovePicking` is on because
   nothing is pickable.
 - **Pointer lock:** the first pointer move after lock carries the cursor warp to screen center;
@@ -205,7 +202,6 @@ segment prefix or exact label:
 
 ## Client CSS (`src/client/style-*.css`)
 
-- `style-tokens.css` design tokens are copied into `docs-site/styles/docs.css`; change both.
 - Form controls do not inherit `font-family` from `body`, so the pixel font is set on them globally.
 - Rules that set `display` beat the user-agent `[hidden]` rule, so such elements restate
   `[hidden] { display: none }` explicitly.
