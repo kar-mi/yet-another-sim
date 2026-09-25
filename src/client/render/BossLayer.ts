@@ -32,6 +32,7 @@ function mergeByMaterial(meshes: AbstractMesh[]): Mesh[] {
     if (mesh === group[0]) {
       mesh.setParent(null);
       mesh.bakeCurrentTransformIntoVertices();
+      mesh.refreshBoundingInfo();
     }
     merged.push(mesh);
   }
