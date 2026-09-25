@@ -165,6 +165,13 @@ segment prefix or exact label:
 - **Pointer lock:** the first pointer move after lock carries the cursor warp to screen center;
   the wrapped `onTouch` drops it. Losing the lock without a pointerup clears drag state.
 - Boss layers are keyed by model and ring settings as well as id, because raids reuse boss ids.
+- **Boss models must be static.** Voxel exports put every cube in its own mesh (about 760 for
+  Chaos), and the CPU cost of one draw call per mesh dropped Black Hole below 144 fps even while
+  stopped. `BossLayer` merges the loaded meshes per material, which bakes away the node
+  hierarchy, so per-part animation isn't possible. New `static/model/boss/*.glb` files should also
+  be pre-joined offline, which about halves their size:
+  `bunx @gltf-transform/cli dedup` → `flatten` → `join` → `prune`, each writing `in.glb out.glb`.
+  Don't use Draco or meshopt compression, because the loader has no decoders set up.
 - **Health bars** (`HealthBarLayer.ts`) share one fullscreen GUI and use `linkWithMesh`, which must
   follow `addControl`. The bars draw as a 2D overlay without 3D occlusion.
 - **Heights:** the AOE telegraph plane is at y = 0.01; arena floor art sits below it to avoid

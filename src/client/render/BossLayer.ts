@@ -17,6 +17,27 @@ const BOSS_MODEL_SCALE = 0.08;
 const BOSS_MODEL_RAISE = 0.2;
 const BOSS_MODEL_YAW_OFFSET = Math.PI;
 
+function mergeByMaterial(meshes: AbstractMesh[]): Mesh[] {
+  const groups = new Map<unknown, Mesh[]>();
+  for (const mesh of meshes) {
+    if (!(mesh instanceof Mesh) || mesh.getTotalVertices() === 0) continue;
+    const group = groups.get(mesh.material) ?? [];
+    group.push(mesh);
+    groups.set(mesh.material, group);
+  }
+  const merged: Mesh[] = [];
+  for (const group of groups.values()) {
+    const mesh = group.length === 1 ? group[0] : Mesh.MergeMeshes(group, true, true);
+    if (!mesh) continue;
+    if (mesh === group[0]) {
+      mesh.setParent(null);
+      mesh.bakeCurrentTransformIntoVertices();
+    }
+    merged.push(mesh);
+  }
+  return merged;
+}
+
 export class BossLayer {
   private mesh: Mesh | null = null;
   private modelRoots: AbstractMesh[] | null = null;
@@ -58,8 +79,10 @@ export class BossLayer {
         return;
       }
 
-      for (const mesh of result.meshes) mesh.isPickable = false;
-      const roots = result.meshes.filter(mesh => !mesh.parent);
+      const roots = mergeByMaterial(result.meshes);
+      for (const node of result.transformNodes) node.dispose();
+      for (const mesh of result.meshes) if (!mesh.isDisposed() && !roots.includes(mesh as Mesh)) mesh.dispose();
+      for (const mesh of roots) mesh.isPickable = false;
       for (const root of roots) {
         root.scaling.scaleInPlace(BOSS_MODEL_SCALE * this.modelScale);
         root.rotate(Vector3.Up(), BOSS_MODEL_YAW_OFFSET, Space.LOCAL);
