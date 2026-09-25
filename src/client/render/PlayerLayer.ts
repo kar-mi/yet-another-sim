@@ -14,6 +14,7 @@ import { length, sub } from "@shared/math";
 import { STATIC_ROOT, STATUS_ICON_ROOT } from "../staticBase";
 import { glyphBillboardMaterial, imageBillboardMaterial } from "@effects/babylon";
 import { computeVisiblePlayerIds } from "./playerVisibility";
+import { deathTimeOf } from "../pov";
 import { BURST_DURATION, burstSeed, readBurstData, VoxelBurst, type BurstData } from "./voxelBurst";
 
 const PLAYER_CENTER_Y = 0.4;
@@ -49,14 +50,6 @@ type MarkerState = {
 };
 
 export type DeathSource = { seed: number; log: readonly LogEntry[] };
-
-function deathTimeOf(log: readonly LogEntry[], playerId: string, time: number): number {
-  for (let i = log.length - 1; i >= 0; i--) {
-    const entry = log[i]!;
-    if (entry.event === "death" && entry.playerId === playerId && entry.t <= time) return entry.t;
-  }
-  return time;
-}
 
 function modelFileForPlayer(player: Player): string {
   return PLAYER_MODEL_FILES[player.id] ?? DEFAULT_PLAYER_MODEL_FILE;
@@ -167,7 +160,7 @@ export class PlayerLayer {
     if (!player.alive) {
       let deathTime = this.deathTime.get(player.id);
       if (deathTime === undefined) {
-        deathTime = deathTimeOf(deaths.log, player.id, time);
+        deathTime = deathTimeOf(deaths.log, player.id, time) ?? time;
         this.deathTime.set(player.id, deathTime);
         const current = this.activeClip.get(player.id);
         if (current) clipsByName?.get(current)?.stop();
