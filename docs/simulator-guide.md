@@ -79,6 +79,7 @@ and large ones turn quickly, which suits fine aiming; turn it off if you want a 
 | Boss casts | Cast bars for every boss currently casting, named as the timeline names them. |
 | Raid selector | The current raid and playback controls. |
 | Minimap | A top-down view of the arena with player and mechanic positions. |
+| Spectate banner | Above the center status: a red `DEAD` over `SPECTATING X` after you die, or `SPECTATING X` as an observer. When the watched player dies the camera holds on them for 2 seconds before switching. Pick who to watch with the 📷 button in the party list. |
 
 ### Position helper
 

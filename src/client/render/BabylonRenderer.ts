@@ -51,7 +51,7 @@ import { computeWorldRenderKeys, getWorldRenderKeys } from "../worldRenderKeys";
 import type { HudLayoutManager } from "../ui/HudLayoutManager";
 import { prewarmShaders } from "@effects/babylon";
 import { buildCastCandidates, CAST_BAR_COLOR, castForBoss } from "../ui/hudPresentation";
-import { resolvePovPlayer } from "../pov";
+import { resolvePovPlayer, updateDeathTimes } from "../pov";
 
 RegisterFullEngineExtensions();
 RegisterAnimatable();
@@ -102,6 +102,7 @@ export class BabylonRenderer implements Renderer {
   private arenaKey = "";
   private localPlayerId: string | null = null;
   private spectateTargetId: string | null = null;
+  private deathTimes = new Map<string, number>();
   private onResize!: () => void;
   private panButtons = { left: false, right: false };
   private swallowNextLockedMove = false;
@@ -321,7 +322,8 @@ export class BabylonRenderer implements Renderer {
 
     const botsInvisible = this.botsInvisibleOverride ?? world.botsInvisible;
     this.players.sync(world.players, world.time, botsInvisible, world);
-    const povPlayer = resolvePovPlayer(world.players, this.localPlayerId, this.spectateTargetId);
+    updateDeathTimes(this.deathTimes, world.players, world.log, world.time);
+    const povPlayer = resolvePovPlayer(world.players, this.localPlayerId, this.spectateTargetId, this.deathTimes, world.time);
     const sideOrbs = selectBossSideOrbs(world);
     const sealedImplement = selectSealedImplement(world.active);
     for (const boss of world.bosses) {

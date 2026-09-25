@@ -1042,6 +1042,26 @@
 #yas-status.yas-stopped { flex-direction: column; }
 #yas-status.yas-stopped small { margin-top: 8px; font-size: 16px; letter-spacing: 2px; text-shadow: 1px 1px 0 var(--px-shadow); }
 
+#yas-spectate {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  transform: translateY(-100px);
+  pointer-events: none;
+  z-index: 100;
+  font-family: var(--px-font);
+  font-size: 20px;
+  letter-spacing: 3px;
+  color: var(--px-text);
+  text-shadow: 2px 2px 0 var(--px-shadow);
+  opacity: 0;
+}
+#yas-spectate.yas-visible { opacity: 1; transition: opacity 0.35s; }
+#yas-spectate .yas-spectate-dead { margin-bottom: 4px; font-size: 32px; letter-spacing: 5px; color: var(--px-danger); text-shadow: 2px 2px 0 var(--px-shadow); }
+
 
 .yas-hud-drag-handle {
   align-self: stretch;

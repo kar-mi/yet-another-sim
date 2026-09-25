@@ -133,7 +133,7 @@ body:focus-visible {
   user-select: none;
 }
 
-#yas-status, #yas-session-id, #settings-panel, #home-btn, #replay-btn, #replay-exit-btn, #settings-btn, #hud-edit-btn, #info-btn, #info-panel, #yas-menu, #yas-raid-modal, #yas-replay-modal, #yas-rng-modal, #yas-tour {
+#yas-status, #yas-spectate, #yas-session-id, #settings-panel, #home-btn, #replay-btn, #replay-exit-btn, #settings-btn, #hud-edit-btn, #info-btn, #info-panel, #yas-menu, #yas-raid-modal, #yas-replay-modal, #yas-rng-modal, #yas-tour {
   zoom: var(--ui-scale, 1);
 }
 
@@ -661,6 +661,6 @@ body:focus-visible {
   padding: 6px 8px;
 }
 
-#yas-status, #yas-session-id, #yas-menu, #yas-raid-modal, #yas-replay-modal, #yas-rng-modal, #yas-tour, #settings-panel, #info-panel, [data-hud-group] {
+#yas-status, #yas-spectate, #yas-session-id, #yas-menu, #yas-raid-modal, #yas-replay-modal, #yas-rng-modal, #yas-tour, #settings-panel, #info-panel, [data-hud-group] {
   user-select: none;
 }

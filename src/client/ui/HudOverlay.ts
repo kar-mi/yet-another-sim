@@ -104,6 +104,8 @@ export class HudOverlay {
   private readonly minimap = new Minimap(zoom => this.onSettingsChange({ ...this.currentSettings, minimapZoom: zoom }));
   private root: HTMLDivElement;
   private statusEl: HTMLDivElement;
+  private spectateEl: HTMLDivElement;
+  private spectateText = "";
   private hpFill: HTMLDivElement;
   private mpFill: HTMLDivElement;
   private hpVal: HTMLSpanElement;
@@ -246,6 +248,10 @@ export class HudOverlay {
     this.statusEl = document.createElement("div");
     this.statusEl.id = "yas-status";
     document.body.appendChild(this.statusEl);
+
+    this.spectateEl = document.createElement("div");
+    this.spectateEl.id = "yas-spectate";
+    document.body.appendChild(this.spectateEl);
 
     this.sessionEl = document.createElement("div");
     this.sessionEl.id = "yas-session-id";
@@ -510,6 +516,25 @@ export class HudOverlay {
     }
   }
 
+  private renderSpectateStatus(pov: Player | undefined): void {
+    const text = pov && pov.id !== this.localPlayerId ? `SPECTATING ${pov.id.toUpperCase()}` : "";
+    if (text === this.spectateText) return;
+    this.spectateText = text;
+    if (text) {
+      const label = document.createElement("span");
+      label.textContent = text;
+      if (this.localPlayerId) {
+        const dead = document.createElement("span");
+        dead.className = "yas-spectate-dead";
+        dead.textContent = "DEAD";
+        this.spectateEl.replaceChildren(dead, label);
+      } else {
+        this.spectateEl.replaceChildren(label);
+      }
+    }
+    this.spectateEl.className = text ? "yas-visible" : "";
+  }
+
   applySettings(settings: Settings): void {
     this.currentSettings = { ...settings };
     this.minimap.setZoom(settings.minimapZoom);
@@ -584,6 +609,7 @@ export class HudOverlay {
     this.timerValEl.textContent = formatTime(world.time);
     this.renderTimerStatus(world.status);
     this.renderCenterStatus(world.status);
+    this.renderSpectateStatus(p);
 
     this.ensurePartyRows(world.players);
     const localAlive = this.localPlayerId
@@ -884,6 +910,7 @@ export class HudOverlay {
     this.resourceGroupEl.remove();
     this.bossCastPanelEl.remove();
     this.statusEl.remove();
+    this.spectateEl.remove();
     this.sessionEl.remove();
     this.timerEl.remove();
     this.fpsEl.remove();
