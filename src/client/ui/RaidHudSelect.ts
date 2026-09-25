@@ -25,6 +25,8 @@ export interface RaidHudSession {
   hintsEnabled?: boolean;
   botPatternOptions?: BotPatternOption[];
   botPatternId?: string | null;
+  botsInvincible?: boolean;
+  botsInvisible?: boolean;
 }
 
 function parseLabel(label: string): number | null {
@@ -68,6 +70,8 @@ export async function createRaidHudSelect(
     hintsEnabled: session.hintsEnabled ?? false,
     botPatternOptions: session.botPatternOptions ?? [],
     botPatternId: session.botPatternId ?? null,
+    botsInvincible: session.botsInvincible ?? false,
+    botsInvisible: session.botsInvisible ?? false,
     isHost,
   });
 
@@ -184,6 +188,8 @@ export async function createRaidHudSelect(
       hintsEnabled: message.hintsEnabled,
       botPatternOptions: message.botPatternOptions,
       botPatternId: message.botPatternId,
+      botsInvincible: message.botsInvincible,
+      botsInvisible: message.botsInvisible,
       isHost,
     });
     if (isHost && JSON.stringify(message.rngConstraints) !== JSON.stringify(loadRngConstraints(message.selectedRaidId))) {
@@ -202,7 +208,7 @@ export async function createRaidHudSelect(
 
   if (!replay && picker) {
     const selectRow = el("div", { className: "yas-raid-select-row" }, [picker.button]);
-    if (optionsBtn) document.querySelector(".yas-bots-btn")?.insertAdjacentElement("afterend", optionsBtn);
+    if (optionsBtn) document.querySelector(".yas-resource-cluster")?.appendChild(optionsBtn);
     wrapper.append(label, selectRow, controls);
     document.body.appendChild(wrapper);
     hudLayout.register("raidselector", wrapper);

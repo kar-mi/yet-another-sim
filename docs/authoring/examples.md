@@ -308,7 +308,7 @@ Bot patterns in this repository are written for **survival and correct resolutio
 play. A bot that reaches a safe spot by an inelegant route is doing its job; a bot that dies and
 leaves a tower unsoaked is not, because it costs the human players the rest of the timeline.
 
-When testing your own patterns, turn on **BOT∞** so one early bot death does not hide whether the
+When testing your own patterns, turn on **RAID SETUP → BOTS → All bots invincible** so one early bot death does not hide whether the
 rest of your rules work.
 
 ## Where to go next

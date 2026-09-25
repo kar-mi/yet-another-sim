@@ -104,13 +104,13 @@ correct mechanic resolution*, not for optimal play, and a few of them deliberate
 line than a human group would. They are good enough to show you where a mechanic wants people to
 stand.
 
-Two HUD buttons make drilling a single mechanic much less painful:
+Two settings make drilling a single mechanic much less painful:
 
-- **🛡∞** toggles your own invincibility, so a mistake does not end the run.
-- **BOT∞** does the same for the bots, so one bot dying early does not cascade into a wipe and rob
-  you of the rest of the timeline.
+- **Invincibility**, left of the HP bar, toggles your own invincibility, so a mistake does not end the run.
+- **RAID SETUP → BOTS → All bots invincible** does the same for the bots, so one bot dying early
+  does not cascade into a wipe and rob you of the rest of the timeline.
 
-There is also a **No Cooldowns** button that removes the cooldown on your own abilities (Sprint,
+Under **Invincibility** there is also a **No Cooldowns** button that removes the cooldown on your own abilities (Sprint,
 Anti-knockback, Provoke), which is useful when you are repeating one movement over and over.
 
 None of these change the timeline: casts still resolve on schedule, and damage is still calculated
@@ -132,14 +132,15 @@ The playback controls sit under the raid selector, and only the host may use the
 **STOP is what saves a replay.** A pull that is restarted without stopping is not recorded, so if
 you want to review what just happened, stop first.
 
-The host also has a **RAID SETUP** button next to **BOTS** by the HP bar. It stops a live pull before
+The host also has a **RAID SETUP** button to the right of the HP bar. It stops a live pull before
 opening, so configuration can never change halfway through a mechanic; in the waiting lobby there is
 no pull to stop, so it just opens. It has three tabs:
 
 - **WAYMARK** — the ground-marker layout: `Default` (whatever the raid file authored), `Standard`,
   `Mirrored`, or `Wide`.
 - **BOTS** — the bot pattern to use. Every Dancing Mad encounter that has bots ships exactly one
-  pattern, `Default`; *P4 — Kefka Says* has no bot movement at all and says so.
+  pattern, `Default`; *P4 — Kefka Says* has no bot movement at all and says so. This tab also has
+  the **All bots invincible** and **All bots invisible** switches, which apply immediately.
 - **RNG** — the pre-pull random choices for this encounter. Each one can be left on `RNG` to reroll
   every pull, or pinned to a specific outcome so you can drill that case. `RESET` clears every
   pin. Your pins are remembered per raid in your own browser.
