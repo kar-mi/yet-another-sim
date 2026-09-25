@@ -404,6 +404,10 @@ export class BabylonRenderer implements Renderer {
     this.hud.setPing(ms);
   }
 
+  addSystemMessage(at: number, text: string): void {
+    this.hud.addSystemMessage(at, text);
+  }
+
   setBotsInvisible(enabled: boolean): void {
     this.botsInvisibleOverride = enabled;
   }

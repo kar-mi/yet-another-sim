@@ -43,7 +43,7 @@ describe("HUD layout settings", () => {
     expect(settings.uiScale).toBe(0.8);
     expect(settings.hudLayout.party).toEqual(party);
     expect(settings.hudLayout.hotbar).toEqual(DEFAULT_HUD_LAYOUT.hotbar);
-    expect(Object.keys(settings.hudLayout)).toHaveLength(13);
+    expect(Object.keys(settings.hudLayout)).toHaveLength(14);
   });
 
   test("includes the replay-only panels in fresh and partially saved layouts", () => {

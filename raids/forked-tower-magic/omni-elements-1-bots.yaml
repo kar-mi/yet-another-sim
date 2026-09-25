@@ -1,5 +1,11 @@
 players: {}
 
+hints:
+  - { t: 31.5, event: sealed-implements-1-bow, text: "Bow - get IN" }
+  - { t: 31.5, event: sealed-implements-1-harp, text: "Harp - get OUT" }
+  - { t: 45.76, event: sealed-implements-2-bow, text: "Bow - get IN" }
+  - { t: 45.76, event: sealed-implements-2-harp, text: "Harp - get OUT" }
+
 # Gather north. Route straight-line moves around the central hole and gaps between squares.
 # Spots use world coordinates (+z north, +x east).
 _spots:

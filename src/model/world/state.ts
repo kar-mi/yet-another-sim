@@ -1,5 +1,5 @@
 import type { Vec2 } from "@shared/math";
-import type { Arena, Crystal, MechanicSection, Status, Waymark } from "./foundation";
+import type { Arena, Crystal, Hint, MechanicSection, Status, Waymark } from "./foundation";
 import type { Boss, Player } from "./entities";
 import type { BotSolvers } from "./solver";
 import type { Reassign } from "./effects";
@@ -33,6 +33,7 @@ type WorldCoreState = {
   duration: number;
   avoidableSources: Record<string, true>;
   sections: MechanicSection[];
+  hints: Hint[];
 };
 
 type WorldMechanicState = {

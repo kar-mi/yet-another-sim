@@ -110,7 +110,7 @@ export function showLanding(options?: { notice?: string }): Promise<string> {
 }
 
 type LobbyResult =
-  | { kind: "started"; world: World; yourPlayerId: string | null; sessionId: string; raidId: string; selectedRaidId: string; isHost: boolean; phase: SessionPhase; playbackState: PlaybackState; rngConstraints: Record<string, number>; rngDecisions: DecisionDescription[]; waymarkPresetId: string | null; botPatternOptions: BotPatternOption[]; botPatternId: string | null; botsInvincible: boolean; botsInvisible: boolean }
+  | { kind: "started"; world: World; yourPlayerId: string | null; sessionId: string; raidId: string; selectedRaidId: string; isHost: boolean; phase: SessionPhase; playbackState: PlaybackState; rngConstraints: Record<string, number>; rngDecisions: DecisionDescription[]; waymarkPresetId: string | null; hintsEnabled: boolean; botPatternOptions: BotPatternOption[]; botPatternId: string | null; botsInvincible: boolean; botsInvisible: boolean }
   | { kind: "expired" };
 
 export async function showLobby(net: NetClient, sessionId: string, notice?: string): Promise<LobbyResult> {
@@ -257,6 +257,7 @@ export async function showLobby(net: NetClient, sessionId: string, notice?: stri
           rngConstraints: lastLobby?.rngConstraints ?? {},
           rngDecisions: lastLobby?.rngDecisions ?? [],
           waymarkPresetId: lastLobby?.waymarkPresetId ?? null,
+          hintsEnabled: lastLobby?.hintsEnabled ?? false,
           botPatternOptions: lastLobby?.botPatternOptions ?? [],
           botPatternId: lastLobby?.botPatternId ?? null,
           botsInvincible: lastLobby?.botsInvincible ?? false,

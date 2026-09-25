@@ -22,6 +22,7 @@ export interface RaidHudSession {
   rngConstraints?: Record<string, number>;
   rngDecisions?: DecisionDescription[];
   waymarkPresetId?: string | null;
+  hintsEnabled?: boolean;
   botPatternOptions?: BotPatternOption[];
   botPatternId?: string | null;
 }
@@ -64,6 +65,7 @@ export async function createRaidHudSelect(
     rngConstraints: session.rngConstraints ?? {},
     rngDecisions: session.rngDecisions ?? [],
     waymarkPresetId: session.waymarkPresetId ?? null,
+    hintsEnabled: session.hintsEnabled ?? false,
     botPatternOptions: session.botPatternOptions ?? [],
     botPatternId: session.botPatternId ?? null,
     isHost,
@@ -179,6 +181,7 @@ export async function createRaidHudSelect(
       rngConstraints: message.rngConstraints,
       rngDecisions: message.rngDecisions,
       waymarkPresetId: message.waymarkPresetId,
+      hintsEnabled: message.hintsEnabled,
       botPatternOptions: message.botPatternOptions,
       botPatternId: message.botPatternId,
       isHost,

@@ -1086,6 +1086,7 @@ img.yas-debuff-icon {
 [data-hud-group].yas-boss-cast-panel,
 #yas-timer[data-hud-group],
 #yas-fps[data-hud-group],
+#yas-chat[data-hud-group],
 #yas-replay-seekbar[data-hud-group],
 #yas-replay-review[data-hud-group] {
   background: var(--yas-hud-surface);

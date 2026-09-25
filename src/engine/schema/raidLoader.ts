@@ -17,9 +17,16 @@ export function loadBotPatterns(value: unknown): BotPatternsDef {
 }
 
 export function applyBotPatterns(raid: RaidDef, botPatterns: BotPatternsDef): RaidDef {
+  for (const hint of botPatterns.hints ?? []) {
+    if (hint.event !== undefined && !raid.events.some(event => event.id === hint.event)) {
+      throw new Error(`Invalid bot pattern data:
+hint "${hint.text}" references unknown event "${hint.event}"`);
+    }
+  }
   return {
     ...raid,
     botSolvers: botPatterns.solvers ?? raid.botSolvers,
+    hints: botPatterns.hints,
     players: raid.players.map(player => {
       const pattern = botPatterns.players[player.id];
       return pattern ? { ...player, pattern } : player;
