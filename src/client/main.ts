@@ -7,7 +7,6 @@ import { createReplayBrowser, type LoadedReplay } from "./ui/ReplayBrowser";
 import { maybeShowWelcomeModal, setSimulatorTourContext } from "./ui/WelcomeModal";
 import { initSettingsPanel } from "./ui/SettingsPanel";
 import { createRaidHudSelect } from "./ui/RaidHudSelect";
-import { createBotActionsModal } from "./ui/BotActionsModal";
 import { NetClient, connect } from "./net";
 import { participantId } from "./participant";
 import { ReplayTransport } from "./replayTransport";
@@ -229,14 +228,9 @@ async function main(): Promise<void> {
     const startLiveView = async (): Promise<() => void> => {
       const world = (enteredLive ? net.getRenderView(performance.now()) : null) ?? session.world;
       enteredLive = true;
-      const botActions = createBotActionsModal(net, {
-        isHost,
-        botsInvincible: session.botsInvincible,
-        botsInvisible: session.botsInvisible,
-      });
       const liveRenderer = new BabylonRenderer(canvas, onSettingsChange, position => {
         net.send({ type: "debugPosition", ...position });
-      }, botActions.button, hudLayout);
+      }, hudLayout);
       renderer = liveRenderer;
       liveRenderer.init(world, sessionId, session.yourPlayerId);
       const offBotsInvisible = net.on("lobby", message => liveRenderer.setBotsInvisible(message.botsInvisible));
@@ -257,6 +251,8 @@ async function main(): Promise<void> {
           hintsEnabled: session.hintsEnabled,
           botPatternOptions: session.botPatternOptions,
           botPatternId: session.botPatternId,
+          botsInvincible: session.botsInvincible,
+          botsInvisible: session.botsInvisible,
         }),
         syncKeybindLabels,
         updateController,
@@ -267,7 +263,6 @@ async function main(): Promise<void> {
         setSimulatorTourContext(null);
         offBotsInvisible();
         dispose();
-        botActions.dispose();
         renderer = null;
       };
     };
@@ -296,7 +291,7 @@ async function main(): Promise<void> {
       await replayNet.open();
       replayNet.send({ type: "join", sessionId, raidId: replay.raidId, participantId: participantId() });
 
-      const replayRenderer = new BabylonRenderer(canvas, onSettingsChange, () => {}, null, hudLayout);
+      const replayRenderer = new BabylonRenderer(canvas, onSettingsChange, () => {}, hudLayout);
       renderer = replayRenderer;
       replayRenderer.init(replay.world, sessionId);
       const review = createReplayReview(collectReplayInsights(replay), {

@@ -14,6 +14,8 @@ type OptionsModalState = {
   hintsEnabled: boolean;
   botPatternOptions: BotPatternOption[];
   botPatternId: string | null;
+  botsInvincible: boolean;
+  botsInvisible: boolean;
   isHost: boolean;
 };
 
@@ -82,11 +84,28 @@ export function createOptionsModal(net: NetClient, initial: OptionsModalState): 
   botsSelect.addEventListener("change", () => {
     net.send({ type: "setBotPattern", patternId: botsSelect.value });
   });
+  const botsInvincibleInput = el("input", { type: "checkbox", className: "yas-switch", attrs: { role: "switch" } });
+  const botsInvisibleInput = el("input", { type: "checkbox", className: "yas-switch", attrs: { role: "switch" } });
+  botsInvincibleInput.addEventListener("change", () => {
+    net.send({ type: "setBotsInvincible", enabled: botsInvincibleInput.checked });
+  });
+  botsInvisibleInput.addEventListener("change", () => {
+    net.send({ type: "setBotsInvisible", enabled: botsInvisibleInput.checked });
+  });
   const botsBody = el("div", { className: "yas-rng-body" }, [
     botsNote,
     el("label", { className: "yas-rng-row" }, [
       el("span", { textContent: "Bot pattern" }),
       botsSelect,
+    ]),
+    el("div", { className: "yas-rng-note", textContent: "Applies immediately to every bot-controlled slot." }),
+    el("label", { className: "yas-rng-row" }, [
+      el("span", { textContent: "All bots invincible" }),
+      botsInvincibleInput,
+    ]),
+    el("label", { className: "yas-rng-row" }, [
+      el("span", { textContent: "All bots invisible" }),
+      botsInvisibleInput,
     ]),
   ]);
 
@@ -233,6 +252,8 @@ export function createOptionsModal(net: NetClient, initial: OptionsModalState): 
       ? "This raid has no bot-controlled movement."
       : hasChoice ? "" : "No alternate patterns for this raid.";
     if (state.botPatternId !== null) botsSelect.value = state.botPatternId;
+    botsInvincibleInput.checked = state.botsInvincible;
+    botsInvisibleInput.checked = state.botsInvisible;
   };
 
   return {

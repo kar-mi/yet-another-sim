@@ -347,6 +347,18 @@ img.party-effect-icon {
   gap: 8px;
 }
 
+.yas-self-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.yas-self-toggles .yas-invuln-btn {
+  width: auto;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
 .yas-hud-hidden, .yas-hud-suppressed { display: none !important; }
 
 #yas-hud-edit-overlay {
@@ -490,7 +502,6 @@ img.party-effect-icon {
 }
 
 .yas-invuln-btn,
-.yas-bots-btn,
 .yas-raid-setup-btn {
   pointer-events: all;
   flex-shrink: 0;
@@ -517,11 +528,12 @@ img.party-effect-icon {
   font-size: 12px;
 }
 
-.yas-bots-btn {
-  font-size: 12px;
+.yas-resource-cluster .yas-raid-setup-btn {
+  align-self: stretch;
+  height: auto;
+  padding: 0 14px;
 }
 
-.yas-bots-btn:disabled,
 .yas-raid-setup-btn:disabled {
   cursor: default;
   opacity: 0.38;
@@ -530,9 +542,6 @@ img.party-effect-icon {
 .yas-invuln-btn:hover,
 .yas-invuln-btn:focus,
 .yas-invuln-btn:focus-visible,
-.yas-bots-btn:not(:disabled):hover,
-.yas-bots-btn:not(:disabled):focus,
-.yas-bots-btn:not(:disabled):focus-visible,
 .yas-raid-setup-btn:not(:disabled):hover,
 .yas-raid-setup-btn:not(:disabled):focus,
 .yas-raid-setup-btn:not(:disabled):focus-visible {

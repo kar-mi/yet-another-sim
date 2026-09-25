@@ -54,7 +54,7 @@ you hold first; a player may occupy exactly one slot at a time.
 
 **A bot is standing still or dying repeatedly.** Bot patterns are authored per encounter and are
 written for survival, not optimal play. A bot dying early tends to cascade, because stacks and
-towers then go unfilled — turn on **BOT∞** while practising so one bot's death does not cost you
+towers then go unfilled — turn on **RAID SETUP → BOTS → All bots invincible** while practising so one bot's death does not cost you
 the rest of the timeline.
 
 **A raid has no bot movement at all.** Some encounters ship without a bot pattern. The **RAID SETUP →
