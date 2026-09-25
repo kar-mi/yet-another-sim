@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { loadRaid } from "../engine/schema/raidLoader";
+import { applyBotPatterns, loadBotPatterns, loadRaid } from "../engine/schema/raidLoader";
 import { baseRaid, roster } from "../engine/__tests__/helpers";
 import { ClientMessageSchema, EMPTY_RAID_ID, MAX_OBSERVERS } from "@model/protocol";
 import type { PlaybackState, ServerMessage } from "@model/protocol";
@@ -796,6 +796,83 @@ test("waymark preset resets to the raid default when the raid changes", () => {
   session.setRaid("c1", "alternate", alternateRaid());
 
   expect(sent.some(entry => entry.message.type === "lobby" && entry.message.raidId === "alternate" && entry.message.waymarkPresetId === null)).toBe(true);
+});
+
+function hintedRaid() {
+  return applyBotPatterns(testRaid(), loadBotPatterns({ players: {}, hints: [{ t: 5, text: "Stack north" }] }));
+}
+
+test("hints are host-only, off by default, and baked into the world when enabled", () => {
+  const { session, sent } = makeSession();
+  session.join("c1", "c1");
+  session.join("c2", "c2");
+  session.setRaid("c1", "hinted", hintedRaid());
+  expect(session.world.hints).toEqual([]);
+
+  session.handle("c2", { type: "setHintsEnabled", enabled: true });
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "error" && entry.message.message === "Only the host can change hints")).toBe(true);
+
+  session.handle("c1", { type: "setHintsEnabled", enabled: true });
+  expect(sent.some(entry => entry.message.type === "lobby" && entry.message.hintsEnabled)).toBe(true);
+
+  session.claimSlot("c1", "mt");
+  session.enterWorkshop("c1");
+  session.start("c1");
+  expect(session.world.hints).toEqual([{ t: 5, text: "Stack north" }]);
+
+  session.stop("c1");
+  session.handle("c1", { type: "setHintsEnabled", enabled: false });
+  expect(session.world.hints).toEqual([]);
+});
+
+test("hints setting survives a raid change", () => {
+  const { session, sent } = makeSession();
+  session.join("c1", "c1");
+  session.handle("c1", { type: "setHintsEnabled", enabled: true });
+  session.setRaid("c1", "alternate", alternateRaid());
+
+  expect(sent.some(entry => entry.message.type === "lobby" && entry.message.raidId === "alternate" && entry.message.hintsEnabled)).toBe(true);
+});
+
+test("lobby events broadcast system messages with a timestamp", () => {
+  let now = 1_000;
+  const { session, sent } = makeSession({ now: () => now });
+  const events = () => sent.flatMap(entry => entry.message.type === "system" && entry.clientId === "c1" ? [entry.message] : []);
+
+  session.join("c1", "c1");
+  now = 2_000;
+  session.join("c2", "c2");
+  session.claimSlot("c2", "mt");
+  session.releaseSlot("c2", "mt");
+  session.setRaid("c1", "alternate", alternateRaid());
+  session.claimSlot("c1", "mt");
+  session.enterWorkshop("c1");
+  session.start("c1");
+  session.pause("c1");
+  session.play("c1");
+  session.restart("c1");
+  session.disconnectClient("c2");
+
+  expect(events().map(message => message.event)).toEqual([
+    { kind: "joined", connected: 1 },
+    { kind: "joined", connected: 2 },
+    { kind: "slotClaimed", playerId: "mt" },
+    { kind: "slotReleased", playerId: "mt" },
+    { kind: "raidSelected", raidName: "Alternate Test" },
+    { kind: "slotClaimed", playerId: "mt" },
+    { kind: "left", connected: 1 },
+  ]);
+  expect(events()[0].at).toBe(1_000);
+  expect(events()[1].at).toBe(2_000);
+});
+
+test("host handoff broadcasts a hostChanged system message", () => {
+  const { session, sent } = makeSession();
+  session.join("c1", "c1");
+  session.join("c2", "c2");
+  session.disconnectClient("c1");
+
+  expect(sent.some(entry => entry.clientId === "c2" && entry.message.type === "system" && entry.message.event.kind === "hostChanged" && entry.message.event.hostParticipantId === "c2")).toBe(true);
 });
 
 test("bot pattern options are exposed in the lobby and selectable host-only", () => {

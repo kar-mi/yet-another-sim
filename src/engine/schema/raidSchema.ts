@@ -158,6 +158,11 @@ function resolveBossIdentity(overrides: BossIdentityOverrides, registryId: BossR
   };
 }
 
+const HintSchema = z.object({
+  t: z.number().nonnegative(),
+  text: z.string().min(1),
+});
+
 export const RaidSchema = z.object({
   name: z.string().min(1),
   arena: ArenaSchema,
@@ -178,6 +183,7 @@ export const RaidSchema = z.object({
     t: z.number().nonnegative(),
   })).optional(),
   waymarks: z.array(WaymarkSchema).optional(),
+  hints: z.array(HintSchema).optional(),
   crystals: CrystalsSchema,
   optionals: OptionalsSchema,
   botSolvers: BotSolversSchema,
@@ -718,6 +724,7 @@ export const RaidSchema = z.object({
 export const BotPatternsSchema = z.object({
   players: z.record(z.string().min(1), z.array(WaypointSchema)),
   solvers: BotSolversSchema,
+  hints: z.array(HintSchema).optional(),
 });
 
 export type RaidDef = z.infer<typeof RaidSchema>;

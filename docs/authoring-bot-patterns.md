@@ -5,10 +5,11 @@ they react to mechanics. They live alongside the raid file and are referenced by
 `botPatterns` field. For the raid timeline itself (events, shapes, effects), see
 [Authoring Raids](authoring-raids.md).
 
-A bot pattern file has two parts, either of which may be omitted:
+A bot pattern file has these parts. Only `players` is required, and it can be empty:
 
 - **`players`** — static waypoint paths (move to a position at a time).
 - **`solvers.generic`** — data-driven rules that react to live mechanics each tick.
+- **`hints`** — timed tips shown in the chat box when the host turns hints on. See [Hints](#hints).
 
 ## File location & naming
 
@@ -225,6 +226,24 @@ flows through the tower or AOE active lists (`aoe`, `tower`, `targeted`, `bait`)
 extend to the latest end time. Mind tightly choreographed phases: a hold that overlaps an incoming
 AOE/bait window can freeze bots out of position — keep a covering generic rule (e.g. an extended
 `endAt`) over any window where bots must stay placed.
+
+## Hints
+
+`hints` lists timed tips for this strategy. When the host turns on **RAID SETUP → HINTS → Show
+hints**, each hint appears in everyone's chat box once the fight timer reaches `t`, stamped with that
+fight time. Hints are off by default. They belong to the bot pattern, so picking a different pattern
+also switches the hints.
+
+```yaml
+hints:
+  - { t: 4, text: "Tanks north, healers south" }
+  - { t: 12.5, text: "Stack on the marked player" }
+```
+
+- `t` is in seconds from pull start and must be `>= 0`. `text` must not be empty.
+- The order doesn't matter, because hints are sorted by `t`.
+- Hints are baked into the pull's tick-zero world. Changing the toggle rebuilds a stopped pull's
+  world but never changes a running one.
 
 ## Rotated frames
 

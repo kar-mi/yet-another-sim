@@ -11,12 +11,13 @@ type OptionsModalState = {
   rngConstraints: Record<string, number>;
   rngDecisions: DecisionDescription[];
   waymarkPresetId: string | null;
+  hintsEnabled: boolean;
   botPatternOptions: BotPatternOption[];
   botPatternId: string | null;
   isHost: boolean;
 };
 
-type OptionsTab = "waymark" | "bots" | "rng";
+type OptionsTab = "waymark" | "hints" | "bots" | "rng";
 
 function formatSeed(seed: number | null): string {
   return seed === null ? "-" : `0x${seed.toString(16).padStart(8, "0")}`;
@@ -61,6 +62,18 @@ export function createOptionsModal(net: NetClient, initial: OptionsModalState): 
     el("label", { className: "yas-rng-row" }, [
       el("span", { textContent: "Waymark preset" }),
       waymarkSelect,
+    ]),
+  ]);
+
+  const hintsInput = el("input", { type: "checkbox", className: "yas-switch", attrs: { role: "switch" } });
+  hintsInput.addEventListener("change", () => {
+    net.send({ type: "setHintsEnabled", enabled: hintsInput.checked });
+  });
+  const hintsBody = el("div", { className: "yas-rng-body" }, [
+    el("div", { className: "yas-rng-note", textContent: "Timed tips from the bot pattern, shown in the chat box." }),
+    el("label", { className: "yas-rng-row" }, [
+      el("span", { textContent: "Show hints" }),
+      hintsInput,
     ]),
   ]);
 
@@ -159,6 +172,7 @@ export function createOptionsModal(net: NetClient, initial: OptionsModalState): 
 
   const tabs: { id: OptionsTab; label: string; body: HTMLElement }[] = [
     { id: "waymark", label: "WAYMARK", body: waymarkBody },
+    { id: "hints", label: "HINTS", body: hintsBody },
     { id: "bots", label: "BOTS", body: botsBody },
     { id: "rng", label: "RNG", body: rngBody },
   ];
@@ -180,6 +194,7 @@ export function createOptionsModal(net: NetClient, initial: OptionsModalState): 
     el("div", { className: "yas-rng-note", textContent: "For camera, keybinds and display settings, click the ⚙ gear (top-right)." }),
     tabStrip,
     waymarkBody,
+    hintsBody,
     botsBody,
     rngBody,
   ]);
@@ -207,6 +222,7 @@ export function createOptionsModal(net: NetClient, initial: OptionsModalState): 
 
   const renderWaymark = () => {
     waymarkSelect.value = state.waymarkPresetId ?? "";
+    hintsInput.checked = state.hintsEnabled;
   };
 
   const renderBots = () => {

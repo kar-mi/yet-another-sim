@@ -13,6 +13,7 @@ import { participantId } from "./participant";
 import { ReplayTransport } from "./replayTransport";
 import { replayRepository } from "./replayRepository";
 import { collectReplayInsights } from "./replayInsights";
+import { systemText } from "./chatModel";
 import { createReplayReview } from "./ui/ReplayReview";
 import { preloadAssets } from "./render/preloadAssets";
 import { SessionIdSchema, type PlaybackState, type ReplayView, type SessionPhase } from "@model/protocol";
@@ -45,8 +46,10 @@ async function startSessionRuntime(options: SessionRuntimeOptions, settings: Ret
   const disposePerfHud = initPerfHud();
   const stopLoop = startNetLoop(renderer, net, { readOnly: options.readOnly });
   const pingTimer = setInterval(() => net.ping(ms => renderer.setPing(ms)), PING_INTERVAL_MS);
+  const offSystem = net.on("system", message => renderer.addSystemMessage(message.at, systemText(message.event, net.participantId)));
 
   return () => {
+    offSystem();
     clearInterval(pingTimer);
     stopLoop();
     disposePerfHud();
@@ -251,6 +254,7 @@ async function main(): Promise<void> {
           rngConstraints: session.rngConstraints,
           rngDecisions: session.rngDecisions,
           waymarkPresetId: session.waymarkPresetId,
+          hintsEnabled: session.hintsEnabled,
           botPatternOptions: session.botPatternOptions,
           botPatternId: session.botPatternId,
         }),

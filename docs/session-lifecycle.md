@@ -134,6 +134,18 @@ deliberate action, not a loss: it still ends the raid back to the workshop for e
   slack, as a defence against a host that never sends `simEnded`.
 - `openPullLog()` records authored raids only. The workshop is an interactive arena, not simulation
   content: recording it would clutter the replay browser and burn the first pull number.
-- Options (waymarks, bot pattern, RNG pins) rebuild the frozen world immediately when no pull is
+- Options (waymarks, hints, bot pattern, RNG pins) rebuild the frozen world immediately when no pull is
   live, and are never applied mid-pull. They are set from the setup screen, which is why they always
   land between pulls.
+
+## System messages
+
+The server broadcasts `{ type: "system", at, event }` to every connection for lobby events: a first
+join, a disconnect, a host handoff, a slot claim or release, and a raid selection (not the empty
+raid). `at` is the server's wall-clock time in ms. Starting, playing, pausing and restarting a pull
+send no system message. These messages are outside the sim and are never recorded or replayed. A
+client that joins later gets no backlog.
+
+Hints are not system messages. `hintsEnabled` is a host lobby option. `freshWorld()` copies the
+raid's hints into the world when it's on and leaves `world.hints` empty when it's off, so they reach
+clients through the tick-zero world like waymarks do. `hintsEnabled` stays set across raid changes.

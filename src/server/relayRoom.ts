@@ -2,7 +2,7 @@ import { TICK_RATE } from "@shared/constants";
 import { createWorld } from "../engine/world";
 import { makeSeed } from "@shared/rng";
 import type { RaidDef } from "../engine/schema/raidSchema";
-import { EMPTY_RAID_ID, MAX_OBSERVERS, type BotPatternOption, type ClientMessage, type Frame, type LobbySlot, type PlaybackState, type ReplayView, type ServerMessage, type SessionPhase, type TransitionReason } from "@model/protocol";
+import { EMPTY_RAID_ID, MAX_OBSERVERS, type BotPatternOption, type ClientMessage, type Frame, type LobbySlot, type PlaybackState, type ReplayView, type ServerMessage, type SessionPhase, type SystemEvent, type TransitionReason } from "@model/protocol";
 import type { Intent, Intents, World } from "@model/types";
 import { logger } from "@shared/logger";
 import { WAYMARK_PRESETS, isWaymarkPresetId } from "@model/waymarkPresets";
@@ -90,6 +90,7 @@ export class RelayRoom {
   private readonly pullSnapshot = new PullSnapshot();
   private rngConstraints: RngConstraints = {};
   private waymarkPresetId: string | null = null;
+  private hintsEnabled = false;
   private botPatternId: string | null = null;
   private lastSeed: number | null = null;
   pullEpoch = 0;
@@ -154,6 +155,7 @@ export class RelayRoom {
       }
     }
 
+    if (!reconnecting) this.broadcastSystem({ kind: "joined", connected: this.connections.size });
     this.sendLobby(participantId);
     this.sendReplay(participantId);
     logger.info("session", "client joined", { session: this.id, participantId, clients: this.connections.size });
@@ -201,6 +203,9 @@ export class RelayRoom {
       case "setWaymarkPreset":
         this.setWaymarkPreset(participantId, message.presetId);
         return;
+      case "setHintsEnabled":
+        this.setHintsEnabled(participantId, message.enabled);
+        return;
       case "setBotsInvincible":
         this.setBotsInvincible(participantId, message.enabled);
         return;
@@ -242,6 +247,7 @@ export class RelayRoom {
     this.rngConstraints = {};
     this.waymarkPresetId = null;
     this.botPatternId = defaultBotPatternId(this.selectedRaid);
+    if (raidId !== EMPTY_RAID_ID) this.broadcastSystem({ kind: "raidSelected", raidName: raid.name });
 
     if (this.phase === "setup" || raidId === EMPTY_RAID_ID) {
       this.raidId = raidId;
@@ -413,6 +419,7 @@ export class RelayRoom {
     this.participants.delete(clientId);
     this.connections.delete(participantId);
     logger.info("session", "client disconnected", { session: this.id, participantId, clients: this.connections.size });
+    this.broadcastSystem({ kind: "left", connected: this.connections.size });
 
     for (const [playerId, ownerId] of this.slots) {
       if (ownerId === participantId) this.slots.set(playerId, null);
@@ -444,6 +451,7 @@ export class RelayRoom {
     this.hostParticipantId = this.successorHost();
     if (this.hostParticipantId !== previous) {
       logger.info("session", "host handed off", { session: this.id, from: previous, to: this.hostParticipantId });
+      this.broadcastSystem({ kind: "hostChanged", hostParticipantId: this.hostParticipantId });
     }
     return this.hostParticipantId !== previous;
   }
@@ -487,6 +495,7 @@ export class RelayRoom {
     }
 
     this.slots.set(playerId, participantId);
+    this.broadcastSystem({ kind: "slotClaimed", playerId });
     if (this.pullIsLive()) {
       this.broadcastLobby();
       return;
@@ -508,6 +517,7 @@ export class RelayRoom {
 
     this.slots.set(playerId, null);
     this.leavePull(participantId);
+    this.broadcastSystem({ kind: "slotReleased", playerId });
     this.broadcastLobby();
   }
 
@@ -612,6 +622,17 @@ export class RelayRoom {
     }
 
     this.waymarkPresetId = presetId;
+    this.refreshFrozenWorld();
+    this.broadcastLobby();
+  }
+
+  setHintsEnabled(participantId: string, enabled: boolean): void {
+    if (participantId !== this.hostParticipantId) {
+      this.sendError(participantId, "Only the host can change hints");
+      return;
+    }
+
+    this.hintsEnabled = enabled;
     this.refreshFrozenWorld();
     this.broadcastLobby();
   }
@@ -857,6 +878,7 @@ export class RelayRoom {
       ...world,
       botsInvisible: this.botsInvisible,
       waymarks: waymarkPreset ? waymarkPreset.marks : world.waymarks,
+      hints: this.hintsEnabled ? world.hints : [],
       players: world.players.map(player => ({
         ...player,
         control: this.pullRoster.has(player.id) ? "human" : "bot",
@@ -917,6 +939,7 @@ export class RelayRoom {
       rngConstraints: { ...this.rngConstraints },
       rngDecisions: describeDecisions(this.selectedRaid),
       waymarkPresetId: this.waymarkPresetId,
+      hintsEnabled: this.hintsEnabled,
       botPatternOptions: botPatternOptionsFor(this.selectedRaid),
       botPatternId: this.botPatternId,
       botsInvincible: this.botsInvincible,
@@ -962,6 +985,10 @@ export class RelayRoom {
 
   private broadcastAll(message: ServerMessage): void {
     this.broadcast([...this.connections.values()], message);
+  }
+
+  private broadcastSystem(event: SystemEvent): void {
+    this.broadcastAll({ type: "system", at: this.now(), event });
   }
 
   private sendError(participantId: string, message: string): void {

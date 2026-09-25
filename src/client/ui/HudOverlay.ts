@@ -28,6 +28,7 @@ import {
 } from "../frameReadout";
 import type { HudLayoutManager } from "./HudLayoutManager";
 import { Minimap } from "./Minimap";
+import { ChatBox } from "./ChatBox";
 import type { WorldRenderKeys } from "../worldRenderKeys";
 import {
   buildCastCandidates,
@@ -123,6 +124,7 @@ export class HudOverlay {
   private timerValEl: HTMLSpanElement;
   private timerStatusEl: HTMLSpanElement;
   private fpsEl: HTMLDivElement;
+  private readonly chat = new ChatBox();
   private fpsValEl: HTMLSpanElement;
   private fpsShown = -1;
   private pingValEl: HTMLSpanElement;
@@ -297,6 +299,7 @@ export class HudOverlay {
     this.pingValEl = statRow("PING");
     this.avgPingValEl = statRow("AVG PING");
     document.body.appendChild(this.fpsEl);
+    document.body.appendChild(this.chat.element);
 
     this.partyEl = document.createElement("div");
     this.partyEl.id = "yas-party";
@@ -328,6 +331,7 @@ export class HudOverlay {
     this.hudLayout.register("bosscasts", this.bossCastPanelEl);
     this.hudLayout.register("timer", this.timerEl);
     this.hudLayout.register("fps", this.fpsEl);
+    this.hudLayout.register("chat", this.chat.element);
     document.body.appendChild(this.minimap.element);
     this.hudLayout.register("minimap", this.minimap.element);
 
@@ -607,6 +611,7 @@ export class HudOverlay {
     this.latestWorld = world;
     if (DEBUG_POSITION_ENABLED && p) this.syncPositionFrames(world, p);
     this.timerValEl.textContent = formatTime(world.time);
+    this.chat.sync(world);
     this.renderTimerStatus(world.status);
     this.renderCenterStatus(world.status);
     this.renderSpectateStatus(p);
@@ -898,9 +903,13 @@ export class HudOverlay {
     this.avgPingValEl.textContent = `${Math.round(average)}ms`;
   }
 
+  addSystemMessage(at: number, text: string): void {
+    this.chat.addSystem(at, text);
+  }
+
   dispose(): void {
     this.hudLayout.exitEditMode();
-    for (const id of ["party", "hotbar", "buffs", "debuffs", "resources", "targetcast", "bosscasts", "timer", "fps", "minimap"] as const) {
+    for (const id of ["party", "hotbar", "buffs", "debuffs", "resources", "targetcast", "bosscasts", "timer", "fps", "chat", "minimap"] as const) {
       this.hudLayout.unregister(id);
     }
     this.hotbarGroupEl.remove();
@@ -914,6 +923,7 @@ export class HudOverlay {
     this.sessionEl.remove();
     this.timerEl.remove();
     this.fpsEl.remove();
+    this.chat.element.remove();
     this.partyEl.remove();
     this.castBarEl.remove();
   }

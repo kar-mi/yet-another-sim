@@ -131,6 +131,7 @@ export function createWorld(raid: RaidDef, seed: number = makeSeed(), constraint
     duration: raid.duration,
     avoidableSources: collectAvoidableSources(effectiveEvents),
     sections: raid.sections ? [...raid.sections].sort((a, b) => a.t - b.t) : [],
+    hints: raid.hints ? [...raid.hints].sort((a, b) => a.t - b.t) : [],
     active: [],
     tetherSources: [],
     lineLinks: [],

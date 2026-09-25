@@ -27,3 +27,4 @@ export type FlashBeforeResolve = { lead: number; color?: string };
 export type PositionalArc = { center: number; width: number };
 export type BossRelativeCenter = { lateral: number; forward: number };
 export type MechanicSection = { id: string; name: string; t: number };
+export type Hint = { t: number; text: string };

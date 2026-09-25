@@ -20,6 +20,7 @@ export function applyBotPatterns(raid: RaidDef, botPatterns: BotPatternsDef): Ra
   return {
     ...raid,
     botSolvers: botPatterns.solvers ?? raid.botSolvers,
+    hints: botPatterns.hints,
     players: raid.players.map(player => {
       const pattern = botPatterns.players[player.id];
       return pattern ? { ...player, pattern } : player;

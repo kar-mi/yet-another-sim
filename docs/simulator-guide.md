@@ -79,6 +79,7 @@ and large ones turn quickly, which suits fine aiming; turn it off if you want a 
 | Boss casts | Cast bars for every boss currently casting, named as the timeline names them. |
 | Raid selector | The current raid and playback controls. |
 | Minimap | A top-down view of the arena with player and mechanic positions. |
+| Chat | A read-only message log. Lobby events (players joining or leaving, slots claimed or released, host changes, raid changes) show your local time. Raid hints show the fight time and only appear when the host enables them in **RAID SETUP → HINTS**. |
 | Spectate banner | Above the center status: a red `DEAD` over `SPECTATING X` after you die, or `SPECTATING X` as an observer. When the watched player dies the camera holds on them for 2 seconds before switching. Pick who to watch with the 📷 button in the party list. |
 
 ### Position helper
@@ -120,7 +121,7 @@ in the running pull (in slot order), or to someone still connected if no pull is
 Only the host can:
 
 - change the raid,
-- open **RAID SETUP** (waymarks, bot pattern, RNG pins),
+- open **RAID SETUP** (waymarks, hints, bot pattern, RNG pins),
 - press **PLAY**, **PAUSE**, **STOP** or **RESTART**,
 - open the **▶** replay browser.
 

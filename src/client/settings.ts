@@ -15,7 +15,7 @@ export interface KeyBindings {
   swapTarget: string;
 }
 
-export type HudGroupId = "party" | "hotbar" | "buffs" | "debuffs" | "resources" | "targetcast" | "bosscasts" | "timer" | "fps" | "raidselector" | "replayevents" | "replayseek" | "minimap";
+export type HudGroupId = "party" | "hotbar" | "buffs" | "debuffs" | "resources" | "targetcast" | "bosscasts" | "timer" | "fps" | "chat" | "raidselector" | "replayevents" | "replayseek" | "minimap";
 
 export interface HudGroupLayout {
   x: number;
@@ -26,7 +26,7 @@ export interface HudGroupLayout {
 }
 
 const HUD_GROUPS: readonly HudGroupId[] = [
-  "party", "hotbar", "buffs", "debuffs", "resources", "targetcast", "bosscasts", "timer", "fps", "raidselector",
+  "party", "hotbar", "buffs", "debuffs", "resources", "targetcast", "bosscasts", "timer", "fps", "chat", "raidselector",
   "replayevents", "replayseek", "minimap",
 ];
 
@@ -40,6 +40,7 @@ export const HUD_GROUP_LABELS: Record<HudGroupId, string> = {
   bosscasts: "All Boss Casts",
   timer: "Timer",
   fps: "FPS / Ping",
+  chat: "Chat",
   raidselector: "Raid Selector",
   replayevents: "Replay Events",
   replayseek: "Replay Seek Bar",
@@ -53,6 +54,7 @@ export const DEFAULT_HUD_LAYOUT: Record<HudGroupId, HudGroupLayout> = {
   bosscasts: { x: 0.7287770499512639, y: 0.7377124165993336, scale: 1, opacity: 0, hidden: false },
   timer: { x: 0.6029839049015961, y: 0.03804923684032202, scale: 0.8, opacity: 0, hidden: false },
   fps: { x: 0.68, y: 0.03804923684032202, scale: 0.8, opacity: 0, hidden: false },
+  chat: { x: 0.12, y: 0.82, scale: 0.8, opacity: 0.5, hidden: false },
   raidselector: { x: 0.5037860125902104, y: 0.054555068125830095, scale: 1, opacity: 1, hidden: false },
   party: { x: 0.09028931244598525, y: 0.24041641353184845, scale: 0.9005636984521633, opacity: 0.43, hidden: false },
   targetcast: { x: 0.49902852419601074, y: 0.17075942920270956, scale: 1, opacity: 1, hidden: false },

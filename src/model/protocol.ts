@@ -125,6 +125,10 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
     presetId: z.string().nullable(),
   }),
   z.strictObject({
+    type: z.literal("setHintsEnabled"),
+    enabled: z.boolean(),
+  }),
+  z.strictObject({
     type: z.literal("setBotPattern"),
     patternId: z.string(),
   }),
@@ -194,6 +198,14 @@ export type Frame = { intents: Intents; botsInvincible: boolean; botsInvisible?:
 
 export type ReplayView = { pull: number; playing: boolean; tick: number };
 
+export type SystemEvent =
+  | { kind: "joined"; connected: number }
+  | { kind: "left"; connected: number }
+  | { kind: "hostChanged"; hostParticipantId: string }
+  | { kind: "slotClaimed"; playerId: string }
+  | { kind: "slotReleased"; playerId: string }
+  | { kind: "raidSelected"; raidName: string };
+
 export type ServerMessage =
   | { type: "joined"; participantId: string }
   | {
@@ -209,6 +221,7 @@ export type ServerMessage =
       rngConstraints: Record<string, number>;
       rngDecisions: DecisionDescription[];
       waymarkPresetId: string | null;
+      hintsEnabled: boolean;
       botPatternOptions: BotPatternOption[];
       botPatternId: string | null;
       botsInvincible: boolean;
@@ -225,4 +238,5 @@ export type ServerMessage =
   | { type: "sessionExpired" }
   | { type: "frames"; startTick: number; frames: Frame[] }
   | { type: "replay"; view: ReplayView | null }
+  | { type: "system"; at: number; event: SystemEvent }
   | { type: "error"; message: string };
