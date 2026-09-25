@@ -138,7 +138,7 @@ segment prefix or exact label:
 - The pull's tick-zero `World` is frozen once `inputLog` is non-empty: resync replays from it, and
   frames already carry all per-tick control state.
 - Host snapshots are stored and relayed opaquely; the server never interprets them.
-- The chat box has no client-to-server path. Hints come only from `world.hints`, and the engine
+- The MSGS box has no client-to-server path. Hints come only from `world.hints`, and the engine
   never reads them, so they can't affect the sim. Lobby lines come only from server `system`
   messages.
 - `clientIpFor` trusts the first `X-Forwarded-For` entry because production always runs behind

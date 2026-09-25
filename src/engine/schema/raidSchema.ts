@@ -161,6 +161,7 @@ function resolveBossIdentity(overrides: BossIdentityOverrides, registryId: BossR
 const HintSchema = z.object({
   t: z.number().nonnegative(),
   text: z.string().min(1),
+  event: z.string().min(1).optional(),
 });
 
 export const RaidSchema = z.object({

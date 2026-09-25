@@ -1,6 +1,5 @@
 import type { World } from "@model/types";
 import { dueHints, formatClock } from "../chatModel";
-import { formatTime } from "./hudPresentation";
 import { el } from "./dom";
 
 const MAX_LINES = 50;
@@ -12,7 +11,7 @@ export class ChatBox {
   private prevTime = -1;
 
   constructor() {
-    this.element.append(el("span", { className: "yas-session-label", textContent: "CHAT" }), this.logEl);
+    this.element.append(el("span", { className: "yas-session-label", textContent: "MSGS" }), this.logEl);
   }
 
   sync(world: World): void {
@@ -23,7 +22,7 @@ export class ChatBox {
       this.prevTime = world.time;
     }
     for (const hint of dueHints(world.hints ?? [], this.prevTime, world.time)) {
-      this.append("yas-chat-hint", formatTime(hint.t), hint.text);
+      this.append("yas-chat-hint", formatClock(Date.now()), hint.text);
     }
     this.prevTime = world.time;
   }

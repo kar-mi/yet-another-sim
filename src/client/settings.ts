@@ -40,7 +40,7 @@ export const HUD_GROUP_LABELS: Record<HudGroupId, string> = {
   bosscasts: "All Boss Casts",
   timer: "Timer",
   fps: "FPS / Ping",
-  chat: "Chat",
+  chat: "Msgs",
   raidselector: "Raid Selector",
   replayevents: "Replay Events",
   replayseek: "Replay Seek Bar",

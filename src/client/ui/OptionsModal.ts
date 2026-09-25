@@ -70,7 +70,7 @@ export function createOptionsModal(net: NetClient, initial: OptionsModalState): 
     net.send({ type: "setHintsEnabled", enabled: hintsInput.checked });
   });
   const hintsBody = el("div", { className: "yas-rng-body" }, [
-    el("div", { className: "yas-rng-note", textContent: "Timed tips from the bot pattern, shown in the chat box." }),
+    el("div", { className: "yas-rng-note", textContent: "Timed tips from the bot pattern, shown in the MSGS box." }),
     el("label", { className: "yas-rng-row" }, [
       el("span", { textContent: "Show hints" }),
       hintsInput,
